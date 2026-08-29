@@ -1,4 +1,5 @@
 import type { CoverageApplyResult, CoverageReviewInput, DocumentCoverage, DocumentImport, DocumentImportSummary, HandoffAuthorizationInput, HandoffReviewInput, ProposalStatus } from "./documentTypes";
+import type { FormTemplateProposal } from "./formsTypes";
 import { requestJSON } from "./http";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -18,6 +19,13 @@ export async function importDocument(file: File, purpose: string, sourceType: st
   body.set("purpose", purpose);
   body.set("source_type", sourceType);
   return normalizeDetail(await requestJSON<DocumentImport>(apiBase, "/api/v1/document-imports", { method: "POST", body }));
+}
+
+export function createDocumentFormProposal(documentID: string, expectedDocumentVersion: number, baseTemplateID?: string, baseTemplateVersion?: number): Promise<FormTemplateProposal> {
+  return requestJSON<FormTemplateProposal>(apiBase, `/api/v1/document-imports/${encodeURIComponent(documentID)}/form-template-proposals`, {
+    method: "POST",
+    body: JSON.stringify({ expected_document_version: expectedDocumentVersion, base_template_id: baseTemplateID, base_template_version: baseTemplateVersion }),
+  });
 }
 
 export async function reviewDocumentProposal(documentID: string, proposalID: string, status: ProposalStatus, expectedVersion: number, note = ""): Promise<DocumentImport> {
@@ -75,6 +83,8 @@ function normalizeDetail(value: DocumentImport): DocumentImport {
     sections: Array.isArray(value.sections) ? value.sections : [],
     proposals: Array.isArray(value.proposals) ? value.proposals : [],
     limitations: Array.isArray(value.limitations) ? value.limitations : [],
+    elements: Array.isArray(value.elements) ? value.elements : [],
+    degradations: Array.isArray(value.degradations) ? value.degradations : [],
     sections_total: value.sections_total ?? value.sections?.length ?? 0,
     sections_omitted: value.sections_omitted ?? 0,
     proposals_total: value.proposals_total ?? value.proposals?.length ?? 0,

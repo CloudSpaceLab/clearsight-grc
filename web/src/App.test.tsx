@@ -4,7 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import type { RuntimeContext } from "./api";
 import { loadCaptureRequest, loadContext, loadEvidenceRequest, loadEvidenceRequests, loadReadiness, loadToday } from "./api";
-import type { EvidenceRequest } from "./types";
+import type { AttentionItem, EvidenceRequest } from "./types";
 import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "./captureApi";
 import { ApiError } from "./http";
 
@@ -155,6 +155,14 @@ beforeEach(() => {
 });
 
 describe("runtime navigation", () => {
+  it("keeps every workspace usable when an older empty response contains null items", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    vi.mocked(loadToday).mockResolvedValue({ items: null as unknown as AttentionItem[], generated_at: "2026-08-29T20:00:00Z" });
+    render(<App />);
+    expect((await screen.findAllByRole("button", { name: "Forms" })).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Cannot read properties/i)).toBeNull();
+  });
+
   it("keeps real imports available and removes reference navigation when demo mode is off", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);

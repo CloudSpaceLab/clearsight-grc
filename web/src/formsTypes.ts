@@ -1,5 +1,6 @@
 import type { CapturePresentation } from "./types";
-import type { CreateFormTemplateInput, FormScoringMode, FormTemplate as MonitoringFormTemplate, FormTemplateSection, LifecycleStatus } from "./monitoringTypes";
+import type { CreateFormTemplateInput, FormScoringMode, FormTemplate as MonitoringFormTemplate, FormTemplateField, FormTemplateSection, LifecycleStatus } from "./monitoringTypes";
+import type { DocumentSourceAnchor } from "./documentTypes";
 
 export type { FormScoringMode } from "./monitoringTypes";
 
@@ -46,4 +47,84 @@ export type CreateLibraryFormInput = CreateFormTemplateInput & {
 export type InstantiateStarterTemplateInput = {
   code?: string; name?: string; purpose?: string; program_id?: string; owner_principal_id?: string;
   responsible_team?: string; jurisdiction?: string; industry?: string; next_review_at?: string;
+};
+
+export type FormProposalStatus = "GENERATING" | "REVIEW_REQUIRED" | "ACCEPTED" | "REJECTED" | "FAILED";
+export type FormProposalSourceKind = "DOCUMENT" | "AI";
+export type FormProposalChangeKind = "ADD_FIELD" | "UPDATE_FIELD" | "REMOVE_FIELD";
+export type FormProposalContract = {
+  scoring_mode: FormScoringMode;
+  presentation: CapturePresentation;
+  sections: FormTemplateSection[];
+  fields: FormTemplateField[];
+};
+export type FormProposalFieldChange = {
+  id: string;
+  kind: FormProposalChangeKind;
+  field: FormTemplateField;
+  anchor: DocumentSourceAnchor;
+  confidence: number;
+  unresolved?: string[];
+};
+export type FormProposalUnresolvedItem = {
+  code: string;
+  message: string;
+  field_change_id?: string;
+  anchor?: DocumentSourceAnchor;
+};
+export type FormAIProvenance = {
+  workload_id: string;
+  policy_ref?: string;
+  gateway_request_id?: string;
+  gateway_response_id?: string;
+  route_id?: string;
+  model_alias: string;
+  prompt_version: string;
+  snapshot_sha256: string;
+  source_document_sha256?: string;
+  source_element_refs?: string[];
+  validation_results: string[];
+};
+export type FormProposalProvenance = {
+  proposal_version: string;
+  source_document_id: string;
+  source_sha256: string;
+  source_version: number;
+  parser_version?: string;
+  adapter_version?: string;
+  extraction_status: string;
+  tabular_parser_version?: string;
+  ai?: FormAIProvenance;
+};
+export type FormTemplateProposal = {
+  id: string;
+  source_kind: FormProposalSourceKind;
+  source_document_id?: string;
+  source_document_version?: number;
+  source_sha256?: string;
+  base_template_id?: string;
+  base_template_version?: number;
+  status: FormProposalStatus;
+  proposed_contract: FormProposalContract;
+  field_changes: FormProposalFieldChange[];
+  unresolved_items: FormProposalUnresolvedItem[];
+  provenance: FormProposalProvenance;
+  failure_code?: string;
+  failure_message?: string;
+  created_by: string;
+  reviewed_by?: string;
+  accepted_change_ids?: string[];
+  result_template_id?: string;
+  result_template_version?: number;
+  created_at: string;
+  updated_at: string;
+  reviewed_at?: string;
+  version: number;
+};
+
+export type RequestAIFormProposalInput = {
+  objective: string;
+  source_document_id?: string;
+  expected_source_document_version?: number;
+  source_element_refs?: string[];
 };

@@ -38,3 +38,10 @@ func TestSortAttentionKeepsUnknownDeadlinesLast(t *testing.T) {
 		t.Fatalf("unexpected attention order: %#v", items)
 	}
 }
+
+func TestEmptyTodayServiceReturnsAnEmptyCollection(t *testing.T) {
+	items := NewService(nil).List()
+	if items == nil || len(items) != 0 {
+		t.Fatalf("empty Today collection = %#v, want a non-nil empty collection", items)
+	}
+}

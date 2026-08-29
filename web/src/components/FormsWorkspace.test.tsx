@@ -16,6 +16,11 @@ const api = vi.hoisted(() => ({
   saveFormView: vi.fn(),
   deleteSavedFormView: vi.fn(),
   transitionFormTemplateRevision: vi.fn(),
+  createAIFormProposal: vi.fn(),
+  createAIFormRevisionProposal: vi.fn(),
+  loadFormProposal: vi.fn(),
+  acceptFormProposal: vi.fn(),
+  rejectFormProposal: vi.fn(),
 }));
 
 vi.mock("../formsApi", () => api);
@@ -64,6 +69,11 @@ beforeEach(() => {
   api.deleteSavedFormView.mockReset();
   api.transitionFormTemplateRevision.mockReset();
   api.transitionFormTemplateRevision.mockResolvedValue({ ...draftItem.template, status: "PENDING_APPROVAL", version: 2 });
+  api.createAIFormProposal.mockReset();
+  api.createAIFormRevisionProposal.mockReset();
+  api.loadFormProposal.mockReset();
+  api.acceptFormProposal.mockReset();
+  api.rejectFormProposal.mockReset();
 });
 
 describe("Forms workspace", () => {
@@ -115,6 +125,23 @@ describe("Forms workspace", () => {
       presentation: { default_mode: "AUTOMATIC", allow_mode_switch: false },
       fields: [{ label: "Describe the current control.", type: "short_text" }],
     });
+  });
+
+  it("opens governed AI authoring without replacing the manual builder", async () => {
+    api.createAIFormProposal.mockResolvedValueOnce({
+      id: "ai-proposal", source_kind: "AI", status: "REVIEW_REQUIRED",
+      proposed_contract: { scoring_mode: "NONE", presentation: { default_mode: "AUTOMATIC", allow_mode_switch: true }, sections: [{ id: "general", title: "General" }], fields: [{ id: "ownership", section_id: "general", label: "Current ownership", type: "long_text", required: false }] },
+      field_changes: [{ id: "change-ownership", kind: "ADD_FIELD", field: { id: "ownership", section_id: "general", label: "Current ownership", type: "long_text", required: false }, anchor: {}, confidence: .82 }], unresolved_items: [],
+      provenance: { proposal_version: "FORM_AI_PROPOSAL_V1", source_document_id: "", source_sha256: "", source_version: 0, extraction_status: "NOT_APPLICABLE" },
+      created_by: "author-1", created_at: "2026-08-29T08:00:00Z", updated_at: "2026-08-29T08:00:01Z", version: 2,
+    });
+    render(<FormsWorkspace/>);
+    await screen.findAllByText("Vendor due diligence");
+    fireEvent.click(screen.getByRole("button", { name: "Draft with AI" }));
+    expect(screen.getByRole("button", { name: "Open manual builder" })).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", { name: "What should this form collect or change?" }), { target: { value: "Collect current ownership details." } });
+    fireEvent.click(screen.getByRole("button", { name: "Generate field proposal" }));
+    expect(await screen.findByRole("heading", { name: "Review proposed form fields" })).toBeTruthy();
   });
 
   it("edits a draft by creating an immutable next revision", async () => {

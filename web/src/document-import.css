@@ -139,3 +139,16 @@
 @media (max-width: 1080px) { .coverage-scoreboard { grid-template-columns: repeat(2, 1fr); } .coverage-scoreboard > div { border-top: 1px solid var(--border); } .coverage-scoreboard > div:nth-child(odd) { border-left: 0; } .coverage-scoreboard > div:first-child, .coverage-scoreboard > div:nth-child(2) { border-top: 0; } }
 @media (max-width: 620px) { .document-import-header { padding-top: 12px; } .document-import-inspector { padding: 18px; border-radius: 13px; } .document-import-inspector > header, .proposal-title, .coverage-heading, .coverage-toolbar, .coverage-match-heading, .coverage-recommendation, .coverage-callout { flex-direction: column; } .document-state { justify-items: start; } .document-metadata, .coverage-scoreboard { grid-template-columns: 1fr; } .coverage-scoreboard > div { border-left: 0; border-top: 1px solid var(--border); } .coverage-scoreboard > div:first-child { border-top: 0; } .proposal-actions { flex-direction: column-reverse; } .proposal-actions button, .coverage-actions button, .coverage-recommendation button { width: 100%; } .coverage-filters { width: 100%; overflow-x: auto; } .coverage-not-applicable { align-items: stretch; flex-direction: column; } }
 @media (prefers-reduced-motion: reduce) { .document-import-row, .proposal-card { scroll-behavior: auto; } }
+
+.document-form-authoring { display: grid; gap: 14px; padding: 18px 0; border-bottom: 1px solid var(--border); }
+.document-form-authoring > div:first-child { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.document-form-authoring h3 { margin: 6px 0 3px; font-size: 16px; }
+.document-form-authoring p { max-width: 720px; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.document-form-authoring > .form-proposal-review { margin-top: 2px; box-shadow: none; }
+.document-degradations { display: grid; gap: 9px; padding: 14px 0; border-bottom: 1px solid color-mix(in srgb, var(--amber) 30%, var(--border)); }
+.document-degradations h3 { margin: 0; font-size: 12px; }
+.document-degradations > div { padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--amber) 26%, var(--border)); border-radius: 9px; background: color-mix(in srgb, var(--amber) 5%, transparent); }
+.document-degradations strong { font-size: 10px; }
+.document-degradations p { margin: 4px 0; color: var(--text); }
+.document-degradations small { color: var(--muted); font-size: 9px; }
+@media (max-width: 620px) { .document-form-authoring > div:first-child { flex-direction: column; align-items: stretch; } .document-form-authoring button { width: 100%; } }

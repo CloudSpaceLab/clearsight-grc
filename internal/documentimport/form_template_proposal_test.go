@@ -94,13 +94,27 @@ func TestProposeFormTemplateInfersTabularFieldTypesButNotChoices(t *testing.T) {
 func TestProposeFormTemplateRejectsIncompleteOrUnusableSource(t *testing.T) {
 	cases := []Document{
 		{ID: "pending", ExtractionStatus: ExtractionPending},
-		{ID: "partial", ExtractionStatus: ExtractionPartial, Elements: []ExtractedElement{{Kind: ElementFormControl, Control: &FormControl{Kind: "TEXT", Label: "Name"}}}},
 		{ID: "empty", ExtractionStatus: ExtractionExtracted},
 	}
 	for _, document := range cases {
 		if _, err := ProposeFormTemplate(document, DefaultProposalPolicy()); err == nil {
 			t.Fatalf("expected source rejection for %#v", document)
 		}
+	}
+}
+
+func TestProposeFormTemplateKeepsUsablePartialExtractionExplicit(t *testing.T) {
+	document := Document{
+		ID: "partial", SHA256: strings64("p"), Version: 2, ExtractionStatus: ExtractionPartial,
+		Elements:     []ExtractedElement{{Kind: ElementFormControl, Control: &FormControl{Kind: "TEXT", Label: "Name"}, Anchor: SourceAnchor{Page: 1}}},
+		Degradations: []Degradation{{Code: "OCR_REQUIRED", Message: "Page 2 needs OCR.", Recoverable: true, Anchor: &SourceAnchor{Page: 2}}},
+	}
+	proposal, err := ProposeFormTemplate(document, DefaultProposalPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(proposal.FieldChanges) != 1 || !proposal.Truncated || !containsUnresolved(proposal.UnresolvedItems, "SOURCE_PARTIAL") || !containsUnresolved(proposal.UnresolvedItems, "OCR_REQUIRED") {
+		t.Fatalf("partial source limitations were not retained: %#v", proposal)
 	}
 }
 

@@ -2,12 +2,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import axe from "axe-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DocumentCoverage, DocumentImport, DocumentImportSummary } from "../documentTypes";
-import { applyDocumentCoverageSuggestion, importDocument, loadDocumentCoverage, loadDocumentImport, loadDocumentImports, recompareDocumentCoverage, reviewDocumentCoverage, reviewDocumentProposal } from "../documentApi";
+import type { FormTemplateProposal } from "../formsTypes";
+import { applyDocumentCoverageSuggestion, createDocumentFormProposal, importDocument, loadDocumentCoverage, loadDocumentImport, loadDocumentImports, recompareDocumentCoverage, reviewDocumentCoverage, reviewDocumentProposal } from "../documentApi";
 import { ApiError } from "../http";
 import { DocumentImportWorkspace } from "./DocumentImportWorkspace";
 
 vi.mock("../documentApi", () => ({
-  applyDocumentCoverageSuggestion: vi.fn(), importDocument: vi.fn(), loadDocumentCoverage: vi.fn(), loadDocumentImport: vi.fn(),
+  applyDocumentCoverageSuggestion: vi.fn(), createDocumentFormProposal: vi.fn(), importDocument: vi.fn(), loadDocumentCoverage: vi.fn(), loadDocumentImport: vi.fn(),
   loadDocumentImports: vi.fn(), recompareDocumentCoverage: vi.fn(), reviewDocumentCoverage: vi.fn(), reviewDocumentProposal: vi.fn(),
 }));
 
@@ -68,6 +69,16 @@ const coverageRecord: DocumentCoverage = {
   matters: [],
 };
 
+const formProposal: FormTemplateProposal = {
+  id: "form-proposal-1", source_kind: "DOCUMENT", source_document_id: documentRecord.id, source_document_version: documentRecord.version,
+  source_sha256: documentRecord.sha256, status: "REVIEW_REQUIRED",
+  proposed_contract: { scoring_mode: "NONE", presentation: { default_mode: "AUTOMATIC", allow_mode_switch: true }, sections: [{ id: "general", title: "General" }], fields: [{ id: "retention", section_id: "general", label: "Retention period", type: "short_text", required: false }] },
+  field_changes: [{ id: "change-retention", kind: "ADD_FIELD", field: { id: "retention", section_id: "general", label: "Retention period", type: "short_text", required: false }, anchor: { page: 7, paragraph: "p-4" }, confidence: .91, unresolved: ["REQUIREDNESS_UNKNOWN"] }],
+  unresolved_items: [{ code: "REQUIREDNESS_UNKNOWN", message: "The source does not establish whether this field is mandatory; an author must decide.", field_change_id: "change-retention", anchor: { page: 7, paragraph: "p-4" } }],
+  provenance: { proposal_version: "FORM_TEMPLATE_PROPOSAL_V1", source_document_id: documentRecord.id, source_sha256: documentRecord.sha256, source_version: documentRecord.version, extraction_status: "EXTRACTED" },
+  created_by: "reviewer-1", created_at: "2026-08-29T08:00:00Z", updated_at: "2026-08-29T08:00:01Z", version: 2,
+};
+
 beforeEach(() => {
   vi.mocked(loadDocumentImports).mockResolvedValue([documentSummary]);
   vi.mocked(loadDocumentImport).mockResolvedValue(documentRecord);
@@ -77,6 +88,7 @@ beforeEach(() => {
   vi.mocked(reviewDocumentCoverage).mockResolvedValue({ ...coverageRecord, version: 2, metrics: { ...coverageRecord.metrics, verified: { numerator: 1, denominator: 2 } } });
   vi.mocked(recompareDocumentCoverage).mockResolvedValue();
   vi.mocked(applyDocumentCoverageSuggestion).mockResolvedValue({ assessment: { ...coverageRecord, version: 2, suggestions: [{ ...coverageRecord.suggestions[0]!, status: "APPLIED", applied_type: "PROGRAM", applied_id: "program-new" }] }, object_type: "PROGRAM", object_id: "program-new" });
+  vi.mocked(createDocumentFormProposal).mockResolvedValue(formProposal);
 });
 
 describe("DocumentImportWorkspace", () => {
@@ -151,6 +163,14 @@ describe("DocumentImportWorkspace", () => {
     await waitFor(() => expect(recompareDocumentCoverage).toHaveBeenCalledWith(documentRecord.id));
   });
 
+  it("turns a successfully extracted source into a selectable form-template proposal", async () => {
+    render(<DocumentImportWorkspace/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Turn into form template" }));
+    await waitFor(() => expect(createDocumentFormProposal).toHaveBeenCalledWith(documentRecord.id, documentRecord.version));
+    expect(await screen.findByRole("heading", { name: "Review proposed form fields" })).toBeTruthy();
+    expect(screen.getAllByText("Retention period").length).toBeGreaterThan(0);
+  });
+
   it("keeps existing review primary and describes automated searchable-PDF extraction", async () => {
     render(<DocumentImportWorkspace/>);
     await screen.findByRole("heading", { name: "regulatory-notice.md" });
@@ -195,6 +215,16 @@ describe("DocumentImportWorkspace", () => {
     expect(await screen.findByText("Original stored")).toBeTruthy();
     expect(screen.getByText("Text review unavailable")).toBeTruthy();
     expect(screen.queryByText("Extraction failed")).toBeNull();
+  });
+
+  it("keeps partial extraction usable while making retained gaps explicit", async () => {
+    const partial: DocumentImport = { ...documentRecord, extraction_status: "PARTIAL", degradations: [{ code: "OCR_REQUIRED", message: "Two scanned pages need OCR before their fields can be proposed.", recoverable: true, anchor: { page: 4 } }] };
+    vi.mocked(loadDocumentImports).mockResolvedValue([{ ...documentSummary, extraction_status: "PARTIAL" }]);
+    vi.mocked(loadDocumentImport).mockResolvedValue(partial);
+    render(<DocumentImportWorkspace/>);
+    expect(await screen.findByText("Partially extracted")).toBeTruthy();
+    expect(screen.getByText(/Two scanned pages need OCR/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Turn into form template" })).toBeTruthy();
   });
 
   it("records an explicit proposal review", async () => {

@@ -30,7 +30,18 @@ export type ProposalHandoff = {
   updated_at: string;
   version: number;
 };
-export type ExtractionStatus = "PENDING" | "EXTRACTED" | "UNSUPPORTED" | "FAILED";
+export type ExtractionStatus = "PENDING" | "EXTRACTED" | "PARTIAL" | "TRUNCATED" | "UNSUPPORTED" | "FAILED";
+export type DocumentSourceAnchor = { page?: number; sheet?: string; row_start?: number; row_end?: number; paragraph?: string; table?: string; cell?: string; bounding_box?: { x0: number; y0: number; x1: number; y1: number } };
+export type DocumentExtractedElement = {
+  ref?: string;
+  kind: "HEADING" | "PARAGRAPH" | "TABLE" | "FORM_CONTROL" | "IMAGE" | "LINK";
+  text?: string;
+  target?: string;
+  values?: string[][];
+  control?: { kind: string; label?: string; help?: string; options?: string[]; checked?: boolean };
+  anchor: DocumentSourceAnchor;
+};
+export type DocumentExtractionDegradation = { code: string; message: string; recoverable: boolean; anchor?: DocumentSourceAnchor };
 export type AnalysisStatus = "PENDING" | "REVIEW_REQUIRED" | "NO_PROPOSALS" | "UNAVAILABLE";
 export type DocumentAnchor = { section_id: string; quote: string; page?: number; sheet?: string; row_start?: number; row_end?: number };
 export type DocumentSection = { id: string; sequence: number; title: string; text: string; page?: number; sheet?: string; row_start?: number; row_end?: number };
@@ -69,9 +80,13 @@ type DocumentDetailBase = Omit<DocumentImportSummary,
 export type DocumentImport = DocumentDetailBase & {
   storage_key: string;
   extraction_method: string;
+  parser_version?: string;
+  adapter_version?: string;
   analysis_method: string;
   limitations: string[];
   sections: DocumentSection[];
+  elements?: DocumentExtractedElement[];
+  degradations?: DocumentExtractionDegradation[];
   proposals: DocumentProposal[];
   sections_total?: number;
   sections_omitted?: number;

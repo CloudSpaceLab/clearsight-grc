@@ -123,7 +123,7 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
       const allowFallback = (currentRuntime?.demo_mode === true && presentation === "demo") ||
         (currentRuntime == null && sampleMode && presentation === "demo");
       if (todayResult.status === "fulfilled") {
-        setItems(todayResult.value.items);
+        setItems(Array.isArray(todayResult.value.items) ? todayResult.value.items : []);
         setTodayGeneratedAt(todayResult.value.generated_at);
         setConnection("live");
       } else if (allowFallback) {

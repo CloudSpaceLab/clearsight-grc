@@ -73,8 +73,8 @@ type FormTemplateProposal struct {
 
 func ProposeFormTemplate(document Document, policy ProposalPolicy) (FormTemplateProposal, error) {
 	policy = policy.normalized()
-	if document.ExtractionStatus != ExtractionExtracted && document.ExtractionStatus != ExtractionTruncated {
-		return FormTemplateProposal{}, errors.New("form proposal requires extracted or explicitly truncated source content")
+	if document.ExtractionStatus != ExtractionExtracted && document.ExtractionStatus != ExtractionPartial && document.ExtractionStatus != ExtractionTruncated {
+		return FormTemplateProposal{}, errors.New("form proposal requires extracted, partially extracted, or explicitly truncated source content")
 	}
 	if len(document.Elements) == 0 && (document.Tabular == nil || len(document.Tabular.Resources) == 0) {
 		return FormTemplateProposal{}, errors.New("form proposal source contains no usable structured fields")
@@ -88,6 +88,13 @@ func ProposeFormTemplate(document Document, policy ProposalPolicy) (FormTemplate
 		currentSectionID: formcontract.DefaultSectionID,
 		changes:          make([]FormFieldChange, 0, min(policy.MaxFields, 32)),
 		unresolved:       make([]ProposalUnresolvedItem, 0, min(policy.MaxUnresolved, 32)),
+	}
+	if document.ExtractionStatus == ExtractionPartial {
+		builder.truncated = true
+		builder.addUnresolved(ProposalUnresolvedItem{Code: "SOURCE_PARTIAL", Message: unresolvedMessage("SOURCE_PARTIAL")})
+		for _, degradation := range document.Degradations {
+			builder.addUnresolved(ProposalUnresolvedItem{Code: degradation.Code, Message: degradation.Message, Anchor: cloneSourceAnchorPointer(degradation.Anchor)})
+		}
 	}
 	builder.consumeElements(document.Elements)
 	builder.consumeTabular(document.Tabular)
@@ -129,7 +136,7 @@ func ProposeFormTemplate(document Document, policy ProposalPolicy) (FormTemplate
 		FieldChanges:    builder.changes,
 		UnresolvedItems: builder.unresolved,
 		Provenance:      provenance,
-		Truncated:       builder.truncated || document.ContentTruncated || document.ExtractionStatus == ExtractionTruncated,
+		Truncated:       builder.truncated || document.ContentTruncated || document.ExtractionStatus == ExtractionPartial || document.ExtractionStatus == ExtractionTruncated,
 	}, nil
 }
 
@@ -380,6 +387,8 @@ func truncateProposalText(value string, maximum int) string {
 
 func unresolvedMessage(code string) string {
 	switch code {
+	case "SOURCE_PARTIAL":
+		return "Only the successfully extracted portions of this source were used; review the retained source gaps before approving the draft."
 	case "REQUIREDNESS_UNKNOWN":
 		return "The source does not establish whether this field is mandatory; an author must decide."
 	case "OPTIONS_NOT_INFERRED":
@@ -397,6 +406,13 @@ func unresolvedMessage(code string) string {
 	default:
 		return "The source contains an unresolved form-authoring ambiguity."
 	}
+}
+
+func cloneSourceAnchorPointer(value *SourceAnchor) *SourceAnchor {
+	if value == nil {
+		return nil
+	}
+	return cloneSourceAnchor(*value)
 }
 
 func containsProposalCode(items []ProposalUnresolvedItem, code string) bool {

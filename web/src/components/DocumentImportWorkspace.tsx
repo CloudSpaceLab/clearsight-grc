@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { applyDocumentCoverageSuggestion, importDocument, loadDocumentCoverage, loadDocumentImport, loadDocumentImports, recompareDocumentCoverage, reviewDocumentCoverage, reviewDocumentProposal } from "../documentApi";
+import { applyDocumentCoverageSuggestion, createDocumentFormProposal, importDocument, loadDocumentCoverage, loadDocumentImport, loadDocumentImports, recompareDocumentCoverage, reviewDocumentCoverage, reviewDocumentProposal } from "../documentApi";
 import type { CoverageCandidate, CoverageDecision, CoverageSuggestion, DocumentCoverage, DocumentImport, DocumentImportSummary, DocumentProposal, ProposalStatus } from "../documentTypes";
+import type { FormTemplateProposal } from "../formsTypes";
 import { apiErrorKind } from "../http";
 import { DocumentProposalHandoff } from "./DocumentProposalHandoff";
 import { EmptyState } from "./EmptyState";
 import { FileDropzone } from "./FileDropzone";
+import { FormProposalReview } from "./forms/FormProposalReview";
 
 const documentAccept = ".txt,.md,.csv,.docx,.xlsx,.pdf,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const maximumDocumentBytes = 20 * 1024 * 1024;
@@ -259,12 +261,14 @@ export function DocumentImportWorkspace() {
           ? <EmptyState label="Document imports" title="No documents imported" description="Import a TXT, Markdown, CSV, DOCX, XLSX or PDF document. Searchable PDFs are extracted automatically; scanned PDFs remain stored and report when OCR is required."/>
           : <div className="document-import-layout">
               <div className="document-import-list" aria-label="Imported documents">{documents.map((document) => <button key={document.id} type="button" disabled={Boolean(reviewingProposalID)} className={selected?.id === document.id ? "document-import-row active" : "document-import-row"} onClick={() => void choose(document.id)}><strong>{document.file_name}</strong><span>{summaryLabel(document)}</span><small>{new Date(document.created_at).toLocaleString()}</small></button>)}</div>
-              {selected && <DocumentInspector document={selected} coverage={coverage} coverageActionID={coverageActionID} coverageNotice={coverageNotice} reviewingProposalID={reviewingProposalID} onReview={review} onDocumentUpdated={applyDocumentUpdate} onCoverageReview={reviewCoverage} onApplySuggestion={applySuggestion} onRecompare={recompare} onLoadMore={loadMoreCoverage}/>}
+              {selected && (
+                <DocumentInspector document={selected} coverage={coverage} coverageActionID={coverageActionID} coverageNotice={coverageNotice} reviewingProposalID={reviewingProposalID} onReview={review} onDocumentUpdated={applyDocumentUpdate} onCoverageReview={reviewCoverage} onApplySuggestion={applySuggestion} onRecompare={recompare} onLoadMore={loadMoreCoverage} onReload={() => void refresh(selected.id)}/>
+              )}
             </div>}
   </section>;
 }
 
-function DocumentInspector({ document, coverage, coverageActionID, coverageNotice, reviewingProposalID, onReview, onDocumentUpdated, onCoverageReview, onApplySuggestion, onRecompare, onLoadMore }: {
+function DocumentInspector({ document, coverage, coverageActionID, coverageNotice, reviewingProposalID, onReview, onDocumentUpdated, onCoverageReview, onApplySuggestion, onRecompare, onLoadMore, onReload }: {
   document: DocumentImport;
   coverage: DocumentCoverage | null;
   coverageActionID: string | null;
@@ -276,7 +280,11 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
   onApplySuggestion: (suggestion: CoverageSuggestion) => void;
   onRecompare: () => void;
   onLoadMore: () => void;
+  onReload: () => void;
 }) {
+  const [formProposal, setFormProposal] = useState<FormTemplateProposal | null>(null);
+  const [formProposalBusy, setFormProposalBusy] = useState(false);
+  const [formProposalError, setFormProposalError] = useState<string | null>(null);
   const pending = document.proposals.filter((proposal) => proposal.status === "PENDING_REVIEW");
   const reviewed = document.proposals.filter((proposal) => proposal.status !== "PENDING_REVIEW");
   const handoffsPending = document.proposals.filter((proposal) => proposal.handoff?.status === "AWAITING_REVIEW" || proposal.handoff?.status === "AWAITING_AUTHORIZATION").length;
@@ -286,17 +294,49 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
   const sectionsOmitted = document.sections_omitted ?? 0;
   const contentTruncated = document.content_truncated ?? false;
   const storedOnly = document.extraction_status === "UNSUPPORTED";
-  const stateLabel = storedOnly ? "Original stored" : human(document.extraction_status);
+  const stateLabel = extractionLabel(document.extraction_status);
   const coveragePending = coverage?.candidates.filter((candidate) => candidate.eligible && !candidate.review).length ?? 0;
   const coverageTotal = coverage?.metrics.verified.denominator ?? 0;
   const terminalLabel = document.extraction_status === "FAILED" ? "Extraction failed" : storedOnly ? "Text review unavailable" : handoffsPending ? `${handoffsPending} governed approval${handoffsPending === 1 ? "" : "s"} pending` : coverage ? `${coverageTotal} eligible obligation${coverageTotal === 1 ? "" : "s"}` : pending.length ? `${pending.length} to review` : "No review pending";
+  const canProposeForm = document.extraction_status === "EXTRACTED" || document.extraction_status === "PARTIAL" || document.extraction_status === "TRUNCATED";
+
+  useEffect(() => {
+    setFormProposal(null);
+    setFormProposalError(null);
+  }, [document.id]);
+
+  async function startFormProposal() {
+    if (formProposalBusy) return;
+    setFormProposalBusy(true);
+    setFormProposalError(null);
+    try {
+      setFormProposal(await createDocumentFormProposal(document.id, document.version));
+    } catch (cause) {
+      if (apiErrorKind(cause) === "conflict") {
+        setFormProposalError("This source changed before proposal generation started. Reload the latest version and try again.");
+        onReload();
+      } else {
+        setFormProposalError(cause instanceof Error ? cause.message : "A field proposal could not be created from this document.");
+      }
+    } finally {
+      setFormProposalBusy(false);
+    }
+  }
 
   return <article className="document-import-inspector">
     <header><div><span className="eyebrow">{human(document.source_type)}</span><h2>{document.file_name}</h2><p>{document.purpose}</p></div><div className="document-state"><span>{stateLabel}</span><strong>{processing ? "Processing stored source" : terminalLabel}</strong></div></header>
     <div className="import-review-summary" aria-label="Import review summary">{coverage ? <><span><strong>{coverage.metrics.verified.denominator}</strong> eligible obligations</span><span><strong>{coveragePending}</strong> loaded for review</span><span><strong>{handoffsPending}</strong> governed handoffs pending</span></> : <><span><strong>{pending.length}</strong> intake review</span><span><strong>{handoffsPending}</strong> governed handoffs pending</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></>}</div>
     {processing && <section className="workspace-loading" aria-live="polite" aria-busy="true"><strong>Original stored successfully.</strong><p>Extraction and analysis are running in the background. This page will update when processing completes.</p></section>}
     {!processing && coverage && <CoverageAssessment coverage={coverage} actionID={coverageActionID} notice={coverageNotice} onReview={onCoverageReview} onApply={onApplySuggestion} onRecompare={onRecompare} onLoadMore={onLoadMore}/>}
+    {(document.degradations?.length ?? 0) > 0 && <section className="document-degradations" aria-labelledby="document-degradations-title"><h3 id="document-degradations-title">Source recovery needed</h3>{document.degradations!.map((item, index) => <div key={`${item.code}-${index}`}><strong>{human(item.code)}</strong><p>{item.message}</p><small>{item.recoverable ? "This source gap can be corrected without replacing retained results." : "A different source may be required for the missing content."}{item.anchor?.page ? ` Page ${item.anchor.page}.` : ""}</small></div>)}</section>}
     {document.limitations.length > 0 && <section className="document-limitations"><h3>Important limitations</h3>{document.limitations.map((item) => <p key={item}>{item}</p>)}</section>}
+    {!processing && <section className="document-form-authoring" aria-labelledby="document-form-authoring-title">
+      {!formProposal && <div><div><span className="eyebrow">Reusable form authoring</span><h3 id="document-form-authoring-title">Use this source to draft a form</h3><p>{canProposeForm ? "Extracted controls and tabular fields can be reviewed before any draft is created." : document.extraction_status === "UNSUPPORTED" ? "This file is retained, but no structured text is available. Provide a searchable source or use the manual form builder." : "No usable structured fields are available from this extraction. Correct the source or use the manual form builder."}</p></div>{canProposeForm && <button className="primary-button" type="button" disabled={formProposalBusy} onClick={() => void startFormProposal()}>{formProposalBusy ? "Preparing proposal…" : "Turn into form template"}</button>}</div>}
+      {formProposalError && <p className="error-text" role="alert">{formProposalError}</p>}
+      {formProposal && (
+        <FormProposalReview proposal={formProposal} sourceTitle={document.file_name} sourceElements={document.elements} onProposalChange={setFormProposal}/>
+      )}
+    </section>}
     {!processing && <>
       {!coverage && <section><div className="section-header"><div><h3>Review required</h3><p>Accepting a proposal starts independent governed review. It does not create or activate a Requirement or Control.</p></div></div>{pending.length ? <div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div> : <div className="calm-empty compact"><span>✓</span><div><strong>Nothing waiting for intake review</strong><p>{document.analysis_status === "UNAVAILABLE" ? "No review proposal is available from this source." : "Accepted proposals continue through their governed handoff below."}</p></div></div>}</section>}
       {coverage && pending.length > 0 && <details className="import-secondary"><summary><span>Extraction proposals</span><strong>{pending.length} unreviewed</strong></summary><div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div></details>}
@@ -420,8 +460,17 @@ function summaryLabel(document: DocumentImportSummary) {
   if (document.extraction_status === "PENDING" || document.analysis_status === "PENDING") return "Stored · processing";
   if (document.extraction_status === "FAILED") return "Extraction failed · original retained";
   if (document.extraction_status === "UNSUPPORTED") return "Stored · extraction unavailable";
+  if (document.extraction_status === "PARTIAL") return "Partially extracted · review source gaps";
+  if (document.extraction_status === "TRUNCATED") return "Extracted with limits · review retained content";
   if (document.pending_proposal_count) return `${document.pending_proposal_count} proposal${document.pending_proposal_count === 1 ? "" : "s"} to review`;
   return "No intake proposals waiting";
+}
+
+function extractionLabel(status: DocumentImport["extraction_status"]) {
+  if (status === "UNSUPPORTED") return "Original stored";
+  if (status === "PARTIAL") return "Partially extracted";
+  if (status === "TRUNCATED") return "Extracted with limits";
+  return human(status);
 }
 
 function updateSummary(current: DocumentImportSummary, detail: DocumentImport): DocumentImportSummary {

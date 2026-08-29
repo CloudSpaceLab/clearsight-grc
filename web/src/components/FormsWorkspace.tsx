@@ -21,9 +21,12 @@ import type {
   ReusableFormTemplateRef,
   SavedFormView,
   StarterTemplate,
+  FormTemplateProposal,
 } from "../formsTypes";
 import type { CreateFormTemplateInput, FormTemplate as MonitoringFormTemplate, LifecycleStatus } from "../monitoringTypes";
 import { FormBuilder } from "./FormBuilder";
+import { FormAIComposer } from "./forms/FormAIComposer";
+import { FormProposalReview } from "./forms/FormProposalReview";
 import { FormsBrandHeader } from "./forms/FormsBrandHeader";
 import { FormsEmptyState } from "./forms/FormsEmptyState";
 import { FormsLibrarySummary } from "./forms/FormsLibrarySummary";
@@ -60,6 +63,8 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const [savedViews, setSavedViews] = useState<SavedFormView[]>([]);
   const [selectedIDs, setSelectedIDs] = useState<Set<string>>(new Set());
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const [aiOpen, setAIOpen] = useState(false);
+  const [aiProposal, setAIProposal] = useState<FormTemplateProposal | null>(null);
   const [starterOpen, setStarterOpen] = useState(false);
   const [saveViewOpen, setSaveViewOpen] = useState(false);
   const [savedViewName, setSavedViewName] = useState("");
@@ -187,12 +192,16 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
   function openCreate() {
     setEditor({ mode: "create" });
+    setAIOpen(false);
+    setAIProposal(null);
     setStarterOpen(false);
     setError(null);
   }
 
   function openEdit(template: FormTemplate) {
     setEditor({ mode: "edit", template });
+    setAIOpen(false);
+    setAIProposal(null);
     setError(null);
   }
 
@@ -326,17 +335,23 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       legalEntityName={legalEntityName}
       appearance={appearance}
       onAppearanceChange={updateAppearance}
-      action={activeTab === "Templates" && !editor ? <button className="forms-primary" type="button" onClick={openCreate}>Create form template</button> : undefined}
+      action={activeTab === "Templates" && !editor && !aiOpen && !aiProposal ? <><button className="secondary-button" type="button" onClick={() => setAIOpen(true)}>Draft with AI</button><button className="forms-primary" type="button" onClick={openCreate}>Create form template</button></> : undefined}
     />
 
     <nav className="forms-tabs" aria-label="Forms sections">
-      {tabs.map((tab) => <button key={tab} type="button" className={activeTab === tab ? "active" : ""} aria-current={activeTab === tab ? "page" : undefined} onClick={() => { setActiveTab(tab); setEditor(null); }}>{tab}</button>)}
+      {tabs.map((tab) => <button key={tab} type="button" className={activeTab === tab ? "active" : ""} aria-current={activeTab === tab ? "page" : undefined} onClick={() => { setActiveTab(tab); setEditor(null); setAIOpen(false); setAIProposal(null); }}>{tab}</button>)}
     </nav>
 
     {error && <div className="forms-message error" role="alert">{error}</div>}
     {notice && <div className="forms-message" role="status">{notice}<button type="button" aria-label="Dismiss Forms notice" onClick={() => setNotice(null)}>×</button></div>}
 
-    {activeTab === "Templates" && editor ? <div className="forms-editor-shell">
+    {activeTab === "Templates" && aiProposal ? <div className="forms-proposal-shell">
+      <FormProposalReview proposal={aiProposal} onProposalChange={setAIProposal} onDraftCreated={(id) => { choose(id); void refresh(); }}/>
+      <div className="forms-authoring-recovery"><button className="secondary-button" type="button" onClick={() => { setAIProposal(null); setAIOpen(true); }}>Revise objective</button><button type="button" className="text-button" onClick={() => { setAIProposal(null); setAIOpen(false); }}>Return to form library</button></div>
+    </div> : activeTab === "Templates" && aiOpen ? <div className="forms-proposal-shell">
+      <FormAIComposer baseTemplate={selected ? { id: selected.template.id, name: selected.template.name, version: selected.template.version } : undefined} onProposal={(proposal) => { setAIProposal(proposal); setAIOpen(false); }}/>
+      <div className="forms-authoring-recovery"><button className="secondary-button" type="button" onClick={openCreate}>Open manual builder</button><button type="button" className="text-button" onClick={() => setAIOpen(false)}>Return to form library</button></div>
+    </div> : activeTab === "Templates" && editor ? <div className="forms-editor-shell">
       <FormBuilder
         key={editor.mode === "edit" ? `${editor.template.id}:${editor.template.version}` : "new-form"}
         initialValue={editor.mode === "edit" ? editor.template : undefined}

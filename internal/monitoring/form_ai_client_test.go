@@ -102,6 +102,24 @@ func TestFormAIClientCapturesGatewayAndValidationProvenance(t *testing.T) {
 	}
 }
 
+func TestFormAIClientAcceptsTheServiceSourceElementLimit(t *testing.T) {
+	elements := make([]documentimport.ExtractedElement, maxAISourceElements)
+	for index := range elements {
+		elements[index] = documentimport.ExtractedElement{Ref: "source", Kind: documentimport.ElementParagraph, Text: "Source text"}
+	}
+	request := FormAIClientRequest{
+		TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "maker-a", Objective: "Draft a vendor review form.", SnapshotSHA256: strings.Repeat("a", 64),
+		Source: &FormAISourceSnapshot{DocumentID: "doc-1", Version: 1, SHA256: strings.Repeat("b", 64), Elements: elements},
+	}
+	if err := validateFormAIClientRequest(request); err != nil {
+		t.Fatalf("service-approved source selection was rejected: %v", err)
+	}
+	request.Source.Elements = append(request.Source.Elements, documentimport.ExtractedElement{Ref: "too-many", Kind: documentimport.ElementParagraph, Text: "Overflow"})
+	if err := validateFormAIClientRequest(request); err == nil {
+		t.Fatal("source selection above the service limit was accepted")
+	}
+}
+
 func formAIGatewayArguments(t *testing.T, value map[string]any) string {
 	t.Helper()
 	payload, err := json.Marshal(value)

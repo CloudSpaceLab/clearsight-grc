@@ -71,16 +71,19 @@ func TestFormTemplateProposalRequestGeneratesReviewableDeterministicProposal(t *
 	}
 }
 
-func TestFormTemplateProposalRejectsPartialExtraction(t *testing.T) {
+func TestFormTemplateProposalAllowsReviewOfUsablePartialExtraction(t *testing.T) {
 	forms := libraryService(t, NewMemoryRepository(), "maker-a")
 	document := proposalSourceDocument()
 	document.ExtractionStatus = documentimport.ExtractionPartial
 	service := NewFormProposalService(NewMemoryFormProposalStore(), &proposalDocumentStub{document: document}, forms)
 	service.newID = func() (string, error) { return "018f0000-0000-7000-8000-000000000002", nil }
 
-	_, err := service.RequestFromDocument(formActorContext("bank-a", "entity-a", "maker-a"), document.ID, RequestDocumentFormProposalInput{ExpectedDocumentVersion: document.Version})
-	if !errors.Is(err, ErrInvalid) {
-		t.Fatalf("partial extraction error = %v, want invalid", err)
+	proposal, err := service.RequestFromDocument(formActorContext("bank-a", "entity-a", "maker-a"), document.ID, RequestDocumentFormProposalInput{ExpectedDocumentVersion: document.Version})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if proposal.Status != FormProposalReviewRequired || proposal.Provenance.ExtractionStatus != string(documentimport.ExtractionPartial) || len(proposal.UnresolvedItems) == 0 {
+		t.Fatalf("partial extraction proposal = %#v", proposal)
 	}
 }
 

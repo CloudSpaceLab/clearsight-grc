@@ -62,7 +62,7 @@ func (s *FormProposalService) RequestFromDocument(ctx context.Context, documentI
 	if document.Version != input.ExpectedDocumentVersion {
 		return FormTemplateProposal{}, ErrConflict
 	}
-	if document.ExtractionStatus != documentimport.ExtractionExtracted && document.ExtractionStatus != documentimport.ExtractionTruncated {
+	if document.ExtractionStatus != documentimport.ExtractionExtracted && document.ExtractionStatus != documentimport.ExtractionPartial && document.ExtractionStatus != documentimport.ExtractionTruncated {
 		return FormTemplateProposal{}, errors.Join(ErrInvalid, fmt.Errorf("document extraction status %s cannot generate a form proposal", document.ExtractionStatus))
 	}
 	if input.BaseTemplateID != "" {

@@ -24,7 +24,7 @@ func NewDynamicService(loader Loader) *Service {
 }
 
 func (s *Service) List() []AttentionItem {
-	items := append([]AttentionItem(nil), s.items...)
+	items := append([]AttentionItem{}, s.items...)
 	sortAttention(items)
 	return items
 }

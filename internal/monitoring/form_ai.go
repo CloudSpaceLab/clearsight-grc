@@ -141,7 +141,7 @@ func (s *FormProposalService) aiSourceSnapshot(ctx context.Context, tenantID, le
 	if document.Version != input.ExpectedSourceDocumentVersion {
 		return nil, ErrConflict
 	}
-	if document.ExtractionStatus != documentimport.ExtractionExtracted && document.ExtractionStatus != documentimport.ExtractionTruncated {
+	if document.ExtractionStatus != documentimport.ExtractionExtracted && document.ExtractionStatus != documentimport.ExtractionPartial && document.ExtractionStatus != documentimport.ExtractionTruncated {
 		return nil, errors.Join(ErrInvalid, fmt.Errorf("document extraction status %s cannot be used as AI authoring source", document.ExtractionStatus))
 	}
 
@@ -172,7 +172,7 @@ func (s *FormProposalService) aiSourceSnapshot(ctx context.Context, tenantID, le
 		sort.Strings(missing)
 		return nil, errors.Join(ErrInvalid, fmt.Errorf("unknown source element refs: %s", strings.Join(missing, ", ")))
 	}
-	return &FormAISourceSnapshot{DocumentID: document.ID, Version: document.Version, SHA256: document.SHA256, Elements: selected}, nil
+	return &FormAISourceSnapshot{DocumentID: document.ID, Version: document.Version, SHA256: document.SHA256, ExtractionStatus: document.ExtractionStatus, Elements: selected}, nil
 }
 
 func contractFromFormTemplate(base FormTemplate) formcontract.Contract {

@@ -10,6 +10,8 @@ import type {
   SavedFormView,
   SavedFormViewFilter,
   StarterTemplate,
+  FormTemplateProposal,
+  RequestAIFormProposalInput,
 } from "./formsTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -62,4 +64,33 @@ export function saveFormView(name: string, query: FormTemplateQuery, id?: string
 }
 export function deleteSavedFormView(id: string): Promise<void> {
   return requestVoid(apiBase, `/api/v1/forms/saved-views/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function loadFormProposal(id: string): Promise<FormTemplateProposal> {
+  return requestJSON<FormTemplateProposal>(apiBase, `/api/v1/forms/proposals/${encodeURIComponent(id)}`);
+}
+
+export function acceptFormProposal(id: string, expectedVersion: number, changeIDs: string[]): Promise<FormTemplateProposal> {
+  return requestJSON<FormTemplateProposal>(apiBase, `/api/v1/forms/proposals/${encodeURIComponent(id)}/accept`, {
+    method: "POST",
+    body: JSON.stringify({ expected_version: expectedVersion, change_ids: changeIDs }),
+  });
+}
+
+export function rejectFormProposal(id: string, expectedVersion: number): Promise<FormTemplateProposal> {
+  return requestJSON<FormTemplateProposal>(apiBase, `/api/v1/forms/proposals/${encodeURIComponent(id)}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ expected_version: expectedVersion }),
+  });
+}
+
+export function createAIFormProposal(input: RequestAIFormProposalInput): Promise<FormTemplateProposal> {
+  return requestJSON<FormTemplateProposal>(apiBase, "/api/v1/forms/proposals/ai", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function createAIFormRevisionProposal(id: string, version: number, input: RequestAIFormProposalInput): Promise<FormTemplateProposal> {
+  return requestJSON<FormTemplateProposal>(apiBase, `/api/v1/forms/templates/${encodeURIComponent(id)}/revisions/${version}/ai-proposals`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
