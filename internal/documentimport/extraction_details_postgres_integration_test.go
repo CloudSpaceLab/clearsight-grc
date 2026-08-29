@@ -35,10 +35,13 @@ func TestPostgresExtractionDetailsRoundTripWithoutLegacyReconstruction(t *testin
 
 	cleanupExtractionDetailsIntegration(ctx, pool, tenantID)
 	defer cleanupExtractionDetailsIntegration(context.Background(), pool, tenantID)
-	if _, err := pool.Exec(ctx, `
-		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,'Extraction Details Roundtrip Test');
-		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($3::uuid,$1::uuid,'EXTRACT-DETAILS','Extraction Details Entity','NG');
-		INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($4::uuid,$1::uuid,'PERSON','Document Importer')`, tenantID, tenantSlug, entityID, principalID); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,'Extraction Details Roundtrip Test')`, tenantID, tenantSlug); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1::uuid,$2::uuid,'EXTRACT-DETAILS','Extraction Details Entity','NG')`, entityID, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($1::uuid,$2::uuid,'PERSON','Document Importer')`, principalID, tenantID); err != nil {
 		t.Fatal(err)
 	}
 
