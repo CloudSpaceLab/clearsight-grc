@@ -9,10 +9,12 @@ func (a *API) productionRoutes() []routeSpec {
 	base := a.routes()
 	distributions := a.formDistributionRoutes()
 	communications := a.formCommunicationRoutes()
-	routes := make([]routeSpec, 0, len(base)+len(distributions)+len(communications))
+	proposals := a.formProposalRoutes()
+	routes := make([]routeSpec, 0, len(base)+len(distributions)+len(communications)+len(proposals))
 	routes = append(routes, base...)
 	routes = append(routes, distributions...)
 	routes = append(routes, communications...)
+	routes = append(routes, proposals...)
 	return routes
 }
 
