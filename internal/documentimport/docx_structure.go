@@ -301,7 +301,7 @@ func (p *docxStructureParser) emitParagraph(paragraph docxParagraphResult) {
 	}
 	if text != "" {
 		kind := ElementParagraph
-		if strings.HasPrefix(strings.ToLower(paragraph.style), "heading") || looksLikeHeading(text) {
+		if strings.HasPrefix(strings.ToLower(paragraph.style), "heading") {
 			kind = ElementHeading
 		}
 		anchor := SourceAnchor{Paragraph: fmt.Sprintf("paragraph-%d", p.paragraphs)}
