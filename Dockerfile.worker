@@ -6,7 +6,9 @@ COPY cmd ./cmd
 COPY internal ./internal
 COPY api ./api
 COPY migrations ./migrations
+COPY .env.example ./.env.example
 COPY docs/architecture/durable-schema-ownership.md ./docs/architecture/durable-schema-ownership.md
+COPY docs/architecture/durable-schema-ownership.d ./docs/architecture/durable-schema-ownership.d
 RUN CGO_ENABLED=0 go test -tags postgres ./... && \
     CGO_ENABLED=0 go build -tags postgres -trimpath -ldflags="-s -w" -o /out/clearsight-worker ./cmd/worker
 
