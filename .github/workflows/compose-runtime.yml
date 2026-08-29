@@ -7,6 +7,7 @@ on:
       - Dockerfile.api
       - Dockerfile.worker
       - deploy/scripts/migrate.sh
+      - deploy/scripts/seed-demo-foundation.sh
       - migrations/**
       - .github/workflows/compose-runtime.yml
   push:
@@ -16,6 +17,7 @@ on:
       - Dockerfile.api
       - Dockerfile.worker
       - deploy/scripts/migrate.sh
+      - deploy/scripts/seed-demo-foundation.sh
       - migrations/**
       - .github/workflows/compose-runtime.yml
 
@@ -39,8 +41,8 @@ jobs:
       - name: Build runtime images
         run: docker compose build api worker
 
-      - name: Start PostgreSQL, migrations and runtime
-        run: docker compose up -d postgres migrate api worker
+      - name: Start PostgreSQL, migrations, durable demo foundation and runtime
+        run: docker compose up -d postgres migrate seed-demo api worker
 
       - name: Verify runtime contracts
         run: |
@@ -70,6 +72,18 @@ jobs:
           [[ "$applied" =~ ^[0-9]+$ ]]
           (( applied > 0 ))
 
+          docker compose run --rm seed-demo >/dev/null
+          docker compose exec -T postgres psql -U clearsight -d clearsight -Atc \
+            "SELECT count(*) FROM tenants WHERE id='00000000-0000-4000-8000-000000000001'::uuid AND slug='clearsight-demo';" | grep -qx 1
+          docker compose exec -T postgres psql -U clearsight -d clearsight -Atc \
+            "SELECT count(*) FROM legal_entities WHERE id='00000000-0000-4000-8000-000000000002'::uuid AND tenant_id='00000000-0000-4000-8000-000000000001'::uuid;" | grep -qx 1
+          docker compose exec -T postgres psql -U clearsight -d clearsight -Atc \
+            "SELECT count(*) FROM principals WHERE tenant_id='00000000-0000-4000-8000-000000000001'::uuid AND id BETWEEN '00000000-0000-4000-8000-000000000101'::uuid AND '00000000-0000-4000-8000-000000000108'::uuid;" | grep -qx 8
+
+          test "$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$api_id" | grep '^CLEARSIGHT_DEMO_TENANT_ID=' | cut -d= -f2-)" = "00000000-0000-4000-8000-000000000001"
+          test "$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$api_id" | grep '^CLEARSIGHT_DEMO_PRINCIPAL_ID=' | cut -d= -f2-)" = "00000000-0000-4000-8000-000000000101"
+          test "$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$api_id" | grep '^CLEARSIGHT_DEMO_LEGAL_ENTITY_ID=' | cut -d= -f2-)" = "00000000-0000-4000-8000-000000000002"
+
           api_volume="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/var/lib/clearsight/artifacts"}}{{.Name}}{{end}}{{end}}' "$api_id")"
           worker_volume="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/var/lib/clearsight/artifacts"}}{{.Name}}{{end}}{{end}}' "$worker_id")"
           test -n "$api_volume"
@@ -82,7 +96,7 @@ jobs:
         if: failure()
         run: |
           docker compose ps -a || true
-          docker compose logs postgres migrate api worker || true
+          docker compose logs postgres migrate seed-demo api worker || true
 
       - name: Tear down runtime
         if: always()
