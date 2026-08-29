@@ -46,7 +46,7 @@ type FormTemplateProposal struct {
 	ProposedContract      formcontract.Contract                   `json:"proposed_contract"`
 	FieldChanges          []documentimport.FormFieldChange        `json:"field_changes"`
 	UnresolvedItems       []documentimport.ProposalUnresolvedItem `json:"unresolved_items"`
-	Provenance            documentimport.FormProposalProvenance   `json:"provenance"`
+	Provenance            FormProposalProvenance                  `json:"provenance"`
 	FailureCode           string                                  `json:"failure_code,omitempty"`
 	FailureMessage        string                                  `json:"failure_message,omitempty"`
 	CreatedBy             string                                  `json:"created_by"`
@@ -117,7 +117,19 @@ func cloneFormTemplateProposal(value FormTemplateProposal) FormTemplateProposal 
 			cloned.UnresolvedItems[index].Anchor = &anchor
 		}
 	}
+	cloned.Provenance = cloneFormProposalProvenance(value.Provenance)
 	cloned.AcceptedChangeIDs = append([]string(nil), value.AcceptedChangeIDs...)
+	return cloned
+}
+
+func cloneFormProposalProvenance(value FormProposalProvenance) FormProposalProvenance {
+	cloned := value
+	if value.AI != nil {
+		ai := *value.AI
+		ai.SourceElementRefs = append([]string(nil), value.AI.SourceElementRefs...)
+		ai.ValidationResults = append([]string(nil), value.AI.ValidationResults...)
+		cloned.AI = &ai
+	}
 	return cloned
 }
 
