@@ -52,6 +52,7 @@ type Dependencies struct {
 	FormCommunicationBrands          *evidence.CommunicationBrandService
 	FormCommunicationTestDelivery    *evidence.InvitationDeliveryService
 	Monitoring                       *monitoring.Service
+	FormProposals                    *monitoring.FormProposalService
 	ThirdParty                       *thirdparty.Service
 	VendorBrands                     *thirdparty.VendorBrandService
 	ThirdPartyRelationshipLinks      *thirdparty.RelationshipLinkService
