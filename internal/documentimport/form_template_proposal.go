@@ -53,22 +53,22 @@ type ProposalUnresolvedItem struct {
 }
 
 type FormProposalProvenance struct {
-	ProposalVersion   string `json:"proposal_version"`
-	SourceDocumentID  string `json:"source_document_id"`
-	SourceSHA256      string `json:"source_sha256"`
-	SourceVersion     int64  `json:"source_version"`
-	ParserVersion     string `json:"parser_version,omitempty"`
-	AdapterVersion    string `json:"adapter_version,omitempty"`
-	ExtractionStatus  string `json:"extraction_status"`
-	TabularParser     string `json:"tabular_parser_version,omitempty"`
+	ProposalVersion  string `json:"proposal_version"`
+	SourceDocumentID string `json:"source_document_id"`
+	SourceSHA256     string `json:"source_sha256"`
+	SourceVersion    int64  `json:"source_version"`
+	ParserVersion    string `json:"parser_version,omitempty"`
+	AdapterVersion   string `json:"adapter_version,omitempty"`
+	ExtractionStatus string `json:"extraction_status"`
+	TabularParser    string `json:"tabular_parser_version,omitempty"`
 }
 
 type FormTemplateProposal struct {
-	Contract        formcontract.Contract     `json:"contract"`
-	FieldChanges    []FormFieldChange         `json:"field_changes"`
-	UnresolvedItems []ProposalUnresolvedItem  `json:"unresolved_items"`
-	Provenance      FormProposalProvenance    `json:"provenance"`
-	Truncated       bool                      `json:"truncated"`
+	Contract        formcontract.Contract    `json:"contract"`
+	FieldChanges    []FormFieldChange        `json:"field_changes"`
+	UnresolvedItems []ProposalUnresolvedItem `json:"unresolved_items"`
+	Provenance      FormProposalProvenance   `json:"provenance"`
+	Truncated       bool                     `json:"truncated"`
 }
 
 func ProposeFormTemplate(document Document, policy ProposalPolicy) (FormTemplateProposal, error) {
@@ -81,13 +81,13 @@ func ProposeFormTemplate(document Document, policy ProposalPolicy) (FormTemplate
 	}
 
 	builder := formProposalBuilder{
-		policy: policy,
-		document: document,
-		sections: []formcontract.Section{{ID: formcontract.DefaultSectionID, Title: "General"}},
-		sectionIDs: map[string]struct{}{formcontract.DefaultSectionID: {}},
+		policy:           policy,
+		document:         document,
+		sections:         []formcontract.Section{{ID: formcontract.DefaultSectionID, Title: "General"}},
+		sectionIDs:       map[string]struct{}{formcontract.DefaultSectionID: {}},
 		currentSectionID: formcontract.DefaultSectionID,
-		changes: make([]FormFieldChange, 0, min(policy.MaxFields, 32)),
-		unresolved: make([]ProposalUnresolvedItem, 0, min(policy.MaxUnresolved, 32)),
+		changes:          make([]FormFieldChange, 0, min(policy.MaxFields, 32)),
+		unresolved:       make([]ProposalUnresolvedItem, 0, min(policy.MaxUnresolved, 32)),
 	}
 	builder.consumeElements(document.Elements)
 	builder.consumeTabular(document.Tabular)
@@ -101,9 +101,9 @@ func ProposeFormTemplate(document Document, policy ProposalPolicy) (FormTemplate
 	}
 	contract, err := formcontract.Normalize(formcontract.Contract{
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationAutomatic, AllowModeSwitch: true},
-		ScoringMode: formcontract.ScoringNone,
-		Sections: builder.sections,
-		Fields: fields,
+		ScoringMode:  formcontract.ScoringNone,
+		Sections:     builder.sections,
+		Fields:       fields,
 	})
 	if err != nil {
 		return FormTemplateProposal{}, fmt.Errorf("proposed form contract is invalid: %w", err)
@@ -113,23 +113,23 @@ func ProposeFormTemplate(document Document, policy ProposalPolicy) (FormTemplate
 	}
 
 	provenance := FormProposalProvenance{
-		ProposalVersion: formProposalVersion,
+		ProposalVersion:  formProposalVersion,
 		SourceDocumentID: strings.TrimSpace(document.ID),
-		SourceSHA256: strings.TrimSpace(document.SHA256),
-		SourceVersion: document.Version,
-		ParserVersion: parserVersionFor(document),
-		AdapterVersion: strings.TrimSpace(document.AdapterVersion),
+		SourceSHA256:     strings.TrimSpace(document.SHA256),
+		SourceVersion:    document.Version,
+		ParserVersion:    parserVersionFor(document),
+		AdapterVersion:   strings.TrimSpace(document.AdapterVersion),
 		ExtractionStatus: string(document.ExtractionStatus),
 	}
 	if document.Tabular != nil {
 		provenance.TabularParser = strings.TrimSpace(document.Tabular.ParserVersion)
 	}
 	return FormTemplateProposal{
-		Contract: contract,
-		FieldChanges: builder.changes,
+		Contract:        contract,
+		FieldChanges:    builder.changes,
 		UnresolvedItems: builder.unresolved,
-		Provenance: provenance,
-		Truncated: builder.truncated || document.ContentTruncated || document.ExtractionStatus == ExtractionTruncated,
+		Provenance:      provenance,
+		Truncated:       builder.truncated || document.ContentTruncated || document.ExtractionStatus == ExtractionTruncated,
 	}, nil
 }
 
@@ -201,14 +201,14 @@ func (b *formProposalBuilder) addControl(element ExtractedElement) {
 	fieldID := stableProposalID("field", b.document.SHA256, anchorIdentity(anchor), label)
 	changeID := stableProposalID("change", fieldID)
 	field := formcontract.Field{
-		ID: fieldID,
-		SectionID: b.currentSectionID,
-		Label: truncateProposalText(label, 200),
-		Type: fieldType,
-		Required: false,
-		Description: truncateProposalText(strings.TrimSpace(element.Control.Help), 1000),
-		Options: append([]string(nil), options...),
-		CollectionIntent: formcontract.IntentCapture,
+		ID:                 fieldID,
+		SectionID:          b.currentSectionID,
+		Label:              truncateProposalText(label, 200),
+		Type:               fieldType,
+		Required:           false,
+		Description:        truncateProposalText(strings.TrimSpace(element.Control.Help), 1000),
+		Options:            append([]string(nil), options...),
+		CollectionIntent:   formcontract.IntentCapture,
 		BrowserCachePolicy: formcontract.BrowserCacheAllowed,
 	}
 	confidence := 0.95
@@ -277,9 +277,13 @@ func (b *formProposalBuilder) consumeTabular(metadata *TabularMetadata) {
 			fieldID := stableProposalID("field", b.document.SHA256, "tabular", resource.Name, sourceField.Name)
 			changeID := stableProposalID("change", fieldID)
 			field := formcontract.Field{
-				ID: fieldID, SectionID: sectionID, Label: truncateProposalText(label, 200),
-				Type: formTypeForNativeType(sourceField.NativeType), Required: false,
-				CollectionIntent: formcontract.IntentCapture, BrowserCachePolicy: formcontract.BrowserCacheAllowed,
+				ID:                 fieldID,
+				SectionID:          sectionID,
+				Label:              truncateProposalText(label, 200),
+				Type:               formTypeForNativeType(sourceField.NativeType),
+				Required:           false,
+				CollectionIntent:   formcontract.IntentCapture,
+				BrowserCachePolicy: formcontract.BrowserCacheAllowed,
 			}
 			unresolved := []string{"REQUIREDNESS_UNKNOWN", "OPTIONS_NOT_INFERRED"}
 			b.changes = append(b.changes, FormFieldChange{ID: changeID, Kind: "ADD_FIELD", Field: field, Anchor: anchor, Confidence: 0.70, Unresolved: unresolved})
