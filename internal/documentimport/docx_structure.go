@@ -55,11 +55,11 @@ func extractDOCXStructuredElements(ctx context.Context, data []byte, policy Extr
 	if document == nil {
 		return docxStructureResult{}, fmt.Errorf("DOCX could not be parsed: word/document.xml is missing")
 	}
-	relationships, err := readDOCXRelationships(ctx, archive.File)
+	relationships, err := readDOCXRelationships(ctx, archive.File, policy)
 	if err != nil {
 		return docxStructureResult{}, err
 	}
-	numbering, err := readDOCXNumbering(ctx, archive.File)
+	numbering, err := readDOCXNumbering(ctx, archive.File, policy)
 	if err != nil {
 		return docxStructureResult{}, err
 	}
