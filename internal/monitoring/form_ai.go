@@ -106,10 +106,10 @@ func (s *FormProposalService) requestAI(ctx context.Context, base FormTemplate, 
 	created.UnresolvedItems = result.UnresolvedItems
 	created.Provenance = FormProposalProvenance{
 		FormProposalProvenance: documentimport.FormProposalProvenance{
-			ProposalVersion: formAIProposalVersion,
+			ProposalVersion:  formAIProposalVersion,
 			SourceDocumentID: created.SourceDocumentID,
-			SourceSHA256: sourceDocumentSHA(source),
-			SourceVersion: created.SourceDocumentVersion,
+			SourceSHA256:     sourceDocumentSHA(source),
+			SourceVersion:    created.SourceDocumentVersion,
 			ExtractionStatus: sourceExtractionStatus(source),
 		},
 		AI: &result.Provenance,
@@ -199,11 +199,11 @@ func formAISnapshotSHA256(objective string, base FormTemplate, contract formcont
 		Refs       []string `json:"refs"`
 	}
 	type snapshotDescriptor struct {
-		Objective           string                 `json:"objective"`
-		BaseTemplateID      string                 `json:"base_template_id,omitempty"`
-		BaseTemplateVersion int64                  `json:"base_template_version,omitempty"`
-		BaseContract        formcontract.Contract  `json:"base_contract"`
-		Source              *sourceDescriptor      `json:"source,omitempty"`
+		Objective           string                `json:"objective"`
+		BaseTemplateID      string                `json:"base_template_id,omitempty"`
+		BaseTemplateVersion int64                 `json:"base_template_version,omitempty"`
+		BaseContract        formcontract.Contract `json:"base_contract"`
+		Source              *sourceDescriptor     `json:"source,omitempty"`
 	}
 	descriptor := snapshotDescriptor{Objective: objective, BaseTemplateID: base.ID, BaseTemplateVersion: base.Version, BaseContract: contract}
 	if source != nil {
