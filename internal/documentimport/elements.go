@@ -52,12 +52,12 @@ type Degradation struct {
 }
 
 type ExtractedElement struct {
-	Ref     string        `json:"ref,omitempty"`
-	Kind    ElementKind   `json:"kind"`
-	Text    string        `json:"text,omitempty"`
-	Values  [][]string    `json:"values,omitempty"`
-	Control *FormControl  `json:"control,omitempty"`
-	Anchor  SourceAnchor  `json:"anchor"`
+	Ref     string       `json:"ref,omitempty"`
+	Kind    ElementKind  `json:"kind"`
+	Text    string       `json:"text,omitempty"`
+	Values  [][]string   `json:"values,omitempty"`
+	Control *FormControl `json:"control,omitempty"`
+	Anchor  SourceAnchor `json:"anchor"`
 }
 
 func elementsFromSections(sections []Section) []ExtractedElement {
@@ -101,6 +101,23 @@ func meaningfulElementHeading(title string, section Section) bool {
 		return false
 	}
 	return !strings.HasPrefix(title, "Section ")
+}
+
+// withDerivedExtractionDetails keeps the existing Section projection useful
+// while Task 15 introduces durable extraction_details. It derives only facts
+// that are reconstructable from already-persisted fields and never invents
+// controls, images, links, or parser degradations that were not retained.
+func withDerivedExtractionDetails(value Document) Document {
+	if value.ParserVersion == "" {
+		value.ParserVersion = parserVersionFor(value)
+	}
+	if value.AdapterVersion == "" && value.ParserVersion != "" {
+		value.AdapterVersion = extractionElementAdapterVersion
+	}
+	if value.Elements == nil && len(value.Sections) > 0 {
+		value.Elements = elementsFromSections(value.Sections)
+	}
+	return value
 }
 
 func cloneElements(values []ExtractedElement) []ExtractedElement {
