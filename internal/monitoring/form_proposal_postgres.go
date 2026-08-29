@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -15,6 +16,11 @@ import (
 )
 
 const EventFormProposalGenerationRequested = "FORM_TEMPLATE_PROPOSAL_GENERATION_REQUESTED"
+
+const (
+	EventFormProposalAccepted = "FORM_TEMPLATE_PROPOSAL_ACCEPTED"
+	EventFormProposalRejected = "FORM_TEMPLATE_PROPOSAL_REJECTED"
+)
 
 type PostgresFormProposalStore struct {
 	pool *pgxpool.Pool
@@ -131,25 +137,33 @@ func (s *PostgresFormProposalStore) Review(ctx context.Context, mutation FormPro
 	}
 	resultID := strings.TrimSpace(mutation.ResultTemplateID)
 	resultVersion := mutation.ResultTemplateVersion
+	changeIDs := normalizeProposalChangeIDs(mutation.ChangeIDs)
 	if mutation.Status == FormProposalAccepted {
-		if resultID == "" || resultVersion < 1 {
+		if resultID == "" || resultVersion < 1 || len(changeIDs) == 0 {
 			return FormTemplateProposal{}, ErrInvalid
 		}
 	} else {
+		if len(changeIDs) != 0 {
+			return FormTemplateProposal{}, ErrInvalid
+		}
 		resultID = ""
 		resultVersion = 0
 	}
+	accepted, err := json.Marshal(changeIDs)
+	if err != nil {
+		return FormTemplateProposal{}, errors.Join(ErrInvalid, err)
+	}
 	updated, err := scanFormProposal(s.pool.QueryRow(ctx, `
 		UPDATE form_template_proposals p SET
-			status=$5,reviewed_by=$6::uuid,reviewed_at=$7,
-			result_template_id=NULLIF($8,'')::uuid,result_template_version=NULLIF($9,0),
+			status=$5,reviewed_by=$6::uuid,reviewed_at=$7,accepted_change_ids=$8::jsonb,
+			result_template_id=NULLIF($9,'')::uuid,result_template_version=NULLIF($10,0),
 			updated_at=$7,version=p.version+1
 		FROM tenants t
 		WHERE p.tenant_id=t.id AND (t.id::text=$1 OR t.slug=$1)
 		  AND p.legal_entity_id=$2::uuid AND p.id=$3::uuid AND p.version=$4 AND p.status='REVIEW_REQUIRED'
 		RETURNING `+formProposalProjectionReturning,
 		mutation.TenantID, mutation.LegalEntityID, mutation.ProposalID, mutation.ExpectedVersion,
-		mutation.Status, mutation.ReviewerID, mutation.At.UTC(), resultID, resultVersion))
+		mutation.Status, mutation.ReviewerID, mutation.At.UTC(), accepted, resultID, resultVersion))
 	if err == nil {
 		return updated, nil
 	}
@@ -160,7 +174,7 @@ func (s *PostgresFormProposalStore) Review(ctx context.Context, mutation FormPro
 	if getErr != nil {
 		return FormTemplateProposal{}, getErr
 	}
-	if current.Status == mutation.Status && current.ReviewedBy == mutation.ReviewerID && current.ResultTemplateID == resultID && current.ResultTemplateVersion == resultVersion {
+	if current.Status == mutation.Status && current.ReviewedBy == mutation.ReviewerID && current.ResultTemplateID == resultID && current.ResultTemplateVersion == resultVersion && slices.Equal(current.AcceptedChangeIDs, changeIDs) {
 		return current, nil
 	}
 	if current.Version != mutation.ExpectedVersion {
@@ -239,7 +253,8 @@ const formProposalProjection = `
 	COALESCE(p.source_document_id::text,''),COALESCE(p.source_document_version,0),p.source_sha256,
 	COALESCE(p.base_template_id::text,''),COALESCE(p.base_template_version,0),p.status,
 	p.proposed_contract,p.field_changes,p.unresolved_items,p.provenance,p.failure_code,p.failure_message,
-	p.created_by::text,COALESCE(p.reviewed_by::text,''),COALESCE(p.result_template_id::text,''),COALESCE(p.result_template_version,0),
+	p.created_by::text,COALESCE(p.reviewed_by::text,''),p.accepted_change_ids,
+	COALESCE(p.result_template_id::text,''),COALESCE(p.result_template_version,0),
 	p.created_at,p.updated_at,p.reviewed_at,p.version`
 
 const formProposalProjectionReturning = `
@@ -247,7 +262,8 @@ const formProposalProjectionReturning = `
 	COALESCE(p.source_document_id::text,''),COALESCE(p.source_document_version,0),p.source_sha256,
 	COALESCE(p.base_template_id::text,''),COALESCE(p.base_template_version,0),p.status,
 	p.proposed_contract,p.field_changes,p.unresolved_items,p.provenance,p.failure_code,p.failure_message,
-	p.created_by::text,COALESCE(p.reviewed_by::text,''),COALESCE(p.result_template_id::text,''),COALESCE(p.result_template_version,0),
+	p.created_by::text,COALESCE(p.reviewed_by::text,''),p.accepted_change_ids,
+	COALESCE(p.result_template_id::text,''),COALESCE(p.result_template_version,0),
 	p.created_at,p.updated_at,p.reviewed_at,p.version`
 
 type formProposalScanner interface {
@@ -256,13 +272,13 @@ type formProposalScanner interface {
 
 func scanFormProposal(row formProposalScanner) (FormTemplateProposal, error) {
 	var value FormTemplateProposal
-	var contract, changes, unresolved, provenance []byte
+	var contract, changes, unresolved, provenance, accepted []byte
 	if err := row.Scan(
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.SourceKind,
 		&value.SourceDocumentID, &value.SourceDocumentVersion, &value.SourceSHA256,
 		&value.BaseTemplateID, &value.BaseTemplateVersion, &value.Status,
 		&contract, &changes, &unresolved, &provenance, &value.FailureCode, &value.FailureMessage,
-		&value.CreatedBy, &value.ReviewedBy, &value.ResultTemplateID, &value.ResultTemplateVersion,
+		&value.CreatedBy, &value.ReviewedBy, &accepted, &value.ResultTemplateID, &value.ResultTemplateVersion,
 		&value.CreatedAt, &value.UpdatedAt, &value.ReviewedAt, &value.Version,
 	); err != nil {
 		return FormTemplateProposal{}, err
@@ -279,5 +295,9 @@ func scanFormProposal(row formProposalScanner) (FormTemplateProposal, error) {
 	if err := json.Unmarshal(provenance, &value.Provenance); err != nil {
 		return FormTemplateProposal{}, errors.Join(ErrInvalid, err)
 	}
+	if err := json.Unmarshal(accepted, &value.AcceptedChangeIDs); err != nil {
+		return FormTemplateProposal{}, errors.Join(ErrInvalid, err)
+	}
+	value.AcceptedChangeIDs = normalizeProposalChangeIDs(value.AcceptedChangeIDs)
 	return value, nil
 }
