@@ -33,12 +33,15 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 	const entity = "91919191-9191-7191-8191-919191919192"
 	const otherEntity = "91919191-9191-7191-8191-919191919193"
 	const actor = "91919191-9191-7191-8191-919191919194"
-	if _, err := pool.Exec(ctx, `
-		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'forms-scale-bank','Forms Scale Bank');
-		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES
-			($2::uuid,$1::uuid,'BANK-NG','Forms Scale Bank Nigeria','Nigeria'),
-			($3::uuid,$1::uuid,'BANK-GH','Forms Scale Bank Ghana','Ghana');
-		INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($4::uuid,$1::uuid,'PERSON','Forms Operations Owner');`, tenant, entity, otherEntity, actor); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'forms-scale-bank','Forms Scale Bank')`, tenant); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES
+		($2::uuid,$1::uuid,'BANK-NG','Forms Scale Bank Nigeria','Nigeria'),
+		($3::uuid,$1::uuid,'BANK-GH','Forms Scale Bank Ghana','Ghana')`, tenant, entity, otherEntity); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($2::uuid,$1::uuid,'PERSON','Forms Operations Owner')`, tenant, actor); err != nil {
 		t.Fatal(err)
 	}
 

@@ -42,3 +42,18 @@ func TestComposeAssessmentScopeRetainsFullScopeCompatibility(t *testing.T) {
 		t.Fatalf("full compatibility = sections=%#v fields=%#v err=%v", sections, fields, err)
 	}
 }
+
+func TestNormalizeAssessmentRecordScopeDefaultsLegacyFullScope(t *testing.T) {
+	assessment := Assessment{}
+	if err := normalizeAssessmentRecordScope(&assessment); err != nil {
+		t.Fatal(err)
+	}
+	if assessment.ScopeKind != AssessmentScopeFull || assessment.ScopeVersion != 1 || assessment.SelectedFieldIDs == nil || len(assessment.SelectedFieldIDs) != 0 {
+		t.Fatalf("legacy full-scope assessment was not normalized: %#v", assessment)
+	}
+
+	invalid := Assessment{ScopeKind: AssessmentScopeFocused, ScopeVersion: 1}
+	if err := normalizeAssessmentRecordScope(&invalid); !errors.Is(err, ErrInvalidAssessmentScope) {
+		t.Fatalf("expected empty focused scope to fail, got %v", err)
+	}
+}

@@ -16,6 +16,22 @@ const (
 
 var ErrInvalidAssessmentScope = errors.New("assessment field scope is invalid or stale")
 
+func normalizeAssessmentRecordScope(assessment *Assessment) error {
+	if assessment == nil || assessment.ScopeVersion < 0 {
+		return ErrInvalidAssessmentScope
+	}
+	kind, selected, err := NormalizeAssessmentScope(assessment.ScopeKind, assessment.SelectedFieldIDs)
+	if err != nil {
+		return err
+	}
+	assessment.ScopeKind = kind
+	assessment.SelectedFieldIDs = selected
+	if assessment.ScopeVersion == 0 {
+		assessment.ScopeVersion = 1
+	}
+	return nil
+}
+
 func NormalizeAssessmentScope(kind AssessmentScopeKind, selected []string) (AssessmentScopeKind, []string, error) {
 	kind = AssessmentScopeKind(strings.ToUpper(strings.TrimSpace(string(kind))))
 	if kind == "" {

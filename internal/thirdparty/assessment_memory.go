@@ -80,7 +80,9 @@ func (r *MemoryAssessmentRepository) CreateAssessment(ctx context.Context, recor
 		}
 	}
 	assessment := record.Assessment
-	assessment.SelectedFieldIDs = append([]string(nil), record.Assessment.SelectedFieldIDs...)
+	if err := normalizeAssessmentRecordScope(&assessment); err != nil {
+		return Assessment{}, err
+	}
 	assessment.TenantID = record.TenantID
 	assessment.LegalEntityID = record.LegalEntityID
 	assessment.RelationshipID = record.RelationshipID

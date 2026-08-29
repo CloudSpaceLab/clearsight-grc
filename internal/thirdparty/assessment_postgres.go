@@ -73,6 +73,9 @@ func (r *PostgresRepository) CreateAssessment(ctx context.Context, record Create
 		return Assessment{}, fmt.Errorf("lock assessment form: %w", err)
 	}
 	assessment := record.Assessment
+	if err := normalizeAssessmentRecordScope(&assessment); err != nil {
+		return Assessment{}, err
+	}
 	selectedFieldIDsJSON, err := json.Marshal(assessment.SelectedFieldIDs)
 	if err != nil {
 		return Assessment{}, fmt.Errorf("encode assessment field scope: %w", err)
