@@ -16,7 +16,7 @@ func marshalExtractionDetails(value Document) ([]byte, error) {
 	details := persistedExtractionDetails{
 		ParserVersion:  value.ParserVersion,
 		AdapterVersion: value.AdapterVersion,
-		Elements:       cloneExtractedElements(value.Elements),
+		Elements:       cloneElements(value.Elements),
 		Degradations:   cloneDegradations(value.Degradations),
 	}
 	if details.Elements == nil {
@@ -42,7 +42,7 @@ func applyPersistedExtractionDetails(value *Document, encoded []byte) error {
 	}
 	value.ParserVersion = details.ParserVersion
 	value.AdapterVersion = details.AdapterVersion
-	value.Elements = cloneExtractedElements(details.Elements)
+	value.Elements = cloneElements(details.Elements)
 	value.Degradations = cloneDegradations(details.Degradations)
 	return nil
 }
