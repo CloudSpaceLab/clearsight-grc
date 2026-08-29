@@ -30,8 +30,8 @@ func TestFormProposalGenerationPublisherConsumesOnlyExactEvent(t *testing.T) {
 		ID: "doc-1", TenantID: "bank-a", LegalEntityID: "entity-a", Version: 4,
 		SHA256: strings.Repeat("b", 64), ExtractionStatus: documentimport.ExtractionExtracted,
 		Elements: []documentimport.ExtractedElement{{
-			Kind: documentimport.ElementFormControl,
-			Anchor: documentimport.SourceAnchor{Paragraph: "paragraph-1"},
+			Kind:    documentimport.ElementFormControl,
+			Anchor:  documentimport.SourceAnchor{Paragraph: "paragraph-1"},
 			Control: &documentimport.FormControl{Kind: "TEXT", Label: "Legal name"},
 		}},
 	}
@@ -39,7 +39,7 @@ func TestFormProposalGenerationPublisherConsumesOnlyExactEvent(t *testing.T) {
 	now := time.Date(2026, 8, 29, 14, 0, 0, 0, time.UTC)
 	created, err := store.Create(context.Background(), monitoring.FormTemplateProposal{
 		ID: "proposal-1", TenantID: "bank-a", LegalEntityID: "entity-a",
-		SourceKind: monitoring.FormProposalSourceDocument,
+		SourceKind:       monitoring.FormProposalSourceDocument,
 		SourceDocumentID: document.ID, SourceDocumentVersion: document.Version, SourceSHA256: document.SHA256,
 		Status: monitoring.FormProposalGenerating, CreatedBy: "maker-a", CreatedAt: now, UpdatedAt: now, Version: 1,
 	})
