@@ -30,8 +30,8 @@ func TestExtractionReportsExactOmittedSectionCount(t *testing.T) {
 	policy.MaxSections = 1
 	policy.MaxRows = 10
 	result := ExtractWithPolicy(context.Background(), "rows.csv", "text/csv", []byte("name,value\na,1\nb,2\nc,3\n"), policy)
-	if result.Status != ExtractionExtracted {
-		t.Fatalf("expected bounded extraction, got %#v", result)
+	if result.Status != ExtractionTruncated {
+		t.Fatalf("expected bounded truncation, got %#v", result)
 	}
 	if len(result.Sections) != 1 || result.SectionsTotal != 3 || result.SectionsOmitted != 2 || !result.ContentTruncated {
 		t.Fatalf("unexpected completeness metadata: %#v", result)
@@ -42,8 +42,8 @@ func TestExtractionReportsRetainedTextTruncation(t *testing.T) {
 	policy := DefaultExtractionPolicy()
 	policy.MaxExtractedTextBytes = 5
 	result := ExtractWithPolicy(context.Background(), "notice.txt", "text/plain", []byte("alpha beta gamma."), policy)
-	if result.Status != ExtractionExtracted || len(result.Sections) != 1 {
-		t.Fatalf("expected one bounded text section, got %#v", result)
+	if result.Status != ExtractionTruncated || len(result.Sections) != 1 {
+		t.Fatalf("expected one bounded truncated text section, got %#v", result)
 	}
 	if result.Sections[0].Text != "alpha" || !result.ContentTruncated || result.SectionsTotal != 1 || result.SectionsOmitted != 0 {
 		t.Fatalf("retained-text budget was not represented truthfully: %#v", result)
