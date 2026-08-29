@@ -89,7 +89,7 @@ func (s *Service) Import(ctx context.Context, input ImportInput, reader io.Reade
 		SizeBytes: object.SizeBytes, SHA256: object.SHA256, StorageKey: object.Key, ArtifactStatus: "STORED_UNSCANNED",
 		ExtractionStatus: ExtractionPending, ExtractionMethod: "PENDING",
 		AnalysisStatus: AnalysisPending, AnalysisMethod: "DETERMINISTIC_RULES_V2",
-		Limitations: baseLimitations(), Sections: []Section{}, Proposals: []Proposal{},
+		Limitations: baseLimitations(), Sections: []Section{}, Elements: []ExtractedElement{}, Degradations: []Degradation{}, Proposals: []Proposal{},
 		CreatedBy: input.CreatedBy, CreatedAt: now, UpdatedAt: now, Version: 1,
 	}
 
@@ -99,7 +99,7 @@ func (s *Service) Import(ctx context.Context, input ImportInput, reader io.Reade
 			_ = s.store.Delete(ctx, key)
 			return Document{}, createErr
 		}
-		return created, nil
+		return withDerivedExtractionDetails(created), nil
 	}
 
 	processed, err := s.processStored(ctx, value)
@@ -112,7 +112,7 @@ func (s *Service) Import(ctx context.Context, input ImportInput, reader io.Reade
 		_ = s.store.Delete(ctx, key)
 		return Document{}, err
 	}
-	return created, nil
+	return withDerivedExtractionDetails(created), nil
 }
 
 func (s *Service) List(ctx context.Context, tenant string, limit int) ([]DocumentSummary, error) {
@@ -126,7 +126,11 @@ func (s *Service) Get(ctx context.Context, tenant, id string) (Document, error) 
 	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(id) == "" {
 		return Document{}, ErrNotFound
 	}
-	return s.repo.Get(ctx, strings.TrimSpace(tenant), strings.TrimSpace(id))
+	value, err := s.repo.Get(ctx, strings.TrimSpace(tenant), strings.TrimSpace(id))
+	if err != nil {
+		return Document{}, err
+	}
+	return withDerivedExtractionDetails(value), nil
 }
 
 func (s *Service) ReviewProposal(ctx context.Context, input ReviewInput) (Document, error) {
@@ -141,7 +145,11 @@ func (s *Service) ReviewProposal(ctx context.Context, input ReviewInput) (Docume
 	if input.TenantID == "" || input.DocumentID == "" || input.ProposalID == "" || input.ReviewerID == "" || input.ExpectedVersion < 1 {
 		return Document{}, ErrInvalidReview
 	}
-	return s.repo.ReviewProposal(ctx, input, s.now().UTC())
+	value, err := s.repo.ReviewProposal(ctx, input, s.now().UTC())
+	if err != nil {
+		return Document{}, err
+	}
+	return withDerivedExtractionDetails(value), nil
 }
 
 // Publish consumes the existing durable outbox request produced with a pending
@@ -199,7 +207,11 @@ func (s *Service) processStored(ctx context.Context, value Document) (Document, 
 	}
 	value.ExtractionStatus = extraction.Status
 	value.ExtractionMethod = extraction.Method
+	value.ParserVersion = extraction.ParserVersion
+	value.AdapterVersion = extraction.AdapterVersion
 	value.Sections = extraction.Sections
+	value.Elements = cloneElements(extraction.Elements)
+	value.Degradations = cloneDegradations(extraction.Degradations)
 	value.SectionsTotal = extraction.SectionsTotal
 	value.SectionsOmitted = extraction.SectionsOmitted
 	value.ContentTruncated = extraction.ContentTruncated
@@ -220,7 +232,7 @@ func (s *Service) processStored(ctx context.Context, value Document) (Document, 
 	value.AnalysisStatus = AnalysisUnavailable
 	value.AnalysisMethod = "DETERMINISTIC_RULES_V2"
 
-	if extraction.Status == ExtractionExtracted && s.allowUnscannedAnalysis {
+	if extraction.Status.hasUsableContent() && s.allowUnscannedAnalysis {
 		analysis := AnalyzeBounded(extraction.Sections, s.extractionPolicy.normalized().MaxProposals)
 		value.Proposals = analysis.Proposals
 		value.ProposalsTotal = analysis.Total
@@ -233,7 +245,7 @@ func (s *Service) processStored(ctx context.Context, value Document) (Document, 
 		} else {
 			value.AnalysisStatus = AnalysisReviewRequired
 		}
-	} else if extraction.Status == ExtractionExtracted {
+	} else if extraction.Status.hasUsableContent() {
 		value.Limitations = append(value.Limitations, "Analysis is blocked until the artifact is marked available by an approved scanning pipeline.")
 	}
 	if extraction.ContentTruncated || extraction.SectionsOmitted > 0 {
