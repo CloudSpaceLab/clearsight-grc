@@ -1,3 +1,5 @@
+BEGIN;
+
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM third_party_response_application_receipts LIMIT 1) THEN
@@ -44,3 +46,5 @@ ALTER TABLE third_party_assessments
     DROP COLUMN selected_field_ids,
     DROP COLUMN scope_version,
     DROP COLUMN scope_kind;
+
+COMMIT;

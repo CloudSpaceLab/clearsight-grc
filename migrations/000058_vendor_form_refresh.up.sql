@@ -1,3 +1,5 @@
+BEGIN;
+
 ALTER TABLE third_party_assessments
     ADD COLUMN scope_kind text NOT NULL DEFAULT 'FULL',
     ADD COLUMN scope_version bigint NOT NULL DEFAULT 1,
@@ -123,3 +125,5 @@ ALTER TABLE third_party_events ADD CONSTRAINT third_party_events_event_type_chec
     'AssessmentRequestReissued','AssessmentSubmitted','AssessmentReviewStarted','AssessmentDeficiencyLinked',
     'AssessmentDocumentValidated','AssessmentDocumentRejected','AssessmentDocumentExpired','AssessmentCompleted','AssessmentCancelled'
 ));
+
+COMMIT;
