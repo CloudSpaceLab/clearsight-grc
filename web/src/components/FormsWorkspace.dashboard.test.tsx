@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FormLibraryItem } from "../formsTypes";
 import { FormsWorkspace } from "./FormsWorkspace";
@@ -92,5 +92,40 @@ describe("Forms template dashboard", () => {
     expect(screen.queryByRole("button", { name: "Save view" })).toBeNull();
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "vendor" } });
     expect(await screen.findByRole("button", { name: "Save view" })).toBeTruthy();
+  });
+
+  it("adds and removes a typed filter while keeping the URL canonical", async () => {
+    render(<FormsWorkspace/>);
+    await screen.findByRole("button", { name: "Open Vendor due diligence" });
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Filter" }));
+    const picker = screen.getByRole("dialog", { name: "Add filter" });
+    fireEvent.click(within(picker).getByRole("button", { name: /Status/ }));
+    fireEvent.change(within(picker).getByLabelText("Status value"), { target: { value: "DRAFT" } });
+    fireEvent.click(within(picker).getByRole("button", { name: "Apply filter" }));
+
+    expect(screen.getByRole("button", { name: "Remove Status filter" }).textContent).toContain("Draft");
+    expect(window.location.hash).toBe("#forms?status=DRAFT");
+    await waitFor(() => expect(api.loadFormTemplatePage.mock.calls.some(([query]) => query.status === "DRAFT")).toBe(true));
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Status filter" }));
+    expect(window.location.hash).toBe("#forms");
+  });
+
+  it("keeps the current table visible while a superseding query revalidates", async () => {
+    render(<FormsWorkspace/>);
+    await screen.findByRole("button", { name: "Open Vendor due diligence" });
+
+    let resolveNext!: (value: { items: FormLibraryItem[] }) => void;
+    const pending = new Promise<{ items: FormLibraryItem[] }>((resolve) => { resolveNext = resolve; });
+    api.loadFormTemplatePage.mockImplementationOnce(() => pending);
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "no match" } });
+    await waitFor(() => expect(api.loadFormTemplatePage.mock.calls.length).toBeGreaterThan(1));
+    expect(screen.getByRole("button", { name: "Open Vendor due diligence" })).toBeTruthy();
+    expect(screen.getByText("Updating…")).toBeTruthy();
+
+    resolveNext({ items: [] });
+    expect(await screen.findByRole("heading", { name: "No templates match “no match”" })).toBeTruthy();
   });
 });
