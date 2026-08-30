@@ -26,6 +26,7 @@ async function captureScenario(scenario) {
     reducedMotion: "reduce",
     locale: "en-NG",
     timezoneId: "Africa/Lagos",
+    deviceScaleFactor: scenario.zoom,
   });
   try {
     await context.addInitScript(({ selectedTheme }) => {
@@ -33,11 +34,11 @@ async function captureScenario(scenario) {
       localStorage.setItem("clearsight.density", "comfortable");
     }, { selectedTheme: scenario.theme });
     const page = await context.newPage();
+    if (scenario.fixture === "forms-recovery-restored") await seedRecoveryEnvelope(page);
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
     await page.goto(scenarioURL(scenario), { waitUntil: "networkidle" });
-    if (scenario.zoom === 2) await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
     await scenario.run(page);
     await page.evaluate(() => document.fonts?.ready);
     if (errors.length) throw new Error(`${scenario.name} emitted browser errors:\n${errors.join("\n")}`);
@@ -45,6 +46,57 @@ async function captureScenario(scenario) {
   } finally {
     await context.close();
   }
+}
+
+async function seedRecoveryEnvelope(page) {
+  await page.goto(`${baseURL}/favicon.ico`, { waitUntil: "domcontentloaded" });
+  await page.evaluate(async () => {
+    const database = await new Promise((resolve, reject) => {
+      const request = indexedDB.open("clearsight-capture-recovery", 1);
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains("envelopes")) request.result.createObjectStore("envelopes");
+        if (!request.result.objectStoreNames.contains("keys")) request.result.createObjectStore("keys");
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const origin = window.location.origin;
+    const context = { origin, legalEntityID: "entity-demo", distributionID: "field-distribution-1", schemaVersion: 1 };
+    const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+    const envelope = {
+      payloadVersion: 2,
+      distributionID: context.distributionID,
+      workspaceID: "field-workspace-1",
+      schemaVersion: context.schemaVersion,
+      serverVersion: 0,
+      page: 0,
+      presentationMode: "AUTOMATIC",
+      basePresentationMode: "AUTOMATIC",
+      presentationModeDirty: false,
+      edits: [
+        { fieldID: "visit_note", baseSequence: 0, operation: "set", value: { text: "Recovered on this device" } },
+        { fieldID: "site_photo", baseSequence: 0, operation: "reselect" },
+      ],
+      complete: false,
+      localSequence: 2,
+      updatedAt: now.toISOString(),
+      expiresAt,
+    };
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const aad = new TextEncoder().encode(["clearsight.capture-recovery.v1", context.origin, context.legalEntityID, context.distributionID, String(context.schemaVersion)].join("\n"));
+    const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: aad, tagLength: 128 }, key, new TextEncoder().encode(JSON.stringify(envelope)));
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction(["keys", "envelopes"], "readwrite");
+      transaction.objectStore("keys").put(key, `capture-recovery-device:${origin}`);
+      transaction.objectStore("envelopes").put({ version: 1, algorithm: "AES-GCM", iv: iv.buffer, ciphertext, expiresAt, schemaVersion: 1 }, `capture-recovery-v2|${origin}|entity-demo|field-distribution-1|1`);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+    database.close();
+  });
 }
 
 function scenarioURL(scenario) {

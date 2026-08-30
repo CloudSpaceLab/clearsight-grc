@@ -21,13 +21,13 @@ if (staticDemoEnabled) {
       return jsonResponse(body, 200);
     } catch (cause) {
       if (cause instanceof StaticDemoHTTPError) return jsonResponse({ error: { code: cause.code, message: cause.message } }, cause.status);
-      if (isStaticExternalError(cause)) return jsonResponse({ error: { code: cause.staticCode, message: cause.message } }, cause.staticStatus);
+      if (isStaticExternalError(cause)) return jsonResponse(cause.staticBody ?? { error: { code: cause.staticCode, message: cause.message } }, cause.staticStatus);
       return jsonResponse({ error: { code: "static_demo_failed", message: cause instanceof Error ? cause.message : "Static demo request failed" } }, 503);
     }
   };
 }
 
-function isStaticExternalError(cause: unknown): cause is Error & { staticStatus: number; staticCode: string } {
+function isStaticExternalError(cause: unknown): cause is Error & { staticStatus: number; staticCode: string; staticBody?: unknown } {
   return cause instanceof Error && "staticStatus" in cause && "staticCode" in cause;
 }
 
