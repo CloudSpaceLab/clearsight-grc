@@ -40,7 +40,8 @@ class DeploymentConfigTest(unittest.TestCase):
     def test_forced_command_accepts_only_sha_deployments(self) -> None:
         script = self.read("deploy/scripts/ci-entrypoint.sh")
         for value in ("^deploy ([0-9a-f]{40})$", 'root=/opt/clearsight-grc', '"$root/incoming"',
-                      "unsafe release path", "iflag=fullblock", '"$stage/scripts/release.sh" "$sha" "$stage"'):
+                      "unsafe release path", "iflag=fullblock", 'test -f "$stage/scripts/verify-hosted-release.sh"',
+                      '"$stage/scripts/release.sh" "$sha" "$stage"'):
             self.assertIn(value, script)
         self.assertNotIn('exec "$stage/scripts/release.sh"', script)
 
@@ -48,7 +49,8 @@ class DeploymentConfigTest(unittest.TestCase):
         script = self.read("deploy/scripts/release.sh")
         for value in ("5368709120", 'for component in api worker web', 'image="clearsight-$component:$sha"',
                       "scripts/migrate.sh", "compose -p clearsight", "13281/health/ready",
-                      "13280/healthz", "state/current-sha", "com.cloudspacelab.clearsight=true"):
+                      "13280/healthz", '"$release/scripts/verify-hosted-release.sh" "$sha"',
+                      "state/current-sha", "com.cloudspacelab.clearsight=true"):
             self.assertIn(value, script)
         for forbidden in ("docker system prune", "docker volume prune", "down -v",
                           "systemctl restart postgresql"):
@@ -103,8 +105,8 @@ class DeploymentConfigTest(unittest.TestCase):
             self.assertIn(value, verifier)
         self.assertNotIn("set -x", verifier)
         workflow = self.read(".github/workflows/deploy-demo.yml")
-        self.assertIn("verify-hosted-release.sh", workflow)
-        self.assertIn('"$RELEASE_SHA"', workflow)
+        self.assertIn('install -m 0755 deploy/scripts/verify-hosted-release.sh "$release/scripts/verify-hosted-release.sh"', workflow)
+        self.assertNotIn('run: bash deploy/scripts/verify-hosted-release.sh "$RELEASE_SHA"', workflow)
 
     def test_postgres_demo_is_seeded_and_artifacts_are_writable(self) -> None:
         dockerfile = self.read("Dockerfile.api")
