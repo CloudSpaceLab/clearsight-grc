@@ -70,6 +70,23 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	t.Run("representative recipient and revision population", func(t *testing.T) {
+		for table, want := range map[string]int{
+			"monitoring_form_templates":       1000,
+			"capture_form_distributions":      400,
+			"capture_distribution_recipients": 1200,
+			"capture_response_revisions":      800,
+		} {
+			var got int
+			if err := pool.QueryRow(ctx, "SELECT count(*) FROM "+table+" WHERE tenant_id=$1::uuid", tenant).Scan(&got); err != nil {
+				t.Fatal(err)
+			}
+			if got != want {
+				t.Fatalf("%s=%d, want %d", table, got, want)
+			}
+		}
+	})
+
 	forms := monitoring.NewPostgresRepository(pool)
 	firstForms, err := forms.ListFormLibrary(ctx, monitoring.FormLibraryFilter{TenantID: "forms-scale-bank", LegalEntityID: entity, Limit: 100})
 	if err != nil {
