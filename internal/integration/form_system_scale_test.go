@@ -69,6 +69,72 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 		FROM generate_series(1,400) i`, tenant, entity, actor); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO capture_requests(
+			id,tenant_id,legal_entity_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
+			estimated_minutes,deadline,known_facts,fields,status,created_by,version,created_at,updated_at,
+			recipient_type,recipient_principal_id,recipient_hint,recipient_state,recipient_revision,distribution_id,
+			form_template_id,form_template_version)
+		SELECT md5(format('scale-request-%s-%s',i,recipient_number))::uuid,$1::uuid,$2::uuid,
+			'VENDOR_RELATIONSHIP',md5('scale-vendor-'||i)::uuid::text,format('Vendor review %s',i),
+			'Confirm current vendor evidence','You are responsible for the selected vendor evidence.','CONFIDENTIAL','INTERNAL',
+			3,clock_timestamp()+interval '90 days','{}'::jsonb,
+			'[{"id":"confirmation","type":"TEXT","label":"Confirmation","required":true}]'::jsonb,
+			'SUBMITTED',$3::uuid,2,clock_timestamp()-interval '2 days',clock_timestamp()-interval '1 day',
+			'INTERNAL_PRINCIPAL',$3::uuid,'Forms Operations Owner','ASSIGNED',1,
+			md5('scale-distribution-'||i)::uuid,md5('scale-form-'||i)::uuid,1
+		FROM generate_series(1,400) i CROSS JOIN generate_series(1,2) recipient_number`, tenant, entity, actor); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO capture_distribution_recipients(
+			id,distribution_id,tenant_id,legal_entity_id,role,recipient_type,principal_id,request_id,
+			audience_hint,contact_label,state,version,created_at,updated_at)
+		SELECT md5(format('scale-recipient-%s-%s',i,recipient_number))::uuid,
+			md5('scale-distribution-'||i)::uuid,$1::uuid,$2::uuid,
+			CASE WHEN recipient_number<=2 THEN 'TO' ELSE 'CC' END,
+			'INTERNAL_PRINCIPAL',$3::uuid,
+			CASE WHEN recipient_number<=2 THEN md5(format('scale-request-%s-%s',i,recipient_number))::uuid ELSE NULL END,
+			'Forms Operations Owner','Forms Operations Owner',
+			CASE WHEN recipient_number<=2 THEN 'COMPLETED' ELSE 'DELIVERED' END,
+			1,clock_timestamp()-interval '2 days',clock_timestamp()-interval '1 day'
+		FROM generate_series(1,400) i CROSS JOIN generate_series(1,3) recipient_number`, tenant, entity, actor); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO capture_response_workspaces(
+			id,tenant_id,legal_entity_id,distribution_id,status,version,created_at,updated_at)
+		SELECT md5('scale-workspace-'||i)::uuid,$1::uuid,$2::uuid,md5('scale-distribution-'||i)::uuid,
+			'COMPLETED',3,clock_timestamp()-interval '2 days',clock_timestamp()-interval '1 day'
+		FROM generate_series(1,400) i`, tenant, entity); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO capture_submissions(
+			id,tenant_id,request_id,submitted_by,channel,answers,submitted_at,created_at,distribution_id,answer_provenance)
+		SELECT md5(format('scale-submission-%s-%s',i,revision))::uuid,$1::uuid,
+			md5(format('scale-request-%s-1',i))::uuid,$2::uuid,'INTERNAL',
+			jsonb_build_object('confirmation',CASE WHEN revision=1 THEN 'Initial' ELSE 'Amended' END),
+			clock_timestamp()-(3-revision)*interval '1 day',clock_timestamp()-(3-revision)*interval '1 day',
+			md5('scale-distribution-'||i)::uuid,'{}'::jsonb
+		FROM generate_series(1,400) i CROSS JOIN generate_series(1,2) revision`, tenant, actor); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO capture_response_revisions(
+			id,tenant_id,legal_entity_id,distribution_id,workspace_id,submission_id,revision,supersedes_revision_id,
+			achieved_assurance,signoff_summary,compliance_score,scored_weight_coverage,state,critical_field_results,
+			scoring_policy_version,is_current,created_at)
+		SELECT md5(format('scale-response-%s-%s',i,revision))::uuid,$1::uuid,$2::uuid,
+			md5('scale-distribution-'||i)::uuid,md5('scale-workspace-'||i)::uuid,
+			md5(format('scale-submission-%s-%s',i,revision))::uuid,revision,
+			CASE WHEN revision=1 THEN NULL ELSE md5(format('scale-response-%s-1',i))::uuid END,
+			'EMAIL_VERIFIED',jsonb_build_object('attested',true,'revision',revision),
+			CASE WHEN revision=1 THEN 80 ELSE 90 END,100,'FINAL','[]'::jsonb,
+			'scale-policy-v1',revision=2,clock_timestamp()-(3-revision)*interval '1 day'
+		FROM generate_series(1,400) i CROSS JOIN generate_series(1,2) revision`, tenant, entity); err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("representative recipient and revision population", func(t *testing.T) {
 		for table, want := range map[string]int{
