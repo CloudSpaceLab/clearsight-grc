@@ -72,13 +72,31 @@ const scenarios = [
     name: "95-forms-invalid-weights-light-1440x900", fixture: "forms-weights-invalid", route: "#forms",
     state: "forms-invalid-compliance-weights", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["weights-invalid"],
-    run: async (page) => { await page.getByRole("button", { name: "Open Compliance scoring review" }).click(); await page.getByRole("button", { name: "Edit draft" }).click(); await visible(page, "40% remains to allocate in Control confirmation"); await visible(page, "50% remains to allocate across scored sections"); },
+    run: async (page) => {
+      await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
+      await page.getByRole("button", { name: "Edit draft" }).click();
+      await page.getByLabel("Form canvas").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: /^Review/ }).click();
+      await page.getByLabel("Form review").waitFor({ state: "visible" });
+      await visible(page, "40% remains to allocate in Control confirmation");
+      await visible(page, "50% remains to allocate across scored sections");
+    },
   },
   {
     name: "96-forms-valid-weights-dark-1440x900", fixture: "forms-weights-valid", route: "#forms",
     state: "forms-valid-compliance-weights", theme: "dark", viewport: desktop, zoom: 1,
     capabilities: ["weights-valid", "theme-dark"],
-    run: async (page) => { await page.getByRole("button", { name: "Open Compliance scoring review" }).click(); await page.getByRole("button", { name: "Edit draft" }).click(); await visible(page, "The current draft satisfies the deterministic contract checks required before approval."); await visible(page, "100%"); },
+    run: async (page) => {
+      await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
+      await page.getByRole("button", { name: "Edit draft" }).click();
+      await page.getByLabel("Form outline").waitFor({ state: "visible" });
+      await page.getByLabel("Form canvas").waitFor({ state: "visible" });
+      await page.getByLabel("Question settings").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: /^Review/ }).click();
+      await page.getByLabel("Form review").waitFor({ state: "visible" });
+      await visible(page, "Deterministic approval checks pass");
+      await visible(page, "No blocking contract issue is present in the current draft.");
+    },
   },
   {
     name: "97-forms-import-outcomes-light-1440x900", fixture: "forms-import-outcomes", route: "#imports",
