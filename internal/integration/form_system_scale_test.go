@@ -193,8 +193,11 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 		if _, err := pool.Exec(ctx, `
 			INSERT INTO third_parties(id,tenant_id,legal_name,status,created_at,updated_at,version)
 			SELECT md5('scale-refresh-vendor-'||i)::uuid,$1::uuid,format('Refresh vendor %s',i),'ACTIVE',
-				$4::timestamptz-interval '400 days',$4::timestamptz-interval '400 days',1
-			FROM generate_series(1,12) i;
+				$2::timestamptz-interval '400 days',$2::timestamptz-interval '400 days',1
+			FROM generate_series(1,12) i`, tenant, now); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := pool.Exec(ctx, `
 			INSERT INTO third_party_relationships(
 				id,tenant_id,legal_entity_id,vendor_id,service_name,business_owner_principal_id,
 				criticality,privacy_role,status,created_at,updated_at,version)
