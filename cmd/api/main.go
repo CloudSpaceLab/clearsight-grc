@@ -62,9 +62,10 @@ func main() {
 	assessmentService.ConfigureCompletionReadiness(assessmentReviewService)
 	assessmentApplicationService := thirdparty.NewAssessmentApplicationService(assessmentService, assessmentReviewService, services.ThirdPartyAssessmentRepo)
 	assessmentDeficiencyService := thirdparty.NewAssessmentDeficiencyService(assessmentService, services.ThirdPartyAssessmentRepo, services.Continuity)
+	invitationDelivery := vendorInvitationDelivery(services)
 	assessmentRequestService, err := thirdparty.NewAssessmentRequestService(
 		assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, services.MonitoringRepo,
-		evidence.NewInvitationDeliveryService(nil), cfg.CapturePublicBaseURL, cfg.Environment,
+		invitationDelivery, cfg.CapturePublicBaseURL, cfg.Environment,
 	)
 	if err != nil {
 		logger.Error("vendor due-diligence initialization failed", "error", err)
@@ -73,7 +74,7 @@ func main() {
 	assessmentRequestService.ConfigureRecordTargetResolver(thirdparty.NewRecordTargetResolver(services.ThirdPartyAssessmentRepo))
 	vendorWorkService, err := thirdparty.NewVendorWorkService(
 		services.ThirdPartyWorkRepo, services.ThirdPartyRelationshipLinkRepo, services.Evidence, services.MonitoringRepo,
-		evidence.NewInvitationDeliveryService(nil), cfg.CapturePublicBaseURL, cfg.Environment,
+		invitationDelivery, cfg.CapturePublicBaseURL, cfg.Environment,
 	)
 	if err != nil {
 		logger.Error("vendor request initialization failed", "error", err)
@@ -125,6 +126,13 @@ func main() {
 		logger.Error("graceful shutdown failed", "error", err)
 		_ = server.Close()
 	}
+}
+
+func vendorInvitationDelivery(services serviceSet) *evidence.InvitationDeliveryService {
+	if services.FormCommunicationTestDelivery != nil {
+		return services.FormCommunicationTestDelivery
+	}
+	return evidence.NewInvitationDeliveryService(nil)
 }
 
 func buildIdentity(ctx context.Context, cfg config.Config, services serviceSet) (identity.Authenticator, *federation.Service, error) {
