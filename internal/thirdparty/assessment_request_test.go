@@ -185,6 +185,31 @@ func TestSendAssessmentRequestSupportsPeriodicReviewForActiveRelationship(t *tes
 	}
 }
 
+func TestSendAssessmentRequestSuppliesVendorRegistrationMessageContext(t *testing.T) {
+	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
+	evidenceStub := &assessmentEvidenceStub{repo: repo, assessmentID: assessment.ID}
+	deliveryStub := &invitationDeliveryStub{}
+	service, err := NewAssessmentRequestService(assessmentService, repo, evidenceStub, assessmentFormReaderStub{form: activeAssessmentForm()}, evidence.NewInvitationDeliveryService(deliveryStub), "https://capture.example.test/respond", "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Date(2026, 9, 8, 10, 0, 0, 0, time.UTC)
+	if _, err := service.SendRequest(assessmentContext(), assessmentActor(), assessment.ID, SendAssessmentRequestInput{ExpectedVersion: assessment.Version, Audience: "security@vendor.example", Deadline: deadline, InvitationTTLMinutes: 60}); err != nil {
+		t.Fatal(err)
+	}
+	if len(deliveryStub.requests) != 1 {
+		t.Fatalf("delivery requests = %d", len(deliveryStub.requests))
+	}
+	message := deliveryStub.requests[0].Message
+	if message.Kind != evidence.InvitationMessageVendorRegistration || message.RecipientRole != "Vendor contact" || !message.DueAt.Equal(deadline) || !message.ExpiresAt.Equal(time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)) {
+		t.Fatalf("message context = %#v", message)
+	}
+	if message.TaskTitle == "" || !strings.Contains(message.TaskSummary, relationship.Vendor.LegalName) {
+		t.Fatalf("message did not identify the vendor task: %#v", message)
+	}
+}
+
 func TestSendAssessmentRequestFreezesFocusedHeldValueBaselines(t *testing.T) {
 	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	input := validStartAssessmentInput(relationship.Relationship.Version)

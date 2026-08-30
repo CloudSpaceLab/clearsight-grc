@@ -183,6 +183,26 @@ func TestReissueAssessmentRequestAfterReloadReplacesInvitationAndRedeemedSession
 	}
 }
 
+func TestReissueAssessmentRequestPreservesRegistrationMessageContext(t *testing.T) {
+	fixture := newCollectingRequestFixture(t)
+	deliveryStub := &invitationDeliveryStub{}
+	fixture.requestService.delivery = evidence.NewInvitationDeliveryService(deliveryStub)
+
+	outcome, err := fixture.requestService.ReissueRequest(assessmentContext(), assessmentActor(), fixture.assessment.ID, ReissueAssessmentRequestInput{
+		ExpectedVersion: fixture.assessment.Version, Audience: fixture.audience, InvitationTTLMinutes: 60,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if outcome.State != SendRequestDelivered || len(deliveryStub.requests) != 1 {
+		t.Fatalf("reissue outcome = %#v, deliveries = %d", outcome, len(deliveryStub.requests))
+	}
+	message := deliveryStub.requests[0].Message
+	if message.Kind != evidence.InvitationMessageVendorRegistration || message.RecipientRole != "Vendor contact" || !message.DueAt.Equal(fixture.request.Deadline) || message.ExpiresAt.IsZero() {
+		t.Fatalf("replacement message context = %#v", message)
+	}
+}
+
 func TestReissueAssessmentRequestIssuanceFailureLeavesPriorCapabilityRevokedAndRetryable(t *testing.T) {
 	fixture := newCollectingRequestFixture(t)
 	priorSession, err := fixture.evidenceService.RedeemInvitation(context.Background(), fixture.invitationToken, fixture.audience)

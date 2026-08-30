@@ -183,7 +183,10 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 		return preparedOutcome(preparedAssessment, request, "Retry invitation creation for this request."), nil
 	}
 	outcome := SendRequestOutcome{Assessment: finalized.Assessment, Request: request, Invitation: &issuedOutcome}
-	receipt, deliveryErr := s.delivery.Deliver(ctx, evidence.InvitationDeliveryRequest{RecipientAddress: audience, InvitationLink: linkURL})
+	receipt, deliveryErr := s.delivery.Deliver(ctx, evidence.InvitationDeliveryRequest{
+		RecipientAddress: audience, InvitationLink: linkURL,
+		Message: assessmentInvitationMessage(assessment, request, relationship, issued, assessment.ReviewKind == AssessmentReviewOnboarding),
+	})
 	outcome.Delivery = &receipt
 	if deliveryErr != nil || receipt.Status != evidence.InvitationDelivered {
 		outcome.State = SendRequestLinkCreatedEmailNotSent
@@ -193,6 +196,24 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 	}
 	outcome.State = SendRequestDelivered
 	return outcome, nil
+}
+
+func assessmentInvitationMessage(assessment Assessment, request evidence.Request, relationship Aggregate, issued evidence.IssuedInvitation, registration bool) evidence.InvitationMessageContext {
+	kind := evidence.InvitationMessageGeneric
+	if registration {
+		kind = evidence.InvitationMessageVendorRegistration
+	}
+	summary := strings.TrimSpace(request.Purpose)
+	if vendorName := strings.TrimSpace(relationship.Vendor.LegalName); vendorName != "" {
+		if summary != "" {
+			summary += " "
+		}
+		summary += "Vendor: " + vendorName + "."
+	}
+	return evidence.InvitationMessageContext{
+		Kind: kind, TaskTitle: strings.TrimSpace(request.Title), TaskSummary: summary,
+		RecipientRole: "Vendor contact", DueAt: request.Deadline, ExpiresAt: issued.ExpiresAt,
+	}
 }
 
 func (s *AssessmentRequestService) composeAssessmentEvidenceRequest(ctx context.Context, actor Actor, assessment Assessment, aggregate Aggregate, form monitoring.FormTemplate, origin evidence.RequestOrigin, audience string, deadline time.Time) (evidence.CreateRequestInput, error) {
