@@ -4,6 +4,7 @@ package integration_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -236,19 +238,32 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 	})
 
 	forms := monitoring.NewPostgresRepository(pool)
-	firstForms, err := forms.ListFormLibrary(ctx, monitoring.FormLibraryFilter{TenantID: "forms-scale-bank", LegalEntityID: entity, Limit: 100})
-	if err != nil {
-		t.Fatal(err)
+	formIDs := map[string]struct{}{}
+	formCursor := ""
+	for pageNumber := 1; pageNumber <= 10; pageNumber++ {
+		page, err := forms.ListFormLibrary(ctx, monitoring.FormLibraryFilter{TenantID: "forms-scale-bank", LegalEntityID: entity, Cursor: formCursor, Limit: 100})
+		if err != nil {
+			t.Fatalf("form page %d: %v", pageNumber, err)
+		}
+		if len(page.Items) != 100 {
+			t.Fatalf("form page %d items=%d, want 100", pageNumber, len(page.Items))
+		}
+		for _, item := range page.Items {
+			if _, duplicate := formIDs[item.Template.ID]; duplicate {
+				t.Fatalf("form page %d repeated template %s", pageNumber, item.Template.ID)
+			}
+			formIDs[item.Template.ID] = struct{}{}
+		}
+		if pageNumber < 10 && page.NextCursor == "" {
+			t.Fatalf("form page %d omitted the next cursor", pageNumber)
+		}
+		if pageNumber == 10 && page.NextCursor != "" {
+			t.Fatalf("final form page exposed unexpected cursor %q", page.NextCursor)
+		}
+		formCursor = page.NextCursor
 	}
-	if len(firstForms.Items) != 100 || firstForms.NextCursor == "" {
-		t.Fatalf("expected a bounded first form page, got %d items and cursor %q", len(firstForms.Items), firstForms.NextCursor)
-	}
-	secondForms, err := forms.ListFormLibrary(ctx, monitoring.FormLibraryFilter{TenantID: "forms-scale-bank", LegalEntityID: entity, Cursor: firstForms.NextCursor, Limit: 100})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(secondForms.Items) != 100 || firstForms.Items[99].Template.ID == secondForms.Items[0].Template.ID {
-		t.Fatalf("form keyset pagination repeated or omitted its boundary: %#v", secondForms)
+	if len(formIDs) != 1000 {
+		t.Fatalf("stable form pagination returned %d unique templates, want 1000", len(formIDs))
 	}
 	otherForms, err := forms.ListFormLibrary(ctx, monitoring.FormLibraryFilter{TenantID: "forms-scale-bank", LegalEntityID: otherEntity, Limit: 100})
 	if err != nil || len(otherForms.Items) != 0 {
@@ -257,31 +272,278 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 
 	distributions := evidence.NewDistributionService(evidence.NewPostgresDistributionStore(evidence.NewPostgresRepository(pool), nil))
 	query := evidence.DistributionListQuery{TenantID: "forms-scale-bank", LegalEntityID: entity, Now: time.Now().UTC(), Limit: 100}
-	firstDistributions, err := distributions.List(ctx, query)
-	if err != nil {
-		t.Fatal(err)
+	distributionIDs := map[string]struct{}{}
+	for pageNumber := 1; pageNumber <= 4; pageNumber++ {
+		page, err := distributions.List(ctx, query)
+		if err != nil {
+			t.Fatalf("distribution page %d: %v", pageNumber, err)
+		}
+		if len(page.Items) != 100 {
+			t.Fatalf("distribution page %d items=%d, want 100", pageNumber, len(page.Items))
+		}
+		for _, item := range page.Items {
+			if _, duplicate := distributionIDs[item.ID]; duplicate {
+				t.Fatalf("distribution page %d repeated distribution %s", pageNumber, item.ID)
+			}
+			distributionIDs[item.ID] = struct{}{}
+		}
+		if pageNumber < 4 && page.NextCursor == "" {
+			t.Fatalf("distribution page %d omitted the next cursor", pageNumber)
+		}
+		if pageNumber == 4 && page.NextCursor != "" {
+			t.Fatalf("final distribution page exposed unexpected cursor %q", page.NextCursor)
+		}
+		query.Cursor = page.NextCursor
 	}
-	if len(firstDistributions.Items) != 100 || firstDistributions.NextCursor == "" {
-		t.Fatalf("expected a bounded first distribution page, got %d items and cursor %q", len(firstDistributions.Items), firstDistributions.NextCursor)
-	}
-	query.Cursor = firstDistributions.NextCursor
-	secondDistributions, err := distributions.List(ctx, query)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(secondDistributions.Items) != 100 || firstDistributions.Items[99].ID == secondDistributions.Items[0].ID {
-		t.Fatalf("distribution keyset pagination repeated or omitted its boundary: %#v", secondDistributions)
+	if len(distributionIDs) != 400 {
+		t.Fatalf("stable distribution pagination returned %d unique records, want 400", len(distributionIDs))
 	}
 	otherDistributions, err := distributions.List(ctx, evidence.DistributionListQuery{TenantID: "forms-scale-bank", LegalEntityID: otherEntity, Now: time.Now().UTC(), Limit: 100})
 	if err != nil || len(otherDistributions.Items) != 0 {
 		t.Fatalf("sent forms crossed the legal-entity boundary: %#v, %v", otherDistributions, err)
 	}
 
-	assertScaleIndex(t, pool, `SELECT id FROM monitoring_form_templates WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid ORDER BY updated_at DESC,id DESC,version DESC LIMIT 101`, tenant, entity, "monitoring_form_templates_library_idx")
-	assertScaleIndex(t, pool, `SELECT id FROM capture_form_distributions WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid ORDER BY updated_at DESC,id DESC LIMIT 101`, tenant, entity, "capture_form_distributions_updated_idx")
+	t.Run("exact response lookup stays scoped and indexed", func(t *testing.T) {
+		distributionID := ""
+		responseID := ""
+		if err := pool.QueryRow(ctx, `SELECT md5('scale-distribution-1')::uuid::text,md5('scale-response-1-2')::uuid::text`).Scan(&distributionID, &responseID); err != nil {
+			t.Fatal(err)
+		}
+		var revision int64
+		if err := pool.QueryRow(ctx, `
+			SELECT revision FROM capture_response_revisions
+			WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND distribution_id=$3::uuid AND id=$4::uuid`,
+			tenant, entity, distributionID, responseID).Scan(&revision); err != nil {
+			t.Fatal(err)
+		}
+		if revision != 2 {
+			t.Fatalf("exact response revision=%d, want 2", revision)
+		}
+		err := pool.QueryRow(ctx, `
+			SELECT revision FROM capture_response_revisions
+			WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND distribution_id=$3::uuid AND id=$4::uuid`,
+			tenant, otherEntity, distributionID, responseID).Scan(&revision)
+		if !errors.Is(err, pgx.ErrNoRows) {
+			t.Fatalf("cross-entity exact response lookup error=%v, want no rows", err)
+		}
+
+		assertScaleIndex(t, pool, `SELECT revision FROM capture_response_revisions WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND distribution_id=$3::uuid AND id=$4::uuid`, "capture_response_revisions_pkey", tenant, entity, distributionID, responseID)
+		assertScaleIndex(t, pool, `SELECT id FROM capture_response_revisions WHERE tenant_id=$1::uuid AND workspace_id=md5('scale-workspace-1')::uuid ORDER BY revision DESC,id DESC LIMIT 3`, "capture_response_revisions_history_idx", tenant)
+	})
+
+	t.Run("material Forms records reconstruct before and after change", func(t *testing.T) {
+		before := time.Date(2026, time.August, 30, 9, 0, 0, 0, time.UTC)
+		changed := before.Add(time.Hour)
+		asOf := before.Add(30 * time.Minute)
+
+		if _, err := pool.Exec(ctx, `
+			UPDATE monitoring_form_templates
+			SET status='RETIRED',is_current=false,effective_until=$1,updated_at=$1
+			WHERE tenant_id=$2::uuid AND id=md5('scale-form-1')::uuid AND version=1`, changed, tenant); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO monitoring_form_templates(
+				id,tenant_id,legal_entity_id,code,name,purpose,fields,status,is_current,effective_from,version,
+				created_by,approved_by,created_at,updated_at,responsible_team,approved_uses,tags,jurisdiction,industry,sensitivity)
+			VALUES(md5('scale-form-1')::uuid,$1::uuid,$2::uuid,'SCALE-1','Vendor review 1 amended',
+				'Collect current vendor evidence','[{"id":"confirmation","type":"TEXT","label":"Confirmation","required":true}]'::jsonb,
+				'ACTIVE',true,$3,2,$4::uuid,$4::uuid,$3,$3,'Third-party risk',ARRAY['VENDOR_DUE_DILIGENCE'],
+				ARRAY['scale'],'Nigeria','Financial services','CONFIDENTIAL')`, tenant, entity, changed, actor); err != nil {
+			t.Fatal(err)
+		}
+		var historicalForm, currentForm string
+		if err := pool.QueryRow(ctx, `
+			SELECT name FROM monitoring_form_templates
+			WHERE tenant_id=$1::uuid AND id=md5('scale-form-1')::uuid
+			  AND effective_from<=$2 AND (effective_until IS NULL OR $2<effective_until)
+			ORDER BY version DESC LIMIT 1`, tenant, asOf).Scan(&historicalForm); err != nil {
+			t.Fatal(err)
+		}
+		if err := pool.QueryRow(ctx, `
+			SELECT name FROM monitoring_form_templates
+			WHERE tenant_id=$1::uuid AND id=md5('scale-form-1')::uuid AND is_current`, tenant).Scan(&currentForm); err != nil {
+			t.Fatal(err)
+		}
+		if historicalForm != "Vendor review 1" || currentForm != "Vendor review 1 amended" {
+			t.Fatalf("form reconstruction historical/current=%q/%q", historicalForm, currentForm)
+		}
+
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO form_communication_templates(
+				id,tenant_id,legal_entity_id,action,locale,version,subject_template,document,status,
+				effective_from,effective_until,maker_id,created_at,updated_at)
+			VALUES
+				(md5('scale-communication-1')::uuid,$1::uuid,$2::uuid,'REMINDER','en',1,'Evidence reminder',
+				 '[{"type":"PARAGRAPH","text":"Please confirm the requested evidence."}]'::jsonb,'RETIRED',$3,$4,$5::uuid,$3,$4),
+				(md5('scale-communication-2')::uuid,$1::uuid,$2::uuid,'REMINDER','en',2,'Evidence reminder amended',
+				 '[{"type":"PARAGRAPH","text":"Please confirm the amended evidence request."}]'::jsonb,'ACTIVE',$4,NULL,$5::uuid,$4,$4)`,
+			tenant, entity, before, changed, actor); err != nil {
+			t.Fatal(err)
+		}
+		var historicalSubject, currentSubject string
+		if err := pool.QueryRow(ctx, `
+			SELECT subject_template FROM form_communication_templates
+			WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND action='REMINDER' AND locale='en'
+			  AND effective_from<=$3 AND (effective_until IS NULL OR $3<effective_until)
+			ORDER BY version DESC LIMIT 1`, tenant, entity, asOf).Scan(&historicalSubject); err != nil {
+			t.Fatal(err)
+		}
+		if err := pool.QueryRow(ctx, `
+			SELECT subject_template FROM form_communication_templates
+			WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND action='REMINDER' AND locale='en' AND status='ACTIVE'
+			ORDER BY version DESC LIMIT 1`, tenant, entity).Scan(&currentSubject); err != nil {
+			t.Fatal(err)
+		}
+		if historicalSubject != "Evidence reminder" || currentSubject != "Evidence reminder amended" {
+			t.Fatalf("communication reconstruction historical/current=%q/%q", historicalSubject, currentSubject)
+		}
+
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO capture_distribution_events(
+				tenant_id,legal_entity_id,distribution_id,distribution_version,event_type,payload,actor_id,occurred_at)
+			VALUES
+				($1::uuid,$2::uuid,md5('scale-distribution-1')::uuid,1,'FORM_DISTRIBUTION_CREATED',
+				 '{"title":"Vendor review 1"}'::jsonb,$3::uuid,$4),
+				($1::uuid,$2::uuid,md5('scale-distribution-1')::uuid,2,'FORM_DISTRIBUTION_AMENDED',
+				 '{"title":"Vendor review 1 amended"}'::jsonb,$3::uuid,$5)`, tenant, entity, actor, before, changed); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := pool.Exec(ctx, `
+			UPDATE capture_form_distributions
+			SET title='Vendor review 1 amended',version=2,updated_at=$1
+			WHERE tenant_id=$2::uuid AND id=md5('scale-distribution-1')::uuid`, changed, tenant); err != nil {
+			t.Fatal(err)
+		}
+		var historicalDistribution, currentDistribution string
+		if err := pool.QueryRow(ctx, `
+			SELECT payload->>'title' FROM capture_distribution_events
+			WHERE tenant_id=$1::uuid AND distribution_id=md5('scale-distribution-1')::uuid AND occurred_at<=$2
+			ORDER BY occurred_at DESC,id DESC LIMIT 1`, tenant, asOf).Scan(&historicalDistribution); err != nil {
+			t.Fatal(err)
+		}
+		if err := pool.QueryRow(ctx, `SELECT title FROM capture_form_distributions WHERE tenant_id=$1::uuid AND id=md5('scale-distribution-1')::uuid`, tenant).Scan(&currentDistribution); err != nil {
+			t.Fatal(err)
+		}
+		if historicalDistribution != "Vendor review 1" || currentDistribution != "Vendor review 1 amended" {
+			t.Fatalf("distribution reconstruction historical/current=%q/%q", historicalDistribution, currentDistribution)
+		}
+
+		if _, err := pool.Exec(ctx, `
+			UPDATE capture_response_revisions
+			SET created_at=CASE revision WHEN 1 THEN $1::timestamptz ELSE $2::timestamptz END
+			WHERE tenant_id=$3::uuid AND workspace_id=md5('scale-workspace-1')::uuid`, before, changed, tenant); err != nil {
+			t.Fatal(err)
+		}
+		var historicalResponse, currentResponse int64
+		if err := pool.QueryRow(ctx, `
+			SELECT revision FROM capture_response_revisions
+			WHERE tenant_id=$1::uuid AND workspace_id=md5('scale-workspace-1')::uuid AND created_at<=$2
+			ORDER BY revision DESC,id DESC LIMIT 1`, tenant, asOf).Scan(&historicalResponse); err != nil {
+			t.Fatal(err)
+		}
+		if err := pool.QueryRow(ctx, `
+			SELECT revision FROM capture_response_revisions
+			WHERE tenant_id=$1::uuid AND workspace_id=md5('scale-workspace-1')::uuid AND is_current`, tenant).Scan(&currentResponse); err != nil {
+			t.Fatal(err)
+		}
+		if historicalResponse != 1 || currentResponse != 2 {
+			t.Fatalf("response reconstruction historical/current=%d/%d", historicalResponse, currentResponse)
+		}
+
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO third_party_assessments(
+				id,tenant_id,legal_entity_id,relationship_id,review_kind,stable_episode_key,status,
+				form_template_id,form_template_version,review_due_at,started_by_principal_id,started_at,version,created_at,updated_at)
+			VALUES(md5('scale-assessment-1')::uuid,$1::uuid,$2::uuid,md5('scale-refresh-relationship-1')::uuid,
+				'ONBOARDING',repeat('a',64),'SETUP_PENDING',md5('scale-form-1')::uuid,1,$3::timestamptz+interval '30 days',
+				$4::uuid,$3,1,$3,$3)`, tenant, entity, before, actor); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := pool.Exec(ctx, `
+			UPDATE third_parties SET legal_name='Refresh vendor 1 corrected',version=2,updated_at=$1
+			WHERE tenant_id=$2::uuid AND id=md5('scale-refresh-vendor-1')::uuid`, changed, tenant); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := pool.Exec(ctx, `
+			UPDATE third_party_assessments SET version=2,updated_at=$1
+			WHERE tenant_id=$2::uuid AND id=md5('scale-assessment-1')::uuid`, changed, tenant); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO third_party_response_application_receipts(
+				id,tenant_id,legal_entity_id,assessment_id,distribution_id,response_revision_id,vendor_id,actor_principal_id,
+				accepted_field_ids,rejected_field_ids,decisions,prior_vendor_version,result_vendor_version,result_assessment_version,applied_at)
+			VALUES
+				(md5('scale-application-1')::uuid,$1::uuid,$2::uuid,md5('scale-assessment-1')::uuid,
+				 md5('scale-distribution-1')::uuid,md5('scale-response-1-1')::uuid,md5('scale-refresh-vendor-1')::uuid,$3::uuid,
+				 '["legal_name"]'::jsonb,'[]'::jsonb,'[{"field_id":"legal_name","decision":"CONFIRM"}]'::jsonb,1,1,1,$4),
+				(md5('scale-application-2')::uuid,$1::uuid,$2::uuid,md5('scale-assessment-1')::uuid,
+				 md5('scale-distribution-1')::uuid,md5('scale-response-1-2')::uuid,md5('scale-refresh-vendor-1')::uuid,$3::uuid,
+				 '["legal_name"]'::jsonb,'[]'::jsonb,'[{"field_id":"legal_name","decision":"CORRECT"}]'::jsonb,1,2,2,$5)`,
+			tenant, entity, actor, before, changed); err != nil {
+			t.Fatal(err)
+		}
+		var historicalApplication, currentApplication string
+		if err := pool.QueryRow(ctx, `
+			SELECT response_revision_id::text FROM third_party_response_application_receipts
+			WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND assessment_id=md5('scale-assessment-1')::uuid AND applied_at<=$3
+			ORDER BY applied_at DESC,id DESC LIMIT 1`, tenant, entity, asOf).Scan(&historicalApplication); err != nil {
+			t.Fatal(err)
+		}
+		if err := pool.QueryRow(ctx, `
+			SELECT response_revision_id::text FROM third_party_response_application_receipts
+			WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND assessment_id=md5('scale-assessment-1')::uuid
+			ORDER BY applied_at DESC,id DESC LIMIT 1`, tenant, entity).Scan(&currentApplication); err != nil {
+			t.Fatal(err)
+		}
+		if historicalApplication == currentApplication {
+			t.Fatalf("application receipt history was overwritten: %s", currentApplication)
+		}
+
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO capture_artifacts(
+				id,tenant_id,request_id,file_name,media_type,size_bytes,sha256,storage_key,status,created_by,created_at)
+			VALUES
+				(md5('scale-document-artifact-1')::uuid,$1::uuid,md5('scale-request-1-1')::uuid,'certificate-2025.pdf','application/pdf',100,repeat('b',64),'scale/certificate-2025.pdf','AVAILABLE',$2::uuid,$3),
+				(md5('scale-document-artifact-2')::uuid,$1::uuid,md5('scale-request-1-1')::uuid,'certificate-2026.pdf','application/pdf',120,repeat('c',64),'scale/certificate-2026.pdf','AVAILABLE',$2::uuid,$4)`,
+			tenant, actor, before, changed); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO third_party_documents(
+				id,tenant_id,legal_entity_id,relationship_id,assessment_id,request_id,artifact_id,document_type,
+				evidence_class,status,validated_by_principal_id,validated_at,created_at,updated_at,version,supersedes_document_id)
+			VALUES
+				(md5('scale-document-1')::uuid,$1::uuid,$2::uuid,md5('scale-refresh-relationship-1')::uuid,
+				 md5('scale-assessment-1')::uuid,md5('scale-request-1-1')::uuid,md5('scale-document-artifact-1')::uuid,
+				 'INSURANCE_CERTIFICATE','BANK_VALIDATED','SUPERSEDED',NULL,NULL,$4,$5,2,NULL),
+				(md5('scale-document-2')::uuid,$1::uuid,$2::uuid,md5('scale-refresh-relationship-1')::uuid,
+				 md5('scale-assessment-1')::uuid,md5('scale-request-1-1')::uuid,md5('scale-document-artifact-2')::uuid,
+				 'INSURANCE_CERTIFICATE','BANK_VALIDATED','VALIDATED',$3::uuid,$5,$5,$5,1,md5('scale-document-1')::uuid)`,
+			tenant, entity, actor, before, changed); err != nil {
+			t.Fatal(err)
+		}
+		var priorDocument, replacementDocument, priorStatus, replacementStatus string
+		if err := pool.QueryRow(ctx, `
+			SELECT prior.id::text,replacement.id::text,prior.status,replacement.status
+			FROM third_party_documents replacement
+			JOIN third_party_documents prior ON prior.tenant_id=replacement.tenant_id AND prior.id=replacement.supersedes_document_id
+			WHERE replacement.tenant_id=$1::uuid AND replacement.id=md5('scale-document-2')::uuid`, tenant).
+			Scan(&priorDocument, &replacementDocument, &priorStatus, &replacementStatus); err != nil {
+			t.Fatal(err)
+		}
+		if priorDocument == replacementDocument || priorStatus != "SUPERSEDED" || replacementStatus != "VALIDATED" {
+			t.Fatalf("document lineage prior/current=%s %s / %s %s", priorDocument, priorStatus, replacementDocument, replacementStatus)
+		}
+	})
+
+	assertScaleIndex(t, pool, `SELECT id FROM monitoring_form_templates WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid ORDER BY updated_at DESC,id DESC,version DESC LIMIT 101`, "monitoring_form_templates_library_idx", tenant, entity)
+	assertScaleIndex(t, pool, `SELECT id FROM capture_form_distributions WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid ORDER BY updated_at DESC,id DESC LIMIT 101`, "capture_form_distributions_updated_idx", tenant, entity)
+	assertScaleIndex(t, pool, `SELECT id FROM capture_distribution_recipients WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND distribution_id=md5('scale-distribution-1')::uuid ORDER BY role,state,id LIMIT 4`, "capture_distribution_recipients_distribution_idx", tenant, entity)
 }
 
-func assertScaleIndex(t *testing.T, pool *pgxpool.Pool, query string, tenantID string, entityID string, expected string) {
+func assertScaleIndex(t *testing.T, pool *pgxpool.Pool, query string, expected string, args ...any) {
 	t.Helper()
 	ctx := context.Background()
 	connection, err := pool.Acquire(ctx)
@@ -292,7 +554,7 @@ func assertScaleIndex(t *testing.T, pool *pgxpool.Pool, query string, tenantID s
 	if _, err := connection.Exec(ctx, `SET enable_seqscan=off`); err != nil {
 		t.Fatal(err)
 	}
-	rows, err := connection.Query(ctx, "EXPLAIN "+query, tenantID, entityID)
+	rows, err := connection.Query(ctx, "EXPLAIN (COSTS OFF) "+query, args...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -311,5 +573,8 @@ func assertScaleIndex(t *testing.T, pool *pgxpool.Pool, query string, tenantID s
 	}
 	if !strings.Contains(plan.String(), expected) {
 		t.Fatalf("expected %s in bounded query plan:\n%s", expected, plan.String())
+	}
+	if strings.Contains(plan.String(), "Seq Scan") {
+		t.Fatalf("bounded query used a sequential scan:\n%s", plan.String())
 	}
 }
