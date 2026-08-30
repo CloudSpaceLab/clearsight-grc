@@ -35,6 +35,22 @@ func TestLoadRecipientSecurityConfig(t *testing.T) {
 	}
 }
 
+func TestRecipientSecurityAcceptsShellQuotedKeyringFromDockerEnvFile(t *testing.T) {
+	setRecipientSecurityEnv(t)
+	encryptionKey := encodedConfigKey(0x31)
+	t.Setenv("CLEARSIGHT_RECIPIENT_KEYRING", `'`+fmt.Sprintf(`{"key-v1":%q}`, encryptionKey)+`'`)
+	t.Setenv("CLEARSIGHT_RECIPIENT_ACTIVE_KEY_ID", "key-v1")
+	t.Setenv("CLEARSIGHT_DISTRIBUTION_ACCESS_HMAC_KEY", encodedConfigKey(0x42))
+
+	cfg, err := loadRecipientSecurityConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Keyring["key-v1"][0] != 0x31 {
+		t.Fatal("shell-quoted recipient keyring was not decoded")
+	}
+}
+
 func TestRecipientSecurityRejectsInvalidKeyMaterial(t *testing.T) {
 	cases := []struct {
 		name, keyring, active, accessKey, want string
