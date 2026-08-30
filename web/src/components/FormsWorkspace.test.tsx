@@ -171,7 +171,7 @@ describe("Forms workspace", () => {
     await screen.findAllByText("Vendor due diligence");
     fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
     const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
-    fireEvent.click(launcher.getByRole("button", { name: "Use template" }));
+    fireEvent.click(launcher.getByRole("button", { name: "Use Vendor security review template" }));
     await waitFor(() => expect(api.instantiateStarterTemplate).toHaveBeenCalledWith("VENDOR-SECURITY"));
     expect(await screen.findByText("Edit Vendor security review")).toBeTruthy();
   });
