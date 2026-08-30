@@ -1,11 +1,16 @@
 .forms-new-form-backdrop {
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
   background: color-mix(in srgb, #050b14 34%, transparent);
   backdrop-filter: blur(8px);
 }
 
 .forms-new-form-sheet {
   width: min(880px, calc(100vw - 36px));
+  height: auto;
   max-width: none;
+  max-height: calc(100dvh - 36px);
   padding: 0;
   overflow: auto;
   border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
@@ -113,8 +118,12 @@
 }
 
 @media (max-width: 720px) {
+  .forms-new-form-backdrop {
+    padding: 10px;
+  }
+
   .forms-new-form-sheet {
-    width: calc(100vw - 20px);
+    width: 100%;
     max-height: calc(100dvh - 20px);
     border-radius: 18px;
   }
@@ -130,8 +139,11 @@
 }
 
 @media (max-width: 420px) {
+  .forms-new-form-backdrop {
+    padding: 6px;
+  }
+
   .forms-new-form-sheet {
-    width: calc(100vw - 12px);
     max-height: calc(100dvh - 12px);
   }
 
