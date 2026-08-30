@@ -24,7 +24,7 @@
 - `.github/workflows/deploy-demo.yml` runs the hosted verifier after the constrained deployment succeeds.
 - `internal/integration/form_system_scale_test.go` owns the deterministic bank-scale, bounded-query, claim and reconstruction proof.
 - `web/scripts/forms-evidence-scenarios.mjs` is the single scenario/capability registry.
-- `web/scripts/forms-evidence-scenarios.test.mjs` proves registry uniqueness and Task 22 coverage before a browser is started.
+- `web/scripts/forms-evidence-scenarios.nodecheck.mjs` proves registry uniqueness and Task 22 coverage before a browser is started.
 - `web/scripts/capture-forms-evidence.mjs` executes the registry using production Forms components and deterministic static fixtures.
 - `web/src/staticDemo.ts` supplies only the missing deterministic Forms loading, unavailable and lifecycle variants.
 - `web/src/staticDemo.test.ts` proves those variants through the same transport used by the application.
@@ -334,7 +334,7 @@ git commit -m "test: prove governed Forms scale and history"
 
 **Files:**
 - Create: `web/scripts/forms-evidence-scenarios.mjs`
-- Create: `web/scripts/forms-evidence-scenarios.test.mjs`
+- Create: `web/scripts/forms-evidence-scenarios.nodecheck.mjs`
 - Modify: `web/scripts/capture-forms-evidence.mjs`
 - Modify: `web/scripts/review-ui-flow-manifest.mjs`
 
@@ -363,7 +363,7 @@ Capabilities must enumerate: library empty/list/search/saved-filter/recent/bulk-
 
 - [ ] **Step 2: Run the registry test and verify RED**
 
-Run: `cd web && node --test scripts/forms-evidence-scenarios.test.mjs`
+Run: `cd web && node --test scripts/forms-evidence-scenarios.nodecheck.mjs`
 
 Expected: FAIL because the registry does not exist.
 
@@ -400,7 +400,7 @@ Run:
 
 ```powershell
 cd web
-node --test scripts/forms-evidence-scenarios.test.mjs
+node --test scripts/forms-evidence-scenarios.nodecheck.mjs
 npm run typecheck
 ```
 
