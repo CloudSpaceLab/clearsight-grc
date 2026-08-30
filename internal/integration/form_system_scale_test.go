@@ -153,6 +153,40 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 		}
 	})
 
+	t.Run("bounded reminder maintenance advances past completed batches", func(t *testing.T) {
+		now := time.Date(2026, time.August, 30, 12, 0, 0, 0, time.UTC)
+		if _, err := pool.Exec(ctx, `
+			UPDATE capture_form_distributions
+			SET deadline=$1+interval '48 hours',route_expires_at=$1+interval '24 hours',
+				reminder_policy='{"reminder_hours_before":[72]}'::jsonb
+			WHERE tenant_id=$2::uuid AND id IN (
+				SELECT id FROM capture_form_distributions
+				WHERE tenant_id=$2::uuid ORDER BY id LIMIT 20
+			)`, now, tenant); err != nil {
+			t.Fatal(err)
+		}
+
+		scheduler := evidence.NewCommunicationReminderScheduler(evidence.NewPostgresCommunicationReminderRepository(pool))
+		for run, want := range []int{7, 7, 6, 0} {
+			got, err := scheduler.Maintain(ctx, now, 7)
+			if err != nil {
+				t.Fatalf("maintenance run %d: %v", run+1, err)
+			}
+			if got != want {
+				t.Fatalf("maintenance run %d created %d reminders, want %d; a completed batch must not starve later distributions", run+1, got, want)
+			}
+		}
+		var reminders int
+		if err := pool.QueryRow(ctx, `
+			SELECT count(*) FROM outbox_events
+			WHERE tenant_id=$1::uuid AND event_type='FORM_COMMUNICATION_REMINDER_DUE'`, tenant).Scan(&reminders); err != nil {
+			t.Fatal(err)
+		}
+		if reminders != 20 {
+			t.Fatalf("reminder outbox events=%d, want 20", reminders)
+		}
+	})
+
 	forms := monitoring.NewPostgresRepository(pool)
 	firstForms, err := forms.ListFormLibrary(ctx, monitoring.FormLibraryFilter{TenantID: "forms-scale-bank", LegalEntityID: entity, Limit: 100})
 	if err != nil {
