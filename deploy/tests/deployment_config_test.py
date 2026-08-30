@@ -96,6 +96,9 @@ class DeploymentConfigTest(unittest.TestCase):
             '"revision"',
             '"authenticated"',
             "invalid_access_selector",
+            "--retry-all-errors",
+            "form_access_unavailable",
+            '[[ "$denial_status" == 401 || "$denial_status" == 503 ]]',
         ):
             self.assertIn(value, verifier)
         self.assertNotIn("set -x", verifier)
