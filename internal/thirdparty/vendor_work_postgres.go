@@ -16,6 +16,11 @@ import (
 )
 
 func (r *PostgresRepository) CreateVendorWork(ctx context.Context, value VendorWorkRequest) (VendorWorkRequest, error) {
+	requestKind, err := normalizeVendorWorkRequestKind(value.RequestKind)
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	value.RequestKind = requestKind
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
 		return VendorWorkRequest{}, fmt.Errorf("begin vendor work preparation: %w", err)
@@ -48,10 +53,10 @@ func (r *PostgresRepository) CreateVendorWork(ctx context.Context, value VendorW
 		return VendorWorkRequest{}, ErrInvalid
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO third_party_work_requests(
-		id,tenant_id,legal_entity_id,relationship_id,program_link_id,matter_link_id,target_type,target_id,purpose,instructions,
+		id,tenant_id,legal_entity_id,relationship_id,program_link_id,matter_link_id,target_type,target_id,request_kind,purpose,instructions,
 		owner_principal_id,form_template_id,form_template_version,presentation,state,delivery_state,due_at,version,created_at,updated_at)
-		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,$7,$8::uuid,$9,$10,$11::uuid,$12::uuid,$13,$14,'PREPARING','NOT_SENT',$15,1,$16,$16)`,
-		value.ID, tenantID, value.LegalEntityID, value.RelationshipID, programLink, matterLink, value.TargetType, value.TargetID, value.Purpose, value.Instructions,
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,$7,$8::uuid,$9,$10,$11,$12::uuid,$13::uuid,$14,$15,'PREPARING','NOT_SENT',$16,1,$17,$17)`,
+		value.ID, tenantID, value.LegalEntityID, value.RelationshipID, programLink, matterLink, value.TargetType, value.TargetID, value.RequestKind, value.Purpose, value.Instructions,
 		value.OwnerPrincipalID, value.FormTemplateID, value.FormTemplateVersion, value.Presentation, value.DueAt, value.CreatedAt)
 	if isUniqueViolation(err) {
 		return VendorWorkRequest{}, ErrVersionConflict
@@ -646,21 +651,21 @@ func getVendorWorkLocked(ctx context.Context, tx pgx.Tx, scope Scope, id string)
 	return value, err
 }
 
-const vendorWorkSelect = `SELECT w.id::text,t.slug,w.legal_entity_id::text,w.relationship_id::text,COALESCE(w.program_link_id,w.matter_link_id)::text,w.target_type,w.target_id::text,w.purpose,w.instructions,w.owner_principal_id::text,COALESCE(w.reviewer_principal_id::text,''),w.form_template_id::text,w.form_template_version,w.presentation,COALESCE(w.current_request_id::text,''),COALESCE(w.current_invitation_id::text,''),COALESCE((SELECT reservation.invitation_id::text FROM third_party_work_invitation_reservations reservation WHERE reservation.tenant_id=w.tenant_id AND reservation.legal_entity_id=w.legal_entity_id AND reservation.work_request_id=w.id AND reservation.state='PENDING' ORDER BY reservation.created_at DESC LIMIT 1),''),COALESCE((SELECT reservation.request_id::text FROM third_party_work_invitation_reservations reservation WHERE reservation.tenant_id=w.tenant_id AND reservation.legal_entity_id=w.legal_entity_id AND reservation.work_request_id=w.id AND reservation.state='PENDING' ORDER BY reservation.created_at DESC LIMIT 1),''),w.current_capture_sequence,COALESCE(w.submission_id::text,''),w.state,w.delivery_state,w.recovery,w.review_rationale,w.cancellation_reason,w.due_at,w.version,w.created_at,w.updated_at,w.response_received_at,w.review_started_at,w.accepted_at,w.cancelled_at FROM third_party_work_requests w JOIN tenants t ON t.id=w.tenant_id`
+const vendorWorkSelect = `SELECT w.id::text,t.slug,w.legal_entity_id::text,w.relationship_id::text,COALESCE(w.program_link_id,w.matter_link_id)::text,w.target_type,w.target_id::text,w.request_kind,w.purpose,w.instructions,w.owner_principal_id::text,COALESCE(w.reviewer_principal_id::text,''),w.form_template_id::text,w.form_template_version,w.presentation,COALESCE(w.current_request_id::text,''),COALESCE(w.current_invitation_id::text,''),COALESCE((SELECT reservation.invitation_id::text FROM third_party_work_invitation_reservations reservation WHERE reservation.tenant_id=w.tenant_id AND reservation.legal_entity_id=w.legal_entity_id AND reservation.work_request_id=w.id AND reservation.state='PENDING' ORDER BY reservation.created_at DESC LIMIT 1),''),COALESCE((SELECT reservation.request_id::text FROM third_party_work_invitation_reservations reservation WHERE reservation.tenant_id=w.tenant_id AND reservation.legal_entity_id=w.legal_entity_id AND reservation.work_request_id=w.id AND reservation.state='PENDING' ORDER BY reservation.created_at DESC LIMIT 1),''),w.current_capture_sequence,COALESCE(w.submission_id::text,''),w.state,w.delivery_state,w.recovery,w.review_rationale,w.cancellation_reason,w.due_at,w.version,w.created_at,w.updated_at,w.response_received_at,w.review_started_at,w.accepted_at,w.cancelled_at FROM third_party_work_requests w JOIN tenants t ON t.id=w.tenant_id`
 
 func scanVendorWork(row rowScanner) (VendorWorkRequest, error) {
 	var value VendorWorkRequest
-	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.RelationshipID, &value.RelationshipLinkID, &value.TargetType, &value.TargetID, &value.Purpose, &value.Instructions, &value.OwnerPrincipalID, &value.ReviewerPrincipalID, &value.FormTemplateID, &value.FormTemplateVersion, &value.Presentation, &value.CurrentRequestID, &value.CurrentInvitationID, &value.PendingInvitationID, &value.PendingInvitationRequestID, &value.CurrentCaptureSequence, &value.SubmissionID, &value.State, &value.DeliveryState, &value.Recovery, &value.ReviewRationale, &value.CancellationReason, &value.DueAt, &value.Version, &value.CreatedAt, &value.UpdatedAt, &value.ResponseReceivedAt, &value.ReviewStartedAt, &value.AcceptedAt, &value.CancelledAt)
+	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.RelationshipID, &value.RelationshipLinkID, &value.TargetType, &value.TargetID, &value.RequestKind, &value.Purpose, &value.Instructions, &value.OwnerPrincipalID, &value.ReviewerPrincipalID, &value.FormTemplateID, &value.FormTemplateVersion, &value.Presentation, &value.CurrentRequestID, &value.CurrentInvitationID, &value.PendingInvitationID, &value.PendingInvitationRequestID, &value.CurrentCaptureSequence, &value.SubmissionID, &value.State, &value.DeliveryState, &value.Recovery, &value.ReviewRationale, &value.CancellationReason, &value.DueAt, &value.Version, &value.CreatedAt, &value.UpdatedAt, &value.ResponseReceivedAt, &value.ReviewStartedAt, &value.AcceptedAt, &value.CancelledAt)
 	return value, err
 }
 
 func appendVendorWorkEvent(ctx context.Context, tx pgx.Tx, tenantID string, value VendorWorkRequest, actor, eventType string) (string, error) {
 	var eventID string
-	err := tx.QueryRow(ctx, `INSERT INTO third_party_work_events(tenant_id,legal_entity_id,work_request_id,work_version,actor_principal_id,event_type,payload,occurred_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4,NULLIF($5,'')::uuid,$6,jsonb_build_object('state',$7::text,'delivery_state',$8::text,'request_id',$9::text,'submission_id',$10::text),$11) RETURNING id::text`, tenantID, value.LegalEntityID, value.ID, value.Version, actor, eventType, value.State, value.DeliveryState, value.CurrentRequestID, value.SubmissionID, value.UpdatedAt).Scan(&eventID)
+	err := tx.QueryRow(ctx, `INSERT INTO third_party_work_events(tenant_id,legal_entity_id,work_request_id,work_version,actor_principal_id,event_type,payload,occurred_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4,NULLIF($5,'')::uuid,$6,jsonb_build_object('state',$7::text,'delivery_state',$8::text,'request_kind',$9::text,'request_id',$10::text,'submission_id',$11::text),$12) RETURNING id::text`, tenantID, value.LegalEntityID, value.ID, value.Version, actor, eventType, value.State, value.DeliveryState, value.RequestKind, value.CurrentRequestID, value.SubmissionID, value.UpdatedAt).Scan(&eventID)
 	if err != nil {
 		return "", fmt.Errorf("append vendor work event: %w", err)
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at) VALUES($1::uuid,'VENDOR_WORK_REQUEST',$2::uuid,$3,jsonb_build_object('version',$4::bigint,'state',$5::text,'delivery_state',$6::text),$7,$7)`, tenantID, value.ID, eventType, value.Version, value.State, value.DeliveryState, value.UpdatedAt)
+	_, err = tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at) VALUES($1::uuid,'VENDOR_WORK_REQUEST',$2::uuid,$3,jsonb_build_object('version',$4::bigint,'state',$5::text,'delivery_state',$6::text,'request_kind',$7::text),$8,$8)`, tenantID, value.ID, eventType, value.Version, value.State, value.DeliveryState, value.RequestKind, value.UpdatedAt)
 	if err != nil {
 		return "", fmt.Errorf("append vendor work outbox event: %w", err)
 	}

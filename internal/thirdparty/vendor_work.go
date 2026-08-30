@@ -45,6 +45,14 @@ const (
 	VendorWorkDeliveryRetryRequired VendorWorkDeliveryState = "RETRY_REQUIRED"
 )
 
+type VendorWorkRequestKind string
+
+const (
+	VendorWorkGeneral              VendorWorkRequestKind = "GENERAL"
+	VendorWorkAddressVerification  VendorWorkRequestKind = "ADDRESS_VERIFICATION"
+	VendorWorkCertificationRefresh VendorWorkRequestKind = "CERTIFICATION_REFRESH"
+)
+
 type VendorWorkRequest struct {
 	ID                         string                        `json:"id"`
 	TenantID                   string                        `json:"tenant_id"`
@@ -53,6 +61,7 @@ type VendorWorkRequest struct {
 	RelationshipLinkID         string                        `json:"relationship_link_id"`
 	TargetType                 LinkTargetType                `json:"target_type"`
 	TargetID                   string                        `json:"target_id"`
+	RequestKind                VendorWorkRequestKind         `json:"request_kind"`
 	Purpose                    string                        `json:"purpose"`
 	Instructions               string                        `json:"instructions"`
 	OwnerPrincipalID           string                        `json:"owner_principal_id"`
@@ -117,6 +126,7 @@ type VendorWorkInvitationReservation struct {
 type PrepareVendorWorkInput struct {
 	RelationshipID      string                        `json:"relationship_id"`
 	RelationshipLinkID  string                        `json:"relationship_link_id"`
+	RequestKind         VendorWorkRequestKind         `json:"request_kind,omitempty"`
 	Purpose             string                        `json:"purpose"`
 	Instructions        string                        `json:"instructions"`
 	FormTemplateID      string                        `json:"form_template_id"`
@@ -308,6 +318,11 @@ func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input Prep
 	input.RelationshipID, input.RelationshipLinkID = strings.TrimSpace(input.RelationshipID), strings.TrimSpace(input.RelationshipLinkID)
 	input.Purpose, input.Instructions = strings.TrimSpace(input.Purpose), strings.TrimSpace(input.Instructions)
 	input.FormTemplateID, input.VendorAudience = strings.TrimSpace(input.FormTemplateID), strings.TrimSpace(input.VendorAudience)
+	requestKind, err := normalizeVendorWorkRequestKind(input.RequestKind)
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	input.RequestKind = requestKind
 	if input.Presentation == "" {
 		input.Presentation = formcontract.PresentationAutomatic
 	}
@@ -356,7 +371,7 @@ func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input Prep
 	}
 	current, err := s.repo.FindActiveVendorWork(ctx, scope, link.ID)
 	if err == nil {
-		if current.RelationshipID != input.RelationshipID || current.Purpose != input.Purpose || current.Instructions != input.Instructions || current.FormTemplateID != form.ID || current.FormTemplateVersion != form.Version || current.Presentation != input.Presentation || !current.DueAt.Equal(input.DueAt.UTC()) {
+		if current.RelationshipID != input.RelationshipID || current.RequestKind != input.RequestKind || current.Purpose != input.Purpose || current.Instructions != input.Instructions || current.FormTemplateID != form.ID || current.FormTemplateVersion != form.Version || current.Presentation != input.Presentation || !current.DueAt.Equal(input.DueAt.UTC()) {
 			return VendorWorkRequest{}, ErrVersionConflict
 		}
 		if current.CurrentRequestID != "" {
@@ -375,13 +390,13 @@ func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input Prep
 	now := s.now().UTC()
 	work, err := s.repo.CreateVendorWork(ctx, VendorWorkRequest{
 		ID: workID, TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, RelationshipID: input.RelationshipID, RelationshipLinkID: link.ID,
-		TargetType: link.TargetType, TargetID: link.TargetID, Purpose: input.Purpose, Instructions: input.Instructions,
+		TargetType: link.TargetType, TargetID: link.TargetID, RequestKind: input.RequestKind, Purpose: input.Purpose, Instructions: input.Instructions,
 		OwnerPrincipalID: actor.PrincipalID, FormTemplateID: form.ID, FormTemplateVersion: form.Version, Presentation: input.Presentation,
 		State: VendorWorkPreparing, DeliveryState: VendorWorkDeliveryNotSent, DueAt: input.DueAt.UTC(), Version: 1, CreatedAt: now, UpdatedAt: now,
 	})
 	if err != nil {
 		stored, readErr := s.repo.FindActiveVendorWork(ctx, scope, link.ID)
-		if readErr != nil || stored.RelationshipID != input.RelationshipID || stored.Purpose != input.Purpose || stored.Instructions != input.Instructions || stored.FormTemplateID != form.ID || stored.FormTemplateVersion != form.Version || stored.Presentation != input.Presentation || !stored.DueAt.Equal(input.DueAt.UTC()) {
+		if readErr != nil || stored.RelationshipID != input.RelationshipID || stored.RequestKind != input.RequestKind || stored.Purpose != input.Purpose || stored.Instructions != input.Instructions || stored.FormTemplateID != form.ID || stored.FormTemplateVersion != form.Version || stored.Presentation != input.Presentation || !stored.DueAt.Equal(input.DueAt.UTC()) {
 			return VendorWorkRequest{}, err
 		}
 		work = stored
@@ -545,7 +560,10 @@ func (s *VendorWorkService) sendCurrent(ctx context.Context, actor Actor, work V
 			return VendorWorkSendOutcome{Work: reserved, State: VendorWorkDeliveryRetryRequired, Recovery: recovery}, nil
 		}
 	}
-	receipt, deliveryErr := s.delivery.Deliver(ctx, evidence.InvitationDeliveryRequest{RecipientAddress: audience, InvitationLink: linkURL})
+	receipt, deliveryErr := s.delivery.Deliver(ctx, evidence.InvitationDeliveryRequest{
+		RecipientAddress: audience, InvitationLink: linkURL,
+		Message: vendorWorkInvitationMessage(work, issued),
+	})
 	if deliveryErr != nil || receipt.Status != evidence.InvitationDelivered {
 		issued.Token = ""
 		return VendorWorkSendOutcome{Work: ready, Invitation: &issued, Delivery: &receipt, State: VendorWorkDeliveryLinkAvailable, CaptureURL: linkURL, Recovery: recovery}, nil
@@ -562,6 +580,33 @@ func (s *VendorWorkService) sendCurrent(ctx context.Context, actor Actor, work V
 	}
 	issued.Token = ""
 	return VendorWorkSendOutcome{Work: delivered, Invitation: &issued, Delivery: &receipt, State: VendorWorkDeliveryDelivered}, nil
+}
+
+func normalizeVendorWorkRequestKind(kind VendorWorkRequestKind) (VendorWorkRequestKind, error) {
+	kind = VendorWorkRequestKind(strings.ToUpper(strings.TrimSpace(string(kind))))
+	if kind == "" {
+		kind = VendorWorkGeneral
+	}
+	switch kind {
+	case VendorWorkGeneral, VendorWorkAddressVerification, VendorWorkCertificationRefresh:
+		return kind, nil
+	default:
+		return "", ErrInvalid
+	}
+}
+
+func vendorWorkInvitationMessage(work VendorWorkRequest, issued evidence.IssuedInvitation) evidence.InvitationMessageContext {
+	kind, role := evidence.InvitationMessageGeneric, "Vendor contact"
+	switch work.RequestKind {
+	case VendorWorkAddressVerification:
+		kind, role = evidence.InvitationMessageAddressVerification, "Address verification staff contact"
+	case VendorWorkCertificationRefresh:
+		kind = evidence.InvitationMessageCertificationRefresh
+	}
+	return evidence.InvitationMessageContext{
+		Kind: kind, TaskTitle: work.Purpose, TaskSummary: work.Instructions, RecipientRole: role,
+		DueAt: work.DueAt, ExpiresAt: issued.ExpiresAt,
+	}
 }
 
 func (s *VendorWorkService) StartReview(ctx context.Context, actor Actor, workID string, input StartVendorWorkReviewInput) (VendorWorkRequest, error) {

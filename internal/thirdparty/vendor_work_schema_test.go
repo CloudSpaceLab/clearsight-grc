@@ -53,3 +53,22 @@ func TestVendorWorkInvitationReservationMigrationKeepsPreIssueAssociationAndAudi
 		t.Fatal("invitation reservation migrations must not persist tokens or rewrite work history")
 	}
 }
+
+func TestVendorWorkRequestKindMigrationIsBoundedAndReversible(t *testing.T) {
+	up, err := os.ReadFile("../../migrations/000059_vendor_work_request_kind.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	down, err := os.ReadFile("../../migrations/000059_vendor_work_request_kind.down.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"request_kind text NOT NULL DEFAULT 'GENERAL'", "'ADDRESS_VERIFICATION'", "'CERTIFICATION_REFRESH'"} {
+		if !strings.Contains(string(up), required) {
+			t.Fatalf("request-kind migration missing %q", required)
+		}
+	}
+	if !strings.Contains(string(down), "DROP COLUMN IF EXISTS request_kind") || strings.Contains(string(down), "DELETE FROM") {
+		t.Fatal("request-kind rollback must remove only the added column")
+	}
+}

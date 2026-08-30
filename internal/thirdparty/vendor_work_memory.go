@@ -23,6 +23,11 @@ func NewMemoryVendorWorkRepository() *MemoryVendorWorkRepository {
 }
 
 func (r *MemoryVendorWorkRepository) CreateVendorWork(_ context.Context, value VendorWorkRequest) (VendorWorkRequest, error) {
+	requestKind, err := normalizeVendorWorkRequestKind(value.RequestKind)
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	value.RequestKind = requestKind
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if _, exists := r.work[value.ID]; exists {

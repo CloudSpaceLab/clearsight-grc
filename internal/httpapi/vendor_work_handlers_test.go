@@ -44,7 +44,7 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 	workService.ConfigureRelationshipReader(relationships)
 	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory", Identity: identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"), ThirdPartyWork: workService})
 	due := time.Now().UTC().Add(48 * time.Hour).Format(time.RFC3339)
-	body := `{"relationship_link_id":"` + link.ID + `","purpose":"Confirm the service information needed for this Program.","instructions":"Review the known details and correct anything that changed.","form_template_id":"form-1","form_template_version":1,"presentation":"WIZARD","vendor_audience":"security@vendor.example","due_at":"` + due + `"}`
+	body := `{"relationship_link_id":"` + link.ID + `","request_kind":"ADDRESS_VERIFICATION","purpose":"Confirm the service information needed for this Program.","instructions":"Review the known details and correct anything that changed.","form_template_id":"form-1","form_template_version":1,"presentation":"WIZARD","vendor_audience":"security@vendor.example","due_at":"` + due + `"}`
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/vendors/relationship-1/work/prepare", bytes.NewBufferString(body)))
 	if response.Code != http.StatusAccepted {
@@ -54,7 +54,7 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 	if err := json.NewDecoder(response.Body).Decode(&prepared); err != nil {
 		t.Fatal(err)
 	}
-	if prepared.RelationshipID != "relationship-1" || prepared.OwnerPrincipalID != "verified-owner" || prepared.Presentation != formcontract.PresentationWizard {
+	if prepared.RelationshipID != "relationship-1" || prepared.OwnerPrincipalID != "verified-owner" || prepared.RequestKind != thirdparty.VendorWorkAddressVerification || prepared.Presentation != formcontract.PresentationWizard {
 		t.Fatalf("prepared = %#v", prepared)
 	}
 

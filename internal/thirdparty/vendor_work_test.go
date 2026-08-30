@@ -199,6 +199,47 @@ func TestVendorWorkLifecyclePreservesCaptureAndReviewBoundaries(t *testing.T) {
 	}
 }
 
+func TestVendorWorkRejectsUnknownRequestKindBeforePersistence(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	_, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, RequestKind: VendorWorkRequestKind("UNBOUNDED_ACTION"),
+		Purpose: "Confirm the registered address.", Instructions: "Check the address and provide evidence.",
+		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("error = %v", err)
+	}
+	if len(fixture.repository.work) != 0 {
+		t.Fatal("invalid request kind reached persistence")
+	}
+}
+
+func TestAddressVerificationVendorWorkSendsPurposeBoundStaffMessage(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	delivery := &invitationDeliveryStub{}
+	fixture.service.delivery = evidence.NewInvitationDeliveryService(delivery)
+	dueAt := fixture.now.Add(24 * time.Hour)
+	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, RequestKind: VendorWorkAddressVerification,
+		Purpose: "Verify Northstar Hosting Limited's registered address.", Instructions: "Confirm the address and provide the source used.",
+		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: "address-check@example.test", DueAt: dueAt,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if prepared.RequestKind != VendorWorkAddressVerification {
+		t.Fatalf("request kind = %q", prepared.RequestKind)
+	}
+	outcome, err := fixture.service.Send(context.Background(), fixture.actor, prepared.ID, SendVendorWorkInput{ExpectedVersion: prepared.Version, VendorAudience: "address-check@example.test", InvitationTTLMinutes: 60})
+	if err != nil || outcome.State != VendorWorkDeliveryDelivered || len(delivery.requests) != 1 {
+		t.Fatalf("send = (%#v, %v), deliveries = %d", outcome, err, len(delivery.requests))
+	}
+	message := delivery.requests[0].Message
+	if message.Kind != evidence.InvitationMessageAddressVerification || message.RecipientRole != "Address verification staff contact" || !message.DueAt.Equal(dueAt) || message.ExpiresAt.IsZero() {
+		t.Fatalf("message context = %#v", message)
+	}
+}
+
 func TestCancelVendorWorkRevokesCurrentInvitationAndRedeemedSession(t *testing.T) {
 	fixture := newVendorWorkFixture(t)
 	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
