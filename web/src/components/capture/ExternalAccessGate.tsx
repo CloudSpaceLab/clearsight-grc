@@ -9,6 +9,7 @@ import {
   type MaskedFormRecipient,
   type RedeemedFormAccessSession,
 } from "../../captureApi";
+import { ApiError } from "../../http";
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
@@ -27,6 +28,7 @@ export function ExternalAccessGate({ routeSelector, onRedeemed }: Props) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [terminal, setTerminal] = useState<{ title: string; recovery: string; canRequestCode?: boolean }>();
   const [resendRemaining, setResendRemaining] = useState(0);
   const startedSelector = useRef("");
 
@@ -35,6 +37,7 @@ export function ExternalAccessGate({ routeSelector, onRedeemed }: Props) {
     startedSelector.current = routeSelector;
     setPhase("starting");
     setError("");
+    setTerminal(undefined);
     void beginAccess(routeSelector);
   }, [routeSelector]);
 
@@ -109,7 +112,19 @@ export function ExternalAccessGate({ routeSelector, onRedeemed }: Props) {
       const redeemed = await verifyFormAccessOTP(routeSelector, challenge.challenge_id, normalizedCode);
       setPhase("opening");
       await onRedeemed(redeemed);
-    } catch {
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.code === "otp_expired") {
+        setTerminal({ title: "Verification code expired", recovery: "Request another code to continue.", canRequestCode: true });
+        setPhase("terminal");
+        setBusy(false);
+        return;
+      }
+      if (cause instanceof ApiError && cause.code === "otp_attempts_exhausted") {
+        setTerminal({ title: "Verification attempts used", recovery: "Ask the sender for a new invitation link." });
+        setPhase("terminal");
+        setBusy(false);
+        return;
+      }
       setError("That code could not be verified. Check the code and try again.");
       setBusy(false);
     }
@@ -131,8 +146,9 @@ export function ExternalAccessGate({ routeSelector, onRedeemed }: Props) {
   if (phase === "terminal") {
     return <section className="external-capture-entry" aria-labelledby="external-access-title">
       <span className="eyebrow">Evidence request</span>
-      <h1 id="external-access-title">This request is no longer available</h1>
-      <p role="alert">{error || "Ask the sender for a new invitation link."}</p>
+      <h1 id="external-access-title">{terminal?.title ?? "This request is no longer available"}</h1>
+      <p role="alert">{terminal?.recovery ?? (error || "Ask the sender for a new invitation link.")}</p>
+      {terminal?.canRequestCode && selected ? <button className="primary-button" type="button" disabled={busy} onClick={() => void issueOTP(routeSelector, selected)}>{busy ? "Sending code…" : "Request another code"}</button> : null}
     </section>;
   }
 
