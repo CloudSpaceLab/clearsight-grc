@@ -123,7 +123,7 @@ export function NewFormLauncher({ starters, busy, onBlank, onAI, onImport, onUse
 }
 
 function CreationMethod({ icon, title, detail, onClick }: { icon: CreationIcon; title: string; detail: string; onClick: () => void }) {
-  return <button type="button" className="forms-creation-method" onClick={onClick}>
+  return <button type="button" className="forms-creation-method" aria-label={title} onClick={onClick}>
     <CreationIconGraphic type={icon}/>
     <span>
       <strong>{title}</strong>
