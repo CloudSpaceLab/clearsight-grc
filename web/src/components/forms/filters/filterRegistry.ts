@@ -13,14 +13,14 @@ export type FilterDefinition = {
   formatValue?: (value: string) => string;
 };
 
-const statusOptions: readonly FilterOption[] = [
-  ["DRAFT", "Draft"],
-  ["PENDING_APPROVAL", "In review"],
-  ["ACTIVE", "Active"],
-  ["PAUSED", "Paused"],
-  ["RETIRED", "Retired"],
-  ["REJECTED", "Rejected"],
-].map(([value, label]) => ({ value: value as LifecycleStatus, label }));
+const statusOptions = [
+  { value: "DRAFT", label: "Draft" },
+  { value: "PENDING_APPROVAL", label: "In review" },
+  { value: "ACTIVE", label: "Active" },
+  { value: "PAUSED", label: "Paused" },
+  { value: "RETIRED", label: "Retired" },
+  { value: "REJECTED", label: "Rejected" },
+] as const satisfies readonly { value: LifecycleStatus; label: string }[];
 
 export const formFilterRegistry: readonly FilterDefinition[] = [
   {
