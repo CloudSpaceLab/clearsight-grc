@@ -81,6 +81,13 @@ func recipientKeyringValue(name string) (map[string][32]byte, error) {
 	if raw == "" {
 		return nil, nil
 	}
+	// A protected env file may single-quote JSON so the same file can be
+	// sourced by the release shell. Docker's --env-file passes those quote
+	// characters through, so remove exactly one matching shell-quote pair
+	// before decoding the JSON object.
+	if len(raw) >= 2 && raw[0] == '\'' && raw[len(raw)-1] == '\'' {
+		raw = raw[1 : len(raw)-1]
+	}
 	var encoded map[string]string
 	if err := json.Unmarshal([]byte(raw), &encoded); err != nil {
 		return nil, fmt.Errorf("%s must be a JSON object of base64 32-byte keys", name)
