@@ -33,6 +33,7 @@ install -d -m 0750 "$release" "$release/scripts" "$release/migrations"
 install -m 0640 "$stage/compose.demo.yaml" "$compose"
 install -m 0700 "$stage/scripts/migrate.sh" "$release/scripts/migrate.sh"
 install -m 0700 "$stage/scripts/seed-demo-foundation.sh" "$release/scripts/seed-demo-foundation.sh"
+install -m 0700 "$stage/scripts/verify-hosted-release.sh" "$release/scripts/verify-hosted-release.sh"
 cp -a "$stage/migrations/." "$release/migrations/"
 if [[ -f "$stage/schema-backward-compatible" ]]; then
   install -m 0640 "$stage/schema-backward-compatible" "$release/schema-backward-compatible"
@@ -83,7 +84,7 @@ for attempt in $(seq 1 60); do
   [[ "$attempt" -lt 60 ]]
   sleep 2
 done
-curl -fsS https://clearsight.cloudspacetechs.com/health/ready >/dev/null
+"$release/scripts/verify-hosted-release.sh" "$sha"
 
 if [[ -n "$previous" && "$previous" != "$sha" ]]; then
   printf '%s\n' "$previous" > "$root/state/previous-sha.new"

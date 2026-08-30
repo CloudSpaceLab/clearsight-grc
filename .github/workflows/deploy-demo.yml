@@ -62,6 +62,7 @@ jobs:
           install -m 0755 deploy/scripts/migrate.sh "$release/scripts/migrate.sh"
           install -m 0755 deploy/scripts/seed-demo-foundation.sh "$release/scripts/seed-demo-foundation.sh"
           install -m 0755 deploy/scripts/release.sh "$release/scripts/release.sh"
+          install -m 0755 deploy/scripts/verify-hosted-release.sh "$release/scripts/verify-hosted-release.sh"
           cp migrations/*.up.sql "$release/migrations/"
           printf 'false\n' > "$release/schema-backward-compatible"
 
@@ -76,7 +77,7 @@ jobs:
           printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 0600 "$HOME/.ssh/clearsight_deploy" "$HOME/.ssh/known_hosts"
 
-      - name: Deploy exact SHA
+      - name: Deploy and verify exact SHA
         if: steps.freshness.outputs.current == 'true'
         env:
           DEPLOY_HOST: ${{ secrets.CLEARSIGHT_DEPLOY_HOST }}
@@ -87,7 +88,3 @@ jobs:
               -o BatchMode=yes \
               -o IdentitiesOnly=yes \
               "$DEPLOY_USER@$DEPLOY_HOST" "deploy $RELEASE_SHA"
-
-      - name: Verify hosted exact release
-        if: steps.freshness.outputs.current == 'true'
-        run: bash deploy/scripts/verify-hosted-release.sh "$RELEASE_SHA"
