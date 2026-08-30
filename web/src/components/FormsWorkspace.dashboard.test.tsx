@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FormLibraryItem } from "../formsTypes";
@@ -70,7 +71,7 @@ describe("Forms template dashboard", () => {
 
   it("opens template detail contextually and closes it without changing library data", async () => {
     function Harness() {
-      const [target, setTarget] = React.useState<string>();
+      const [target, setTarget] = useState<string>();
       return <FormsWorkspace targetID={target} onTarget={setTarget}/>;
     }
 
