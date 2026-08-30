@@ -31,9 +31,10 @@ import { FormsBrandHeader } from "./forms/FormsBrandHeader";
 import { FormsEmptyState } from "./forms/FormsEmptyState";
 import { FormsLibrarySummary } from "./forms/FormsLibrarySummary";
 import { FormsTabContent } from "./forms/FormsTabContent";
+import { NewFormLauncher } from "./forms/creation/NewFormLauncher";
 import { TemplateDetailDrawer } from "./forms/dashboard/TemplateDetailDrawer";
 import { TemplateLibraryTable } from "./forms/dashboard/TemplateLibraryTable";
-import { defaultFormsAccent, loadFormsAppearance, normalizeAccentColor, normalizeLogoURL, saveFormsAppearance, type FormsAppearance } from "./forms/formsAppearance";
+import { defaultFormsAccent, loadFormsAppearance, type FormsAppearance } from "./forms/formsAppearance";
 import { preserveLibraryRevisionMetadata } from "./forms/formRevisionInput";
 import { isTemplateApprovalReady } from "./forms/formQuality";
 import { clearedFormsQuery, readFormsQuery, writeFormsLocation } from "./forms/formsLocation";
@@ -63,9 +64,9 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const [savedViews, setSavedViews] = useState<SavedFormView[]>([]);
   const [selectedIDs, setSelectedIDs] = useState<Set<string>>(new Set());
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const [newFormOpen, setNewFormOpen] = useState(false);
   const [aiOpen, setAIOpen] = useState(false);
   const [aiProposal, setAIProposal] = useState<FormTemplateProposal | null>(null);
-  const [starterOpen, setStarterOpen] = useState(false);
   const [saveViewOpen, setSaveViewOpen] = useState(false);
   const [savedViewName, setSavedViewName] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -120,11 +121,6 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   function invalidatePagedLoad() {
     loadEpoch.current += 1;
     setBusy((current) => current === "load-more" ? null : current);
-  }
-
-  function updateAppearance(next: FormsAppearance) {
-    const normalized = writeAppearance(appearanceKey, next);
-    setAppearance(normalized);
   }
 
   async function refresh(nextQuery = query) {
@@ -191,11 +187,24 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   }
 
   function openCreate() {
+    setNewFormOpen(false);
     setEditor({ mode: "create" });
     setAIOpen(false);
     setAIProposal(null);
-    setStarterOpen(false);
     setError(null);
+  }
+
+  function openAI() {
+    setNewFormOpen(false);
+    setEditor(null);
+    setAIProposal(null);
+    setAIOpen(true);
+    setError(null);
+  }
+
+  function openImport() {
+    setNewFormOpen(false);
+    window.location.hash = "#imports";
   }
 
   function openEdit(template: FormTemplate) {
@@ -260,7 +269,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     setError(null);
     try {
       const created = await instantiateStarterTemplate(starter.code);
-      setStarterOpen(false);
+      setNewFormOpen(false);
       setEditor({ mode: "edit", template: created });
       choose(created.id);
       setNotice("Starter copied into an ordinary draft. Review its exact fields and quality checks before approval.");
@@ -334,16 +343,27 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       organizationName={organizationName}
       legalEntityName={legalEntityName}
       appearance={appearance}
-      onAppearanceChange={updateAppearance}
-      action={activeTab === "Templates" && !editor && !aiOpen && !aiProposal ? <><button className="secondary-button" type="button" onClick={() => setAIOpen(true)}>Draft with AI</button><button className="forms-primary" type="button" onClick={openCreate}>Create form template</button></> : undefined}
+      action={activeTab === "Templates" && !editor && !aiOpen && !aiProposal
+        ? <button className="forms-primary" type="button" onClick={() => setNewFormOpen(true)}>+ New form</button>
+        : undefined}
     />
 
     <nav className="forms-tabs" aria-label="Forms sections">
-      {tabs.map((tab) => <button key={tab} type="button" className={activeTab === tab ? "active" : ""} aria-current={activeTab === tab ? "page" : undefined} onClick={() => { setActiveTab(tab); setEditor(null); setAIOpen(false); setAIProposal(null); }}>{tab}</button>)}
+      {tabs.map((tab) => <button key={tab} type="button" className={activeTab === tab ? "active" : ""} aria-current={activeTab === tab ? "page" : undefined} onClick={() => { setActiveTab(tab); setEditor(null); setNewFormOpen(false); setAIOpen(false); setAIProposal(null); }}>{tab}</button>)}
     </nav>
 
     {error && <div className="forms-message error" role="alert">{error}</div>}
     {notice && <div className="forms-message" role="status">{notice}<button type="button" aria-label="Dismiss Forms notice" onClick={() => setNotice(null)}>×</button></div>}
+
+    {newFormOpen && <NewFormLauncher
+      starters={starters}
+      busy={busy}
+      onBlank={openCreate}
+      onAI={openAI}
+      onImport={openImport}
+      onUseStarter={(starter) => { void useStarter(starter); }}
+      onClose={() => setNewFormOpen(false)}
+    />}
 
     {activeTab === "Templates" && aiProposal ? <div className="forms-proposal-shell">
       <FormProposalReview proposal={aiProposal} onProposalChange={setAIProposal} onDraftCreated={(id) => { choose(id); void refresh(); }}/>
@@ -377,8 +397,6 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
           {saveViewOpen && <form className="forms-save-view" onSubmit={submitSavedView}><label><span>View name</span><input value={savedViewName} onChange={(event) => setSavedViewName(event.target.value)} maxLength={120}/></label><button type="submit" disabled={!savedViewName.trim() || busy === "save-view"}>Save</button></form>}
         </div>}
 
-        <div className="forms-secondary-actions"><button type="button" onClick={() => setStarterOpen((open) => !open)}>Use a starter template</button>{starterOpen && <div className="forms-starters">{starters.length ? starters.map((starter) => <article key={`${starter.code}:${starter.catalog_version}`}><div><strong>{starter.template.name}</strong><span>v{starter.catalog_version} · published {starter.published_on}</span><p>{starter.reference_label}</p></div><button type="button" disabled={busy === `starter:${starter.code}`} onClick={() => void useStarter(starter)}>Create governed draft</button></article>) : <p>No starter templates are currently available.</p>}</div>}</div>
-
         {state === "live" && page.items.length > 0 && <FormsLibrarySummary items={page.items}/>} 
 
         {selectedItems.length > 0 && <div className="forms-bulk" role="status"><strong>{selectedItems.length} selected</strong>{bulkTransition ? <button type="button" disabled={busy === "bulk-transition"} onClick={() => void runBulkTransition()}>Send {selectedItems.length} for approval</button> : <span>Bulk approval is available only when every selected row is an approval-ready draft with the same permitted lifecycle action.</span>}<button type="button" onClick={() => setSelectedIDs(new Set())}>Clear selection</button></div>}
@@ -389,8 +407,8 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
             tone={query.search ? "search" : "empty"}
             eyebrow={query.search ? "No matches" : "Start here"}
             title={query.search ? `No templates match “${query.search}”` : "Create your governed form library"}
-            detail={query.search ? "Adjust the search or filters, or create a new template without losing your current view." : "Start from a blank governed template or copy a reviewed starter, then send the exact revision through independent approval."}
-            actions={<><button className="forms-primary" type="button" onClick={openCreate}>Create form template</button><button type="button" onClick={() => setStarterOpen(true)}>Browse starter templates</button>{customView && <button className="text-button" type="button" onClick={clearFiltersAndTarget}>Clear filters</button>}</>}
+            detail={query.search ? "Adjust the search or filters, or create a new form without losing your current view." : "Start with a blank form, a proven template, an AI proposal, or an existing source."}
+            actions={<><button className="forms-primary" type="button" onClick={() => setNewFormOpen(true)}>+ New form</button>{customView && <button className="text-button" type="button" onClick={clearFiltersAndTarget}>Clear filters</button>}</>}
           />
           : <TemplateLibraryTable items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/>} 
 
@@ -425,16 +443,5 @@ function readAppearance(scope: string): FormsAppearance {
     return loadFormsAppearance(window.localStorage, scope, window.location.href);
   } catch {
     return { accentColor: defaultFormsAccent };
-  }
-}
-
-function writeAppearance(scope: string, appearance: FormsAppearance): FormsAppearance {
-  try {
-    return saveFormsAppearance(window.localStorage, scope, appearance, window.location.href);
-  } catch {
-    return {
-      accentColor: normalizeAccentColor(appearance.accentColor),
-      logoURL: normalizeLogoURL(appearance.logoURL, window.location.href),
-    };
   }
 }
