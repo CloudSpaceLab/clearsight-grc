@@ -117,10 +117,22 @@ func RenderCommunication(template CommunicationTemplate, context CommunicationCo
 	}
 	plainParts := make([]string, 0, len(template.Document))
 	htmlParts := make([]string, 0, len(template.Document))
+	actionLabel, actionURL := "", ""
 	for _, node := range template.Document {
 		plain, markup, err := renderCommunicationNode(node, values)
 		if err != nil {
 			return RenderedMessage{}, err
+		}
+		if strings.EqualFold(strings.TrimSpace(node.Type), "primary-action") {
+			actionLabel, err = expandCommunicationTemplate(node.Text, values)
+			if err != nil {
+				return RenderedMessage{}, err
+			}
+			actionURL, err = expandCommunicationTemplate(node.Href, values)
+			if err != nil {
+				return RenderedMessage{}, err
+			}
+			continue
 		}
 		if plain != "" {
 			plainParts = append(plainParts, plain)
@@ -129,10 +141,25 @@ func RenderCommunication(template CommunicationTemplate, context CommunicationCo
 			htmlParts = append(htmlParts, markup)
 		}
 	}
+	facts := make([]emailFact, 0, 2)
+	if strings.TrimSpace(context.DueTime) != "" {
+		facts = append(facts, emailFact{Label: "Due", Value: context.DueTime})
+	}
+	if strings.TrimSpace(context.LinkExpiry) != "" {
+		facts = append(facts, emailFact{Label: "Link expires", Value: context.LinkExpiry})
+	}
+	presentation, err := renderEmailPresentation(emailPresentationInput{
+		BrandName: context.BankName, Preheader: context.TaskSummary, Heading: context.FormTitle,
+		BodyPlain: strings.Join(plainParts, "\n\n"), BodyHTML: strings.Join(htmlParts, "\n"),
+		ActionLabel: actionLabel, ActionURL: actionURL, Facts: facts, SupportContact: context.SupportContact,
+	})
+	if err != nil {
+		return RenderedMessage{}, ErrCommunicationInvalid
+	}
 	return RenderedMessage{
 		Subject:   protectedString{value: subject},
-		PlainText: protectedString{value: strings.Join(plainParts, "\n\n")},
-		HTML:      protectedString{value: strings.Join(htmlParts, "\n")},
+		PlainText: protectedString{value: presentation.PlainText},
+		HTML:      protectedString{value: presentation.HTML},
 	}, nil
 }
 
