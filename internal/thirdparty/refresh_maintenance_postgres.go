@@ -45,12 +45,39 @@ func (r *PostgresRepository) MaintainVendorRefresh(ctx context.Context, now time
 		FROM third_party_relationships r
 		JOIN third_parties p ON p.id=r.vendor_id AND p.tenant_id=r.tenant_id
 		JOIN tenants t ON t.id=r.tenant_id
-		WHERE p.updated_at <= $1
+		CROSS JOIN LATERAL (
+			SELECT
+				(CASE WHEN p.updated_at<=$1 THEN jsonb_build_object(
+					'VENDOR.IDENTITY.LEGAL_NAME',p.version,
+					'VENDOR.IDENTITY.TRADING_NAME',p.version,
+					'VENDOR.IDENTITY.REGISTRATION_REFERENCE',p.version,
+					'VENDOR.IDENTITY.JURISDICTION',p.version,
+					'VENDOR.IDENTITY.REGISTERED_ADDRESS',p.version,
+					'VENDOR.IDENTITY.WEBSITE_DOMAIN',p.version
+				) ELSE '{}'::jsonb END)
+				|| COALESCE((
+					SELECT jsonb_object_agg(due.target_key,due.version ORDER BY due.expires_on,due.id)
+					FROM (
+						SELECT 'VENDOR.DOCUMENT.'||upper(btrim(d.document_type)) AS target_key,d.version,d.expires_on,d.id
+						FROM third_party_documents d
+						WHERE d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id AND d.relationship_id=r.id
+						  AND d.status='VALIDATED' AND d.expires_on IS NOT NULL AND d.expires_on<=$2::date
+						ORDER BY d.expires_on,d.id
+					) due
+				), '{}'::jsonb) AS observed_versions
+		) candidate
+		WHERE (p.updated_at <= $1
 		   OR EXISTS (
 			SELECT 1 FROM third_party_documents d
 			WHERE d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id AND d.relationship_id=r.id
 			  AND d.status='VALIDATED' AND d.expires_on IS NOT NULL AND d.expires_on <= $2::date
-		   )
+		   ))
+		  AND NOT EXISTS (
+			SELECT 1 FROM third_party_refresh_attentions attention
+			WHERE attention.tenant_id=r.tenant_id AND attention.legal_entity_id=r.legal_entity_id
+			  AND attention.relationship_id=r.id AND attention.state='OPEN'
+			  AND attention.observed_versions @> candidate.observed_versions
+		  )
 		ORDER BY r.id
 		LIMIT $3
 		FOR UPDATE OF r,p SKIP LOCKED`, factCutoff, leadDate, policy.BatchSize)
