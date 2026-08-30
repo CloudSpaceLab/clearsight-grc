@@ -59,7 +59,7 @@ export function NewFormLauncher({ starters, busy, onBlank, onAI, onImport, onUse
         <CreationMethod
           icon="import"
           title="Import"
-          detail="Use an existing source"
+          detail="XLS, XLSX or document"
           onClick={onImport}
         />
       </div>
@@ -95,6 +95,7 @@ export function NewFormLauncher({ starters, busy, onBlank, onAI, onImport, onUse
                   type="button"
                   className="text-button"
                   aria-expanded={expanded}
+                  aria-label={`${expanded ? "Hide preview for" : "Preview"} ${starter.template.name}`}
                   onClick={() => setPreviewCode((current) => current === starter.code ? undefined : starter.code)}
                 >
                   {expanded ? "Hide preview" : "Preview"}
@@ -103,6 +104,7 @@ export function NewFormLauncher({ starters, busy, onBlank, onAI, onImport, onUse
                   type="button"
                   className="forms-primary"
                   data-template-action
+                  aria-label={`Use ${starter.template.name} template`}
                   disabled={busy !== null}
                   onClick={() => onUseStarter(starter)}
                 >
