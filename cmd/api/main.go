@@ -84,6 +84,7 @@ func main() {
 	vendorWorkService.ConfigureAuthority(guard)
 	vendorWorkService.ConfigureReadAuthority(services.Authority)
 	vendorWorkService.ConfigureTargetReader(services.Continuity)
+	vendorWorkService.ConfigureLogger(logger)
 	linkCoordinator := &thirdparty.RelationshipLinkCoordinator{}
 	vendorWorkService.ConfigureCoordinator(linkCoordinator)
 	services.ThirdPartyRelationshipLinks.ConfigureCoordinator(linkCoordinator)

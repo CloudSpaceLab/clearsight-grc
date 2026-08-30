@@ -3,6 +3,7 @@ package thirdparty
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/url"
 	"strings"
 	"time"
@@ -267,6 +268,7 @@ type VendorWorkService struct {
 	readAuthority   authority.Service
 	targets         *RelationshipTargetAccess
 	coordinator     *RelationshipLinkCoordinator
+	logger          *slog.Logger
 	captureBase     *url.URL
 	now             func() time.Time
 	newID           func() (string, error)
@@ -312,6 +314,12 @@ func (s *VendorWorkService) ConfigureTargetReader(reader RelationshipTargetReade
 func (s *VendorWorkService) ConfigureCoordinator(coordinator *RelationshipLinkCoordinator) {
 	if s != nil {
 		s.coordinator = coordinator
+	}
+}
+
+func (s *VendorWorkService) ConfigureLogger(logger *slog.Logger) {
+	if s != nil {
+		s.logger = logger
 	}
 }
 
@@ -413,6 +421,9 @@ func (s *VendorWorkService) createCaptureRecoverably(ctx context.Context, actor 
 	updated, err := s.createCapture(ctx, actor, work, form, audience, instructions, dueAt, sequence, purpose)
 	if err == nil {
 		return updated, nil
+	}
+	if s.logger != nil {
+		s.logger.ErrorContext(ctx, "vendor work secure response setup failed", "work_id", work.ID, "relationship_id", work.RelationshipID, "relationship_link_id", work.RelationshipLinkID, "capture_sequence", sequence, "error", err)
 	}
 	recovery := "Secure response setup is incomplete. Retry preparation to continue this vendor request."
 	recoverable, markErr := s.repo.MarkVendorWorkPreparationRequired(ctx, scopeFrom(actor), work.ID, work.Version, recovery, s.now().UTC())
