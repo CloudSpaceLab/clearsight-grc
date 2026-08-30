@@ -1,15 +1,76 @@
 import type { FormScoringMode } from "../../formsTypes";
 import type { FormFieldType } from "../../monitoringTypes";
 import type { CaptureFieldConstraints, CaptureVisibilityCondition } from "../../types";
-import { approvedFormats, fieldTypes, fileType, isSelectionType, normalizeOptionText, numericType, textType, type AuthoringField, type AuthoringSection } from "./formAuthoring";
+import {
+  approvedFormats,
+  fieldTypes,
+  fileType,
+  isSelectionType,
+  normalizeOptionText,
+  numericType,
+  textType,
+  type AuthoringField,
+  type AuthoringSection,
+} from "./formAuthoring";
 
-export function FormFieldPropertyEditor({ field, index, scoringMode, sections, earlierFields, onChange, onTypeChange, onConstraint, onScoringToggle, onMove, onRemove, removable, first, last }: {
-  field: AuthoringField; index: number; scoringMode: FormScoringMode; sections: AuthoringSection[]; earlierFields: AuthoringField[];
-  onChange: (change: Partial<AuthoringField>) => void; onTypeChange: (type: FormFieldType) => void;
+type Props = {
+  field: AuthoringField;
+  index: number;
+  scoringMode: FormScoringMode;
+  sections: AuthoringSection[];
+  earlierFields: AuthoringField[];
+  onChange: (change: Partial<AuthoringField>) => void;
+  onTypeChange: (type: FormFieldType) => void;
   onConstraint: (key: keyof CaptureFieldConstraints, value: number | string | undefined) => void;
-  onScoringToggle: (enabled: boolean) => void; onMove: (offset: -1 | 1) => void; onRemove: () => void; removable: boolean; first: boolean; last: boolean;
-}) {
-  const condition = field.condition;
+  onScoringToggle: (enabled: boolean) => void;
+  onMove: (offset: -1 | 1) => void;
+  onRemove: () => void;
+  removable: boolean;
+  first: boolean;
+  last: boolean;
+  inspector?: boolean;
+};
+
+export function FormFieldPropertyEditor(props: Props) {
+  if (props.inspector) return <InspectorEditor {...props}/>;
+  return <LegacyEditor {...props}/>;
+}
+
+function InspectorEditor({ field, index, scoringMode, sections, earlierFields, onChange, onTypeChange, onConstraint, onScoringToggle, onMove, onRemove, removable, first, last }: Props) {
+  return <div className="question-inspector-editor">
+    <div className="form-inspector-primary-settings">
+      <label className="compact-control form-inspector-required"><input type="checkbox" checked={field.required} onChange={(event) => onChange({ required: event.target.checked })}/> Required response</label>
+      <label><span>Section</span><select value={field.section_id} onChange={(event) => onChange({ section_id: event.target.value })}>{sections.map((section, sectionIndex) => <option value={section.id} key={section.id}>{section.title.trim() || `Section ${sectionIndex + 1}`}</option>)}</select></label>
+      <label><span>Response type</span><select aria-label="Inspector response type" value={field.type} onChange={(event) => onTypeChange(event.target.value as FormFieldType)}>{fieldTypes.map((type) => <option value={type.value} key={type.value}>{type.label}</option>)}</select></label>
+    </div>
+
+    <details open className="form-inspector-disclosure">
+      <summary>Validation & response options</summary>
+      <div className="form-inspector-disclosure-body"><TypeSettings field={field} scoringMode={scoringMode} onChange={onChange} onConstraint={onConstraint} onScoringToggle={onScoringToggle}/></div>
+    </details>
+
+    <details className="form-inspector-disclosure">
+      <summary>Logic{field.condition ? <span>Configured</span> : null}</summary>
+      <div className="form-inspector-disclosure-body"><ConditionSettings field={field} earlierFields={earlierFields} onChange={onChange}/></div>
+    </details>
+
+    <details className="form-inspector-disclosure">
+      <summary>Data handling{(field.collection_intent ?? "CAPTURE") !== "CAPTURE" || field.browser_cache_policy === "NO_BROWSER_CACHE" ? <span>Custom</span> : null}</summary>
+      <div className="form-inspector-disclosure-body"><CollectionSettings field={field} onChange={onChange}/></div>
+    </details>
+
+    <details className="form-inspector-disclosure">
+      <summary>Question actions</summary>
+      <div className="form-inspector-actions">
+        <button type="button" disabled={first} onClick={() => onMove(-1)} aria-label={`Move ${field.label.trim() || `Question ${index + 1}`} up`}>Move up</button>
+        <button type="button" disabled={last} onClick={() => onMove(1)} aria-label={`Move ${field.label.trim() || `Question ${index + 1}`} down`}>Move down</button>
+        {removable && <button type="button" className="danger-text" onClick={onRemove}>Delete question</button>}
+      </div>
+    </details>
+  </div>;
+}
+
+function LegacyEditor({ field, index, scoringMode, sections, earlierFields, onChange, onTypeChange, onConstraint, onScoringToggle, onMove, onRemove, removable, first, last }: Props) {
   return <article className="question-editor typed-question-editor">
     <div className="question-editor-heading"><div className="question-number">{index + 1}</div><strong>{field.label.trim() || `Question ${index + 1}`}</strong><div className="builder-row-actions"><button className="text-button" type="button" disabled={first} onClick={() => onMove(-1)} aria-label={`Move ${field.label.trim() || `Question ${index + 1}`} up`}>Up</button><button className="text-button" type="button" disabled={last} onClick={() => onMove(1)} aria-label={`Move ${field.label.trim() || `Question ${index + 1}`} down`}>Down</button>{removable && <button className="text-button danger-text" type="button" onClick={onRemove}>Remove</button>}</div></div>
     <div className="builder-control-grid question-core-fields">
@@ -19,24 +80,28 @@ export function FormFieldPropertyEditor({ field, index, scoringMode, sections, e
       <label className="full"><span>Response guidance</span><input value={field.description ?? ""} maxLength={1000} onChange={(event) => onChange({ description: event.target.value })}/></label>
       <label className="compact-control"><input type="checkbox" checked={field.required} onChange={(event) => onChange({ required: event.target.checked })}/> Required response</label>
     </div>
-
     <TypeSettings field={field} scoringMode={scoringMode} onChange={onChange} onConstraint={onConstraint} onScoringToggle={onScoringToggle}/>
-
-    <fieldset className="builder-subpanel"><legend>Collection semantics</legend><div className="builder-control-grid">
-      <label><span>Collection purpose</span><select value={field.collection_intent ?? "CAPTURE"} onChange={(event) => onChange({ collection_intent: event.target.value as AuthoringField["collection_intent"], ...(event.target.value === "CAPTURE" ? { record_target: undefined } : {}) })}><option value="CAPTURE">Capture a response</option><option value="CONFIRM_OR_CORRECT">Confirm or correct a held value</option><option value="REPLACE_HELD_DOCUMENT">Replace a held document</option></select></label>
-      <label><span>Browser recovery</span><select value={field.browser_cache_policy ?? "ALLOWED"} onChange={(event) => onChange({ browser_cache_policy: event.target.value as AuthoringField["browser_cache_policy"] })}><option value="ALLOWED">Allow encrypted browser recovery</option><option value="NO_BROWSER_CACHE">Do not cache in browser</option></select></label>
-      {(field.collection_intent ?? "CAPTURE") !== "CAPTURE" && <><label><span>Record target key</span><input value={field.record_target?.key ?? ""} placeholder="VENDOR.REGISTRATION_NUMBER" onChange={(event) => onChange({ record_target: { key: event.target.value, required_subject_type: field.record_target?.required_subject_type ?? "VENDOR_RELATIONSHIP" } })}/></label><label><span>Required subject type</span><input value={field.record_target?.required_subject_type ?? "VENDOR_RELATIONSHIP"} onChange={(event) => onChange({ record_target: { key: field.record_target?.key ?? "", required_subject_type: event.target.value } })}/></label></>}
-    </div></fieldset>
-
-    <fieldset className="builder-subpanel condition-editor">
-      <legend>Display rule</legend>
-      <div className="builder-control-grid">
-        <label><span>Show this question when</span><select value={condition?.field_id ?? ""} onChange={(event) => onChange({ condition: event.target.value ? { field_id: event.target.value, operator: "EQUALS", values: [""] } : undefined })}><option value="">Always shown</option>{earlierFields.map((candidate, candidateIndex) => <option value={candidate.id} key={candidate.id}>{candidate.label.trim() || `Question ${candidateIndex + 1}`}</option>)}</select></label>
-        {condition && <label><span>Condition</span><select value={condition.operator} onChange={(event) => onChange({ condition: { ...condition, operator: event.target.value as CaptureVisibilityCondition["operator"], values: event.target.value === "ANSWERED" ? undefined : condition.values?.length ? condition.values : [""] } })}><option value="EQUALS">Answer is</option><option value="NOT_EQUALS">Answer is not</option><option value="IN">Answer is one of</option><option value="NOT_IN">Answer is not one of</option><option value="ANSWERED">Has an answer</option></select></label>}
-        {condition && condition.operator !== "ANSWERED" && <label className="full"><span>{condition.operator === "IN" || condition.operator === "NOT_IN" ? "Condition values" : "Condition value"}</span><input aria-label={condition.operator === "IN" || condition.operator === "NOT_IN" ? "Condition values" : "Condition value"} value={(condition.values ?? []).join(", ")} onChange={(event) => onChange({ condition: { ...condition, values: event.target.value.split(",").map((value) => value.trim()) } })}/></label>}
-      </div>
-    </fieldset>
+    <fieldset className="builder-subpanel"><legend>Data handling</legend><CollectionSettings field={field} onChange={onChange}/></fieldset>
+    <fieldset className="builder-subpanel condition-editor"><legend>Logic</legend><ConditionSettings field={field} earlierFields={earlierFields} onChange={onChange}/></fieldset>
   </article>;
+}
+
+function CollectionSettings({ field, onChange }: { field: AuthoringField; onChange: (change: Partial<AuthoringField>) => void }) {
+  return <div className="builder-control-grid">
+    <label><span>Collection purpose</span><select value={field.collection_intent ?? "CAPTURE"} onChange={(event) => onChange({ collection_intent: event.target.value as AuthoringField["collection_intent"], ...(event.target.value === "CAPTURE" ? { record_target: undefined } : {}) })}><option value="CAPTURE">Capture a response</option><option value="CONFIRM_OR_CORRECT">Confirm or correct a held value</option><option value="REPLACE_HELD_DOCUMENT">Replace a held document</option></select></label>
+    <details className="form-inspector-technical"><summary>Technical recovery</summary><label><span>Browser recovery</span><select value={field.browser_cache_policy ?? "ALLOWED"} onChange={(event) => onChange({ browser_cache_policy: event.target.value as AuthoringField["browser_cache_policy"] })}><option value="ALLOWED">Allow encrypted browser recovery</option><option value="NO_BROWSER_CACHE">Do not cache in browser</option></select></label></details>
+    {(field.collection_intent ?? "CAPTURE") !== "CAPTURE" && <><label><span>Record target key</span><input value={field.record_target?.key ?? ""} placeholder="VENDOR.REGISTRATION_NUMBER" onChange={(event) => onChange({ record_target: { key: event.target.value, required_subject_type: field.record_target?.required_subject_type ?? "VENDOR_RELATIONSHIP" } })}/></label><label><span>Required subject type</span><input value={field.record_target?.required_subject_type ?? "VENDOR_RELATIONSHIP"} onChange={(event) => onChange({ record_target: { key: field.record_target?.key ?? "", required_subject_type: event.target.value } })}/></label></>}
+  </div>;
+}
+
+function ConditionSettings({ field, earlierFields, onChange }: { field: AuthoringField; earlierFields: AuthoringField[]; onChange: (change: Partial<AuthoringField>) => void }) {
+  const condition = field.condition;
+  return <div className="builder-control-grid">
+    <label><span>Show this question when</span><select value={condition?.field_id ?? ""} onChange={(event) => onChange({ condition: event.target.value ? { field_id: event.target.value, operator: "EQUALS", values: [""] } : undefined })}><option value="">Always shown</option>{earlierFields.map((candidate, candidateIndex) => <option value={candidate.id} key={candidate.id}>{candidate.label.trim() || `Question ${candidateIndex + 1}`}</option>)}</select></label>
+    {condition && <label><span>Condition</span><select value={condition.operator} onChange={(event) => onChange({ condition: { ...condition, operator: event.target.value as CaptureVisibilityCondition["operator"], values: event.target.value === "ANSWERED" ? undefined : condition.values?.length ? condition.values : [""] } })}><option value="EQUALS">Answer is</option><option value="NOT_EQUALS">Answer is not</option><option value="IN">Answer is one of</option><option value="NOT_IN">Answer is not one of</option><option value="ANSWERED">Has an answer</option></select></label>}
+    {condition && condition.operator !== "ANSWERED" && <label className="full"><span>{condition.operator === "IN" || condition.operator === "NOT_IN" ? "Condition values" : "Condition value"}</span><input aria-label={condition.operator === "IN" || condition.operator === "NOT_IN" ? "Condition values" : "Condition value"} value={(condition.values ?? []).join(", ")} onChange={(event) => onChange({ condition: { ...condition, values: event.target.value.split(",").map((value) => value.trim()) } })}/></label>}
+    {!condition && <p className="field-note">This question is always shown. Add logic only when the response should depend on an earlier answer.</p>}
+  </div>;
 }
 
 function TypeSettings({ field, scoringMode, onChange, onConstraint, onScoringToggle }: { field: AuthoringField; scoringMode: FormScoringMode; onChange: (change: Partial<AuthoringField>) => void; onConstraint: (key: keyof CaptureFieldConstraints, value: number | string | undefined) => void; onScoringToggle: (enabled: boolean) => void }) {
@@ -49,6 +114,7 @@ function TypeSettings({ field, scoringMode, onChange, onConstraint, onScoringTog
     {type === "attestation" && <fieldset className="builder-subpanel"><legend>Attestation</legend><label><span>Statement to confirm</span><textarea value={field.attestation ?? ""} maxLength={1000} rows={3} onChange={(event) => onChange({ attestation: event.target.value })} required/></label></fieldset>}
     {fileType(type) && <FileSettings field={field} onChange={onChange} onConstraint={onConstraint}/>} 
     {isSelectionType(type) && scoringMode !== "NONE" && <ScoringSettings field={field} scoringMode={scoringMode} onChange={onChange} onToggle={onScoringToggle}/>} 
+    {!textType(type) && !numericType(type) && type !== "date" && !isSelectionType(type) && type !== "attestation" && !fileType(type) && <p className="field-note">This response type has no additional validation options.</p>}
   </>;
 }
 
