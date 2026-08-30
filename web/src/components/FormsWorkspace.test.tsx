@@ -1,5 +1,5 @@
 import axe from "axe-core";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FormLibraryItem, StarterTemplate } from "../formsTypes";
 import { appearanceStorageKey } from "./forms/formsAppearance";
@@ -133,12 +133,13 @@ describe("Forms workspace", () => {
     await screen.findAllByText("Vendor due diligence");
     expect(screen.queryByRole("button", { name: "Draft with AI" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
-    expect(await screen.findByRole("dialog", { name: "New form" })).toBeTruthy();
+    const dialog = await screen.findByRole("dialog", { name: "New form" });
+    const launcher = within(dialog);
     for (const method of ["Blank form", "Draft with AI", "From template", "Import"]) {
-      expect(screen.getByRole("button", { name: new RegExp(method) })).toBeTruthy();
+      expect(launcher.getByRole("button", { name: new RegExp(`^${method}\\b`) })).toBeTruthy();
     }
-    expect(screen.getByText("Vendor security review")).toBeTruthy();
-    expect(screen.getByLabelText("Vendor security review preview")).toBeTruthy();
+    expect(launcher.getByText("Vendor security review")).toBeTruthy();
+    expect(launcher.getByLabelText("Vendor security review preview")).toBeTruthy();
     expect(screen.queryByText("Style workspace")).toBeNull();
   });
 
@@ -147,7 +148,8 @@ describe("Forms workspace", () => {
     render(<FormsWorkspace/>);
     expect((await screen.findAllByText("Vendor due diligence")).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
-    fireEvent.click(screen.getByRole("button", { name: /Blank form/ }));
+    const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
+    fireEvent.click(launcher.getByRole("button", { name: /^Blank form\b/ }));
     fireEvent.change(screen.getByLabelText("Code"), { target: { value: "OPS" } });
     fireEvent.change(screen.getByLabelText("Form name"), { target: { value: "Operations review" } });
     fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Collect current operating evidence." } });
@@ -168,7 +170,8 @@ describe("Forms workspace", () => {
     render(<FormsWorkspace/>);
     await screen.findAllByText("Vendor due diligence");
     fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Use template" }));
+    const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
+    fireEvent.click(launcher.getByRole("button", { name: "Use template" }));
     await waitFor(() => expect(api.instantiateStarterTemplate).toHaveBeenCalledWith("VENDOR-SECURITY"));
     expect(await screen.findByText("Edit Vendor security review")).toBeTruthy();
   });
@@ -184,7 +187,8 @@ describe("Forms workspace", () => {
     render(<FormsWorkspace/>);
     await screen.findAllByText("Vendor due diligence");
     fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
-    fireEvent.click(screen.getByRole("button", { name: /Draft with AI/ }));
+    const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
+    fireEvent.click(launcher.getByRole("button", { name: /^Draft with AI\b/ }));
     expect(screen.getByRole("button", { name: "Open manual builder" })).toBeTruthy();
     fireEvent.change(screen.getByRole("textbox", { name: "What should this form collect or change?" }), { target: { value: "Collect current ownership details." } });
     fireEvent.click(screen.getByRole("button", { name: "Generate field proposal" }));
@@ -195,7 +199,8 @@ describe("Forms workspace", () => {
     render(<FormsWorkspace/>);
     await screen.findAllByText("Vendor due diligence");
     fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
-    fireEvent.click(screen.getByRole("button", { name: /^Import/ }));
+    const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
+    fireEvent.click(launcher.getByRole("button", { name: /^Import\b/ }));
     expect(window.location.hash).toBe("#imports");
   });
 
