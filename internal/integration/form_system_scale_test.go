@@ -157,7 +157,7 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 		now := time.Date(2026, time.August, 30, 12, 0, 0, 0, time.UTC)
 		if _, err := pool.Exec(ctx, `
 			UPDATE capture_form_distributions
-			SET deadline=$1+interval '48 hours',route_expires_at=$1+interval '24 hours',
+			SET deadline=$1::timestamptz+interval '48 hours',route_expires_at=$1::timestamptz+interval '24 hours',
 				reminder_policy='{"reminder_hours_before":[72]}'::jsonb
 			WHERE tenant_id=$2::uuid AND id IN (
 				SELECT id FROM capture_form_distributions
