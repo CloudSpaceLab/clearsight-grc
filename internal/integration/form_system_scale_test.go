@@ -332,7 +332,13 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 	})
 
 	t.Run("material Forms records reconstruct before and after change", func(t *testing.T) {
-		before := time.Date(2026, time.August, 30, 9, 0, 0, 0, time.UTC)
+		var createdAt time.Time
+		if err := pool.QueryRow(ctx, `
+			SELECT created_at FROM monitoring_form_templates
+			WHERE tenant_id=$1::uuid AND id=md5('scale-form-1')::uuid AND version=1`, tenant).Scan(&createdAt); err != nil {
+			t.Fatal(err)
+		}
+		before := createdAt
 		changed := before.Add(time.Hour)
 		asOf := before.Add(30 * time.Minute)
 
