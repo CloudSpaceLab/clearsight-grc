@@ -108,7 +108,9 @@ func getRelationshipLink(ctx context.Context, queryer linkQueryer, scope Scope, 
 	// The update uses an expected version in a serializable transaction. The
 	// UNION projection cannot be portably row-locked across both typed tables.
 	_ = lock
-	query := relationshipLinkUnion + ` WHERE tenant_ref=$1 AND legal_entity_id::text=$2 AND id::text=$3`
+	query := relationshipLinkUnion + ` WHERE (tenant_ref=$1 OR EXISTS (
+		SELECT 1 FROM tenants tenant_scope WHERE tenant_scope.slug=tenant_ref AND tenant_scope.id::text=$1
+	)) AND legal_entity_id::text=$2 AND id::text=$3`
 	value, err := scanRelationshipLink(queryer.QueryRow(ctx, query, scope.TenantID, scope.LegalEntityID, linkID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return RelationshipLink{}, ErrNotFound

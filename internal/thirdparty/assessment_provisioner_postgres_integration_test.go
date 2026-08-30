@@ -55,6 +55,10 @@ func TestPostgresAssessmentProvisionerCreatesEntityScopedReviewMatter(t *testing
 	if err != nil || len(links.Items) != 1 || links.Items[0].RelationshipID != assessment.RelationshipID {
 		t.Fatalf("canonical tenant relationship links = %#v, %v", links, err)
 	}
+	exact, err := repository.GetRelationshipLink(ctx, Scope{TenantID: thirdPartyTenantID, LegalEntityID: record.LegalEntityID}, links.Items[0].ID)
+	if err != nil || exact.ID != links.Items[0].ID || exact.TargetID != matter.Matter.ID {
+		t.Fatalf("canonical tenant exact relationship link = %#v, %v", exact, err)
+	}
 }
 
 func TestPostgresAssessmentProvisionerLeaseFencing(t *testing.T) {
