@@ -29,6 +29,7 @@ type AssessmentEvidenceClass string
 
 const (
 	AssessmentEvidenceVendorSupplied AssessmentEvidenceClass = "VENDOR_SUPPLIED"
+	AssessmentEvidenceStaffSupplied  AssessmentEvidenceClass = "STAFF_SUPPLIED"
 	AssessmentEvidenceBankValidated  AssessmentEvidenceClass = "BANK_VALIDATED"
 	AssessmentEvidenceOfficialSource AssessmentEvidenceClass = "OFFICIAL_SOURCE"
 )
@@ -74,6 +75,7 @@ type AssessmentReviewAnswer struct {
 
 type AssessmentReviewDocument struct {
 	FieldID        string                  `json:"field_id"`
+	RequestID      string                  `json:"request_id,omitempty"`
 	ArtifactID     string                  `json:"artifact_id"`
 	FileName       string                  `json:"file_name"`
 	MediaType      string                  `json:"media_type"`

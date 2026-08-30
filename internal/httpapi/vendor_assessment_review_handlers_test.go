@@ -34,7 +34,11 @@ func newReviewHTTPFixture(t *testing.T, includeDocument ...bool) reviewHTTPFixtu
 	if err != nil {
 		t.Fatal(err)
 	}
-	invitation := parsed.Query().Get("capture_invite")
+	fragment, err := url.ParseQuery(parsed.Fragment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	invitation := fragment.Get("form_access")
 	if invitation == "" {
 		t.Fatalf("send outcome did not contain an immediate fallback invitation: %#v", sent)
 	}
@@ -150,7 +154,7 @@ func TestGetVendorAssessmentReviewUsesVerifiedScopeAndOmitsProtectedCaptureField
 	if !strings.Contains(string(raw), `"matters":[]`) || strings.Contains(string(raw), `"findings"`) {
 		t.Fatalf("review response did not use the rich reviewer matter contract: %s", raw)
 	}
-	for _, protected := range []string{"security@vendor.example", "capture_invite", "invitation_id", "session_id", "storage_key", "submitted_by"} {
+	for _, protected := range []string{"security@vendor.example", "capture_invite", "form_access", "invitation_id", "session_id", "storage_key", "submitted_by"} {
 		if strings.Contains(string(raw), protected) {
 			t.Fatalf("review response exposed protected capture field %q: %s", protected, raw)
 		}

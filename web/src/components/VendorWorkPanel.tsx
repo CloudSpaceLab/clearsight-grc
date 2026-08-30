@@ -12,7 +12,7 @@ import {
   acceptVendorWork, cancelVendorWork, loadVendorWork, loadVendorWorkResponse, prepareVendorWork, requestVendorWorkChanges,
   retryVendorWorkDelivery, sendVendorWork, startVendorWorkReview, vendorWorkDocumentURL,
 } from "../vendorWorkApi";
-import type { VendorWorkRequest, VendorWorkResponseView, VendorWorkSendOutcome } from "../vendorWorkTypes";
+import type { VendorWorkRequest, VendorWorkRequestKind, VendorWorkResponseView, VendorWorkSendOutcome } from "../vendorWorkTypes";
 import "../vendor-work.css";
 
 type Props = ({ targetType: VendorLinkTargetType; targetID: string; relationshipID?: never } | { relationshipID: string; targetType?: never; targetID?: never }) & { onOpenRequest?: (requestID: string) => void };
@@ -37,6 +37,7 @@ export function VendorWorkPanel(props: Props) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [selectedLinkID, setSelectedLinkID] = useState("");
+  const [requestKind, setRequestKind] = useState<VendorWorkRequestKind>("GENERAL");
   const [purpose, setPurpose] = useState("");
   const [instructions, setInstructions] = useState("");
   const [formKey, setFormKey] = useState("");
@@ -149,6 +150,7 @@ export function VendorWorkPanel(props: Props) {
 
   function resetDraft() {
     setSelectedLinkID("");
+    setRequestKind("GENERAL");
     setPurpose("");
     setInstructions("");
     setFormKey("");
@@ -160,6 +162,7 @@ export function VendorWorkPanel(props: Props) {
   }
 
   const selectedRelationship = relationships.find((item) => item.link.id === selectedLinkID);
+  const eligibleForms = forms.filter((item) => formMatchesRequestKind(item, requestKind));
   const selectedForm = forms.find((item) => `${item.id}:${item.version}` === formKey);
   const canSubmit = Boolean(selectedRelationship?.relationship && selectedForm && purpose.trim() && instructions.trim() && validEmail(audience) && dueDate);
   const current = work.filter((item) => item.state !== "ACCEPTED" && item.state !== "CANCELLED");
@@ -175,7 +178,7 @@ export function VendorWorkPanel(props: Props) {
     setNotice("");
     try {
       const prepared = await prepareVendorWork(selectedRelationship.relationship.relationship.id, {
-        relationship_link_id: selectedRelationship.link.id,
+        relationship_link_id: selectedRelationship.link.id, request_kind: requestKind,
         purpose: purpose.trim(), instructions: instructions.trim(), form_template_id: selectedForm.id,
         form_template_version: selectedForm.version, presentation, vendor_audience: audience.trim(), due_at: dueAt,
       });
@@ -217,17 +220,20 @@ export function VendorWorkPanel(props: Props) {
     {loadMoreError && <p role="alert" className="inline-error">More vendor requests could not be loaded. The current list remains available.</p>}
     {creating && <form className="vendor-work-form" onSubmit={(event) => void prepareAndSend(event)}>
       <div><h3>Request vendor work</h3><p>Confirm the vendor, collection form and delivery details for this {targetName}.</p></div>
+      <label>Request type<select value={requestKind} onChange={(event) => { setRequestKind(event.target.value as VendorWorkRequestKind); setFormKey(""); }}><option value="GENERAL">Vendor information or evidence</option><option value="ADDRESS_VERIFICATION">Registered address verification</option><option value="CERTIFICATION_REFRESH">ISO 27001 and PCI DSS evidence</option></select></label>
+      {requestKind === "ADDRESS_VERIFICATION" && <p className="vendor-work-scope-note">This link permits access to this evidence request only. Matter ownership, review and sign-off remain with the assigned bank roles.</p>}
+      {requestKind === "CERTIFICATION_REFRESH" && <p className="vendor-work-scope-note">Request current ISO 27001 and PCI DSS evidence from the vendor. Submission does not mean the bank has accepted the evidence; an assigned reviewer must check and accept it.</p>}
       <label>{relationshipID ? "Related Program or issue" : "Vendor relationship"}<select value={selectedLinkID} required onChange={(event) => setSelectedLinkID(event.target.value)}><option value="">{relationshipID ? "Choose related work" : "Choose a linked vendor"}</option>{relationships.map(({ link, relationship }) => <option key={link.id} value={link.id} disabled={!relationship}>{relationship ? relationshipID ? `${link.target_type === "PROGRAM" ? "Program" : "Issue or change"} · ${link.purpose_label}` : `${relationship.vendor.legal_name} — ${relationship.relationship.service_name}` : "Vendor details unavailable"}</option>)}</select></label>
       {linkNextCursor && <button type="button" className="secondary-button" disabled={loadingMoreLinks} onClick={() => void loadMoreLinks()}>{loadingMoreLinks ? "Loading…" : relationshipID ? "Load more related work" : "Load more linked vendors"}</button>}
       {linkLoadError && <p role="alert" className="inline-error">More related records could not be loaded. The current choices remain available.</p>}
       <label>Request purpose<input value={purpose} required maxLength={500} onChange={(event) => setPurpose(event.target.value)} placeholder="Confirm annual service controls"/></label>
-      <label>Instructions for the vendor<textarea value={instructions} required maxLength={2000} rows={4} onChange={(event) => setInstructions(event.target.value)} placeholder="State what must be completed or provided."/></label>
-      <div className="vendor-work-form-grid"><label>Collection form<select value={formKey} required onChange={(event) => setFormKey(event.target.value)}><option value="">Choose an approved form</option>{forms.map((item) => <option key={`${item.id}:${item.version}`} value={`${item.id}:${item.version}`}>{item.name} · version {item.version}</option>)}</select></label><label>Form layout<select value={presentation} onChange={(event) => setPresentation(event.target.value as CapturePresentationMode)}><option value="AUTOMATIC">Automatic</option><option value="CLASSIC">Classic</option><option value="WIZARD">Wizard</option></select></label></div>
+      <label>{requestKind === "ADDRESS_VERIFICATION" ? "Instructions for the assigned staff member" : "Instructions for the vendor"}<textarea value={instructions} required maxLength={2000} rows={4} onChange={(event) => setInstructions(event.target.value)} placeholder="State what must be completed or provided."/></label>
+      <div className="vendor-work-form-grid"><label>Collection form<select value={formKey} required onChange={(event) => setFormKey(event.target.value)}><option value="">Choose an approved form</option>{eligibleForms.map((item) => <option key={`${item.id}:${item.version}`} value={`${item.id}:${item.version}`}>{item.name} · version {item.version}</option>)}</select></label><label>Form layout<select value={presentation} onChange={(event) => setPresentation(event.target.value as CapturePresentationMode)}><option value="AUTOMATIC">Automatic</option><option value="CLASSIC">Classic</option><option value="WIZARD">Wizard</option></select></label></div>
       {selectedForm && <FormSummary form={selectedForm}/>}
-      <div className="vendor-work-form-grid"><label>Vendor contact<input type="email" autoComplete="email" value={audience} required maxLength={320} onChange={(event) => setAudience(event.target.value)} placeholder="contact@vendor.example"/></label><label>Due date<input type="date" min={minimumDueDate()} value={dueDate} required onChange={(event) => setDueDate(event.target.value)}/></label></div>
+      <div className="vendor-work-form-grid"><label>{requestRecipientLabel(requestKind)}<input type="email" autoComplete="email" value={audience} required maxLength={320} onChange={(event) => setAudience(event.target.value)} placeholder="contact@example.com"/></label><label>Due date<input type="date" min={minimumDueDate()} value={dueDate} required onChange={(event) => setDueDate(event.target.value)}/></label></div>
       <div className="vendor-work-prefill"><strong>Prefill summary</strong><p>Known vendor and service details will be shown with this request.</p></div>
       {error && <p role="alert" className="inline-error">{error}</p>}
-      <div className="form-actions"><button type="button" className="secondary-button" disabled={saving} onClick={() => { setCreating(false); resetDraft(); }}>Cancel</button><button type="submit" className="primary-button" disabled={saving || !canSubmit}>{saving ? "Preparing request…" : "Prepare and send request"}</button></div>
+      <div className="form-actions"><button type="button" className="secondary-button" disabled={saving} onClick={() => { setCreating(false); resetDraft(); }}>Cancel</button><button type="submit" className="primary-button" disabled={saving || !canSubmit}>{saving ? "Preparing request…" : requestSendLabel(requestKind)}</button></div>
     </form>}
   </section>;
 }
@@ -247,7 +253,7 @@ function VendorWorkCard({ work, form, relationship, captureURL, onOpenRequest, o
   const responseIdentity = `${work.current_request_id ?? ""}:${work.submission_id ?? ""}`;
   const activeResponseIdentity = useRef(responseIdentity);
   activeResponseIdentity.current = responseIdentity;
-  const status = workStateLabel(work.state);
+  const status = workStateLabel(work);
   const retry = work.delivery_state === "RETRY_REQUIRED" || work.delivery_state === "LINK_CREATED_EMAIL_NOT_SENT";
   const setupIncomplete = retry && work.state === "PREPARING" && !work.current_request_id;
   const canCancel = work.state !== "ACCEPTED" && work.state !== "CANCELLED";
@@ -327,8 +333,8 @@ function VendorWorkCard({ work, form, relationship, captureURL, onOpenRequest, o
     <dl className="vendor-work-facts"><div><dt>Due</dt><dd>{formatDate(work.due_at)}</dd></div><div><dt>Collection</dt><dd>{form ? `${form.name} · version ${work.form_template_version}` : `Form version ${work.form_template_version}`}</dd></div><div><dt>Layout</dt><dd>{presentationLabel(work.presentation)}</dd></div></dl>
     {(setupIncomplete || work.recovery) && <p className="inline-notice">{setupIncomplete ? "The collection request was not created. Complete setup to create and send it." : work.recovery}</p>}
     {captureURL && <div className="vendor-work-secure-link"><label>Secure link<input readOnly value={captureURL} onFocus={(event) => event.currentTarget.select()}/></label><button type="button" className="secondary-button" onClick={() => void copySecureLink()}>Copy secure link</button>{copyNotice && <small role="status">{copyNotice}</small>}</div>}
-    {retry && <div className="vendor-work-action"><label>Vendor contact<input type="email" autoComplete="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><button type="button" className="primary-button" disabled={busy || !validEmail(audience)} onClick={() => void run(() => retryVendorWorkDelivery(work.relationship_id, work.id, { expected_version: work.version, vendor_audience: audience.trim(), invitation_ttl_minutes: invitationTTLMinutes }))}>{busy ? setupIncomplete ? "Completing…" : "Retrying…" : setupIncomplete ? "Complete setup" : "Retry delivery"}</button></div>}
-    {!retry && work.state === "PREPARING" && <div className="vendor-work-action"><label>Vendor contact<input type="email" autoComplete="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><button type="button" className="primary-button" disabled={busy || !validEmail(audience)} onClick={() => void run(() => sendVendorWork(work.relationship_id, work.id, { expected_version: work.version, vendor_audience: audience.trim(), invitation_ttl_minutes: invitationTTLMinutes }))}>{busy ? "Sending…" : "Send request"}</button></div>}
+    {retry && <div className="vendor-work-action"><label>{requestRecipientLabel(work.request_kind)}<input type="email" autoComplete="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><button type="button" className="primary-button" disabled={busy || !validEmail(audience)} onClick={() => void run(() => retryVendorWorkDelivery(work.relationship_id, work.id, { expected_version: work.version, vendor_audience: audience.trim(), invitation_ttl_minutes: invitationTTLMinutes }))}>{busy ? setupIncomplete ? "Completing…" : "Retrying…" : setupIncomplete ? "Complete setup" : "Retry delivery"}</button></div>}
+    {!retry && work.state === "PREPARING" && <div className="vendor-work-action"><label>{requestRecipientLabel(work.request_kind)}<input type="email" autoComplete="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><button type="button" className="primary-button" disabled={busy || !validEmail(audience)} onClick={() => void run(() => sendVendorWork(work.relationship_id, work.id, { expected_version: work.version, vendor_audience: audience.trim(), invitation_ttl_minutes: invitationTTLMinutes }))}>{busy ? "Sending…" : requestSendLabel(work.request_kind)}</button></div>}
     {work.current_request_id && onOpenRequest && <button type="button" className="secondary-button" onClick={() => onOpenRequest(work.current_request_id!)}>Open collection request</button>}
     {(work.state === "RESPONSE_RECEIVED" || work.state === "UNDER_REVIEW") && responseState === "closed" && <button type="button" className="primary-button" disabled={!work.current_request_id} onClick={() => void openResponse()}>Review response</button>}
     {responseState === "loading" && <p aria-live="polite" aria-busy="true">Loading the submitted response…</p>}
@@ -338,7 +344,7 @@ function VendorWorkCard({ work, form, relationship, captureURL, onOpenRequest, o
     {work.state === "UNDER_REVIEW" && responseState === "ready" && acceptanceBlocked && <p className="inline-notice">Acceptance is unavailable while a submitted document is pending inspection, quarantined or unavailable. Wait for inspection or request a replacement.</p>}
     {work.state === "UNDER_REVIEW" && responseState === "ready" && !mode && <div className="vendor-work-buttons"><button type="button" className="primary-button" disabled={acceptanceBlocked} onClick={() => setMode("accept")}>Accept response</button><button type="button" className="secondary-button" onClick={() => setMode("changes")}>Request changes</button></div>}
     {mode === "accept" && <div className="vendor-work-decision"><label>Acceptance basis<textarea rows={3} maxLength={2000} value={rationale} onChange={(event) => setRationale(event.target.value)}/></label><div className="form-actions"><button type="button" className="secondary-button" onClick={() => setMode(null)}>Back</button><button type="button" className="primary-button" disabled={busy || !rationale.trim()} onClick={() => void run(() => acceptVendorWork(work.relationship_id, work.id, { expected_version: work.version, rationale: rationale.trim() }))}>{busy ? "Accepting…" : "Confirm acceptance"}</button></div></div>}
-    {mode === "changes" && <div className="vendor-work-decision"><label>What the vendor must change<textarea rows={3} maxLength={2000} value={message} onChange={(event) => setMessage(event.target.value)}/></label>{changeFields.length ? <fieldset><legend>Answers or documents to update</legend>{changeFields.map((field) => <label key={field.id}><input type="checkbox" checked={fieldIDs.includes(field.id)} onChange={(event) => setFieldIDs((current) => event.target.checked ? [...current, field.id] : current.filter((id) => id !== field.id))}/>{field.label}</label>)}</fieldset> : <p className="inline-notice">The form fields could not be loaded. Reload vendor requests before requesting changes.</p>}<div className="vendor-work-form-grid"><label>Vendor contact<input type="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><label>Revised due date<input type="date" min={minimumDueDate()} value={dueDate} onChange={(event) => setDueDate(event.target.value)}/></label></div><div className="form-actions"><button type="button" className="secondary-button" onClick={() => setMode(null)}>Back</button><button type="button" className="primary-button" disabled={busy || !message.trim() || !fieldIDs.length || !validEmail(audience) || !dueDate} onClick={() => void run(() => requestVendorWorkChanges(work.relationship_id, work.id, { expected_version: work.version, message: message.trim(), field_ids: fieldIDs, vendor_audience: audience.trim(), due_at: endOfDayUTC(dueDate), invitation_ttl_minutes: invitationTTLMinutes }))}>{busy ? "Sending changes…" : "Send change request"}</button></div></div>}
+    {mode === "changes" && <div className="vendor-work-decision"><label>{changeInstructionLabel(work.request_kind)}<textarea rows={3} maxLength={2000} value={message} onChange={(event) => setMessage(event.target.value)}/></label>{changeFields.length ? <fieldset><legend>Answers or documents to update</legend>{changeFields.map((field) => <label key={field.id}><input type="checkbox" checked={fieldIDs.includes(field.id)} onChange={(event) => setFieldIDs((current) => event.target.checked ? [...current, field.id] : current.filter((id) => id !== field.id))}/>{field.label}</label>)}</fieldset> : <p className="inline-notice">The form fields could not be loaded. Reload vendor requests before requesting changes.</p>}<div className="vendor-work-form-grid"><label>{requestRecipientLabel(work.request_kind)}<input type="email" value={audience} onChange={(event) => setAudience(event.target.value)}/></label><label>Revised due date<input type="date" min={minimumDueDate()} value={dueDate} onChange={(event) => setDueDate(event.target.value)}/></label></div><div className="form-actions"><button type="button" className="secondary-button" onClick={() => setMode(null)}>Back</button><button type="button" className="primary-button" disabled={busy || !message.trim() || !fieldIDs.length || !validEmail(audience) || !dueDate} onClick={() => void run(() => requestVendorWorkChanges(work.relationship_id, work.id, { expected_version: work.version, message: message.trim(), field_ids: fieldIDs, vendor_audience: audience.trim(), due_at: endOfDayUTC(dueDate), invitation_ttl_minutes: invitationTTLMinutes }))}>{busy ? "Sending changes…" : "Send change request"}</button></div></div>}
     {mode === "cancel" && <div className="vendor-work-decision"><label>Cancellation reason<textarea rows={3} maxLength={1000} value={rationale} onChange={(event) => setRationale(event.target.value)}/></label><div className="form-actions"><button type="button" className="secondary-button" onClick={() => setMode(null)}>Back</button><button type="button" className="primary-button" disabled={busy || !rationale.trim()} onClick={() => void run(() => cancelVendorWork(work.relationship_id, work.id, { expected_version: work.version, reason: rationale.trim() }))}>{busy ? "Cancelling…" : "Cancel request"}</button></div></div>}
     {work.state === "ACCEPTED" && work.review_rationale && <p className="vendor-work-outcome"><strong>Acceptance basis</strong>{work.review_rationale}</p>}
     {work.state === "CANCELLED" && work.cancellation_reason && <p className="vendor-work-outcome"><strong>Cancellation reason</strong>{work.cancellation_reason}</p>}
@@ -348,29 +354,31 @@ function VendorWorkCard({ work, form, relationship, captureURL, onOpenRequest, o
 }
 
 function VendorWorkResponseReview({ view }: { view: VendorWorkResponseView }) {
-  return <section className="vendor-work-response" aria-label="Vendor response">
-    <div className="vendor-work-response-heading"><div><h5>Vendor response</h5><p>Submitted {formatDateTime(view.response.submitted_at)} · Form version {view.request.form_template_version}</p></div><span>{view.answers.filter((answer) => answer.visibility === "VISIBLE" && answer.value).length} of {view.answers.filter((answer) => answer.visibility === "VISIBLE").length} visible fields answered</span></div>
-    <div className="vendor-work-response-group"><h6>Submitted answers</h6>{view.answers.length ? <dl className="vendor-work-answer-list">{view.answers.map((answer) => <VendorWorkAnswer key={answer.field_id} answer={answer}/>)}</dl> : <p>No answer fields were included in this submitted response.</p>}</div>
+  const addressVerification = view.work.request_kind === "ADDRESS_VERIFICATION";
+  const responseLabel = addressVerification ? "Staff confirmation" : "Vendor response";
+  return <section className="vendor-work-response" aria-label={responseLabel}>
+    <div className="vendor-work-response-heading"><div><h5>{responseLabel}</h5><p>Submitted {formatDateTime(view.response.submitted_at)} · Form version {view.request.form_template_version}</p></div><span>{view.answers.filter((answer) => answer.visibility === "VISIBLE" && answer.value).length} of {view.answers.filter((answer) => answer.visibility === "VISIBLE").length} visible fields answered</span></div>
+    <div className="vendor-work-response-group"><h6>Submitted answers</h6>{view.answers.length ? <dl className="vendor-work-answer-list">{view.answers.map((answer) => <VendorWorkAnswer key={answer.field_id} answer={answer} addressVerification={addressVerification}/>)}</dl> : <p>No answer fields were included in this submitted response.</p>}</div>
     <div className="vendor-work-response-group"><h6>Supporting documents</h6>{view.documents.length ? <div className="vendor-work-documents">{view.documents.map((document) => <VendorWorkDocument key={document.artifact_id} view={view} document={document}/>)}</div> : <p>No supporting documents were submitted with this response.</p>}</div>
   </section>;
 }
 
-function VendorWorkAnswer({ answer }: { answer: VendorWorkResponseView["answers"][number] }) {
+function VendorWorkAnswer({ answer, addressVerification }: { answer: VendorWorkResponseView["answers"][number]; addressVerification: boolean }) {
   const conditional = answer.visibility === "CONDITIONALLY_OMITTED";
   const missing = answer.required && !answer.value;
   const sourceValue = answer.provenance?.source_value?.text;
   return <div role="group" aria-label={`Response: ${answer.label}`}>
     <dt>{answer.label}{answer.required ? " · Required" : ""}</dt>
-    <dd className={conditional || missing ? "vendor-work-answer-limitation" : undefined}>{conditional ? "Not requested because its condition was not met" : missing ? "Required response missing" : `Vendor response: ${formatResponseAnswer(answer.value)}`}</dd>
+    <dd className={conditional || missing ? "vendor-work-answer-limitation" : undefined}>{conditional ? "Not requested because its condition was not met" : missing ? "Required response missing" : `${addressVerification ? "Staff response" : "Vendor response"}: ${formatResponseAnswer(answer.value)}`}</dd>
     {sourceValue && <dd>Source value: {sourceValue}</dd>}
-    {answer.provenance && <dd className="vendor-work-provenance">{responseProvenanceLabel(answer.provenance)}</dd>}
+    {answer.provenance && <dd className="vendor-work-provenance">{responseProvenanceLabel(answer.provenance, addressVerification)}</dd>}
     {answer.provenance?.validations?.map((validation, index) => <dd className="vendor-work-validation" key={`${answer.field_id}-validation-${index}`}>{responseValidationLabel(validation)}</dd>)}
   </div>;
 }
 
 function VendorWorkDocument({ view, document }: { view: VendorWorkResponseView; document: VendorWorkResponseView["documents"][number] }) {
   const available = document.artifact_status === "AVAILABLE";
-  const openURL = available ? vendorWorkDocumentURL(view.work.relationship_id, view.work.id, view.request.request_id, document.artifact_id) : "";
+  const openURL = available ? vendorWorkDocumentURL(view.work.relationship_id, view.work.id, document.request_id || view.request.request_id, document.artifact_id) : "";
   return <article className="vendor-work-document" aria-label={document.file_name}>
     <div><strong>{document.file_name}</strong><span>{documentTypeLabel(document.document_type)} · {formatBytes(document.size_bytes)}</span><span>{artifactStateLabel(document.artifact_status)} · {evidenceClassLabel(document.evidence_class)}</span>{!available && <small>{artifactRecovery(document.artifact_status)}</small>}</div>
     {openURL && <button type="button" className="secondary-button" onClick={() => window.open(openURL, "_blank", "noopener,noreferrer")}>Open document</button>}
@@ -393,13 +401,35 @@ function formatDate(value: string) { const date = new Date(value); return Number
 function formatDateTime(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "at an unavailable time" : date.toLocaleString(); }
 function formatBytes(value: number) { if (!Number.isFinite(value) || value < 0) return "Size unavailable"; if (value < 1024) return `${value} bytes`; if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`; return `${(value / (1024 * 1024)).toFixed(1)} MB`; }
 function formatResponseAnswer(value?: VendorWorkResponseView["answers"][number]["value"]) { if (!value) return "No answer submitted"; if (value.text?.trim()) return value.text; if (value.values?.length) return value.values.join(", "); if (value.document) return value.document.reference || documentTypeLabel(value.document.document_type); if (value.artifact_ids?.length) return `${value.artifact_ids.length} ${value.artifact_ids.length === 1 ? "file" : "files"} submitted`; return "No answer submitted"; }
-function responseProvenanceLabel(provenance: NonNullable<VendorWorkResponseView["answers"][number]["provenance"]>) { const observed = provenance.source_receipt?.observed_at ? formatDate(provenance.source_receipt.observed_at) : ""; if (provenance.origin === "SOURCE_PREFILLED") return `Prefilled from ${provenance.source_receipt?.source_id || provenance.source || "a connected source"}${observed ? ` · Observed ${observed}` : ""}`; if (provenance.origin === "RESPONDENT_CORRECTED") return `Updated by the vendor${observed ? ` · Source value observed ${observed}` : ""}`; if (provenance.origin === "RESPONDENT_ENTERED") return "Entered by the vendor"; return observed ? `Answer source recorded · Observed ${observed}` : "Answer source recorded"; }
+function responseProvenanceLabel(provenance: NonNullable<VendorWorkResponseView["answers"][number]["provenance"]>, addressVerification: boolean) { const observed = provenance.source_receipt?.observed_at ? formatDate(provenance.source_receipt.observed_at) : ""; if (provenance.origin === "SOURCE_PREFILLED") return `Prefilled from ${provenance.source_receipt?.source_id || provenance.source || "a connected source"}${observed ? ` · Observed ${observed}` : ""}`; if (provenance.origin === "RESPONDENT_CORRECTED") return `Updated by ${addressVerification ? "the assigned staff member" : "the vendor"}${observed ? ` · Source value observed ${observed}` : ""}`; if (provenance.origin === "RESPONDENT_ENTERED") return `Entered by ${addressVerification ? "the assigned staff member" : "the vendor"}`; return observed ? `Answer source recorded · Observed ${observed}` : "Answer source recorded"; }
 function responseValidationLabel(validation: NonNullable<NonNullable<VendorWorkResponseView["answers"][number]["provenance"]>["validations"]>[number]) { const state = validation.state ?? "UNKNOWN"; const label = state === "CURRENT" ? "Validation current" : state === "STALE" ? "Validation out of date" : state === "UNAVAILABLE" ? "Validation source unavailable" : state === "NOT_FOUND" ? "Source did not confirm this value" : `Validation result: ${documentTypeLabel(state)}`; return [label, validation.binding_name || validation.source_id, validation.receipt?.observed_at ? `Checked ${formatDate(validation.receipt.observed_at)}` : ""].filter(Boolean).join(" · "); }
 function documentTypeLabel(value: string) { return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
 function artifactStateLabel(value: string) { if (value === "AVAILABLE") return "Available"; if (value === "QUARANTINED") return "Quarantined"; if (value === "STORED_UNSCANNED") return "Security scan pending"; if (value === "DELETED") return "Unavailable"; return documentTypeLabel(value); }
-function evidenceClassLabel(value: string) { if (value === "VENDOR_SUPPLIED") return "Vendor supplied"; if (value === "BANK_VALIDATED") return "Bank validated"; if (value === "OFFICIAL_SOURCE") return "Official source"; return documentTypeLabel(value); }
+function evidenceClassLabel(value: string) { if (value === "VENDOR_SUPPLIED") return "Vendor supplied"; if (value === "STAFF_SUPPLIED") return "Assigned staff supplied"; if (value === "BANK_VALIDATED") return "Bank validated"; if (value === "OFFICIAL_SOURCE") return "Official source"; return documentTypeLabel(value); }
 function artifactRecovery(value: string) { if (value === "QUARANTINED") return "This document is quarantined. Request a clean replacement before review."; if (value === "STORED_UNSCANNED") return "The security scan is pending. Open will be available after the document passes inspection."; if (value === "DELETED") return "This document is unavailable. Request a replacement before continuing."; return "This document is not available to open. Reload the response or request a replacement."; }
 function presentationLabel(value: CapturePresentationMode) { if (value === "WIZARD") return "Wizard"; if (value === "CLASSIC") return "Classic"; return "Automatic"; }
-function workStateLabel(value: VendorWorkRequest["state"]) { return ({ PREPARING: "Ready to send", AWAITING_VENDOR: "Waiting for vendor", RESPONSE_RECEIVED: "Response received", UNDER_REVIEW: "Under review", CHANGES_REQUESTED: "Changes requested", ACCEPTED: "Accepted", CANCELLED: "Cancelled" } as const)[value]; }
+function formMatchesRequestKind(form: FormTemplate, kind: VendorWorkRequestKind) {
+  if (kind === "ADDRESS_VERIFICATION") return form.code === "VENDOR-ADDRESS-VERIFICATION";
+  if (kind === "CERTIFICATION_REFRESH") return form.code === "VENDOR-CERTIFICATION-REFRESH";
+  return form.code !== "VENDOR-ADDRESS-VERIFICATION" && form.code !== "VENDOR-CERTIFICATION-REFRESH";
+}
+function requestRecipientLabel(kind: VendorWorkRequestKind | undefined) { return kind === "ADDRESS_VERIFICATION" ? "Address verification staff email" : kind === "CERTIFICATION_REFRESH" ? "Vendor contact email" : "Vendor contact"; }
+function changeInstructionLabel(kind: VendorWorkRequestKind | undefined) { return kind === "ADDRESS_VERIFICATION" ? "What the assigned staff member must change" : "What the vendor must change"; }
+function requestSendLabel(kind: VendorWorkRequestKind | undefined) { return kind === "ADDRESS_VERIFICATION" ? "Send address check" : kind === "CERTIFICATION_REFRESH" ? "Send certification request" : "Prepare and send request"; }
+function workStateLabel(work: VendorWorkRequest) {
+  if (work.state === "CHANGES_REQUESTED") return "Changes requested";
+  if (work.state === "ACCEPTED" && work.request_kind !== "GENERAL") return "Evidence accepted";
+  if (work.request_kind === "ADDRESS_VERIFICATION") {
+    if (work.state === "AWAITING_VENDOR") return "Address verification pending";
+    if (work.state === "RESPONSE_RECEIVED") return "Staff confirmation received";
+    if (work.state === "UNDER_REVIEW") return "Address evidence under review";
+  }
+  if (work.request_kind === "CERTIFICATION_REFRESH") {
+    if (work.state === "AWAITING_VENDOR") return "Certification evidence pending";
+    if (work.state === "RESPONSE_RECEIVED") return "Certification evidence received";
+    if (work.state === "UNDER_REVIEW") return "Certification evidence under review";
+  }
+  return ({ PREPARING: "Ready to send", AWAITING_VENDOR: "Waiting for vendor", RESPONSE_RECEIVED: "Response received", UNDER_REVIEW: "Under review", CHANGES_REQUESTED: "Changes requested", ACCEPTED: "Accepted", CANCELLED: "Cancelled" } as const)[work.state];
+}
 function deliveryNotice(outcome: VendorWorkSendOutcome) { return outcome.state === "DELIVERED" ? "Vendor request sent." : outcome.state === "LINK_CREATED_EMAIL_NOT_SENT" ? "The secure link is ready, but email delivery was not confirmed. Copy the link or retry delivery." : outcome.recovery || "The request is saved. Retry delivery when the service is available."; }
 function prepareError(error: unknown) { const kind = apiErrorKind(error); if (kind === "conflict") return "This vendor relationship or form changed. Refresh this section before trying again."; if (kind === "forbidden" || kind === "unauthorized") return "Your current access does not allow this vendor request to be prepared."; if (kind === "validation") return "Check the vendor, form, contact and due date before trying again."; return "The vendor request could not be prepared. Your entries remain on this screen."; }

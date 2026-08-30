@@ -30,6 +30,10 @@ Vendor refresh requests may show a current bank-held value and ask the recipient
 
 Communications use legal-entity profiles and governed message revisions. The rich-text editor supports headings, emphasis, lists, links and protected variables for recipient, form, deadline, expiry, support contact and secure route. Profiles can reference an inspected logo asset. Preview, impact, test send, maker-checker activation, effective dating, retirement and rollback are available from Forms. Delivery is outbox-backed and stores redacted delivery receipts, never link tokens or message bodies in logs.
 
+Vendor registration, staff address verification and vendor certification refresh use the same protected presentation boundary. Each email has one secure action, an HTTPS fallback route, the task deadline and route expiry, and no remote image or tracking content. Address-verification links authorize only the assigned staff response; they do not transfer Matter ownership, review or sign-off. Certification submission proves receipt of the supplied ISO 27001 or PCI DSS documents, not bank acceptance.
+
+The active reference contracts are `VENDOR-ADDRESS-VERIFICATION` and `VENDOR-CERTIFICATION-REFRESH`. Address verification records the result, method, check date, source, PDF evidence and staff attestation. Certification refresh records applicability separately for ISO 27001 and PCI DSS and requests the corresponding current PDF only when applicable. A bank reviewer accepts the evidence with rationale or requests specific changes. Matter outcome verification and closure remain separate commands under the current authority route.
+
 ## Boundaries and release evidence
 
 - A vendor assessment created from the Vendors workspace remains assessment-scoped; a generic distribution cannot impersonate that origin or silently advance its review.

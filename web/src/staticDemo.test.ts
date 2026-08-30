@@ -568,7 +568,7 @@ describe("static stakeholder demo transport", () => {
     const ready = await staticDemoRequest<{ assessment: { id: string; version: number } }>("/api/v1/vendors/vendor-relationship-payments/assessments/current");
     const partial = await staticDemoRequest<{ state: string; capture_url?: string; delivery: { status: string } }>(`/api/v1/vendor-assessments/${ready.assessment.id}/send-request`, { method: "POST", body: JSON.stringify({ expected_version: ready.assessment.version, audience: "security@acme.example", deadline: "2099-09-20T23:59:59Z", invitation_ttl_minutes: 1440 }) });
     expect(partial).toMatchObject({ state: "LINK_CREATED_EMAIL_NOT_SENT", delivery: { status: "FAILED" } });
-    expect(partial.capture_url).toContain("capture_invite=");
+    expect(partial.capture_url).toContain("#form_access=");
   });
 
   it("provides a vendor relationship with no active form for governed setup review", async () => {

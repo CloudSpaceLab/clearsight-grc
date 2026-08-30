@@ -105,13 +105,21 @@ describe("ExternalCaptureApp", () => {
   });
 
   it("consumes the invitation without leaving it in browser history or changing unrelated URL state", () => {
-    window.history.replaceState({ returnTo: "request" }, "", "/capture?fixture=external&capture_invite=secret-token&mode=compact#response");
+    window.history.replaceState({ returnTo: "request" }, "", "/capture?fixture=external&mode=compact#view=response&form_access=secret-token");
 
     expect(consumeCaptureInvitation(window)).toBe("secret-token");
     expect(window.location.pathname).toBe("/capture");
     expect(window.location.search).toBe("?fixture=external&mode=compact");
-    expect(window.location.hash).toBe("#response");
+    expect(window.location.hash).toBe("#view=response");
     expect(window.history.state).toEqual({ returnTo: "request" });
+  });
+
+  it("consumes legacy query invitations while preserving unrelated URL state", () => {
+    window.history.replaceState({}, "", "/capture?fixture=external&capture_invite=legacy-token#response");
+
+    expect(consumeCaptureInvitation(window)).toBe("legacy-token");
+    expect(window.location.search).toBe("?fixture=external");
+    expect(window.location.hash).toBe("#response");
   });
 
   it("purges bearer material written by the legacy browser-session flow", () => {

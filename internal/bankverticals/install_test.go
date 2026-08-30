@@ -10,7 +10,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 )
 
-func TestInstallSampleCreatesGovernedVendorDueDiligenceFormIdempotently(t *testing.T) {
+func TestInstallSampleCreatesGovernedVendorFormsIdempotently(t *testing.T) {
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
 	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
 	evidenceService := newReferenceEvidenceService(now, "bank-ng")
@@ -36,26 +36,30 @@ func TestInstallSampleCreatesGovernedVendorDueDiligenceFormIdempotently(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(forms) != 1 {
-		t.Fatalf("active reusable forms=%d, want 1: %#v", len(forms), forms)
+	if len(forms) != 3 {
+		t.Fatalf("active reusable forms=%d, want 3: %#v", len(forms), forms)
 	}
-	form := forms[0]
-	if form.Code != "VENDOR-DUE-DILIGENCE" || form.Status != monitoring.LifecycleActive || !form.IsCurrent {
-		t.Fatalf("vendor due-diligence form was not activated: %#v", form)
+	want := map[string]int{"VENDOR-DUE-DILIGENCE": 8, "VENDOR-ADDRESS-VERIFICATION": 6, "VENDOR-CERTIFICATION-REFRESH": 5}
+	for _, form := range forms {
+		fieldCount, exists := want[form.Code]
+		if !exists || form.Status != monitoring.LifecycleActive || !form.IsCurrent || len(form.Fields) != fieldCount {
+			t.Fatalf("unexpected governed vendor form: %#v", form)
+		}
+		if form.CreatedBy != config.ActorID || form.SubmittedBy != config.ActorID || form.ApprovedBy != config.ReviewerPrincipalID {
+			t.Fatalf("maker-checker history was not preserved: %#v", form.Lifecycle)
+		}
+		delete(want, form.Code)
 	}
-	if form.CreatedBy != config.ActorID || form.SubmittedBy != config.ActorID || form.ApprovedBy != config.ReviewerPrincipalID {
-		t.Fatalf("maker-checker history was not preserved: %#v", form.Lifecycle)
-	}
-	if len(form.Sections) != 4 || len(form.Fields) != 8 {
-		t.Fatalf("vendor due-diligence contract sections=%d fields=%d", len(form.Sections), len(form.Fields))
+	if len(want) != 0 {
+		t.Fatalf("missing governed forms: %#v", want)
 	}
 
 	revisions, err := monitoringService.ListForms(context.Background(), actor, program.Program.ID, 100)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(revisions) != 3 {
-		t.Fatalf("initial form lifecycle revisions=%d, want 3", len(revisions))
+	if len(revisions) != 9 {
+		t.Fatalf("initial form lifecycle revisions=%d, want 9", len(revisions))
 	}
 	if _, err := service.InstallSample(context.Background(), config); err != nil {
 		t.Fatal(err)

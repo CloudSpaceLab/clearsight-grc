@@ -85,6 +85,43 @@ func TestInvitationDeliveryReturnsSuccessfulRedactedReceipt(t *testing.T) {
 	assertInvitationDeliveryValueRedacted(t, receipt, request.RecipientAddress, "opaque-token")
 }
 
+func TestInvitationDeliveryBuildsDefaultVendorRegistrationMessage(t *testing.T) {
+	t.Parallel()
+
+	var delivered InvitationDeliveryRequest
+	deliveredAt := time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC)
+	adapter := invitationDeliveryFunc(func(_ context.Context, request InvitationDeliveryRequest) (InvitationDeliveryReceipt, error) {
+		delivered = request
+		return InvitationDeliveryReceipt{Status: InvitationDelivered, DeliveredAt: &deliveredAt}, nil
+	})
+	dueAt := time.Date(2026, 9, 2, 16, 0, 0, 0, time.UTC)
+	expiresAt := time.Date(2026, 9, 1, 16, 0, 0, 0, time.UTC)
+	request := InvitationDeliveryRequest{
+		RecipientAddress: "security@vendor.example",
+		InvitationLink:   "https://capture.example/respond#form_access=opaque-token",
+		Message: InvitationMessageContext{
+			Kind: InvitationMessageVendorRegistration, BankName: "Example Bank", TaskTitle: "Acme vendor registration",
+			TaskSummary: "Complete the registration details requested by Example Bank.", RecipientRole: "Vendor contact",
+			DueAt: dueAt, ExpiresAt: expiresAt, SupportContact: "vendor-risk@example.test",
+		},
+	}
+	if _, err := NewInvitationDeliveryService(adapter).Deliver(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	if delivered.Subject != "Complete your vendor registration for Example Bank" {
+		t.Fatalf("subject = %q", delivered.Subject)
+	}
+	for _, required := range []string{"Complete your vendor registration", "Acme vendor registration", "Vendor contact", "2 Sep 2026", "1 Sep 2026", "data-primary-action=\"true\""} {
+		if !strings.Contains(delivered.HTML, required) {
+			t.Fatalf("HTML missing %q: %s", required, delivered.HTML)
+		}
+	}
+	if !strings.Contains(delivered.PlainText, request.InvitationLink) {
+		t.Fatal("plain text lost the protected invitation link")
+	}
+	assertInvitationDeliveryValueRedacted(t, request, "security@vendor.example", "opaque-token")
+}
+
 func TestInvitationDeliveryReturnsBoundedFailureReceipt(t *testing.T) {
 	t.Parallel()
 

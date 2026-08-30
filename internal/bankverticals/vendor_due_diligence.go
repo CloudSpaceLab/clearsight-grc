@@ -13,6 +13,10 @@ import (
 const vendorDueDiligenceFormCode = "VENDOR-DUE-DILIGENCE"
 
 func (s *Service) ensureVendorDueDiligenceForm(ctx context.Context, config SeedConfig, programID string) error {
+	return s.ensureGovernedVendorForm(ctx, config, vendorDueDiligenceFormInput(programID, config.LegalEntityID), "vendor due-diligence")
+}
+
+func (s *Service) ensureGovernedVendorForm(ctx context.Context, config SeedConfig, input monitoring.CreateFormInput, purpose string) error {
 	if s.monitoring == nil {
 		return nil
 	}
@@ -26,13 +30,13 @@ func (s *Service) ensureVendorDueDiligenceForm(ctx context.Context, config SeedC
 		return monitoring.ErrMakerChecker
 	}
 
-	forms, err := s.monitoring.ListForms(ctx, maker, programID, 100)
+	forms, err := s.monitoring.ListForms(ctx, maker, input.ProgramID, 100)
 	if err != nil {
 		return fmt.Errorf("list reference vendor due-diligence forms: %w", err)
 	}
 	var current monitoring.FormTemplate
 	for _, form := range forms {
-		if !strings.EqualFold(form.Code, vendorDueDiligenceFormCode) {
+		if !strings.EqualFold(form.Code, input.Code) {
 			continue
 		}
 		if current.ID == "" || form.Version > current.Version {
@@ -40,50 +44,50 @@ func (s *Service) ensureVendorDueDiligenceForm(ctx context.Context, config SeedC
 		}
 	}
 	if current.ID == "" {
-		current, err = s.monitoring.CreateForm(ctx, maker, vendorDueDiligenceFormInput(programID, config.LegalEntityID))
+		current, err = s.monitoring.CreateForm(ctx, maker, input)
 		if err != nil {
-			return fmt.Errorf("create reference vendor due-diligence form: %w", err)
+			return fmt.Errorf("create reference %s form: %w", purpose, err)
 		}
 	}
 
 	switch current.Status {
 	case monitoring.LifecycleActive:
 		if !current.IsCurrent {
-			return fmt.Errorf("reference vendor due-diligence form is active but not current")
+			return fmt.Errorf("reference %s form is active but not current", purpose)
 		}
 		return nil
 	case monitoring.LifecycleDraft:
 		current, err = s.monitoring.TransitionForm(ctx, maker, monitoring.TransitionInput{
-			ID: current.ID, ProgramID: programID, LegalEntityID: config.LegalEntityID,
+			ID: current.ID, ProgramID: input.ProgramID, LegalEntityID: config.LegalEntityID,
 			ExpectedVersion: current.Version, To: monitoring.LifecyclePendingApproval,
 		})
 		if err != nil {
-			return fmt.Errorf("submit reference vendor due-diligence form: %w", err)
+			return fmt.Errorf("submit reference %s form: %w", purpose, err)
 		}
 	case monitoring.LifecyclePendingApproval:
 		// Continue an interrupted installation with the configured independent checker.
 	case monitoring.LifecyclePaused:
 		current, err = s.monitoring.TransitionForm(ctx, checker, monitoring.TransitionInput{
-			ID: current.ID, ProgramID: programID, LegalEntityID: config.LegalEntityID,
+			ID: current.ID, ProgramID: input.ProgramID, LegalEntityID: config.LegalEntityID,
 			ExpectedVersion: current.Version, To: monitoring.LifecycleActive,
 		})
 		if err != nil {
-			return fmt.Errorf("reactivate reference vendor due-diligence form: %w", err)
+			return fmt.Errorf("reactivate reference %s form: %w", purpose, err)
 		}
 		return nil
 	default:
-		return fmt.Errorf("reference vendor due-diligence form cannot be repaired from %s", current.Status)
+		return fmt.Errorf("reference %s form cannot be repaired from %s", purpose, current.Status)
 	}
 
 	_, err = s.monitoring.TransitionForm(ctx, checker, monitoring.TransitionInput{
-		ID: current.ID, ProgramID: programID, LegalEntityID: config.LegalEntityID,
+		ID: current.ID, ProgramID: input.ProgramID, LegalEntityID: config.LegalEntityID,
 		ExpectedVersion: current.Version, To: monitoring.LifecycleActive,
 	})
 	if err != nil {
 		if errors.Is(err, monitoring.ErrMakerChecker) {
 			return err
 		}
-		return fmt.Errorf("activate reference vendor due-diligence form: %w", err)
+		return fmt.Errorf("activate reference %s form: %w", purpose, err)
 	}
 	return nil
 }

@@ -60,8 +60,12 @@ func TestRequestAssessmentClarificationCreatesNextRequestAndReturnsToCollection(
 	if len(evidenceStub.created) != 1 || evidenceStub.created[0].Origin.Version != 2 || len(evidenceStub.created[0].Fields) != 1 || evidenceStub.created[0].Fields[0].ID != "contact_email" || evidenceStub.created[0].Purpose != "Provide the current security contact." {
 		t.Fatalf("clarification request = %#v", evidenceStub.created)
 	}
-	if len(deliveryStub.requests) != 1 || deliveryStub.requests[0].RecipientAddress != "security@vendor.example" || !strings.Contains(deliveryStub.requests[0].InvitationLink, "capture_invite=one-time-token") {
+	if len(deliveryStub.requests) != 1 || deliveryStub.requests[0].RecipientAddress != "security@vendor.example" || !strings.Contains(deliveryStub.requests[0].InvitationLink, "#form_access=one-time-token") {
 		t.Fatalf("protected delivery = %#v", deliveryStub.requests)
+	}
+	message := deliveryStub.requests[0].Message
+	if message.Kind != evidence.InvitationMessageGeneric || message.RecipientRole != "Vendor contact" || !strings.Contains(message.TaskSummary, "Provide the current security contact.") || !message.DueAt.Equal(evidenceStub.created[0].Deadline) || message.ExpiresAt.IsZero() {
+		t.Fatalf("clarification message context = %#v", message)
 	}
 	if len(repo.assessmentEvents) < 2 || repo.assessmentEvents[len(repo.assessmentEvents)-2].Type != "AssessmentRequestPrepared" || repo.assessmentEvents[len(repo.assessmentEvents)-1].Type != "AssessmentRequestIssued" || repo.assessmentEvents[len(repo.assessmentEvents)-1].ActorPrincipalID != "verified-owner" {
 		t.Fatalf("clarification audit = %#v", repo.assessmentEvents)

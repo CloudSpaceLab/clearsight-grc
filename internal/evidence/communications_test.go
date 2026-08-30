@@ -65,6 +65,9 @@ func TestCommunicationRenderEscapesValuesAndRedactsProtectedContent(t *testing.T
 	if !strings.Contains(preview.PlainText, "https://forms.example.test/s/secret-token") {
 		t.Fatal("plain text rendering lost the secure action URL")
 	}
+	if strings.Count(preview.HTML, `data-primary-action="true"`) != 1 || !strings.Contains(preview.HTML, "display:none") || !strings.Contains(preview.HTML, "Example Bank") {
+		t.Fatalf("rendered HTML did not use the shared email presentation: %s", preview.HTML)
+	}
 }
 
 func TestCommunicationLogoRejectsRemoteOrUninspectedAssets(t *testing.T) {

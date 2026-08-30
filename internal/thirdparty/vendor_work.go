@@ -45,6 +45,14 @@ const (
 	VendorWorkDeliveryRetryRequired VendorWorkDeliveryState = "RETRY_REQUIRED"
 )
 
+type VendorWorkRequestKind string
+
+const (
+	VendorWorkGeneral              VendorWorkRequestKind = "GENERAL"
+	VendorWorkAddressVerification  VendorWorkRequestKind = "ADDRESS_VERIFICATION"
+	VendorWorkCertificationRefresh VendorWorkRequestKind = "CERTIFICATION_REFRESH"
+)
+
 type VendorWorkRequest struct {
 	ID                         string                        `json:"id"`
 	TenantID                   string                        `json:"tenant_id"`
@@ -53,6 +61,7 @@ type VendorWorkRequest struct {
 	RelationshipLinkID         string                        `json:"relationship_link_id"`
 	TargetType                 LinkTargetType                `json:"target_type"`
 	TargetID                   string                        `json:"target_id"`
+	RequestKind                VendorWorkRequestKind         `json:"request_kind"`
 	Purpose                    string                        `json:"purpose"`
 	Instructions               string                        `json:"instructions"`
 	OwnerPrincipalID           string                        `json:"owner_principal_id"`
@@ -117,6 +126,7 @@ type VendorWorkInvitationReservation struct {
 type PrepareVendorWorkInput struct {
 	RelationshipID      string                        `json:"relationship_id"`
 	RelationshipLinkID  string                        `json:"relationship_link_id"`
+	RequestKind         VendorWorkRequestKind         `json:"request_kind,omitempty"`
 	Purpose             string                        `json:"purpose"`
 	Instructions        string                        `json:"instructions"`
 	FormTemplateID      string                        `json:"form_template_id"`
@@ -225,6 +235,7 @@ type VendorWorkRepository interface {
 	TransitionVendorWork(context.Context, Scope, string, int64, VendorWorkState, string, string, time.Time) (VendorWorkRequest, error)
 	RecordVendorWorkChanges(context.Context, Scope, string, int64, VendorWorkCaptureLink, string, string, time.Time, time.Time) (VendorWorkRequest, error)
 	ListVendorWork(context.Context, Scope, VendorWorkListInput) (VendorWorkPage, error)
+	ListVendorWorkCaptures(context.Context, Scope, string) ([]VendorWorkCaptureLink, error)
 	ResolveVendorWorkCapture(context.Context, string, evidence.RequestOrigin, string) (VendorWorkSubmissionTarget, error)
 	HasActiveVendorWork(context.Context, Scope, string) (bool, error)
 }
@@ -308,6 +319,11 @@ func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input Prep
 	input.RelationshipID, input.RelationshipLinkID = strings.TrimSpace(input.RelationshipID), strings.TrimSpace(input.RelationshipLinkID)
 	input.Purpose, input.Instructions = strings.TrimSpace(input.Purpose), strings.TrimSpace(input.Instructions)
 	input.FormTemplateID, input.VendorAudience = strings.TrimSpace(input.FormTemplateID), strings.TrimSpace(input.VendorAudience)
+	requestKind, err := normalizeVendorWorkRequestKind(input.RequestKind)
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	input.RequestKind = requestKind
 	if input.Presentation == "" {
 		input.Presentation = formcontract.PresentationAutomatic
 	}
@@ -354,9 +370,12 @@ func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input Prep
 	if form.Status != monitoring.LifecycleActive || !form.IsCurrent {
 		return VendorWorkRequest{}, monitoring.ErrInactive
 	}
+	if !vendorWorkFormMatchesRequestKind(form.Code, input.RequestKind) {
+		return VendorWorkRequest{}, ErrInvalid
+	}
 	current, err := s.repo.FindActiveVendorWork(ctx, scope, link.ID)
 	if err == nil {
-		if current.RelationshipID != input.RelationshipID || current.Purpose != input.Purpose || current.Instructions != input.Instructions || current.FormTemplateID != form.ID || current.FormTemplateVersion != form.Version || current.Presentation != input.Presentation || !current.DueAt.Equal(input.DueAt.UTC()) {
+		if current.RelationshipID != input.RelationshipID || current.RequestKind != input.RequestKind || current.Purpose != input.Purpose || current.Instructions != input.Instructions || current.FormTemplateID != form.ID || current.FormTemplateVersion != form.Version || current.Presentation != input.Presentation || !current.DueAt.Equal(input.DueAt.UTC()) {
 			return VendorWorkRequest{}, ErrVersionConflict
 		}
 		if current.CurrentRequestID != "" {
@@ -375,13 +394,13 @@ func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input Prep
 	now := s.now().UTC()
 	work, err := s.repo.CreateVendorWork(ctx, VendorWorkRequest{
 		ID: workID, TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, RelationshipID: input.RelationshipID, RelationshipLinkID: link.ID,
-		TargetType: link.TargetType, TargetID: link.TargetID, Purpose: input.Purpose, Instructions: input.Instructions,
+		TargetType: link.TargetType, TargetID: link.TargetID, RequestKind: input.RequestKind, Purpose: input.Purpose, Instructions: input.Instructions,
 		OwnerPrincipalID: actor.PrincipalID, FormTemplateID: form.ID, FormTemplateVersion: form.Version, Presentation: input.Presentation,
 		State: VendorWorkPreparing, DeliveryState: VendorWorkDeliveryNotSent, DueAt: input.DueAt.UTC(), Version: 1, CreatedAt: now, UpdatedAt: now,
 	})
 	if err != nil {
 		stored, readErr := s.repo.FindActiveVendorWork(ctx, scope, link.ID)
-		if readErr != nil || stored.RelationshipID != input.RelationshipID || stored.Purpose != input.Purpose || stored.Instructions != input.Instructions || stored.FormTemplateID != form.ID || stored.FormTemplateVersion != form.Version || stored.Presentation != input.Presentation || !stored.DueAt.Equal(input.DueAt.UTC()) {
+		if readErr != nil || stored.RelationshipID != input.RelationshipID || stored.RequestKind != input.RequestKind || stored.Purpose != input.Purpose || stored.Instructions != input.Instructions || stored.FormTemplateID != form.ID || stored.FormTemplateVersion != form.Version || stored.Presentation != input.Presentation || !stored.DueAt.Equal(input.DueAt.UTC()) {
 			return VendorWorkRequest{}, err
 		}
 		work = stored
@@ -452,9 +471,13 @@ func (s *VendorWorkService) ensureCaptureRequest(ctx context.Context, actor Acto
 				knownFacts["Service"] = serviceName
 			}
 		}
+		audienceType := "VENDOR"
+		if work.RequestKind == VendorWorkAddressVerification {
+			audienceType = "EXTERNAL"
+		}
 		request, err = s.evidence.CreateRequest(evidence.WithRequestOriginAuthority(ctx, VendorWorkOrigin), evidence.CreateRequestInput{
 			TenantID: work.TenantID, LegalEntityID: work.LegalEntityID, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: work.RelationshipID,
-			Title: form.Name, Purpose: work.Purpose, WhyYou: instructions, Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
+			Title: form.Name, Purpose: work.Purpose, WhyYou: instructions, Sensitivity: "CONFIDENTIAL", AudienceType: audienceType,
 			Recipient: evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience}, EstimatedMinutes: estimateAssessmentMinutes(len(fields)), Deadline: dueAt,
 			KnownFacts: knownFacts, Presentation: presentation, Sections: form.Sections, Fields: fields,
 			FormTemplateID: form.ID, FormTemplateVersion: form.Version, Origin: origin, CreatedBy: actor.PrincipalID,
@@ -545,7 +568,10 @@ func (s *VendorWorkService) sendCurrent(ctx context.Context, actor Actor, work V
 			return VendorWorkSendOutcome{Work: reserved, State: VendorWorkDeliveryRetryRequired, Recovery: recovery}, nil
 		}
 	}
-	receipt, deliveryErr := s.delivery.Deliver(ctx, evidence.InvitationDeliveryRequest{RecipientAddress: audience, InvitationLink: linkURL})
+	receipt, deliveryErr := s.delivery.Deliver(ctx, evidence.InvitationDeliveryRequest{
+		RecipientAddress: audience, InvitationLink: linkURL,
+		Message: vendorWorkInvitationMessage(work, issued),
+	})
 	if deliveryErr != nil || receipt.Status != evidence.InvitationDelivered {
 		issued.Token = ""
 		return VendorWorkSendOutcome{Work: ready, Invitation: &issued, Delivery: &receipt, State: VendorWorkDeliveryLinkAvailable, CaptureURL: linkURL, Recovery: recovery}, nil
@@ -562,6 +588,45 @@ func (s *VendorWorkService) sendCurrent(ctx context.Context, actor Actor, work V
 	}
 	issued.Token = ""
 	return VendorWorkSendOutcome{Work: delivered, Invitation: &issued, Delivery: &receipt, State: VendorWorkDeliveryDelivered}, nil
+}
+
+func normalizeVendorWorkRequestKind(kind VendorWorkRequestKind) (VendorWorkRequestKind, error) {
+	kind = VendorWorkRequestKind(strings.ToUpper(strings.TrimSpace(string(kind))))
+	if kind == "" {
+		kind = VendorWorkGeneral
+	}
+	switch kind {
+	case VendorWorkGeneral, VendorWorkAddressVerification, VendorWorkCertificationRefresh:
+		return kind, nil
+	default:
+		return "", ErrInvalid
+	}
+}
+
+func vendorWorkFormMatchesRequestKind(code string, kind VendorWorkRequestKind) bool {
+	code = strings.TrimSpace(code)
+	switch kind {
+	case VendorWorkAddressVerification:
+		return code == "VENDOR-ADDRESS-VERIFICATION"
+	case VendorWorkCertificationRefresh:
+		return code == "VENDOR-CERTIFICATION-REFRESH"
+	default:
+		return code != "VENDOR-ADDRESS-VERIFICATION" && code != "VENDOR-CERTIFICATION-REFRESH"
+	}
+}
+
+func vendorWorkInvitationMessage(work VendorWorkRequest, issued evidence.IssuedInvitation) evidence.InvitationMessageContext {
+	kind, role := evidence.InvitationMessageGeneric, "Vendor contact"
+	switch work.RequestKind {
+	case VendorWorkAddressVerification:
+		kind, role = evidence.InvitationMessageAddressVerification, "Address verification staff contact"
+	case VendorWorkCertificationRefresh:
+		kind = evidence.InvitationMessageCertificationRefresh
+	}
+	return evidence.InvitationMessageContext{
+		Kind: kind, TaskTitle: work.Purpose, TaskSummary: work.Instructions, RecipientRole: role,
+		DueAt: work.DueAt, ExpiresAt: issued.ExpiresAt,
+	}
 }
 
 func (s *VendorWorkService) StartReview(ctx context.Context, actor Actor, workID string, input StartVendorWorkReviewInput) (VendorWorkRequest, error) {
@@ -663,21 +728,70 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 	if err != nil {
 		return VendorWorkSendOutcome{}, err
 	}
-	selected := map[string]bool{}
+	requested := map[string]bool{}
 	for _, fieldID := range input.FieldIDs {
-		selected[strings.TrimSpace(fieldID)] = true
+		requested[strings.TrimSpace(fieldID)] = true
 	}
-	fields := make([]monitoring.TemplateField, 0, len(input.FieldIDs))
+	byID := make(map[string]monitoring.TemplateField, len(form.Fields))
+	for _, field := range form.Fields {
+		byID[field.ID] = field
+	}
+	sectionsByID := make(map[string]formcontract.Section, len(form.Sections))
+	for _, section := range form.Sections {
+		sectionsByID[section.ID] = section
+	}
+	for fieldID := range requested {
+		if _, exists := byID[fieldID]; !exists || fieldID == "" {
+			return VendorWorkSendOutcome{}, ErrInvalid
+		}
+	}
+	if len(requested) == 0 {
+		return VendorWorkSendOutcome{}, ErrInvalid
+	}
+	selected := make(map[string]bool, len(requested))
+	var include func(string) error
+	include = func(fieldID string) error {
+		if selected[fieldID] {
+			return nil
+		}
+		field, exists := byID[fieldID]
+		if !exists {
+			return ErrInvalid
+		}
+		selected[fieldID] = true
+		if field.Condition != nil {
+			if err := include(field.Condition.FieldID); err != nil {
+				return err
+			}
+		}
+		if section, exists := sectionsByID[field.SectionID]; exists && section.Condition != nil {
+			return include(section.Condition.FieldID)
+		}
+		return nil
+	}
+	for fieldID := range requested {
+		if err := include(fieldID); err != nil {
+			return VendorWorkSendOutcome{}, err
+		}
+	}
+	fields := make([]monitoring.TemplateField, 0, len(selected))
 	for _, field := range form.Fields {
 		if selected[field.ID] {
 			fields = append(fields, field)
-			delete(selected, field.ID)
 		}
 	}
-	if len(selected) > 0 || len(fields) == 0 {
-		return VendorWorkSendOutcome{}, ErrInvalid
-	}
 	form.Fields = append([]monitoring.TemplateField(nil), fields...)
+	selectedSections := make(map[string]bool, len(fields))
+	for _, field := range fields {
+		selectedSections[field.SectionID] = true
+	}
+	sections := make([]formcontract.Section, 0, len(selectedSections))
+	for _, section := range form.Sections {
+		if selectedSections[section.ID] {
+			sections = append(sections, section)
+		}
+	}
+	form.Sections = sections
 	sequence := work.CurrentCaptureSequence + 1
 	request, err := s.ensureCaptureRequest(ctx, actor, work, form, input.VendorAudience, input.Message, input.DueAt.UTC(), sequence)
 	if err != nil {
@@ -783,19 +897,59 @@ func (s *VendorWorkService) Response(ctx context.Context, actor Actor, id string
 	if work.CurrentRequestID == "" || work.SubmissionID == "" {
 		return VendorWorkReviewView{}, ErrNotFound
 	}
-	request, err := s.evidence.GetRequestByOrigin(ctx, work.TenantID, evidence.RequestOrigin{Type: VendorWorkOrigin, ID: work.ID, Version: int64(work.CurrentCaptureSequence)})
-	if err != nil || request.ID != work.CurrentRequestID {
-		return VendorWorkReviewView{}, ErrNotFound
-	}
-	submission, err := s.evidence.GetSubmission(ctx, work.TenantID, work.SubmissionID)
-	if err != nil || submission.RequestID != request.ID {
-		return VendorWorkReviewView{}, ErrNotFound
-	}
-	contract, err := formcontract.Normalize(reviewContract(request))
+	captures, err := s.repo.ListVendorWorkCaptures(ctx, scopeFrom(actor), work.ID)
 	if err != nil {
 		return VendorWorkReviewView{}, err
 	}
-	visibleFields, err := formcontract.VisibleFields(contract, submission.Answers)
+	form, err := s.forms.ReusableFormRevision(ctx, work.TenantID, work.LegalEntityID, work.FormTemplateID, work.FormTemplateVersion)
+	if err != nil {
+		return VendorWorkReviewView{}, err
+	}
+	contract, err := formcontract.Normalize(formcontract.Contract{Presentation: form.Presentation, Sections: form.Sections, Fields: form.Fields})
+	if err != nil {
+		return VendorWorkReviewView{}, err
+	}
+	type answerSource struct {
+		requestID    string
+		submissionID string
+	}
+	answers := map[string]formcontract.AnswerValue{}
+	provenance := map[string]evidence.AnswerProvenance{}
+	sources := map[string]answerSource{}
+	var request evidence.Request
+	var submission evidence.Submission
+	for _, capture := range captures {
+		if capture.SubmissionID == "" {
+			continue
+		}
+		capturedRequest, readErr := s.evidence.GetRequestByOrigin(ctx, work.TenantID, evidence.RequestOrigin{Type: VendorWorkOrigin, ID: work.ID, Version: capture.OriginVersion})
+		if readErr != nil || capturedRequest.ID != capture.RequestID {
+			return VendorWorkReviewView{}, ErrNotFound
+		}
+		capturedSubmission, readErr := s.evidence.GetSubmission(ctx, work.TenantID, capture.SubmissionID)
+		if readErr != nil || capturedSubmission.RequestID != capturedRequest.ID {
+			return VendorWorkReviewView{}, ErrNotFound
+		}
+		for _, field := range capturedRequest.Fields {
+			delete(answers, field.ID)
+			delete(provenance, field.ID)
+			delete(sources, field.ID)
+		}
+		for fieldID, value := range capturedSubmission.Answers {
+			answers[fieldID] = value
+			sources[fieldID] = answerSource{requestID: capturedRequest.ID, submissionID: capturedSubmission.ID}
+		}
+		for fieldID, value := range capturedSubmission.AnswerProvenance {
+			provenance[fieldID] = value
+		}
+		if capturedRequest.ID == work.CurrentRequestID && capturedSubmission.ID == work.SubmissionID {
+			request, submission = capturedRequest, capturedSubmission
+		}
+	}
+	if request.ID == "" || submission.ID == "" {
+		return VendorWorkReviewView{}, ErrNotFound
+	}
+	visibleFields, err := formcontract.VisibleFields(contract, answers)
 	if err != nil {
 		return VendorWorkReviewView{}, err
 	}
@@ -808,12 +962,12 @@ func (s *VendorWorkService) Response(ctx context.Context, actor Actor, id string
 		answer := AssessmentReviewAnswer{FieldID: field.ID, Label: field.Label, Type: field.Type, Required: field.Required, Visibility: AssessmentAnswerConditionallyOmitted}
 		if _, ok := visible[field.ID]; ok {
 			answer.Visibility = AssessmentAnswerVisible
-			if value, exists := submission.Answers[field.ID]; exists {
+			if value, exists := answers[field.ID]; exists {
 				copy := value
 				answer.Value = &copy
 			}
-			if provenance, exists := submission.AnswerProvenance[field.ID]; exists {
-				copy := provenance
+			if value, exists := provenance[field.ID]; exists {
+				copy := value
 				answer.Provenance = &copy
 			}
 		}
@@ -821,12 +975,20 @@ func (s *VendorWorkService) Response(ctx context.Context, actor Actor, id string
 		if answer.Value == nil || !reviewArtifactField(field.Type) {
 			continue
 		}
+		source, exists := sources[field.ID]
+		if !exists {
+			return VendorWorkReviewView{}, ErrNotFound
+		}
 		for _, artifactID := range reviewArtifactIDs(*answer.Value) {
-			artifact, readErr := s.evidence.GetArtifact(ctx, work.TenantID, request.ID, artifactID)
-			if readErr != nil || artifact.SubmissionID != submission.ID {
+			artifact, readErr := s.evidence.GetArtifact(ctx, work.TenantID, source.requestID, artifactID)
+			if readErr != nil || artifact.SubmissionID != source.submissionID {
 				return VendorWorkReviewView{}, ErrNotFound
 			}
-			document := AssessmentReviewDocument{FieldID: field.ID, ArtifactID: artifact.ID, FileName: artifact.FileName, MediaType: artifact.MediaType, SizeBytes: artifact.SizeBytes, ArtifactStatus: artifact.Status, Status: "SUBMITTED", EvidenceClass: AssessmentEvidenceVendorSupplied}
+			evidenceClass := AssessmentEvidenceVendorSupplied
+			if work.RequestKind == VendorWorkAddressVerification {
+				evidenceClass = AssessmentEvidenceStaffSupplied
+			}
+			document := AssessmentReviewDocument{FieldID: field.ID, RequestID: source.requestID, ArtifactID: artifact.ID, FileName: artifact.FileName, MediaType: artifact.MediaType, SizeBytes: artifact.SizeBytes, ArtifactStatus: artifact.Status, Status: "SUBMITTED", EvidenceClass: evidenceClass}
 			if answer.Value.Document != nil {
 				document.DocumentType = answer.Value.Document.DocumentType
 				document.Reference = answer.Value.Document.Reference

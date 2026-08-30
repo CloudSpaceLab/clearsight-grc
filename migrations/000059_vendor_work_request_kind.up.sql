@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE third_party_work_requests
+    ADD COLUMN request_kind text NOT NULL DEFAULT 'GENERAL'
+    CHECK (request_kind IN ('GENERAL','ADDRESS_VERIFICATION','CERTIFICATION_REFRESH'));
+
+COMMIT;

@@ -140,7 +140,10 @@ func (s *AssessmentRequestService) RequestClarification(ctx context.Context, _ A
 		return clarificationPreparedOutcome(preparedAssessment, "Retry invitation creation for this clarification request."), nil
 	}
 	outcome := AssessmentClarificationOutcome{Assessment: finalized.Assessment, Invitation: &publicInvitation}
-	receipt, deliveryErr := s.delivery.Deliver(ctx, evidence.InvitationDeliveryRequest{RecipientAddress: audience, InvitationLink: linkURL})
+	receipt, deliveryErr := s.delivery.Deliver(ctx, evidence.InvitationDeliveryRequest{
+		RecipientAddress: audience, InvitationLink: linkURL,
+		Message: assessmentInvitationMessage(assessment, request, relationship, issued, false),
+	})
 	outcome.Delivery = &receipt
 	if deliveryErr != nil || receipt.Status != evidence.InvitationDelivered {
 		outcome.State, outcome.CaptureURL, outcome.Recovery = SendRequestLinkCreatedEmailNotSent, linkURL, "Copy the secure link or retry email delivery."

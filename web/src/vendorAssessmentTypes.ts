@@ -219,13 +219,14 @@ export type VendorAssessmentReviewCoverage = {
 
 export type VendorAssessmentDocument = {
   field_id: string;
+  request_id?: string;
   artifact_id: string;
   file_name: string;
   media_type: string;
   size_bytes: number;
   artifact_status: string;
   status?: "SUBMITTED" | "VALIDATED" | "REJECTED" | "EXPIRED" | string;
-  evidence_class: "VENDOR_SUPPLIED" | "BANK_VALIDATED" | "OFFICIAL_SOURCE" | string;
+  evidence_class: "VENDOR_SUPPLIED" | "STAFF_SUPPLIED" | "BANK_VALIDATED" | "OFFICIAL_SOURCE" | string;
   document_type: string;
   reference?: string;
   issued_by?: string;

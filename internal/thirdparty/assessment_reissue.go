@@ -96,7 +96,10 @@ func (s *AssessmentRequestService) ReissueRequest(ctx context.Context, _ Actor, 
 		return SendRequestOutcome{}, err
 	}
 	outcome := SendRequestOutcome{Assessment: updated, Request: request, Invitation: &issuedOutcome}
-	receipt, deliveryErr := s.delivery.Deliver(ctx, evidence.InvitationDeliveryRequest{RecipientAddress: audience, InvitationLink: linkURL})
+	receipt, deliveryErr := s.delivery.Deliver(ctx, evidence.InvitationDeliveryRequest{
+		RecipientAddress: audience, InvitationLink: linkURL,
+		Message: assessmentInvitationMessage(assessment, request, relationship, issued, assessment.ReviewKind == AssessmentReviewOnboarding && link.Purpose == AssessmentRequestInitial),
+	})
 	outcome.Delivery = &receipt
 	if deliveryErr != nil || receipt.Status != evidence.InvitationDelivered {
 		outcome.State = SendRequestLinkCreatedEmailNotSent

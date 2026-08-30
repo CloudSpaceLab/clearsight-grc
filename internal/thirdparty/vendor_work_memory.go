@@ -23,6 +23,11 @@ func NewMemoryVendorWorkRepository() *MemoryVendorWorkRepository {
 }
 
 func (r *MemoryVendorWorkRepository) CreateVendorWork(_ context.Context, value VendorWorkRequest) (VendorWorkRequest, error) {
+	requestKind, err := normalizeVendorWorkRequestKind(value.RequestKind)
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	value.RequestKind = requestKind
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if _, exists := r.work[value.ID]; exists {
@@ -337,6 +342,18 @@ func (r *MemoryVendorWorkRepository) ResolveVendorWorkCapture(_ context.Context,
 		}
 	}
 	return VendorWorkSubmissionTarget{}, ErrNotFound
+}
+
+func (r *MemoryVendorWorkRepository) ListVendorWorkCaptures(_ context.Context, scope Scope, id string) ([]VendorWorkCaptureLink, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	value, ok := r.work[id]
+	if !ok || value.TenantID != scope.TenantID || value.LegalEntityID != scope.LegalEntityID {
+		return nil, ErrNotFound
+	}
+	links := append([]VendorWorkCaptureLink(nil), r.captures[id]...)
+	sort.Slice(links, func(i, j int) bool { return links[i].Sequence < links[j].Sequence })
+	return links, nil
 }
 
 func (r *MemoryVendorWorkRepository) HasActiveVendorWork(_ context.Context, scope Scope, linkID string) (bool, error) {

@@ -3,7 +3,6 @@ package evidence
 import (
 	"context"
 	"errors"
-	"fmt"
 	"html"
 	"strings"
 	"time"
@@ -29,19 +28,36 @@ func (adapter *EmailOTPDelivery) DeliverDistributionOTP(ctx context.Context, inp
 	if adapter == nil || adapter.delivery == nil || strings.TrimSpace(input.Address) == "" || strings.TrimSpace(input.Code) == "" || input.ExpiresAt.IsZero() {
 		return ErrOTPDeliveryFailed
 	}
-	expiresAt := input.ExpiresAt.UTC().Format(time.RFC3339)
-	plain := fmt.Sprintf("Your ClearSight verification code is %s. It expires at %s. If you did not request this code, ignore this message.", input.Code, expiresAt)
-	markup := "<p>Your ClearSight verification code is <strong>" + html.EscapeString(input.Code) + "</strong>.</p><p>It expires at " + html.EscapeString(expiresAt) + ".</p><p>If you did not request this code, ignore this message.</p>"
+	presentation, err := renderOTPEmail(input.Code, input.ExpiresAt)
+	if err != nil {
+		return ErrOTPDeliveryFailed
+	}
 	receipt, err := adapter.delivery.DeliverGoverned(ctx, InvitationDeliveryRequest{
 		RecipientAddress: input.Address,
-		Subject:          "Your ClearSight verification code",
-		PlainText:        plain,
-		HTML:             markup,
+		Subject:          "Verify your email address",
+		PlainText:        presentation.PlainText,
+		HTML:             presentation.HTML,
 	})
 	if err != nil || receipt.Status != InvitationDelivered {
 		return ErrOTPDeliveryFailed
 	}
 	return nil
+}
+
+func renderOTPEmail(code string, expiresAt time.Time) (renderedEmailPresentation, error) {
+	code = strings.TrimSpace(code)
+	if code == "" || len(code) > 20 || strings.ContainsAny(code, "\r\n\x00") || expiresAt.IsZero() {
+		return renderedEmailPresentation{}, errEmailPresentationInvalid
+	}
+	expiry := expiresAt.UTC().Format("2 Jan 2006, 15:04 UTC")
+	return renderEmailPresentation(emailPresentationInput{
+		Preheader: "Use this one-time code to verify the invited email address.",
+		Heading:   "Verify your email address",
+		Intro:     "Enter this one-time code in the open ClearSight request. The code cannot approve or sign off bank work.",
+		BodyPlain: "Verification code: " + code + "\n\nIf you did not request this code, ignore this message and do not share it.",
+		BodyHTML:  `<p style="margin:18px 0;text-align:center;font-size:30px;line-height:1.2;font-weight:700;letter-spacing:.18em;color:#17212b;">` + html.EscapeString(code) + `</p><p style="margin:0 0 16px;">If you did not request this code, ignore this message and do not share it.</p>`,
+		Facts:     []emailFact{{Label: "Code expires", Value: expiry}},
+	})
 }
 
 var _ OTPDelivery = (*EmailOTPDelivery)(nil)

@@ -151,7 +151,7 @@ func TestSendAssessmentRequestPreparesExactOriginBeforeInvitation(t *testing.T) 
 	if created.KnownFacts["vendor_legal_name"] != relationship.Vendor.LegalName || created.KnownFacts["service_name"] != relationship.Relationship.ServiceName {
 		t.Fatalf("known relationship facts were not included: %#v", created.KnownFacts)
 	}
-	if outcome.State != SendRequestLinkCreatedEmailNotSent || outcome.Assessment.Status != AssessmentCollecting || outcome.Invitation == nil || !strings.Contains(outcome.CaptureURL, "capture_invite=one-time-token") {
+	if outcome.State != SendRequestLinkCreatedEmailNotSent || outcome.Assessment.Status != AssessmentCollecting || outcome.Invitation == nil || !strings.Contains(outcome.CaptureURL, "#form_access=one-time-token") {
 		t.Fatalf("unexpected send outcome: %#v", outcome)
 	}
 }
@@ -182,6 +182,31 @@ func TestSendAssessmentRequestSupportsPeriodicReviewForActiveRelationship(t *tes
 	})
 	if err != nil || outcome.Assessment.Status != AssessmentCollecting || outcome.Assessment.ReviewKind != AssessmentReviewPeriodic {
 		t.Fatalf("periodic request = (%#v, %v)", outcome, err)
+	}
+}
+
+func TestSendAssessmentRequestSuppliesVendorRegistrationMessageContext(t *testing.T) {
+	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
+	evidenceStub := &assessmentEvidenceStub{repo: repo, assessmentID: assessment.ID}
+	deliveryStub := &invitationDeliveryStub{}
+	service, err := NewAssessmentRequestService(assessmentService, repo, evidenceStub, assessmentFormReaderStub{form: activeAssessmentForm()}, evidence.NewInvitationDeliveryService(deliveryStub), "https://capture.example.test/respond", "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Date(2026, 9, 8, 10, 0, 0, 0, time.UTC)
+	if _, err := service.SendRequest(assessmentContext(), assessmentActor(), assessment.ID, SendAssessmentRequestInput{ExpectedVersion: assessment.Version, Audience: "security@vendor.example", Deadline: deadline, InvitationTTLMinutes: 60}); err != nil {
+		t.Fatal(err)
+	}
+	if len(deliveryStub.requests) != 1 {
+		t.Fatalf("delivery requests = %d", len(deliveryStub.requests))
+	}
+	message := deliveryStub.requests[0].Message
+	if message.Kind != evidence.InvitationMessageVendorRegistration || message.RecipientRole != "Vendor contact" || !message.DueAt.Equal(deadline) || !message.ExpiresAt.Equal(time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)) {
+		t.Fatalf("message context = %#v", message)
+	}
+	if message.TaskTitle == "" || !strings.Contains(message.TaskSummary, relationship.Vendor.LegalName) {
+		t.Fatalf("message did not identify the vendor task: %#v", message)
 	}
 }
 
@@ -394,7 +419,7 @@ func TestSendAssessmentRequestDeliversThroughProtectedBoundary(t *testing.T) {
 	if outcome.State != SendRequestDelivered || outcome.CaptureURL != "" || outcome.Invitation == nil || outcome.Invitation.Token != "" || len(adapter.requests) != 1 {
 		t.Fatalf("unexpected delivered outcome: %#v requests=%d", outcome, len(adapter.requests))
 	}
-	if adapter.requests[0].RecipientAddress != "security@vendor.example" || adapter.requests[0].InvitationLink != "https://capture.example.test/respond?capture_invite=one-time-token&source=bank" {
+	if adapter.requests[0].RecipientAddress != "security@vendor.example" || adapter.requests[0].InvitationLink != "https://capture.example.test/respond?source=bank#form_access=one-time-token" {
 		t.Fatalf("protected delivery received the wrong values: %#v", adapter.requests[0])
 	}
 }

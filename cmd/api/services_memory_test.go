@@ -25,7 +25,7 @@ func (r *apiReferenceEvidenceRepository) ResolveSubjectScope(_ context.Context, 
 	return evidence.SubjectScope{TenantID: tenant, LegalEntityID: "bank-ng", SubjectType: subjectType, SubjectID: subjectID}, nil
 }
 
-func TestConfigureReferenceVerticalsInstallsActiveVendorDueDiligenceForm(t *testing.T) {
+func TestConfigureReferenceVerticalsInstallsActiveVendorForms(t *testing.T) {
 	continuityService := continuity.NewService(continuity.NewMemoryRepository())
 	evidenceService := evidence.NewService(&apiReferenceEvidenceRepository{MemoryRepository: evidence.NewMemoryRepository(nil, nil)}, evidence.NewMemoryObjectStore())
 	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), evidenceService)
@@ -41,7 +41,17 @@ func TestConfigureReferenceVerticalsInstallsActiveVendorDueDiligenceForm(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(forms) != 1 || forms[0].Code != "VENDOR-DUE-DILIGENCE" || forms[0].Status != monitoring.LifecycleActive || !forms[0].IsCurrent {
-		t.Fatalf("demo vendor due-diligence form=%#v", forms)
+	want := map[string]bool{"VENDOR-DUE-DILIGENCE": true, "VENDOR-ADDRESS-VERIFICATION": true, "VENDOR-CERTIFICATION-REFRESH": true}
+	if len(forms) != len(want) {
+		t.Fatalf("demo vendor forms=%#v", forms)
+	}
+	for _, form := range forms {
+		if !want[form.Code] || form.Status != monitoring.LifecycleActive || !form.IsCurrent {
+			t.Fatalf("unexpected demo vendor form=%#v", form)
+		}
+		delete(want, form.Code)
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing demo vendor forms=%#v", want)
 	}
 }
