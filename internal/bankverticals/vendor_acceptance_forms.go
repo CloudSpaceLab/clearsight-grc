@@ -57,7 +57,7 @@ func vendorCertificationRefreshFormInput(programID, legalEntityID string) monito
 	maxFiles := 1
 	maxFileBytes := int64(25_000_000)
 	yesCondition := func(fieldID string) *formcontract.VisibilityCondition {
-		return &formcontract.VisibilityCondition{FieldID: fieldID, Operator: formcontract.ConditionEquals, Values: []string{"yes"}}
+		return &formcontract.VisibilityCondition{FieldID: fieldID, Operator: formcontract.ConditionEquals, Values: []string{"Yes"}}
 	}
 	return monitoring.CreateFormInput{
 		ProgramID: programID, LegalEntityID: legalEntityID,

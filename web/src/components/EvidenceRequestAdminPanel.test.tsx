@@ -27,11 +27,11 @@ it("issues an invitation from labelled recipient, purpose, and expiry controls a
     ttlMinutes: 1440,
   }));
   expect(screen.getByRole("status").textContent).toMatch(/shown once.*not saved/i);
-  expect(screen.getByDisplayValue(/capture_invite=one-time-invitation-token/)).toBeTruthy();
+  expect(screen.getByDisplayValue(/#form_access=one-time-invitation-token/)).toBeTruthy();
   expect(storageWrite).not.toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: "Hide invitation link" }));
-  expect(screen.queryByDisplayValue(/capture_invite=one-time-invitation-token/)).toBeNull();
+  expect(screen.queryByDisplayValue(/#form_access=one-time-invitation-token/)).toBeNull();
 });
 
 it("accepts the approved external address when only a masked recipient is stored", async () => {
@@ -54,7 +54,7 @@ it("clears clipboard notices when the one-time link is hidden", async () => {
     fireEvent.change(screen.getByRole("combobox", { name: "Recipient email or approved audience" }), { target: { value: "assurance@supplier.example" } });
     fireEvent.change(screen.getByRole("textbox", { name: "Invitation purpose" }), { target: { value: "Provide the requested evidence" } });
     fireEvent.click(screen.getByRole("button", { name: "Create invitation" }));
-    await screen.findByDisplayValue(/capture_invite=token/);
+    await screen.findByDisplayValue(/#form_access=token/);
 
     fireEvent.click(screen.getByRole("button", { name: "Copy invitation link" }));
     expect(await screen.findByText(/Invitation link copied/)).toBeTruthy();

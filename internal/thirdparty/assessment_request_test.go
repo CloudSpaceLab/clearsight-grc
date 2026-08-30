@@ -151,7 +151,7 @@ func TestSendAssessmentRequestPreparesExactOriginBeforeInvitation(t *testing.T) 
 	if created.KnownFacts["vendor_legal_name"] != relationship.Vendor.LegalName || created.KnownFacts["service_name"] != relationship.Relationship.ServiceName {
 		t.Fatalf("known relationship facts were not included: %#v", created.KnownFacts)
 	}
-	if outcome.State != SendRequestLinkCreatedEmailNotSent || outcome.Assessment.Status != AssessmentCollecting || outcome.Invitation == nil || !strings.Contains(outcome.CaptureURL, "capture_invite=one-time-token") {
+	if outcome.State != SendRequestLinkCreatedEmailNotSent || outcome.Assessment.Status != AssessmentCollecting || outcome.Invitation == nil || !strings.Contains(outcome.CaptureURL, "#form_access=one-time-token") {
 		t.Fatalf("unexpected send outcome: %#v", outcome)
 	}
 }
@@ -419,7 +419,7 @@ func TestSendAssessmentRequestDeliversThroughProtectedBoundary(t *testing.T) {
 	if outcome.State != SendRequestDelivered || outcome.CaptureURL != "" || outcome.Invitation == nil || outcome.Invitation.Token != "" || len(adapter.requests) != 1 {
 		t.Fatalf("unexpected delivered outcome: %#v requests=%d", outcome, len(adapter.requests))
 	}
-	if adapter.requests[0].RecipientAddress != "security@vendor.example" || adapter.requests[0].InvitationLink != "https://capture.example.test/respond?capture_invite=one-time-token&source=bank" {
+	if adapter.requests[0].RecipientAddress != "security@vendor.example" || adapter.requests[0].InvitationLink != "https://capture.example.test/respond?source=bank#form_access=one-time-token" {
 		t.Fatalf("protected delivery received the wrong values: %#v", adapter.requests[0])
 	}
 }

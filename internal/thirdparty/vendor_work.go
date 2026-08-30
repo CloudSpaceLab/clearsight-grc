@@ -369,6 +369,9 @@ func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input Prep
 	if form.Status != monitoring.LifecycleActive || !form.IsCurrent {
 		return VendorWorkRequest{}, monitoring.ErrInactive
 	}
+	if !vendorWorkFormMatchesRequestKind(form.Code, input.RequestKind) {
+		return VendorWorkRequest{}, ErrInvalid
+	}
 	current, err := s.repo.FindActiveVendorWork(ctx, scope, link.ID)
 	if err == nil {
 		if current.RelationshipID != input.RelationshipID || current.RequestKind != input.RequestKind || current.Purpose != input.Purpose || current.Instructions != input.Instructions || current.FormTemplateID != form.ID || current.FormTemplateVersion != form.Version || current.Presentation != input.Presentation || !current.DueAt.Equal(input.DueAt.UTC()) {
@@ -595,6 +598,18 @@ func normalizeVendorWorkRequestKind(kind VendorWorkRequestKind) (VendorWorkReque
 	}
 }
 
+func vendorWorkFormMatchesRequestKind(code string, kind VendorWorkRequestKind) bool {
+	code = strings.TrimSpace(code)
+	switch kind {
+	case VendorWorkAddressVerification:
+		return code == "VENDOR-ADDRESS-VERIFICATION"
+	case VendorWorkCertificationRefresh:
+		return code == "VENDOR-CERTIFICATION-REFRESH"
+	default:
+		return code != "VENDOR-ADDRESS-VERIFICATION" && code != "VENDOR-CERTIFICATION-REFRESH"
+	}
+}
+
 func vendorWorkInvitationMessage(work VendorWorkRequest, issued evidence.IssuedInvitation) evidence.InvitationMessageContext {
 	kind, role := evidence.InvitationMessageGeneric, "Vendor contact"
 	switch work.RequestKind {
@@ -708,19 +723,48 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 	if err != nil {
 		return VendorWorkSendOutcome{}, err
 	}
-	selected := map[string]bool{}
+	requested := map[string]bool{}
 	for _, fieldID := range input.FieldIDs {
-		selected[strings.TrimSpace(fieldID)] = true
+		requested[strings.TrimSpace(fieldID)] = true
 	}
-	fields := make([]monitoring.TemplateField, 0, len(input.FieldIDs))
+	byID := make(map[string]monitoring.TemplateField, len(form.Fields))
+	for _, field := range form.Fields {
+		byID[field.ID] = field
+	}
+	for fieldID := range requested {
+		if _, exists := byID[fieldID]; !exists || fieldID == "" {
+			return VendorWorkSendOutcome{}, ErrInvalid
+		}
+	}
+	if len(requested) == 0 {
+		return VendorWorkSendOutcome{}, ErrInvalid
+	}
+	selected := make(map[string]bool, len(requested))
+	var include func(string) error
+	include = func(fieldID string) error {
+		if selected[fieldID] {
+			return nil
+		}
+		field, exists := byID[fieldID]
+		if !exists {
+			return ErrInvalid
+		}
+		selected[fieldID] = true
+		if field.Condition != nil {
+			return include(field.Condition.FieldID)
+		}
+		return nil
+	}
+	for fieldID := range requested {
+		if err := include(fieldID); err != nil {
+			return VendorWorkSendOutcome{}, err
+		}
+	}
+	fields := make([]monitoring.TemplateField, 0, len(selected))
 	for _, field := range form.Fields {
 		if selected[field.ID] {
 			fields = append(fields, field)
-			delete(selected, field.ID)
 		}
-	}
-	if len(selected) > 0 || len(fields) == 0 {
-		return VendorWorkSendOutcome{}, ErrInvalid
 	}
 	form.Fields = append([]monitoring.TemplateField(nil), fields...)
 	sequence := work.CurrentCaptureSequence + 1

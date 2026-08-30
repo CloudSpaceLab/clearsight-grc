@@ -60,7 +60,7 @@ func TestRequestAssessmentClarificationCreatesNextRequestAndReturnsToCollection(
 	if len(evidenceStub.created) != 1 || evidenceStub.created[0].Origin.Version != 2 || len(evidenceStub.created[0].Fields) != 1 || evidenceStub.created[0].Fields[0].ID != "contact_email" || evidenceStub.created[0].Purpose != "Provide the current security contact." {
 		t.Fatalf("clarification request = %#v", evidenceStub.created)
 	}
-	if len(deliveryStub.requests) != 1 || deliveryStub.requests[0].RecipientAddress != "security@vendor.example" || !strings.Contains(deliveryStub.requests[0].InvitationLink, "capture_invite=one-time-token") {
+	if len(deliveryStub.requests) != 1 || deliveryStub.requests[0].RecipientAddress != "security@vendor.example" || !strings.Contains(deliveryStub.requests[0].InvitationLink, "#form_access=one-time-token") {
 		t.Fatalf("protected delivery = %#v", deliveryStub.requests)
 	}
 	message := deliveryStub.requests[0].Message

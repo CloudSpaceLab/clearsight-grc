@@ -319,9 +319,10 @@ func parseCapturePublicBaseURL(value, environment string) (*url.URL, error) {
 
 func captureInvitationURL(base *url.URL, token string) string {
 	copy := *base
-	values := copy.Query()
-	values.Set("capture_invite", token)
-	copy.RawQuery = values.Encode()
+	values, _ := url.ParseQuery(copy.Fragment)
+	values.Set("form_access", token)
+	copy.Fragment = values.Encode()
+	copy.RawFragment = ""
 	return copy.String()
 }
 

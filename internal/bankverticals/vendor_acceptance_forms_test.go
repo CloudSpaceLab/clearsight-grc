@@ -61,7 +61,7 @@ func TestVendorCertificationRefreshFormContract(t *testing.T) {
 		if applicability == nil || applicability.Type != formcontract.TypeYesNo || !applicability.Required {
 			t.Fatalf("invalid applicability field %q: %#v", pair.applicability, applicability)
 		}
-		if document == nil || document.Type != formcontract.TypeVendorDocument || !document.Required || document.Condition == nil || document.Condition.FieldID != pair.applicability || document.Condition.Operator != formcontract.ConditionEquals || len(document.Condition.Values) != 1 || document.Condition.Values[0] != "yes" {
+		if document == nil || document.Type != formcontract.TypeVendorDocument || !document.Required || document.Condition == nil || document.Condition.FieldID != pair.applicability || document.Condition.Operator != formcontract.ConditionEquals || len(document.Condition.Values) != 1 || document.Condition.Values[0] != "Yes" {
 			t.Fatalf("invalid conditional document %q: %#v", pair.document, document)
 		}
 		if len(document.AcceptedFormats) != 1 || document.AcceptedFormats[0] != "application/pdf" {

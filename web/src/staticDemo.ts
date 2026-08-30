@@ -565,7 +565,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
       if (!input.vendor_audience?.includes("@") || !input.invitation_ttl_minutes) throw new StaticDemoHTTPError(422, "vendor_work_invalid", "Enter a valid vendor contact and secure-link lifetime.");
       const partial = command === "send" && fixture === "vendor-work-partial-delivery";
       updated = { ...current, state: "AWAITING_VENDOR", delivery_state: partial ? "RETRY_REQUIRED" : "DELIVERED", recovery: partial ? "Email delivery was not confirmed. Retry delivery to issue a replacement secure link." : undefined, current_request_id: current.current_request_id ?? "vendor-work-capture-1", current_invitation_id: "vendor-work-invitation-replacement", current_capture_sequence: current.current_capture_sequence + 1, version: current.version + 1, updated_at: now };
-      outcome = { work: updated, state: updated.delivery_state, delivery: { status: partial ? "FAILED" : "DELIVERED" }, recovery: updated.recovery, ...(partial ? { capture_url: "https://capture.example.test/?capture_invite=sample-vendor-work-recovery" } : {}) };
+      outcome = { work: updated, state: updated.delivery_state, delivery: { status: partial ? "FAILED" : "DELIVERED" }, recovery: updated.recovery, ...(partial ? { capture_url: "https://capture.example.test/#form_access=sample-vendor-work-recovery" } : {}) };
     } else if (command === "review/start") {
       if (current.state !== "RESPONSE_RECEIVED") throw new StaticDemoHTTPError(409, "vendor_work_action_unavailable", "A submitted response is required before review starts.");
       updated = { ...current, state: "UNDER_REVIEW", reviewer_principal_id: "role-cro", review_started_at: now, version: current.version + 1, updated_at: now };
@@ -640,7 +640,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
       request: { id: vendorAssessment.current_request_id, status: "READY", deadline: input.deadline, updated_at: now },
       state: fixture === "vendor-partial-delivery" ? "LINK_CREATED_EMAIL_NOT_SENT" : "DELIVERED",
       delivery: fixture === "vendor-partial-delivery" ? { status: "FAILED", recipient_hint: maskEmail(input.audience), failure_code: "DELIVERY_UNAVAILABLE" } : { status: "DELIVERED", recipient_hint: maskEmail(input.audience), delivered_at: now },
-      ...(fixture === "vendor-partial-delivery" ? { capture_url: "https://capture.example.test/?capture_invite=sample-recovery-token", recovery: "Copy the secure link or retry delivery." } : {}),
+      ...(fixture === "vendor-partial-delivery" ? { capture_url: "https://capture.example.test/#form_access=sample-recovery-token", recovery: "Copy the secure link or retry delivery." } : {}),
     };
     return clone(outcome) as T;
   }

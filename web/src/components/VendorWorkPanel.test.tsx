@@ -123,6 +123,23 @@ describe("VendorWorkPanel", () => {
     expect(screen.getByRole("button", { name: "Send certification request" })).toBeTruthy();
   });
 
+  it("uses assigned-staff language throughout address verification review", async () => {
+    const addressWork = { ...work, request_kind: "ADDRESS_VERIFICATION" as const, state: "UNDER_REVIEW" as const, delivery_state: "DELIVERED" as const, version: 5 };
+    vi.mocked(loadVendorWork).mockResolvedValue({ items: [addressWork] });
+    vi.mocked(loadVendorWorkResponse).mockResolvedValue({ ...response, work: addressWork });
+    render(<VendorWorkPanel targetType="MATTER" targetID="matter-1"/>);
+
+    const card = await screen.findByTestId("vendor-work-work-1");
+    fireEvent.click(within(card).getByRole("button", { name: "Review response" }));
+
+    expect(await within(card).findByRole("region", { name: "Staff confirmation" })).toBeTruthy();
+    expect(within(card).getByText("Staff response: Yes")).toBeTruthy();
+    expect(within(card).getByText("Entered by the assigned staff member")).toBeTruthy();
+    fireEvent.click(within(card).getByRole("button", { name: "Request changes" }));
+    expect(within(card).getByLabelText("What the assigned staff member must change")).toBeTruthy();
+    expect(within(card).getByLabelText("Address verification staff email")).toBeTruthy();
+  });
+
   it("prepares and sends vendor work with typed inputs and a real rendering choice", async () => {
     vi.mocked(prepareVendorWork).mockResolvedValue(work);
     vi.mocked(sendVendorWork).mockResolvedValue({ work: { ...work, state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 3 }, state: "DELIVERED" });

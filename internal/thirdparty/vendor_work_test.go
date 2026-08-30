@@ -16,6 +16,7 @@ type vendorWorkFixture struct {
 	service    *VendorWorkService
 	repository *MemoryVendorWorkRepository
 	links      *MemoryRelationshipLinkRepository
+	forms      *monitoring.MemoryRepository
 	evidence   *evidence.Service
 	link       RelationshipLink
 	actor      Actor
@@ -52,7 +53,7 @@ func newVendorWorkFixture(t *testing.T) vendorWorkFixture {
 	}
 	forms := monitoring.NewMemoryRepository()
 	_, err = forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{
-		ID: "form-1", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Name: "Quarterly service confirmation", Purpose: "Confirm current service and control information.",
+		ID: "form-1", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "VENDOR-CONTROL", Name: "Quarterly service confirmation", Purpose: "Confirm current service and control information.",
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
 		Sections:     []formcontract.Section{{ID: "service", Title: "Service"}},
 		Fields:       []monitoring.TemplateField{{ID: "service_current", SectionID: "service", Label: "Is the service information current?", Type: formcontract.TypeYesNo, Required: true}},
@@ -84,7 +85,20 @@ func newVendorWorkFixture(t *testing.T) vendorWorkFixture {
 		ids = ids[1:]
 		return value, nil
 	}
-	return vendorWorkFixture{service: service, repository: repository, links: links, evidence: evidenceService, link: link, actor: actor, audience: "security@vendor.example", now: now}
+	return vendorWorkFixture{service: service, repository: repository, links: links, forms: forms, evidence: evidenceService, link: link, actor: actor, audience: "security@vendor.example", now: now}
+}
+
+func addVendorWorkForm(t *testing.T, fixture vendorWorkFixture, id, code string, fields []monitoring.TemplateField) {
+	t.Helper()
+	_, err := fixture.forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{
+		ID: id, TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Code: code, Name: code, Purpose: "Collect the evidence required for this vendor request.",
+		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
+		Sections:     []formcontract.Section{{ID: "evidence", Title: "Evidence"}}, Fields: fields,
+		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 1},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestVendorWorkLifecyclePreservesCaptureAndReviewBoundaries(t *testing.T) {
@@ -214,15 +228,47 @@ func TestVendorWorkRejectsUnknownRequestKindBeforePersistence(t *testing.T) {
 	}
 }
 
+func TestVendorWorkRejectsRequestKindAndGovernedFormMismatch(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	_, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, RequestKind: VendorWorkAddressVerification,
+		Purpose: "Confirm the registered address.", Instructions: "Check the address and provide evidence.",
+		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("mismatched address request error = %v", err)
+	}
+	if len(fixture.repository.work) != 0 {
+		t.Fatal("mismatched governed form reached persistence")
+	}
+}
+
+func TestVendorWorkRejectsSpecialGovernedFormForGeneralRequest(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	addVendorWorkForm(t, fixture, "address-form", "VENDOR-ADDRESS-VERIFICATION", []monitoring.TemplateField{{ID: "address_result", SectionID: "evidence", Label: "Address result", Type: formcontract.TypeYesNo, Required: true}})
+	_, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, RequestKind: VendorWorkGeneral,
+		Purpose: "Confirm the service information.", Instructions: "Review the service information.",
+		FormTemplateID: "address-form", FormTemplateVersion: 1, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("general request with address form error = %v", err)
+	}
+	if len(fixture.repository.work) != 0 {
+		t.Fatal("special governed form reached general request persistence")
+	}
+}
+
 func TestAddressVerificationVendorWorkSendsPurposeBoundStaffMessage(t *testing.T) {
 	fixture := newVendorWorkFixture(t)
+	addVendorWorkForm(t, fixture, "address-form", "VENDOR-ADDRESS-VERIFICATION", []monitoring.TemplateField{{ID: "address_result", SectionID: "evidence", Label: "Address result", Type: formcontract.TypeYesNo, Required: true}})
 	delivery := &invitationDeliveryStub{}
 	fixture.service.delivery = evidence.NewInvitationDeliveryService(delivery)
 	dueAt := fixture.now.Add(24 * time.Hour)
 	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
 		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, RequestKind: VendorWorkAddressVerification,
 		Purpose: "Verify Northstar Hosting Limited's registered address.", Instructions: "Confirm the address and provide the source used.",
-		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: "address-check@example.test", DueAt: dueAt,
+		FormTemplateID: "address-form", FormTemplateVersion: 1, VendorAudience: "address-check@example.test", DueAt: dueAt,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -237,6 +283,52 @@ func TestAddressVerificationVendorWorkSendsPurposeBoundStaffMessage(t *testing.T
 	message := delivery.requests[0].Message
 	if message.Kind != evidence.InvitationMessageAddressVerification || message.RecipientRole != "Address verification staff contact" || !message.DueAt.Equal(dueAt) || message.ExpiresAt.IsZero() {
 		t.Fatalf("message context = %#v", message)
+	}
+}
+
+func TestCertificationChangeRequestIncludesConditionalApplicabilityField(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	addVendorWorkForm(t, fixture, "certification-form", "VENDOR-CERTIFICATION-REFRESH", []monitoring.TemplateField{
+		{ID: "iso_applicable", SectionID: "evidence", Label: "Does ISO 27001 apply?", Type: formcontract.TypeYesNo, Required: true},
+		{ID: "iso_certificate", SectionID: "evidence", Label: "Current ISO 27001 certificate", Type: formcontract.TypeVendorDocument, Required: true, Condition: &formcontract.VisibilityCondition{FieldID: "iso_applicable", Operator: formcontract.ConditionEquals, Values: []string{"Yes"}}},
+	})
+	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, RequestKind: VendorWorkCertificationRefresh,
+		Purpose: "Provide a current ISO 27001 certificate.", Instructions: "Confirm applicability and upload the current certificate.",
+		FormTemplateID: "certification-form", FormTemplateVersion: 1, VendorAudience: fixture.audience, DueAt: fixture.now.Add(7 * 24 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sent, err := fixture.service.Send(context.Background(), fixture.actor, prepared.ID, SendVendorWorkInput{ExpectedVersion: prepared.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60})
+	if err != nil {
+		t.Fatal(err)
+	}
+	received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: "bank", WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: "submission-1", CausationID: "certification-submission"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reviewer := Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}
+	reviewing, err := fixture.service.StartReview(context.Background(), reviewer, received.ID, StartVendorWorkReviewInput{ExpectedVersion: received.Version})
+	if err != nil {
+		t.Fatal(err)
+	}
+	changes, err := fixture.service.RequestChanges(context.Background(), reviewer, reviewing.ID, RequestVendorWorkChangesInput{
+		ExpectedVersion: reviewing.Version, Message: "Replace the ISO 27001 certificate.", FieldIDs: []string{"iso_certificate"},
+		VendorAudience: fixture.audience, DueAt: fixture.now.Add(5 * 24 * time.Hour), InvitationTTLMinutes: 60,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sent.Work.CurrentRequestID == changes.Work.CurrentRequestID {
+		t.Fatal("change request did not create a bounded replacement collection")
+	}
+	request, err := fixture.evidence.GetRequest(context.Background(), "bank", changes.Work.CurrentRequestID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(request.Fields) != 2 || request.Fields[0].ID != "iso_applicable" || request.Fields[1].ID != "iso_certificate" {
+		t.Fatalf("change request fields = %#v", request.Fields)
 	}
 }
 
@@ -354,7 +446,11 @@ func vendorWorkCaptureToken(t *testing.T, raw string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	token := value.Query().Get("capture_invite")
+	fragment, err := url.ParseQuery(value.Fragment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := fragment.Get("form_access")
 	if token == "" {
 		t.Fatalf("capture URL has no token: %q", raw)
 	}

@@ -249,7 +249,6 @@ const EXPIRY_OPTIONS = [
 function invitationLink(token: string) {
   const url = new URL(window.location.href);
   url.search = "";
-  url.hash = "";
-  url.searchParams.set("capture_invite", token);
+  url.hash = new URLSearchParams({ form_access: token }).toString();
   return url.toString();
 }

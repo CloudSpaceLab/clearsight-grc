@@ -36,6 +36,6 @@ assert len(base64.b64decode(os.environ["CLEARSIGHT_DISTRIBUTION_ACCESS_HMAC_KEY"
 PY
 
 timeout 10 bash -c 'exec 3<>"/dev/tcp/$1/$2"' _ "$CLEARSIGHT_SMTP_HOST" "$CLEARSIGHT_SMTP_PORT" >/dev/null 2>&1
-timeout 15 openssl s_client -connect "$CLEARSIGHT_SMTP_HOST:$CLEARSIGHT_SMTP_PORT" -servername "$CLEARSIGHT_SMTP_HOST" -starttls smtp </dev/null 2>/dev/null | openssl x509 -noout -checkend 0 >/dev/null 2>&1
+timeout 15 openssl s_client -connect "$CLEARSIGHT_SMTP_HOST:$CLEARSIGHT_SMTP_PORT" -servername "$CLEARSIGHT_SMTP_HOST" -verify_hostname "$CLEARSIGHT_SMTP_HOST" -verify_return_error -starttls smtp </dev/null >/dev/null 2>&1
 
 printf 'email readiness verified\n'

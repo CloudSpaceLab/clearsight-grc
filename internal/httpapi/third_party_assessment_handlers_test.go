@@ -196,7 +196,11 @@ func TestCancelVendorAssessmentRevokesInvitationAndRedeemedSession(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	token := captureURL.Query().Get("capture_invite")
+	fragment, err := url.ParseQuery(captureURL.Fragment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := fragment.Get("form_access")
 	session, err := fixture.evidence.RedeemInvitation(context.Background(), token, "security@vendor.example")
 	if err != nil {
 		t.Fatal(err)
@@ -314,7 +318,7 @@ func TestSendVendorAssessmentRequestBuildsLinkFromConfiguredBaseNotHost(t *testi
 	if err := json.NewDecoder(response.Body).Decode(&outcome); err != nil {
 		t.Fatal(err)
 	}
-	if outcome.State != thirdparty.SendRequestLinkCreatedEmailNotSent || !strings.HasPrefix(outcome.CaptureURL, "https://capture.example.test/respond?capture_invite=") || strings.Contains(outcome.CaptureURL, "attacker.example") {
+	if outcome.State != thirdparty.SendRequestLinkCreatedEmailNotSent || !strings.HasPrefix(outcome.CaptureURL, "https://capture.example.test/respond#form_access=") || strings.Contains(outcome.CaptureURL, "attacker.example") {
 		t.Fatalf("unexpected send response: %#v", outcome)
 	}
 }
@@ -350,7 +354,7 @@ func TestReissueVendorAssessmentRequestRecoversAfterReloadUsingVerifiedActor(t *
 	if outcome.Assessment.Status != thirdparty.AssessmentCollecting || outcome.Assessment.Version != initial.Assessment.Version+2 || outcome.Request.ID != initial.Request.ID {
 		t.Fatalf("reissue changed the collection lifecycle or request: %#v", outcome)
 	}
-	if outcome.State != thirdparty.SendRequestLinkCreatedEmailNotSent || !strings.HasPrefix(outcome.CaptureURL, "https://capture.example.test/respond?capture_invite=") || strings.Contains(outcome.CaptureURL, "attacker.example") {
+	if outcome.State != thirdparty.SendRequestLinkCreatedEmailNotSent || !strings.HasPrefix(outcome.CaptureURL, "https://capture.example.test/respond#form_access=") || strings.Contains(outcome.CaptureURL, "attacker.example") {
 		t.Fatalf("reissue did not return the immediate configured fallback link: %#v", outcome)
 	}
 	if outcome.Invitation == nil || outcome.Invitation.Token != "" {

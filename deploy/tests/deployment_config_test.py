@@ -115,12 +115,14 @@ class DeploymentConfigTest(unittest.TestCase):
             "CLEARSIGHT_DISTRIBUTION_ACCESS_HMAC_KEY", "CLEARSIGHT_SMTP_HOST",
             "CLEARSIGHT_SMTP_PORT", "CLEARSIGHT_SMTP_USERNAME", "CLEARSIGHT_SMTP_PASSWORD",
             "CLEARSIGHT_SMTP_FROM", "CLEARSIGHT_SMTP_TLS_MODE", "STARTTLS",
-            "/dev/tcp/", "openssl s_client", "-starttls smtp", "openssl x509",
+            "/dev/tcp/", "openssl s_client", "-starttls smtp", "-verify_hostname",
+            '"$CLEARSIGHT_SMTP_HOST"', "-verify_return_error",
         ):
             self.assertIn(value, script)
         for forbidden in ("env |", "printenv", "set -x", "echo $", "printf '%s' \"$"):
             self.assertNotIn(forbidden, script)
         hosted = self.read("deploy/scripts/verify-hosted-release.sh")
+        self.assertIn('if [[ "${VERIFY_EMAIL_READINESS:-false}" == "true" ]]', hosted)
         self.assertIn('"$script_dir/verify-email-readiness.sh"', hosted)
         workflow = self.read(".github/workflows/deploy-demo.yml")
         self.assertIn('install -m 0755 deploy/scripts/verify-email-readiness.sh "$release/scripts/verify-email-readiness.sh"', workflow)

@@ -48,7 +48,7 @@ it("keeps a created invitation available when the follow-up inventory refresh fa
   fireEvent.change(screen.getByRole("textbox", { name: "Invitation purpose" }), { target: { value: "Provide the return" } });
   fireEvent.click(screen.getByRole("button", { name: "Create invitation" }));
 
-  expect(await screen.findByDisplayValue(/capture_invite=one-time-token/)).toBeTruthy();
+  expect(await screen.findByDisplayValue(/#form_access=one-time-token/)).toBeTruthy();
   expect(screen.getByText("Issue time awaiting invitation history refresh")).toBeTruthy();
   expect((await screen.findByRole("alert")).textContent).toMatch(/Previously loaded records remain available, but changes are disabled/i);
   expect(screen.queryByText(/invitation could not be created/i)).toBeNull();
