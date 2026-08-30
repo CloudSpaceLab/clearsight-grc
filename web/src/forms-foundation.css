@@ -15,12 +15,13 @@
 }
 .forms-tabs { gap: 2px; }
 .forms-tabs button { min-height: 38px; padding: 8px 11px; }
+.forms-layout-toggle { gap: 6px; }
 .forms-summary-metric { display: grid; grid-template-columns: auto 1fr; column-gap: 7px; row-gap: 2px; }
 .forms-summary-metric strong { font-size: 1.18rem; line-height: 1; }
 .forms-summary-metric small { grid-column: 1 / -1; color: var(--muted); }
 .forms-recent { display: grid; grid-template-columns: minmax(130px, auto) minmax(0, 1fr); align-items: center; margin: 16px 0 10px; }
 .forms-recent h2 { margin: 0 0 3px; font-size: 1rem; }
-.forms-recent ol button { display: grid; gap: 2px; min-width: 230px; text-align: left; }
+.forms-recent ol button { display: grid; gap: 2px; min-width: 210px; text-align: left; }
 .forms-table th { color: var(--muted); font-size: .74rem; letter-spacing: .025em; }
 .forms-table td { vertical-align: top; }
 .forms-table td > strong,.forms-table td > span { display: block; }
@@ -28,3 +29,6 @@
 .forms-table td > button { min-width: 52px; min-height: 34px; padding: 6px 10px; }
 .forms-workspace .forms-lexical-shell { background: var(--document-surface, var(--surface)); color: var(--document-text, var(--text)); }
 @media(max-width:760px){.forms-tabs button{min-height:44px;padding-inline:10px}.forms-recent{grid-template-columns:1fr}}
+@media(max-width:760px){.forms-tabs,.forms-table-wrap{max-width:100%;contain:inline-size}.forms-tabs{overflow-x:auto}.forms-table-wrap{overflow-x:auto}}
+@media(max-width:760px){.forms-table{display:block;min-width:0}.forms-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.forms-table tbody{display:grid;gap:10px}.forms-table tr{display:grid;padding:10px;border:1px solid var(--border);border-radius:12px}.forms-table td{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border:0;overflow-wrap:anywhere}.forms-table td+td{border-top:1px solid var(--border)}}
+@media(max-width:420px){.forms-layout-toggle{gap:6px}.forms-header-actions{display:grid;width:100%}.forms-header-actions button{width:100%}}
