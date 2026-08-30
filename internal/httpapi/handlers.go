@@ -22,7 +22,11 @@ func (a *API) live(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (a *API) ready(w http.ResponseWriter, _ *http.Request) {
-	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ready", "mode": a.deps.Mode})
+	revision := strings.TrimSpace(a.deps.ReleaseSHA)
+	if revision == "" {
+		revision = "unknown"
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ready", "mode": a.deps.Mode, "revision": revision})
 }
 
 func (a *API) context(w http.ResponseWriter, _ *http.Request) {

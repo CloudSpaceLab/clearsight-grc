@@ -6,6 +6,31 @@ import (
 	"time"
 )
 
+func TestLoadNormalizesReleaseSHA(t *testing.T) {
+	sha := strings.Repeat("A", 40)
+	t.Setenv("CLEARSIGHT_RELEASE_SHA", sha)
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.ReleaseSHA != strings.ToLower(sha) {
+		t.Fatalf("release sha=%q", cfg.ReleaseSHA)
+	}
+}
+
+func TestProductionRejectsMalformedReleaseSHA(t *testing.T) {
+	t.Setenv("CLEARSIGHT_ENV", "production")
+	t.Setenv("CLEARSIGHT_IDENTITY_MODE", "signed")
+	t.Setenv("CLEARSIGHT_IDENTITY_HMAC_SECRET", strings.Repeat("s", 32))
+	t.Setenv("CLEARSIGHT_COMMAND_AUTHORIZATION", "enforce")
+	t.Setenv("CLEARSIGHT_DEMO_MODE", "false")
+	t.Setenv("CLEARSIGHT_RELEASE_SHA", "main")
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "CLEARSIGHT_RELEASE_SHA") {
+		t.Fatalf("expected invalid release SHA rejection, got %v", err)
+	}
+}
+
 func TestLoadAllowsDemoModeToBeDisabledInDevelopment(t *testing.T) {
 	t.Setenv("CLEARSIGHT_ENV", "development")
 	t.Setenv("CLEARSIGHT_DEMO_MODE", "false")

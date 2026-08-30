@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 type Config struct {
 	HTTPAddr                              string
 	Environment                           string
+	ReleaseSHA                            string
 	AllowedOrigin                         string
 	DatabaseURL                           string
 	DatabaseMinConns                      int32
@@ -54,6 +56,8 @@ type Config struct {
 	LogLevel                              slog.Level
 }
 
+var releaseSHAPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
+
 func Load() (Config, error) {
 	environment := env("CLEARSIGHT_ENV", "development")
 	production := strings.EqualFold(environment, "production")
@@ -66,6 +70,7 @@ func Load() (Config, error) {
 	cfg := Config{
 		HTTPAddr:                              env("CLEARSIGHT_HTTP_ADDR", ":8080"),
 		Environment:                           environment,
+		ReleaseSHA:                            strings.ToLower(env("CLEARSIGHT_RELEASE_SHA", "")),
 		AllowedOrigin:                         env("CLEARSIGHT_ALLOWED_ORIGIN", "http://localhost:5173"),
 		DatabaseURL:                           env("DATABASE_URL", ""),
 		DatabaseMinConns:                      2,
@@ -104,6 +109,9 @@ func Load() (Config, error) {
 		DemoLegalEntityID:                     env("CLEARSIGHT_DEMO_LEGAL_ENTITY_ID", "bank-ng"),
 		DemoRoleCodes:                         stringList("CLEARSIGHT_DEMO_ROLE_CODES", []string{"CRO", "EXECUTIVE"}),
 		LogLevel:                              slog.LevelInfo,
+	}
+	if cfg.ReleaseSHA != "" && !releaseSHAPattern.MatchString(cfg.ReleaseSHA) {
+		return Config{}, fmt.Errorf("CLEARSIGHT_RELEASE_SHA must be a 40-character Git commit SHA")
 	}
 	var err error
 	if cfg.ReadTimeout, err = duration("CLEARSIGHT_READ_TIMEOUT", cfg.ReadTimeout); err != nil {

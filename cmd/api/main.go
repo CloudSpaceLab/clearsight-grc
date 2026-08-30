@@ -90,7 +90,7 @@ func main() {
 	services.ThirdPartyRelationshipLinks.ConfigureActiveWorkGuard(services.ThirdPartyWorkRepo)
 	services.ThirdPartyRelationshipLinks.ConfigureTargetReader(services.Continuity)
 	handler := httpapi.New(httpapi.Dependencies{
-		Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, DemoMode: cfg.DemoMode,
+		Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, ReleaseSHA: cfg.ReleaseSHA, DemoMode: cfg.DemoMode,
 		IdentityMode: cfg.IdentityMode, OIDCIssuer: cfg.OIDCIssuer,
 		Identity: authenticator, Federation: federationService, SCIM: services.SCIM, Access: services.Access, AccessAdmin: services.AccessAdmin,
 		CommandGuard: guard, Authority: services.Authority, Governance: services.Governance,
