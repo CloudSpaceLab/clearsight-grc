@@ -61,9 +61,10 @@ function SectionInspector({ draft, sectionID, onSectionsChange, onMoveSection, o
   const index = draft.sections.findIndex((section) => section.id === sectionID);
   const section = draft.sections[index];
   if (!section) return <aside className="form-builder-inspector" aria-label="Section settings"><PaneHeading eyebrow="Inspector" title="Section unavailable"/></aside>;
+  const selectedSectionID = section.id;
 
   function change(change: Partial<AuthoringSection>) {
-    onSectionsChange(draft.sections.map((candidate) => candidate.id === section.id ? { ...candidate, ...change } : candidate));
+    onSectionsChange(draft.sections.map((candidate) => candidate.id === selectedSectionID ? { ...candidate, ...change } : candidate));
   }
 
   return <aside className="form-builder-inspector" aria-label="Section settings">
@@ -77,8 +78,8 @@ function SectionInspector({ draft, sectionID, onSectionsChange, onMoveSection, o
         <div className="form-inspector-actions">
           <button type="button" disabled={index === 0} onClick={() => onMoveSection(index, -1)}>Move up</button>
           <button type="button" disabled={index === draft.sections.length - 1} onClick={() => onMoveSection(index, 1)}>Move down</button>
-          <button type="button" disabled={draft.sections.length >= 20} aria-label={`Duplicate ${section.title.trim() || `Section ${index + 1}`}`} onClick={() => onDuplicateSection(section.id)}>Duplicate section</button>
-          {draft.sections.length > 1 && <button type="button" className="danger-text" onClick={() => onRemoveSection(section.id)}>Delete section</button>}
+          <button type="button" disabled={draft.sections.length >= 20} aria-label={`Duplicate ${section.title.trim() || `Section ${index + 1}`}`} onClick={() => onDuplicateSection(selectedSectionID)}>Duplicate section</button>
+          {draft.sections.length > 1 && <button type="button" className="danger-text" onClick={() => onRemoveSection(selectedSectionID)}>Delete section</button>}
         </div>
       </details>
     </div>
