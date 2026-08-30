@@ -11,6 +11,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -184,6 +185,50 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 		}
 		if reminders != 20 {
 			t.Fatalf("reminder outbox events=%d, want 20", reminders)
+		}
+	})
+
+	t.Run("bounded vendor refresh maintenance advances past covered batches", func(t *testing.T) {
+		now := time.Date(2026, time.August, 30, 12, 0, 0, 0, time.UTC)
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO third_parties(id,tenant_id,legal_name,status,created_at,updated_at,version)
+			SELECT md5('scale-refresh-vendor-'||i)::uuid,$1::uuid,format('Refresh vendor %s',i),'ACTIVE',
+				$4::timestamptz-interval '400 days',$4::timestamptz-interval '400 days',1
+			FROM generate_series(1,12) i;
+			INSERT INTO third_party_relationships(
+				id,tenant_id,legal_entity_id,vendor_id,service_name,business_owner_principal_id,
+				criticality,privacy_role,status,created_at,updated_at,version)
+			SELECT md5('scale-refresh-relationship-'||i)::uuid,$1::uuid,$2::uuid,
+				md5('scale-refresh-vendor-'||i)::uuid,format('Refresh service %s',i),$3::uuid,
+				'STANDARD','NONE','ACTIVE',$4::timestamptz-interval '400 days',$4::timestamptz-interval '400 days',1
+			FROM generate_series(1,12) i`, tenant, entity, actor, now); err != nil {
+			t.Fatal(err)
+		}
+
+		repository := thirdparty.NewPostgresRepository(pool)
+		policy := thirdparty.RefreshMaintenancePolicy{
+			BatchSize:                5,
+			Lease:                    time.Minute,
+			DocumentLead:             30 * 24 * time.Hour,
+			FactConfirmationInterval: 365 * 24 * time.Hour,
+		}
+		for run, want := range []int{5, 5, 2, 0} {
+			receipt, err := repository.MaintainVendorRefresh(ctx, now, policy)
+			if err != nil {
+				t.Fatalf("refresh maintenance run %d: %v", run+1, err)
+			}
+			if receipt.RelationshipsExamined != want || receipt.AttentionsCreated != want {
+				t.Fatalf("refresh maintenance run %d examined/created %d/%d, want %d/%d; covered work must not starve later relationships", run+1, receipt.RelationshipsExamined, receipt.AttentionsCreated, want, want)
+			}
+		}
+		var attentions int
+		if err := pool.QueryRow(ctx, `
+			SELECT count(*) FROM third_party_refresh_attentions
+			WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND state='OPEN'`, tenant, entity).Scan(&attentions); err != nil {
+			t.Fatal(err)
+		}
+		if attentions != 12 {
+			t.Fatalf("open vendor refresh attentions=%d, want 12", attentions)
 		}
 	})
 
