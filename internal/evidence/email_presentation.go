@@ -42,7 +42,7 @@ func renderEmailPresentation(input emailPresentationInput) (renderedEmailPresent
 	input.ActionLabel = strings.TrimSpace(input.ActionLabel)
 	input.ActionURL = strings.TrimSpace(input.ActionURL)
 	input.SupportContact = strings.TrimSpace(input.SupportContact)
-	if !boundedEmailText(input.BrandName, 200, false) || !boundedEmailText(input.Heading, 300, true) || !boundedEmailText(input.Preheader, 500, false) || !boundedEmailText(input.Intro, 2000, false) || !boundedEmailText(input.BodyPlain, 20000, false) || !boundedEmailText(input.SupportContact, 500, false) {
+	if !boundedEmailText(input.BrandName, 200, false) || !boundedEmailText(input.Heading, 300, true) || !boundedEmailText(input.Preheader, 500, false) || !boundedEmailText(input.Intro, 2000, false) || !boundedEmailBodyText(input.BodyPlain, 20000) || !boundedEmailText(input.SupportContact, 500, false) {
 		return renderedEmailPresentation{}, errEmailPresentationInvalid
 	}
 	if (input.ActionLabel == "") != (input.ActionURL == "") || !boundedEmailText(input.ActionLabel, 120, false) {
@@ -120,4 +120,8 @@ func boundedEmailText(value string, limit int, required bool) bool {
 		return false
 	}
 	return len(value) <= limit && !strings.ContainsAny(value, "\r\n\x00")
+}
+
+func boundedEmailBodyText(value string, limit int) bool {
+	return len(value) <= limit && !strings.ContainsAny(value, "\r\x00")
 }

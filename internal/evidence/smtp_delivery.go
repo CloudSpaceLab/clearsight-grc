@@ -231,6 +231,7 @@ func buildSMTPMessage(from, to, subject, plainText, htmlBody, messageID string, 
 	writeSMTPHeader(&buffer, "Date", sentAt.UTC().Format(time.RFC1123Z))
 	writeSMTPHeader(&buffer, "Message-ID", messageID)
 	writeSMTPHeader(&buffer, "MIME-Version", "1.0")
+	writeSMTPHeader(&buffer, "Auto-Submitted", "auto-generated")
 	if strings.TrimSpace(htmlBody) == "" {
 		writeSMTPHeader(&buffer, "Content-Type", `text/plain; charset="UTF-8"`)
 		writeSMTPHeader(&buffer, "Content-Transfer-Encoding", "quoted-printable")

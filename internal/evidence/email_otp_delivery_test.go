@@ -22,6 +22,12 @@ func TestEmailOTPDeliveryUsesGovernedProtectedEnvelope(t *testing.T) {
 		if !strings.Contains(request.PlainText, code) || !strings.Contains(request.HTML, code) {
 			t.Fatal("OTP code was not supplied to the protected delivery adapter")
 		}
+		if strings.Count(request.HTML, code) != 1 || !strings.Contains(request.HTML, "display:none") || !strings.Contains(request.HTML, "07:40 UTC") {
+			t.Fatalf("OTP did not use the shared presentation: %s", request.HTML)
+		}
+		if strings.Contains(request.HTML, `data-primary-action="true"`) || !strings.Contains(request.PlainText, "If you did not request this code") {
+			t.Fatal("OTP presentation added an action or lost recovery guidance")
+		}
 		if strings.Contains(fmt.Sprintf("%v", request), address) || strings.Contains(fmt.Sprintf("%#v", request), code) {
 			t.Fatal("protected OTP envelope leaked through formatting")
 		}

@@ -82,6 +82,7 @@ func TestSMTPDeliveryUsesSTARTTLSAndSendsRenderedAlternatives(t *testing.T) {
 		message := string(server.message)
 		for _, expected := range []string{
 			"Subject: Example Bank: control review",
+			"Auto-Submitted: auto-generated",
 			"Content-Type: multipart/alternative",
 			"text/plain",
 			"text/html",
