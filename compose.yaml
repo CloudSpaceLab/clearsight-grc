@@ -12,8 +12,32 @@ services:
       timeout: 3s
       retries: 20
     volumes:
-      - clearsight-postgres:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d:ro
+      - clearsight-postgres:/var/lib/postgresql
+
+  migrate:
+    image: postgres:18.4
+    entrypoint: ["/bin/bash", "/deploy/scripts/migrate.sh"]
+    command: ["/migrations"]
+    environment:
+      DATABASE_URL: postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable
+    volumes:
+      - ./deploy/scripts/migrate.sh:/deploy/scripts/migrate.sh:ro
+      - ./migrations:/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  seed-demo:
+    image: postgres:18.4
+    entrypoint: ["/bin/bash", "/deploy/scripts/seed-demo-foundation.sh"]
+    environment:
+      DATABASE_URL: postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable
+    volumes:
+      - ./deploy/scripts/seed-demo-foundation.sh:/deploy/scripts/seed-demo-foundation.sh:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   api:
     build:
       context: .
@@ -25,13 +49,24 @@ services:
       CLEARSIGHT_ARTIFACT_ROOT: /var/lib/clearsight/artifacts
       CLEARSIGHT_MAX_ARTIFACT_BYTES: 20971520
       CLEARSIGHT_CAPTURE_SESSION_TTL: 20m
+      CLEARSIGHT_DEMO_MODE: "true"
+      CLEARSIGHT_DEMO_TENANT_ID: 00000000-0000-4000-8000-000000000001
+      CLEARSIGHT_DEMO_PRINCIPAL_ID: 00000000-0000-4000-8000-000000000101
+      CLEARSIGHT_DEMO_LEGAL_ENTITY_ID: 00000000-0000-4000-8000-000000000002
       DATABASE_URL: postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable
     ports: ["8080:8080"]
     volumes:
       - clearsight-artifacts:/var/lib/clearsight/artifacts
+    healthcheck:
+      test: ["CMD", "/clearsight-healthcheck", "http://127.0.0.1:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 12
     depends_on:
-      postgres:
-        condition: service_healthy
+      seed-demo:
+        condition: service_completed_successfully
+
   worker:
     build:
       context: .
@@ -40,10 +75,18 @@ services:
       CLEARSIGHT_ENV: development
       CLEARSIGHT_WORKER_ID: worker-compose
       CLEARSIGHT_WORKER_POLL: 1s
+      CLEARSIGHT_ARTIFACT_ROOT: /var/lib/clearsight/artifacts
+      CLEARSIGHT_DEMO_MODE: "true"
+      CLEARSIGHT_DEMO_TENANT_ID: 00000000-0000-4000-8000-000000000001
+      CLEARSIGHT_DEMO_PRINCIPAL_ID: 00000000-0000-4000-8000-000000000101
+      CLEARSIGHT_DEMO_LEGAL_ENTITY_ID: 00000000-0000-4000-8000-000000000002
       DATABASE_URL: postgres://clearsight:clearsight@postgres:5432/clearsight?sslmode=disable
+    volumes:
+      - clearsight-artifacts:/var/lib/clearsight/artifacts
     depends_on:
-      postgres:
-        condition: service_healthy
+      seed-demo:
+        condition: service_completed_successfully
+
   web:
     image: node:24.18.0-alpine
     working_dir: /app
@@ -55,6 +98,7 @@ services:
       - ./web:/app
       - clearsight-node-modules:/app/node_modules
     depends_on: [api]
+
 volumes:
   clearsight-postgres:
   clearsight-artifacts:
