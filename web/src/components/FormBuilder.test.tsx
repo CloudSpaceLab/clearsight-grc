@@ -23,11 +23,25 @@ const savedForm: FormTemplate = {
   updated_at: "2026-08-26T00:00:00Z",
 };
 
+function selectOverview() {
+  fireEvent.click(screen.getByRole("button", { name: "Overview" }));
+}
+
+function selectQuestion(index = 0) {
+  const questions = screen.getAllByLabelText("Question");
+  const question = questions[index];
+  if (!question) throw new Error(`Question ${index + 1} is missing`);
+  fireEvent.focus(question);
+  return question;
+}
+
 function completeBase() {
   fireEvent.change(screen.getByLabelText("Form name"), { target: { value: "Vendor due diligence" } });
-  fireEvent.change(screen.getByLabelText("Code"), { target: { value: "vendor due diligence" } });
   fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Collect information required for the vendor review." } });
-  fireEvent.change(screen.getByLabelText("Question"), { target: { value: "Primary contact" } });
+  selectOverview();
+  fireEvent.change(screen.getByLabelText("Code"), { target: { value: "vendor due diligence" } });
+  const question = selectQuestion();
+  fireEvent.change(question, { target: { value: "Primary contact" } });
 }
 
 beforeEach(() => {
@@ -49,6 +63,7 @@ describe("FormBuilder", () => {
 
   it("shows only limits that apply to the selected response type and uses native dates", () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    selectQuestion();
     expect(screen.getByLabelText("Minimum characters")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Response type"), { target: { value: "date" } });
     expect(screen.getByLabelText("Earliest date").getAttribute("type")).toBe("date");
@@ -73,12 +88,14 @@ describe("FormBuilder", () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     completeBase();
     fireEvent.change(screen.getByLabelText("Response type"), { target: { value: "yes_no" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add question" }));
-    const questions = screen.getAllByLabelText("Question");
-    fireEvent.change(questions[1]!, { target: { value: "Explain the answer" } });
-    const conditions = screen.getAllByLabelText("Show this question when") as HTMLSelectElement[];
-    fireEvent.change(conditions[1]!, { target: { value: "question_1" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ Question" }));
+    const second = selectQuestion(1);
+    fireEvent.change(second, { target: { value: "Explain the answer" } });
+    fireEvent.click(screen.getByText("Logic"));
+    fireEvent.change(screen.getByLabelText("Show this question when"), { target: { value: "question_1" } });
     fireEvent.change(screen.getByLabelText("Condition value"), { target: { value: "Yes" } });
+    fireEvent.click(screen.getByRole("button", { name: "Questions" }));
+    fireEvent.click(screen.getByText("Section actions"));
     fireEvent.click(screen.getByRole("button", { name: "Duplicate Questions" }));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(createFormTemplate).toHaveBeenCalledTimes(1));
@@ -111,7 +128,7 @@ describe("FormBuilder", () => {
       loadReusableTemplate={loadReusableTemplate}
     />);
     completeBase();
-    fireEvent.click(screen.getByText("Insert section from active template"));
+    fireEvent.click(screen.getByText("Reuse approved section"));
     fireEvent.change(screen.getByLabelText("Active template revision"), { target: { value: "shared-template:3" } });
     await waitFor(() => expect(loadReusableTemplate).toHaveBeenCalledWith("shared-template", 3));
     fireEvent.click(await screen.findByRole("button", { name: "Insert section" }));
@@ -141,8 +158,10 @@ describe("FormBuilder", () => {
     const saveDraft = vi.fn().mockResolvedValue(complianceForm);
     const sendForApproval = vi.fn();
     render(<FormBuilder initialValue={complianceForm} saveDraft={saveDraft} onSendForApproval={sendForApproval} onSaved={vi.fn()} onCancel={vi.fn()} allowIncompleteComplianceDraft/>);
+    fireEvent.click(screen.getByRole("button", { name: /Review/ }));
     expect(screen.getByText("20% remains to allocate in Vendor identity")).toBeTruthy();
     expect((screen.getByRole("button", { name: "Send for approval" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Close review" }));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(1));
     expect(sendForApproval).not.toHaveBeenCalled();
@@ -150,10 +169,12 @@ describe("FormBuilder", () => {
 
   it("adds an explicit required sign-off without making it an implicit contract rule", () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", { name: /Review/ }));
     expect(screen.getByText("No required sign-off yet")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Add required sign-off" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add →" }));
     expect(screen.getByDisplayValue("Required sign-off")).toBeTruthy();
     expect(screen.getByDisplayValue(/I confirm that the information provided/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Review/ }));
     expect(screen.getByText("Required sign-off included")).toBeTruthy();
   });
 
@@ -161,8 +182,10 @@ describe("FormBuilder", () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     completeBase();
     fireEvent.change(screen.getByLabelText("Response type"), { target: { value: "vendor_document" } });
+    fireEvent.click(screen.getByText(/Data handling/));
     fireEvent.change(screen.getByLabelText("Collection purpose"), { target: { value: "REPLACE_HELD_DOCUMENT" } });
     fireEvent.change(screen.getByLabelText("Record target key"), { target: { value: "vendor.registration_document" } });
+    fireEvent.click(screen.getByText("Technical recovery"));
     fireEvent.change(screen.getByLabelText("Browser recovery"), { target: { value: "NO_BROWSER_CACHE" } });
     fireEvent.change(screen.getByLabelText("Maximum file size (MB)"), { target: { value: "10" } });
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
@@ -180,12 +203,15 @@ describe("FormBuilder", () => {
     render(<FormBuilder programID="program-1" onSaved={onSaved} onCancel={vi.fn()}/>);
     completeBase();
     fireEvent.change(screen.getByLabelText("Response type"), { target: { value: "email" } });
+    selectOverview();
     fireEvent.change(screen.getByLabelText("Default layout"), { target: { value: "WIZARD" } });
     fireEvent.click(screen.getByLabelText("Allow respondents to switch layouts"));
+    fireEvent.click(screen.getByRole("button", { name: "Preview" }));
     fireEvent.click(screen.getByRole("button", { name: "Preview Classic" }));
     expect(screen.getByLabelText("Primary contact *").getAttribute("type")).toBe("email");
     fireEvent.click(screen.getByRole("button", { name: "Preview Wizard" }));
     expect(screen.getByText("Step 1 of 1")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Close form preview" }));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(createFormTemplate).toHaveBeenCalledWith("program-1", expect.objectContaining({
       code: "VENDOR-DUE-DILIGENCE",
