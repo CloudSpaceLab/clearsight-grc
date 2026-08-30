@@ -2,6 +2,12 @@
 
 **Status date:** 2026-08-29
 **Current execution:** Release integration and deployment verification for governed Forms, vendor refresh and operational workflows
+
+## Vendor email acceptance journeys — implemented, hosted acceptance pending
+
+The approved [vendor email acceptance design](superpowers/specs/2026-08-30-vendor-email-acceptance-journeys-design.md) and [implementation plan](superpowers/plans/2026-08-30-vendor-email-acceptance-journeys.md) add a shared email-client-safe invitation/OTP presentation, task-specific registration messages, persisted `GENERAL`, `ADDRESS_VERIFICATION` and `CERTIFICATION_REFRESH` Vendor Work kinds, and governed address/certification forms. The bank UI selects the correct recipient role and form, shows staff/vendor response states, and records evidence acceptance without claiming the linked Matter is resolved.
+
+Remaining release work is external: merge the exact green head, configure protected recipient and SMTP values on the host, deploy that merged revision, pass the redacted STARTTLS readiness check, and complete the controlled inbox/click/submission/review/closure sequence with the approved test recipients. SMTP provider acceptance alone does not prove inbox receipt. Object inspection must report submitted PDFs as available before evidence acceptance.
 **Umbrella pilot/GA catalogue:** #13
 
 This file is the authoritative implementation ledger. Code, migrations and executable tests remain final capability truth. Completed detail belongs in focused architecture documents, PRs and tests rather than parallel planning frameworks.

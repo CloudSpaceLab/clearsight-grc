@@ -576,6 +576,20 @@ A flow that misses the target requires documented cause, product review, and rem
 - [ ] website discovery failure leaves vendor creation and due diligence usable;
 - [ ] link-vendor focus, keyboard and error recovery work at desktop, mobile and 200% zoom.
 
+### Controlled hosted email acceptance
+
+Run this only against the exact deployed commit with the approved test recipients. Record redacted delivery receipts and timestamps; never copy recipient addresses, credentials, OTPs or invitation selectors into logs or evidence artifacts.
+
+1. Start vendor onboarding and confirm the vendor receives one registration email whose secure link opens the expected registration task.
+2. Create an address-verification Vendor Work request on the exact Matter, assign the approved staff recipient, and confirm the email states that access is limited to that evidence request.
+3. Submit the staff result with a PDF and attestation; confirm the bank UI says `Staff confirmation received` and blocks acceptance while an artifact is not available.
+4. Review and accept the evidence with rationale; confirm the Vendor Work history says `Evidence accepted` while the Matter remains open.
+5. Complete the existing Matter outcome check and authorized closure; confirm the Matter workspace, not the email or Vendor Work response, records resolution.
+6. For an existing vendor, send the certification-refresh form, verify the email link, submit applicable ISO 27001 and PCI DSS PDFs, and confirm the UI distinguishes submission from evidence acceptance.
+7. Reissue one invitation and confirm the prior route is revoked. Request one targeted change and confirm the replacement capture retains the same request history.
+
+The readiness precondition requires recipient encryption and HMAC keys, an HTTPS public capture base URL, enabled external distribution delivery, an authenticated SMTP credential, STARTTLS TCP reachability and a currently valid SMTP certificate. Provider acceptance is not evidence of inbox receipt; the recipient must open the received message before the journey is marked received.
+
 ---
 
 # 17. Golden Journey N — First vendor visit and identity presentation

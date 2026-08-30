@@ -105,6 +105,12 @@ Documentation of an Expansion or Enterprise use case does not imply implementati
 | UC-HIST-01 | Point-in-time reconstruction | audit/legal/review inquiry → exact state known and acted on at selected time | authorized investigator/auditor | Foundation |
 
 Vendor-completed work for a Program or Matter composes `UC-EVID-02` with `UC-TPRM-01` or `UC-TPRM-02`. It is not a separate task, form, document or approval use case: Capture owns the external response, the vendor relationship owns the association and request history, and the Program or Matter retains bank ownership, authorization, verification and closure.
+
+Three bounded journeys are implemented on that composition:
+
+- Vendor registration: a compliance officer starts onboarding, the vendor receives a purpose-bound registration link, and submission enters bank review without approving the relationship.
+- Registered address verification: an assigned staff member receives a request-scoped link, records the check and evidence, and the compliance reviewer accepts or returns that evidence before the Matter owner performs outcome sign-off and closure.
+- Certification refresh: an existing vendor receives a request for applicable ISO 27001 and PCI DSS documents; the bank reviews each current submission and records acceptance or specific follow-up without changing vendor status automatically.
 | UC-ADMIN-01 | Tenant support and break-glass | incident/support need → narrow time-bound access and retrospective review | security/platform authority | Enterprise |
 | UC-GROUP-01 | Multi-entity/group operation | shared obligation/service/change → local and group state without scope leakage | group and entity authorities | Enterprise |
 | UC-MIG-01 | Tenant migration or offboarding | deployment/change/end of contract → verified export, retention, deletion/hold | tenant owner + platform authority | Enterprise |
