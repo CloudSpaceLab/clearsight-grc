@@ -26,6 +26,7 @@ type DistributionListQuery struct {
 	Now              time.Time
 	Limit            int
 	Cursor           string
+	probeNext        bool
 }
 
 // DistributionFormRevision is the evidence package's cycle-free projection of
