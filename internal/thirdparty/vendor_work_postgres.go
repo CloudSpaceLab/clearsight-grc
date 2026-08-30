@@ -114,7 +114,7 @@ func (r *PostgresRepository) AttachVendorWorkCapture(ctx context.Context, scope 
 		return VendorWorkRequest{}, err
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO third_party_work_capture_links(id,tenant_id,legal_entity_id,work_request_id,request_id,sequence,purpose,origin_type,origin_id,origin_version,created_at)
-		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,$7,'THIRD_PARTY_WORK',$4::uuid,$6,$8)`, link.ID, tenantID, scope.LegalEntityID, id, link.RequestID, link.Sequence, link.Purpose, link.CreatedAt)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::integer,$7,'THIRD_PARTY_WORK',$4::uuid,$8::bigint,$9)`, link.ID, tenantID, scope.LegalEntityID, id, link.RequestID, link.Sequence, link.Purpose, link.OriginVersion, link.CreatedAt)
 	if isUniqueViolation(err) {
 		return VendorWorkRequest{}, ErrVersionConflict
 	}
@@ -421,7 +421,7 @@ func (r *PostgresRepository) RecordVendorWorkChanges(ctx context.Context, scope 
 		return VendorWorkRequest{}, err
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO third_party_work_capture_links(id,tenant_id,legal_entity_id,work_request_id,request_id,sequence,purpose,origin_type,origin_id,origin_version,created_at)
-		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'CLARIFICATION','THIRD_PARTY_WORK',$4::uuid,$6,$7)`, link.ID, tenantID, scope.LegalEntityID, id, link.RequestID, link.Sequence, link.CreatedAt)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::integer,'CLARIFICATION','THIRD_PARTY_WORK',$4::uuid,$7::bigint,$8)`, link.ID, tenantID, scope.LegalEntityID, id, link.RequestID, link.Sequence, link.OriginVersion, link.CreatedAt)
 	if isUniqueViolation(err) {
 		return VendorWorkRequest{}, ErrVersionConflict
 	}
