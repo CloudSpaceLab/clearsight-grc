@@ -81,7 +81,7 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 			3,clock_timestamp()+interval '90 days','{}'::jsonb,
 			'[{"id":"confirmation","type":"TEXT","label":"Confirmation","required":true}]'::jsonb,
 			'SUBMITTED',$3::uuid,2,clock_timestamp()-interval '2 days',clock_timestamp()-interval '1 day',
-			'INTERNAL_PRINCIPAL',$3::uuid,'Forms Operations Owner','ASSIGNED',1,
+			'INTERNAL_PRINCIPAL',$3::uuid,'','ASSIGNED',1,
 			md5('scale-distribution-'||i)::uuid,md5('scale-form-'||i)::uuid,1
 		FROM generate_series(1,400) i CROSS JOIN generate_series(1,2) recipient_number`, tenant, entity, actor); err != nil {
 		t.Fatal(err)
