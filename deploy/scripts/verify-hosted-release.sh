@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+"$script_dir/verify-email-readiness.sh"
+
 expected_sha="${1:?expected sha is required}"
 base_url="${2:-https://clearsight.cloudspacetechs.com}"
 [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]

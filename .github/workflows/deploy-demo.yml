@@ -63,6 +63,7 @@ jobs:
           install -m 0755 deploy/scripts/seed-demo-foundation.sh "$release/scripts/seed-demo-foundation.sh"
           install -m 0755 deploy/scripts/release.sh "$release/scripts/release.sh"
           install -m 0755 deploy/scripts/verify-hosted-release.sh "$release/scripts/verify-hosted-release.sh"
+          install -m 0755 deploy/scripts/verify-email-readiness.sh "$release/scripts/verify-email-readiness.sh"
           cp migrations/*.up.sql "$release/migrations/"
           printf 'false\n' > "$release/schema-backward-compatible"
 
