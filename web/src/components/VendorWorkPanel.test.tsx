@@ -36,9 +36,16 @@ const form = {
   ],
 };
 
+const addressForm = {
+  ...form, id: "form-address", code: "VENDOR-ADDRESS-VERIFICATION", name: "Verify vendor address", version: 1,
+};
+const certificationForm = {
+  ...form, id: "form-certifications", code: "VENDOR-CERTIFICATION-REFRESH", name: "Submit current vendor certifications", version: 1,
+};
+
 const work: VendorWorkRequest = {
   id: "work-1", tenant_id: "bank", legal_entity_id: "entity", relationship_id: "relationship-1", relationship_link_id: "link-1",
-  target_type: "PROGRAM", target_id: "program-1", purpose: "Confirm annual resilience controls", instructions: "Complete the form and attach the current report.",
+  target_type: "PROGRAM", target_id: "program-1", request_kind: "GENERAL", purpose: "Confirm annual resilience controls", instructions: "Complete the form and attach the current report.",
   owner_principal_id: "owner", form_template_id: "form-1", form_template_version: 4, presentation: "WIZARD", current_request_id: "request-1",
   current_capture_sequence: 1, state: "PREPARING", delivery_state: "NOT_SENT", due_at: "2026-09-30T17:00:00Z", version: 2,
   created_at: "2026-08-26T10:00:00Z", updated_at: "2026-08-26T10:01:00Z",
@@ -76,6 +83,46 @@ describe("VendorWorkPanel", () => {
     vi.mocked(retryVendorWorkDelivery).mockReset();
   });
 
+  it("prepares an address check for a staff evidence contact without changing Matter authority", async () => {
+    vi.mocked(loadFormTemplates).mockResolvedValue([form, addressForm, certificationForm]);
+    vi.mocked(prepareVendorWork).mockResolvedValue({ ...work, request_kind: "ADDRESS_VERIFICATION" } as VendorWorkRequest);
+    vi.mocked(sendVendorWork).mockResolvedValue({ work: { ...work, request_kind: "ADDRESS_VERIFICATION", state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 3 } as VendorWorkRequest, state: "DELIVERED" });
+    render(<VendorWorkPanel targetType="MATTER" targetID="matter-1"/>);
+
+    await screen.findByText("No vendor requests have been recorded for this issue or change.");
+    fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
+    fireEvent.change(screen.getByLabelText("Request type"), { target: { value: "ADDRESS_VERIFICATION" } });
+
+    expect(screen.getByLabelText("Address verification staff email")).toBeTruthy();
+    expect(screen.getByText(/access to this evidence request only/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Send address check" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Verify vendor address · version 1" })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "Submit current vendor certifications · version 1" })).toBeNull();
+  });
+
+  it("presents certification collection and acceptance as separate steps", async () => {
+    vi.mocked(loadFormTemplates).mockResolvedValue([form, addressForm, certificationForm]);
+    vi.mocked(loadVendorWork).mockResolvedValue({ items: [
+      { ...work, id: "cert-pending", request_kind: "CERTIFICATION_REFRESH", state: "AWAITING_VENDOR", delivery_state: "DELIVERED" } as VendorWorkRequest,
+      { ...work, id: "cert-response", request_kind: "CERTIFICATION_REFRESH", state: "RESPONSE_RECEIVED", delivery_state: "DELIVERED", version: 4 } as VendorWorkRequest,
+      { ...work, id: "address-response", request_kind: "ADDRESS_VERIFICATION", state: "RESPONSE_RECEIVED", delivery_state: "DELIVERED", version: 4 } as VendorWorkRequest,
+      { ...work, id: "accepted", request_kind: "ADDRESS_VERIFICATION", state: "ACCEPTED", delivery_state: "DELIVERED", review_rationale: "The address evidence matches the registered record." } as VendorWorkRequest,
+    ] });
+    render(<VendorWorkPanel targetType="MATTER" targetID="matter-1"/>);
+
+    expect(await screen.findByText("Certification evidence received")).toBeTruthy();
+    expect(screen.getByText("Staff confirmation received")).toBeTruthy();
+    expect(screen.getByText("Evidence accepted")).toBeTruthy();
+    expect(screen.queryByText("Matter resolved")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
+    fireEvent.change(screen.getByLabelText("Request type"), { target: { value: "CERTIFICATION_REFRESH" } });
+    expect(screen.getByText(/Request current ISO 27001 and PCI DSS evidence/)).toBeTruthy();
+    expect(screen.getByText(/submission does not mean the bank has accepted/i)).toBeTruthy();
+    expect(screen.getByLabelText("Vendor contact email")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Send certification request" })).toBeTruthy();
+  });
+
   it("prepares and sends vendor work with typed inputs and a real rendering choice", async () => {
     vi.mocked(prepareVendorWork).mockResolvedValue(work);
     vi.mocked(sendVendorWork).mockResolvedValue({ work: { ...work, state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 3 }, state: "DELIVERED" });
@@ -97,7 +144,7 @@ describe("VendorWorkPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Prepare and send request" }));
 
     await waitFor(() => expect(prepareVendorWork).toHaveBeenCalledWith("relationship-1", expect.objectContaining({
-      relationship_link_id: "link-1", form_template_id: "form-1", form_template_version: 4, presentation: "WIZARD",
+      relationship_link_id: "link-1", request_kind: "GENERAL", form_template_id: "form-1", form_template_version: 4, presentation: "WIZARD",
       vendor_audience: "assurance@vendor.example", due_at: "2026-09-30T23:59:59.000Z",
     })));
     expect(sendVendorWork).toHaveBeenCalledWith("relationship-1", "work-1", { expected_version: 2, vendor_audience: "assurance@vendor.example", invitation_ttl_minutes: 10080 });

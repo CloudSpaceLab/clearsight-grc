@@ -307,7 +307,7 @@ function vendorWorkRecord(link: VendorRelationshipLink, state: VendorWorkRequest
   return {
     id: link.target_type === "PROGRAM" ? "vendor-work-program-controls" : "vendor-work-matter-evidence",
     tenant_id: "bank-demo", legal_entity_id: "bank-ng", relationship_id: vendorRelationshipID, relationship_link_id: link.id,
-    target_type: link.target_type, target_id: link.target_id, purpose: link.target_type === "PROGRAM" ? "Confirm payment-service controls" : "Complete annual-return evidence",
+    target_type: link.target_type, target_id: link.target_id, request_kind: "GENERAL", purpose: link.target_type === "PROGRAM" ? "Confirm payment-service controls" : "Complete annual-return evidence",
     instructions: link.target_type === "PROGRAM" ? "Complete the control questions and provide the current independent assurance report." : "Upload the signed evidence schedule and confirm the remaining service-control details.",
     owner_principal_id: link.target_type === "PROGRAM" ? "role-payments-owner" : "role-dpo", reviewer_principal_id: state === "UNDER_REVIEW" || state === "ACCEPTED" ? "role-cro" : undefined,
     form_template_id: vendorDueDiligenceForm.id, form_template_version: vendorDueDiligenceForm.version, presentation: "WIZARD",

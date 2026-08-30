@@ -4,6 +4,7 @@ import type { VendorAssessmentDocument, VendorAssessmentReviewAnswer } from "./v
 
 export type VendorWorkState = "PREPARING" | "AWAITING_VENDOR" | "RESPONSE_RECEIVED" | "UNDER_REVIEW" | "CHANGES_REQUESTED" | "ACCEPTED" | "CANCELLED";
 export type VendorWorkDeliveryState = "NOT_SENT" | "LINK_CREATED_EMAIL_NOT_SENT" | "DELIVERED" | "RETRY_REQUIRED";
+export type VendorWorkRequestKind = "GENERAL" | "ADDRESS_VERIFICATION" | "CERTIFICATION_REFRESH";
 
 export type VendorWorkRequest = {
   id: string;
@@ -13,6 +14,7 @@ export type VendorWorkRequest = {
   relationship_link_id: string;
   target_type: VendorLinkTargetType;
   target_id: string;
+  request_kind: VendorWorkRequestKind;
   purpose: string;
   instructions: string;
   owner_principal_id: string;
@@ -44,6 +46,7 @@ export type VendorWorkQuery = { relationship_id?: string; target_type?: VendorLi
 
 export type PrepareVendorWorkInput = {
   relationship_link_id: string;
+  request_kind: VendorWorkRequestKind;
   purpose: string;
   instructions: string;
   form_template_id: string;

@@ -48,7 +48,7 @@ describe("vendor work API", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await prepareVendorWork("relationship/1", {
-      relationship_link_id: "link-1", purpose: work.purpose, instructions: work.instructions,
+      relationship_link_id: "link-1", request_kind: "GENERAL", purpose: work.purpose, instructions: work.instructions,
       form_template_id: "form-1", form_template_version: 4, presentation: "WIZARD",
       vendor_audience: "assurance@vendor.example", due_at: "2026-09-30T17:00:00Z",
     });
@@ -56,7 +56,7 @@ describe("vendor work API", () => {
     const call = fetchMock.mock.calls[0];
     expect(call?.[0]).toBe("/api/v1/vendors/relationship%2F1/work/prepare");
     expect(JSON.parse(String((call?.[1] as RequestInit).body))).toEqual({
-      relationship_link_id: "link-1", purpose: work.purpose, instructions: work.instructions,
+      relationship_link_id: "link-1", request_kind: "GENERAL", purpose: work.purpose, instructions: work.instructions,
       form_template_id: "form-1", form_template_version: 4, presentation: "WIZARD",
       vendor_audience: "assurance@vendor.example", due_at: "2026-09-30T17:00:00Z",
     });
