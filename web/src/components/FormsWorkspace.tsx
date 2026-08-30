@@ -34,6 +34,7 @@ import { FormsTabContent } from "./forms/FormsTabContent";
 import { NewFormLauncher } from "./forms/creation/NewFormLauncher";
 import { TemplateDetailDrawer } from "./forms/dashboard/TemplateDetailDrawer";
 import { TemplateLibraryTable } from "./forms/dashboard/TemplateLibraryTable";
+import { FilterBar } from "./forms/filters/FilterBar";
 import { defaultFormsAccent, loadFormsAppearance, type FormsAppearance } from "./forms/formsAppearance";
 import { preserveLibraryRevisionMetadata } from "./forms/formRevisionInput";
 import { isTemplateApprovalReady } from "./forms/formQuality";
@@ -59,6 +60,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const [query, setQuery] = useState<FormTemplateQuery>(() => readFormsQuery(window.location.hash, initialSearch));
   const [page, setPage] = useState<{ items: FormLibraryItem[]; next_cursor?: string }>({ items: [] });
   const [state, setState] = useState<LoadState>("loading");
+  const [revalidating, setRevalidating] = useState(false);
   const [starters, setStarters] = useState<StarterTemplate[]>([]);
   const [reusableTemplates, setReusableTemplates] = useState<ReusableFormTemplateRef[]>([]);
   const [savedViews, setSavedViews] = useState<SavedFormView[]>([]);
@@ -74,6 +76,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const [notice, setNotice] = useState<string | null>(null);
   const [appearance, setAppearance] = useState<FormsAppearance>(() => readAppearance(appearanceKey));
   const loadEpoch = useRef(0);
+  const requestAbort = useRef<AbortController | null>(null);
 
   const selected = useMemo(() => page.items.find((item) => item.template.id === targetID), [page.items, targetID]);
   const selectedItems = useMemo(() => page.items.filter((item) => selectedIDs.has(item.template.id)), [page.items, selectedIDs]);
@@ -98,7 +101,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   }, [initialSearch]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => { void refresh(query); }, query.search ? 250 : 0);
+    const timer = window.setTimeout(() => { void refresh(query); }, query.search ? 220 : 0);
     return () => window.clearTimeout(timer);
   }, [query.search, query.status, query.owner, query.program, query.use, query.tag, query.limit]);
 
@@ -118,25 +121,43 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     setSelectedIDs((current) => new Set([...current].filter((id) => visible.has(id))));
   }, [page.items]);
 
+  useEffect(() => () => requestAbort.current?.abort(), []);
+
   function invalidatePagedLoad() {
     loadEpoch.current += 1;
+    requestAbort.current?.abort();
+    requestAbort.current = null;
+    setRevalidating(false);
     setBusy((current) => current === "load-more" ? null : current);
   }
 
   async function refresh(nextQuery = query) {
     const epoch = ++loadEpoch.current;
-    setState("loading");
+    requestAbort.current?.abort();
+    const controller = new AbortController();
+    requestAbort.current = controller;
+    const preserveCurrentRows = state === "live";
+    if (preserveCurrentRows) setRevalidating(true); else setState("loading");
     setError(null);
     try {
-      const next = await loadFormTemplatePage({ ...nextQuery, cursor: undefined, limit: nextQuery.limit ?? 25 });
-      if (epoch !== loadEpoch.current) return;
+      const next = await loadFormTemplatePage({ ...nextQuery, cursor: undefined, limit: nextQuery.limit ?? 25 }, controller.signal);
+      if (controller.signal.aborted || epoch !== loadEpoch.current) return;
       setPage(next);
       setState("live");
     } catch (cause) {
-      if (epoch !== loadEpoch.current) return;
-      setPage({ items: [] });
-      setState("unavailable");
+      if (controller.signal.aborted || epoch !== loadEpoch.current) return;
+      if (preserveCurrentRows) {
+        setState("live");
+      } else {
+        setPage({ items: [] });
+        setState("unavailable");
+      }
       setError(cause instanceof Error ? cause.message : "Form templates could not be loaded.");
+    } finally {
+      if (requestAbort.current === controller) {
+        requestAbort.current = null;
+        setRevalidating(false);
+      }
     }
   }
 
@@ -166,10 +187,9 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     }
   }
 
-  function changeQuery(patch: Partial<FormTemplateQuery>) {
-    const next = { ...query, ...patch, cursor: undefined };
+  function replaceQuery(next: FormTemplateQuery) {
     invalidatePagedLoad();
-    setQuery(next);
+    setQuery({ ...next, cursor: undefined });
     writeFormsLocation(next, targetID, true);
   }
 
@@ -385,11 +405,12 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       />
     </div> : activeTab === "Templates" ? <div className="forms-template-layout forms-template-dashboard">
       <div className="forms-library">
-        <div className="forms-toolbar forms-dashboard-toolbar">
-          <label className="forms-search"><span>Search templates</span><input type="search" value={query.search ?? ""} placeholder="Search name, code or purpose…" onChange={(event) => changeQuery({ search: event.target.value || undefined })}/></label>
-          <label className="forms-status-filter"><span>Status</span><select value={query.status ?? ""} onChange={(event) => changeQuery({ status: event.target.value ? event.target.value as LifecycleStatus : undefined })}><option value="">All states</option><option value="DRAFT">Draft</option><option value="PENDING_APPROVAL">In review</option><option value="ACTIVE">Active</option><option value="PAUSED">Paused</option><option value="RETIRED">Retired</option><option value="REJECTED">Rejected</option></select></label>
-          <details className="forms-more-filters"><summary>+ Filter</summary><div><label><span>Owner identifier</span><input value={query.owner ?? ""} onChange={(event) => changeQuery({ owner: event.target.value || undefined })}/></label><label><span>Program identifier</span><input value={query.program ?? ""} onChange={(event) => changeQuery({ program: event.target.value || undefined })}/></label><label><span>Approved use</span><input value={query.use ?? ""} onChange={(event) => changeQuery({ use: event.target.value || undefined })}/></label><label><span>Tag</span><input value={query.tag ?? ""} onChange={(event) => changeQuery({ tag: event.target.value || undefined })}/></label></div></details>
-        </div>
+        <FilterBar
+          query={query}
+          onChange={replaceQuery}
+          resultCount={state === "live" && !page.next_cursor ? page.items.length : undefined}
+          revalidating={revalidating}
+        />
 
         {(savedViews.length > 0 || customView) && <div className="forms-saved-views" aria-label="Saved form views">
           {savedViews.length > 0 && <><span>Views</span>{savedViews.map((view) => <span className="forms-saved-view" key={view.id}><button type="button" onClick={() => applySavedView(view)}>{view.name}</button><button type="button" aria-label={`Delete saved view ${view.name}`} disabled={busy === `delete-view:${view.id}`} onClick={() => void removeSavedView(view.id)}>×</button></span>)}</>}
