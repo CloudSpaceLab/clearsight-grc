@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { assessInteractionBundle, collectInteractionBundleMetrics } from "./ui-bundle-budget.mjs";
+import { formsEvidenceScenarios, requiredFormsCapabilities } from "./forms-evidence-scenarios.mjs";
 
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const expectedNames = [
@@ -93,11 +94,7 @@ const expectedNames = [
   "86-vendor-form-readiness-light-1440x900",
   "87-vendor-link-sheet-light-1440x900",
   "88-vendor-link-sheet-dark-mobile-390x844",
-  "89-forms-library-light-1440x900",
-  "90-forms-search-empty-dark-mobile-390x844",
-  "91-forms-sent-light-1440x900",
-  "92-forms-amend-dark-mobile-390x844",
-  "93-forms-responses-light-1440x900",
+  ...formsEvidenceScenarios.map((scenario) => scenario.name),
 ];
 const requiredStates = [
   "baseline",
@@ -169,11 +166,7 @@ const requiredStates = [
   "vendor-form-readiness",
   "vendor-link-focused-sheet",
   "vendor-link-focused-sheet-mobile",
-  "forms-template-library",
-  "forms-template-search-empty",
-  "forms-sent-management",
-  "forms-amend-mobile",
-  "forms-response-revisions",
+  ...formsEvidenceScenarios.map((scenario) => scenario.state),
 ];
 
 const failures = [];
@@ -238,6 +231,34 @@ if (manifest) {
   const states = new Set(manifest.captures.map((capture) => capture.state));
   const missingStates = requiredStates.filter((state) => !states.has(state));
   if (missingStates.length) failures.push(`flow state coverage is missing: ${missingStates.join(", ")}`);
+  const formsByName = new Map(manifest.captures.filter((capture) => capture.name.includes("-forms-")).map((capture) => [capture.name, capture]));
+  const formsCapabilities = new Set([...formsByName.values()].flatMap((capture) => capture.capabilities ?? []));
+  const missingFormsCapabilities = requiredFormsCapabilities.filter((capability) => !formsCapabilities.has(capability));
+  if (missingFormsCapabilities.length) failures.push(`governed Forms evidence coverage is missing: ${missingFormsCapabilities.join(", ")}`);
+  for (const scenario of formsEvidenceScenarios) {
+    const capture = formsByName.get(scenario.name);
+    if (!capture) continue;
+    const mismatches = [];
+    if (capture.fixture !== scenario.fixture) mismatches.push(`fixture ${capture.fixture ?? "missing"}`);
+    if (capture.route !== scenario.route) mismatches.push(`route ${capture.route ?? "missing"}`);
+    if (capture.state !== scenario.state) mismatches.push(`state ${capture.state ?? "missing"}`);
+    if (capture.theme !== scenario.theme) mismatches.push(`theme ${capture.theme ?? "missing"}`);
+    if (capture.viewport?.width !== scenario.viewport.width || capture.viewport?.height !== scenario.viewport.height) mismatches.push(`viewport ${capture.viewport?.width ?? "?"}x${capture.viewport?.height ?? "?"}`);
+    if (capture.zoom !== scenario.zoom) mismatches.push(`zoom ${capture.zoom ?? "missing"}`);
+    const recordedCapabilities = new Set(capture.capabilities ?? []);
+    const absent = scenario.capabilities.filter((capability) => !recordedCapabilities.has(capability));
+    if (absent.length) mismatches.push(`capabilities ${absent.join("/")}`);
+    if (mismatches.length) failures.push(`${scenario.name} evidence metadata does not match its registry: ${mismatches.join(", ")}`);
+  }
+  const formsValues = [...formsByName.values()];
+  if (!formsValues.some((capture) => capture.viewport?.width >= 1280)
+      || !formsValues.some((capture) => capture.viewport?.width === 390)
+      || !formsValues.some((capture) => capture.viewport?.width === 320)
+      || !formsValues.some((capture) => capture.zoom === 2)
+      || !formsValues.some((capture) => capture.theme === "light")
+      || !formsValues.some((capture) => capture.theme === "dark")) {
+    failures.push("governed Forms evidence must independently include desktop, mobile, 320px reflow, 200% zoom proxy, light and dark coverage");
+  }
   for (const capture of manifest.captures) {
     if (capture.metrics && capture.metrics.scrollWidth > capture.metrics.clientWidth + 1) failures.push(`${capture.name} recorded horizontal overflow`);
   }
@@ -245,7 +266,7 @@ if (manifest) {
   const themes = new Set(manifest.captures.map((capture) => capture.theme));
   if (![...widths].some((width) => width >= 1280) || !widths.has(1024) || !widths.has(390) || !widths.has(320)) failures.push("responsive coverage must include desktop, tablet, mobile and 320px reflow");
   if (!themes.has("light") || !themes.has("dark")) failures.push("theme coverage must include light and dark modes");
-  checks.push({ name: "rendered state coverage", status: missingRecords.length || unexpectedRecords.length || missingStates.length ? "FAIL" : "PASS", detail: `${uniqueNames.size}/${expectedNames.length} flow records` });
+  checks.push({ name: "rendered state coverage", status: missingRecords.length || unexpectedRecords.length || missingStates.length || missingFormsCapabilities.length ? "FAIL" : "PASS", detail: `${uniqueNames.size}/${expectedNames.length} flow records; ${requiredFormsCapabilities.length - missingFormsCapabilities.length}/${requiredFormsCapabilities.length} governed Forms capabilities` });
 }
 
 let evidence = [];
