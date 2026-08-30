@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { FormLibraryItem } from "../../../formsTypes";
 import type { LifecycleStatus } from "../../../monitoringTypes";
 import { isTemplateApprovalReady } from "../formQuality";
@@ -14,6 +15,17 @@ type Props = {
 };
 
 export function TemplateDetailDrawer({ item, requestedID, busy, onClose, onClearFilters, onEdit, onTransition }: Props) {
+  useEffect(() => {
+    if (!requestedID) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      onClose();
+    };
+    window.addEventListener("keydown", dismiss);
+    return () => window.removeEventListener("keydown", dismiss);
+  }, [onClose, requestedID]);
+
   if (!requestedID) return null;
 
   return <aside className="forms-detail-drawer" aria-label="Selected form template">
