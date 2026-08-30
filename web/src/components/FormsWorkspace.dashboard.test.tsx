@@ -69,7 +69,7 @@ describe("Forms template dashboard", () => {
     expect(screen.queryByRole("button", { name: "Cards" })).toBeNull();
   });
 
-  it("opens template detail contextually and closes it without changing library data", async () => {
+  it("opens template detail contextually and dismisses it without changing library data", async () => {
     function Harness() {
       const [target, setTarget] = useState<string>();
       return <FormsWorkspace targetID={target} onTarget={setTarget}/>;
@@ -80,7 +80,8 @@ describe("Forms template dashboard", () => {
     const drawer = await screen.findByLabelText("Selected form template");
     expect(drawer.textContent).toMatch(/Latest stored.*Draft.*v2/);
     expect(drawer.textContent).toMatch(/Reusable now.*Active.*v1/);
-    fireEvent.click(screen.getByRole("button", { name: "Close form detail" }));
+    expect(screen.getByRole("button", { name: "Close form detail" })).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() => expect(screen.queryByLabelText("Selected form template")).toBeNull());
     expect(screen.getByRole("button", { name: "Open Vendor due diligence" })).toBeTruthy();
   });
