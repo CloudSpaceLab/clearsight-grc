@@ -25,10 +25,41 @@ func (repository *PostgresCommunicationReminderRepository) ScheduleDueCommunicat
 		return 0, ErrCommunicationUnavailable
 	}
 	rows, err := repository.pool.Query(ctx, `
-		SELECT id::text,tenant_id::text,deadline,reminder_policy
-		FROM capture_form_distributions
-		WHERE status='OPEN' AND deadline>$1 AND route_expires_at>$1 AND reminder_policy<>'{}'::jsonb
-		ORDER BY deadline,id
+		SELECT d.id::text,d.tenant_id::text,d.deadline,d.reminder_policy
+		FROM capture_form_distributions d
+		WHERE d.status='OPEN' AND d.deadline>$1 AND d.route_expires_at>$1 AND d.reminder_policy<>'{}'::jsonb
+		  AND (
+			d.reminder_policy-'reminder_hours_before'-'due_soon_hours_before'<>'{}'::jsonb
+			OR (d.reminder_policy?'reminder_hours_before' AND jsonb_typeof(d.reminder_policy->'reminder_hours_before')<>'array')
+			OR (d.reminder_policy?'due_soon_hours_before' AND jsonb_typeof(d.reminder_policy->'due_soon_hours_before')<>'array')
+			OR EXISTS (
+				SELECT 1 FROM (
+					SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(d.reminder_policy->'reminder_hours_before')='array' THEN d.reminder_policy->'reminder_hours_before' ELSE '[]'::jsonb END) AS offset_text
+					UNION ALL
+					SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(d.reminder_policy->'due_soon_hours_before')='array' THEN d.reminder_policy->'due_soon_hours_before' ELSE '[]'::jsonb END)
+				) invalid_spec
+				WHERE invalid_spec.offset_text !~ '^[0-9]{1,9}$'
+			)
+			OR EXISTS (
+				SELECT 1 FROM (
+					SELECT 'REMINDER'::text AS action,jsonb_array_elements_text(CASE WHEN jsonb_typeof(d.reminder_policy->'reminder_hours_before')='array' THEN d.reminder_policy->'reminder_hours_before' ELSE '[]'::jsonb END) AS offset_text
+					UNION ALL
+					SELECT 'DUE_SOON'::text,jsonb_array_elements_text(CASE WHEN jsonb_typeof(d.reminder_policy->'due_soon_hours_before')='array' THEN d.reminder_policy->'due_soon_hours_before' ELSE '[]'::jsonb END)
+				) spec
+				WHERE spec.offset_text ~ '^[0-9]{1,9}$'
+				  AND d.deadline-make_interval(hours=>spec.offset_text::integer)<=$1
+				  AND NOT EXISTS (
+					SELECT 1 FROM outbox_events outbox
+					WHERE outbox.tenant_id=d.tenant_id
+					  AND outbox.aggregate_type='FORM_DISTRIBUTION' AND outbox.aggregate_id=d.id
+					  AND outbox.event_type='FORM_COMMUNICATION_REMINDER_DUE'
+					  AND outbox.payload->>'action'=spec.action
+					  AND outbox.payload->>'offset_hours'=spec.offset_text
+					  AND (outbox.payload->>'deadline')::timestamptz=d.deadline
+				  )
+			)
+		  )
+		ORDER BY d.deadline,d.id
 		LIMIT $2`, now.UTC(), limit)
 	if err != nil {
 		return 0, err
