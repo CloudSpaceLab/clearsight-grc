@@ -61,6 +61,10 @@ func (s *PostgresDistributionStore) ListDistributions(ctx context.Context, query
 	if err != nil {
 		return nil, err
 	}
+	fetchLimit := query.Limit
+	if query.probeNext {
+		fetchLimit++
+	}
 	rows, err := s.repo.pool.Query(ctx, `
 		SELECT d.id::text,d.tenant_id::text,d.legal_entity_id::text,d.form_template_id::text,d.form_template_version,
 		       d.subject_type,d.subject_id::text,d.title,d.purpose,d.access_policy,d.status,d.deadline,d.route_expires_at,
@@ -82,7 +86,7 @@ func (s *PostgresDistributionStore) ListDistributions(ctx context.Context, query
 		  )
 		ORDER BY d.updated_at DESC,d.id DESC
 		LIMIT $11`, query.TenantID, query.LegalEntityID, string(query.Status), cursor.UpdatedAt, nullableUUID(cursor.ID),
-		query.SubjectType, query.SubjectID, query.OwnerPrincipalID, string(query.DueState), query.Now, query.Limit)
+		query.SubjectType, query.SubjectID, query.OwnerPrincipalID, string(query.DueState), query.Now, fetchLimit)
 	if err != nil {
 		return nil, fmt.Errorf("list form distributions: %w", err)
 	}

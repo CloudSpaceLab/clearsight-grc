@@ -113,13 +113,15 @@ func (service *DistributionService) List(ctx context.Context, query Distribution
 	if !normalizeDistributionListQuery(&query, service.currentTime()) {
 		return DistributionPage{}, fmt.Errorf("%w: distribution filters are invalid", ErrDistributionInvalid)
 	}
+	query.probeNext = true
 	values, err := service.store.ListDistributions(ctx, query)
 	if err != nil {
 		return DistributionPage{}, normalizeDistributionError(err)
 	}
 	page := DistributionPage{Items: values}
-	if len(values) == query.Limit {
-		page.NextCursor = encodeDistributionCursor(values[len(values)-1])
+	if len(values) > query.Limit {
+		page.Items = values[:query.Limit]
+		page.NextCursor = encodeDistributionCursor(page.Items[len(page.Items)-1])
 	}
 	return page, nil
 }

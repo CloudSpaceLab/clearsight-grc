@@ -34,6 +34,7 @@ type Dependencies struct {
 	Logger                           *slog.Logger
 	AllowedOrigin                    string
 	Mode                             string
+	ReleaseSHA                       string
 	DemoMode                         bool
 	IdentityMode                     string
 	OIDCIssuer                       string

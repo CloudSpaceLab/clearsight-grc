@@ -82,6 +82,27 @@ class DeploymentConfigTest(unittest.TestCase):
             self.assertIn(f'clearsight-{component}:$RELEASE_SHA', workflow)
         self.assertNotIn("bigbundle.pem", workflow)
 
+    def test_hosted_verifier_is_exact_sha_read_only_and_redacted(self) -> None:
+        verifier = self.read("deploy/scripts/verify-hosted-release.sh")
+        for value in (
+            'expected_sha="${1:?expected sha is required}"',
+            "/health/ready",
+            "/api/v1/demo/login",
+            "/api/v1/session/status",
+            "/api/v1/today",
+            "/api/v1/forms/templates?limit=1",
+            "/api/v1/vendors?limit=1",
+            "/api/v1/evidence/access/start",
+            '"revision"',
+            '"authenticated"',
+            "invalid_access_selector",
+        ):
+            self.assertIn(value, verifier)
+        self.assertNotIn("set -x", verifier)
+        workflow = self.read(".github/workflows/deploy-demo.yml")
+        self.assertIn("verify-hosted-release.sh", workflow)
+        self.assertIn('"$RELEASE_SHA"', workflow)
+
     def test_postgres_demo_is_seeded_and_artifacts_are_writable(self) -> None:
         dockerfile = self.read("Dockerfile.api")
         release = self.read("deploy/scripts/release.sh")

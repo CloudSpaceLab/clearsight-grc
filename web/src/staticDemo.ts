@@ -3,7 +3,7 @@ import staticDemoFixturesURL from "./staticDemoFixtures.json?url";
 import staticDemoWorkflowRuntimeURL from "./staticDemoWorkflowRuntime.js?url";
 import type { FormTemplate } from "./monitoringTypes";
 import { vendorDueDiligenceStarterForm } from "./vendorDueDiligenceForm";
-import type { VendorAssessment, VendorAssessmentReviewView } from "./vendorAssessmentTypes";
+import type { VendorAssessment, VendorAssessmentReviewAnswer, VendorAssessmentReviewView } from "./vendorAssessmentTypes";
 import { normalizeRegisteredAddress, normalizeWebsiteDomain } from "./vendorIdentity";
 import type { VendorRelationshipLink } from "./vendorLinkTypes";
 import type { VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "./vendorTypes";
@@ -184,6 +184,71 @@ function staticFormLibraryTemplate() {
   };
 }
 
+function formsTemplatePopulation(fixture: string) {
+  const template = staticFormLibraryTemplate();
+  if (fixture === "forms-library-lifecycle") return [
+    { ...template, id: "form-lifecycle-draft", code: "FORM-DRAFT", name: "Customer complaint review draft", status: "DRAFT", version: 1, updated_at: "2026-08-30T12:04:00Z" },
+    { ...template, id: "form-lifecycle-pending", code: "FORM-PENDING", name: "Payments control owner confirmation", status: "PENDING_APPROVAL", version: 2, updated_at: "2026-08-30T12:03:00Z" },
+    { ...template, id: "form-lifecycle-active", code: "FORM-ACTIVE", name: "Vendor security and privacy review", status: "ACTIVE", version: 3, updated_at: "2026-08-30T12:02:00Z" },
+    { ...template, id: "form-lifecycle-retired", code: "FORM-RETIRED", name: "Retired annual evidence schedule", status: "RETIRED", version: 4, updated_at: "2026-08-30T12:01:00Z" },
+  ];
+  if (fixture === "forms-library-governance") return [
+    { ...template, id: "form-ready-draft-1", code: "FORM-READY-1", name: "Approval-ready privacy draft", status: "DRAFT", version: 1, updated_at: "2026-08-30T12:02:00Z" },
+    { ...template, id: "form-ready-draft-2", code: "FORM-READY-2", name: "Approval-ready resilience draft", status: "DRAFT", version: 1, updated_at: "2026-08-30T12:01:00Z" },
+  ];
+  if (fixture === "forms-weights-invalid" || fixture === "forms-weights-valid") {
+    const valid = fixture === "forms-weights-valid";
+    return [{
+      ...template,
+      id: "form-compliance-scoring",
+      code: "FORM-COMPLIANCE-SCORE",
+      name: "Compliance scoring review",
+      purpose: "Collect the scored control confirmation used for independent approval.",
+      status: "DRAFT",
+      version: 1,
+      scoring_mode: "COMPLIANCE",
+      sections: [{ id: "controls", title: "Control confirmation", help: "Confirm the current control outcome.", weight: valid ? 100 : 50 }],
+      fields: [
+        { id: "control_operating", section_id: "controls", label: "Is the control operating?", type: "yes_no", required: true, scoring: { weight: valid ? 100 : 60, answer_scores: { Yes: 100, No: 0 }, critical_answers: ["No"] } },
+        { id: "control_attestation", section_id: "controls", label: "Control owner confirmation", type: "attestation", required: true, attestation: "I confirm this control response is complete and accurate." },
+      ],
+      updated_at: "2026-08-30T12:05:00Z",
+    }];
+  }
+  return demoForms;
+}
+
+function formsImportPopulation(): DocumentImport[] {
+  const values = [
+    ["forms-import-pending", "new-policy.pdf", "PENDING", "PENDING", 0],
+    ["forms-import-partial", "partial-control-register.pdf", "PARTIAL", "REVIEW_REQUIRED", 0],
+    ["forms-import-truncated", "large-obligations-register.xlsx", "TRUNCATED", "REVIEW_REQUIRED", 0],
+    ["forms-import-failed", "unreadable-scan.pdf", "FAILED", "UNAVAILABLE", 0],
+    ["forms-import-proposal", "vendor-questionnaire.docx", "EXTRACTED", "REVIEW_REQUIRED", 1],
+  ] as const;
+  return values.map(([id, fileName, extractionStatus, analysisStatus, proposalCount], index) => ({
+    ...clone(document),
+    id,
+    file_name: fileName,
+    extraction_status: extractionStatus,
+    analysis_status: analysisStatus,
+    proposals: proposalCount ? [{ ...clone(document.proposals[0]!), id: "forms-import-form-proposal", title: "Vendor assurance form proposal", status: "PENDING_REVIEW" as const }] : [],
+    sections: extractionStatus === "FAILED" || extractionStatus === "PENDING" ? [] : clone(document.sections),
+    sections_total: extractionStatus === "TRUNCATED" ? Math.max(2, document.sections.length + 2) : document.sections.length,
+    sections_omitted: extractionStatus === "TRUNCATED" ? 2 : 0,
+    proposals_total: proposalCount,
+    proposals_omitted: 0,
+    content_truncated: extractionStatus === "TRUNCATED",
+    created_at: `2026-08-30T12:0${index}:00Z`,
+    updated_at: `2026-08-30T12:0${index}:00Z`,
+  }));
+}
+
+function formImportSummary(value: DocumentImport) {
+  const pending = value.proposals.filter((proposal) => proposal.status === "PENDING_REVIEW").length;
+  return { ...value, sections_total: value.sections_total ?? value.sections.length, sections_omitted: value.sections_omitted ?? 0, proposals_total: value.proposals_total ?? value.proposals.length, proposals_omitted: value.proposals_omitted ?? 0, pending_proposal_count: pending, reviewed_proposal_count: value.proposals.length - pending, content_truncated: value.content_truncated ?? false };
+}
+
 function staticDistributionDetail() {
   return {
     distribution: {
@@ -200,6 +265,27 @@ function staticDistributionDetail() {
     ],
     workspace: { id: "workspace-vendor-review", status: "OPEN", version: 2, updated_at: now },
   };
+}
+
+function formsDistributionPopulation(fixture: string) {
+  if (fixture !== "forms-distribution-history") return [staticDistributionDetail().distribution];
+  const base = staticDistributionDetail().distribution;
+  const definitions = [
+    ["distribution-direct", "Annual control confirmation", "Delivered", "DIRECT_MAGIC_LINK", "OPEN"],
+    ["distribution-shared", "Shared vendor review", "Fallback required", "SHARED_LINK_EMAIL_OTP", "OPEN"],
+    ["distribution-direct-otp", "Direct verified review", "Amended", "DIRECT_LINK_EMAIL_OTP", "OPEN"],
+    ["distribution-rotated", "Rotated invitation route", "Rotated", "DIRECT_MAGIC_LINK", "OPEN"],
+    ["distribution-superseded", "Replaced form revision", "Superseded", "SHARED_LINK_EMAIL_OTP", "SUPERSEDED"],
+    ["distribution-revoked", "Revoked recipient access", "Revoked", "DIRECT_LINK_EMAIL_OTP", "REVOKED"],
+  ] as const;
+  return definitions.map(([id, title, purpose, accessPolicy, status], index) => ({ ...base, id, title, purpose, access_policy: accessPolicy, status, version: index + 1 }));
+}
+
+function formsDistributionDetail(fixture: string, id: string) {
+  const distribution = formsDistributionPopulation(fixture).find((value) => value.id === id);
+  if (!distribution) return undefined;
+  const detail = staticDistributionDetail();
+  return { ...detail, distribution, workspace: { ...detail.workspace, id: `workspace-${id}`, status: distribution.status === "REVOKED" ? "REVOKED" : "OPEN" } };
 }
 
 const vendorProgramLink: VendorRelationshipLink = {
@@ -300,14 +386,19 @@ function fixtureVendorAssessment(fixture: string): VendorAssessment | null {
     case "vendor-collecting":
       return { ...submitted, status: "COLLECTING", submission_id: undefined, submitted_at: undefined, version: 3, updated_at: "2026-08-21T10:00:00Z" };
     case "vendor-submitted": return submitted;
+    case "forms-vendor-review-conflict":
+    case "forms-vendor-applied":
+      return { ...submitted, status: "UNDER_REVIEW", reviewer_principal_id: "role-cro", review_started_at: "2026-08-25T15:00:00Z", version: 5, updated_at: "2026-08-25T15:00:00Z" };
     case "vendor-completed":
       return { ...submitted, status: "COMPLETED", reviewer_principal_id: "role-cro", review_started_at: "2026-08-25T15:00:00Z", completed_at: "2026-08-26T11:00:00Z", conclusion: "SATISFACTORY_WITH_CONDITIONS", conclusion_rationale: "Proceed after the access-control action is complete.", conclusion_uncertainty: "The next resilience exercise remains due.", version: 6, updated_at: "2026-08-26T11:00:00Z" };
     default: return null;
   }
 }
 
-function submittedVendorReview(assessment: VendorAssessment): VendorAssessmentReviewView {
-  return {
+function submittedVendorReview(assessment: VendorAssessment, fixture = ""): VendorAssessmentReviewView {
+  const baselineVersion = fixture === "forms-vendor-review-conflict" ? 4 : 1;
+  const heldAnswer: VendorAssessmentReviewAnswer = { field_id: "registered_address", label: "Registered address", type: "LONG_TEXT", required: true, visibility: "VISIBLE", baseline: { target_key: "VENDOR.IDENTITY.REGISTERED_ADDRESS", subject_type: "VENDOR_RELATIONSHIP", subject_id: vendorRelationshipID, record_id: "vendor-acme-processing", record_version: baselineVersion, display_value: "12 Marina Road, Lagos", source_label: "Validated vendor record", observed_or_confirmed_at: "2026-08-01T10:00:00Z" }, value: { text: "14 Marina Road, Lagos" }, provenance: { origin: "RESPONDENT_CORRECTED" } };
+  const review: VendorAssessmentReviewView = {
     assessment,
     requests: [{ request_id: assessment.current_request_id!, purpose: "INITIAL", sequence: 1, origin_sequence: 1, status: "SUBMITTED", deadline: "2026-09-12T23:59:59Z", form_template_id: assessment.form_template_id, form_template_version: assessment.form_template_version }],
     response: { submission_id: assessment.submission_id!, request_id: assessment.current_request_id!, submitted_at: assessment.submitted_at!, answer_count: 7, artifact_count: 1 },
@@ -317,12 +408,15 @@ function submittedVendorReview(assessment: VendorAssessment): VendorAssessmentRe
       { field_id: "subprocessors", label: "Do subcontractors process bank information?", type: "YES_NO", required: true, visibility: "VISIBLE", value: { text: "Yes" }, provenance: { source: "Vendor response" } },
       { field_id: "security_framework", label: "Primary security framework", type: "SINGLE_SELECT", required: true, visibility: "VISIBLE", value: { text: "ISO 27001" }, provenance: { source: "Vendor response" } },
       { field_id: "subprocessor_details", label: "Subcontractor details", type: "LONG_TEXT", required: true, visibility: "VISIBLE", value: { text: "Payment-routing infrastructure is provided by a contracted hosting provider in the stated service scope." }, provenance: { source: "Vendor response" } },
+      ...(fixture.startsWith("forms-vendor-") ? [heldAnswer] : []),
     ],
     coverage: { visible_fields: 7, answered_fields: 7, required_fields: 4, answered_required: 4, ratio: 1 },
     documents: [{ field_id: "security_document", artifact_id: "artifact-vendor-iso27001", file_name: "acme-iso-27001-certificate.pdf", media_type: "application/pdf", size_bytes: 684_220, artifact_status: "AVAILABLE", evidence_class: "VENDOR_SUPPLIED", document_type: "ISO_27001_CERTIFICATE", reference: "ISO-27001-ACME-2026", issued_by: "Accredited certification body", issued_on: "2026-03-01", expires_on: "2027-03-01" }],
     provisional_score: { score: 82, coverage: 1, rule_results: [] },
     matters: [],
   };
+  if (fixture === "forms-vendor-applied") review.application_receipt = { id: "vendor-application-receipt-1", assessment_id: assessment.id, response_revision_id: "vendor-response-revision-1", vendor_id: "vendor-acme-processing", actor_principal_id: "role-cro", accepted_field_ids: ["registered_address"], rejected_field_ids: [], decisions: [{ field_id: "registered_address", decision: "ACCEPT", rationale: "The submitted address matches the reviewed company record." }], prior_vendor_version: 1, result_vendor_version: 2, result_assessment_version: 6, applied_at: "2026-08-26T10:00:00Z" };
+  return review;
 }
 
 const todayGuide = { code: "executive-first-run", surface: "TODAY", profile: "executive", role: "Executive risk or compliance leader", version: 1, title: "Executive review", description: "Review priority work, Program status and supporting evidence.", illustration: "guided-orbit", steps: [
@@ -552,7 +646,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   }
   if (vendorAssessment && pathname === `/api/v1/vendor-assessments/${vendorAssessment.id}` && method === "GET") {
     if (!vendorAssessment.submission_id) throw new StaticDemoHTTPError(409, "vendor_assessment_action_unavailable", "A submitted vendor response is required before review.");
-    return clone(submittedVendorReview(vendorAssessment)) as T;
+    return clone(submittedVendorReview(vendorAssessment, fixture)) as T;
   }
   if (vendorAssessment && pathname === `/api/v1/vendor-assessments/${vendorAssessment.id}/review/start` && method === "POST") {
     const input = parseBody(init) as { expected_version?: number };
@@ -669,27 +763,32 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/forms/templates" && method === "GET") {
     const search = url.searchParams.get("search")?.trim().toLowerCase();
     const status = url.searchParams.get("status")?.trim().toUpperCase();
-    const items = demoForms.filter((form) => (!search || `${form.name} ${form.code} ${form.purpose} ${(form.tags ?? []).join(" ")}`.toLowerCase().includes(search)) && (!status || form.status === status));
+    const items = formsTemplatePopulation(fixture).filter((form) => (!search || `${form.name} ${form.code} ${form.purpose} ${(form.tags ?? []).join(" ")}`.toLowerCase().includes(search)) && (!status || form.status === status));
     return clone({ items: items.map((template) => ({ template, active_version: template.status === "ACTIVE" ? template.version : undefined, active_status: template.status === "ACTIVE" ? "ACTIVE" : undefined })) }) as T;
   }
   const formRevisionMatch = pathname.match(/^\/api\/v1\/forms\/templates\/([^/]+)\/revisions\/(\d+)$/);
   if (formRevisionMatch && method === "GET") {
-    const selected = demoForms.find((form) => form.id === decodeURIComponent(formRevisionMatch[1]!) && form.version === Number(formRevisionMatch[2]));
+    const selected = formsTemplatePopulation(fixture).find((form) => form.id === decodeURIComponent(formRevisionMatch[1]!) && form.version === Number(formRevisionMatch[2]));
     if (!selected) throw new StaticDemoHTTPError(404, "form_revision_not_found", "The selected form revision is no longer available.");
     return clone(selected) as T;
   }
   if (pathname === "/api/v1/forms/starter-templates" && method === "GET") return clone({ items: [] }) as T;
-  if (pathname === "/api/v1/forms/saved-views" && method === "GET") return clone({ items: [] }) as T;
+  if (pathname === "/api/v1/forms/saved-views" && method === "GET") return clone({ items: fixture === "forms-library-governance" ? [{ id: "forms-view-approval-ready", name: "Approval-ready drafts", filter: { status: "DRAFT", limit: 25 }, version: 1, created_at: now, updated_at: now }] : [] }) as T;
   if (pathname === "/api/v1/forms/recipient-candidates" && method === "GET") return clone({ items: [{ principal_id: "role-vendor-risk", display_name: "Vendor Risk Reviewer", context_label: "Third-party risk" }, { principal_id: "role-payments-owner", display_name: "Payments Service Owner", context_label: "Payments" }], has_more: false }) as T;
-  if (pathname === "/api/v1/forms/distributions" && method === "GET") return clone({ items: [staticDistributionDetail().distribution] }) as T;
+  if (pathname === "/api/v1/forms/distributions" && method === "GET") return clone({ items: formsDistributionPopulation(fixture) }) as T;
   const distributionMatch = pathname.match(/^\/api\/v1\/forms\/distributions\/([^/]+)$/);
   if (distributionMatch && method === "GET") {
-    const selected = staticDistributionDetail();
-    if (decodeURIComponent(distributionMatch[1]!) !== selected.distribution.id) throw new StaticDemoHTTPError(404, "distribution_not_found", "The selected sent form is no longer available.");
+    const selected = formsDistributionDetail(fixture, decodeURIComponent(distributionMatch[1]!));
+    if (!selected) throw new StaticDemoHTTPError(404, "distribution_not_found", "The selected sent form is no longer available.");
     return clone(selected) as T;
   }
   const responseRevisionMatch = pathname.match(/^\/api\/v1\/forms\/distributions\/([^/]+)\/responses$/);
-  if (responseRevisionMatch && method === "GET") return clone({ items: [{ id: "response-revision-acme-2", revision: 2, supersedes_revision_id: "response-revision-acme-1", achieved_assurance: "EMAIL_VERIFIED", signoff_summary: { attested: true, signer: "Vendor security lead" }, compliance_score: 86, scored_weight_coverage: 100, state: "FINAL", critical_field_results: [], scoring_policy_version: "vendor-review-2026", current: true, created_at: "2026-08-27T13:15:00Z" }] }) as T;
+  if (responseRevisionMatch && method === "GET") return clone({ items: [
+    ...(fixture === "forms-response-history" ? [{ id: "response-revision-acme-1", revision: 1, achieved_assurance: "LINK_POSSESSION", signoff_summary: { attested: true, signer: "Vendor security lead" }, compliance_score: 72, scored_weight_coverage: 100, state: "FINAL", critical_field_results: [], scoring_policy_version: "vendor-review-2026", current: false, created_at: "2026-08-20T13:15:00Z" }] : []),
+    { id: "response-revision-acme-2", revision: 2, supersedes_revision_id: "response-revision-acme-1", achieved_assurance: "EMAIL_VERIFIED", signoff_summary: { attested: true, signer: "Vendor security lead" }, compliance_score: 86, scored_weight_coverage: 100, state: "FINAL", critical_field_results: [], scoring_policy_version: "vendor-review-2026", current: true, created_at: "2026-08-27T13:15:00Z" },
+  ] }) as T;
+  if (pathname === "/api/v1/forms/communications/profiles" && method === "GET") return clone({ items: [{ id: "communication-profile-1", legal_entity_id: "bank-ng", version: 2, default_locale: "en-NG", bank_name: "Meridian Trust Bank", support_contact: "vendor.risk@meridian.example", status: "ACTIVE", effective_from: "2026-08-01T00:00:00Z", maker_id: "role-vendor-risk", checker_id: "role-cro", created_at: now, updated_at: now }] }) as T;
+  if (pathname === "/api/v1/forms/communications/templates" && method === "GET") return clone({ items: [{ id: "communication-template-1", legal_entity_id: "bank-ng", action: "INVITATION", locale: "en-NG", version: 3, subject_template: "Action needed: complete {{form_name}}", document: [{ type: "paragraph", text: "Complete the requested form by {{deadline}}." }], status: "ACTIVE", effective_from: "2026-08-01T00:00:00Z", maker_id: "role-vendor-risk", checker_id: "role-cro", created_at: now, updated_at: now }] }) as T;
   const monitoringResponse = workflowRuntime().monitoringRequest({ pathname, method, input: parseBody(init), programID, forms: demoForms, checks: demoChecks, results: monitoringResults, actor: currentStaticActor, evidenceRequest, evidenceRequests, monitoringResult, ErrorType: StaticDemoHTTPError, now });
   if (monitoringResponse.handled) return clone(monitoringResponse.body) as T;
   if (/\/api\/v1\/monitoring-results\/[^/]+\/linked-issue$/.test(pathname) && method === "POST") {
@@ -739,7 +838,19 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/ai-governance/policies") return clone({ items: [] }) as T;
   if (pathname === "/api/v1/ai-governance/workloads") return clone({ items: [] }) as T;
   if (pathname === "/api/v1/bank-journeys") return clone({ items: [], sample: true }) as T;
-  if (pathname === "/api/v1/document-imports") return method === "POST" ? clone(document) as T : clone({ items: [document] }) as T;
+  if (pathname === "/api/v1/document-imports") return method === "POST" ? clone(document) as T : clone({ items: fixture === "forms-import-outcomes" ? formsImportPopulation().map(formImportSummary) : [document] }) as T;
+  const formsImportMatch = pathname.match(/^\/api\/v1\/document-imports\/(forms-import-[^/]+)$/);
+  if (formsImportMatch && fixture === "forms-import-outcomes" && method === "GET") {
+    const selected = formsImportPopulation().find((value) => value.id === decodeURIComponent(formsImportMatch[1]!));
+    if (!selected) throw new StaticDemoHTTPError(404, "document_import_not_found", "The selected import is no longer available.");
+    return clone(selected) as T;
+  }
+  const formsImportCoverageMatch = pathname.match(/^\/api\/v1\/document-imports\/(forms-import-[^/]+)\/coverage$/);
+  if (formsImportCoverageMatch && fixture === "forms-import-outcomes" && method === "GET") {
+    const selected = formsImportPopulation().find((value) => value.id === decodeURIComponent(formsImportCoverageMatch[1]!));
+    if (!selected) throw new StaticDemoHTTPError(404, "document_import_not_found", "The selected import is no longer available.");
+    return clone({ ...documentCoverage, document_id: selected.id, status: selected.extraction_status === "FAILED" ? "FAILED" : selected.extraction_status === "PENDING" ? "PENDING" : "READY", failure_message: selected.extraction_status === "FAILED" ? "Text extraction could not read this source." : undefined }) as T;
+  }
   if (pathname === `/api/v1/document-imports/${document.id}/coverage` && method === "GET") return clone(documentCoverage) as T;
   if (pathname === `/api/v1/document-imports/${document.id}/coverage/review` && method === "POST") {
     const input = parseBody(init) as { expected_version?: number; decisions?: Array<{ candidate_id?: string; decision?: CoverageDecision; match_id?: string; reason?: string }> };

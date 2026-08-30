@@ -10,6 +10,7 @@ import {
   verifyFormAccessOTP,
 } from "../captureApi";
 import { consumeCaptureInvitation, purgeLegacyCaptureSession } from "../captureInvitationBrowser";
+import { ApiError } from "../http";
 import type { CaptureRequest } from "../types";
 import { ExternalCaptureApp } from "./ExternalCaptureApp";
 
@@ -182,6 +183,29 @@ describe("ExternalCaptureApp", () => {
     expect(await screen.findByRole("heading", { name: "Enter the verification code" })).toBeTruthy();
     expect(sendFormAccessOTP).toHaveBeenCalledWith("direct-otp-route", "selector-direct");
     expect(screen.queryByRole("radio")).toBeNull();
+  });
+
+  it.each([
+    ["otp_expired", 410, "Verification code expired", "Request another code to continue."],
+    ["otp_attempts_exhausted", 429, "Verification attempts used", "Ask the sender for a new invitation link."],
+  ])("explains the terminal %s OTP result without exposing provider detail", async (code, status, title, recovery) => {
+    vi.mocked(startFormAccess).mockResolvedValue({
+      policy: "DIRECT_LINK_EMAIL_OTP",
+      expires_at: request.deadline,
+      recipients: [{ selector_id: "selector-direct", hint: "f***@example.com", contact_label: "Field agent" }],
+    });
+    vi.mocked(sendFormAccessOTP).mockResolvedValue({ challenge_id: "challenge-direct", hint: "f***@example.com", expires_at: request.deadline });
+    vi.mocked(verifyFormAccessOTP).mockRejectedValue(new ApiError(status, "provider diagnostic", code));
+
+    render(<ExternalCaptureApp invitationToken="direct-otp-route"/>);
+
+    const input = await screen.findByRole("textbox", { name: "Verification code" });
+    fireEvent.change(input, { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verify and open" }));
+
+    expect(await screen.findByRole("heading", { name: title })).toBeTruthy();
+    expect(screen.getByText(recovery)).toBeTruthy();
+    expect(screen.queryByText("provider diagnostic")).toBeNull();
   });
 
   it("writes the final changed answers to the shared workspace before submission", async () => {

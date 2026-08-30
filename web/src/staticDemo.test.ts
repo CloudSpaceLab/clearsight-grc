@@ -629,4 +629,48 @@ describe("static stakeholder demo transport", () => {
     const retried = await staticDemoRequest<{ work: { delivery_state: string; version: number }; state: string }>(`/api/v1/vendors/${work.relationship_id}/work/${work.id}/retry`, { method: "POST", body: JSON.stringify({ expected_version: work.version, vendor_audience: "security@acme.example", invitation_ttl_minutes: 1440 }) });
     expect(retried).toMatchObject({ work: { delivery_state: "DELIVERED", version: work.version + 1 }, state: "DELIVERED" });
   });
+
+  it("provides deterministic governed Forms evidence populations", async () => {
+    const { staticDemoRequest } = await demo();
+
+    window.history.replaceState(null, "", "/?fixture=forms-library-lifecycle");
+    const lifecycle = await staticDemoRequest<{ items: Array<{ template: { status: string } }> }>("/api/v1/forms/templates");
+    expect(lifecycle.items.map((item) => item.template.status)).toEqual(["DRAFT", "PENDING_APPROVAL", "ACTIVE", "RETIRED"]);
+
+    window.history.replaceState(null, "", "/?fixture=forms-library-governance");
+    const saved = await staticDemoRequest<{ items: Array<{ name: string; filter: { status: string } }> }>("/api/v1/forms/saved-views");
+    expect(saved.items).toContainEqual(expect.objectContaining({ name: "Approval-ready drafts", filter: expect.objectContaining({ status: "DRAFT" }) }));
+    const drafts = await staticDemoRequest<{ items: Array<{ template: { status: string } }> }>("/api/v1/forms/templates?status=DRAFT");
+    expect(drafts.items).toHaveLength(2);
+
+    window.history.replaceState(null, "", "/?fixture=forms-import-outcomes");
+    const imports = await staticDemoRequest<{ items: Array<{ extraction_status: string; pending_proposal_count: number }> }>("/api/v1/document-imports");
+    expect(imports.items.map((item) => item.extraction_status)).toEqual(["PENDING", "PARTIAL", "TRUNCATED", "FAILED", "EXTRACTED"]);
+    expect(imports.items.at(-1)?.pending_proposal_count).toBe(1);
+
+    window.history.replaceState(null, "", "/?fixture=forms-distribution-history");
+    const distributions = await staticDemoRequest<{ items: Array<{ access_policy: string; purpose: string }> }>("/api/v1/forms/distributions");
+    expect(new Set(distributions.items.map((item) => item.access_policy))).toEqual(new Set(["DIRECT_MAGIC_LINK", "SHARED_LINK_EMAIL_OTP", "DIRECT_LINK_EMAIL_OTP"]));
+    expect(distributions.items.map((item) => item.purpose).join(" ")).toContain("Delivered");
+    expect(distributions.items.map((item) => item.purpose).join(" ")).toContain("Revoked");
+
+    window.history.replaceState(null, "", "/?fixture=forms-response-history");
+    const responses = await staticDemoRequest<{ items: Array<{ revision: number; current: boolean }> }>("/api/v1/forms/distributions/distribution-vendor-review/responses");
+    expect(responses.items).toMatchObject([{ revision: 1, current: false }, { revision: 2, current: true }]);
+
+    window.history.replaceState(null, "", "/?fixture=forms-communication-compose");
+    expect((await staticDemoRequest<{ items: unknown[] }>("/api/v1/forms/communications/profiles")).items).toHaveLength(1);
+    expect((await staticDemoRequest<{ items: unknown[] }>("/api/v1/forms/communications/templates")).items).toHaveLength(1);
+
+    window.history.replaceState(null, "", "/?fixture=forms-vendor-review-conflict");
+    const conflictCurrent = await staticDemoRequest<{ assessment: { id: string } }>("/api/v1/vendors/vendor-relationship-payments/assessments/current");
+    const conflictReview = await staticDemoRequest<{ answers: Array<{ field_id: string; baseline?: { record_version: number } }>; application_receipt?: unknown }>(`/api/v1/vendor-assessments/${conflictCurrent.assessment.id}`);
+    expect(conflictReview.answers).toContainEqual(expect.objectContaining({ field_id: "registered_address", baseline: expect.objectContaining({ record_version: 4 }) }));
+    expect(conflictReview.application_receipt).toBeUndefined();
+
+    window.history.replaceState(null, "", "/?fixture=forms-vendor-applied");
+    const appliedCurrent = await staticDemoRequest<{ assessment: { id: string } }>("/api/v1/vendors/vendor-relationship-payments/assessments/current");
+    const appliedReview = await staticDemoRequest<{ application_receipt?: { accepted_field_ids: string[]; prior_vendor_version: number; result_vendor_version: number } }>(`/api/v1/vendor-assessments/${appliedCurrent.assessment.id}`);
+    expect(appliedReview.application_receipt).toMatchObject({ accepted_field_ids: ["registered_address"], prior_vendor_version: 1, result_vendor_version: 2 });
+  });
 });

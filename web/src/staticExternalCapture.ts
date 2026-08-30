@@ -42,18 +42,57 @@ const fieldAgentRequest = {
   updated_at: new Date().toISOString(),
 };
 
+function externalFixtureRequest() {
+  const fixture = activeFixture();
+  if (fixture === "forms-recovery-restored") return {
+    ...fieldAgentRequest,
+    title: "Continue recovered field response",
+    purpose: "Review the recovered note and select the unsynced site photo again before submission.",
+    why_you: "You started this response on this device and still have an authorized session.",
+    known_facts: { atm_id: "ATM-LAG-042", location: "Meridian Trust Bank, Lekki Phase 1" },
+    fields: [
+      { id: "site_photo", label: "Site photo", type: "photo", required: true, description: "Select this file again because browsers cannot restore a prior file selection.", accepted_formats: ["image/jpeg", "image/png"] },
+      { id: "visit_note", label: "Evidence note", type: "long_text", required: false, description: "This note was recovered from encrypted storage on this device." },
+    ],
+  };
+  if (fixture !== "forms-vendor-held-actions") return fieldAgentRequest;
+  const baseline = { subject_type: "VENDOR_RELATIONSHIP", subject_id: "vendor-relationship-payments", record_id: "vendor-acme-processing", record_version: 4, source_label: "Validated vendor record", observed_or_confirmed_at: "2026-08-01T10:00:00Z" };
+  return {
+    ...fieldAgentRequest,
+    id: "vendor-held-record-review",
+    subject_type: "VENDOR_RELATIONSHIP",
+    subject_id: "vendor-relationship-payments",
+    title: "Confirm current vendor records",
+    purpose: "Confirm or correct the held vendor details and replace the certificate only when it changed.",
+    why_you: "You were asked to confirm the current records for this vendor review.",
+    fields: [
+      { id: "registered_address", label: "Registered address", type: "long_text", required: true, collection_intent: "CONFIRM_OR_CORRECT", record_baseline: { ...baseline, target_key: "VENDOR.IDENTITY.REGISTERED_ADDRESS", display_value: "12 Marina Road, Lagos" } },
+      { id: "operating_certificate", label: "Operating certificate", type: "vendor_document", required: true, collection_intent: "REPLACE_HELD_DOCUMENT", accepted_formats: ["application/pdf"], record_baseline: { ...baseline, target_key: "VENDOR.DOCUMENT.OPERATING_CERTIFICATE", display_value: "Operating certificate · expires 31 Dec 2026" } },
+    ],
+  };
+}
+
 export async function staticExternalCaptureRequest(path: string, init?: RequestInit): Promise<unknown | undefined> {
   const url = new URL(path, "https://clearsight.demo");
   const method = (init?.method ?? "GET").toUpperCase();
+  const fixture = activeFixture();
+  const task22Route = (parseBody(init) as { route_selector?: string }).route_selector?.startsWith("task22-forms-");
 
   if (url.pathname === "/api/v1/evidence/access/start" && method === "POST") {
     const input = parseBody(init) as { route_selector?: string };
-    if (input.route_selector !== "field-agent-demo") throw staticFailure(404, "access_unavailable", "Invitation unavailable");
+    if (task22Route && (fixture === "forms-otp-expired" || fixture === "forms-otp-exhausted")) return { policy: "DIRECT_LINK_EMAIL_OTP", recipients: [{ selector_id: "task22-recipient", hint: "r***@vendor.example", contact_label: "Invited respondent" }], expires_at: fieldAgentRequest.deadline };
+    if (input.route_selector !== "field-agent-demo" && !task22Route) throw staticFailure(404, "access_unavailable", "Invitation unavailable");
     return { policy: "DIRECT_MAGIC_LINK", expires_at: fieldAgentRequest.deadline };
+  }
+  if (url.pathname === "/api/v1/evidence/access/otp/send" && method === "POST" && task22Route) return { challenge_id: "task22-challenge", hint: "r***@vendor.example", expires_at: fieldAgentRequest.deadline };
+  if (url.pathname === "/api/v1/evidence/access/otp/verify" && method === "POST" && task22Route) {
+    if (fixture === "forms-otp-expired") throw staticFailure(410, "otp_expired", "Verification code expired");
+    if (fixture === "forms-otp-exhausted") throw staticFailure(429, "otp_attempts_exhausted", "Verification attempts used");
+    return redeemedSession();
   }
   if (url.pathname === "/api/v1/evidence/access/redeem" && method === "POST") {
     const input = parseBody(init) as { route_selector?: string };
-    if (input.route_selector !== "field-agent-demo") throw staticFailure(401, "access_unavailable", "Invitation unavailable");
+    if (input.route_selector !== "field-agent-demo" && !task22Route) throw staticFailure(401, "access_unavailable", "Invitation unavailable");
     return redeemedSession();
   }
 
@@ -74,6 +113,8 @@ export async function staticExternalCaptureRequest(path: string, init?: RequestI
       presentation_mode?: string;
       edits?: Array<{ field_id?: string; value?: unknown; base_sequence?: number }>;
     };
+    if (fixture === "forms-recovery-device") throw staticFailure(503, "workspace_unavailable", "The response workspace is temporarily unavailable");
+    if (fixture === "forms-recovery-conflict") throw staticFailure(409, "workspace_conflict", "The response workspace changed", { current_version: responseDraft.version + 1, changed_fields: [{ field_id: "address_matches", server_value: { text: "No" }, sequence: 1 }] });
     if (input.expected_version !== responseDraft.version) throw staticFailure(409, "workspace_conflict", "The response workspace changed");
     for (const edit of input.edits ?? []) {
       if (!edit.field_id) continue;
@@ -121,18 +162,25 @@ export async function staticExternalCaptureRequest(path: string, init?: RequestI
 }
 
 function workspacePayload() {
+  const request = externalFixtureRequest();
   return {
     session: {
       id: "field-distribution-session-1",
       distribution_id: distributionID,
-      request_id: fieldRequestID,
+      request_id: request.id,
       audience_hint: "f***@example.com",
       assurance: "LINK_POSSESSION",
-      expires_at: fieldAgentRequest.deadline,
+      expires_at: request.deadline,
       created_at: new Date().toISOString(),
     },
-    request: fieldAgentRequest,
+    request,
     workspace: responseWorkspace(),
+    recovery_context: {
+      legal_entity_id: "entity-demo",
+      distribution_id: distributionID,
+      schema_version: 1,
+      route_expires_at: request.deadline,
+    },
   };
 }
 
@@ -158,14 +206,15 @@ function workspaceState() {
 }
 
 function redeemedSession() {
+  const request = externalFixtureRequest();
   return {
     session_id: "field-distribution-session-1",
     session_token: sessionToken,
     distribution_id: distributionID,
-    request_id: fieldRequestID,
+    request_id: request.id,
     audience_hint: "f***@example.com",
     assurance: "LINK_POSSESSION",
-    expires_at: fieldAgentRequest.deadline,
+    expires_at: request.deadline,
   };
 }
 
@@ -180,6 +229,10 @@ function parseBody(init?: RequestInit) {
   try { return JSON.parse(init.body) as unknown; } catch { return {}; }
 }
 
-function staticFailure(status: number, code: string, message: string) {
-  return Object.assign(new Error(message), { staticStatus: status, staticCode: code });
+function activeFixture() {
+  return typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("fixture") ?? "";
+}
+
+function staticFailure(status: number, code: string, message: string, body?: unknown) {
+  return Object.assign(new Error(message), { staticStatus: status, staticCode: code, staticBody: body });
 }

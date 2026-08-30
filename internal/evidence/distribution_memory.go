@@ -184,8 +184,12 @@ func (s *MemoryDistributionStore) ListDistributions(_ context.Context, query Dis
 		}
 		return values[i].UpdatedAt.After(values[j].UpdatedAt)
 	})
-	if len(values) > query.Limit {
-		values = values[:query.Limit]
+	fetchLimit := query.Limit
+	if query.probeNext {
+		fetchLimit++
+	}
+	if len(values) > fetchLimit {
+		values = values[:fetchLimit]
 	}
 	return values, nil
 }

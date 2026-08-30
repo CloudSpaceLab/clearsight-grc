@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
@@ -21,6 +22,20 @@ import (
 )
 
 const demoExternalEvidenceRequestID = "019fd444-4444-7444-8444-444444444444"
+
+func TestReadyReportsExactReleaseRevision(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := New(Dependencies{Logger: logger, Mode: "postgres", ReleaseSHA: strings.Repeat("a", 40)})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/health/ready", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	want := `{"mode":"postgres","revision":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","status":"ready"}` + "\n"
+	if response.Body.String() != want {
+		t.Fatalf("body=%s, want %s", response.Body.String(), want)
+	}
+}
 
 func testHandler() http.Handler {
 	version, rules := authority.DemoPolicySet()

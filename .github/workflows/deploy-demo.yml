@@ -87,3 +87,7 @@ jobs:
               -o BatchMode=yes \
               -o IdentitiesOnly=yes \
               "$DEPLOY_USER@$DEPLOY_HOST" "deploy $RELEASE_SHA"
+
+      - name: Verify hosted exact release
+        if: steps.freshness.outputs.current == 'true'
+        run: bash deploy/scripts/verify-hosted-release.sh "$RELEASE_SHA"
