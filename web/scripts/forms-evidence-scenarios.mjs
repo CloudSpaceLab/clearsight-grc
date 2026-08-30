@@ -1,5 +1,5 @@
 export const requiredFormsCapabilities = Object.freeze([
-  "library-empty", "library-list", "library-search", "library-saved-filter", "library-recent", "library-bulk-action",
+  "library-empty", "library-list", "library-search", "library-saved-filter", "library-context-detail", "library-bulk-action",
   "template-draft", "template-pending", "template-active", "template-retired", "weights-invalid", "weights-valid",
   "import-pending", "import-partial", "import-truncated", "import-failed", "import-proposal",
   "communication-compose", "communication-delivered", "communication-fallback", "communication-amended",
@@ -28,8 +28,18 @@ const scenarios = [
   {
     name: "89-forms-library-lifecycle-light-1440x900", fixture: "forms-library-lifecycle", route: "#forms",
     state: "forms-library-lifecycle", theme: "light", viewport: desktop, zoom: 1,
-    capabilities: ["library-list", "library-recent", "template-draft", "template-pending", "template-active", "template-retired", "viewport-desktop", "theme-light"],
-    run: async (page) => { await visible(page, "Recently updated"); for (const value of ["Draft", "Pending Approval", "Active", "Retired"]) await visible(page, value); },
+    capabilities: ["library-list", "library-context-detail", "template-draft", "template-pending", "template-active", "template-retired", "viewport-desktop", "theme-light"],
+    run: async (page) => {
+      await page.getByLabel("Search templates").waitFor({ state: "visible" });
+      for (const value of ["Draft", "Pending Approval", "Active", "Retired"]) await visible(page, value);
+      if (await page.getByLabel("Selected form template").count()) throw new Error("Forms library detail must stay closed until a template is selected.");
+      await page.locator(".forms-library-table tbody .forms-row-action").first().click();
+      await page.getByLabel("Selected form template").waitFor({ state: "visible" });
+      await visible(page, "Latest stored");
+      await visible(page, "Reusable now");
+      await page.getByRole("button", { name: "Close form detail" }).click();
+      await page.getByLabel("Selected form template").waitFor({ state: "detached" });
+    },
   },
   {
     name: "90-forms-library-empty-dark-mobile-390x844", fixture: "forms-library-empty", route: "#forms",
