@@ -637,6 +637,29 @@ func (r *PostgresRepository) ResolveVendorWorkCapture(ctx context.Context, tenan
 	return value, err
 }
 
+func (r *PostgresRepository) ListVendorWorkCaptures(ctx context.Context, scope Scope, id string) ([]VendorWorkCaptureLink, error) {
+	rows, err := r.pool.Query(ctx, `SELECT l.id::text,t.slug,l.legal_entity_id::text,l.work_request_id::text,l.request_id::text,l.sequence,l.purpose,l.origin_version,COALESCE(l.invitation_id::text,''),COALESCE(l.submission_id::text,''),l.created_at FROM third_party_work_capture_links l JOIN tenants t ON t.id=l.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND l.legal_entity_id::text=$2 AND l.work_request_id::text=$3 ORDER BY l.sequence`, scope.TenantID, scope.LegalEntityID, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	links := []VendorWorkCaptureLink{}
+	for rows.Next() {
+		var link VendorWorkCaptureLink
+		if err := rows.Scan(&link.ID, &link.TenantID, &link.LegalEntityID, &link.WorkRequestID, &link.RequestID, &link.Sequence, &link.Purpose, &link.OriginVersion, &link.InvitationID, &link.SubmissionID, &link.CreatedAt); err != nil {
+			return nil, err
+		}
+		links = append(links, link)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(links) == 0 {
+		return nil, ErrNotFound
+	}
+	return links, nil
+}
+
 func (r *PostgresRepository) HasActiveVendorWork(ctx context.Context, scope Scope, linkID string) (bool, error) {
 	var exists bool
 	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM third_party_work_requests w JOIN tenants t ON t.id=w.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND w.legal_entity_id::text=$2 AND COALESCE(w.program_link_id,w.matter_link_id)::text=$3 AND w.state NOT IN ('ACCEPTED','CANCELLED'))`, scope.TenantID, scope.LegalEntityID, linkID).Scan(&exists)

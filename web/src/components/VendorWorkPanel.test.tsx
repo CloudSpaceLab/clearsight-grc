@@ -126,7 +126,7 @@ describe("VendorWorkPanel", () => {
   it("uses assigned-staff language throughout address verification review", async () => {
     const addressWork = { ...work, request_kind: "ADDRESS_VERIFICATION" as const, state: "UNDER_REVIEW" as const, delivery_state: "DELIVERED" as const, version: 5 };
     vi.mocked(loadVendorWork).mockResolvedValue({ items: [addressWork] });
-    vi.mocked(loadVendorWorkResponse).mockResolvedValue({ ...response, work: addressWork });
+    vi.mocked(loadVendorWorkResponse).mockResolvedValue({ ...response, work: addressWork, documents: [{ ...response.documents[0]!, request_id: "request-address", evidence_class: "STAFF_SUPPLIED" }] });
     render(<VendorWorkPanel targetType="MATTER" targetID="matter-1"/>);
 
     const card = await screen.findByTestId("vendor-work-work-1");
@@ -135,6 +135,7 @@ describe("VendorWorkPanel", () => {
     expect(await within(card).findByRole("region", { name: "Staff confirmation" })).toBeTruthy();
     expect(within(card).getByText("Staff response: Yes")).toBeTruthy();
     expect(within(card).getByText("Entered by the assigned staff member")).toBeTruthy();
+    expect(within(card).getByText(/Assigned staff supplied/)).toBeTruthy();
     fireEvent.click(within(card).getByRole("button", { name: "Request changes" }));
     expect(within(card).getByLabelText("What the assigned staff member must change")).toBeTruthy();
     expect(within(card).getByLabelText("Address verification staff email")).toBeTruthy();

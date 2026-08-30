@@ -1,6 +1,7 @@
 package thirdparty
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net/url"
@@ -88,12 +89,16 @@ func newVendorWorkFixture(t *testing.T) vendorWorkFixture {
 	return vendorWorkFixture{service: service, repository: repository, links: links, forms: forms, evidence: evidenceService, link: link, actor: actor, audience: "security@vendor.example", now: now}
 }
 
-func addVendorWorkForm(t *testing.T, fixture vendorWorkFixture, id, code string, fields []monitoring.TemplateField) {
+func addVendorWorkForm(t *testing.T, fixture vendorWorkFixture, id, code string, fields []monitoring.TemplateField, customSections ...[]formcontract.Section) {
 	t.Helper()
+	sections := []formcontract.Section{{ID: "evidence", Title: "Evidence"}}
+	if len(customSections) > 0 {
+		sections = customSections[0]
+	}
 	_, err := fixture.forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{
 		ID: id, TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Code: code, Name: code, Purpose: "Collect the evidence required for this vendor request.",
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
-		Sections:     []formcontract.Section{{ID: "evidence", Title: "Evidence"}}, Fields: fields,
+		Sections:     sections, Fields: fields,
 		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 1},
 	})
 	if err != nil {
@@ -261,7 +266,10 @@ func TestVendorWorkRejectsSpecialGovernedFormForGeneralRequest(t *testing.T) {
 
 func TestAddressVerificationVendorWorkSendsPurposeBoundStaffMessage(t *testing.T) {
 	fixture := newVendorWorkFixture(t)
-	addVendorWorkForm(t, fixture, "address-form", "VENDOR-ADDRESS-VERIFICATION", []monitoring.TemplateField{{ID: "address_result", SectionID: "evidence", Label: "Address result", Type: formcontract.TypeYesNo, Required: true}})
+	addVendorWorkForm(t, fixture, "address-form", "VENDOR-ADDRESS-VERIFICATION", []monitoring.TemplateField{
+		{ID: "address_result", SectionID: "evidence", Label: "Address result", Type: formcontract.TypeYesNo, Required: true},
+		{ID: "address_proof", SectionID: "evidence", Label: "Address verification evidence", Type: formcontract.TypeVendorDocument, Required: true, AcceptedFormats: []string{"application/pdf"}},
+	})
 	delivery := &invitationDeliveryStub{}
 	fixture.service.delivery = evidence.NewInvitationDeliveryService(delivery)
 	dueAt := fixture.now.Add(24 * time.Hour)
@@ -276,6 +284,10 @@ func TestAddressVerificationVendorWorkSendsPurposeBoundStaffMessage(t *testing.T
 	if prepared.RequestKind != VendorWorkAddressVerification {
 		t.Fatalf("request kind = %q", prepared.RequestKind)
 	}
+	request, err := fixture.evidence.GetRequest(context.Background(), "bank", prepared.CurrentRequestID)
+	if err != nil || request.AudienceType != "EXTERNAL" {
+		t.Fatalf("address request audience = %q, err = %v", request.AudienceType, err)
+	}
 	outcome, err := fixture.service.Send(context.Background(), fixture.actor, prepared.ID, SendVendorWorkInput{ExpectedVersion: prepared.Version, VendorAudience: "address-check@example.test", InvitationTTLMinutes: 60})
 	if err != nil || outcome.State != VendorWorkDeliveryDelivered || len(delivery.requests) != 1 {
 		t.Fatalf("send = (%#v, %v), deliveries = %d", outcome, err, len(delivery.requests))
@@ -284,13 +296,41 @@ func TestAddressVerificationVendorWorkSendsPurposeBoundStaffMessage(t *testing.T
 	if message.Kind != evidence.InvitationMessageAddressVerification || message.RecipientRole != "Address verification staff contact" || !message.DueAt.Equal(dueAt) || message.ExpiresAt.IsZero() {
 		t.Fatalf("message context = %#v", message)
 	}
+	session, err := fixture.evidence.RedeemInvitation(context.Background(), vendorWorkCaptureToken(t, delivery.requests[0].InvitationLink), "address-check@example.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: "bank", RequestID: prepared.CurrentRequestID, FieldID: "address_proof", FileName: "address-proof.pdf", MediaType: "application/pdf", SessionToken: session.SessionToken}, bytes.NewBufferString(testVendorWorkPDF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	receipt, err := fixture.evidence.SubmitSession(context.Background(), session.SessionToken, map[string]formcontract.AnswerValue{
+		"address_result": formcontract.TextAnswer("Yes"),
+		"address_proof":  {Document: &formcontract.DocumentAnswer{ArtifactID: artifact.ID, DocumentType: "ADDRESS_VERIFICATION"}},
+	}, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: "bank", WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: receipt.SubmissionID, CausationID: "address-submission"}); err != nil {
+		t.Fatal(err)
+	}
+	view, err := fixture.service.Response(context.Background(), fixture.actor, prepared.ID)
+	if err != nil || len(view.Documents) != 1 || view.Documents[0].EvidenceClass != AssessmentEvidenceStaffSupplied {
+		t.Fatalf("address review = %#v, err = %v", view, err)
+	}
 }
 
 func TestCertificationChangeRequestIncludesConditionalApplicabilityField(t *testing.T) {
 	fixture := newVendorWorkFixture(t)
 	addVendorWorkForm(t, fixture, "certification-form", "VENDOR-CERTIFICATION-REFRESH", []monitoring.TemplateField{
-		{ID: "iso_applicable", SectionID: "evidence", Label: "Does ISO 27001 apply?", Type: formcontract.TypeYesNo, Required: true},
-		{ID: "iso_certificate", SectionID: "evidence", Label: "Current ISO 27001 certificate", Type: formcontract.TypeVendorDocument, Required: true, Condition: &formcontract.VisibilityCondition{FieldID: "iso_applicable", Operator: formcontract.ConditionEquals, Values: []string{"Yes"}}},
+		{ID: "certifications_applicable", SectionID: "scope", Label: "Are certifications required?", Type: formcontract.TypeYesNo, Required: true},
+		{ID: "iso_applicable", SectionID: "certifications", Label: "Does ISO 27001 apply?", Type: formcontract.TypeYesNo, Required: true},
+		{ID: "iso_certificate", SectionID: "certifications", Label: "Current ISO 27001 certificate", Type: formcontract.TypeVendorDocument, Required: true, AcceptedFormats: []string{"application/pdf"}, Condition: &formcontract.VisibilityCondition{FieldID: "iso_applicable", Operator: formcontract.ConditionEquals, Values: []string{"Yes"}}},
+		{ID: "pci_applicable", SectionID: "certifications", Label: "Does PCI DSS apply?", Type: formcontract.TypeYesNo, Required: true},
+		{ID: "pci_attestation", SectionID: "certifications", Label: "Current PCI DSS attestation", Type: formcontract.TypeVendorDocument, Required: true, AcceptedFormats: []string{"application/pdf"}, Condition: &formcontract.VisibilityCondition{FieldID: "pci_applicable", Operator: formcontract.ConditionEquals, Values: []string{"Yes"}}},
+	}, []formcontract.Section{
+		{ID: "scope", Title: "Scope"},
+		{ID: "certifications", Title: "Certifications", Condition: &formcontract.VisibilityCondition{FieldID: "certifications_applicable", Operator: formcontract.ConditionEquals, Values: []string{"Yes"}}},
 	})
 	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
 		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, RequestKind: VendorWorkCertificationRefresh,
@@ -304,7 +344,29 @@ func TestCertificationChangeRequestIncludesConditionalApplicabilityField(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: "bank", WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: "submission-1", CausationID: "certification-submission"})
+	initialSession, err := fixture.evidence.RedeemInvitation(context.Background(), vendorWorkCaptureToken(t, sent.CaptureURL), fixture.audience)
+	if err != nil {
+		t.Fatal(err)
+	}
+	isoArtifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: "bank", RequestID: prepared.CurrentRequestID, FieldID: "iso_certificate", FileName: "iso-original.pdf", MediaType: "application/pdf", SessionToken: initialSession.SessionToken}, bytes.NewBufferString(testVendorWorkPDF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pciArtifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: "bank", RequestID: prepared.CurrentRequestID, FieldID: "pci_attestation", FileName: "pci-current.pdf", MediaType: "application/pdf", SessionToken: initialSession.SessionToken}, bytes.NewBufferString(testVendorWorkPDF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	initialReceipt, err := fixture.evidence.SubmitSession(context.Background(), initialSession.SessionToken, map[string]formcontract.AnswerValue{
+		"certifications_applicable": formcontract.TextAnswer("Yes"),
+		"iso_applicable":            formcontract.TextAnswer("Yes"),
+		"pci_applicable":            formcontract.TextAnswer("Yes"),
+		"iso_certificate":           {Document: &formcontract.DocumentAnswer{ArtifactID: isoArtifact.ID, DocumentType: "ISO_27001"}},
+		"pci_attestation":           {Document: &formcontract.DocumentAnswer{ArtifactID: pciArtifact.ID, DocumentType: "PCI_DSS"}},
+	}, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: "bank", WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: initialReceipt.SubmissionID, CausationID: "certification-submission"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -327,10 +389,46 @@ func TestCertificationChangeRequestIncludesConditionalApplicabilityField(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(request.Fields) != 2 || request.Fields[0].ID != "iso_applicable" || request.Fields[1].ID != "iso_certificate" {
+	if len(request.Fields) != 3 || request.Fields[0].ID != "certifications_applicable" || request.Fields[1].ID != "iso_applicable" || request.Fields[2].ID != "iso_certificate" {
 		t.Fatalf("change request fields = %#v", request.Fields)
 	}
+	replacementSession, err := fixture.evidence.RedeemInvitation(context.Background(), vendorWorkCaptureToken(t, changes.CaptureURL), fixture.audience)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replacementArtifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: "bank", RequestID: request.ID, FieldID: "iso_certificate", FileName: "iso-replacement.pdf", MediaType: "application/pdf", SessionToken: replacementSession.SessionToken}, bytes.NewBufferString(testVendorWorkPDF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	replacementReceipt, err := fixture.evidence.SubmitSession(context.Background(), replacementSession.SessionToken, map[string]formcontract.AnswerValue{
+		"certifications_applicable": formcontract.TextAnswer("Yes"),
+		"iso_applicable":            formcontract.TextAnswer("Yes"),
+		"iso_certificate":           {Document: &formcontract.DocumentAnswer{ArtifactID: replacementArtifact.ID, DocumentType: "ISO_27001"}},
+	}, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	received, err = fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: "bank", WorkRequestID: prepared.ID, RequestID: request.ID, SubmissionID: replacementReceipt.SubmissionID, CausationID: "certification-replacement"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	view, err := fixture.service.Response(context.Background(), fixture.actor, received.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(view.Documents) != 2 {
+		t.Fatalf("merged certification documents = %#v", view.Documents)
+	}
+	documents := map[string]AssessmentReviewDocument{}
+	for _, document := range view.Documents {
+		documents[document.FieldID] = document
+	}
+	if documents["iso_certificate"].RequestID != request.ID || documents["iso_certificate"].FileName != "iso-replacement.pdf" || documents["pci_attestation"].RequestID != prepared.CurrentRequestID || documents["pci_attestation"].FileName != "pci-current.pdf" {
+		t.Fatalf("merged certification basis = %#v", documents)
+	}
 }
+
+const testVendorWorkPDF = "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"
 
 func TestCancelVendorWorkRevokesCurrentInvitationAndRedeemedSession(t *testing.T) {
 	fixture := newVendorWorkFixture(t)

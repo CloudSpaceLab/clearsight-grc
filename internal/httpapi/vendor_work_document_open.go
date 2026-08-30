@@ -25,11 +25,12 @@ func (a *API) openVendorWorkDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	view, err := service.Response(r.Context(), actor, r.PathValue("request_id"))
-	if err != nil || view.Work.RelationshipID != r.PathValue("id") || view.Request.RequestID != r.PathValue("capture_request_id") || !vendorWorkDocumentAvailable(view, r.PathValue("artifact_id")) {
+	captureRequestID := r.PathValue("capture_request_id")
+	if err != nil || view.Work.RelationshipID != r.PathValue("id") || !vendorWorkDocumentAvailable(view, captureRequestID, r.PathValue("artifact_id")) {
 		httpx.WriteError(w, http.StatusNotFound, "vendor_document_not_found", "This document is not available for review.")
 		return
 	}
-	artifact, reader, err := a.deps.Evidence.OpenArtifact(r.Context(), actor.TenantID, view.Request.RequestID, r.PathValue("artifact_id"))
+	artifact, reader, err := a.deps.Evidence.OpenArtifact(r.Context(), actor.TenantID, captureRequestID, r.PathValue("artifact_id"))
 	if err != nil {
 		httpx.WriteError(w, http.StatusNotFound, "vendor_document_not_found", "This document is not available for review.")
 		return
@@ -44,9 +45,9 @@ func (a *API) openVendorWorkDocument(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.CopyN(w, reader, artifact.SizeBytes)
 }
 
-func vendorWorkDocumentAvailable(view thirdparty.VendorWorkReviewView, artifactID string) bool {
+func vendorWorkDocumentAvailable(view thirdparty.VendorWorkReviewView, requestID, artifactID string) bool {
 	for _, document := range view.Documents {
-		if document.ArtifactID == artifactID && document.ArtifactStatus == evidence.ArtifactAvailable {
+		if document.RequestID == requestID && document.ArtifactID == artifactID && document.ArtifactStatus == evidence.ArtifactAvailable {
 			return true
 		}
 	}

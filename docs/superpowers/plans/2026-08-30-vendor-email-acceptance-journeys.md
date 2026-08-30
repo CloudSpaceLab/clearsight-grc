@@ -587,7 +587,7 @@ Expected: PASS.
 Check that no credential, server address, PEM path, live recipient, OTP or opaque access value appears in tracked content:
 
 ```bash
-git grep -n -E 'CLEARSIGHT_SMTP_PASSWORD=.+|BEGIN [A-Z ]*PRIVATE KEY|form_access=[A-Za-z0-9_-]{20,}'
+git grep -n -E 'CLEARSIGHT_SMTP_PASSWORD=[^[:space:]]|BEGIN [A-Z ]*PRIVATE KEY|form_access=[A-Za-z0-9_-]{20,}' -- ':!docs/superpowers/plans/2026-08-30-vendor-email-acceptance-journeys.md'
 git status --short
 ```
 
