@@ -1,5 +1,6 @@
 export const requiredFormsCapabilities = Object.freeze([
   "library-empty", "library-list", "library-search", "library-saved-filter", "library-context-detail", "library-bulk-action",
+  "creation-blank", "creation-template", "creation-ai", "creation-import",
   "template-draft", "template-pending", "template-active", "template-retired", "weights-invalid", "weights-valid",
   "import-pending", "import-partial", "import-truncated", "import-failed", "import-proposal",
   "communication-compose", "communication-delivered", "communication-fallback", "communication-amended",
@@ -46,6 +47,20 @@ const scenarios = [
     state: "forms-library-empty", theme: "dark", viewport: mobile, zoom: 1, touch: true,
     capabilities: ["library-empty", "library-search", "viewport-mobile", "theme-dark"],
     run: async (page) => { await page.getByLabel("Search templates").fill("no matching bank form"); await page.getByRole("heading", { name: "No templates match “no matching bank form”" }).waitFor({ state: "visible" }); },
+  },
+  {
+    name: "91-forms-new-form-light-1440x900", fixture: "forms-library-lifecycle", route: "#forms",
+    state: "forms-unified-creation", theme: "light", viewport: desktop, zoom: 1,
+    capabilities: ["creation-blank", "creation-template", "creation-ai", "creation-import"],
+    run: async (page) => {
+      await page.getByRole("button", { name: "+ New form", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "New form" });
+      await dialog.waitFor({ state: "visible" });
+      for (const method of ["Blank form", "From template", "Draft with AI", "Import"]) {
+        await dialog.getByRole("button", { name: new RegExp(`^${method}\\b`) }).waitFor({ state: "visible" });
+      }
+      await dialog.getByRole("heading", { name: "Starter templates", exact: true }).waitFor({ state: "visible" });
+    },
   },
   {
     name: "94-forms-saved-filter-bulk-light-1440x900", fixture: "forms-library-governance", route: "#forms",
