@@ -22,7 +22,7 @@ describe("Forms FilterBar", () => {
     const query: FormTemplateQuery = { search: "vendor", status: "ACTIVE", owner: "principal-1", limit: 25 };
     render(<FilterBar query={query} onChange={onChange}/>);
 
-    expect(screen.getByRole("searchbox", { name: "Search templates" })).toHaveValue("vendor");
+    expect((screen.getByRole("searchbox", { name: "Search templates" }) as HTMLInputElement).value).toBe("vendor");
     expect(screen.getByRole("button", { name: "Remove Status filter" }).textContent).toContain("Active");
     expect(screen.getByRole("button", { name: "Remove Owner filter" }).textContent).toContain("principal-1");
 
