@@ -21,28 +21,16 @@ func TestAdvancedFormLibraryEvaluatesBoundedGroupsAndAuthoritativeStatusFacets(t
 		}
 	}
 
-	expression := &FormFilterExpression{
-		Kind:     "group",
-		Operator: "and",
-		Children: []FormFilterExpression{
-			{
-				Kind:     "group",
-				Operator: "or",
-				Children: []FormFilterExpression{
-					{Kind: "condition", Field: FormFilterStatus, Operator: "is", Value: "draft"},
-					{Kind: "condition", Field: FormFilterStatus, Operator: "is", Value: "active"},
-				},
-			},
-			{
-				Kind:     "group",
-				Operator: "or",
-				Children: []FormFilterExpression{
-					{Kind: "condition", Field: FormFilterProgram, Operator: "is", Value: "program-a"},
-					{Kind: "condition", Field: FormFilterTag, Operator: "is", Value: "Third-Party"},
-				},
-			},
-		},
-	}
+	expression := &FormFilterExpression{Kind: "group", Operator: "and", Children: []FormFilterExpression{
+		{Kind: "group", Operator: "or", Children: []FormFilterExpression{
+			{Kind: "condition", Field: FormFilterStatus, Operator: "is", Value: "draft"},
+			{Kind: "condition", Field: FormFilterStatus, Operator: "is", Value: "active"},
+		}},
+		{Kind: "group", Operator: "or", Children: []FormFilterExpression{
+			{Kind: "condition", Field: FormFilterProgram, Operator: "is", Value: "program-a"},
+			{Kind: "condition", Field: FormFilterTag, Operator: "is", Value: "Third-Party"},
+		}},
+	}}
 	page, err := repo.ListAdvancedFormLibrary(t.Context(), FormLibraryFilter{
 		TenantID: "bank-a", LegalEntityID: "entity-a", Expression: expression, Limit: 25,
 	}, true)
@@ -61,27 +49,19 @@ func TestAdvancedFormLibraryEvaluatesBoundedGroupsAndAuthoritativeStatusFacets(t
 }
 
 func TestAdvancedFormFilterRejectsUnsupportedAndUnboundedTrees(t *testing.T) {
-	tooDeep := &FormFilterExpression{
-		Kind:     "group",
-		Operator: "and",
-		Children: []FormFilterExpression{{
-			Kind:     "group",
-			Operator: "and",
-			Children: []FormFilterExpression{{
-				Kind:     "group",
-				Operator: "and",
-				Children: []FormFilterExpression{{
-					Kind: "condition", Field: FormFilterTag, Operator: "is", Value: "third-party",
-				}},
-			}},
-		}},
-	}
-	cases := map[string]*FormFilterExpression{
+	for name, expression := range map[string]*FormFilterExpression{
 		"field":    {Kind: "condition", Field: "reviewer", Operator: "is", Value: "person-a"},
 		"operator": {Kind: "condition", Field: FormFilterTag, Operator: "contains", Value: "third-party"},
-		"depth":    tooDeep,
-	}
-	for name, expression := range cases {
+		"depth": {
+			Kind: "group", Operator: "and", Children: []FormFilterExpression{{
+				Kind: "group", Operator: "and", Children: []FormFilterExpression{{
+					Kind: "group", Operator: "and", Children: []FormFilterExpression{{
+						Kind: "condition", Field: FormFilterTag, Operator: "is", Value: "third-party",
+					}},
+				}},
+			}},
+		},
+	} {
 		t.Run(name, func(t *testing.T) {
 			if _, err := NormalizeFormFilterExpression(expression); !errors.Is(err, ErrInvalid) {
 				t.Fatalf("error = %v, want ErrInvalid", err)
@@ -103,7 +83,7 @@ func TestSavedFormViewClonesAdvancedExpression(t *testing.T) {
 	now := time.Date(2026, 8, 31, 5, 30, 0, 0, time.UTC)
 	view := SavedFormView{
 		ID: "view-a", TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "person-a", Name: "Priority forms",
-		Filter: FormLibraryFilter{Expression: &FormFilterExpression{Kind: "condition", Field: FormFilterStatus, Operator: "is", Value: "ACTIVE"}},
+		Filter:    FormLibraryFilter{Expression: &FormFilterExpression{Kind: "condition", Field: FormFilterStatus, Operator: "is", Value: "ACTIVE"}},
 		CreatedAt: now, UpdatedAt: now,
 	}
 	if _, err := repo.SaveFormView(t.Context(), view); err != nil {
