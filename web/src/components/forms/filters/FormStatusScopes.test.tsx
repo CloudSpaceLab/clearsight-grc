@@ -24,9 +24,9 @@ describe("FormStatusScopes", () => {
       onChange={onChange}
     />);
 
-    expect(screen.getByRole("button", { name: "All 9" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Draft 3" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Rejected/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "All 9" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Draft 3" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Rejected/ })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Draft 3" }));
     expect(onChange).toHaveBeenCalledWith({
