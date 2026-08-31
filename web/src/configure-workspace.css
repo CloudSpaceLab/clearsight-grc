@@ -8,6 +8,7 @@
 .configure-navigation button.active { color: var(--text); background: color-mix(in srgb, var(--violet) 10%, var(--surface-2)); box-shadow: inset 2px 0 0 color-mix(in srgb, var(--violet) 70%, transparent); }
 .configure-navigation span { font-size: 12px; font-weight: 700; }
 .configure-navigation small { color: var(--muted); font-size: 9px; line-height: 1.4; }
+.configure-navigation button.active small { color: var(--text); }
 .configure-content { min-width: 0; }
 .configure-domain, .configure-overview { display: grid; gap: 20px; }
 .configure-domain-header { min-height: 76px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
