@@ -8,17 +8,26 @@ import (
 )
 
 func TestAdvancedFormFilterSQLUsesOnlyTypedParameterizedFields(t *testing.T) {
-	expression, err := NormalizeFormFilterExpression(&FormFilterExpression{Kind: "group", Operator: "or", Children: []FormFilterExpression{
-		{Kind: "condition", Field: FormFilterStatus, Operator: "is", Value: "active"},
-		{Kind: "group", Operator: "and", Children: []FormFilterExpression{
-			{Kind: "condition", Field: FormFilterProgram, Operator: "is", Value: "00000000-0000-0000-0000-000000000001"},
-			{Kind: "condition", Field: FormFilterTag, Operator: "is", Value: "Third-Party"},
-		}},
-	})
+	expression := &FormFilterExpression{
+		Kind:     "group",
+		Operator: "or",
+		Children: []FormFilterExpression{
+			{Kind: "condition", Field: FormFilterStatus, Operator: "is", Value: "active"},
+			{
+				Kind:     "group",
+				Operator: "and",
+				Children: []FormFilterExpression{
+					{Kind: "condition", Field: FormFilterProgram, Operator: "is", Value: "00000000-0000-0000-0000-000000000001"},
+					{Kind: "condition", Field: FormFilterTag, Operator: "is", Value: "Third-Party"},
+				},
+			},
+		},
+	}
+	normalized, err := NormalizeFormFilterExpression(expression)
 	if err != nil {
 		t.Fatal(err)
 	}
-	query, args, next := formFilterSQL(expression, "f", 4)
+	query, args, next := formFilterSQL(normalized, "f", 4)
 	if len(args) != 3 || next != 7 {
 		t.Fatalf("args = %#v, next = %d", args, next)
 	}
