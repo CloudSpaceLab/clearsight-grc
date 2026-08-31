@@ -244,7 +244,8 @@
   margin-top: 8px;
   border: 1px solid var(--forms-border, #d8dee8);
   border-radius: 14px;
-  background: #fff;
+  background: var(--cs-bg-surface-1);
+  color: var(--cs-text-primary);
 }
 .forms-lexical-editor {
   min-height: 260px;
@@ -255,7 +256,7 @@
   position: absolute;
   top: 16px;
   left: 16px;
-  color: #98a2b3;
+  color: var(--cs-text-muted);
   pointer-events: none;
 }
 .forms-lexical-h1 {
@@ -421,5 +422,48 @@
   }
   .forms-response-detail dl {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Communications keeps one stable workspace and uses focused creation dialogs. */
+.forms-communication-workspace {
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(240px, 300px);
+  align-items: start;
+}
+.forms-communication-list,
+.forms-communication-detail,
+.forms-communication-workspace > .forms-task-detail {
+  padding: var(--cs-space-group);
+  border: 1px solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-14);
+  background: var(--cs-bg-surface-1);
+}
+.forms-communication-workspace > .forms-task-detail {
+  border-left: 1px solid var(--cs-border-default);
+}
+.forms-dialog-editor {
+  padding: 0;
+  border: 0;
+  background: inherit;
+}
+.forms-dialog-editor .forms-task-actions {
+  justify-content: flex-end;
+  padding-top: var(--cs-space-group);
+  border-top: 1px solid var(--cs-border-default);
+}
+@media (max-width: 1050px) {
+  .forms-communication-workspace {
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  }
+  .forms-communication-workspace > .forms-task-detail {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 760px) {
+  .forms-communication-workspace {
+    grid-template-columns: 1fr;
+  }
+  .forms-communication-workspace > .forms-task-detail {
+    grid-column: auto;
   }
 }

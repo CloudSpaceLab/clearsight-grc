@@ -46,6 +46,11 @@ describe("field contracts", () => {
     expect(input.step).toBe("1");
   });
 
+  it("supports date and time controls through the shared field contract", () => {
+    render(<TextField label="Effective from" type="datetime-local" value="2026-08-31T19:00" onChange={() => undefined}/>);
+    expect(screen.getByLabelText("Effective from").getAttribute("type")).toBe("datetime-local");
+  });
+
   it("provides one labelled checkbox contract with description and disabled semantics", () => {
     const changed = vi.fn();
     const { rerender } = render(<CheckboxField label="Select vendor review" description="Adds this draft to the bulk action." isSelected={false} onChange={changed}/>);

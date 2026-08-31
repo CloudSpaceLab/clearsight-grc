@@ -65,7 +65,7 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | `ActionLink` | Real navigation only. |
 | `IconButton` | Named icon actions using the Button variants. |
 | `FormField` | Shared label, required marker, guidance and validation anatomy. |
-| `TextField` | Text, search, email, URL, telephone and numeric values; numeric minimum, maximum and step constraints; disabled, read-only, invalid and loading states. |
+| `TextField` | Text, search, email, URL, telephone, numeric, date, time and local date-time values; numeric minimum, maximum and step constraints; disabled, read-only, invalid and loading states. |
 | `SearchField` | Compact, visibly recognizable search for one named record population; labelled, loading and disabled states. |
 | `SelectableRecord` | One record in a bounded master list with visible title, metadata, optional supporting detail and accessible selected state. |
 | `CheckboxField` | Selected, unselected and indeterminate choices; visible or visually hidden labels; optional guidance and disabled state. |
