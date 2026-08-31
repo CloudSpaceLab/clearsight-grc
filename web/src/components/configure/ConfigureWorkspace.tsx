@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "../../configure-workspace.css";
 import { AIGovernanceSection } from "./AIGovernanceSection";
 import { AutomationSection } from "./AutomationSection";
 import { AuthorityRoutingSection } from "./AuthorityRoutingSection";
