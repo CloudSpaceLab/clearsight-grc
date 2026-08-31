@@ -48,6 +48,11 @@ const draftItem: FormLibraryItem = {
   },
   active_version: 1,
   active_status: "ACTIVE",
+  authority_available: true,
+  operations: [
+    { command: "forms.template.revise", label: "Edit draft", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You can edit this draft." },
+    { command: "forms.template.transition", label: "Change form status", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You can send this draft for approval.", allowed_targets: ["PENDING_APPROVAL"] },
+  ],
 };
 
 const starter: StarterTemplate = {

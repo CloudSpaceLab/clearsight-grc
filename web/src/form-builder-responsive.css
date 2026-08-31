@@ -36,7 +36,7 @@
   .form-builder-responsive-nav {
     position: sticky;
     z-index: 19;
-    top: 60px;
+    top: calc(var(--builder-context-offset) + 60px);
     display: flex;
     min-height: 42px;
     align-items: center;

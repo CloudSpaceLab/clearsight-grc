@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useCallback, useRef } from "react";
 import type { FormLibraryItem } from "../../../formsTypes";
 import type { LifecycleStatus } from "../../../monitoringTypes";
+import { FocusedSheet } from "../../FocusedSheet";
 import { isTemplateApprovalReady } from "../formQuality";
 import { formatDate, StatusPill } from "./TemplateLibraryTable";
 
@@ -15,23 +16,21 @@ type Props = {
 };
 
 export function TemplateDetailDrawer({ item, requestedID, busy, onClose, onClearFilters, onEdit, onTransition }: Props) {
-  useEffect(() => {
-    if (!requestedID) return;
-    const dismiss = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      onClose();
-    };
-    window.addEventListener("keydown", dismiss);
-    return () => window.removeEventListener("keydown", dismiss);
-  }, [onClose, requestedID]);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const close = useCallback(() => onCloseRef.current(), []);
 
   if (!requestedID) return null;
 
-  return <aside className="forms-detail-drawer" aria-label="Selected form template">
+  return <FocusedSheet
+    label="Selected form template"
+    closeLabel="Close form detail"
+    panelClassName="forms-detail-drawer"
+    backdropClassName="forms-detail-backdrop"
+    onClose={close}
+  >
     <div className="forms-detail-drawer-bar">
       <span>Form detail</span>
-      <button type="button" className="forms-detail-close" aria-label="Close form detail" onClick={onClose}>×</button>
     </div>
     {item ? <TemplateDetail item={item} busy={busy} onEdit={onEdit} onTransition={onTransition}/>
       : <div className="forms-detail-drawer-body">
@@ -40,13 +39,22 @@ export function TemplateDetailDrawer({ item, requestedID, busy, onClose, onClear
         <p>Clear the active filters to bring the selected template back into the current result set.</p>
         <button type="button" onClick={onClearFilters}>Clear filters</button>
       </div>}
-  </aside>;
+  </FocusedSheet>;
 }
 
 function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibraryItem; busy: string | null; onEdit: () => void; onTransition: (to: LifecycleStatus) => void }) {
   const form = item.template;
   const approvalReady = form.status === "DRAFT" && isTemplateApprovalReady(form);
-  const owner = form.owner_principal_id || form.responsible_team || "Not assigned";
+  const owner = form.responsible_team || (form.owner_principal_id ? "Assigned owner" : "Not assigned");
+  const revise = item.operations?.find((operation) => operation.command === "forms.template.revise");
+  const transition = item.operations?.find((operation) => operation.command === "forms.template.transition");
+  const authorityReady = item.authority_available === true;
+  const canRevise = Boolean(authorityReady && revise?.can_act);
+  const canTransition = (to: LifecycleStatus) => Boolean(authorityReady && transition?.can_act && transition.allowed_targets?.includes(to));
+  const unavailable = !authorityReady;
+  const unavailableReason = unavailable
+    ? "Current responsibilities could not be checked. Form changes are unavailable until the authority route is restored."
+    : revise?.reason || transition?.reason;
 
   return <div className="forms-detail-drawer-body">
     <header className="forms-detail-heading">
@@ -78,15 +86,23 @@ function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibrar
 
     <div className="forms-detail-actions">
       {form.status === "DRAFT" && <>
-        <button type="button" onClick={onEdit}>Edit draft</button>
-        <button className="forms-primary" type="button" disabled={busy !== null || !approvalReady} onClick={() => onTransition("PENDING_APPROVAL")}>Send for approval</button>
+        {canRevise && <button type="button" onClick={onEdit}>Edit draft</button>}
+        {canTransition("PENDING_APPROVAL") && <button className="forms-primary" type="button" disabled={busy !== null || !approvalReady} onClick={() => onTransition("PENDING_APPROVAL")}>Send for approval</button>}
       </>}
-      {form.status === "DRAFT" && !approvalReady && <small className="forms-muted">Open the editor to resolve approval-quality checks before submission.</small>}
+      {form.status === "DRAFT" && canTransition("PENDING_APPROVAL") && !approvalReady && <small className="forms-muted">Open the editor to resolve approval-quality checks before submission.</small>}
       {form.status === "PENDING_APPROVAL" && <>
-        <button className="forms-primary" type="button" disabled={busy !== null} onClick={() => onTransition("ACTIVE")}>Approve and activate</button>
-        <button type="button" disabled={busy !== null} onClick={() => onTransition("REJECTED")}>Reject</button>
+        {canTransition("ACTIVE") && <button className="forms-primary" type="button" disabled={busy !== null} onClick={() => onTransition("ACTIVE")}>Approve and activate</button>}
+        {canTransition("REJECTED") && <button type="button" disabled={busy !== null} onClick={() => onTransition("REJECTED")}>Reject</button>}
       </>}
-      {form.status === "ACTIVE" && <button type="button" disabled={busy !== null} onClick={() => onTransition("RETIRED")}>Retire revision</button>}
+      {form.status === "ACTIVE" && <>
+        {canTransition("PAUSED") && <button type="button" disabled={busy !== null} onClick={() => onTransition("PAUSED")}>Pause revision</button>}
+        {canTransition("RETIRED") && <button type="button" disabled={busy !== null} onClick={() => onTransition("RETIRED")}>Retire revision</button>}
+      </>}
+      {form.status === "PAUSED" && <>
+        {canTransition("ACTIVE") && <button className="forms-primary" type="button" disabled={busy !== null} onClick={() => onTransition("ACTIVE")}>Resume revision</button>}
+        {canTransition("RETIRED") && <button type="button" disabled={busy !== null} onClick={() => onTransition("RETIRED")}>Retire revision</button>}
+      </>}
+      {!canRevise && !canTransition("PENDING_APPROVAL") && !canTransition("ACTIVE") && !canTransition("REJECTED") && !canTransition("PAUSED") && !canTransition("RETIRED") && unavailableReason && <small className="forms-muted">{unavailableReason}</small>}
     </div>
   </div>;
 }

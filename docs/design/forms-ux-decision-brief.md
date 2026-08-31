@@ -161,3 +161,22 @@ Every tranche must retain:
 - existing backend CI because frontend lifecycle actions remain coupled to governed contracts.
 
 The deterministic evidence contract must evolve when a legacy UI surface is intentionally removed; tests must validate the new behavior rather than force obsolete composition back into the product.
+
+## Issue #103 closure behavior
+
+The implemented dashboard and builder retain these interaction contracts:
+
+- clearing active library filters preserves the selected template and its URL target, then reloads that exact record in the unfiltered result;
+- applying a saved view and changing newest/oldest updated order preserve the selected template and serialize the query without client-side full-list sorting;
+- contextual template detail is a modal sheet with an explicit accessible name, initial close-button focus, trapped keyboard focus, locked background scrolling, Escape/backdrop dismissal and focus restoration to the invoking row;
+- at 760px and below, the canonical template table becomes a labelled stacked-record presentation; the document and table wrapper do not require horizontal scrolling;
+- pending approval is presented as `Awaiting approval`; internal lifecycle values remain available in API and audit surfaces;
+- question drag handles perform pointer reordering within their section, while the question action menu retains Move up and Move down for keyboard users;
+- a reorder that would invalidate conditional logic is rejected visibly without deleting the condition; Duplicate creates a new question key;
+- Review Fix closes the review sheet and focuses the exact affected form, section or question control;
+- edit and lifecycle controls render only from an exact current authority operation; an unavailable authority read exposes no material action;
+- at 560px and below, Preview, Review, Save draft and Send for approval remain visible in a wrapped toolbar, with 44px targets; authoring does not hide a material action to fit the viewport.
+
+The deterministic Forms evidence matrix includes a populated 390px library, the mobile builder at 390px, builder reflow at 320px, a real desktop mouse drag and a 120-question/10-section fixture. Scenarios check overflow, visible authoring actions, target dimensions, changed question order, sticky-chrome separation and large-form render/edit latency before capture.
+
+Automated evidence does not replace representative-bank-user timing, actual browser zoom or hosted production acceptance. Issue closure still requires those external results, the exact deployed commit, normal-network query timing and production-shaped PostgreSQL/load evidence to be recorded rather than inferred from local fixtures.

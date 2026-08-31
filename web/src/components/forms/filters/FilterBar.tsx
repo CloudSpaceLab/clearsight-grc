@@ -1,8 +1,15 @@
 import { useMemo, useState } from "react";
 import type { FormTemplateQuery } from "../../../formsTypes";
-import { activeFilterConditions, removeFilter, setFilter } from "./filterModel";
-import type { FilterCondition, FilterField } from "./filterModel";
+import {
+  activeFilterConditions,
+  filterExpressionSummary,
+  removeFilter,
+  setAdvancedFilter,
+  setFilter,
+} from "./filterModel";
+import type { FilterCondition, FilterExpression, FilterField } from "./filterModel";
 import { filterDefinition, formatFilterValue } from "./filterRegistry";
+import { AdvancedFilterEditor } from "./AdvancedFilterEditor";
 import { FilterPicker } from "./FilterPicker";
 
 type Props = {
@@ -14,12 +21,19 @@ type Props = {
 
 export function FilterBar({ query, onChange, resultCount, revalidating = false }: Props) {
   const [open, setOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const conditions = activeFilterConditions(query);
   const activeFields = useMemo(() => new Set<FilterField>(conditions.map((condition) => condition.field)), [conditions]);
+  const advancedSummary = filterExpressionSummary(query.filter);
 
   function apply(condition: FilterCondition) {
     onChange(setFilter(query, condition));
     setOpen(false);
+  }
+
+  function applyAdvanced(expression?: FilterExpression) {
+    onChange(setAdvancedFilter(query, expression));
+    setAdvancedOpen(false);
   }
 
   return <div className="forms-filter-bar">
@@ -52,14 +66,42 @@ export function FilterBar({ query, onChange, resultCount, revalidating = false }
         </button>;
       })}
 
+      {advancedSummary && <button
+        type="button"
+        className="forms-filter-chip advanced"
+        aria-label="Edit advanced filters"
+        onClick={() => { setOpen(false); setAdvancedOpen(true); }}
+      >
+        <span>Advanced</span>
+        <strong>{advancedSummary}</strong>
+      </button>}
+
       <div className="forms-filter-add">
-        <button type="button" className="forms-filter-add-button" aria-expanded={open} onClick={() => setOpen((value) => !value)}>+ Filter</button>
+        <button type="button" className="forms-filter-add-button" aria-expanded={open} onClick={() => { setAdvancedOpen(false); setOpen((value) => !value); }}>+ Filter</button>
         {open && <FilterPicker activeFields={activeFields} onApply={apply} onClose={() => setOpen(false)}/>} 
       </div>
+      <button
+        type="button"
+        className="forms-filter-advanced-button"
+        aria-expanded={advancedOpen}
+        onClick={() => { setOpen(false); setAdvancedOpen(true); }}
+      >
+        {advancedSummary ? "Edit logic" : "Advanced"}
+      </button>
+      <button
+        type="button"
+        className="forms-filter-sort-button"
+        aria-label={query.sort === "UPDATED_ASC" ? "Sort by newest update" : "Sort by oldest update"}
+        onClick={() => onChange({ ...query, sort: query.sort === "UPDATED_ASC" ? "UPDATED_DESC" : "UPDATED_ASC", cursor: undefined })}
+      >
+        Updated {query.sort === "UPDATED_ASC" ? "↑" : "↓"}
+      </button>
     </div>
 
     <div className="forms-filter-status" aria-live="polite">
       {revalidating ? <span>Updating…</span> : typeof resultCount === "number" ? <span>{resultCount} {resultCount === 1 ? "result" : "results"}</span> : null}
     </div>
+
+    {advancedOpen && <AdvancedFilterEditor expression={query.filter} onApply={applyAdvanced} onClose={() => setAdvancedOpen(false)}/>} 
   </div>;
 }

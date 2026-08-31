@@ -28,7 +28,9 @@ import {
   maxGeneratedNumber,
   reconcileAuthoringOrder,
   updateConstraint,
+  type AuthoringField,
   type FormDraft,
+  type FormQualityIssue,
 } from "./forms/formAuthoring";
 import { evaluateDraftValidity, evaluateQuality } from "./forms/formQuality";
 
@@ -214,17 +216,69 @@ export function FormBuilder({
   }
 
   function moveField(index: number, offset: -1 | 1) {
-    setDraft((current) => {
-      const source = current.fields[index];
-      if (!source) return current;
-      const siblingIndices = current.fields.flatMap((field, fieldIndex) => field.section_id === source.section_id ? [fieldIndex] : []);
-      const siblingPosition = siblingIndices.indexOf(index);
-      const destination = siblingIndices[siblingPosition + offset];
-      if (siblingPosition < 0 || destination === undefined) return current;
-      const fields = [...current.fields];
-      [fields[index], fields[destination]] = [fields[destination]!, fields[index]!];
-      return { ...current, ...reconcileAuthoringOrder(current.sections, fields) };
+    const source = draft.fields[index];
+    if (!source) return;
+    const siblingIndices = draft.fields.flatMap((field, fieldIndex) => field.section_id === source.section_id ? [fieldIndex] : []);
+    const siblingPosition = siblingIndices.indexOf(index);
+    const destination = siblingIndices[siblingPosition + offset];
+    if (siblingPosition < 0 || destination === undefined) return;
+    const fields = [...draft.fields];
+    [fields[index], fields[destination]] = [fields[destination]!, fields[index]!];
+    commitFieldOrder(fields);
+  }
+
+  function reorderField(fromIndex: number, toIndex: number) {
+    const source = draft.fields[fromIndex];
+    const destination = draft.fields[toIndex];
+    if (!source || !destination || source.section_id !== destination.section_id || fromIndex === toIndex) return;
+    const fields = [...draft.fields];
+    const [moved] = fields.splice(fromIndex, 1);
+    if (!moved) return;
+    fields.splice(toIndex, 0, moved);
+    commitFieldOrder(fields);
+  }
+
+  function commitFieldOrder(fields: AuthoringField[]) {
+    const positions = new Map(fields.map((field, index) => [field.id, index]));
+    const invalid = fields.find((field, index) => {
+      if (!field.condition) return false;
+      const sourceIndex = positions.get(field.condition.field_id);
+      return sourceIndex === undefined || sourceIndex >= index;
     });
+    if (invalid) {
+      setError(`${invalid.label.trim() || "This question"} must remain after the question it depends on.`);
+      return;
+    }
+    setDraft((current) => ({ ...current, fields }));
+    setError("");
+  }
+
+  function duplicateField(index: number) {
+    if (draft.fields.length >= 200) return;
+    const source = draft.fields[index];
+    if (!source) return;
+    const id = `question_${nextField}`;
+    const duplicate: AuthoringField = {
+      ...source,
+      id,
+      label: source.label.trim() ? `${source.label} copy` : "",
+      options: source.options ? [...source.options] : undefined,
+      accepted_formats: source.accepted_formats ? [...source.accepted_formats] : undefined,
+      constraints: source.constraints ? { ...source.constraints } : undefined,
+      condition: source.condition ? { ...source.condition, values: source.condition.values ? [...source.condition.values] : undefined } : undefined,
+      scoring: source.scoring ? {
+        ...source.scoring,
+        answer_scores: { ...source.scoring.answer_scores },
+        critical_answers: source.scoring.critical_answers ? [...source.scoring.critical_answers] : undefined,
+      } : undefined,
+      record_target: source.record_target ? { ...source.record_target } : undefined,
+    };
+    const fields = [...draft.fields];
+    fields.splice(index + 1, 0, duplicate);
+    setDraft((current) => ({ ...current, fields }));
+    setNextField((current) => current + 1);
+    setSelection({ kind: "field", fieldID: id });
+    setError("");
   }
 
   function removeField(index: number) {
@@ -246,6 +300,34 @@ export function FormBuilder({
     setDraft((current) => ({ ...current, fields: [...current.fields, result.field] }));
     setNextField(result.nextField);
     setSelection({ kind: "field", fieldID: result.field.id });
+  }
+
+  function fixReviewIssue(issue: FormQualityIssue) {
+    if (issue.fieldID) setSelection({ kind: "field", fieldID: issue.fieldID });
+    else if (issue.sectionID) setSelection({ kind: "section", sectionID: issue.sectionID });
+    else setSelection({ kind: "overview" });
+    if (issue.id === "code") setResponsivePane("settings");
+    setReviewOpen(false);
+    window.setTimeout(() => {
+      let target: HTMLElement | null = null;
+      if (issue.fieldID) {
+        const card = Array.from(document.querySelectorAll<HTMLElement>("[data-builder-field-id]"))
+          .find((element) => element.dataset.builderFieldId === issue.fieldID);
+        target = card?.querySelector<HTMLElement>(".form-question-prompt") ?? null;
+      } else if (issue.sectionID) {
+        const section = Array.from(document.querySelectorAll<HTMLElement>("[data-builder-section-id]"))
+          .find((element) => element.dataset.builderSectionId === issue.sectionID);
+        target = section?.querySelector<HTMLElement>("input") ?? null;
+      } else if (issue.id === "code") {
+        target = document.querySelector<HTMLElement>("[aria-label='Code']");
+      } else if (issue.id === "purpose") {
+        target = document.querySelector<HTMLElement>("[aria-label='Purpose']");
+      } else {
+        target = document.querySelector<HTMLElement>("[aria-label='Form name']");
+      }
+      target?.scrollIntoView?.({ block: "center" });
+      target?.focus();
+    }, 0);
   }
 
   function usePasswordResetReview() {
@@ -413,6 +495,8 @@ export function FormBuilder({
         onAddField={(sectionID) => addField("short_text", sectionID)}
         onAddSection={addSection}
         onMoveField={moveField}
+        onReorderField={reorderField}
+        onDuplicateField={duplicateField}
         onRemoveField={removeField}
       />
 
@@ -429,7 +513,7 @@ export function FormBuilder({
       issues={issues}
       fields={draft.fields}
       initialValue={initialValue}
-      onFix={setSelection}
+      onFix={fixReviewIssue}
       onAddRequiredSignOff={() => { addSignOff(); setReviewOpen(false); }}
       onClose={() => setReviewOpen(false)}
     />}

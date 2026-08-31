@@ -1,5 +1,6 @@
 import type { FormTemplateQuery } from "../../formsTypes";
 import type { LifecycleStatus } from "../../monitoringTypes";
+import { parseFilterExpression, serializeFilterExpression } from "./filters/filterModel";
 
 const DEFAULT_LIMIT = 25;
 
@@ -14,12 +15,14 @@ export function readFormsQuery(hash: string, fallbackSearch?: string): FormTempl
     program: params.get("program") || undefined,
     use: params.get("use") || undefined,
     tag: params.get("tag") || undefined,
+    filter: parseFilterExpression(params.get("filter")),
+    sort: params.get("sort") === "UPDATED_ASC" ? "UPDATED_ASC" : undefined,
     limit: Number.isFinite(limitValue) && limitValue >= 1 && limitValue <= 100 ? limitValue : DEFAULT_LIMIT,
   };
 }
 
 export function clearedFormsQuery(query: FormTemplateQuery): FormTemplateQuery {
-  return { limit: query.limit ?? DEFAULT_LIMIT };
+  return { sort: query.sort, limit: query.limit ?? DEFAULT_LIMIT };
 }
 
 export function writeFormsLocation(query: FormTemplateQuery, targetID?: string, replace = true) {
@@ -30,6 +33,9 @@ export function writeFormsLocation(query: FormTemplateQuery, targetID?: string, 
   if (query.program?.trim()) params.set("program", query.program.trim());
   if (query.use?.trim()) params.set("use", query.use.trim());
   if (query.tag?.trim()) params.set("tag", query.tag.trim());
+  if (query.sort === "UPDATED_ASC") params.set("sort", query.sort);
+  const filter = serializeFilterExpression(query.filter);
+  if (filter) params.set("filter", filter);
   if (query.limit && query.limit !== DEFAULT_LIMIT) params.set("limit", String(query.limit));
   const encoded = params.toString();
   const hash = `#forms${targetID ? `/${encodeURIComponent(targetID)}` : ""}${encoded ? `?${encoded}` : ""}`;

@@ -22,6 +22,31 @@ describe("Forms API", () => {
     expect(url).not.toContain("tenant_id=");
   });
 
+  it("serializes the typed advanced expression and requests authoritative facets explicitly", async () => {
+    await loadFormTemplatePage({
+      filter: {
+        kind: "group",
+        operator: "or",
+        children: [
+          { kind: "condition", field: "status", operator: "is", value: "ACTIVE" },
+          { kind: "condition", field: "tag", operator: "is", value: "third-party" },
+        ],
+      },
+      limit: 25,
+    }, undefined, { statusFacets: true });
+
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]), "https://example.test");
+    expect(url.searchParams.get("facets")).toBe("status");
+    expect(JSON.parse(url.searchParams.get("filter") ?? "null")).toEqual({
+      kind: "group",
+      operator: "or",
+      children: [
+        { kind: "condition", field: "status", operator: "is", value: "ACTIVE" },
+        { kind: "condition", field: "tag", operator: "is", value: "third-party" },
+      ],
+    });
+  });
+
   it("derives reusable section sources from exact active revisions even when the latest revision is a draft", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ items: [
       { template: { id: "form-a", code: "VENDOR", name: "Vendor review", status: "DRAFT", version: 3 }, active_version: 2, active_status: "ACTIVE" },
@@ -47,9 +72,21 @@ describe("Forms API", () => {
     expect(String(fetchMock.mock.calls[0]?.[1]?.body)).not.toContain("legal_entity_id");
 
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ id: "view-a", name: "Vendor forms", filter: {} }), { status: 200, headers: { "Content-Type": "application/json" } }));
-    await saveFormView("Vendor forms", { search: "vendor", owner: "owner-a", program: "program-a", limit: 25 });
+    await saveFormView("Vendor forms", {
+      search: "vendor",
+      owner: "owner-a",
+      program: "program-a",
+      filter: { kind: "condition", field: "tag", operator: "is", value: "third-party" },
+      limit: 25,
+    });
     const body = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
-    expect(body.filter).toMatchObject({ search: "vendor", owner_principal_id: "owner-a", program_id: "program-a", limit: 25 });
+    expect(body.filter).toMatchObject({
+      search: "vendor",
+      owner_principal_id: "owner-a",
+      program_id: "program-a",
+      expression: { kind: "condition", field: "tag", operator: "is", value: "third-party" },
+      limit: 25,
+    });
     expect(body.filter.tenant_id).toBeUndefined();
     expect(body.filter.legal_entity_id).toBeUndefined();
   });

@@ -19,6 +19,12 @@ export function FocusedSheet({ label, onClose, children, panelClassName = "", ba
     if (!panel) return;
     const activePanel = panel;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+    const currentPaddingRight = Number.parseFloat(window.getComputedStyle(document.body).paddingRight) || 0;
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${currentPaddingRight + scrollbarWidth}px`;
     const background = Array.from(document.querySelectorAll<HTMLElement>(".app-shell > .sidebar, .app-shell > main, .app-shell > .mobile-nav, .app-shell > .guide-launcher"));
     const previous = background.map((element) => ({
       element,
@@ -65,6 +71,8 @@ export function FocusedSheet({ label, onClose, children, panelClassName = "", ba
         if (item.ariaHidden == null) item.element.removeAttribute("aria-hidden");
         else item.element.setAttribute("aria-hidden", item.ariaHidden);
       }
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.paddingRight = previousBodyPaddingRight;
       previousFocus?.focus?.();
     };
   }, [onClose]);

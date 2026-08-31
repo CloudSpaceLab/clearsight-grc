@@ -17,6 +17,7 @@ it("keeps focused work outside inert application content and traps keyboard focu
   expect(document.body.contains(dialog)).toBe(true);
   expect(dialog.closest(".app-shell")).toBeNull();
   expect(document.querySelector("main")?.hasAttribute("inert")).toBe(true);
+  expect(document.body.style.overflow).toBe("hidden");
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close" }));
 
   screen.getByRole("button", { name: "Last action" }).focus();
@@ -27,4 +28,5 @@ it("keeps focused work outside inert application content and traps keyboard focu
 
   view.unmount();
   expect(document.querySelector(".panel-backdrop")).toBeNull();
+  expect(document.body.style.overflow).toBe("");
 });

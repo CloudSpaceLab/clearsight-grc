@@ -26,7 +26,7 @@ export function TemplateLibraryTable({ items, selectedIDs, targetID, onToggle, o
       <tbody>
         {items.map((item) => {
           const form = item.template;
-          const owner = form.responsible_team || form.owner_principal_id || "Not assigned";
+          const owner = form.responsible_team || (form.owner_principal_id ? "Assigned owner" : "Not assigned");
           return <tr key={form.id} className={targetID === form.id ? "selected" : ""}>
             <td className="forms-library-select">
               <input
@@ -42,13 +42,13 @@ export function TemplateLibraryTable({ items, selectedIDs, targetID, onToggle, o
                 <span>{form.purpose || form.code}</span>
               </button>
             </td>
-            <td><StatusPill status={form.status}/></td>
-            <td className="forms-library-revision">
+            <td data-label="State"><StatusPill status={form.status}/></td>
+            <td className="forms-library-revision" data-label="Revision">
               <strong>v{form.version}</strong>
               <span>{item.active_version ? `Reusable v${item.active_version}` : "No reusable revision"}</span>
             </td>
-            <td className="forms-library-owner">{owner}</td>
-            <td className="forms-library-updated">{formatDate(form.updated_at)}</td>
+            <td className="forms-library-owner" data-label="Owner">{owner}</td>
+            <td className="forms-library-updated" data-label="Updated">{formatDate(form.updated_at)}</td>
             <td><button type="button" className="forms-row-action" aria-label={`Open ${form.name}`} onClick={() => onOpen(form.id)}>Open</button></td>
           </tr>;
         })}
@@ -62,6 +62,7 @@ export function StatusPill({ status }: { status: LifecycleStatus }) {
 }
 
 export function statusLabel(status: LifecycleStatus) {
+  if (status === "PENDING_APPROVAL") return "Awaiting approval";
   return status.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
 

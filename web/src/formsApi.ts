@@ -16,20 +16,25 @@ import type {
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
-function formQuery(query: FormTemplateQuery = {}) {
+type FormTemplatePageOptions = { statusFacets?: boolean };
+
+function formQuery(query: FormTemplateQuery = {}, options: FormTemplatePageOptions = {}) {
   const params = new URLSearchParams();
   const values: Array<[string, string | number | undefined]> = [
     ["search", query.search?.trim() || undefined], ["status", query.status], ["owner", query.owner?.trim() || undefined],
     ["program", query.program?.trim() || undefined], ["use", query.use?.trim() || undefined], ["tag", query.tag?.trim() || undefined],
     ["cursor", query.cursor], ["limit", query.limit],
+    ["sort", query.sort === "UPDATED_ASC" ? query.sort : undefined],
   ];
   for (const [key, value] of values) if (value !== undefined && value !== "") params.set(key, String(value));
+  if (query.filter) params.set("filter", JSON.stringify(query.filter));
+  if (options.statusFacets) params.set("facets", "status");
   const encoded = params.toString();
   return encoded ? `?${encoded}` : "";
 }
 
-export function loadFormTemplatePage(query: FormTemplateQuery = {}, signal?: AbortSignal): Promise<FormTemplatePage> {
-  return requestJSON<FormTemplatePage>(apiBase, `/api/v1/forms/templates${formQuery(query)}`, signal ? { signal } : undefined);
+export function loadFormTemplatePage(query: FormTemplateQuery = {}, signal?: AbortSignal, options: FormTemplatePageOptions = {}): Promise<FormTemplatePage> {
+  return requestJSON<FormTemplatePage>(apiBase, `/api/v1/forms/templates${formQuery(query, options)}`, signal ? { signal } : undefined);
 }
 export function loadFormTemplateRevision(id: string, version: number): Promise<FormTemplate> {
   return requestJSON<FormTemplate>(apiBase, `/api/v1/forms/templates/${encodeURIComponent(id)}/revisions/${version}`);
@@ -59,7 +64,17 @@ export async function loadSavedFormViews(): Promise<SavedFormView[]> {
   return (await requestJSON<{ items: SavedFormView[] }>(apiBase, "/api/v1/forms/saved-views")).items;
 }
 export function saveFormView(name: string, query: FormTemplateQuery, id?: string): Promise<SavedFormView> {
-  const filter: SavedFormViewFilter = { search: query.search?.trim() || undefined, status: query.status, owner_principal_id: query.owner?.trim() || undefined, program_id: query.program?.trim() || undefined, use: query.use?.trim() || undefined, tag: query.tag?.trim() || undefined, limit: query.limit };
+  const filter: SavedFormViewFilter = {
+    search: query.search?.trim() || undefined,
+    status: query.status,
+    owner_principal_id: query.owner?.trim() || undefined,
+    program_id: query.program?.trim() || undefined,
+    use: query.use?.trim() || undefined,
+    tag: query.tag?.trim() || undefined,
+    expression: query.filter,
+    sort: query.sort,
+    limit: query.limit,
+  };
   return requestJSON<SavedFormView>(apiBase, "/api/v1/forms/saved-views", { method: "POST", body: JSON.stringify({ id, name, filter }) });
 }
 export function deleteSavedFormView(id: string): Promise<void> {

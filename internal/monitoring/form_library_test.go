@@ -71,6 +71,27 @@ func TestFormLibraryFiltersBeforeLimit(t *testing.T) {
 	}
 }
 
+func TestFormLibraryOldestUpdatedSortUsesMatchingKeysetDirection(t *testing.T) {
+	repo := NewMemoryRepository()
+	now := time.Date(2026, 8, 27, 10, 0, 0, 0, time.UTC)
+	for _, form := range []FormTemplate{
+		libraryForm("newest", "entity-a", "", "NEW", LifecycleDraft, 1, false, now),
+		libraryForm("oldest", "entity-a", "", "OLD", LifecycleDraft, 1, false, now.Add(-time.Hour)),
+	} {
+		if _, err := repo.CreateFormRevision(t.Context(), form); err != nil {
+			t.Fatal(err)
+		}
+	}
+	first, err := repo.ListFormLibrary(t.Context(), FormLibraryFilter{TenantID: "bank-a", LegalEntityID: "entity-a", Sort: FormLibraryUpdatedAsc, Limit: 1})
+	if err != nil || len(first.Items) != 1 || first.Items[0].Template.ID != "oldest" || first.NextCursor == "" {
+		t.Fatalf("oldest first page = %#v, err = %v", first, err)
+	}
+	second, err := repo.ListFormLibrary(t.Context(), FormLibraryFilter{TenantID: "bank-a", LegalEntityID: "entity-a", Sort: FormLibraryUpdatedAsc, Cursor: first.NextCursor, Limit: 1})
+	if err != nil || len(second.Items) != 1 || second.Items[0].Template.ID != "newest" {
+		t.Fatalf("oldest second page = %#v, err = %v", second, err)
+	}
+}
+
 func TestFormLibrarySavedViewsArePrincipalScoped(t *testing.T) {
 	repo := NewMemoryRepository()
 	now := time.Date(2026, 8, 27, 11, 0, 0, 0, time.UTC)

@@ -61,33 +61,42 @@ beforeEach(() => {
 });
 
 describe("Forms workspace location state", () => {
-  it("preserves a saved view after target navigation rewrites the hash", async () => {
+  it("applies a saved view without discarding the selected target", async () => {
     api.loadSavedFormViews.mockResolvedValueOnce([savedView]);
     const onTarget = vi.fn(() => window.history.replaceState(null, "", "#forms"));
 
     render(<FormsWorkspace targetID="template-a" onTarget={onTarget}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Active outsourcing" }));
 
-    expect(onTarget).toHaveBeenCalledWith(undefined);
-    expect(window.location.hash).toBe("#forms?search=outsourcing&status=ACTIVE&tag=third-party");
-    await waitFor(() => expect(api.loadFormTemplatePage).toHaveBeenCalledWith(expect.objectContaining({ search: "outsourcing", status: "ACTIVE", tag: "third-party" }), expect.anything()));
+    expect(onTarget).not.toHaveBeenCalled();
+    expect(window.location.hash).toBe("#forms/template-a?search=outsourcing&status=ACTIVE&tag=third-party");
+    await waitFor(() => expect(api.loadFormTemplatePage).toHaveBeenCalledWith(
+      expect.objectContaining({ search: "outsourcing", status: "ACTIVE", tag: "third-party" }),
+      expect.anything(),
+      { statusFacets: true },
+    ));
   });
 
-  it("clears filters and the selected target without restoring stale query state", async () => {
+  it("clears filters while preserving the selected target and removing stale query state", async () => {
     window.history.replaceState(null, "", "#forms/template-missing?search=outsourcing&status=ACTIVE");
-    api.loadFormTemplatePage.mockResolvedValue({ items: [] });
+    api.loadFormTemplatePage
+      .mockResolvedValueOnce({ items: [] })
+      .mockResolvedValue({ items: [{ ...draftItem, template: { ...draftItem.template, id: "template-missing" } }] });
     const onTarget = vi.fn(() => window.history.replaceState(null, "", "#forms"));
 
     render(<FormsWorkspace targetID="template-missing" onTarget={onTarget}/>);
-    fireEvent.click(await screen.findByRole("button", { name: "Clear filters" }));
+    const clearFilters = await screen.findByRole("button", { name: "Clear filters" });
+    await waitFor(() => expect(screen.queryByText("Loading form templates…")).toBeNull());
+    fireEvent.click(clearFilters);
 
-    expect(onTarget).toHaveBeenCalledWith(undefined);
-    expect(window.location.hash).toBe("#forms");
+    expect(onTarget).not.toHaveBeenCalled();
+    expect(window.location.hash).toBe("#forms/template-missing");
     await waitFor(() => {
       const lastCall = api.loadFormTemplatePage.mock.calls.at(-1)?.[0];
       expect(lastCall).toMatchObject({ limit: 25 });
       expect(lastCall).not.toHaveProperty("search");
       expect(lastCall).not.toHaveProperty("status");
     });
+    expect(await screen.findByRole("heading", { name: "Vendor due diligence" })).toBeTruthy();
   });
 });

@@ -17,6 +17,7 @@ import {
 import type {
   FormLibraryItem,
   FormTemplate,
+  FormTemplatePage,
   FormTemplateProposal,
   FormTemplateQuery,
   ReusableFormTemplateRef,
@@ -29,21 +30,22 @@ import { FormAIComposer } from "./forms/FormAIComposer";
 import { FormProposalReview } from "./forms/FormProposalReview";
 import { FormsBrandHeader } from "./forms/FormsBrandHeader";
 import { FormsEmptyState } from "./forms/FormsEmptyState";
-import { FormsLibrarySummary } from "./forms/FormsLibrarySummary";
 import { FormsTabContent } from "./forms/FormsTabContent";
 import { NewFormLauncher } from "./forms/creation/NewFormLauncher";
 import { TemplateDetailDrawer } from "./forms/dashboard/TemplateDetailDrawer";
 import { TemplateLibraryTable } from "./forms/dashboard/TemplateLibraryTable";
 import { FilterBar } from "./forms/filters/FilterBar";
+import { FormStatusScopes } from "./forms/filters/FormStatusScopes";
 import { defaultFormsAccent, loadFormsAppearance, type FormsAppearance } from "./forms/formsAppearance";
 import { preserveLibraryRevisionMetadata } from "./forms/formRevisionInput";
 import { isTemplateApprovalReady } from "./forms/formQuality";
 import { clearedFormsQuery, readFormsQuery, writeFormsLocation } from "./forms/formsLocation";
 
 const tabs = ["Templates", "Sent forms", "Responses", "Imports", "Communications"] as const;
+const libraryRevalidationIntervalMs = 30_000;
 type FormsTab = typeof tabs[number];
 type LoadState = "loading" | "live" | "unavailable";
-type EditorState = { mode: "create" } | { mode: "edit"; template: FormTemplate };
+type EditorState = { mode: "create" } | { mode: "edit"; template: FormTemplate; canSendForApproval: boolean };
 
 type Props = {
   organizationName?: string;
@@ -58,7 +60,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const appearanceKey = appearanceScope?.trim() || legalEntityName;
   const [activeTab, setActiveTab] = useState<FormsTab>("Templates");
   const [query, setQuery] = useState<FormTemplateQuery>(() => readFormsQuery(window.location.hash, initialSearch));
-  const [page, setPage] = useState<{ items: FormLibraryItem[]; next_cursor?: string }>({ items: [] });
+  const [page, setPage] = useState<FormTemplatePage>({ items: [] });
   const [state, setState] = useState<LoadState>("loading");
   const [revalidating, setRevalidating] = useState(false);
   const [starters, setStarters] = useState<StarterTemplate[]>([]);
@@ -77,13 +79,25 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const [appearance, setAppearance] = useState<FormsAppearance>(() => readAppearance(appearanceKey));
   const loadEpoch = useRef(0);
   const requestAbort = useRef<AbortController | null>(null);
+  const lastSuccessfulRefresh = useRef(0);
 
   const selected = useMemo(() => page.items.find((item) => item.template.id === targetID), [page.items, targetID]);
   const selectedItems = useMemo(() => page.items.filter((item) => selectedIDs.has(item.template.id)), [page.items, selectedIDs]);
-  const bulkTransition = selectedItems.length > 0 && selectedItems.every((item) => item.template.status === "DRAFT" && isTemplateApprovalReady(item.template))
+  const bulkTransition = selectedItems.length > 0 && selectedItems.every((item) => item.template.status === "DRAFT"
+    && isTemplateApprovalReady(item.template)
+    && item.authority_available === true
+    && item.operations?.some((operation) => operation.command === "forms.template.transition" && operation.can_act && operation.allowed_targets?.includes("PENDING_APPROVAL")))
     ? "PENDING_APPROVAL" as const
     : undefined;
   const customView = hasCustomView(query);
+  const autoRevalidationEnabled = activeTab === "Templates"
+    && state === "live"
+    && !editor
+    && !newFormOpen
+    && !aiOpen
+    && !aiProposal
+    && !busy
+    && page.items.length <= (query.limit ?? 25);
 
   useEffect(() => setAppearance(readAppearance(appearanceKey)), [appearanceKey]);
 
@@ -103,7 +117,24 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   useEffect(() => {
     const timer = window.setTimeout(() => { void refresh(query); }, query.search ? 220 : 0);
     return () => window.clearTimeout(timer);
-  }, [query.search, query.status, query.owner, query.program, query.use, query.tag, query.limit]);
+  }, [query.search, query.status, query.owner, query.program, query.use, query.tag, query.filter, query.sort, query.limit]);
+
+  useEffect(() => {
+    if (!autoRevalidationEnabled) return;
+    const revalidateIfStale = () => {
+      if (document.visibilityState !== "visible" || requestAbort.current) return;
+      if (Date.now() - lastSuccessfulRefresh.current < libraryRevalidationIntervalMs) return;
+      void refresh(query);
+    };
+    const interval = window.setInterval(revalidateIfStale, libraryRevalidationIntervalMs);
+    window.addEventListener("focus", revalidateIfStale);
+    document.addEventListener("visibilitychange", revalidateIfStale);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", revalidateIfStale);
+      document.removeEventListener("visibilitychange", revalidateIfStale);
+    };
+  }, [autoRevalidationEnabled, query.search, query.status, query.owner, query.program, query.use, query.tag, query.filter, query.sort, query.limit]);
 
   useEffect(() => {
     let active = true;
@@ -140,9 +171,14 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     if (preserveCurrentRows) setRevalidating(true); else setState("loading");
     setError(null);
     try {
-      const next = await loadFormTemplatePage({ ...nextQuery, cursor: undefined, limit: nextQuery.limit ?? 25 }, controller.signal);
+      const next = await loadFormTemplatePage(
+        { ...nextQuery, cursor: undefined, limit: nextQuery.limit ?? 25 },
+        controller.signal,
+        { statusFacets: true },
+      );
       if (controller.signal.aborted || epoch !== loadEpoch.current) return;
       setPage(next);
+      lastSuccessfulRefresh.current = Date.now();
       setState("live");
     } catch (cause) {
       if (controller.signal.aborted || epoch !== loadEpoch.current) return;
@@ -178,7 +214,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     try {
       const next = await loadFormTemplatePage({ ...query, cursor, limit: query.limit ?? 25 });
       if (epoch !== loadEpoch.current) return;
-      setPage((current) => ({ items: [...current.items, ...next.items], next_cursor: next.next_cursor }));
+      setPage((current) => ({ ...current, items: [...current.items, ...next.items], next_cursor: next.next_cursor }));
     } catch (cause) {
       if (epoch !== loadEpoch.current) return;
       setError(cause instanceof Error ? cause.message : "More form templates could not be loaded.");
@@ -202,8 +238,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     const next = clearedFormsQuery(query);
     invalidatePagedLoad();
     setQuery(next);
-    onTarget?.(undefined);
-    writeFormsLocation(next, undefined, true);
+    writeFormsLocation(next, targetID, true);
   }
 
   function openCreate() {
@@ -227,8 +262,11 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     window.location.hash = "#imports";
   }
 
-  function openEdit(template: FormTemplate) {
-    setEditor({ mode: "edit", template });
+  function openEdit(item: FormLibraryItem) {
+    const canSendForApproval = item.authority_available === true && Boolean(item.operations?.some((operation) =>
+      operation.command === "forms.template.transition" && operation.can_act && operation.allowed_targets?.includes("PENDING_APPROVAL"),
+    ));
+    setEditor({ mode: "edit", template: item.template, canSendForApproval });
     setAIOpen(false);
     setAIProposal(null);
     setError(null);
@@ -242,12 +280,13 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       program: view.filter.program_id,
       use: view.filter.use,
       tag: view.filter.tag,
+      filter: view.filter.expression,
+      sort: view.filter.sort ?? "UPDATED_DESC",
       limit: view.filter.limit ?? query.limit ?? 25,
     };
     invalidatePagedLoad();
     setQuery(next);
-    onTarget?.(undefined);
-    writeFormsLocation(next, undefined, true);
+    writeFormsLocation(next, targetID, true);
   }
 
   async function submitSavedView(event: FormEvent<HTMLFormElement>) {
@@ -290,7 +329,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     try {
       const created = await instantiateStarterTemplate(starter.code);
       setNewFormOpen(false);
-      setEditor({ mode: "edit", template: created });
+      setEditor({ mode: "edit", template: created, canSendForApproval: false });
       choose(created.id);
       setNotice("Starter copied into an ordinary draft. Review its exact fields and quality checks before approval.");
       await refresh();
@@ -396,7 +435,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         key={editor.mode === "edit" ? `${editor.template.id}:${editor.template.version}` : "new-form"}
         initialValue={editor.mode === "edit" ? editor.template : undefined}
         saveDraft={saveEditorDraft}
-        onSendForApproval={sendEditorForApproval}
+        onSendForApproval={editor.mode === "create" || editor.canSendForApproval ? sendEditorForApproval : undefined}
         onSaved={(form) => { void editorSaved(form); }}
         onCancel={() => setEditor(null)}
         reusableTemplates={reusableTemplates}
@@ -408,17 +447,16 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         <FilterBar
           query={query}
           onChange={replaceQuery}
-          resultCount={state === "live" && !page.next_cursor ? page.items.length : undefined}
+          resultCount={state === "live" ? page.total : undefined}
           revalidating={revalidating}
         />
+        {state === "live" && <FormStatusScopes query={query} facets={page.facets} onChange={replaceQuery}/>} 
 
         {(savedViews.length > 0 || customView) && <div className="forms-saved-views" aria-label="Saved form views">
           {savedViews.length > 0 && <><span>Views</span>{savedViews.map((view) => <span className="forms-saved-view" key={view.id}><button type="button" onClick={() => applySavedView(view)}>{view.name}</button><button type="button" aria-label={`Delete saved view ${view.name}`} disabled={busy === `delete-view:${view.id}`} onClick={() => void removeSavedView(view.id)}>×</button></span>)}</>}
           {customView && <button type="button" className="forms-link-button" onClick={() => setSaveViewOpen((open) => !open)}>Save view</button>}
           {saveViewOpen && <form className="forms-save-view" onSubmit={submitSavedView}><label><span>View name</span><input value={savedViewName} onChange={(event) => setSavedViewName(event.target.value)} maxLength={120}/></label><button type="submit" disabled={!savedViewName.trim() || busy === "save-view"}>Save</button></form>}
         </div>}
-
-        {state === "live" && page.items.length > 0 && <FormsLibrarySummary items={page.items}/>} 
 
         {selectedItems.length > 0 && <div className="forms-bulk" role="status"><strong>{selectedItems.length} selected</strong>{bulkTransition ? <button type="button" disabled={busy === "bulk-transition"} onClick={() => void runBulkTransition()}>Send {selectedItems.length} for approval</button> : <span>Bulk approval is available only when every selected row is an approval-ready draft with the same permitted lifecycle action.</span>}<button type="button" onClick={() => setSelectedIDs(new Set())}>Clear selection</button></div>}
 
@@ -442,7 +480,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         busy={busy}
         onClose={() => choose(undefined)}
         onClearFilters={clearFiltersAndTarget}
-        onEdit={() => { if (selected) openEdit(selected.template); }}
+        onEdit={() => { if (selected) openEdit(selected); }}
         onTransition={(to) => { if (selected) void transition(selected, to); }}
       />
     </div> : <FormsTabContent tab={activeTab as Exclude<FormsTab, "Templates">}/>} 
@@ -450,7 +488,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 }
 
 function hasCustomView(query: FormTemplateQuery) {
-  return Boolean(query.search || query.status || query.owner || query.program || query.use || query.tag);
+  return Boolean(query.search || query.status || query.owner || query.program || query.use || query.tag || query.filter || query.sort === "UPDATED_ASC");
 }
 
 function toggleSelected(id: string, selected: Set<string>, setSelected: (value: Set<string>) => void) {

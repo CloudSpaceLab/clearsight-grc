@@ -173,8 +173,8 @@ const listFormLibrarySQL = `
 	  AND ($6='' OR f.approved_uses @> ARRAY[$6]::text[])
 	  AND ($7='' OR f.tags @> ARRAY[$7]::text[])
 	  AND ($8='' OR f.status=$8)
-	  AND ($9='' OR (f.updated_at,f.id) < (NULLIF($9,'')::timestamptz,NULLIF($10,'')::uuid))
-	ORDER BY f.updated_at DESC,f.id DESC
+	  AND ($9='' OR (f.updated_at,f.id) {{CURSOR_OPERATOR}} (NULLIF($9,'')::timestamptz,NULLIF($10,'')::uuid))
+	ORDER BY f.updated_at {{SORT_DIRECTION}},f.id {{SORT_DIRECTION}}
 	LIMIT $11`
 
 func (r *PostgresRepository) ListFormLibrary(ctx context.Context, filter FormLibraryFilter) (FormTemplatePage, error) {
@@ -185,12 +185,22 @@ func (r *PostgresRepository) ListFormLibrary(ctx context.Context, filter FormLib
 	if err != nil {
 		return FormTemplatePage{}, err
 	}
+	order, err := normalizedFormLibrarySort(filter.Sort)
+	if err != nil {
+		return FormTemplatePage{}, err
+	}
+	cursorOperator, sortDirection := "<", "DESC"
+	if order == FormLibraryUpdatedAsc {
+		cursorOperator, sortDirection = ">", "ASC"
+	}
+	query := strings.ReplaceAll(listFormLibrarySQL, "{{CURSOR_OPERATOR}}", cursorOperator)
+	query = strings.ReplaceAll(query, "{{SORT_DIRECTION}}", sortDirection)
 	cursorTime := ""
 	if !cursor.UpdatedAt.IsZero() {
 		cursorTime = cursor.UpdatedAt.UTC().Format("2006-01-02T15:04:05.999999999Z07:00")
 	}
 	limit := boundedFormLibraryLimit(filter.Limit)
-	rows, err := r.pool.Query(ctx, listFormLibrarySQL,
+	rows, err := r.pool.Query(ctx, query,
 		filter.TenantID, filter.LegalEntityID, strings.TrimSpace(filter.Search), filter.ProgramID, filter.OwnerPrincipalID,
 		strings.ToUpper(strings.TrimSpace(filter.Use)), strings.ToLower(strings.TrimSpace(filter.Tag)), string(filter.Status), cursorTime, cursor.ID, limit+1,
 	)

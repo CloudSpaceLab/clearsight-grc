@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -11,16 +12,60 @@ import (
 )
 
 type FormLibraryFilter struct {
-	TenantID         string          `json:"-"`
-	LegalEntityID    string          `json:"-"`
-	Search           string          `json:"search,omitempty"`
-	ProgramID        string          `json:"program_id,omitempty"`
-	OwnerPrincipalID string          `json:"owner_principal_id,omitempty"`
-	Use              string          `json:"use,omitempty"`
-	Tag              string          `json:"tag,omitempty"`
-	Status           LifecycleStatus `json:"status,omitempty"`
-	Cursor           string          `json:"-"`
-	Limit            int             `json:"limit,omitempty"`
+	TenantID         string                `json:"-"`
+	LegalEntityID    string                `json:"-"`
+	Search           string                `json:"search,omitempty"`
+	ProgramID        string                `json:"program_id,omitempty"`
+	OwnerPrincipalID string                `json:"owner_principal_id,omitempty"`
+	Use              string                `json:"use,omitempty"`
+	Tag              string                `json:"tag,omitempty"`
+	Status           LifecycleStatus       `json:"status,omitempty"`
+	Sort             FormLibrarySort       `json:"sort,omitempty"`
+	Expression       *FormFilterExpression `json:"expression,omitempty"`
+	Cursor           string                `json:"-"`
+	Limit            int                   `json:"limit,omitempty"`
+}
+
+type FormLibrarySort string
+
+const (
+	FormLibraryUpdatedDesc FormLibrarySort = "UPDATED_DESC"
+	FormLibraryUpdatedAsc  FormLibrarySort = "UPDATED_ASC"
+)
+
+func normalizedFormLibrarySort(value FormLibrarySort) (FormLibrarySort, error) {
+	if value == "" || value == FormLibraryUpdatedDesc {
+		return FormLibraryUpdatedDesc, nil
+	}
+	if value == FormLibraryUpdatedAsc {
+		return value, nil
+	}
+	return "", ErrInvalid
+}
+
+func formLibraryItemBeyondCursor(value FormTemplate, cursor formLibraryCursor, order FormLibrarySort) bool {
+	if cursor.UpdatedAt.IsZero() {
+		return true
+	}
+	if order == FormLibraryUpdatedAsc {
+		return value.UpdatedAt.After(cursor.UpdatedAt) || value.UpdatedAt.Equal(cursor.UpdatedAt) && value.ID > cursor.ID
+	}
+	return value.UpdatedAt.Before(cursor.UpdatedAt) || value.UpdatedAt.Equal(cursor.UpdatedAt) && value.ID < cursor.ID
+}
+
+func sortFormLibraryItems(items []FormLibraryItem, order FormLibrarySort) {
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].Template.UpdatedAt.Equal(items[j].Template.UpdatedAt) {
+			if order == FormLibraryUpdatedAsc {
+				return items[i].Template.ID < items[j].Template.ID
+			}
+			return items[i].Template.ID > items[j].Template.ID
+		}
+		if order == FormLibraryUpdatedAsc {
+			return items[i].Template.UpdatedAt.Before(items[j].Template.UpdatedAt)
+		}
+		return items[i].Template.UpdatedAt.After(items[j].Template.UpdatedAt)
+	})
 }
 
 type FormLibraryItem struct {
@@ -30,8 +75,10 @@ type FormLibraryItem struct {
 }
 
 type FormTemplatePage struct {
-	Items      []FormLibraryItem `json:"items"`
-	NextCursor string            `json:"next_cursor,omitempty"`
+	Items      []FormLibraryItem  `json:"items"`
+	NextCursor string             `json:"next_cursor,omitempty"`
+	Total      *int               `json:"total,omitempty"`
+	Facets     *FormLibraryFacets `json:"facets,omitempty"`
 }
 
 type SavedFormView struct {
@@ -87,6 +134,7 @@ func savedViewKey(tenantID, legalEntityID, principalID, id string) string {
 
 func cloneSavedFormView(value SavedFormView) SavedFormView {
 	cloned := value
+	cloned.Filter.Expression = cloneFormFilterExpression(value.Filter.Expression)
 	return cloned
 }
 

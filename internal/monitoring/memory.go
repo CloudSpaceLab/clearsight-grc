@@ -93,6 +93,10 @@ func (r *MemoryRepository) ListFormLibrary(_ context.Context, filter FormLibrary
 	if err != nil {
 		return FormTemplatePage{}, err
 	}
+	order, err := normalizedFormLibrarySort(filter.Sort)
+	if err != nil {
+		return FormTemplatePage{}, err
+	}
 	limit := boundedFormLibraryLimit(filter.Limit)
 	search := strings.ToLower(strings.TrimSpace(filter.Search))
 	use := strings.ToUpper(strings.TrimSpace(filter.Use))
@@ -124,7 +128,7 @@ func (r *MemoryRepository) ListFormLibrary(_ context.Context, filter FormLibrary
 		if use != "" && !containsFold(value.ApprovedUses, use) || tag != "" && !containsFold(value.Tags, tag) {
 			continue
 		}
-		if !cursor.UpdatedAt.IsZero() && (value.UpdatedAt.After(cursor.UpdatedAt) || value.UpdatedAt.Equal(cursor.UpdatedAt) && value.ID >= cursor.ID) {
+		if !formLibraryItemBeyondCursor(value, cursor, order) {
 			continue
 		}
 		item := FormLibraryItem{Template: cloneValue(value)}
@@ -134,12 +138,7 @@ func (r *MemoryRepository) ListFormLibrary(_ context.Context, filter FormLibrary
 		}
 		items = append(items, item)
 	}
-	sort.Slice(items, func(i, j int) bool {
-		if items[i].Template.UpdatedAt.Equal(items[j].Template.UpdatedAt) {
-			return items[i].Template.ID > items[j].Template.ID
-		}
-		return items[i].Template.UpdatedAt.After(items[j].Template.UpdatedAt)
-	})
+	sortFormLibraryItems(items, order)
 	page := FormTemplatePage{Items: items}
 	if len(page.Items) > limit {
 		page.Items = page.Items[:limit]

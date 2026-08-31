@@ -27,7 +27,7 @@ The capture suite prefers production components and realistic deterministic fixt
 
 ## UI foundation and capture matrix
 
-The current suite exercises **82 deterministic rendered states/interactions** across:
+The current suite exercises **114 deterministic rendered states/interactions** across:
 
 - Today in light and dark themes;
 - comfortable and compact desktop density;
@@ -61,6 +61,15 @@ The current suite exercises **82 deterministic rendered states/interactions** ac
 - exact submitted vendor answers with source provenance, missing and conditionally omitted fields, and available versus quarantined document handling;
 - response review, change-request preparation and accepted request history with one dominant action for the current state;
 - vendor-work response review at 390px and 320px, with answer, value and provenance stacked instead of compressed into desktop columns.
+- populated governed Forms records at 390px, with State, Revision, Owner and Updated facts spanning labelled stacked rows rather than entering the checkbox/action column;
+- governed Forms authoring at 390px and 320px, with Preview, Review, Save draft and Send for approval visible, 44px action/reorder targets and keyboard Move up/Move down alternatives.
+- governed Forms authoring with a real desktop mouse drag that changes question order, plus a 120-question/10-section fixture with recorded render and edit latency.
+
+## Governed Forms #103 closure inspection
+
+The exact-head renders exposed three defects that structural unit tests did not detect: the focus-managed drawer close button shared a stacking layer with its sticky header and could not receive pointer clicks; stacked mobile form facts auto-placed into the 44px checkbox column even though the document itself did not overflow; and the sticky builder toolbar covered the signed-in account control after scrolling. The drawer close control now sits above its header, every labelled mobile fact spans the full record grid, and builder chrome stays below the active workspace context. Evidence assertions cover each regression.
+
+The corrected matrix passed 114/114 flow records and 56/56 governed Forms capabilities. Direct inspection of `112-forms-library-populated-dark-mobile-390x844.png`, `113-forms-builder-actions-light-mobile-390x844.png`, `114-forms-builder-reflow-dark-320x800.png`, `115-forms-builder-pointer-reorder-light-1440x900.png` and `116-forms-builder-large-performance-light-1440x900.png` confirmed the stacked record hierarchy, visible mobile authoring actions, separated sticky chrome, changed pointer-drag order and responsive large-form editing. The 120-question fixture recorded 342ms to usable builder content and 57ms for question 100 to update on this development host. Touch scenarios claim the 44px menu/keyboard-equivalent contract, not native HTML drag. These renders remain fixture evidence; representative timed use, actual 200% browser zoom, normal-network p95, hosted exact-commit acceptance and production-scale/PostgreSQL evidence are still separate closure gates.
 
 ## Accepted premium first-run and vendor-brand evidence
 
