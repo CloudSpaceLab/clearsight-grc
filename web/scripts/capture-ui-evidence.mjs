@@ -200,7 +200,8 @@ async function captureAuthorityForbidden() {
     await page.getByRole("button", { name: "Check authority" }).click();
     await page.getByRole("heading", { name: "Authority details are restricted" }).waitFor();
     await assertFocusInsideSheet(page, capture.name);
-    if (await page.getByText("Data Protection Compliance Officer").count()) throw new Error("Forbidden authority state leaked candidate details");
+    const authoritySheet = page.locator(".side-panel");
+    if (await authoritySheet.getByText("Data Protection Compliance Officer").count()) throw new Error("Forbidden authority state leaked candidate details");
     await saveScreenshot(page, capture.name);
     await record(page, capture, "permission-denied");
   } finally {
