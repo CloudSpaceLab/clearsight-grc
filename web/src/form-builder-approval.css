@@ -1,0 +1,127 @@
+.form-approval-sheet {
+  width: min(520px, calc(100vw - 24px));
+  max-width: 100%;
+}
+
+.form-approval-content {
+  display: grid;
+  gap: 18px;
+  padding: 26px 24px 22px;
+}
+
+.form-approval-content header {
+  display: grid;
+  gap: 7px;
+  padding-right: 30px;
+}
+
+.form-approval-content header :is(h3, p),
+.form-approval-governance-note p {
+  margin: 0;
+}
+
+.form-approval-content header h3 {
+  font-size: 20px;
+  letter-spacing: -.025em;
+}
+
+.form-approval-content header p,
+.form-approval-governance-note p {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.form-approval-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--builder-soft-border);
+  border-radius: 13px;
+  background: var(--builder-soft-border);
+}
+
+.form-approval-facts > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  padding: 11px 12px;
+  background: var(--surface);
+}
+
+.form-approval-facts > div:first-child {
+  grid-column: 1 / -1;
+}
+
+.form-approval-facts dt {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.form-approval-facts dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-approval-governance-note {
+  display: grid;
+  gap: 5px;
+  padding: 12px 13px;
+  border: 1px solid color-mix(in srgb, var(--forms-accent, var(--cyan)) 24%, var(--builder-soft-border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--forms-accent, var(--cyan)) 5%, transparent);
+}
+
+.form-approval-governance-note strong {
+  font-size: 11px;
+}
+
+.form-approval-content footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.form-approval-content footer button {
+  min-height: 40px;
+}
+
+@media (max-width: 560px) {
+  .form-approval-sheet {
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+  }
+
+  .form-approval-content {
+    padding: 24px 18px 18px;
+  }
+
+  .form-approval-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .form-approval-facts > div:first-child {
+    grid-column: auto;
+  }
+
+  .form-approval-content footer {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .form-approval-content footer button {
+    min-height: 44px;
+  }
+}

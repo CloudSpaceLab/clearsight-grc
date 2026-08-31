@@ -7,6 +7,8 @@ import type { CreateFormTemplateInput, FormFieldType, FormScoringMode, FormTempl
 import type { CaptureFieldConstraints, CaptureFormContract } from "../types";
 import { FocusedSheet } from "./FocusedSheet";
 import { FormPreview } from "./forms/FormPreview";
+import { FormApprovalSheet } from "./forms/builder/FormApprovalSheet";
+import { FormBuilderResponsiveNav } from "./forms/builder/FormBuilderResponsiveNav";
 import { FormBuilderToolbar } from "./forms/builder/FormBuilderToolbar";
 import { FormCanvas } from "./forms/builder/FormCanvas";
 import { FormInspector } from "./forms/builder/FormInspector";
@@ -42,6 +44,8 @@ type Props = {
   allowIncompleteComplianceDraft?: boolean;
 };
 
+type ResponsivePane = "outline" | "settings";
+
 const passwordResetQuestions = [
   "Was the customer’s identity verified before the reset?",
   "Was the one-time code sent only to a registered channel?",
@@ -67,6 +71,8 @@ export function FormBuilder({
   const [selection, setSelection] = useState<BuilderSelection>(() => draft.fields[0] ? { kind: "field", fieldID: draft.fields[0].id } : { kind: "overview" });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const [responsivePane, setResponsivePane] = useState<ResponsivePane | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -331,6 +337,49 @@ export function FormBuilder({
     }
   }
 
+  function renderOutlinePane(closeAfterSelection = false) {
+    const closeResponsivePane = () => {
+      if (closeAfterSelection) setResponsivePane(null);
+    };
+    return <div className="form-builder-outline-shell">
+      <FormOutline
+        sections={draft.sections}
+        fields={draft.fields}
+        issues={issues}
+        selection={selection}
+        onSelect={(next) => { setSelection(next); closeResponsivePane(); }}
+        onAddSection={() => { addSection(); closeResponsivePane(); }}
+        onAddField={() => { addField("short_text"); closeResponsivePane(); }}
+      />
+      <ReusableSectionPicker
+        reusableTemplates={reusableTemplates}
+        loadReusableTemplate={loadReusableTemplate}
+        sectionLimitReached={draft.sections.length >= 20}
+        onInsert={(template, sectionID) => { insertReusableSection(template, sectionID); closeResponsivePane(); }}
+      />
+      {!initialValue && <button className="text-button form-outline-example" type="button" onClick={() => { usePasswordResetReview(); closeResponsivePane(); }}>Use password reset example</button>}
+    </div>;
+  }
+
+  function renderInspectorPane() {
+    return <FormInspector
+      draft={draft}
+      selection={selection}
+      onPatch={patch}
+      onScoringMode={setScoringMode}
+      onSectionsChange={(sections) => patch({ sections })}
+      onFieldChange={updateField}
+      onFieldTypeChange={updateFieldType}
+      onFieldConstraint={updateFieldConstraint}
+      onFieldScoringToggle={toggleFieldScoring}
+      onMoveSection={moveSection}
+      onDuplicateSection={duplicateCurrentSection}
+      onRemoveSection={removeSection}
+      onMoveField={moveField}
+      onRemoveField={removeField}
+    />;
+  }
+
   return <form className="monitoring-builder form-builder forms-authoring-shell form-builder-workspace" noValidate onSubmit={submit}>
     <FormBuilderToolbar
       title={draft.name}
@@ -342,28 +391,16 @@ export function FormBuilder({
       onPreview={() => setPreviewOpen(true)}
       onReview={() => setReviewOpen(true)}
       onSave={() => void saveCurrentDraft()}
-      onSendForApproval={onSendForApproval ? () => void sendForApproval() : undefined}
+      onSendForApproval={onSendForApproval ? () => setApprovalOpen(true) : undefined}
+    />
+
+    <FormBuilderResponsiveNav
+      onOutline={() => setResponsivePane("outline")}
+      onSettings={() => setResponsivePane("settings")}
     />
 
     <div className="form-builder-grid">
-      <div className="form-builder-outline-shell">
-        <FormOutline
-          sections={draft.sections}
-          fields={draft.fields}
-          issues={issues}
-          selection={selection}
-          onSelect={setSelection}
-          onAddSection={addSection}
-          onAddField={() => addField("short_text")}
-        />
-        <ReusableSectionPicker
-          reusableTemplates={reusableTemplates}
-          loadReusableTemplate={loadReusableTemplate}
-          sectionLimitReached={draft.sections.length >= 20}
-          onInsert={insertReusableSection}
-        />
-        {!initialValue && <button className="text-button form-outline-example" type="button" onClick={usePasswordResetReview}>Use password reset example</button>}
-      </div>
+      {renderOutlinePane()}
 
       <FormCanvas
         draft={draft}
@@ -379,22 +416,7 @@ export function FormBuilder({
         onRemoveField={removeField}
       />
 
-      <FormInspector
-        draft={draft}
-        selection={selection}
-        onPatch={patch}
-        onScoringMode={setScoringMode}
-        onSectionsChange={(sections) => patch({ sections })}
-        onFieldChange={updateField}
-        onFieldTypeChange={updateFieldType}
-        onFieldConstraint={updateFieldConstraint}
-        onFieldScoringToggle={toggleFieldScoring}
-        onMoveSection={moveSection}
-        onDuplicateSection={duplicateCurrentSection}
-        onRemoveSection={removeSection}
-        onMoveField={moveField}
-        onRemoveField={removeField}
-      />
+      {renderInspectorPane()}
     </div>
 
     {error && <p className="inline-form-error form-builder-error" role="alert">{error}</p>}
@@ -411,6 +433,32 @@ export function FormBuilder({
       onAddRequiredSignOff={() => { addSignOff(); setReviewOpen(false); }}
       onClose={() => setReviewOpen(false)}
     />}
+
+    {approvalOpen && <FormApprovalSheet
+      input={createInput}
+      changedFromInitial={changedFromInitial}
+      saving={saving}
+      onClose={() => setApprovalOpen(false)}
+      onConfirm={() => { setApprovalOpen(false); void sendForApproval(); }}
+    />}
+
+    {responsivePane === "outline" && <FocusedSheet
+      label="Form outline"
+      closeLabel="Close form outline"
+      panelClassName="form-builder-responsive-sheet form-builder-outline-sheet"
+      onClose={() => setResponsivePane(null)}
+    >
+      {renderOutlinePane(true)}
+    </FocusedSheet>}
+
+    {responsivePane === "settings" && <FocusedSheet
+      label="Form settings"
+      closeLabel="Close form settings"
+      panelClassName="form-builder-responsive-sheet form-builder-settings-sheet"
+      onClose={() => setResponsivePane(null)}
+    >
+      {renderInspectorPane()}
+    </FocusedSheet>}
   </form>;
 }
 
