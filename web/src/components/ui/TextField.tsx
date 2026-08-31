@@ -1,7 +1,7 @@
 import type { ChangeEventHandler, FocusEventHandler } from "react";
 import { FormField } from "./FormField";
 
-export type TextFieldType = "text" | "search" | "email" | "url" | "tel" | "number";
+export type TextFieldType = "text" | "search" | "email" | "url" | "tel" | "number" | "date" | "time" | "datetime-local";
 
 export type TextFieldProps = {
   label: string;

@@ -24,6 +24,8 @@ export { ScopeBar } from "./ScopeBar";
 export type { ScopeBarProps, ScopeItem } from "./ScopeBar";
 export { SearchField } from "./SearchField";
 export type { SearchFieldProps } from "./SearchField";
+export { SelectableRecord } from "./SelectableRecord";
+export type { SelectableRecordProps } from "./SelectableRecord";
 export { SelectField } from "./SelectField";
 export type { SelectFieldProps, SelectOption } from "./SelectField";
 export { StatusBadge } from "./StatusBadge";

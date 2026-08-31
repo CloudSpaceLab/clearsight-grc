@@ -16,6 +16,7 @@ import {
   PopoverDialog,
   ScopeBar,
   SearchField,
+  SelectableRecord,
   SelectField,
   StatusBadge,
   Surface,
@@ -84,6 +85,7 @@ export function UIComponentGallery() {
     <GalleryGroup title="Selection">
       <Contract family="CheckboxField" job="Includes or excludes one named option." keyboard="Space changes the selection after focus." prohibited="Do not use it for mutually exclusive choices."><CheckboxField label="Include sample evidence" description="Adds the sample evidence to this review only." isSelected={included} onChange={setIncluded}/></Contract>
       <Contract family="SelectField" job="Selects one value from a bounded list." keyboard="Arrow keys move; Enter selects; Escape closes." prohibited="Do not replace searchable remote results with this control."><SelectField label="Sample response status" value={selection} placeholder="Select sample status" options={selections} onChange={(value) => value && setSelection(value)}/></Contract>
+      <Contract family="SelectableRecord" job="Selects one record for review while preserving its visible context." keyboard="Enter or Space selects the record." prohibited="Do not rebuild a raw list button with page-specific selected styles."><SelectableRecord title="Sample vendor response" metadata="Current · Submitted 27 August 2026" description="Email verified · Compliance score 86%" isSelected onPress={() => undefined}/></Contract>
     </GalleryGroup>
 
     <GalleryGroup title="Navigation">

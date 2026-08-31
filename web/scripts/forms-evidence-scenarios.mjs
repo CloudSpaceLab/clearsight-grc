@@ -30,6 +30,24 @@ async function openFormsTab(page, tab, heading = tab) {
   await page.getByRole("heading", { name: heading, exact: true }).waitFor({ state: "visible" });
 }
 
+async function assertContrast(page, locator, minimum, label) {
+  const result = await locator.evaluate((element) => {
+    const parse = (value) => (value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+    const luminance = (value) => {
+      const channels = parse(value).map((channel) => {
+        const normalized = channel / 255;
+        return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    };
+    const style = getComputedStyle(element);
+    const foreground = luminance(style.color);
+    const background = luminance(style.backgroundColor);
+    return { ratio: (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05), color: style.color, backgroundColor: style.backgroundColor };
+  });
+  if (result.ratio < minimum) throw new Error(`${label} contrast ${result.ratio.toFixed(2)}:1 is below ${minimum}:1 (${result.color} on ${result.backgroundColor}).`);
+}
+
 const scenarios = [
   {
     name: "89-forms-library-lifecycle-light-1440x900", fixture: "forms-library-lifecycle", route: "#forms",
@@ -150,7 +168,13 @@ const scenarios = [
     name: "98-forms-communication-compose-light-1440x900", fixture: "forms-communication-compose", route: "#forms",
     state: "forms-communication-compose", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["communication-compose"],
-    run: async (page) => { await openFormsTab(page, "Communications"); await page.getByRole("button", { name: "Create template revision" }).click(); await page.getByRole("heading", { name: "Edit INVITATION · en-NG · v3" }).waitFor({ state: "visible" }); },
+    run: async (page) => { await openFormsTab(page, "Communications"); const create = page.getByRole("button", { name: "Create template revision" }); await assertContrast(page, create, 4.5, "Light primary button"); await create.click(); await page.getByRole("dialog", { name: "Create template revision" }).waitFor({ state: "visible" }); await page.getByRole("heading", { name: "Edit INVITATION · en-NG · v3" }).waitFor({ state: "visible" }); },
+  },
+  {
+    name: "98a-forms-communication-profile-dark-1440x900", fixture: "forms-communication-compose", route: "#forms",
+    state: "forms-communication-profile-dark", theme: "dark", viewport: desktop, zoom: 1,
+    capabilities: ["communication-compose", "theme-dark", "viewport-desktop"],
+    run: async (page) => { await openFormsTab(page, "Communications"); const create = page.getByRole("button", { name: "Create template revision" }); await assertContrast(page, create, 4.5, "Dark primary button"); await page.getByRole("button", { name: "Create profile revision" }).click(); const dialog = page.getByRole("dialog", { name: "Create profile revision" }); await dialog.waitFor({ state: "visible" }); await dialog.getByLabel(/Effective from/).waitFor({ state: "visible" }); await assertContrast(page, dialog.getByRole("button", { name: "Save profile revision" }), 4.5, "Dark dialog primary button"); },
   },
   {
     name: "99-forms-distribution-access-history-light-1440x900", fixture: "forms-distribution-history", route: "#forms",
@@ -199,6 +223,12 @@ const scenarios = [
     state: "forms-response-first-and-amended", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["response-first", "response-amended"],
     run: async (page) => { await openFormsTab(page, "Responses"); await visible(page, "Revision 1"); await visible(page, "Revision 2 · Current"); },
+  },
+  {
+    name: "106a-forms-response-history-dark-1440x900", fixture: "forms-response-history", route: "#forms",
+    state: "forms-response-first-and-amended-dark", theme: "dark", viewport: desktop, zoom: 1,
+    capabilities: ["response-first", "response-amended", "theme-dark", "viewport-desktop"],
+    run: async (page) => { await openFormsTab(page, "Responses"); await page.getByLabel("Version history").waitFor({ state: "visible" }); await visible(page, "Revision 2 · Current"); },
   },
   {
     name: "107-forms-vendor-held-actions-dark-mobile-390x844", fixture: "forms-vendor-held-actions", route: "/capture",

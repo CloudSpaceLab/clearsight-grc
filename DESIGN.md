@@ -42,6 +42,8 @@ Tokens have three levels:
 
 `web/src/design-system/tokens/` owns the three-level foundation. `web/src/ui-preferences.css` supplies compatible legacy theme mappings while surfaces migrate. Components must not create a private light/dark palette when a semantic role already represents the meaning.
 
+Shared action foregrounds are owned by the component token layer (`--cs-button-primary-text`, `--cs-button-secondary-text`, `--cs-button-quiet-text` and `--cs-button-destructive-text`). Legacy feature styles must not apply an unlayered global button foreground or font shorthand because that would override the layered component contract in both themes.
+
 Theme preference supports **System**, **Light** and **Dark**. Comfortable controls are 44px high. Compact controls are 40px high on a fine-pointer desktop; compact mode does not reduce touch targets below 44px. Spacing uses the 4px primitive scale with 8px as the normal grouping rhythm. Component radii come from the 6px, 10px and 14px primitives; large guide or illustration treatments may keep a larger documented radius outside operational controls. Shadows and blur remain subtle and never carry state.
 
 Typography uses Inter, Segoe UI Variable, Segoe UI, then system sans-serif. Headings use tight tracking; operational copy uses normal sentence case. Uppercase is limited to compact metadata labels.
@@ -63,8 +65,9 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | `ActionLink` | Real navigation only. |
 | `IconButton` | Named icon actions using the Button variants. |
 | `FormField` | Shared label, required marker, guidance and validation anatomy. |
-| `TextField` | Text, search, email, URL, telephone and numeric values; numeric minimum, maximum and step constraints; disabled, read-only, invalid and loading states. |
+| `TextField` | Text, search, email, URL, telephone, numeric, date, time and local date-time values; numeric minimum, maximum and step constraints; disabled, read-only, invalid and loading states. |
 | `SearchField` | Compact, visibly recognizable search for one named record population; labelled, loading and disabled states. |
+| `SelectableRecord` | One record in a bounded master list with visible title, metadata, optional supporting detail and accessible selected state. |
 | `CheckboxField` | Selected, unselected and indeterminate choices; visible or visually hidden labels; optional guidance and disabled state. |
 | `TextArea` | Multi-line responses; disabled, read-only, invalid and loading states. |
 | `SelectField` | One selection from a bounded list with themed listbox keyboard behavior. |
