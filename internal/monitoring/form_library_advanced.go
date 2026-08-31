@@ -233,9 +233,13 @@ func formFilterExpressionWithoutField(expression *FormFilterExpression, field Fo
 	children := make([]FormFilterExpression, 0, len(expression.Children))
 	for index := range expression.Children {
 		child := formFilterExpressionWithoutField(&expression.Children[index], field)
-		if child != nil {
-			children = append(children, *child)
+		if child == nil {
+			if expression.Operator == "or" {
+				return nil
+			}
+			continue
 		}
+		children = append(children, *child)
 	}
 	if len(children) == 0 {
 		return nil
