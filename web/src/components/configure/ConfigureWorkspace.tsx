@@ -39,14 +39,14 @@ export function ConfigureWorkspace({ importsEnabled, canReconcileProjection, onO
     </header>
     <div className="configure-shell">
       <ConfigureNavigation active={section} onSelect={select}/>
-      <main className="configure-content" aria-live="polite">
+      <section className="configure-content" aria-label="Selected configuration area">
         {section === "overview" && <ConfigureOverview importsEnabled={importsEnabled} onOpen={select}/>} 
         {section === "access" && <PeopleAccessSection/>}
         {section === "authority" && <AuthorityRoutingSection/>}
         {section === "data" && <DataIntegrationsSection importsEnabled={importsEnabled} onOpenImports={onOpenImports}/>} 
         {section === "automation" && <AutomationAISection/>}
         {section === "operations" && <SystemOperationsSection canReconcile={canReconcileProjection}/>} 
-      </main>
+      </section>
     </div>
   </div>;
 }
