@@ -1,0 +1,221 @@
+package workflow
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+)
+
+type assignmentNotificationRepositoryStub struct {
+	context   assignmentNotificationContext
+	prior     assignmentNotificationRecord
+	found     bool
+	recorded  assignmentNotificationRecord
+	loadCalls int
+}
+
+func (stub *assignmentNotificationRepositoryStub) LoadAssignmentNotification(context.Context, workflowruntime.OutboxEvent, assignmentNotificationEvent) (assignmentNotificationContext, error) {
+	stub.loadCalls++
+	return stub.context, nil
+}
+
+func (stub *assignmentNotificationRepositoryStub) GetAssignmentNotification(context.Context, string, string, string) (assignmentNotificationRecord, bool, error) {
+	return stub.prior, stub.found, nil
+}
+
+func (stub *assignmentNotificationRepositoryStub) RecordAssignmentNotification(_ context.Context, _ workflowruntime.OutboxEvent, _ assignmentNotificationEvent, record assignmentNotificationRecord) error {
+	stub.recorded = record
+	return nil
+}
+
+type assignmentDeliveryStub struct {
+	receipt evidence.InvitationDeliveryReceipt
+	err     error
+	calls   int
+	request evidence.InvitationDeliveryRequest
+}
+
+func (stub *assignmentDeliveryStub) DeliverGoverned(_ context.Context, request evidence.InvitationDeliveryRequest) (evidence.InvitationDeliveryReceipt, error) {
+	stub.calls++
+	stub.request = request
+	return stub.receipt, stub.err
+}
+
+func matterOwnerAssignmentEvent(t *testing.T) workflowruntime.OutboxEvent {
+	t.Helper()
+	payload, err := json.Marshal(map[string]any{
+		"matter": map[string]any{
+			"id":                 "00000000-0000-4000-8000-000000000701",
+			"tenant_id":          "bank-1",
+			"legal_entity_id":    "00000000-0000-4000-8000-000000000702",
+			"owner_principal_id": "00000000-0000-4000-8000-000000000703",
+		},
+		"previous_owner_principal_id": "00000000-0000-4000-8000-000000000704",
+		"owner_principal_id":          "00000000-0000-4000-8000-000000000703",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return workflowruntime.OutboxEvent{
+		ID: "00000000-0000-4000-8000-000000000705", TenantID: "bank-1", AggregateType: "MATTER",
+		AggregateID: "00000000-0000-4000-8000-000000000701", EventType: continuity.EventMatterOwnerChanged,
+		Payload: payload, OccurredAt: time.Date(2026, 8, 31, 10, 0, 0, 0, time.UTC),
+	}
+}
+
+func actionPerformerAssignmentEvent(t *testing.T) workflowruntime.OutboxEvent {
+	t.Helper()
+	payload, err := json.Marshal(map[string]any{
+		"action": map[string]any{
+			"id":                 "00000000-0000-4000-8000-000000000706",
+			"matter_id":          "00000000-0000-4000-8000-000000000701",
+			"owner_principal_id": "00000000-0000-4000-8000-000000000703",
+		},
+		"previous_owner_principal_id": "00000000-0000-4000-8000-000000000704",
+		"owner_principal_id":          "00000000-0000-4000-8000-000000000703",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return workflowruntime.OutboxEvent{
+		ID: "00000000-0000-4000-8000-000000000707", TenantID: "bank-1", AggregateType: "MATTER",
+		AggregateID: "00000000-0000-4000-8000-000000000701", EventType: continuity.EventActionAssigned,
+		Payload: payload, OccurredAt: time.Date(2026, 8, 31, 10, 0, 0, 0, time.UTC),
+	}
+}
+
+func deliverableAssignmentContext() assignmentNotificationContext {
+	return assignmentNotificationContext{
+		LegalEntityID: "00000000-0000-4000-8000-000000000702",
+		BankName:      "Clear Bank Nigeria", RecipientName: "Program Owner", RecipientAddress: "staff@example.test",
+		CurrentPrincipalID: "00000000-0000-4000-8000-000000000703",
+		MatterID:           "00000000-0000-4000-8000-000000000701", MatterTitle: "Verify vendor address",
+		WorkTitle: "Confirm scope and owner", DueAt: time.Date(2026, 9, 5, 16, 0, 0, 0, time.UTC),
+	}
+}
+
+func TestAssignmentNotificationDeliversMatterOwnerEmailAndRecordsFinalReceipt(t *testing.T) {
+	repo := &assignmentNotificationRepositoryStub{context: deliverableAssignmentContext()}
+	deliveredAt := time.Date(2026, 8, 31, 10, 1, 0, 0, time.UTC)
+	delivery := &assignmentDeliveryStub{receipt: evidence.InvitationDeliveryReceipt{Status: evidence.InvitationDelivered, ProviderMessageID: "provider-1", DeliveredAt: &deliveredAt}}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := consumer.Publish(t.Context(), matterOwnerAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 1 || delivery.request.RecipientAddress != "staff@example.test" {
+		t.Fatalf("delivery calls=%d request=%#v", delivery.calls, delivery.request)
+	}
+	if repo.recorded.Status != assignmentNotificationDelivered || repo.recorded.ProviderMessageID != "provider-1" || len(repo.recorded.RecipientFingerprint) != 32 {
+		t.Fatalf("recorded receipt = %#v", repo.recorded)
+	}
+	if got := delivery.request.String(); got != "InvitationDeliveryRequest{protected}" {
+		t.Fatalf("protected request formatted as %q", got)
+	}
+}
+
+func TestAssignmentNotificationDeliversExactActionPerformerWork(t *testing.T) {
+	notificationContext := deliverableAssignmentContext()
+	notificationContext.WorkTitle = "Confirm the registered address"
+	repo := &assignmentNotificationRepositoryStub{context: notificationContext}
+	deliveredAt := time.Date(2026, 8, 31, 10, 1, 0, 0, time.UTC)
+	delivery := &assignmentDeliveryStub{receipt: evidence.InvitationDeliveryReceipt{Status: evidence.InvitationDelivered, ProviderMessageID: "provider-2", DeliveredAt: &deliveredAt}}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := consumer.Publish(t.Context(), actionPerformerAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 1 || !strings.Contains(delivery.request.PlainText, "Assigned performer") || !strings.Contains(delivery.request.PlainText, notificationContext.WorkTitle) {
+		t.Fatalf("action assignment request = %#v", delivery.request)
+	}
+}
+
+func TestAssignmentNotificationRecordsMissingContactWithoutRetryingAssignment(t *testing.T) {
+	context := deliverableAssignmentContext()
+	context.RecipientAddress = ""
+	repo := &assignmentNotificationRepositoryStub{context: context}
+	delivery := &assignmentDeliveryStub{}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := consumer.Publish(t.Context(), matterOwnerAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 0 || repo.recorded.Status != assignmentNotificationContactUnavailable {
+		t.Fatalf("delivery calls=%d record=%#v", delivery.calls, repo.recorded)
+	}
+}
+
+func TestAssignmentNotificationSkipsSupersededAssignment(t *testing.T) {
+	context := deliverableAssignmentContext()
+	context.CurrentPrincipalID = "00000000-0000-4000-8000-000000000706"
+	repo := &assignmentNotificationRepositoryStub{context: context}
+	delivery := &assignmentDeliveryStub{}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := consumer.Publish(t.Context(), matterOwnerAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 0 || repo.recorded.Status != assignmentNotificationSuperseded {
+		t.Fatalf("delivery calls=%d record=%#v", delivery.calls, repo.recorded)
+	}
+}
+
+func TestAssignmentNotificationRetriesTemporaryDeliveryAndFinalReceiptIsIdempotent(t *testing.T) {
+	repo := &assignmentNotificationRepositoryStub{context: deliverableAssignmentContext()}
+	delivery := &assignmentDeliveryStub{err: evidence.ErrInvitationDeliveryFailed, receipt: evidence.InvitationDeliveryReceipt{Status: evidence.InvitationDeliveryFailed, FailureCode: evidence.InvitationFailureTemporary}}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := consumer.Publish(t.Context(), matterOwnerAssignmentEvent(t)); !errors.Is(err, ErrAssignmentNotificationRetry) {
+		t.Fatalf("temporary failure error = %v", err)
+	}
+	if repo.recorded.Status != assignmentNotificationTemporaryFailure {
+		t.Fatalf("temporary receipt = %#v", repo.recorded)
+	}
+
+	repo.found = true
+	repo.prior = assignmentNotificationRecord{Status: assignmentNotificationDelivered}
+	delivery.calls = 0
+	if err := consumer.Publish(t.Context(), matterOwnerAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 0 || repo.loadCalls != 1 {
+		t.Fatalf("final replay delivery calls=%d context loads=%d", delivery.calls, repo.loadCalls)
+	}
+}
+
+func TestAssignmentNotificationIgnoresUnrelatedEventsAndRejectsInsecureBaseURL(t *testing.T) {
+	repo := &assignmentNotificationRepositoryStub{}
+	delivery := &assignmentDeliveryStub{}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := consumer.Publish(t.Context(), workflowruntime.OutboxEvent{EventType: "MATTER_UPDATED"}); err != nil || repo.loadCalls != 0 {
+		t.Fatalf("unrelated event error=%v loads=%d", err, repo.loadCalls)
+	}
+	if _, err := NewAssignmentNotificationConsumer(repo, delivery, "http://clearsight.example.test/"); err == nil {
+		t.Fatal("insecure application base URL accepted")
+	}
+}
