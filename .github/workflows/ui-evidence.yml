@@ -74,6 +74,7 @@ jobs:
           name: ui-ux-flow-review-${{ github.sha }}
           path: |
             web/ui-evidence/*.png
+            web/ui-evidence/configuration/*.png
             web/ui-evidence/*.json
             web/ui-evidence/*.md
             web/ui-evidence/flow-logs/*.log

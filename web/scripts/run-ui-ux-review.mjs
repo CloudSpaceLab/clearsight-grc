@@ -7,6 +7,7 @@ const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const logDir = path.join(outputDir, "flow-logs");
 const scripts = [
   "scripts/capture-ui-evidence.mjs",
+  "scripts/capture-configuration-evidence.mjs",
   "scripts/capture-lifecycle-ui-evidence.mjs",
   "scripts/capture-operating-mutations-evidence.mjs",
   "scripts/capture-program-review-evidence.mjs",

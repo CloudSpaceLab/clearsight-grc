@@ -18,7 +18,7 @@ const captures = [
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "07-import-dark-1440x900", route: "#imports", title: "Imports", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
-  { name: "08-configure-light-1440x900", route: "#configure", title: "Routing and approvals", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
+  { name: "08-configure-light-1440x900", route: "#configure", title: "Configuration", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Control plane" },
   { name: "09-today-dark-tablet-1024x768", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 1024, height: 768 }, touch: true, assertFirstActionVisible: true },
   { name: "10-today-light-mobile-390x844", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, assertFirstActionVisible: true },
   { name: "11-today-dark-reflow-320x800", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 320, height: 800 }, touch: true },
@@ -26,7 +26,7 @@ const captures = [
   { name: "18-today-loading-dark-1440x900", route: "#today", title: "Today", fixture: "today-loading", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Loading Today…" },
   { name: "19-today-unavailable-light-1440x900", route: "#today", title: "Today", fixture: "today-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Today is unavailable" },
   { name: "20-evidence-partial-light-1440x900", route: "#work/evidence", title: "Work", fixture: "evidence-requests-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Evidence requests are unavailable" },
-  { name: "21-configure-partial-dark-1440x900", route: "#configure", title: "Routing and approvals", fixture: "configure-partial", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Routing policies are unavailable" },
+  { name: "21-configure-partial-dark-1440x900", route: "#configure/authority", title: "Configuration", fixture: "configure-partial", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Routing policies are unavailable" },
   { name: "22-no-config-access-light-1440x900", route: "#configure", title: "Today", fixture: "no-config-access", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Reviews, approvals and evidence requests assigned to you.", assertNoConfigureNav: true },
   { name: "27-evidence-long-content-mobile-390x844", route: "#work/evidence", title: "Work", fixture: "long-content", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Confirm the accountable owner for the processor register" },
   { name: "37-new-work-light-1440x900", route: "#work/matters", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openMatterSetup: true },
@@ -200,7 +200,8 @@ async function captureAuthorityForbidden() {
     await page.getByRole("button", { name: "Check authority" }).click();
     await page.getByRole("heading", { name: "Authority details are restricted" }).waitFor();
     await assertFocusInsideSheet(page, capture.name);
-    if (await page.getByText("Data Protection Compliance Officer").count()) throw new Error("Forbidden authority state leaked candidate details");
+    const authoritySheet = page.locator(".side-panel");
+    if (await authoritySheet.getByText("Data Protection Compliance Officer").count()) throw new Error("Forbidden authority state leaked candidate details");
     await saveScreenshot(page, capture.name);
     await record(page, capture, "permission-denied");
   } finally {

@@ -14,7 +14,7 @@ const scenarios = [
   { name: "program", path: "/?tour=off#programs/program-ndpa", heading: "Programs", viewport: { width: 1440, height: 900 }, theme: "light" },
   { name: "evidence", path: "/?tour=off#work/evidence", heading: "Work", viewport: { width: 1440, height: 900 }, theme: "light" },
   { name: "imports", path: "/?tour=off#imports", heading: "Imports", viewport: { width: 1440, height: 900 }, theme: "dark" },
-  { name: "configure", path: "/?tour=off#configure", heading: "Routing and approvals", viewport: { width: 1440, height: 900 }, theme: "light" },
+  { name: "configure", path: "/?tour=off#configure", heading: "Configuration", viewport: { width: 1440, height: 900 }, theme: "light" },
 ];
 
 await mkdir(outputDir, { recursive: true });

@@ -53,11 +53,13 @@ export function GovernanceAdminPanel() {
         delegationsAvailable: loaded.delegationsAvailable,
       }));
       const directoryUnavailable = overviewResult.status !== "fulfilled";
-      const sectionUnavailable = !loaded.policiesAvailable || !loaded.delegationsAvailable;
-      if (directoryUnavailable || sectionUnavailable) {
-        setReason(directoryUnavailable
-          ? "Current people and legal-entity labels could not be confirmed."
-          : "One governance inventory section could not be refreshed.");
+      const unavailable = [
+        !loaded.policiesAvailable ? "Routing policies are unavailable." : "",
+        !loaded.delegationsAvailable ? "Delegations are unavailable." : "",
+        directoryUnavailable ? "Current people and legal-entity labels could not be confirmed." : "",
+      ].filter(Boolean);
+      if (unavailable.length > 0) {
+        setReason(unavailable.join(" "));
         setLoadState("degraded");
       } else {
         setReason("");
