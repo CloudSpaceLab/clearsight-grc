@@ -15,6 +15,7 @@
     "src/components/ui/TextField.tsx",
     "src/components/ui-gallery/UIComponentGallery.tsx",
     "src/components/forms/SentFormsView.tsx",
+    "src/components/forms/FormsNavigation.tsx",
     "src/components/forms/sent/SentFormsFilters.tsx",
     "src/components/forms/sent/SentFormsTable.tsx",
     "src/components/forms/sent/SentFormDetail.tsx"

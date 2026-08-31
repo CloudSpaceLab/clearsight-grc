@@ -15,6 +15,7 @@ const distribution = {
 const detail = { distribution, recipients: [{ id: "r1", role: "TO", type: "INTERNAL_PRINCIPAL", principal_id: "jane", state: "PENDING", version: 1 }], workspace: { id: "workspace-a", status: "OPEN", version: 3, updated_at: "2026-08-28T10:00:00Z" } } as const;
 
 beforeEach(() => {
+  setMediaQuery("(min-width: 1180px)", true);
   window.history.replaceState(null, "", "/?safe=1#forms");
   Object.values(api).forEach((mock) => mock.mockReset());
   api.loadDistributionPage.mockResolvedValue({ items: [distribution] });
@@ -88,4 +89,28 @@ describe("SentFormsView", () => {
     expect(await screen.findByText("Responses locked. The sent-form change was confirmed.")).toBeTruthy();
     expect(api.transitionDistribution).toHaveBeenCalledWith("dist-a", 2, "lock");
   });
+
+  it("keeps selected details inline when both regions retain useful width", async () => {
+    setMediaQuery("(min-width: 1180px)", true);
+    render(<SentFormsView/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Open Quarterly control review" }));
+    expect(await screen.findByRole("complementary", { name: "Quarterly control review details" })).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("replaces inline detail with a focused sheet below the useful-width threshold", async () => {
+    setMediaQuery("(min-width: 1180px)", false);
+    render(<SentFormsView/>);
+    const open = await screen.findByRole("button", { name: "Open Quarterly control review" });
+    open.focus();
+    fireEvent.click(open);
+    expect(await screen.findByRole("dialog", { name: "Quarterly control review details" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(open));
+  });
 });
+
+function setMediaQuery(query: string, matches: boolean) {
+  vi.stubGlobal("matchMedia", vi.fn((value: string) => ({ matches: value === query ? matches : false, media: value, onchange: null, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: vi.fn() })));
+}

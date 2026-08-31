@@ -30,6 +30,7 @@ import { FormAIComposer } from "./forms/FormAIComposer";
 import { FormProposalReview } from "./forms/FormProposalReview";
 import { FormsBrandHeader } from "./forms/FormsBrandHeader";
 import { FormsEmptyState } from "./forms/FormsEmptyState";
+import { FormsNavigation, type FormsTab } from "./forms/FormsNavigation";
 import { FormsTabContent } from "./forms/FormsTabContent";
 import { NewFormLauncher } from "./forms/creation/NewFormLauncher";
 import { TemplateDetailDrawer } from "./forms/dashboard/TemplateDetailDrawer";
@@ -41,9 +42,7 @@ import { preserveLibraryRevisionMetadata } from "./forms/formRevisionInput";
 import { isTemplateApprovalReady } from "./forms/formQuality";
 import { clearedFormsQuery, readFormsQuery, writeFormsLocation } from "./forms/formsLocation";
 
-const tabs = ["Templates", "Sent forms", "Responses", "Imports", "Communications"] as const;
 const libraryRevalidationIntervalMs = 30_000;
-type FormsTab = typeof tabs[number];
 type LoadState = "loading" | "live" | "unavailable";
 type EditorState = { mode: "create" } | { mode: "edit"; template: FormTemplate; canSendForApproval: boolean };
 
@@ -407,10 +406,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         : undefined}
     />
 
-    <nav className="forms-tabs" aria-label="Forms sections">
-      {tabs.map((tab) => <button key={tab} type="button" className={activeTab === tab ? "active" : ""} aria-current={activeTab === tab ? "page" : undefined} onClick={() => { setActiveTab(tab); setEditor(null); setNewFormOpen(false); setAIOpen(false); setAIProposal(null); }}>{tab}</button>)}
-    </nav>
-
+    <FormsNavigation activeTab={activeTab} onChange={(tab) => { setActiveTab(tab); setEditor(null); setNewFormOpen(false); setAIOpen(false); setAIProposal(null); }}>
     {error && <div className="forms-message error" role="alert">{error}</div>}
     {notice && <div className="forms-message" role="status">{notice}<button type="button" aria-label="Dismiss Forms notice" onClick={() => setNotice(null)}>×</button></div>}
 
@@ -483,7 +479,8 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         onEdit={() => { if (selected) openEdit(selected); }}
         onTransition={(to) => { if (selected) void transition(selected, to); }}
       />
-    </div> : <FormsTabContent tab={activeTab as Exclude<FormsTab, "Templates">}/>} 
+    </div> : <FormsTabContent tab={activeTab as Exclude<FormsTab, "Templates">}/>}
+    </FormsNavigation>
   </section>;
 }
 
