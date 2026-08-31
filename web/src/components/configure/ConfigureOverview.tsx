@@ -27,7 +27,8 @@ function supportText(section: Exclude<ConfigurationSection, "overview">) {
     case "access": return "Directory and access administration";
     case "authority": return "Routing integrity and governed authority";
     case "data": return "Sources and ingestion";
-    case "automation": return "Governed automation and AI";
+    case "automation": return "Governed automation";
+    case "ai": return "Governed AI workloads and policies";
     case "operations": return "Operational processing health";
   }
 }
