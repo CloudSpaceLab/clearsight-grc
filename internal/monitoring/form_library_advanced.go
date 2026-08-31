@@ -70,7 +70,7 @@ func NormalizeFormFilterExpression(expression *FormFilterExpression) (*FormFilte
 }
 
 func normalizeFormFilterNode(expression FormFilterExpression, depth int, nodes *int) (FormFilterExpression, error) {
-	*nodes++
+	(*nodes)++
 	if *nodes > maxFormFilterNodes || depth > maxFormFilterDepth {
 		return FormFilterExpression{}, errors.Join(ErrInvalid, fmt.Errorf("form filter expressions are limited to %d nodes and %d levels", maxFormFilterNodes, maxFormFilterDepth))
 	}
@@ -177,9 +177,10 @@ func combinedFormFilterExpression(filter FormLibraryFilter) (*FormFilterExpressi
 	}
 	if len(children) == 1 {
 		value := children[0]
-		return &value, nil
+		return NormalizeFormFilterExpression(&value)
 	}
-	return &FormFilterExpression{Kind: "group", Operator: "and", Children: children}, nil
+	combined := FormFilterExpression{Kind: "group", Operator: "and", Children: children}
+	return NormalizeFormFilterExpression(&combined)
 }
 
 func formFilterExpressionMatches(expression *FormFilterExpression, value FormTemplate) bool {
