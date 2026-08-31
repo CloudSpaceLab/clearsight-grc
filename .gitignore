@@ -9,6 +9,7 @@
 /coverage
 coverage.out
 *.coverprofile
+.gocache
 
 # Web
 web/node_modules/
