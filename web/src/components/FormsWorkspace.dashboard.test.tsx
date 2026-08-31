@@ -128,4 +128,25 @@ describe("Forms template dashboard", () => {
     resolveNext({ items: [] });
     expect(await screen.findByRole("heading", { name: "No templates match “no match”" })).toBeTruthy();
   });
+
+  it("revalidates on focus only after the visible library becomes stale", async () => {
+    let now = 1_000;
+    const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => now);
+    try {
+      render(<FormsWorkspace/>);
+      await screen.findByRole("button", { name: "Open Vendor due diligence" });
+      const initialCalls = api.loadFormTemplatePage.mock.calls.length;
+
+      window.dispatchEvent(new Event("focus"));
+      await Promise.resolve();
+      expect(api.loadFormTemplatePage.mock.calls.length).toBe(initialCalls);
+
+      now += 31_000;
+      window.dispatchEvent(new Event("focus"));
+      await waitFor(() => expect(api.loadFormTemplatePage.mock.calls.length).toBe(initialCalls + 1));
+      expect(api.loadFormTemplatePage.mock.calls.at(-1)?.[2]).toEqual({ statusFacets: true });
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
 });
