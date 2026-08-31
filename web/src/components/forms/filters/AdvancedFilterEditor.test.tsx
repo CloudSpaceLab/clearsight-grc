@@ -7,9 +7,9 @@ describe("AdvancedFilterEditor", () => {
     const onApply = vi.fn();
     render(<AdvancedFilterEditor onApply={onApply} onClose={vi.fn()}/>);
 
-    expect(screen.getByRole("dialog", { name: "Advanced form filters" })).toBeInTheDocument();
-    expect(screen.getByLabelText("2 of 12 filter nodes used")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Apply filters" })).toBeDisabled();
+    expect(screen.getByRole("dialog", { name: "Advanced form filters" })).toBeTruthy();
+    expect(screen.getByLabelText("2 of 12 filter nodes used")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Apply filters" }) as HTMLButtonElement).disabled).toBe(true);
 
     fireEvent.change(screen.getByLabelText("Advanced filter match mode"), { target: { value: "or" } });
     fireEvent.change(screen.getByLabelText("Condition 1 Status value"), { target: { value: "ACTIVE" } });
@@ -17,7 +17,7 @@ describe("AdvancedFilterEditor", () => {
     fireEvent.change(screen.getByLabelText("Condition 2 field"), { target: { value: "tag" } });
     fireEvent.change(screen.getByLabelText("Condition 2 Tag value"), { target: { value: "third-party" } });
 
-    expect(screen.getByLabelText("3 of 12 filter nodes used")).toBeInTheDocument();
+    expect(screen.getByLabelText("3 of 12 filter nodes used")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
     expect(onApply).toHaveBeenCalledWith({
       kind: "group",
