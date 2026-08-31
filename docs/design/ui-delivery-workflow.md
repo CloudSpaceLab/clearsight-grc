@@ -47,6 +47,8 @@ Do not create visual variants for routine implementation where the design system
 
 Reusable components and major screens need representative fixtures for default, loading, empty, stale, partial, error, permission, conflict, success and long-content states. The gallery may be a development-only route or deterministic screenshot fixture; it must use the production component.
 
+Every new public component family or variant adds a production-exported gallery state in the same change. The fixture must show the supported public state; hover, pressed, focus and open-popup behavior is exercised through browser interaction rather than fake presentation props.
+
 ## 5. Rendered review
 
 Inspect actual rendered output rather than inferring quality from code. Check:
@@ -63,9 +65,21 @@ Inspect actual rendered output rather than inferring quality from code. Check:
 
 Repair the highest-impact failure, then re-render the failed evidence. Do not claim visual completion without rendered evidence.
 
+For every newly migrated file, the change records:
+
+- its entry in `web/ui-contract-migrations.json`;
+- the shared families it adopts and any native-control exception;
+- a gallery state for any new component contract;
+- at least one deterministic render inside the complete ClearSight host at each materially affected replacement breakpoint;
+- the highest-impact defect found in the first render, the correction and the inspected replacement render.
+
+The migration manifest is enforced mechanically. A listed file imports through `components/ui`, does not introduce prohibited raw buttons, text controls or unapproved native selects, and does not reach directly into design-system internals. A file that only resembles the system or consumes a token is not migrated.
+
 ## 6. Drift control
 
 The root `DESIGN.md` is the fast agent contract. Canonical tokens and components remain in source. A UI change that introduces a new token, component variant, density mode, motion pattern or illustration style updates the contract and its state fixtures in the same PR.
+
+Update [`ui-component-adoption.md`](ui-component-adoption.md) whenever a workspace crosses a component-family boundary. Mark only the family actually migrated. Later work must not turn a partially migrated row into a completed row merely because navigation or one action uses a shared component.
 
 ## Tool neutrality
 

@@ -2,15 +2,15 @@
 
 **Date:** 2026-08-31
 
-**Status:** Approved for phased implementation
+**Status:** Tranche 1 implemented and locally verified; later Forms and product migrations remain open
 
-**Scope:** Reusable internal UI foundations with Governed Forms as the first complete migration
+**Scope:** Reusable internal UI foundations with Forms navigation and Sent forms as the first migration tranche
 
 **Supersedes:** [`2026-08-31-immersive-form-builder-usability-design.md`](2026-08-31-immersive-form-builder-usability-design.md) as the implementation authority; that document remains the builder-specific audit record
 
 ## 1. Decision summary
 
-ClearSight will establish a reusable product UI system before applying further screen-level polish. The system will define three-layer design tokens, ClearSight-owned React component APIs, complete interaction-state contracts and deterministic component evidence. Governed Forms will be the first complete vertical migration, beginning with the visibly broken Sent forms surface and then the immersive form builder.
+ClearSight will establish a reusable product UI system before applying further screen-level polish. The system defines three-layer design tokens, ClearSight-owned React component APIs, complete interaction-state contracts and deterministic component evidence. Tranche 1 implements the component foundation, component gallery, Forms peer-view navigation and the visibly broken Sent forms surface. The immersive builder and remaining Forms views retain their existing usability corrections but remain separate migration work.
 
 ClearSight owns the visual language, copy, variants and component contracts. The exact pinned `react-aria-components` package supplies accessibility, internationalization and interaction mechanics for complex primitives such as Select, ListBox, Popover, Dialog, Menu and Tabs. It does not supply ClearSight styling, tokens, product copy or workflow semantics.
 

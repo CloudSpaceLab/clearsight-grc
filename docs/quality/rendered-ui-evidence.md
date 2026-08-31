@@ -27,7 +27,7 @@ The capture suite prefers production components and realistic deterministic fixt
 
 ## UI foundation and capture matrix
 
-The current suite exercises **114 deterministic rendered states/interactions** across:
+The current suite exercises **122 deterministic rendered states/interactions** across:
 
 - Today in light and dark themes;
 - comfortable and compact desktop density;
@@ -64,12 +64,42 @@ The current suite exercises **114 deterministic rendered states/interactions** a
 - populated governed Forms records at 390px, with State, Revision, Owner and Updated facts spanning labelled stacked rows rather than entering the checkbox/action column;
 - governed Forms authoring at 390px and 320px, with Preview, Review, Save draft and Send for approval visible, 44px action/reorder targets and keyboard Move up/Move down alternatives.
 - governed Forms authoring with a real desktop mouse drag that changes question order, plus a 120-question/10-section fixture with recorded render and edit latency.
+- the production component gallery in light/comfortable and dark/compact modes, including a real themed Select popup;
+- migrated Sent forms empty, populated, partial, paginated, responsive detail-sheet, 390px, 320px and effective-200%-layout states;
+- forced-colour focus and reduced-motion component behavior.
 
 ## Governed Forms #103 closure inspection
 
 The exact-head renders exposed three defects that structural unit tests did not detect: the focus-managed drawer close button shared a stacking layer with its sticky header and could not receive pointer clicks; stacked mobile form facts auto-placed into the 44px checkbox column even though the document itself did not overflow; and the sticky builder toolbar covered the signed-in account control after scrolling. The drawer close control now sits above its header, every labelled mobile fact spans the full record grid, and builder chrome stays below the active workspace context. Evidence assertions cover each regression.
 
-The corrected matrix passed 114/114 flow records and 56/56 governed Forms capabilities. Direct inspection of `112-forms-library-populated-dark-mobile-390x844.png`, `113-forms-builder-actions-light-mobile-390x844.png`, `114-forms-builder-reflow-dark-320x800.png`, `115-forms-builder-pointer-reorder-light-1440x900.png` and `116-forms-builder-large-performance-light-1440x900.png` confirmed the stacked record hierarchy, visible mobile authoring actions, separated sticky chrome, changed pointer-drag order and responsive large-form editing. The 120-question fixture recorded 342ms to usable builder content and 57ms for question 100 to update on this development host. Touch scenarios claim the 44px menu/keyboard-equivalent contract, not native HTML drag. These renders remain fixture evidence; representative timed use, actual 200% browser zoom, normal-network p95, hosted exact-commit acceptance and production-scale/PostgreSQL evidence are still separate closure gates.
+The corrected matrix passed 114/114 flow records and 56/56 governed Forms capabilities at the #103 checkpoint. Direct inspection of `112-forms-library-populated-dark-mobile-390x844.png`, `113-forms-builder-actions-light-mobile-390x844.png`, `114-forms-builder-reflow-dark-320x800.png`, `115-forms-builder-pointer-reorder-light-1440x900.png` and `116-forms-builder-large-performance-light-1440x900.png` confirmed the stacked record hierarchy, visible mobile authoring actions, separated sticky chrome, changed pointer-drag order and responsive large-form editing. The 120-question fixture recorded 342ms to usable builder content and 57ms for question 100 to update on this development host. Touch scenarios claim the 44px menu/keyboard-equivalent contract, not native HTML drag. These renders remain fixture evidence; representative timed use, actual 200% browser zoom, normal-network p95, hosted exact-commit acceptance and production-scale/PostgreSQL evidence are still separate closure gates.
+
+## UI foundations and Sent forms tranche
+
+The retained pre-migration comparison is `99-forms-distribution-access-history-light-1440x900.png` from the exact source baseline `408306a9eae9eb750a08008df32e7bb90c697210`. It showed transparent 20–21px actions and filters, an operating-system light Select popup over the dark application, inconsistent control anatomy and an empty results region that still reserved a wide table and detail pane with horizontal overflow. The supplied builder screenshot additionally showed the native response-type menu obscuring the working document.
+
+The corrected evidence added these exact scenarios:
+
+| Evidence | Physical viewport | Layout viewport / state |
+| --- | ---: | --- |
+| `117-forms-component-gallery-light-comfortable-1440x900.png` | 1440×900 | Light, comfortable, all public component families |
+| `118-forms-component-gallery-dark-compact-select-1280x720.png` | 1280×720 | Dark, compact, themed Select open |
+| `119-forms-sent-empty-dark-1440x900.png` | 1440×900 | Dark Sent forms empty replacement |
+| `120-forms-sent-detail-sheet-light-1024x768.png` | 1024×768 | Light responsive detail sheet and lifecycle action |
+| `121-forms-sent-populated-light-mobile-390x844.png` | 390×844 | Populated stacked records and pagination |
+| `122-forms-sent-populated-light-reflow-320x800.png` | 320×800 | Reflowed filters and stacked records |
+| `123-forms-sent-light-effective-200pct.png` | 1440×900 | 720×450 effective CSS layout viewport at device scale factor 2, themed Select open |
+| `124-forms-component-gallery-forced-colors-focus-1440x900.png` | 1440×900 | Forced colours, reduced motion and keyboard focus |
+
+The first 320px render exposed the highest-impact remaining presentation defect: **Clear sent-form filters** wrapped to four lines and became 86px tall, consuming the result summary instead of behaving as an action. A failing scenario measurement was added. At widths up to 380px the summary now changes to a single-column replacement and gives the action full width; the replacement render keeps its label on one line and its height within the 44px contract.
+
+The pre-migration production build measured 197,382 bytes initial JavaScript gzip, 351,211 bytes total JavaScript gzip, 32,705 bytes initial CSS gzip and 44,728 bytes total CSS gzip. The corrected build measures 121,064 bytes initial JavaScript gzip, 444,025 bytes total JavaScript gzip, 31,608 bytes initial CSS gzip and 51,738 bytes total CSS gzip. Route-level loading reduced initial JavaScript despite the new interaction library; total JavaScript and CSS increased because the shared contracts and static evidence route are now present. The final review budget also reports a 400,303-byte largest raw JavaScript chunk.
+
+At implementation evidence head `1c1bbe838cb603730d0a1d370f5a619dce3206d0`, `npm run review:ui` passed 122/122 flow records, 68/68 governed Forms capabilities, 122/122 retained screenshots, all eight accessibility/touch route states and all bundle ceilings. The component and Sent forms renders were inspected at original resolution after correction.
+
+The automated 200% case changes the effective CSS layout viewport; it is still a proxy. A manual native-browser check at the available 1039×782 window confirmed that the Forms host replaces its side rail with bottom navigation from 150% through 200% and keeps the visible template content in the accessibility document. Hardware/window constraints prevented the requested 1440×900 native-zoom viewport, and the manual run did not reach the Sent detail/Select state. Exact native 200% Sent forms and representative assistive-technology acceptance therefore remain open, alongside hosted exact-commit and timed bank-user acceptance.
+
+This tranche migrates the UI gallery, Forms peer-view navigation and Sent forms only. Templates, Builder, Responses, Imports, Communications, external capture and all non-Forms workspaces remain in the adoption backlog in [`../design/ui-component-adoption.md`](../design/ui-component-adoption.md).
 
 ## Accepted premium first-run and vendor-brand evidence
 

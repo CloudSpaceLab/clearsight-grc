@@ -30,44 +30,23 @@ Use restrained institutional futurism:
 
 Avoid decorative gradients, glass, glow or illustration where they compete with status, evidence or decisions.
 
-## Theme and density tokens
+## Token, cascade and density architecture
 
-Operational components consume semantic tokens rather than owning separate light/dark palettes. The canonical roles are:
+The design-system entry point fixes the cascade order as `reset`, `tokens`, `base`, `components`, `features`, `utilities`, then `overrides`. A feature may arrange a shared component inside its workspace, but it must not win the cascade by redefining the component's fill, border, radius, focus or interaction state. `overrides` is reserved for documented compatibility corrections, not ordinary feature styling.
 
-```css
---canvas;
---surface;
---surface-2;
---surface-3;
---border;
---border-strong;
---text;
---text-strong;
---muted;
---cyan;
---violet;
---amber;
---green;
---coral;
---focus-ring;
---overlay-blur;
---document-canvas;
---document-surface;
---document-surface-muted;
---document-border;
---document-text;
---document-muted;
---icon-size-small;
---interactive-target;
-```
+Tokens have three levels:
 
-`web/src/ui-preferences.css` owns the current dark/light mappings and the illustration token mappings. Components must not duplicate semantic colors locally when a token already represents the meaning.
+1. **Primitive tokens** (`--cs-primitive-*`) store raw colour, spacing, type, radius, border, icon, shadow, duration, easing and z-index values. Product components do not consume raw values when a semantic role exists.
+2. **Semantic tokens** express a role across theme and context: canvas/surface, primary/strong/muted text, default/strong/interactive/invalid border, primary/destructive action, information/success/warning/error/unknown feedback, focus, spacing, type, motion, overlay and document roles.
+3. **Component tokens** (`--cs-button-*`, `--cs-field-*`, `--cs-select-*`, `--cs-tabs-*`, `--cs-overlay-*`, `--cs-table-*` and related families) bind the semantic roles to a closed component contract. A new component token must be useful to every instance of that component family; page-specific layout stays in feature CSS.
 
-Theme preference supports **System**, **Light** and **Dark**. Density supports **Comfortable** and **Compact** for repeated desktop work. Compact density may reduce desktop row/control spacing but must not reduce mobile/touch targets below the supported interaction size.
+`web/src/design-system/tokens/` owns the three-level foundation. `web/src/ui-preferences.css` supplies compatible legacy theme mappings while surfaces migrate. Components must not create a private light/dark palette when a semantic role already represents the meaning.
+
+Theme preference supports **System**, **Light** and **Dark**. Comfortable controls are 44px high. Compact controls are 40px high on a fine-pointer desktop; compact mode does not reduce touch targets below 44px. Spacing uses the 4px primitive scale with 8px as the normal grouping rhythm. Component radii come from the 6px, 10px and 14px primitives; large guide or illustration treatments may keep a larger documented radius outside operational controls. Shadows and blur remain subtle and never carry state.
 
 Typography uses Inter, Segoe UI Variable, Segoe UI, then system sans-serif. Headings use tight tracking; operational copy uses normal sentence case. Uppercase is limited to compact metadata labels.
 
-Use an 8px spacing rhythm, 11–18px controls, 12–18px cards and 20–26px hero/guide radii. Shadows and blur remain subtle and never carry state.
+`react-aria-components` owns keyboard, focus, selection, overlay and internationalization mechanics for the complex primitives that use it. ClearSight owns the public TypeScript contract, DOM/class contract, visual states, copy and business behavior. Native controls remain appropriate where the platform interaction is the clearer contract, including date, date-time, time, number and file selection; they still use the shared field anatomy, validation, target-size and theme rules.
 
 Focused dialogs and drawers use the theme backdrop plus `--overlay-blur` to reduce competing shell detail. The overlay must not conceal errors, authority explanations or material status inside the focused surface. Compact line icons use `--icon-size-small` inside controls that retain the `--interactive-target` hit area.
 
@@ -97,6 +76,8 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | `FocusedSheet` | Dismissable, focus-contained detail or action with full-height mobile replacement. |
 
 The static-only UI component gallery renders every family from production exports. New variants update the closed TypeScript union, component tokens, this table and the gallery in the same change.
+
+Migration is explicit rather than inferred from visual similarity. A file is migrated only when it appears in `web/ui-contract-migrations.json`, imports public contracts through `components/ui`, has no prohibited raw interactive controls, and is represented by a gallery or full-host state fixture. The workspace-by-family record in [`docs/design/ui-component-adoption.md`](docs/design/ui-component-adoption.md) is the human review view of that boundary. Using one shared component in an otherwise legacy workspace does not make the whole workspace migrated.
 
 ## Structural patterns
 
