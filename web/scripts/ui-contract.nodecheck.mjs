@@ -23,6 +23,11 @@ test("the design system declares the approved cascade and three token layers", a
   assert.equal(JSON.parse(packageJSON).dependencies["react-aria-components"], "1.20.0");
 });
 
+test("the shell does not force document overflow at the supported 320px viewport", async () => {
+  const styles = await read("src/styles.css");
+  assert.doesNotMatch(styles, /body\s*\{[^}]*min-width:\s*320px/i);
+});
+
 test("raw controls report an exact migrated-file diagnostic", () => {
   const diagnostics = validateTsxSource({
     file: "src/components/forms/sent/SentFormsFilters.tsx",

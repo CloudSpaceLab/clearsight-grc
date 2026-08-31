@@ -20,7 +20,7 @@
   --coral: #f17a8d;
 }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at 78% -10%, rgba(91,198,214,.10), transparent 32%), var(--canvas); }
+body { margin: 0; min-width: 0; min-height: 100vh; background: radial-gradient(circle at 78% -10%, rgba(91,198,214,.10), transparent 32%), var(--canvas); }
 button, input, select, textarea { font: inherit; }
 button { color: inherit; }
 .app-shell { min-height: 100vh; display: grid; grid-template-columns: 82px minmax(0, 1fr); }
