@@ -87,7 +87,14 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     ? "PENDING_APPROVAL" as const
     : undefined;
   const customView = hasCustomView(query);
-  const autoRevalidationEnabled = activeTab === "Templates" && state === "live" && !editor && !newFormOpen && !aiOpen && !aiProposal;
+  const autoRevalidationEnabled = activeTab === "Templates"
+    && state === "live"
+    && !editor
+    && !newFormOpen
+    && !aiOpen
+    && !aiProposal
+    && !busy
+    && page.items.length <= (query.limit ?? 25);
 
   useEffect(() => setAppearance(readAppearance(appearanceKey)), [appearanceKey]);
 
@@ -112,7 +119,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   useEffect(() => {
     if (!autoRevalidationEnabled) return;
     const revalidateIfStale = () => {
-      if (document.visibilityState !== "visible") return;
+      if (document.visibilityState !== "visible" || requestAbort.current) return;
       if (Date.now() - lastSuccessfulRefresh.current < libraryRevalidationIntervalMs) return;
       void refresh(query);
     };
