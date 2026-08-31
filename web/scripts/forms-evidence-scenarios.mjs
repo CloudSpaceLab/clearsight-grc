@@ -38,7 +38,7 @@ const scenarios = [
       await page.getByLabel("Search templates").waitFor({ state: "visible" });
       for (const value of ["Draft", "Awaiting approval", "Active", "Retired"]) await visible(page, value);
       if (await page.getByLabel("Selected form template").count()) throw new Error("Forms library detail must stay closed until a template is selected.");
-      await page.locator(".forms-library-table tbody .forms-row-action").first().click();
+      await page.getByRole("button", { name: /^Open / }).first().click();
       await page.getByLabel("Selected form template").waitFor({ state: "visible" });
       await visible(page, "Latest stored");
       await visible(page, "Reusable now");
@@ -57,7 +57,7 @@ const scenarios = [
     state: "forms-unified-creation", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["creation-blank", "creation-template", "creation-ai", "creation-import"],
     run: async (page) => {
-      await page.getByRole("button", { name: "+ New form", exact: true }).click();
+      await page.getByRole("button", { name: "Create form", exact: true }).click();
       const dialog = page.getByRole("dialog", { name: "New form" });
       await dialog.waitFor({ state: "visible" });
       for (const method of ["Blank form", "From template", "Draft with AI", "Import"]) {
@@ -70,7 +70,7 @@ const scenarios = [
     name: "94-forms-saved-filter-bulk-light-1440x900", fixture: "forms-library-governance", route: "#forms",
     state: "forms-library-saved-filter-bulk", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["library-saved-filter", "library-bulk-action"],
-    run: async (page) => { await page.getByRole("button", { name: "Approval-ready drafts", exact: true }).click(); for (const name of ["Approval-ready privacy draft", "Approval-ready resilience draft"]) await page.getByRole("checkbox", { name: `Select ${name}` }).check(); await page.getByRole("button", { name: "Send 2 for approval" }).waitFor({ state: "visible" }); },
+    run: async (page) => { await page.getByRole("button", { name: "Approval-ready drafts", exact: true }).click(); for (const name of ["Approval-ready privacy draft", "Approval-ready resilience draft"]) await page.getByRole("checkbox", { name: `Select ${name}` }).press("Space"); await page.getByRole("button", { name: "Send 2 for approval" }).waitFor({ state: "visible" }); },
   },
   {
     name: "95-forms-invalid-weights-light-1440x900", fixture: "forms-weights-invalid", route: "#forms",
@@ -197,7 +197,7 @@ const scenarios = [
     state: "forms-library-populated-mobile", theme: "dark", viewport: mobile, zoom: 1, touch: true,
     capabilities: ["library-list", "library-mobile-records", "viewport-mobile", "theme-dark"],
     run: async (page) => {
-      const row = page.locator(".forms-library-table tbody tr").first();
+      const row = page.locator(".cs-data-table tbody tr").first();
       await row.waitFor({ state: "visible" });
       const presentation = await row.evaluate((element) => ({
         display: getComputedStyle(element).display,

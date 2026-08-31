@@ -67,11 +67,15 @@ beforeEach(() => {
 
 describe("Forms template dashboard", () => {
   it("keeps the result surface full-width until a template is selected", async () => {
-    render(<FormsWorkspace/>);
+    const view = render(<FormsWorkspace/>);
     expect(await screen.findByRole("button", { name: "Open Vendor due diligence" })).toBeTruthy();
     expect(screen.queryByLabelText("Selected form template")).toBeNull();
     expect(screen.queryByText("Recently updated")).toBeNull();
     expect(screen.queryByRole("button", { name: "Cards" })).toBeNull();
+    expect(view.container.querySelector(".cs-data-table")).toBeTruthy();
+    expect(view.container.querySelector(".forms-library-table")).toBeNull();
+    expect(screen.getByRole("checkbox", { name: "Select Vendor due diligence" }).closest(".cs-checkbox-field")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open Vendor due diligence" }).className).toContain("cs-button");
   });
 
   it("opens template detail contextually and dismisses it without changing library data", async () => {

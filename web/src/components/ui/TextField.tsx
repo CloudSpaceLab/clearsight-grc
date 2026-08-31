@@ -1,7 +1,7 @@
 import type { ChangeEventHandler, FocusEventHandler } from "react";
 import { FormField } from "./FormField";
 
-export type TextFieldType = "text" | "search" | "email" | "url" | "tel";
+export type TextFieldType = "text" | "search" | "email" | "url" | "tel" | "number";
 
 export type TextFieldProps = {
   label: string;
@@ -13,6 +13,10 @@ export type TextFieldProps = {
   type?: TextFieldType;
   name?: string;
   autoComplete?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  maxLength?: number;
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isRequired?: boolean;
@@ -31,6 +35,10 @@ export function TextField({
   type = "text",
   name,
   autoComplete,
+  min,
+  max,
+  step,
+  maxLength,
   isDisabled = false,
   isReadOnly = false,
   isRequired = false,
@@ -48,6 +56,10 @@ export function TextField({
       value={value}
       placeholder={placeholder}
       autoComplete={autoComplete}
+      min={min}
+      max={max}
+      step={step}
+      maxLength={maxLength}
       disabled={isDisabled}
       readOnly={isReadOnly}
       required={isRequired}

@@ -33,6 +33,11 @@ test("mobile data cards wrap long identifiers within the available column", asyn
   assert.match(styles, /\.cs-data-table tbody tr td\s*\{[^}]*min-inline-size:\s*0[^}]*overflow-wrap:\s*anywhere/is);
 });
 
+test("focused-sheet close actions remain above sticky feature content", async () => {
+  const tokens = await read("src/design-system/tokens/components.css");
+  assert.match(tokens, /--cs-overlay-close-z:\s*var\(--cs-z-menu\)/);
+});
+
 test("raw controls report an exact migrated-file diagnostic", () => {
   const diagnostics = validateTsxSource({
     file: "src/components/forms/sent/SentFormsFilters.tsx",

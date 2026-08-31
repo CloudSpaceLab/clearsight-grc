@@ -9,7 +9,7 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | UI component gallery | M | M | M | M | M | M | M | M |
 | Forms shell and peer-view navigation | — | — | — | M | — | — | — | — |
 | Forms · Sent forms | M | M | M | M | M | M | M | M |
-| Forms · Templates/library | — | — | — | S | — | — | — | — |
+| Forms · Templates/library | — | — | M | S | — | M | — | M |
 | Forms · Builder/editor/review | — | — | — | S | — | — | — | — |
 | Forms · Responses | — | — | — | S | — | — | — | — |
 | Forms · Imports | — | — | — | S | — | — | — | — |
@@ -29,10 +29,12 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 
 Tranche 1 implements the three-layer token architecture, public component contracts, component gallery, Forms peer-view navigation and the complete Sent forms workspace migration. The Sent forms boundary includes its actions, filters, themed selection popup, labelled empty result, populated and paginated data, focused detail sheet, lifecycle feedback and narrow-screen stacked records.
 
-The existing Forms template library, builder, Responses, Imports and Communications remain visually functional legacy surfaces. Builder usability fixes already present—mobile action visibility, keyboard reordering and pointer reordering—are retained, but they do not constitute component-system migration. Every non-Forms workspace also remains outside this tranche.
+Tranche 2 begins the Templates/library migration at its highest-frequency record surface. The template table now uses the shared data, status, checkbox-selection and action contracts; template details use the shared focused sheet, actions and status feedback; and workspace notices and empty results use the shared feedback contracts. The component foundation adds one labelled `CheckboxField` contract and numeric constraints to `TextField`. These exact files are enforced by the migration manifest and exercised in the component gallery and Forms library state fixtures.
+
+Template search, filter selection, saved filter composition, status scopes and the new-form launcher remain legacy controls, so Actions, Fields, Overlays and Surfaces are intentionally not marked migrated for the Templates/library row. The builder, Responses, Imports and Communications remain visually functional legacy surfaces. Builder usability fixes already present—mobile action visibility, keyboard reordering and pointer reordering—are retained, but they do not constitute component-system migration. Every non-Forms workspace also remains outside this tranche.
 
 ## Work left after this tranche
 
-The next Forms migration should cover the template library and builder first because they contain the greatest concentration of repeated controls and the builder screenshot exposed the same native-select and inconsistent-component failures. Responses, Forms Imports, Communications and external capture follow as separately evidenced slices.
+The next migration slice should complete template search, filters, status scopes and the new-form launcher before moving into the builder. The builder remains the largest concentration of native selects and inconsistent component anatomy. Responses, Forms Imports, Communications and external capture follow as separately evidenced slices.
 
-Product-wide adoption needs a separate sequenced plan. Start with shared shell/navigation, then migrate Today, Programs, Vendors, Work, regulatory Imports, Explore and Configure according to task frequency and operational risk. Each slice must preserve domain and authority behavior, add its manifest entries and state fixtures, inspect full-host renders, repair the highest-impact defect and update this table. Until those rows are migrated, describe the result as “UI foundations and Sent forms migrated,” never “ClearSight is fully standardized.”
+Product-wide adoption needs a separate sequenced plan. Start with shared shell/navigation, then migrate Today, Programs, Vendors, Work, regulatory Imports, Explore and Configure according to task frequency and operational risk. Each slice must preserve domain and authority behavior, add its manifest entries and state fixtures, inspect full-host renders, repair the highest-impact defect and update this table. Until those rows are migrated, describe the result as “UI foundations, Sent forms and the template record surface migrated,” never “ClearSight is fully standardized.”

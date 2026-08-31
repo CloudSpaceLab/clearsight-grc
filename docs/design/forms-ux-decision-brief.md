@@ -24,7 +24,15 @@ The Forms destinations remain:
 - Imports
 - Communications
 
-Templates is full-width by default. Selecting a record opens contextual detail without permanently consuming list width. Creation starts from one `+ New form` action. The builder converges on `Outline → Canvas → Inspector`, with Review, Preview and Publish as contextual actions rather than permanent panels.
+Templates is full-width by default. Selecting a record opens contextual detail without permanently consuming list width. Creation starts from one `Create form` action. The builder converges on `Outline → Canvas → Inspector`, with Review, Preview and Publish as contextual actions rather than permanent panels.
+
+## Template record-surface migration
+
+The primary user is a compliance form owner finding a reusable form, checking its current revision and authority-backed state, selecting approval-ready drafts or opening one form’s details. The first useful outcome is a readable bounded result with one clear create action; the repeated-use task is scanning, selecting and acting without relearning bespoke controls.
+
+The record surface uses the shared data table, status, checkbox, button, notice, empty-state and focused-sheet contracts. This preserves the current Forms APIs, query state, exact revision identity and authority operations. Loading, populated, empty search, unavailable source, saved-filter, bulk selection and lifecycle detail states remain required. At narrow widths the table becomes labelled stacked records and the sheet becomes the shared full-height mobile surface. Copy must distinguish latest stored and currently reusable revisions and must not imply approval or availability when the authority read is missing. Icons remain labelled control aids; the shared sheet owns motion and reduced-motion behavior.
+
+Acceptance evidence is the component gallery plus the deterministic full-host Forms matrix at desktop, mobile, 320px reflow, 200% zoom, light, dark, forced-colors and reduced-motion states. The first migrated render exposed a close action beneath sticky detail content; the shared overlay layer token was corrected and the replacement 122-state render passed. Template search/filter controls and the creation launcher remain the next migration boundary and are not represented as complete here.
 
 ## Truth and safety invariants
 
@@ -112,7 +120,7 @@ The server remains authoritative for templates, revisions, approval state, saved
 
 ## Creation decision
 
-One `+ New form` action opens four methods:
+One `Create form` action opens four methods:
 
 - Blank form → existing governed manual draft path;
 - From template → existing reviewed starter instantiation path;

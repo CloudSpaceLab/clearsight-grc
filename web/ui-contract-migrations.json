@@ -1,6 +1,7 @@
 {
   "migratedTsx": [
     "src/components/ui/Button.tsx",
+    "src/components/ui/CheckboxField.tsx",
     "src/components/ui/DataTable.tsx",
     "src/components/ui/EmptyState.tsx",
     "src/components/ui/FilterBar.tsx",
@@ -14,11 +15,16 @@
     "src/components/ui/TextArea.tsx",
     "src/components/ui/TextField.tsx",
     "src/components/ui-gallery/UIComponentGallery.tsx",
+    "src/components/FormsWorkspace.tsx",
+    "src/components/forms/FormsEmptyState.tsx",
+    "src/components/forms/FormsTabContent.tsx",
     "src/components/forms/SentFormsView.tsx",
     "src/components/forms/FormsNavigation.tsx",
     "src/components/forms/sent/SentFormsFilters.tsx",
     "src/components/forms/sent/SentFormsTable.tsx",
-    "src/components/forms/sent/SentFormDetail.tsx"
+    "src/components/forms/sent/SentFormDetail.tsx",
+    "src/components/forms/dashboard/TemplateLibraryTable.tsx",
+    "src/components/forms/dashboard/TemplateDetailDrawer.tsx"
   ],
   "migratedCss": [
     "src/design-system/components/actions.css",
@@ -29,7 +35,10 @@
     "src/design-system/components/overlays.css",
     "src/design-system/components/surfaces.css",
     "src/ui-gallery.css",
-    "src/forms-sent.css"
+    "src/forms-sent.css",
+    "src/forms-dashboard-shell.css",
+    "src/forms-dashboard-table.css",
+    "src/forms-dashboard-drawer.css"
   ],
   "nativeControlExceptions": [
     {
@@ -44,6 +53,12 @@
       "reason": "TextArea is the shared owner that binds the native textarea to the public field contract."
     },
     {
+      "file": "src/components/ui/CheckboxField.tsx",
+      "tag": "input",
+      "inputType": "checkbox",
+      "reason": "CheckboxField is the shared owner that binds the native checkbox to the public selection contract."
+    },
+    {
       "file": "src/components/ui-gallery/UIComponentGallery.tsx",
       "tag": "input",
       "inputType": "text",
@@ -55,7 +70,8 @@
     "ActionLink": ["navigation"],
     "IconButton": ["primary", "secondary", "quiet", "destructive", "accessible-name"],
     "FormField": ["required", "description", "invalid"],
-    "TextField": ["text", "search", "email", "url", "tel", "disabled", "read-only", "invalid", "loading"],
+    "TextField": ["text", "search", "email", "url", "tel", "number", "disabled", "read-only", "invalid", "loading"],
+    "CheckboxField": ["selected", "unselected", "indeterminate", "disabled", "hidden-label", "description"],
     "TextArea": ["disabled", "read-only", "invalid", "loading"],
     "SelectField": ["placeholder", "selected", "disabled", "required", "invalid"],
     "Tabs": ["automatic-activation", "wrapped-compact"],

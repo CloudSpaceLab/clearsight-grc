@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import { TextArea, TextField } from "./index";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { CheckboxField, TextArea, TextField } from "./index";
 
 describe("field contracts", () => {
   it("binds the label, description and current validation message", () => {
@@ -34,5 +34,29 @@ describe("field contracts", () => {
 
     expect(screen.getByLabelText("Reason for changing the distribution").tagName).toBe("TEXTAREA");
     expect(screen.getByText(/which recipients are affected/)).toBeTruthy();
+  });
+
+  it("keeps numeric constraints in the shared labelled field anatomy", () => {
+    render(<TextField label="Maximum files" type="number" value="5" min={1} max={10} step={1} onChange={() => undefined}/>);
+
+    const input = screen.getByLabelText("Maximum files") as HTMLInputElement;
+    expect(input.type).toBe("number");
+    expect(input.min).toBe("1");
+    expect(input.max).toBe("10");
+    expect(input.step).toBe("1");
+  });
+
+  it("provides one labelled checkbox contract with description and disabled semantics", () => {
+    const changed = vi.fn();
+    const { rerender } = render(<CheckboxField label="Select vendor review" description="Adds this draft to the bulk action." isSelected={false} onChange={changed}/>);
+
+    const checkbox = screen.getByRole("checkbox", { name: "Select vendor review" });
+    fireEvent.click(checkbox);
+    expect(changed).toHaveBeenCalledWith(true);
+    expect(checkbox.getAttribute("aria-describedby")).toBe(screen.getByText("Adds this draft to the bulk action.").id);
+
+    rerender(<CheckboxField label="Select vendor review" isSelected={false} isDisabled onChange={changed}/>);
+    const disabled = screen.getByRole("checkbox", { name: "Select vendor review" });
+    expect((disabled as HTMLInputElement).disabled).toBe(true);
   });
 });

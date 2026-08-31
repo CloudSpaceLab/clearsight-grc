@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import type { FormLibraryItem } from "../../../formsTypes";
 import type { LifecycleStatus } from "../../../monitoringTypes";
-import { FocusedSheet } from "../../FocusedSheet";
+import { Button, FocusedSheet } from "../../ui";
 import { isTemplateApprovalReady } from "../formQuality";
 import { formatDate, StatusPill } from "./TemplateLibraryTable";
 
@@ -36,7 +36,7 @@ export function TemplateDetailDrawer({ item, requestedID, busy, onClose, onClear
         <span className="forms-detail-kicker">Selected template</span>
         <h2>Template isn’t in this view</h2>
         <p>Clear the active filters to bring the selected template back into the current result set.</p>
-        <button type="button" onClick={onClearFilters}>Clear filters</button>
+        <Button onPress={onClearFilters}>Clear filters</Button>
       </div>}
   </FocusedSheet>;
 }
@@ -85,21 +85,21 @@ function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibrar
 
     <div className="forms-detail-actions">
       {form.status === "DRAFT" && <>
-        {canRevise && <button type="button" onClick={onEdit}>Edit draft</button>}
-        {canTransition("PENDING_APPROVAL") && <button className="forms-primary" type="button" disabled={busy !== null || !approvalReady} onClick={() => onTransition("PENDING_APPROVAL")}>Send for approval</button>}
+        {canRevise && <Button onPress={onEdit}>Edit draft</Button>}
+        {canTransition("PENDING_APPROVAL") && <Button variant="primary" isDisabled={busy !== null || !approvalReady} onPress={() => onTransition("PENDING_APPROVAL")}>Send for approval</Button>}
       </>}
       {form.status === "DRAFT" && canTransition("PENDING_APPROVAL") && !approvalReady && <small className="forms-muted">Open the editor to resolve approval-quality checks before submission.</small>}
       {form.status === "PENDING_APPROVAL" && <>
-        {canTransition("ACTIVE") && <button className="forms-primary" type="button" disabled={busy !== null} onClick={() => onTransition("ACTIVE")}>Approve and activate</button>}
-        {canTransition("REJECTED") && <button type="button" disabled={busy !== null} onClick={() => onTransition("REJECTED")}>Reject</button>}
+        {canTransition("ACTIVE") && <Button variant="primary" isDisabled={busy !== null} onPress={() => onTransition("ACTIVE")}>Approve and activate</Button>}
+        {canTransition("REJECTED") && <Button variant="destructive" isDisabled={busy !== null} onPress={() => onTransition("REJECTED")}>Reject</Button>}
       </>}
       {form.status === "ACTIVE" && <>
-        {canTransition("PAUSED") && <button type="button" disabled={busy !== null} onClick={() => onTransition("PAUSED")}>Pause revision</button>}
-        {canTransition("RETIRED") && <button type="button" disabled={busy !== null} onClick={() => onTransition("RETIRED")}>Retire revision</button>}
+        {canTransition("PAUSED") && <Button isDisabled={busy !== null} onPress={() => onTransition("PAUSED")}>Pause revision</Button>}
+        {canTransition("RETIRED") && <Button variant="destructive" isDisabled={busy !== null} onPress={() => onTransition("RETIRED")}>Retire revision</Button>}
       </>}
       {form.status === "PAUSED" && <>
-        {canTransition("ACTIVE") && <button className="forms-primary" type="button" disabled={busy !== null} onClick={() => onTransition("ACTIVE")}>Resume revision</button>}
-        {canTransition("RETIRED") && <button type="button" disabled={busy !== null} onClick={() => onTransition("RETIRED")}>Retire revision</button>}
+        {canTransition("ACTIVE") && <Button variant="primary" isDisabled={busy !== null} onPress={() => onTransition("ACTIVE")}>Resume revision</Button>}
+        {canTransition("RETIRED") && <Button variant="destructive" isDisabled={busy !== null} onPress={() => onTransition("RETIRED")}>Retire revision</Button>}
       </>}
       {!canRevise && !canTransition("PENDING_APPROVAL") && !canTransition("ACTIVE") && !canTransition("REJECTED") && !canTransition("PAUSED") && !canTransition("RETIRED") && unavailableReason && <small className="forms-muted">{unavailableReason}</small>}
     </div>
