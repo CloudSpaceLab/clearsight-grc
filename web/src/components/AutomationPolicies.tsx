@@ -22,7 +22,7 @@ export function AutomationPolicies({ policies, state }: Props) {
     </header>
     {!policies.length
       ? <EmptyState label="Automation policy" title="No automation policies in this scope" description="No automated actions are approved for the current scope."/>
-      : <div className="automation-policy-list">{policies.map((policy) => <PolicyRow key={policy.id} policy={policy}/>)}</div>
+      : <div className="automation-policy-list">{policies.map((policy) => <PolicyRow key={policy.id} policy={policy}/>)}</div>}
     <p className="automation-policy-note">Only active policies can run actions. Review execution history for completed actions and outcome checks.</p>
   </section>;
 }
