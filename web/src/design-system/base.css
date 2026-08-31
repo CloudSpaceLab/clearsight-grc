@@ -1,0 +1,10 @@
+:where(html) {
+  color: var(--cs-text-primary);
+  background: var(--cs-bg-canvas);
+}
+
+:where(body) {
+  margin: 0;
+  font-family: Inter, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  line-height: var(--cs-leading-body);
+}

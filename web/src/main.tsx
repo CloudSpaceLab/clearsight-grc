@@ -20,6 +20,7 @@ import "./interventions.css";
 import "./automation-policies.css";
 import "./ai-governance.css";
 import "./product-finish.css";
+import "./design-system/index.css";
 import "./ui-preferences.css";
 import "./visual-review-fixes.css";
 import "./capture-inputs.css";

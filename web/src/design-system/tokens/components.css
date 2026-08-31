@@ -1,0 +1,25 @@
+:root {
+  --cs-button-height: var(--cs-control-height);
+  --cs-button-padding-inline: var(--cs-primitive-space-4);
+  --cs-button-gap: var(--cs-primitive-space-2);
+  --cs-button-radius: var(--cs-primitive-radius-10);
+  --cs-button-font-size: var(--cs-font-size-control);
+  --cs-field-height: var(--cs-control-height);
+  --cs-field-padding-inline: var(--cs-primitive-space-3);
+  --cs-field-radius: var(--cs-primitive-radius-10);
+  --cs-field-border: var(--cs-border-default);
+  --cs-field-bg: var(--cs-bg-surface-1);
+  --cs-select-popover-radius: var(--cs-primitive-radius-14);
+  --cs-select-popover-shadow: var(--cs-shadow-overlay);
+  --cs-tabs-height: var(--cs-control-height);
+  --cs-tabs-gap: var(--cs-primitive-space-1);
+  --cs-tabs-indicator: var(--cs-action-primary);
+  --cs-overlay-radius: var(--cs-primitive-radius-14);
+  --cs-overlay-shadow: var(--cs-shadow-overlay);
+  --cs-overlay-z: var(--cs-z-sheet);
+  --cs-badge-radius: var(--cs-primitive-radius-full);
+  --cs-notice-radius: var(--cs-primitive-radius-10);
+  --cs-surface-radius: var(--cs-primitive-radius-14);
+  --cs-table-row-padding: var(--cs-primitive-space-3);
+  --cs-filter-gap: var(--cs-primitive-space-3);
+}
