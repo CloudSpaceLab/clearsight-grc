@@ -177,10 +177,9 @@ func combinedFormFilterExpression(filter FormLibraryFilter) (*FormFilterExpressi
 	}
 	if len(children) == 1 {
 		value := children[0]
-		return NormalizeFormFilterExpression(&value)
+		return &value, nil
 	}
-	combined := FormFilterExpression{Kind: "group", Operator: "and", Children: children}
-	return NormalizeFormFilterExpression(&combined)
+	return &FormFilterExpression{Kind: "group", Operator: "and", Children: children}, nil
 }
 
 func formFilterExpressionMatches(expression *FormFilterExpression, value FormTemplate) bool {
