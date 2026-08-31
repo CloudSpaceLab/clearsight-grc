@@ -78,6 +78,28 @@ func TestAdvancedFormFilterRejectsUnsupportedAndUnboundedTrees(t *testing.T) {
 	}
 }
 
+func TestQuickFiltersDoNotConsumeAdvancedExpressionBudget(t *testing.T) {
+	advancedChildren := make([]FormFilterExpression, 11)
+	for index := range advancedChildren {
+		advancedChildren[index] = FormFilterExpression{Kind: "condition", Field: FormFilterTag, Operator: "is", Value: "tag"}
+	}
+	advanced := &FormFilterExpression{Kind: "group", Operator: "or", Children: advancedChildren}
+	if _, err := NormalizeFormFilterExpression(advanced); err != nil {
+		t.Fatalf("max-sized advanced expression should be valid: %v", err)
+	}
+
+	combined, err := combinedFormFilterExpression(FormLibraryFilter{
+		Status: LifecycleActive, OwnerPrincipalID: "owner-a", ProgramID: "program-a",
+		Use: "vendor_due_diligence", Tag: "third-party", Expression: advanced,
+	})
+	if err != nil {
+		t.Fatalf("quick filters must not consume advanced expression budget: %v", err)
+	}
+	if combined == nil || combined.Kind != "group" || combined.Operator != "and" || len(combined.Children) != 6 {
+		t.Fatalf("combined execution tree = %#v", combined)
+	}
+}
+
 func TestSavedFormViewClonesAdvancedExpression(t *testing.T) {
 	repo := NewMemoryRepository()
 	now := time.Date(2026, 8, 31, 5, 30, 0, 0, time.UTC)
