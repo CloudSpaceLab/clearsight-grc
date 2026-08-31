@@ -90,6 +90,7 @@ func savedViewKey(tenantID, legalEntityID, principalID, id string) string {
 
 func cloneSavedFormView(value SavedFormView) SavedFormView {
 	cloned := value
+	cloned.Filter.Expression = cloneFormFilterExpression(value.Filter.Expression)
 	return cloned
 }
 
