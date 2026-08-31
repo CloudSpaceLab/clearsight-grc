@@ -1,5 +1,5 @@
-export type RuntimePresentation = "demo" | "live-preview";
+export type RuntimePresentation = "enterprise" | "demo";
 
 export function runtimePresentation(search: string): RuntimePresentation {
-  return new URLSearchParams(search).get("demo") === "0" ? "live-preview" : "demo";
+  return new URLSearchParams(search).get("demo") === "1" ? "demo" : "enterprise";
 }
