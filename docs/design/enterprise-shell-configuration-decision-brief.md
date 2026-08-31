@@ -20,7 +20,8 @@ Primary Configuration users:
 - identity/access administrators;
 - governance/routing administrators;
 - source/integration administrators;
-- AI/automation administrators;
+- automation administrators;
+- AI-governance administrators;
 - platform operators.
 
 Ordinary users should rarely enter Configuration.
@@ -36,6 +37,8 @@ In demo presentation, `Explore` was a primary destination even though its execut
 The baseline Configuration surface also loaded and displayed routing checks, workflow ownership, projection operations, governance administration, AI governance, automation policy and identity/access administration together. Opening Configuration triggered all top-level domain requests before the administrator selected a job.
 
 `AutomationPolicies` additionally rendered `IdentityAccessPanel`, coupling unrelated administrative domains by component composition.
+
+Within governance and access administration, creation forms were also permanently expanded above or inside the current-state inventory. That made inspection—the common administrative task—visually subordinate to infrequent mutation workflows.
 
 ## Alternatives considered
 
@@ -75,11 +78,12 @@ Configuration
 ├─ People & access
 ├─ Authority & routing
 ├─ Data & integrations
-├─ Automation & AI
+├─ Automation
+├─ AI governance
 └─ System operations
 ```
 
-The structure is based on administrator jobs rather than package boundaries.
+The structure is based on administrator jobs rather than package boundaries. Automation and AI governance are intentionally separate: opening automation must not load AI workload/policy inventories, and opening AI governance must not load automation policies.
 
 ### Overview
 
@@ -89,17 +93,25 @@ A quiet administrative index. It must not become a KPI wall or invent health per
 
 Identity sources, directory-backed people/groups and role mappings. Directory eligibility remains distinct from material decision authority.
 
+The default surface is inventory-first. `Add source` and `Add mapping` open focused composers only on request; successful routine changes update the loaded inventory locally rather than re-fetching the entire access overview.
+
 ### Authority & routing
 
-Routing integrity, governance policies, delegation, escalation and supporting workflow-ownership context. Canonical assigned work remains in Today/Work.
+Routing integrity, governance policies, delegation and supporting workflow-ownership context. Canonical assigned work remains in Today/Work.
+
+The default surface is inventory-first. `New delegation` and `New routing policy` open focused composers. Maker/checker, independent approval, effective dates and conflict behavior remain unchanged.
 
 ### Data & integrations
 
 Document imports and source/connection/mapping administration as existing executable capabilities become productized. No integration-marketplace theatre.
 
-### Automation & AI
+### Automation
 
-Approved automation policies and governed AI workload/policy state. AI-specific human approvals remain canonical Matter/Today work.
+Approved automation policies and execution guardrails. This domain does not load or present AI governance data.
+
+### AI governance
+
+Governed AI workloads and AI policy rollout. AI-specific human approvals remain canonical Matter/Today work. This domain follows the dedicated AI-governance product information architecture rather than being appended to Automation.
 
 ### System operations
 
@@ -111,7 +123,7 @@ Every Configuration domain should converge on:
 
 `Current state → inspect → explicit create/revise → preview/impact where material → submit/maker-checker → receipt/history`
 
-Do not render large create/edit forms by default when the administrator is only inspecting current state.
+Do not render large create/edit forms by default when the administrator is only inspecting current state. Focused mutation flows must preserve keyboard focus, Escape close, background inertness and focus restoration.
 
 ## Loading and performance decision
 
@@ -121,7 +133,9 @@ Do not render large create/edit forms by default when the administrator is only 
 - The overview does not fan out across every admin API merely to look analytical.
 - Each selected domain owns its bounded data load and retry state.
 - Identity/access no longer mounts with automation policy content.
+- Automation and AI governance load independently.
 - Projection operations load only in System operations.
+- Routine identity source/mapping mutations update the current inventory in place; escalation policy revisions refresh because server-calculated policy state is material.
 
 This reduces initial Configuration request fan-out and narrows failure domains.
 
@@ -161,7 +175,7 @@ Desktop may use a narrow internal Configuration rail beside one working surface.
 
 Tablet collapses simultaneous context while preserving the active domain and primary action.
 
-Mobile keeps daily operating work in the bottom navigation. Configuration is reached through the administrative shell affordance and its internal navigation becomes a horizontally scrollable area selector. Complex focused configuration actions should become full-screen flows rather than squeezed desktop forms.
+Mobile keeps daily operating work in the bottom navigation. Configuration is reached through the administrative shell affordance and its internal navigation becomes a horizontally scrollable area selector. Complex focused configuration actions become full-screen or near-full-screen sheets rather than squeezed desktop forms.
 
 ## Visual posture
 
@@ -171,16 +185,20 @@ Mobile keeps daily operating work in the bottom navigation. Configuration is rea
 - semantic state close to the object it describes;
 - one dominant administrative action per state;
 - no invented scores or decorative charts;
-- Configuration typography smaller and denser than marketing/onboarding surfaces.
+- Configuration typography smaller and denser than marketing/onboarding surfaces;
+- inventory before mutation controls;
+- no parallel demo navigation grammar.
 
 ## Acceptance evidence
 
 Before this redesign can merge:
 
 1. TypeScript typecheck passes on exact head.
-2. Existing rendered state/accessibility tests are migrated to the enterprise-first navigation contract and pass.
+2. Rendered state/accessibility tests use the enterprise-first navigation contract and pass.
 3. Production build passes.
 4. Deterministic Chromium review passes with the new shell.
-5. Configuration overview and at least Authority/System operations are inspected at desktop, tablet and mobile widths.
+5. Configuration overview and representative administrative domains are inspected at desktop, tablet and mobile widths.
 6. Direct import and legacy demo-reference deep links remain safe.
-7. No backend/durable configuration model or new global state framework is introduced.
+7. Configuration tests prove one selected domain does not mount unrelated administrative domains.
+8. Governance/access tests prove infrequent creation workflows are closed by default and remain keyboard-accessible focused actions.
+9. No backend/durable configuration model or new global state framework is introduced.
