@@ -4,10 +4,11 @@ import path from "node:path";
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
+const configurationDir = path.join(outputDir, "configuration");
 const browser = await chromium.launch({ headless: true });
 const results = [];
 
-await mkdir(outputDir, { recursive: true });
+await mkdir(configurationDir, { recursive: true });
 
 const scenarios = [
   { name: "configuration-overview-desktop-light-1440x900", route: "#configure", viewport: { width: 1440, height: 900 }, theme: "light", expectation: "overview" },
@@ -20,9 +21,9 @@ const scenarios = [
 
 try {
   for (const scenario of scenarios) await capture(scenario);
-  await writeFile(path.join(outputDir, "configuration-review.json"), JSON.stringify({ status: "PASS", scenarios: results }, null, 2));
+  await writeFile(path.join(outputDir, "configuration-review.json"), JSON.stringify({ status: "PASS", evidenceDirectory: "configuration", scenarios: results }, null, 2));
 } catch (error) {
-  await writeFile(path.join(outputDir, "configuration-review.json"), JSON.stringify({ status: "FAIL", error: error instanceof Error ? error.message : String(error), scenarios: results }, null, 2));
+  await writeFile(path.join(outputDir, "configuration-review.json"), JSON.stringify({ status: "FAIL", evidenceDirectory: "configuration", error: error instanceof Error ? error.message : String(error), scenarios: results }, null, 2));
   throw error;
 } finally {
   await browser.close();
@@ -57,7 +58,7 @@ async function capture(scenario) {
     if (scenario.expectation === "mobile") await assertMobileShell(page, scenario.name);
     await assertNoHorizontalOverflow(page, scenario.name);
 
-    await page.screenshot({ path: path.join(outputDir, `${scenario.name}.png`), fullPage: false, animations: "disabled", caret: "hide" });
+    await page.screenshot({ path: path.join(configurationDir, `${scenario.name}.png`), fullPage: false, animations: "disabled", caret: "hide" });
     results.push({ name: scenario.name, route: scenario.route, viewport: scenario.viewport, theme: scenario.theme, expectation: scenario.expectation });
   } finally {
     await context.close();
