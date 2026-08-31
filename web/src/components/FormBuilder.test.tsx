@@ -228,11 +228,20 @@ describe("FormBuilder", () => {
     expect(onSaved).toHaveBeenCalledWith(savedForm);
   });
 
-  it("does not create a redundant revision before sending an unchanged draft for approval", async () => {
+  it("requires an explicit governed handoff before sending an unchanged draft for approval", async () => {
     const saveDraft = vi.fn().mockResolvedValue({ ...savedForm, version: 2 });
     const transition = vi.fn().mockResolvedValue({ ...savedForm, status: "PENDING_APPROVAL" });
     render(<FormBuilder initialValue={{ ...savedForm, fields: [{ id: "q", section_id: "section_1", label: "Question", type: "short_text", required: true }] }} saveDraft={saveDraft} onSendForApproval={transition} onSaved={vi.fn()} onCancel={vi.fn()}/>);
+
     fireEvent.click(screen.getByRole("button", { name: "Send for approval" }));
+    const handoff = within(await screen.findByRole("dialog", { name: "Send form for approval" }));
+    expect(handoff.getByText("Ready for independent review")).toBeTruthy();
+    expect(handoff.getByText(/This does not activate the form/)).toBeTruthy();
+    expect(handoff.getByText("Activation still requires a separate approver.")).toBeTruthy();
+    expect(transition).not.toHaveBeenCalled();
+    expect(saveDraft).not.toHaveBeenCalled();
+
+    fireEvent.click(handoff.getByRole("button", { name: "Send for approval" }));
     await waitFor(() => expect(transition).toHaveBeenCalledTimes(1));
     expect(saveDraft).not.toHaveBeenCalled();
   });
