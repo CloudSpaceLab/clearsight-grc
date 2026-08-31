@@ -42,7 +42,7 @@
   .cs-data-table thead { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
   .cs-data-table tbody { display: grid; gap: var(--cs-table-mobile-gap); }
   .cs-data-table tbody tr { display: grid; gap: var(--cs-table-mobile-row-gap); padding: var(--cs-table-mobile-padding); border: var(--cs-table-border-width) solid var(--cs-table-border); border-radius: var(--cs-table-radius); background: var(--cs-table-bg); }
-  .cs-data-table tbody tr td { display: grid; grid-template-columns: minmax(var(--cs-table-mobile-label-width), 0.7fr) minmax(0, 1.3fr); gap: var(--cs-table-mobile-row-gap); padding: 0; border: 0; text-align: start; }
+  .cs-data-table tbody tr td { display: grid; min-inline-size: 0; grid-template-columns: minmax(var(--cs-table-mobile-label-width), 0.7fr) minmax(0, 1.3fr); gap: var(--cs-table-mobile-row-gap); padding: 0; border: 0; overflow-wrap: anywhere; text-align: start; }
   .cs-data-table tbody tr td::before { color: var(--cs-table-heading-text); font-size: var(--cs-table-heading-size); font-weight: var(--cs-table-heading-weight); content: attr(data-label); }
 }
 

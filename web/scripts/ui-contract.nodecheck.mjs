@@ -28,6 +28,11 @@ test("the shell does not force document overflow at the supported 320px viewport
   assert.doesNotMatch(styles, /body\s*\{[^}]*min-width:\s*320px/i);
 });
 
+test("mobile data cards wrap long identifiers within the available column", async () => {
+  const styles = await read("src/design-system/components/data-display.css");
+  assert.match(styles, /\.cs-data-table tbody tr td\s*\{[^}]*min-inline-size:\s*0[^}]*overflow-wrap:\s*anywhere/is);
+});
+
 test("raw controls report an exact migrated-file diagnostic", () => {
   const diagnostics = validateTsxSource({
     file: "src/components/forms/sent/SentFormsFilters.tsx",
