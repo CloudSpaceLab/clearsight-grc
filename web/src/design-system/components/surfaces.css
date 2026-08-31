@@ -1,0 +1,49 @@
+.cs-surface,
+.cs-card,
+.cs-empty-state {
+  border: var(--cs-surface-border-width) solid var(--cs-border-default);
+  border-radius: var(--cs-surface-radius);
+  background: var(--cs-bg-surface-1);
+  color: var(--cs-text-primary);
+}
+
+.cs-surface,
+.cs-card {
+  padding: var(--cs-surface-padding);
+}
+
+.cs-card {
+  box-shadow: var(--cs-shadow-raised);
+}
+
+.cs-empty-state {
+  display: grid;
+  gap: var(--cs-empty-gap);
+  justify-items: start;
+  padding: var(--cs-empty-padding);
+}
+
+.cs-empty-state__population,
+.cs-empty-state__description {
+  margin: 0;
+  color: var(--cs-text-muted);
+}
+
+.cs-empty-state__population {
+  font-size: var(--cs-font-size-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cs-empty-state__title {
+  margin: 0;
+  color: var(--cs-text-strong);
+  font-size: var(--cs-primitive-font-size-22);
+}
+
+.cs-empty-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cs-space-inline);
+}

@@ -1,0 +1,39 @@
+.cs-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cs-badge-gap);
+  padding: var(--cs-badge-padding-block) var(--cs-badge-padding-inline);
+  border-radius: var(--cs-badge-radius);
+  background: color-mix(in srgb, var(--cs-status-badge-tone) 12%, transparent);
+  color: var(--cs-status-badge-tone);
+  font-size: var(--cs-font-size-caption);
+  font-weight: 700;
+}
+
+.cs-status-badge__marker {
+  width: var(--cs-badge-marker-size);
+  height: var(--cs-badge-marker-size);
+  flex: none;
+  border-radius: var(--cs-badge-radius);
+  background: currentColor;
+}
+
+.cs-tone--neutral { --cs-status-badge-tone: var(--cs-text-muted); }
+.cs-tone--info { --cs-status-badge-tone: var(--cs-status-info); }
+.cs-tone--success { --cs-status-badge-tone: var(--cs-status-success); }
+.cs-tone--warning { --cs-status-badge-tone: var(--cs-status-warning); }
+.cs-tone--error { --cs-status-badge-tone: var(--cs-status-error); }
+.cs-tone--unknown { --cs-status-badge-tone: var(--cs-status-unknown); }
+
+.cs-notice {
+  padding: var(--cs-notice-padding);
+  border: var(--cs-notice-border-width) solid var(--cs-status-badge-tone);
+  border-radius: var(--cs-notice-radius);
+  background: color-mix(in srgb, var(--cs-status-badge-tone) 8%, var(--cs-bg-surface-1));
+  color: var(--cs-text-primary);
+}
+
+@media (forced-colors: active) {
+  .cs-status-badge,
+  .cs-notice { border: var(--cs-notice-border-width) solid CanvasText; }
+}
