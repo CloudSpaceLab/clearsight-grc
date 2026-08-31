@@ -1,5 +1,5 @@
 import "./staticDemoBootstrap";
-import { StrictMode } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { consumeCaptureInvitation, purgeLegacyCaptureSession } from "./captureInvitationBrowser";
@@ -41,9 +41,13 @@ if (!root) throw new Error("Application root is missing");
 const params = new URLSearchParams(window.location.search);
 const presentation = runtimePresentation(window.location.search);
 const fixture = params.get("fixture");
+const uiGalleryEvidence = import.meta.env.VITE_STATIC_DEMO === "true" && fixture === "ui-component-gallery";
 const lifecycleEvidence = import.meta.env.VITE_STATIC_DEMO === "true" && fixture === "today-lifecycle";
 const operatingEvidence = import.meta.env.VITE_STATIC_DEMO === "true" && fixture === "operating-mutations";
-const application = invitationToken !== null
+const UIComponentGallery = lazy(() => import("./components/ui-gallery/UIComponentGallery").then((module) => ({ default: module.UIComponentGallery })));
+const application = uiGalleryEvidence
+  ? <Suspense fallback={<p role="status">Loading the sample component gallery…</p>}><UIComponentGallery/></Suspense>
+  : invitationToken !== null
   ? <ExternalCaptureApp invitationToken={invitationToken}/>
   : lifecycleEvidence
     ? <LifecycleTodayEvidencePage/>

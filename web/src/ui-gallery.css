@@ -1,0 +1,20 @@
+@layer features {
+  .ui-gallery { max-inline-size: var(--cs-content-wide); margin-inline: auto; padding: var(--cs-space-page); color: var(--cs-text-primary); }
+  .ui-gallery__header { max-inline-size: var(--cs-reading-measure); margin-block-end: var(--cs-primitive-space-10); }
+  .ui-gallery__header > p:first-child { color: var(--cs-status-info); font-size: var(--cs-font-size-caption); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .ui-gallery__header h1 { margin-block: var(--cs-primitive-space-2); color: var(--cs-text-strong); font-size: clamp(var(--cs-primitive-font-size-28), 5vw, var(--cs-primitive-font-size-48)); }
+  .ui-gallery__group { margin-block: var(--cs-primitive-space-10); }
+  .ui-gallery__group > h2 { margin-block-end: var(--cs-primitive-space-4); color: var(--cs-text-strong); }
+  .ui-gallery__contracts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--cs-primitive-space-5); align-items: start; }
+  .ui-gallery__contract { min-inline-size: 0; overflow: visible; border: var(--cs-primitive-border-1) solid var(--cs-border-default); border-radius: var(--cs-primitive-radius-14); background: var(--cs-bg-surface-1); box-shadow: var(--cs-shadow-raised); }
+  .ui-gallery__contract > header { padding: var(--cs-primitive-space-5); border-block-end: var(--cs-primitive-border-1) solid var(--cs-border-default); }
+  .ui-gallery__contract h3 { margin: 0; color: var(--cs-text-strong); }
+  .ui-gallery__contract header p { margin-block: var(--cs-primitive-space-2) 0; color: var(--cs-text-muted); }
+  .ui-gallery__sample { padding: var(--cs-primitive-space-5); }
+  .ui-gallery__row { display: flex; flex-wrap: wrap; gap: var(--cs-primitive-space-3); align-items: center; }
+  .ui-gallery__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cs-primitive-space-4); }
+  @media (max-width: 640px) {
+    .ui-gallery { padding: var(--cs-primitive-space-4); }
+    .ui-gallery__contracts, .ui-gallery__grid { grid-template-columns: 1fr; }
+  }
+}
