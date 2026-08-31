@@ -13,7 +13,11 @@
     "src/components/ui/Tabs.tsx",
     "src/components/ui/TextArea.tsx",
     "src/components/ui/TextField.tsx",
-    "src/components/ui-gallery/UIComponentGallery.tsx"
+    "src/components/ui-gallery/UIComponentGallery.tsx",
+    "src/components/forms/SentFormsView.tsx",
+    "src/components/forms/sent/SentFormsFilters.tsx",
+    "src/components/forms/sent/SentFormsTable.tsx",
+    "src/components/forms/sent/SentFormDetail.tsx"
   ],
   "migratedCss": [
     "src/design-system/components/actions.css",
@@ -23,7 +27,8 @@
     "src/design-system/components/navigation.css",
     "src/design-system/components/overlays.css",
     "src/design-system/components/surfaces.css",
-    "src/ui-gallery.css"
+    "src/ui-gallery.css",
+    "src/forms-sent.css"
   ],
   "nativeControlExceptions": [
     {

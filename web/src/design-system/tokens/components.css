@@ -108,4 +108,7 @@
   --cs-table-mobile-row-gap: var(--cs-primitive-space-2);
   --cs-table-mobile-padding: var(--cs-primitive-space-4);
   --cs-table-mobile-label-width: 96px;
+  --cs-sent-results-min-height: 240px;
+  --cs-sent-detail-min: 280px;
+  --cs-sent-fact-label: 104px;
 }
