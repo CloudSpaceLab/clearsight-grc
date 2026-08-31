@@ -1,0 +1,161 @@
+.cs-field,
+.cs-select-field {
+  display: grid;
+  gap: var(--cs-field-gap);
+  min-width: 0;
+}
+
+.cs-field__label,
+.cs-select-field__label {
+  color: var(--cs-field-label);
+  font-size: var(--cs-font-size-control);
+  font-weight: 700;
+}
+
+.cs-field__required {
+  color: var(--cs-field-error);
+}
+
+.cs-field__control,
+.cs-select-field__trigger {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--cs-field-height);
+  padding-inline: var(--cs-field-padding-inline);
+  border: var(--cs-field-border-width) solid var(--cs-field-border);
+  border-radius: var(--cs-field-radius);
+  background: var(--cs-field-bg);
+  color: var(--cs-field-text);
+  font-size: var(--cs-font-size-control);
+  line-height: var(--cs-leading-body);
+}
+
+.cs-field__control:focus-visible,
+.cs-select-field__trigger[data-focus-visible] {
+  outline: var(--cs-focus-width) solid var(--cs-field-focus);
+  outline-offset: var(--cs-focus-offset);
+  border-color: var(--cs-border-interactive);
+}
+
+.cs-field__control[aria-invalid="true"],
+.cs-select-field[data-invalid] .cs-select-field__trigger {
+  border-color: var(--cs-border-invalid);
+}
+
+.cs-field__control[readonly] {
+  background: var(--cs-field-bg-readonly);
+}
+
+.cs-field__control:disabled,
+.cs-select-field[data-disabled] {
+  opacity: var(--cs-field-disabled-opacity);
+  cursor: not-allowed;
+}
+
+textarea.cs-field__control {
+  min-height: var(--cs-field-textarea-min-height);
+  padding-block: var(--cs-primitive-space-3);
+  resize: vertical;
+}
+
+.cs-field__description,
+.cs-select-field__description,
+.cs-field__error,
+.cs-select-field__error {
+  margin: 0;
+  font-size: var(--cs-font-size-caption);
+  line-height: var(--cs-leading-body);
+}
+
+.cs-field__description,
+.cs-select-field__description {
+  color: var(--cs-field-description);
+}
+
+.cs-field__error,
+.cs-select-field__error {
+  color: var(--cs-field-error);
+}
+
+.cs-select-field__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cs-space-inline);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cs-select-field__trigger[data-disabled] {
+  cursor: not-allowed;
+}
+
+.cs-select-field__value[data-placeholder] {
+  color: var(--cs-field-description);
+}
+
+.cs-select-field__chevron {
+  flex: none;
+  color: var(--cs-field-description);
+}
+
+.cs-select-field__popover {
+  min-width: var(--trigger-width);
+  max-height: var(--cs-select-popover-max-height);
+  overflow: auto;
+  padding: var(--cs-select-popover-padding);
+  border: var(--cs-field-border-width) solid var(--cs-select-popover-border);
+  border-radius: var(--cs-select-popover-radius);
+  background: var(--cs-select-popover-bg);
+  color: var(--cs-field-text);
+  box-shadow: var(--cs-select-popover-shadow);
+  z-index: var(--cs-z-menu);
+}
+
+.cs-select-field__listbox {
+  display: grid;
+  gap: var(--cs-primitive-space-1);
+  outline: none;
+}
+
+.cs-select-field__option {
+  display: grid;
+  min-height: var(--cs-select-item-height);
+  align-content: center;
+  gap: var(--cs-primitive-space-1);
+  padding: var(--cs-select-item-padding);
+  border-radius: var(--cs-select-item-radius);
+  cursor: pointer;
+  outline: none;
+}
+
+.cs-select-field__option[data-hovered],
+.cs-select-field__option[data-focused] {
+  background: var(--cs-select-item-hover);
+}
+
+.cs-select-field__option[data-selected] {
+  background: var(--cs-select-item-selected);
+  color: var(--cs-text-strong);
+}
+
+.cs-select-field__option[data-focus-visible] {
+  outline: var(--cs-focus-width) solid var(--cs-field-focus);
+  outline-offset: calc(var(--cs-focus-offset) * -1);
+}
+
+.cs-select-field__option-description {
+  color: var(--cs-field-description);
+  font-size: var(--cs-font-size-caption);
+}
+
+@media (max-width: 760px) {
+  .cs-field__control,
+  .cs-select-field__trigger { font-size: var(--cs-font-size-input-mobile); }
+}
+
+@media (forced-colors: active) {
+  .cs-field__control,
+  .cs-select-field__trigger,
+  .cs-select-field__popover { border-color: CanvasText; }
+}
