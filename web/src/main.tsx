@@ -31,7 +31,6 @@ import "./defect-review-fixes.css";
 import "./monitoring.css";
 import "./forms-foundation.css";
 import "./vendors.css";
-import "./configure-workspace.css";
 import "./enterprise-shell.css";
 
 void bootstrapApplication();
