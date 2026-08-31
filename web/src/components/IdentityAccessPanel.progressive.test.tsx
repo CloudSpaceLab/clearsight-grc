@@ -72,7 +72,7 @@ it("keeps access inventory primary and opens one focused creation workflow at a 
   expect(screen.getByRole("dialog", { name: "Add group role mapping" })).toBeTruthy();
   fireEvent.change(screen.getByRole("combobox", { name: "Directory group" }), { target: { value: "group-1" } });
   fireEvent.change(screen.getByRole("combobox", { name: "Role" }), { target: { value: "role-1" } });
-  fireEvent.change(screen.getByRole("textbox", { name: "Department path" }), { target: { value: "BANK / RISK" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "Department path (optional)" }), { target: { value: "BANK / RISK" } });
   fireEvent.click(screen.getByRole("button", { name: "Add mapping" }));
 
   await waitFor(() => expect(api.createGroupRoleBinding).toHaveBeenCalledWith({ group_id: "group-1", role_template_id: "role-1", department_path: ["BANK", "RISK"] }));
