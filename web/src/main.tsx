@@ -1,6 +1,5 @@
-import { StrictMode } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
 import { consumeCaptureInvitation, purgeLegacyCaptureSession } from "./captureInvitationBrowser";
 import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
 import { LifecycleTodayEvidencePage } from "./components/LifecycleTodayEvidencePage";
@@ -19,6 +18,7 @@ import "./interventions.css";
 import "./automation-policies.css";
 import "./ai-governance.css";
 import "./product-finish.css";
+import "./design-system/index.css";
 import "./ui-preferences.css";
 import "./visual-review-fixes.css";
 import "./capture-inputs.css";
@@ -29,9 +29,10 @@ import "./program-record.css";
 import "./demo-login.css";
 import "./defect-review-fixes.css";
 import "./monitoring.css";
-import "./forms-foundation.css";
-import "./vendors.css";
 import "./enterprise-shell.css";
+
+const UIComponentGallery = lazy(() => import("./components/ui-gallery/UIComponentGallery").then((module) => ({ default: module.UIComponentGallery })));
+const App = lazy(() => import("./App"));
 
 void bootstrapApplication();
 
@@ -47,15 +48,18 @@ async function bootstrapApplication() {
   const params = new URLSearchParams(window.location.search);
   const presentation = staticDemo ? "demo" : runtimePresentation(window.location.search);
   const fixture = params.get("fixture");
+  const uiGalleryEvidence = staticDemo && fixture === "ui-component-gallery";
   const lifecycleEvidence = staticDemo && fixture === "today-lifecycle";
   const operatingEvidence = staticDemo && fixture === "operating-mutations";
   const application = invitationToken !== null
     ? <ExternalCaptureApp invitationToken={invitationToken}/>
-    : lifecycleEvidence
-      ? <LifecycleTodayEvidencePage/>
-      : operatingEvidence
-        ? <OperatingMutationsEvidencePage/>
-        : <SessionGate presentation={presentation}><App presentation={presentation}/></SessionGate>;
+    : uiGalleryEvidence
+      ? <Suspense fallback={<p role="status">Loading the sample component gallery…</p>}><UIComponentGallery/></Suspense>
+      : lifecycleEvidence
+        ? <LifecycleTodayEvidencePage/>
+        : operatingEvidence
+          ? <OperatingMutationsEvidencePage/>
+          : <SessionGate presentation={presentation}><Suspense fallback={<p role="status">Loading the ClearSight workspace…</p>}><App presentation={presentation}/></Suspense></SessionGate>;
 
   createRoot(root).render(<StrictMode><DisplayPreferencesRoot>{application}</DisplayPreferencesRoot></StrictMode>);
 }

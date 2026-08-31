@@ -124,7 +124,7 @@ export function BankJourneysWorkspace() {
         </article>;
       })}
     </section>
-    {inspector.state !== "closed" && <FocusedSheet label={`Connected record for ${inspector.title}`} closeLabel="Close connected record" onClose={() => setInspector({ state: "closed" })} backdropClassName="journey-inspector-backdrop" panelClassName="journey-inspector">
+    {inspector.state !== "closed" && <FocusedSheet label={`Connected record for ${inspector.title}`} closeLabel="Close connected record" onClose={() => setInspector({ state: "closed" })} panelClassName="journey-inspector">
         {inspector.state === "loading" && <p aria-live="polite" aria-busy="true">Loading the connected record…</p>}
         {inspector.state === "unavailable" && <div className="inline-error"><h2>Record could not be opened</h2><p>Your access may have changed, or the record is temporarily unavailable.</p><button className="secondary-button" type="button" onClick={() => void openRecord(inspector.type, inspector.id, inspector.title)}>Try again</button></div>}
         {inspector.state === "live" && <InspectorContent inspector={inspector}/>} 

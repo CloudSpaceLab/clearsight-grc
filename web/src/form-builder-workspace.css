@@ -467,6 +467,7 @@
   cursor: grab;
   font-size: 13px;
   place-items: center;
+  touch-action: none;
   user-select: none;
 }
 

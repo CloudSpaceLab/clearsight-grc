@@ -1,0 +1,109 @@
+.cs-button,
+.cs-icon-button,
+.cs-action-link {
+  display: inline-flex;
+  min-height: var(--cs-button-height);
+  align-items: center;
+  justify-content: center;
+  gap: var(--cs-button-gap);
+  border: var(--cs-button-border-width) solid var(--cs-button-current-border, transparent);
+  border-radius: var(--cs-button-radius);
+  background: var(--cs-button-current-bg);
+  color: var(--cs-button-current-text);
+  font-size: var(--cs-button-font-size);
+  font-weight: 700;
+  line-height: var(--cs-leading-tight);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--cs-button-transition), border-color var(--cs-button-transition), transform var(--cs-button-transition);
+}
+
+.cs-button {
+  padding-inline: var(--cs-button-padding-inline);
+}
+
+.cs-icon-button {
+  width: var(--cs-target-min);
+  min-width: var(--cs-target-min);
+  padding: var(--cs-primitive-space-2);
+}
+
+.cs-button--primary {
+  --cs-button-current-bg: var(--cs-button-primary-bg);
+  --cs-button-current-text: var(--cs-button-primary-text);
+}
+
+.cs-button--primary[data-hovered],
+.cs-button--primary[data-pressed] {
+  --cs-button-current-bg: var(--cs-button-primary-bg-hover);
+}
+
+.cs-button--secondary,
+.cs-icon-button {
+  --cs-button-current-bg: var(--cs-button-secondary-bg);
+  --cs-button-current-border: var(--cs-button-border);
+  --cs-button-current-text: var(--cs-button-secondary-text);
+}
+
+.cs-button--secondary[data-hovered],
+.cs-button--secondary[data-pressed],
+.cs-icon-button[data-hovered],
+.cs-icon-button[data-pressed] {
+  --cs-button-current-bg: var(--cs-button-secondary-bg-hover);
+}
+
+.cs-button--quiet,
+.cs-action-link {
+  --cs-button-current-bg: var(--cs-button-quiet-bg);
+  --cs-button-current-text: var(--cs-button-quiet-text);
+}
+
+.cs-button--quiet[data-hovered],
+.cs-button--quiet[data-pressed],
+.cs-action-link[data-hovered],
+.cs-action-link[data-pressed] {
+  --cs-button-current-bg: var(--cs-button-quiet-bg-hover);
+}
+
+.cs-button--destructive {
+  --cs-button-current-bg: var(--cs-button-destructive-bg);
+  --cs-button-current-text: var(--cs-button-destructive-text);
+}
+
+.cs-button[data-focus-visible],
+.cs-icon-button[data-focus-visible],
+.cs-action-link[data-focus-visible] {
+  outline: var(--cs-focus-width) solid var(--cs-button-focus);
+  outline-offset: var(--cs-focus-offset);
+}
+
+.cs-button[data-pressed],
+.cs-icon-button[data-pressed] {
+  transform: translateY(var(--cs-primitive-border-1));
+}
+
+.cs-button[data-disabled],
+.cs-icon-button[data-disabled] {
+  opacity: var(--cs-button-disabled-opacity);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cs-button__spinner {
+  width: var(--cs-primitive-icon-16);
+  height: var(--cs-primitive-icon-16);
+  border: var(--cs-primitive-border-2) solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--cs-primitive-radius-full);
+  animation: cs-button-spin var(--cs-motion-slow) linear infinite;
+}
+
+@keyframes cs-button-spin {
+  to { transform: rotate(1turn); }
+}
+
+@media (forced-colors: active) {
+  .cs-button,
+  .cs-icon-button,
+  .cs-action-link { border-color: ButtonText; }
+}

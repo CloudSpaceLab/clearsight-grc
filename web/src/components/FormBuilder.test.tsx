@@ -116,18 +116,16 @@ describe("FormBuilder", () => {
     const second = selectQuestion(1);
     fireEvent.change(second, { target: { value: "Registration number" } });
 
-    const data = new Map<string, string>();
-    const dataTransfer = {
-      effectAllowed: "move",
-      dropEffect: "move",
-      setData: (type: string, value: string) => data.set(type, value),
-      getData: (type: string) => data.get(type) ?? "",
-    };
-    fireEvent.dragStart(screen.getByTitle("Drag question 1 to reorder"), { dataTransfer });
+    const handle = screen.getByTitle("Drag question 1 to reorder");
     const secondCard = screen.getAllByLabelText("Question")[1]?.closest("article");
     expect(secondCard).not.toBeNull();
-    fireEvent.dragOver(secondCard!, { dataTransfer });
-    fireEvent.drop(secondCard!, { dataTransfer });
+    const elementFromPoint = Object.getOwnPropertyDescriptor(document, "elementFromPoint");
+    Object.defineProperty(document, "elementFromPoint", { configurable: true, value: vi.fn(() => secondCard) });
+    fireEvent.pointerDown(handle, { button: 0, pointerId: 7, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(handle, { pointerId: 7, clientX: 10, clientY: 30 });
+    fireEvent.pointerUp(handle, { pointerId: 7, clientX: 10, clientY: 30 });
+    if (elementFromPoint) Object.defineProperty(document, "elementFromPoint", elementFromPoint);
+    else Reflect.deleteProperty(document, "elementFromPoint");
 
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(createFormTemplate).toHaveBeenCalledTimes(1));
@@ -164,16 +162,15 @@ describe("FormBuilder", () => {
     fireEvent.change(screen.getByLabelText("Show this question when"), { target: { value: "question_1" } });
     fireEvent.change(screen.getByLabelText("Condition value"), { target: { value: "Yes" } });
 
-    const data = new Map<string, string>();
-    const dataTransfer = {
-      effectAllowed: "move",
-      dropEffect: "move",
-      setData: (type: string, value: string) => data.set(type, value),
-      getData: (type: string) => data.get(type) ?? "",
-    };
-    fireEvent.dragStart(screen.getByTitle("Drag question 2 to reorder"), { dataTransfer });
+    const handle = screen.getByTitle("Drag question 2 to reorder");
     const firstCard = screen.getAllByLabelText("Question")[0]?.closest("article");
-    fireEvent.drop(firstCard!, { dataTransfer });
+    const elementFromPoint = Object.getOwnPropertyDescriptor(document, "elementFromPoint");
+    Object.defineProperty(document, "elementFromPoint", { configurable: true, value: vi.fn(() => firstCard) });
+    fireEvent.pointerDown(handle, { button: 0, pointerId: 8, clientX: 10, clientY: 30 });
+    fireEvent.pointerMove(handle, { pointerId: 8, clientX: 10, clientY: 10 });
+    fireEvent.pointerUp(handle, { pointerId: 8, clientX: 10, clientY: 10 });
+    if (elementFromPoint) Object.defineProperty(document, "elementFromPoint", elementFromPoint);
+    else Reflect.deleteProperty(document, "elementFromPoint");
 
     expect(screen.getByRole("alert").textContent).toContain("must remain after the question it depends on");
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
@@ -239,7 +236,7 @@ describe("FormBuilder", () => {
     fireEvent.click(screen.getByRole("button", { name: /Review/ }));
     const allocationIssue = screen.getByText("20% remains to allocate in Vendor identity");
     expect(allocationIssue).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Send for approval" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Send for approval", hidden: true }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(within(allocationIssue.closest("li")!).getByRole("button", { name: "Fix →" }));
     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Section 1 title")));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));

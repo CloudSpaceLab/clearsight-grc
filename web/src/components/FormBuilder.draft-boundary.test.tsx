@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createFormTemplate } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
@@ -39,8 +39,8 @@ describe("FormBuilder draft validation boundary", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
 
-    const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toContain("20% remains to allocate in Vendor identity");
+    const review = await screen.findByRole("dialog", { name: "Form review" });
+    expect((await within(review).findByText(/20% remains to allocate in Vendor identity/)).textContent).toContain("20% remains to allocate in Vendor identity");
     expect(createFormTemplate).not.toHaveBeenCalled();
   });
 

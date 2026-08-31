@@ -68,6 +68,7 @@ describe("Task 11 governed form views", () => {
 
   it("renders recipient counts and opens distribution amendment", async () => {
     render(<SentFormsView/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Open Quarterly control review" }));
     expect(await screen.findByText("2 To · 0 CC")).toBeTruthy();
     expect(screen.getByText("1/2")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Amend distribution" }));
@@ -82,6 +83,7 @@ describe("Task 11 governed form views", () => {
   it("previews and confirms replacement form versions before superseding", async () => {
     formApi.loadReusableFormTemplateRefs.mockResolvedValue([{ id: "form-a", name: "Control review", code: "CONTROL", version: 5 }]);
     render(<SentFormsView/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Open Quarterly control review" }));
     expect(await screen.findByText("2 To · 0 CC")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Replace form version" }));
     fireEvent.click(await screen.findByRole("button", { name: "Preview replacement" }));
@@ -102,6 +104,7 @@ describe("Task 11 governed form views", () => {
 
   it("passes semantic accessibility checks for the new sender and immutable-response surfaces", async () => {
     const sent = render(<SentFormsView/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Open Quarterly control review" }));
     expect(await screen.findByText("2 To · 0 CC")).toBeTruthy();
     const sentResults = await axe.run(sent.container, { rules: { "color-contrast": { enabled: false } } });
     expect(sentResults.violations.map((violation) => violation.id)).toEqual([]);

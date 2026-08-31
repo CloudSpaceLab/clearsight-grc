@@ -1,0 +1,71 @@
+{
+  "migratedTsx": [
+    "src/components/ui/Button.tsx",
+    "src/components/ui/DataTable.tsx",
+    "src/components/ui/EmptyState.tsx",
+    "src/components/ui/FilterBar.tsx",
+    "src/components/ui/FocusedSheet.tsx",
+    "src/components/ui/FormField.tsx",
+    "src/components/ui/Notice.tsx",
+    "src/components/ui/SelectField.tsx",
+    "src/components/ui/StatusBadge.tsx",
+    "src/components/ui/Surface.tsx",
+    "src/components/ui/Tabs.tsx",
+    "src/components/ui/TextArea.tsx",
+    "src/components/ui/TextField.tsx",
+    "src/components/ui-gallery/UIComponentGallery.tsx",
+    "src/components/forms/SentFormsView.tsx",
+    "src/components/forms/FormsNavigation.tsx",
+    "src/components/forms/sent/SentFormsFilters.tsx",
+    "src/components/forms/sent/SentFormsTable.tsx",
+    "src/components/forms/sent/SentFormDetail.tsx"
+  ],
+  "migratedCss": [
+    "src/design-system/components/actions.css",
+    "src/design-system/components/data-display.css",
+    "src/design-system/components/feedback.css",
+    "src/design-system/components/fields.css",
+    "src/design-system/components/navigation.css",
+    "src/design-system/components/overlays.css",
+    "src/design-system/components/surfaces.css",
+    "src/ui-gallery.css",
+    "src/forms-sent.css"
+  ],
+  "nativeControlExceptions": [
+    {
+      "file": "src/components/ui/TextField.tsx",
+      "tag": "input",
+      "inputType": "text",
+      "reason": "TextField is the shared owner that binds the native text input to the public field contract."
+    },
+    {
+      "file": "src/components/ui/TextArea.tsx",
+      "tag": "textarea",
+      "reason": "TextArea is the shared owner that binds the native textarea to the public field contract."
+    },
+    {
+      "file": "src/components/ui-gallery/UIComponentGallery.tsx",
+      "tag": "input",
+      "inputType": "text",
+      "reason": "The sample demonstrates the public FormField control-slot anatomy; product fields use TextField."
+    }
+  ],
+  "componentFamilies": {
+    "Button": ["primary", "secondary", "quiet", "destructive", "comfortable", "compact", "disabled", "loading"],
+    "ActionLink": ["navigation"],
+    "IconButton": ["primary", "secondary", "quiet", "destructive", "accessible-name"],
+    "FormField": ["required", "description", "invalid"],
+    "TextField": ["text", "search", "email", "url", "tel", "disabled", "read-only", "invalid", "loading"],
+    "TextArea": ["disabled", "read-only", "invalid", "loading"],
+    "SelectField": ["placeholder", "selected", "disabled", "required", "invalid"],
+    "Tabs": ["automatic-activation", "wrapped-compact"],
+    "StatusBadge": ["neutral", "info", "success", "warning", "error", "unknown"],
+    "Notice": ["info", "success", "warning", "error"],
+    "Surface": ["contained"],
+    "Card": ["record"],
+    "EmptyState": ["population", "next-action"],
+    "FilterBar": ["result-count", "clear", "stacked-compact"],
+    "DataTable": ["populated", "selected", "loading", "pagination", "stacked-mobile"],
+    "FocusedSheet": ["dismissable", "focus-contained", "full-height-mobile"]
+  }
+}

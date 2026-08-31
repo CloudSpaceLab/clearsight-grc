@@ -89,11 +89,11 @@ describe("Forms template dashboard", () => {
     expect(drawer.textContent).toMatch(/Latest stored.*Draft.*v2/);
     expect(drawer.textContent).toMatch(/Reusable now.*Active.*v1/);
     const closeButton = screen.getByRole("button", { name: "Close form detail" });
-    expect(document.activeElement).toBe(closeButton);
+    await waitFor(() => expect(document.activeElement).toBe(closeButton));
     const editButton = screen.getByRole("button", { name: "Edit draft" });
     editButton.focus();
-    fireEvent.click(screen.getByRole("button", { name: "Rerender host" }));
-    expect(document.activeElement).toBe(editButton);
+    fireEvent.click(screen.getByText("Rerender host", { selector: "button" }));
+    await waitFor(() => expect(document.activeElement).toBe(editButton));
     fireEvent.keyDown(drawer, { key: "Escape" });
     await waitFor(() => expect(screen.queryByLabelText("Selected form template")).toBeNull());
     expect(document.activeElement).toBe(openButton);

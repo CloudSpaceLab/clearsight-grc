@@ -66,7 +66,7 @@ describe("Forms workspace location state", () => {
     const onTarget = vi.fn(() => window.history.replaceState(null, "", "#forms"));
 
     render(<FormsWorkspace targetID="template-a" onTarget={onTarget}/>);
-    fireEvent.click(await screen.findByRole("button", { name: "Active outsourcing" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Active outsourcing", hidden: true }));
 
     expect(onTarget).not.toHaveBeenCalled();
     expect(window.location.hash).toBe("#forms/template-a?search=outsourcing&status=ACTIVE&tag=third-party");

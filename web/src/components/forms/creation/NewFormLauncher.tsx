@@ -27,7 +27,6 @@ export function NewFormLauncher({ starters, busy, onBlank, onAI, onImport, onUse
     label="New form"
     closeLabel="Close new form"
     panelClassName="forms-new-form-sheet"
-    backdropClassName="forms-new-form-backdrop"
     onClose={onClose}
   >
     <div className="forms-new-form-content">

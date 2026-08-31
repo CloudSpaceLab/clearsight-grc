@@ -1,6 +1,6 @@
 # Enterprise shell and Configuration decision brief
 
-**Issue:** #108  
+**Issue:** #108
 **Baseline:** `main@7bfec07a6b33d7399dab5d015ccfb1c0d09c3b21`
 
 ## Product job and primary users

@@ -21,7 +21,7 @@ type Props = {
 };
 
 export function FormCanvas({ draft, selection, onPatch, onSectionsChange, onFieldChange, onFieldTypeChange, onSelect, onAddField, onAddSection, onMoveField, onReorderField, onDuplicateField, onRemoveField }: Props) {
-  const draggedFieldIndex = useRef<number | null>(null);
+  const pointerDrag = useRef<{ fromIndex: number; startX: number; startY: number; moved: boolean } | null>(null);
 
   return <main className="form-builder-canvas" aria-label="Form canvas">
     <div className="form-canvas-document">
@@ -87,32 +87,32 @@ export function FormCanvas({ draft, selection, onPatch, onSectionsChange, onFiel
                   data-builder-field-id={field.id}
                   key={field.id}
                   onClick={() => onSelect({ kind: "field", fieldID: field.id })}
-                  onDragOver={(event) => {
-                    if (draggedFieldIndex.current == null) return;
-                    event.preventDefault();
-                    event.dataTransfer.dropEffect = "move";
-                  }}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    const fromIndex = draggedFieldIndex.current;
-                    draggedFieldIndex.current = null;
-                    if (fromIndex == null || fromIndex === index) return;
-                    onReorderField(fromIndex, index);
-                  }}
                 >
                   <div className="form-question-topline">
                     <span
                       className="form-question-drag"
-                      draggable="true"
                       aria-hidden="true"
                       title={`Drag question ${index + 1} to reorder`}
-                      onDragStart={(event) => {
-                        draggedFieldIndex.current = index;
-                        event.dataTransfer.effectAllowed = "move";
-                        event.dataTransfer.setData("text/plain", field.id);
+                      onPointerDown={(event) => {
+                        if (event.button !== 0) return;
+                        pointerDrag.current = { fromIndex: index, startX: event.clientX, startY: event.clientY, moved: false };
+                        event.currentTarget.setPointerCapture?.(event.pointerId);
                         onSelect({ kind: "field", fieldID: field.id });
                       }}
-                      onDragEnd={() => { draggedFieldIndex.current = null; }}
+                      onPointerMove={(event) => {
+                        const drag = pointerDrag.current;
+                        if (!drag || drag.moved) return;
+                        drag.moved = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) >= 6;
+                      }}
+                      onPointerUp={(event) => {
+                        const drag = pointerDrag.current;
+                        pointerDrag.current = null;
+                        if (!drag?.moved) return;
+                        const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-builder-field-id]");
+                        const toIndex = target ? draft.fields.findIndex((candidate) => candidate.id === target.dataset.builderFieldId) : -1;
+                        if (toIndex >= 0 && toIndex !== drag.fromIndex) onReorderField(drag.fromIndex, toIndex);
+                      }}
+                      onPointerCancel={() => { pointerDrag.current = null; }}
                     >⠿</span>
                     {field.condition && <span className="form-question-conditional">◇ Conditional</span>}
                     <details className="form-question-menu" onClick={(event) => event.stopPropagation()}>

@@ -26,7 +26,6 @@ export function TemplateDetailDrawer({ item, requestedID, busy, onClose, onClear
     label="Selected form template"
     closeLabel="Close form detail"
     panelClassName="forms-detail-drawer"
-    backdropClassName="forms-detail-backdrop"
     onClose={close}
   >
     <div className="forms-detail-drawer-bar">

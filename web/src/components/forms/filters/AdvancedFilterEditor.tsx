@@ -19,7 +19,6 @@ export function AdvancedFilterEditor({ expression, onApply, onClose }: Props) {
     label="Advanced form filters"
     closeLabel="Close advanced filters"
     panelClassName="forms-advanced-filter-sheet"
-    backdropClassName="forms-advanced-filter-backdrop"
     onClose={onClose}
   >
     <div className="forms-advanced-filter-content">

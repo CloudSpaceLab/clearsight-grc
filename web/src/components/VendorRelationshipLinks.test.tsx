@@ -76,7 +76,7 @@ describe("VendorRelationshipLinks", () => {
     fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
 
     const dialog = screen.getByRole("dialog", { name: "Link vendor to this Program" });
-    expect(within(dialog).getByRole("button", { name: "Close" })).toBe(document.activeElement);
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Close" })).toBe(document.activeElement));
     fireEvent.change(within(dialog).getByLabelText("Search vendor relationships"), { target: { value: "Acme" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Search vendors" }));
 

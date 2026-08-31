@@ -11,6 +11,9 @@ export const requiredFormsCapabilities = Object.freeze([
   "vendor-confirm", "vendor-correct", "vendor-replace", "vendor-review", "vendor-conflict", "vendor-applied",
   "library-mobile-records", "builder-mobile-actions", "builder-pointer-reorder", "builder-large-performance",
   "viewport-desktop", "viewport-mobile", "viewport-reflow-320", "zoom-200", "theme-light", "theme-dark",
+  "foundation-component-variants", "select-themed-open", "focus-visible", "density-comfortable", "density-compact",
+  "sent-empty-replacement", "sent-populated-table", "sent-responsive-sheet", "sent-partial-page", "sent-lifecycle-feedback",
+  "forced-colors", "reduced-motion",
 ]);
 
 const desktop = Object.freeze({ width: 1440, height: 900 });
@@ -22,7 +25,7 @@ async function visible(page, text) {
 }
 
 async function openFormsTab(page, tab, heading = tab) {
-  await page.getByRole("button", { name: tab, exact: true }).click();
+  await page.getByRole("tab", { name: tab, exact: true }).click();
   await page.getByRole("heading", { name: heading, exact: true }).waitFor({ state: "visible" });
 }
 
@@ -115,7 +118,7 @@ const scenarios = [
     name: "99-forms-distribution-access-history-light-1440x900", fixture: "forms-distribution-history", route: "#forms",
     state: "forms-distribution-access-and-delivery-history", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["communication-delivered", "communication-fallback", "communication-amended", "communication-rotated", "communication-superseded", "communication-revoked", "access-direct-link", "access-shared-otp", "access-direct-otp"],
-    run: async (page) => { await openFormsTab(page, "Sent forms"); for (const value of ["Delivered", "Fallback required", "Amended", "Rotated", "Superseded", "Revoked"]) await visible(page, value); for (const [title, access] of [["Annual control confirmation", "Direct Magic Link"], ["Shared vendor review", "Shared Link Email Otp"], ["Direct verified review", "Direct Link Email Otp"]]) { await page.getByRole("button", { name: `Open ${title}` }).click(); await visible(page, access); } await page.locator(".forms-table-wrap").evaluate((element) => { element.scrollLeft = 0; }); },
+    run: async (page) => { await openFormsTab(page, "Sent forms"); for (const value of ["Delivered", "Fallback required", "Amended", "Rotated", "Superseded", "Revoked"]) await visible(page, value); for (const [title, access] of [["Annual control confirmation", "Direct secure link"], ["Shared vendor review", "Shared link with email code"], ["Direct verified review", "Direct link with email code"]]) { await page.getByRole("button", { name: `Open ${title}` }).click(); await visible(page, access); } await page.locator(".cs-data-table__viewport").evaluate((element) => { element.scrollLeft = 0; }); },
   },
   {
     name: "100-forms-otp-expired-dark-mobile-390x844", fixture: "forms-otp-expired", route: "/capture",
@@ -185,7 +188,7 @@ const scenarios = [
   },
   {
     name: "111-forms-zoom-light-200pct-proxy", fixture: "forms-library-zoom", route: "#forms",
-    state: "forms-library-200pct-zoom-proxy", theme: "light", viewport: Object.freeze({ width: 720, height: 900 }), zoom: 2,
+    state: "forms-library-200pct-zoom-proxy", theme: "light", viewport: desktop, zoom: 2,
     capabilities: ["zoom-200"],
     run: async (page) => { await page.getByLabel("Search templates").waitFor({ state: "visible" }); },
   },
@@ -233,14 +236,7 @@ const scenarios = [
       const labelsBefore = await page.locator(".form-question-prompt").evaluateAll((inputs) => inputs.map((input) => input.value));
       const handle = page.getByTitle("Drag question 1 to reorder");
       await questions.nth(1).scrollIntoViewIfNeeded();
-      const handleBounds = await handle.boundingBox();
-      const targetBounds = await questions.nth(1).boundingBox();
-      if (!handleBounds || !targetBounds) throw new Error("Pointer reorder controls must be measurable before dragging.");
-      await page.mouse.move(handleBounds.x + handleBounds.width / 2, handleBounds.y + handleBounds.height / 2);
-      await page.mouse.down();
-      await page.mouse.move(handleBounds.x + handleBounds.width / 2 + 20, handleBounds.y + handleBounds.height / 2 + 20, { steps: 5 });
-      await page.mouse.move(targetBounds.x + 20, targetBounds.y + 20, { steps: 20 });
-      await page.mouse.up();
+      await handle.dragTo(questions.nth(1));
       await page.waitForFunction((expected) => document.querySelector(".form-question-prompt")?.value === expected, labelsBefore[1]);
       const labelsAfter = await page.locator(".form-question-prompt").evaluateAll((inputs) => inputs.map((input) => input.value));
       if (labelsAfter[0] !== labelsBefore[1] || labelsAfter[1] !== labelsBefore[0]) throw new Error("Pointer drag must persist the changed question order in the builder.");
@@ -270,7 +266,122 @@ const scenarios = [
       return metrics;
     },
   },
+  {
+    name: "117-forms-component-gallery-light-comfortable-1440x900", fixture: "ui-component-gallery", route: "#ui-components",
+    state: "forms-component-gallery-light-comfortable", theme: "light", density: "comfortable", viewport: desktop, zoom: 1,
+    capabilities: ["foundation-component-variants", "density-comfortable", "viewport-desktop", "theme-light"],
+    run: async (page) => {
+      await page.getByRole("heading", { name: "ClearSight interface foundations" }).waitFor({ state: "visible" });
+      for (const section of ["Actions", "Fields", "Selection", "Navigation", "Feedback", "Surfaces", "Data", "Overlays"]) await page.getByRole("heading", { name: section, exact: true }).waitFor({ state: "visible" });
+    },
+  },
+  {
+    name: "118-forms-component-gallery-dark-compact-select-1280x720", fixture: "ui-component-gallery", route: "#ui-components",
+    state: "forms-component-gallery-dark-compact-select-open", theme: "dark", density: "compact", viewport: Object.freeze({ width: 1280, height: 720 }), zoom: 1,
+    capabilities: ["foundation-component-variants", "select-themed-open", "density-compact", "theme-dark"],
+    run: async (page) => {
+      const trigger = page.getByRole("button", { name: /Sample response status/ });
+      await trigger.click();
+      await page.getByRole("listbox").waitFor({ state: "visible" });
+      await assertDarkPopup(page);
+    },
+  },
+  {
+    name: "119-forms-sent-empty-dark-1440x900", fixture: "forms-sent-empty", route: "#forms",
+    state: "forms-sent-empty-replacement", theme: "dark", density: "comfortable", viewport: desktop, zoom: 1,
+    capabilities: ["sent-empty-replacement", "density-comfortable", "viewport-desktop", "theme-dark"],
+    run: async (page) => {
+      await openFormsTab(page, "Sent forms");
+      await page.getByRole("heading", { name: "No sent forms match these filters" }).waitFor({ state: "visible" });
+      await assertSentFormsControls(page, 44);
+      const workspace = page.locator(".forms-sent");
+      if (await workspace.getByRole("table").count() || await workspace.getByRole("complementary").count() || await page.getByRole("dialog", { name: / details$/ }).count()) throw new Error("Empty Sent forms must replace the table and detail regions.");
+    },
+  },
+  {
+    name: "120-forms-sent-detail-sheet-light-1024x768", fixture: "forms-sent-lifecycle", route: "#forms",
+    state: "forms-sent-responsive-detail-and-lifecycle", theme: "light", density: "comfortable", viewport: Object.freeze({ width: 1024, height: 768 }), zoom: 1,
+    capabilities: ["sent-populated-table", "sent-responsive-sheet", "sent-lifecycle-feedback", "density-comfortable", "theme-light"],
+    run: async (page) => {
+      await openFormsTab(page, "Sent forms");
+      await assertSentFormsControls(page, 44);
+      const trigger = page.getByRole("button", { name: "Open Acme annual vendor review" });
+      await trigger.click();
+      const dialog = page.getByRole("dialog", { name: "Acme annual vendor review details" });
+      await dialog.waitFor({ state: "visible" });
+      await assertSheetRecoveryVisible(page, dialog);
+      await dialog.getByRole("button", { name: "Lock responses" }).click();
+      await dialog.getByText("Responses locked", { exact: true }).waitFor({ state: "visible" });
+    },
+  },
+  {
+    name: "121-forms-sent-populated-light-mobile-390x844", fixture: "forms-sent-partial", route: "#forms",
+    state: "forms-sent-populated-mobile-partial", theme: "light", density: "comfortable", viewport: mobile, zoom: 1, touch: true,
+    capabilities: ["sent-populated-table", "sent-partial-page", "viewport-mobile", "theme-light"],
+    run: async (page) => {
+      await openFormsTab(page, "Sent forms");
+      await assertSentFormsControls(page, 44);
+      await page.getByRole("button", { name: "Load more sent forms" }).waitFor({ state: "visible" });
+      await assertStackedSentRows(page);
+    },
+  },
+  {
+    name: "122-forms-sent-populated-light-reflow-320x800", fixture: "forms-sent-reflow", route: "#forms",
+    state: "forms-sent-populated-reflow-320", theme: "light", density: "comfortable", viewport: reflow, zoom: 1, touch: true,
+    capabilities: ["sent-populated-table", "viewport-reflow-320", "theme-light"],
+    run: async (page) => {
+      await openFormsTab(page, "Sent forms");
+      await assertSentFormsControls(page, 44);
+      const clearHeight = await page.getByRole("button", { name: "Clear sent-form filters" }).evaluate((element) => element.getBoundingClientRect().height);
+      if (clearHeight > 52) throw new Error(`The 320px clear-filter action wrapped to ${Math.round(clearHeight)}px instead of remaining one readable action.`);
+      await assertStackedSentRows(page);
+    },
+  },
+  {
+    name: "123-forms-sent-light-effective-200pct", fixture: "forms-sent-zoom", route: "#forms",
+    state: "forms-sent-effective-200pct-layout", theme: "light", density: "comfortable", viewport: desktop, zoom: 2,
+    capabilities: ["sent-populated-table", "zoom-200", "theme-light"],
+    run: async (page) => { await openFormsTab(page, "Sent forms"); await assertSentFormsControls(page, 44); await page.getByRole("button", { name: /Status/ }).click(); await page.getByRole("listbox").waitFor({ state: "visible" }); },
+  },
+  {
+    name: "124-forms-component-gallery-forced-colors-focus-1440x900", fixture: "ui-component-gallery", route: "#ui-components",
+    state: "forms-component-gallery-forced-colors-focus-reduced-motion", theme: "dark", density: "comfortable", viewport: desktop, zoom: 1, forcedColors: "active", reducedMotion: "reduce",
+    capabilities: ["foundation-component-variants", "focus-visible", "forced-colors", "reduced-motion", "theme-dark"],
+    run: async (page) => { const action = page.getByRole("region", { name: "Actions" }).getByRole("button", { name: "Send sample form" }); await action.focus(); if (!await action.evaluate((element) => element === document.activeElement)) throw new Error("The focused sample action must retain visible keyboard focus ownership."); },
+  },
 ];
+
+async function assertSentFormsControls(page, minimumHeight) {
+  const primary = await page.getByRole("button", { name: "Send form" }).evaluate((element) => {
+    const style = getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    return { height: rect.height, border: style.borderStyle, background: style.backgroundColor };
+  });
+  if (primary.height < minimumHeight || primary.border === "none" || primary.background === "rgba(0, 0, 0, 0)") throw new Error(`Send form must render as the dominant ${minimumHeight}px action.`);
+  const fields = page.locator(".cs-field__control, .cs-select-field__trigger");
+  const measurements = await fields.evaluateAll((elements) => elements.filter((element) => element.getClientRects().length > 0).map((element) => { const style = getComputedStyle(element); return { height: element.getBoundingClientRect().height, border: style.borderStyle, borderWidth: style.borderWidth }; }));
+  if (!measurements.length || measurements.some((field) => field.height < minimumHeight || field.border === "none" || field.borderWidth === "0px")) throw new Error("Every visible Sent forms field must retain its shared control height and visible boundary.");
+}
+
+async function assertDarkPopup(page) {
+  const color = await page.locator(".cs-select-field__popover").evaluate((element) => getComputedStyle(element).backgroundColor);
+  const channels = color.match(/\d+(?:\.\d+)?/g)?.slice(0, 3).map(Number) ?? [];
+  if (channels.length !== 3 || channels.reduce((sum, value) => sum + value, 0) / 3 > 110) throw new Error(`The dark Select popup must use a dark semantic surface, received ${color}.`);
+}
+
+async function assertStackedSentRows(page) {
+  const rows = page.locator(".cs-data-table tbody tr");
+  await rows.first().waitFor({ state: "visible" });
+  const metrics = await rows.evaluateAll((elements) => elements.map((element) => ({ display: getComputedStyle(element).display, width: element.getBoundingClientRect().width, viewport: document.documentElement.clientWidth })));
+  if (metrics.some((row) => row.display !== "grid" || row.width > row.viewport)) throw new Error("Populated Sent forms rows must stack within the layout viewport.");
+  await rows.first().scrollIntoViewIfNeeded();
+}
+
+async function assertSheetRecoveryVisible(page, dialog) {
+  const [sheet, close] = await Promise.all([dialog.boundingBox(), dialog.getByRole("button", { name: "Close" }).boundingBox()]);
+  const viewport = page.viewportSize();
+  if (!sheet || !close || !viewport || close.x < sheet.x || close.y < sheet.y || close.x + close.width > viewport.width || close.y + close.height > viewport.height) throw new Error("The responsive detail sheet must keep its close and recovery action inside the visible viewport.");
+}
 
 async function verifyBuilderChromeNoOverlap(page) {
   const toolbar = await page.locator(".form-builder-toolbar").boundingBox();

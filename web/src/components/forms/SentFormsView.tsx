@@ -1,104 +1,167 @@
-import { useEffect, useMemo, useState } from "react";
-import { loadDistribution, loadDistributionPage, transitionDistribution, type Distribution, type DistributionDetail, type DistributionDueState, type DistributionQuery, type DistributionStatus } from "../../formsDistributionApi";
-import { DistributionComposer } from "./DistributionComposer";
+import { useEffect, useState, type ReactNode } from "react";
+import { loadDistribution, loadDistributionPage, transitionDistribution, type Distribution, type DistributionDetail, type DistributionQuery } from "../../formsDistributionApi";
+import { ApiError } from "../../http";
+import { ActionLink, Button, EmptyState, FocusedSheet, Notice, Surface } from "../ui";
 import { DistributionChangePanel } from "./DistributionChangePanel";
+import { DistributionComposer } from "./DistributionComposer";
+import { SentFormDetail } from "./sent/SentFormDetail";
+import { SentFormsFilters } from "./sent/SentFormsFilters";
+import { SentFormsTable } from "./sent/SentFormsTable";
+import { distributionStatusLabel } from "./sent/distributionPresentation";
 
-const statusOptions: DistributionStatus[] = ["OPEN", "LOCKED", "COMPLETED", "EXPIRED", "REVOKED", "SUPERSEDED"];
-const dueOptions: DistributionDueState[] = ["OPEN", "OVERDUE", "CLOSED"];
+type ListState = "loading" | "live" | "sign-in-required" | "error";
+type DetailState = "idle" | "loading" | "live" | "error";
 
 export function SentFormsView() {
+  const wideDetail = useMediaQuery("(min-width: 1180px)");
   const [query, setQuery] = useState<DistributionQuery>(() => readQuery());
+  const [listState, setListState] = useState<ListState>("loading");
   const [items, setItems] = useState<Distribution[]>([]);
   const [nextCursor, setNextCursor] = useState<string>();
   const [selectedID, setSelectedID] = useState<string>();
+  const [detailState, setDetailState] = useState<DetailState>("idle");
   const [detail, setDetail] = useState<DistributionDetail>();
   const [composerOpen, setComposerOpen] = useState(false);
   const [changeMode, setChangeMode] = useState<"amend" | "supersede">();
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
+  const [detailError, setDetailError] = useState<string>();
   const [notice, setNotice] = useState<string>();
 
   useEffect(() => { void refresh(); }, [query.status, query.due_state, query.subject_type, query.subject_id, query.owner, query.limit]);
-  useEffect(() => { if (selectedID) void loadDetail(selectedID); else setDetail(undefined); }, [selectedID]);
+  useEffect(() => {
+    if (selectedID) void loadSelectedDetail(selectedID);
+    else { setDetail(undefined); setDetailState("idle"); setDetailError(undefined); }
+  }, [selectedID]);
 
   async function refresh() {
+    setListState("loading");
     setError(undefined);
     try {
       const page = await loadDistributionPage({ ...query, cursor: undefined, limit: query.limit ?? 25 });
-      setItems(page.items); setNextCursor(page.next_cursor);
-      setSelectedID((current) => current && page.items.some((value) => value.id === current) ? current : page.items[0]?.id);
+      setItems(page.items);
+      setNextCursor(page.next_cursor);
+      setSelectedID((current) => current && page.items.some((value) => value.id === current) ? current : undefined);
+      setListState("live");
     } catch (cause) {
-      setItems([]); setNextCursor(undefined); setError(message(cause, "Sent forms could not be loaded."));
+      setError(message(cause, "Sent forms could not be loaded for the current filters."));
+      setListState(cause instanceof ApiError && cause.status === 401 ? "sign-in-required" : "error");
     }
   }
-  async function loadDetail(id: string) {
-    try { setDetail(await loadDistribution(id)); } catch (cause) { setDetail(undefined); setError(message(cause, "Distribution detail could not be loaded.")); }
+
+  async function loadSelectedDetail(id: string) {
+    setDetailState("loading");
+    setDetailError(undefined);
+    try {
+      setDetail(await loadDistribution(id));
+      setDetailState("live");
+    } catch (cause) {
+      setDetail(undefined);
+      setDetailError(message(cause, "Distribution details could not be loaded."));
+      setDetailState("error");
+    }
   }
+
   async function loadMore() {
-    if (!nextCursor || busy) return;
+    if (!nextCursor || busy === "more") return;
     setBusy("more");
     try {
       const page = await loadDistributionPage({ ...query, cursor: nextCursor, limit: query.limit ?? 25 });
-      setItems((current) => [...current, ...page.items]); setNextCursor(page.next_cursor);
-    } catch (cause) { setError(message(cause, "More distributions could not be loaded.")); } finally { setBusy(undefined); }
+      setItems((current) => [...current, ...page.items]);
+      setNextCursor(page.next_cursor);
+    } catch (cause) {
+      setError(message(cause, "More sent forms could not be loaded."));
+    } finally {
+      setBusy(undefined);
+    }
   }
+
   function updateQuery(patch: Partial<DistributionQuery>) {
     const next = { ...query, ...patch, cursor: undefined };
-    setQuery(next); writeQuery(next);
+    setQuery(next);
+    writeQuery(next);
   }
+
+  function clearFilters() {
+    updateQuery({ status: undefined, due_state: undefined, subject_type: undefined, subject_id: undefined, owner: undefined });
+  }
+
   async function lifecycle(action: "lock" | "reopen" | "revoke") {
     if (!detail || busy) return;
-    setBusy(action); setError(undefined);
+    setBusy(action);
+    setDetailError(undefined);
     try {
       const updated = await transitionDistribution(detail.distribution.id, detail.distribution.version, action);
       setDetail(updated);
+      setDetailState("live");
       setItems((current) => current.map((value) => value.id === updated.distribution.id ? updated.distribution : value));
-    } catch (cause) { setError(message(cause, "Distribution state could not be changed.")); } finally { setBusy(undefined); }
+      setNotice(`${distributionStatusLabel[updated.distribution.status]}. The sent-form change was confirmed.`);
+    } catch (cause) {
+      setDetailError(message(cause, "The sent-form state could not be changed."));
+    } finally {
+      setBusy(undefined);
+    }
   }
 
-  const counts = useMemo(() => detail ? {
-    to: detail.recipients.filter((value) => value.role === "TO" && value.state !== "REVOKED").length,
-    cc: detail.recipients.filter((value) => value.role === "CC" && value.state !== "REVOKED").length,
-    completed: detail.recipients.filter((value) => value.role === "TO" && value.state === "COMPLETED").length,
-  } : undefined, [detail]);
+  if (composerOpen) return <DistributionComposer onCancel={() => setComposerOpen(false)} onCreated={(value) => {
+    setComposerOpen(false); setItems((current) => [value.distribution, ...current]); setSelectedID(value.distribution.id); setDetail(value); setDetailState("live");
+  }}/>;
+  if (changeMode && detail) return <DistributionChangePanel mode={changeMode} detail={detail} onCancel={() => setChangeMode(undefined)} onSaved={(value, resultNotice) => {
+    setChangeMode(undefined); setItems((current) => [value.distribution, ...current.filter((item) => item.id !== detail.distribution.id && item.id !== value.distribution.id)]); setSelectedID(value.distribution.id); setDetail(value); setDetailState("live"); setNotice(resultNotice);
+  }}/>;
 
-  if (composerOpen) return <DistributionComposer onCancel={() => setComposerOpen(false)} onCreated={(value) => { setComposerOpen(false); setItems((current) => [value.distribution, ...current]); setSelectedID(value.distribution.id); setDetail(value); }}/>
-  if (changeMode && detail) return <DistributionChangePanel mode={changeMode} detail={detail} onCancel={() => setChangeMode(undefined)} onSaved={(value, resultNotice) => { setChangeMode(undefined); setItems((current) => [value.distribution, ...current.filter((item) => item.id !== detail.distribution.id && item.id !== value.distribution.id)]); setSelectedID(value.distribution.id); setDetail(value); setNotice(resultNotice); }}/>
+  const selectedItem = items.find((item) => item.id === selectedID);
+  const detailContent = selectedID ? renderDetailState(detailState, detail, detailError, busy, lifecycle, () => setChangeMode("amend"), () => setChangeMode("supersede")) : <><p className="forms-sent-detail__type">Distribution detail</p><h3>Select a sent form</h3><p>Open one sent form to review recipient progress, deadline and access method.</p></>;
 
-  return <section className="forms-task-shell" aria-labelledby="sent-forms-title">
-    <div className="forms-task-heading"><div><span>Sender workspace</span><h2 id="sent-forms-title">Sent forms</h2><p>Track each sent form, its recipients, response status, access method and deadline.</p></div><button className="forms-primary" type="button" onClick={() => setComposerOpen(true)}>Send form</button></div>
-    {error && <div className="forms-message error" role="alert">{error}</div>}
-    {notice && <div className="forms-message" role="status">{notice}</div>}
-    <div className="forms-task-toolbar">
-      <label><span>Status</span><select value={query.status ?? ""} onChange={(event) => updateQuery({ status: event.target.value ? event.target.value as DistributionStatus : undefined })}><option value="">All states</option>{statusOptions.map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></label>
-      <label><span>Due state</span><select value={query.due_state ?? ""} onChange={(event) => updateQuery({ due_state: event.target.value ? event.target.value as DistributionDueState : undefined })}><option value="">Any deadline</option>{dueOptions.map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></label>
-      <label><span>Subject type</span><input value={query.subject_type ?? ""} onChange={(event) => updateQuery({ subject_type: event.target.value || undefined })}/></label>
-      <label><span>Subject ID</span><input value={query.subject_id ?? ""} onChange={(event) => updateQuery({ subject_id: event.target.value || undefined })}/></label>
-      <label><span>Owner</span><input value={query.owner ?? ""} onChange={(event) => updateQuery({ owner: event.target.value || undefined })}/></label>
+  return <section className="forms-sent" aria-labelledby="sent-forms-title">
+    <header className="forms-sent__heading"><div><p>Sender workspace</p><h2 id="sent-forms-title">Sent forms</h2><p>Track each sent form, its recipients, response status, access method and deadline.</p></div><Button variant="primary" onPress={() => setComposerOpen(true)}>Send form</Button></header>
+    {notice && <Notice tone="success">{notice}</Notice>}
+    <SentFormsFilters query={query} resultCount={listState === "live" ? items.length : undefined} onChange={updateQuery} onClear={clearFilters}/>
+    <div className="forms-sent__results" aria-live="polite">
+      {listState === "loading" && <Surface><p role="status" aria-label="Loading sent forms matching the current filters">Loading sent forms matching the current filters…</p></Surface>}
+      {listState === "sign-in-required" && <EmptyState population="Sent forms matching the current filters" title="Sign in to review sent forms" description="Your session ended before this sent-form list could be loaded." action={<ActionLink href="/">Sign in again</ActionLink>}/>}
+      {listState === "error" && <EmptyState population="Sent forms matching the current filters" title="Sent forms could not be loaded" description={error ?? "The current sent-form query could not be completed."} action={<Button onPress={() => void refresh()}>Try again</Button>}/>}
+      {listState === "live" && items.length === 0 && <EmptyState population="Sent forms matching the current filters" title="No sent forms match these filters" description="Change the filters. To create a request for a recipient and subject, use Send form above."/>}
+      {listState === "live" && items.length > 0 && <div className={`forms-sent__layout${wideDetail ? "" : " forms-sent__layout--single"}`}>
+        <SentFormsTable items={items} selectedID={selectedID} nextCursor={nextCursor} loadingMore={busy === "more"} onSelect={setSelectedID} onLoadMore={() => void loadMore()}/>
+        {wideDetail && <aside className="forms-sent__detail" aria-label={selectedItem ? `${selectedItem.title} details` : "Selected distribution"}>{detailContent}</aside>}
+      </div>}
     </div>
-    <div className="forms-task-layout">
-      <div className="forms-table-wrap">
-        <table className="forms-table"><thead><tr><th>Distribution</th><th>Status</th><th>Form revision</th><th>Deadline</th><th>Subject</th><th><span className="sr-only">Open</span></th></tr></thead><tbody>{items.map((value) => <tr key={value.id} className={selectedID === value.id ? "selected" : ""}><td><strong>{value.title}</strong><span>{value.purpose}</span></td><td><span className={`forms-status status-${value.status.toLowerCase()}`}>{label(value.status)}</span></td><td>v{value.form_template_version}</td><td>{formatDateTime(value.deadline)}</td><td>{value.subject_type} · {value.subject_id}</td><td><button type="button" aria-label={`Open ${value.title}`} onClick={() => setSelectedID(value.id)}>Open</button></td></tr>)}</tbody></table>
-        {items.length === 0 && <div className="forms-task-empty"><strong>No sent forms match this view</strong><span>Change the filters or send a form.</span></div>}
-        {nextCursor && <button className="forms-load-more" type="button" disabled={busy === "more"} onClick={() => void loadMore()}>{busy === "more" ? "Loading…" : "Load more"}</button>}
-      </div>
-      <aside className="forms-task-detail" aria-label="Selected distribution">{detail ? <><span className="forms-detail-kicker">{detail.distribution.subject_type}</span><h3>{detail.distribution.title}</h3><p>{detail.distribution.purpose}</p><dl><div><dt>Status</dt><dd>{label(detail.distribution.status)}</dd></div><div><dt>Recipients</dt><dd>{counts?.to ?? 0} To · {counts?.cc ?? 0} CC</dd></div><div><dt>Completed</dt><dd>{counts?.completed ?? 0}/{counts?.to ?? 0}</dd></div><div><dt>Deadline</dt><dd>{formatDateTime(detail.distribution.deadline)}</dd></div><div><dt>Access</dt><dd>{label(detail.distribution.access_policy)}</dd></div><div><dt>Workspace</dt><dd>{label(detail.workspace.status)} · v{detail.workspace.version}</dd></div><div><dt>Form</dt><dd>{detail.distribution.form_template_id} · v{detail.distribution.form_template_version}</dd></div></dl><div className="forms-detail-actions">{detail.distribution.status === "OPEN" && <button type="button" disabled={Boolean(busy)} onClick={() => void lifecycle("lock")}>Lock responses</button>}{detail.distribution.status === "LOCKED" && <button type="button" disabled={Boolean(busy)} onClick={() => void lifecycle("reopen")}>Reopen</button>}{!["REVOKED", "COMPLETED", "SUPERSEDED"].includes(detail.distribution.status) && <button type="button" disabled={Boolean(busy)} onClick={() => void lifecycle("revoke")}>Revoke</button>}{detail.distribution.status === "OPEN" && <button type="button" disabled={Boolean(busy)} onClick={() => setChangeMode("amend")}>Amend distribution</button>}{detail.distribution.status === "OPEN" && <button type="button" disabled={Boolean(busy)} onClick={() => setChangeMode("supersede")}>Replace form version</button>}</div></> : <><span className="forms-detail-kicker">Distribution detail</span><h3>Select a sent form</h3><p>Choose a sent form to review recipient progress, deadline and access method.</p></>}</aside>
-    </div>
+    {!wideDetail && selectedID && selectedItem && <FocusedSheet label={`${selectedItem.title} details`} panelClassName="forms-sent__detail-sheet" onClose={() => setSelectedID(undefined)}>{detailContent}</FocusedSheet>}
   </section>;
+}
+
+function renderDetailState(state: DetailState, detail: DistributionDetail | undefined, detailError: string | undefined, busy: string | undefined, lifecycle: (action: "lock" | "reopen" | "revoke") => Promise<void>, onAmend: () => void, onSupersede: () => void): ReactNode {
+  if (state === "loading") return <p role="status" aria-label="Loading the selected sent form">Loading the selected sent form…</p>;
+  if (state === "error") return <Notice tone="error">{detailError} Select the sent form again to retry.</Notice>;
+  if (state === "live" && detail) return <SentFormDetail detail={detail} error={detailError} busy={busy} onLifecycle={(action) => void lifecycle(action)} onAmend={onAmend} onSupersede={onSupersede}/>;
+  return null;
+}
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const update = () => setMatches(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [query]);
+  return matches;
 }
 
 function readQuery(): DistributionQuery {
   const params = new URLSearchParams(window.location.search);
-  const status = params.get("dist_status") as DistributionStatus | null;
-  const due = params.get("dist_due") as DistributionDueState | null;
+  const status = params.get("dist_status") as DistributionQuery["status"] | null;
+  const due = params.get("dist_due") as DistributionQuery["due_state"] | null;
   return { status: status || undefined, due_state: due || undefined, subject_type: params.get("dist_subject_type") || undefined, subject_id: params.get("dist_subject_id") || undefined, owner: params.get("dist_owner") || undefined, limit: 25 };
 }
+
 function writeQuery(query: DistributionQuery) {
   const url = new URL(window.location.href);
   const set = (key: string, value?: string) => value ? url.searchParams.set(key, value) : url.searchParams.delete(key);
   set("dist_status", query.status); set("dist_due", query.due_state); set("dist_subject_type", query.subject_type?.trim()); set("dist_subject_id", query.subject_id?.trim()); set("dist_owner", query.owner?.trim());
   window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
-function label(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (part) => part.toUpperCase()); }
-function formatDateTime(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Unknown" : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date); }
+
 function message(cause: unknown, fallback: string) { return cause instanceof Error ? cause.message : fallback; }

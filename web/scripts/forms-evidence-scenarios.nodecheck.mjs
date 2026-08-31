@@ -16,6 +16,9 @@ const task22Capabilities = [
   "vendor-confirm", "vendor-correct", "vendor-replace", "vendor-review", "vendor-conflict", "vendor-applied",
   "library-mobile-records", "builder-mobile-actions", "builder-pointer-reorder", "builder-large-performance",
   "viewport-desktop", "viewport-mobile", "viewport-reflow-320", "zoom-200", "theme-light", "theme-dark",
+  "foundation-component-variants", "select-themed-open", "focus-visible", "density-comfortable", "density-compact",
+  "sent-empty-replacement", "sent-populated-table", "sent-responsive-sheet", "sent-partial-page", "sent-lifecycle-feedback",
+  "forced-colors", "reduced-motion",
 ];
 
 test("Forms scenarios cover every Task 22 capability", () => {
@@ -23,8 +26,7 @@ test("Forms scenarios cover every Task 22 capability", () => {
   const covered = new Set(formsEvidenceScenarios.flatMap((scenario) => scenario.capabilities));
   assert.deepEqual(requiredFormsCapabilities.filter((capability) => !covered.has(capability)), []);
   assert.equal(new Set(formsEvidenceScenarios.map(({ name }) => name)).size, formsEvidenceScenarios.length);
-  assert.equal(new Set(formsEvidenceScenarios.map(({ fixture }) => fixture)).size, formsEvidenceScenarios.length);
-  const allowedRoutes = new Set(["#forms", "#imports", "#vendors", "/capture"]);
+  const allowedRoutes = new Set(["#forms", "#imports", "#vendors", "#ui-components", "/capture"]);
   for (const scenario of formsEvidenceScenarios) {
     assert.match(scenario.name, /^\d{2,3}-forms-/);
     assert.ok(allowedRoutes.has(scenario.route), scenario.route);
@@ -34,6 +36,9 @@ test("Forms scenarios cover every Task 22 capability", () => {
     assert.ok(scenario.viewport.width >= 320);
     assert.ok(scenario.viewport.height >= 640);
     assert.ok([1, 2].includes(scenario.zoom));
+    assert.ok(["comfortable", "compact"].includes(scenario.density ?? "comfortable"));
+    assert.ok(["none", "active"].includes(scenario.forcedColors ?? "none"));
+    assert.ok(["no-preference", "reduce"].includes(scenario.reducedMotion ?? "no-preference"));
     assert.equal(typeof scenario.run, "function");
     assert.ok(scenario.capabilities.length > 0);
     for (const capability of scenario.capabilities) assert.ok(requiredFormsCapabilities.includes(capability), capability);

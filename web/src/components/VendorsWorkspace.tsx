@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import "../vendors.css";
 import { resolveAuthority } from "../api";
 import { apiErrorKind } from "../http";
 import { loadFormTemplates } from "../monitoringApi";

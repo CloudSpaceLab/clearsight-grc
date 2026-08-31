@@ -23,7 +23,6 @@ export function FormReviewDrawer({ issues, fields, initialValue, onFix, onAddReq
     label="Form review"
     closeLabel="Close review"
     panelClassName="form-review-drawer"
-    backdropClassName="form-review-backdrop"
     onClose={onClose}
   >
     <header className="form-review-heading">

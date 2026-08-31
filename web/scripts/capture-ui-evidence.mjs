@@ -224,7 +224,7 @@ async function captureEvidenceReviewAndReceipt() {
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
-    await page.getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
+    await page.locator(".side-panel").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
     await assertFocusInsideSheet(page, capture.name);
     await saveScreenshot(page, capture.name);
     await record(page, capture, "response-entry");
@@ -278,7 +278,7 @@ async function captureCaptureConflict() {
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
-    await page.getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
+    await page.locator(".side-panel").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
     await fillCapture(page);
     await page.getByRole("button", { name: "Review response" }).click();
     await page.getByRole("button", { name: "Submit response" }).click();
@@ -298,7 +298,7 @@ async function captureMobileCaptureAndFocus() {
     const more = page.getByText("More actions", { exact: true });
     if (await more.count()) await more.click();
     await page.getByRole("button", { name: "Respond to evidence request" }).click();
-    await page.getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
+    await page.locator(".side-panel").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
     await assertFocusInsideSheet(page, capture.name);
     await assertNoHorizontalOverflow(page, capture.name);
     await page.keyboard.press("Tab");
