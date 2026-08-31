@@ -46,16 +46,22 @@
 .governance-admin-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 22px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
 .governance-admin-header > div:first-child { max-width: 720px; }
 .governance-admin-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-.governance-composer-sheet { width: min(680px, calc(100vw - 24px)); }
-.governance-composer { display: grid; gap: 14px; padding: 8px 2px 18px; }
-.governance-composer > p { margin: 0; max-width: 580px; }
-.governance-composer form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.governance-composer-sheet, .access-composer-sheet { width: min(680px, calc(100vw - 24px)); }
+.governance-composer, .access-composer { display: grid; gap: 14px; padding: 8px 2px 18px; }
+.governance-composer > p, .access-composer > p { margin: 0; max-width: 580px; }
+.governance-composer form, .access-composer form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .governance-composer form > label,
 .governance-composer form > div,
-.governance-composer form > button[type="submit"] { min-width: 0; }
+.governance-composer form > button[type="submit"],
+.access-composer form > label,
+.access-composer form > button[type="submit"] { min-width: 0; }
 .governance-composer form > label:has(textarea),
 .governance-composer form > div,
-.governance-composer form > button[type="submit"] { grid-column: 1 / -1; }
+.governance-composer form > button[type="submit"],
+.access-composer form > button[type="submit"] { grid-column: 1 / -1; }
+.identity-card-header { gap: 14px; }
+.identity-card-header > div:first-child { min-width: 0; }
+.identity-card-header > button { flex: 0 0 auto; }
 
 @media (max-width: 1020px) {
   .configure-shell { grid-template-columns: 190px minmax(0, 1fr); gap: 20px; }
@@ -83,8 +89,12 @@
   .configure-status-strip { grid-template-columns: 1fr; gap: 8px; }
   .governance-admin-actions { display: grid; grid-template-columns: 1fr; }
   .governance-admin-actions button { width: 100%; }
-  .governance-composer form { grid-template-columns: 1fr; }
+  .identity-card-header { align-items: stretch; }
+  .identity-card-header > button { width: 100%; }
+  .governance-composer form, .access-composer form { grid-template-columns: 1fr; }
   .governance-composer form > label,
   .governance-composer form > div,
-  .governance-composer form > button[type="submit"] { grid-column: 1; }
+  .governance-composer form > button[type="submit"],
+  .access-composer form > label,
+  .access-composer form > button[type="submit"] { grid-column: 1; }
 }
