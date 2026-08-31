@@ -186,7 +186,29 @@ function staticFormLibraryTemplate() {
 
 function formsTemplatePopulation(fixture: string) {
   const template = staticFormLibraryTemplate();
-  if (fixture === "forms-library-lifecycle") return [
+  if (fixture === "forms-builder-large") {
+    const sections = Array.from({ length: 10 }, (_, index) => ({ id: `section_${index + 1}`, title: `Control area ${index + 1}` }));
+    const fields = Array.from({ length: 120 }, (_, index) => ({
+      id: `question_${index + 1}`,
+      section_id: sections[Math.floor(index / 12)]!.id,
+      label: `Control confirmation ${index + 1}`,
+      type: "short_text" as const,
+      required: index % 3 === 0,
+    }));
+    return [{
+      ...template,
+      id: "form-large-authoring",
+      code: "FORM-LARGE-AUTHORING",
+      name: "Large control confirmation",
+      purpose: "Validate authoring responsiveness across a production-shaped form with 120 questions.",
+      status: "DRAFT" as const,
+      version: 7,
+      sections,
+      fields,
+      updated_at: "2026-08-30T12:06:00Z",
+    }];
+  }
+  if (["forms-library-lifecycle", "forms-library-mobile-populated", "forms-new-form"].includes(fixture)) return [
     { ...template, id: "form-lifecycle-draft", code: "FORM-DRAFT", name: "Customer complaint review draft", status: "DRAFT", version: 1, updated_at: "2026-08-30T12:04:00Z" },
     { ...template, id: "form-lifecycle-pending", code: "FORM-PENDING", name: "Payments control owner confirmation", status: "PENDING_APPROVAL", version: 2, updated_at: "2026-08-30T12:03:00Z" },
     { ...template, id: "form-lifecycle-active", code: "FORM-ACTIVE", name: "Vendor security and privacy review", status: "ACTIVE", version: 3, updated_at: "2026-08-30T12:02:00Z" },
@@ -196,8 +218,8 @@ function formsTemplatePopulation(fixture: string) {
     { ...template, id: "form-ready-draft-1", code: "FORM-READY-1", name: "Approval-ready privacy draft", status: "DRAFT", version: 1, updated_at: "2026-08-30T12:02:00Z" },
     { ...template, id: "form-ready-draft-2", code: "FORM-READY-2", name: "Approval-ready resilience draft", status: "DRAFT", version: 1, updated_at: "2026-08-30T12:01:00Z" },
   ];
-  if (fixture === "forms-weights-invalid" || fixture === "forms-weights-valid") {
-    const valid = fixture === "forms-weights-valid";
+  if (["forms-weights-invalid", "forms-weights-valid", "forms-builder-mobile", "forms-builder-reflow", "forms-builder-pointer"].includes(fixture)) {
+    const valid = fixture !== "forms-weights-invalid";
     return [{
       ...template,
       id: "form-compliance-scoring",
@@ -216,6 +238,17 @@ function formsTemplatePopulation(fixture: string) {
     }];
   }
   return demoForms;
+}
+
+function staticFormLibraryOperations(template: FormTemplate) {
+  const operations = [];
+  if (template.status === "DRAFT") operations.push({ command: "forms.template.revise", label: "Edit draft", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You hold the current responsibility and can edit this draft." });
+  const targets = template.status === "DRAFT" ? ["PENDING_APPROVAL"]
+    : template.status === "PENDING_APPROVAL" ? ["ACTIVE", "REJECTED"]
+      : template.status === "ACTIVE" ? ["PAUSED", "RETIRED"]
+        : template.status === "PAUSED" ? ["ACTIVE", "RETIRED"] : [];
+  if (targets.length) operations.push({ command: "forms.template.transition", label: "Change form status", responsibility: template.status === "PENDING_APPROVAL" ? "REVIEWER" : "ACCOUNTABLE_OWNER", can_act: true, reason: "You hold the current responsibility and can change this form state.", allowed_targets: targets });
+  return operations;
 }
 
 function formsImportPopulation(): DocumentImport[] {
@@ -764,7 +797,8 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     const search = url.searchParams.get("search")?.trim().toLowerCase();
     const status = url.searchParams.get("status")?.trim().toUpperCase();
     const items = formsTemplatePopulation(fixture).filter((form) => (!search || `${form.name} ${form.code} ${form.purpose} ${(form.tags ?? []).join(" ")}`.toLowerCase().includes(search)) && (!status || form.status === status));
-    return clone({ items: items.map((template) => ({ template, active_version: template.status === "ACTIVE" ? template.version : undefined, active_status: template.status === "ACTIVE" ? "ACTIVE" : undefined })) }) as T;
+    items.sort((left, right) => (url.searchParams.get("sort") === "UPDATED_ASC" ? 1 : -1) * (left.updated_at.localeCompare(right.updated_at) || left.id.localeCompare(right.id)));
+    return clone({ items: items.map((template) => ({ template, active_version: template.status === "ACTIVE" ? template.version : undefined, active_status: template.status === "ACTIVE" ? "ACTIVE" : undefined, authority_available: true, operations: staticFormLibraryOperations(template) })) }) as T;
   }
   const formRevisionMatch = pathname.match(/^\/api\/v1\/forms\/templates\/([^/]+)\/revisions\/(\d+)$/);
   if (formRevisionMatch && method === "GET") {

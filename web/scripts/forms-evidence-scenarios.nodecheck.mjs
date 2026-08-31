@@ -4,7 +4,8 @@ import test from "node:test";
 import { formsEvidenceScenarios, requiredFormsCapabilities } from "./forms-evidence-scenarios.mjs";
 
 const task22Capabilities = [
-  "library-empty", "library-list", "library-search", "library-saved-filter", "library-recent", "library-bulk-action",
+  "library-empty", "library-list", "library-search", "library-saved-filter", "library-context-detail", "library-bulk-action",
+  "creation-blank", "creation-template", "creation-ai", "creation-import",
   "template-draft", "template-pending", "template-active", "template-retired", "weights-invalid", "weights-valid",
   "import-pending", "import-partial", "import-truncated", "import-failed", "import-proposal",
   "communication-compose", "communication-delivered", "communication-fallback", "communication-amended",
@@ -13,6 +14,7 @@ const task22Capabilities = [
   "recovery-server-saved", "recovery-device-only", "recovery-conflict", "recovery-recovered", "recovery-file-reselection",
   "response-first", "response-amended",
   "vendor-confirm", "vendor-correct", "vendor-replace", "vendor-review", "vendor-conflict", "vendor-applied",
+  "library-mobile-records", "builder-mobile-actions", "builder-pointer-reorder", "builder-large-performance",
   "viewport-desktop", "viewport-mobile", "viewport-reflow-320", "zoom-200", "theme-light", "theme-dark",
 ];
 

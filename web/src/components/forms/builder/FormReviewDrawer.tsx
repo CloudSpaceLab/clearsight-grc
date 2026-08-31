@@ -1,13 +1,12 @@
 import type { FormTemplate } from "../../../monitoringTypes";
 import { FocusedSheet } from "../../FocusedSheet";
 import { hasRequiredSignOff, type AuthoringField, type FormQualityIssue } from "../formAuthoring";
-import type { BuilderSelection } from "./builderSelection";
 
 type Props = {
   issues: FormQualityIssue[];
   fields: AuthoringField[];
   initialValue?: FormTemplate;
-  onFix: (selection: BuilderSelection) => void;
+  onFix: (issue: FormQualityIssue) => void;
   onAddRequiredSignOff: () => void;
   onClose: () => void;
 };
@@ -38,7 +37,7 @@ export function FormReviewDrawer({ issues, fields, initialValue, onFix, onAddReq
           {blocking.map((issue) => <li key={issue.id}>
             <span className="form-review-marker blocking" aria-hidden="true"/>
             <span>{issue.message}</span>
-            <button type="button" onClick={() => { onFix(issueSelection(issue)); onClose(); }}>Fix →</button>
+            <button type="button" onClick={() => onFix(issue)}>Fix →</button>
           </li>)}
         </ul>
       </section> : <section className="form-review-ready" aria-label="Approval checks passed">
@@ -63,12 +62,6 @@ export function FormReviewDrawer({ issues, fields, initialValue, onFix, onAddReq
       <span>{initialValue?.status ? formatState(initialValue.status) : "Draft"}</span>
     </footer>
   </FocusedSheet>;
-}
-
-function issueSelection(issue: FormQualityIssue): BuilderSelection {
-  if (issue.fieldID) return { kind: "field", fieldID: issue.fieldID };
-  if (issue.sectionID) return { kind: "section", sectionID: issue.sectionID };
-  return { kind: "overview" };
 }
 
 function formatState(value: string): string {

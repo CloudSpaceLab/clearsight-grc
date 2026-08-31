@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import type { FormFieldType } from "../../../monitoringTypes";
 import type { AuthoringField, AuthoringSection, FormDraft } from "../formAuthoring";
 import { fieldTypes } from "../formAuthoring";
@@ -14,13 +15,17 @@ type Props = {
   onAddField: (sectionID?: string) => void;
   onAddSection: () => void;
   onMoveField: (index: number, offset: -1 | 1) => void;
+  onReorderField: (fromIndex: number, toIndex: number) => void;
+  onDuplicateField: (index: number) => void;
   onRemoveField: (index: number) => void;
 };
 
-export function FormCanvas({ draft, selection, onPatch, onSectionsChange, onFieldChange, onFieldTypeChange, onSelect, onAddField, onAddSection, onMoveField, onRemoveField }: Props) {
+export function FormCanvas({ draft, selection, onPatch, onSectionsChange, onFieldChange, onFieldTypeChange, onSelect, onAddField, onAddSection, onMoveField, onReorderField, onDuplicateField, onRemoveField }: Props) {
+  const draggedFieldIndex = useRef<number | null>(null);
+
   return <main className="form-builder-canvas" aria-label="Form canvas">
     <div className="form-canvas-document">
-      <header className={selection.kind === "overview" ? "form-canvas-header selected" : "form-canvas-header"} onClick={() => onSelect({ kind: "overview" })}>
+      <header data-builder-target="overview" className={selection.kind === "overview" ? "form-canvas-header selected" : "form-canvas-header"} onClick={() => onSelect({ kind: "overview" })}>
         <input
           className="form-canvas-title"
           aria-label="Form name"
@@ -49,7 +54,7 @@ export function FormCanvas({ draft, selection, onPatch, onSectionsChange, onFiel
         {draft.sections.map((section, sectionIndex) => {
           const sectionFields = draft.fields.filter((field) => field.section_id === section.id);
           const sectionSelected = selection.kind === "section" && selection.sectionID === section.id;
-          return <section className={sectionSelected ? "form-canvas-section selected" : "form-canvas-section"} key={section.id} aria-label={section.title.trim() || `Section ${sectionIndex + 1}`}>
+          return <section data-builder-section-id={section.id} className={sectionSelected ? "form-canvas-section selected" : "form-canvas-section"} key={section.id} aria-label={section.title.trim() || `Section ${sectionIndex + 1}`}>
             <div className="form-canvas-section-heading" onClick={() => onSelect({ kind: "section", sectionID: section.id })}>
               <span className="form-canvas-section-number">{String(sectionIndex + 1).padStart(2, "0")}</span>
               <div>
@@ -77,15 +82,45 @@ export function FormCanvas({ draft, selection, onPatch, onSectionsChange, onFiel
                 const index = draft.fields.findIndex((candidate) => candidate.id === field.id);
                 const siblingPosition = sectionFields.findIndex((candidate) => candidate.id === field.id);
                 const selected = selection.kind === "field" && selection.fieldID === field.id;
-                return <article className={selected ? "form-canvas-question selected" : "form-canvas-question"} key={field.id} onClick={() => onSelect({ kind: "field", fieldID: field.id })}>
+                return <article
+                  className={selected ? "form-canvas-question selected" : "form-canvas-question"}
+                  data-builder-field-id={field.id}
+                  key={field.id}
+                  onClick={() => onSelect({ kind: "field", fieldID: field.id })}
+                  onDragOver={(event) => {
+                    if (draggedFieldIndex.current == null) return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const fromIndex = draggedFieldIndex.current;
+                    draggedFieldIndex.current = null;
+                    if (fromIndex == null || fromIndex === index) return;
+                    onReorderField(fromIndex, index);
+                  }}
+                >
                   <div className="form-question-topline">
-                    <button className="form-question-drag" type="button" aria-label={`Question ${index + 1} reorder options`} title="Reorder question">⠿</button>
+                    <span
+                      className="form-question-drag"
+                      draggable="true"
+                      aria-hidden="true"
+                      title={`Drag question ${index + 1} to reorder`}
+                      onDragStart={(event) => {
+                        draggedFieldIndex.current = index;
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", field.id);
+                        onSelect({ kind: "field", fieldID: field.id });
+                      }}
+                      onDragEnd={() => { draggedFieldIndex.current = null; }}
+                    >⠿</span>
                     {field.condition && <span className="form-question-conditional">◇ Conditional</span>}
                     <details className="form-question-menu" onClick={(event) => event.stopPropagation()}>
                       <summary aria-label={`Question ${index + 1} actions`}>•••</summary>
                       <div>
                         <button type="button" disabled={siblingPosition === 0} onClick={() => onMoveField(index, -1)}>Move up</button>
                         <button type="button" disabled={siblingPosition === sectionFields.length - 1} onClick={() => onMoveField(index, 1)}>Move down</button>
+                        <button type="button" disabled={draft.fields.length >= 200} onClick={() => onDuplicateField(index)}>Duplicate question</button>
                         {draft.fields.length > 1 && <button type="button" className="danger-text" onClick={() => onRemoveField(index)}>Delete</button>}
                       </div>
                     </details>

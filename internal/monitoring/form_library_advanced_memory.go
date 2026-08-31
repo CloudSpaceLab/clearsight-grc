@@ -2,7 +2,6 @@ package monitoring
 
 import (
 	"context"
-	"sort"
 	"strings"
 )
 
@@ -11,6 +10,10 @@ func (r *MemoryRepository) ListAdvancedFormLibrary(_ context.Context, filter For
 		return FormTemplatePage{}, ErrInvalid
 	}
 	cursor, err := decodeFormLibraryCursor(filter.Cursor)
+	if err != nil {
+		return FormTemplatePage{}, err
+	}
+	order, err := normalizedFormLibrarySort(filter.Sort)
 	if err != nil {
 		return FormTemplatePage{}, err
 	}
@@ -58,7 +61,7 @@ func (r *MemoryRepository) ListAdvancedFormLibrary(_ context.Context, filter For
 			continue
 		}
 		total++
-		if !cursor.UpdatedAt.IsZero() && (value.UpdatedAt.After(cursor.UpdatedAt) || value.UpdatedAt.Equal(cursor.UpdatedAt) && value.ID >= cursor.ID) {
+		if !formLibraryItemBeyondCursor(value, cursor, order) {
 			continue
 		}
 		item := FormLibraryItem{Template: cloneValue(value)}
@@ -68,12 +71,7 @@ func (r *MemoryRepository) ListAdvancedFormLibrary(_ context.Context, filter For
 		}
 		items = append(items, item)
 	}
-	sort.Slice(items, func(i, j int) bool {
-		if items[i].Template.UpdatedAt.Equal(items[j].Template.UpdatedAt) {
-			return items[i].Template.ID > items[j].Template.ID
-		}
-		return items[i].Template.UpdatedAt.After(items[j].Template.UpdatedAt)
-	})
+	sortFormLibraryItems(items, order)
 	page := FormTemplatePage{Items: items, Total: &total}
 	if includeStatusFacets {
 		page.Facets = &facets

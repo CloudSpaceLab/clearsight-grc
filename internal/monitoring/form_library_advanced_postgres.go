@@ -17,6 +17,14 @@ func (r *PostgresRepository) ListAdvancedFormLibrary(ctx context.Context, filter
 	if err != nil {
 		return FormTemplatePage{}, err
 	}
+	order, err := normalizedFormLibrarySort(filter.Sort)
+	if err != nil {
+		return FormTemplatePage{}, err
+	}
+	cursorOperator, sortDirection := "<", "DESC"
+	if order == FormLibraryUpdatedAsc {
+		cursorOperator, sortDirection = ">", "ASC"
+	}
 	expression, err := combinedFormFilterExpression(filter)
 	if err != nil {
 		return FormTemplatePage{}, err
@@ -43,9 +51,9 @@ func (r *PostgresRepository) ListAdvancedFormLibrary(ctx context.Context, filter
 	LEFT JOIN monitoring_form_templates active ON active.tenant_id=f.tenant_id AND active.id=f.id AND active.is_current
 	WHERE ($3='' OR lower(f.code) LIKE '%%'||lower($3)||'%%' OR lower(f.name) LIKE '%%'||lower($3)||'%%' OR lower(f.purpose) LIKE '%%'||lower($3)||'%%')
 	  AND (%s)
-	  AND ($%d='' OR (f.updated_at,f.id) < (NULLIF($%d,'')::timestamptz,NULLIF($%d,'')::uuid))
-	ORDER BY f.updated_at DESC,f.id DESC
-	LIMIT $%d`, formProjection, whereExpression, nextArg, nextArg, nextArg+1, nextArg+2)
+	  AND ($%d='' OR (f.updated_at,f.id) %s (NULLIF($%d,'')::timestamptz,NULLIF($%d,'')::uuid))
+	ORDER BY f.updated_at %s,f.id %s
+	LIMIT $%d`, formProjection, whereExpression, nextArg, cursorOperator, nextArg, nextArg+1, sortDirection, sortDirection, nextArg+2)
 
 	rows, err := r.pool.Query(ctx, pageSQL, pageArgs...)
 	if err != nil {

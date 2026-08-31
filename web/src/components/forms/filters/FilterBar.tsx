@@ -88,6 +88,14 @@ export function FilterBar({ query, onChange, resultCount, revalidating = false }
       >
         {advancedSummary ? "Edit logic" : "Advanced"}
       </button>
+      <button
+        type="button"
+        className="forms-filter-sort-button"
+        aria-label={query.sort === "UPDATED_ASC" ? "Sort by newest update" : "Sort by oldest update"}
+        onClick={() => onChange({ ...query, sort: query.sort === "UPDATED_ASC" ? "UPDATED_DESC" : "UPDATED_ASC", cursor: undefined })}
+      >
+        Updated {query.sort === "UPDATED_ASC" ? "↑" : "↓"}
+      </button>
     </div>
 
     <div className="forms-filter-status" aria-live="polite">

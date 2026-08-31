@@ -4,7 +4,7 @@ import { withStatusScope } from "./filterModel";
 
 const scopes: readonly { status: LifecycleStatus; label: string }[] = [
   { status: "DRAFT", label: "Draft" },
-  { status: "PENDING_APPROVAL", label: "In review" },
+  { status: "PENDING_APPROVAL", label: "Awaiting approval" },
   { status: "ACTIVE", label: "Active" },
   { status: "PAUSED", label: "Paused" },
   { status: "REJECTED", label: "Rejected" },
@@ -27,6 +27,7 @@ export function FormStatusScopes({ query, facets, onChange }: Props) {
       type="button"
       className={!query.status ? "active" : ""}
       aria-current={!query.status ? "page" : undefined}
+      aria-label={`All ${total}`}
       onClick={() => onChange(withStatusScope(query))}
     >
       <span>All</span><strong>{total}</strong>
@@ -39,6 +40,7 @@ export function FormStatusScopes({ query, facets, onChange }: Props) {
         type="button"
         className={active ? "active" : ""}
         aria-current={active ? "page" : undefined}
+        aria-label={`${scope.label} ${count}`}
         key={scope.status}
         onClick={() => onChange(withStatusScope(query, scope.status))}
       >

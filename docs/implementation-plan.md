@@ -1,7 +1,13 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-08-29
+**Status date:** 2026-08-31
 **Current execution:** Release integration and deployment verification for governed Forms, vendor refresh and operational workflows
+
+## Governed Forms UX #103 — code closure in verification
+
+The accepted Forms UX direction now preserves selected-template context across filters and saved views, supports server-backed newest/oldest updated sorting, uses the shared focus-managed and scroll-locked sheet for template detail, replaces narrow-screen table overflow with labelled stacked records, and keeps every material builder action visible at 320–390px. Library lifecycle actions now come from bounded exact-template authority reads and fail closed when responsibility cannot be checked. Question duplication, safe pointer reordering, keyboard Move up/Move down and exact Review Fix focus are executable. The deterministic Forms evidence contract includes populated mobile library, mobile/reflow builder, real desktop pointer drag and 120-question performance fixtures.
+
+The local exact-head matrix passes 114/114 rendered flows and 56/56 governed Forms capabilities; its 120-question Chromium fixture became usable in 342ms and applied a question edit in 57ms on this development host. Issue #103 must remain open until representative bank-user creation/operation timing, actual 200% browser zoom, normal-enterprise-network search/filter p95, hosted exact-commit journeys and production-shaped PostgreSQL/load evidence are recorded. Local fixtures, tagged compilation and unit tests cannot truthfully satisfy those external acceptance gates.
 
 ## Vendor email acceptance journeys — implemented, hosted acceptance pending
 

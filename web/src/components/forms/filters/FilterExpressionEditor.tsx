@@ -1,6 +1,6 @@
 import type { FilterCondition, FilterExpression, FilterField, FilterGroup } from "./filterModel";
 import { filterExpressionNodeCount } from "./filterModel";
-import { filterDefinition, formFilterRegistry } from "./filterRegistry";
+import { filterDefinition, formatFilterValue, selectableFormFilterRegistry } from "./filterRegistry";
 
 const MAX_NODES = 12;
 const MAX_DEPTH = 3;
@@ -97,6 +97,9 @@ function ConditionEditor({ condition, index, onChange, onRemove }: {
   onRemove: () => void;
 }) {
   const definition = filterDefinition(condition.field);
+  const definitions = definition.selectable === false
+    ? [definition, ...selectableFormFilterRegistry]
+    : selectableFormFilterRegistry;
 
   function chooseField(field: FilterField) {
     onChange({ kind: "condition", field, operator: "is", value: "" });
@@ -104,10 +107,15 @@ function ConditionEditor({ condition, index, onChange, onRemove }: {
 
   return <div className="forms-expression-condition">
     <select aria-label={`Condition ${index + 1} field`} value={condition.field} onChange={(event) => chooseField(event.target.value as FilterField)}>
-      {formFilterRegistry.map((item) => <option value={item.field} key={item.field}>{item.label}</option>)}
+      {definitions.map((item) => <option value={item.field} key={item.field}>{item.label}</option>)}
     </select>
     <span className="forms-expression-operator">is</span>
-    {definition.input === "select" ? <select
+    {definition.selectable === false ? <span
+      className="forms-expression-preserved-value"
+      aria-label={`Condition ${index + 1} ${definition.label} value`}
+    >
+      {formatFilterValue(condition.field, condition.value)}
+    </span> : definition.input === "select" ? <select
       aria-label={`Condition ${index + 1} ${definition.label} value`}
       value={condition.value}
       onChange={(event) => onChange({ ...condition, value: event.target.value })}

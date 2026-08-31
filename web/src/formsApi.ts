@@ -24,6 +24,7 @@ function formQuery(query: FormTemplateQuery = {}, options: FormTemplatePageOptio
     ["search", query.search?.trim() || undefined], ["status", query.status], ["owner", query.owner?.trim() || undefined],
     ["program", query.program?.trim() || undefined], ["use", query.use?.trim() || undefined], ["tag", query.tag?.trim() || undefined],
     ["cursor", query.cursor], ["limit", query.limit],
+    ["sort", query.sort === "UPDATED_ASC" ? query.sort : undefined],
   ];
   for (const [key, value] of values) if (value !== undefined && value !== "") params.set(key, String(value));
   if (query.filter) params.set("filter", JSON.stringify(query.filter));
@@ -71,6 +72,7 @@ export function saveFormView(name: string, query: FormTemplateQuery, id?: string
     use: query.use?.trim() || undefined,
     tag: query.tag?.trim() || undefined,
     expression: query.filter,
+    sort: query.sort,
     limit: query.limit,
   };
   return requestJSON<SavedFormView>(apiBase, "/api/v1/forms/saved-views", { method: "POST", body: JSON.stringify({ id, name, filter }) });

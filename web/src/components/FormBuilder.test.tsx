@@ -109,6 +109,80 @@ describe("FormBuilder", () => {
     expect(input.fields[3]?.condition?.field_id).toBe("question_3");
   });
 
+  it("reorders questions with pointer drag while retaining keyboard move actions", async () => {
+    render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    completeBase();
+    fireEvent.click(screen.getByRole("button", { name: "+ Add question" }));
+    const second = selectQuestion(1);
+    fireEvent.change(second, { target: { value: "Registration number" } });
+
+    const data = new Map<string, string>();
+    const dataTransfer = {
+      effectAllowed: "move",
+      dropEffect: "move",
+      setData: (type: string, value: string) => data.set(type, value),
+      getData: (type: string) => data.get(type) ?? "",
+    };
+    fireEvent.dragStart(screen.getByTitle("Drag question 1 to reorder"), { dataTransfer });
+    const secondCard = screen.getAllByLabelText("Question")[1]?.closest("article");
+    expect(secondCard).not.toBeNull();
+    fireEvent.dragOver(secondCard!, { dataTransfer });
+    fireEvent.drop(secondCard!, { dataTransfer });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await waitFor(() => expect(createFormTemplate).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(createFormTemplate).mock.calls[0]?.[1].fields.map((field) => field.label)).toEqual([
+      "Registration number",
+      "Primary contact",
+    ]);
+    fireEvent.click(screen.getByLabelText("Question 1 actions"));
+    expect(screen.getAllByRole("button", { name: "Move down" }).some((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
+  });
+
+  it("duplicates a question from the compact actions menu with a regenerated key", async () => {
+    render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    completeBase();
+    fireEvent.click(screen.getByLabelText("Question 1 actions"));
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate question" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+
+    await waitFor(() => expect(createFormTemplate).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(createFormTemplate).mock.calls[0]?.[1].fields.map(({ id, label }) => ({ id, label }))).toEqual([
+      { id: "question_1", label: "Primary contact" },
+      { id: "question_2", label: "Primary contact copy" },
+    ]);
+  });
+
+  it("blocks a reorder that would place a conditional question before its source", async () => {
+    render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
+    completeBase();
+    fireEvent.change(selectedResponseType(), { target: { value: "yes_no" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ Add question" }));
+    const dependent = selectQuestion(1);
+    fireEvent.change(dependent, { target: { value: "Explain the answer" } });
+    fireEvent.click(screen.getByText("Logic"));
+    fireEvent.change(screen.getByLabelText("Show this question when"), { target: { value: "question_1" } });
+    fireEvent.change(screen.getByLabelText("Condition value"), { target: { value: "Yes" } });
+
+    const data = new Map<string, string>();
+    const dataTransfer = {
+      effectAllowed: "move",
+      dropEffect: "move",
+      setData: (type: string, value: string) => data.set(type, value),
+      getData: (type: string) => data.get(type) ?? "",
+    };
+    fireEvent.dragStart(screen.getByTitle("Drag question 2 to reorder"), { dataTransfer });
+    const firstCard = screen.getAllByLabelText("Question")[0]?.closest("article");
+    fireEvent.drop(firstCard!, { dataTransfer });
+
+    expect(screen.getByRole("alert").textContent).toContain("must remain after the question it depends on");
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await waitFor(() => expect(createFormTemplate).toHaveBeenCalledTimes(1));
+    const fields = vi.mocked(createFormTemplate).mock.calls[0]?.[1].fields ?? [];
+    expect(fields.map((field) => field.label)).toEqual(["Primary contact", "Explain the answer"]);
+    expect(fields[1]?.condition?.field_id).toBe("question_1");
+  });
+
   it("inserts a section from an exact active template revision with regenerated keys", async () => {
     const reusable: FormTemplate = {
       ...savedForm,
@@ -163,9 +237,11 @@ describe("FormBuilder", () => {
     const sendForApproval = vi.fn();
     render(<FormBuilder initialValue={complianceForm} saveDraft={saveDraft} onSendForApproval={sendForApproval} onSaved={vi.fn()} onCancel={vi.fn()} allowIncompleteComplianceDraft/>);
     fireEvent.click(screen.getByRole("button", { name: /Review/ }));
-    expect(screen.getByText("20% remains to allocate in Vendor identity")).toBeTruthy();
+    const allocationIssue = screen.getByText("20% remains to allocate in Vendor identity");
+    expect(allocationIssue).toBeTruthy();
     expect((screen.getByRole("button", { name: "Send for approval" }) as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "Close review" }));
+    fireEvent.click(within(allocationIssue.closest("li")!).getByRole("button", { name: "Fix →" }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Section 1 title")));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(1));
     expect(sendForApproval).not.toHaveBeenCalled();

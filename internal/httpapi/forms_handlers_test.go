@@ -2,17 +2,51 @@ package httpapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 )
+
+func TestFormLibraryReadIncludesExactAuthorityOperations(t *testing.T) {
+	resolver := &exactFormAuthority{}
+	api := &API{deps: Dependencies{Authority: resolver}}
+	page := monitoring.FormTemplatePage{Items: []monitoring.FormLibraryItem{{Template: monitoring.FormTemplate{
+		ID: "draft-a", TenantID: "bank-a", LegalEntityID: "entity-a", Name: "Vendor review",
+		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleDraft, Version: 2},
+	}}}}
+	actor := identity.Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner-draft-a"}
+
+	result := api.formLibraryPageWithOperations(context.Background(), actor, page, time.Date(2026, 8, 31, 8, 0, 0, 0, time.UTC))
+	if len(result.Items) != 1 || !result.Items[0].AuthorityAvailable || len(result.Items[0].Operations) != 2 {
+		t.Fatalf("operation response = %#v", result.Items)
+	}
+	for _, operation := range result.Items[0].Operations {
+		if !operation.CanAct {
+			t.Fatalf("owner operation must be permitted: %#v", operation)
+		}
+	}
+	transition := result.Items[0].Operations[1]
+	if transition.Command != "forms.template.transition" || len(transition.AllowedTargets) != 1 || transition.AllowedTargets[0] != "PENDING_APPROVAL" {
+		t.Fatalf("transition operation = %#v", transition)
+	}
+	if resolver.batchCalls != 1 || resolver.scalarCalls != 0 {
+		t.Fatalf("authority calls batch=%d scalar=%d", resolver.batchCalls, resolver.scalarCalls)
+	}
+	for _, input := range resolver.inputs {
+		if input.ObjectType != "FORM_TEMPLATE" || input.ObjectID != "draft-a" || input.LegalEntityID != "entity-a" {
+			t.Fatalf("authority input was not exact: %#v", input)
+		}
+	}
+}
 
 func TestFormsRoutesAreRegisteredAndClassified(t *testing.T) {
 	want := map[string]routeClass{

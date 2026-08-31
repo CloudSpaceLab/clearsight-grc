@@ -11,11 +11,12 @@ export type FilterDefinition = {
   placeholder?: string;
   options?: readonly FilterOption[];
   formatValue?: (value: string) => string;
+  selectable?: boolean;
 };
 
 const statusOptions = [
   { value: "DRAFT", label: "Draft" },
-  { value: "PENDING_APPROVAL", label: "In review" },
+  { value: "PENDING_APPROVAL", label: "Awaiting approval" },
   { value: "ACTIVE", label: "Active" },
   { value: "PAUSED", label: "Paused" },
   { value: "RETIRED", label: "Retired" },
@@ -38,7 +39,9 @@ export const formFilterRegistry: readonly FilterDefinition[] = [
     category: "Common",
     operator: "is",
     input: "text",
-    placeholder: "Owner or principal ID",
+    placeholder: "Choose an owner",
+    selectable: false,
+    formatValue: () => "Selected owner",
   },
   {
     field: "program",
@@ -46,7 +49,9 @@ export const formFilterRegistry: readonly FilterDefinition[] = [
     category: "Common",
     operator: "is",
     input: "text",
-    placeholder: "Program ID",
+    placeholder: "Choose a program",
+    selectable: false,
+    formatValue: () => "Selected program",
   },
   {
     field: "use",
@@ -65,6 +70,8 @@ export const formFilterRegistry: readonly FilterDefinition[] = [
     placeholder: "e.g. third-party",
   },
 ] as const;
+
+export const selectableFormFilterRegistry = formFilterRegistry.filter((item) => item.selectable !== false);
 
 export function filterDefinition(field: FilterField): FilterDefinition {
   const definition = formFilterRegistry.find((item) => item.field === field);

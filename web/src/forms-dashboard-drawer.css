@@ -5,6 +5,7 @@
   right: 22px;
   bottom: 22px;
   width: min(430px, calc(100vw - 32px));
+  height: auto;
   overflow: auto;
   border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
   border-radius: 20px;
@@ -22,10 +23,14 @@
   min-height: 48px;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px 8px 18px;
+  padding: 8px 58px 8px 18px;
   border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(18px);
+}
+
+.forms-detail-drawer .panel-close {
+  z-index: 3;
 }
 
 .forms-detail-drawer-bar > span {

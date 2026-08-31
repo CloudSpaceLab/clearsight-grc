@@ -20,12 +20,13 @@ describe("FormStatusScopes", () => {
 
     render(<FormStatusScopes
       query={query}
-      facets={{ status: { DRAFT: 3, ACTIVE: 5, PAUSED: 1 } }}
+      facets={{ status: { DRAFT: 3, PENDING_APPROVAL: 2, ACTIVE: 5, PAUSED: 1 } }}
       onChange={onChange}
     />);
 
-    expect(screen.getByRole("button", { name: "All 9" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "All 11" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Draft 3" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Awaiting approval 2" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Rejected/ })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Draft 3" }));

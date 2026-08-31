@@ -1,4 +1,5 @@
 .form-builder-workspace {
+  --builder-context-offset: 68px;
   --builder-pane: color-mix(in srgb, var(--surface) 88%, transparent);
   --builder-canvas: color-mix(in srgb, var(--surface-2, var(--surface)) 72%, var(--surface));
   --builder-border: color-mix(in srgb, var(--border) 72%, transparent);
@@ -29,7 +30,7 @@
 .form-builder-toolbar {
   position: sticky;
   z-index: 20;
-  top: 0;
+  top: var(--builder-context-offset);
   display: flex;
   min-height: 60px;
   align-items: center;
@@ -455,6 +456,7 @@
 }
 
 .form-question-drag {
+  display: grid;
   width: 26px;
   min-width: 26px;
   min-height: 24px;
@@ -464,6 +466,12 @@
   color: var(--muted);
   cursor: grab;
   font-size: 13px;
+  place-items: center;
+  user-select: none;
+}
+
+.form-question-drag:active {
+  cursor: grabbing;
 }
 
 .form-question-conditional {
@@ -1036,7 +1044,8 @@
   }
 
   .form-builder-toolbar-actions {
-    overflow-x: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .form-builder-toolbar-actions > button {
@@ -1089,22 +1098,40 @@
 }
 
 @media (max-width: 560px) {
+  .form-builder-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
   .form-builder-toolbar-leading {
-    flex: 0 1 auto;
+    width: 100%;
   }
 
   .form-builder-back {
-    padding-inline: 0 5px;
+    min-height: 44px;
+    padding-inline: 4px 8px;
   }
 
-  .form-builder-toolbar-actions .text-button:first-child {
-    display: none;
+  .form-builder-toolbar-actions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
   }
 
   .form-builder-toolbar-actions > button {
-    min-height: 36px;
+    min-height: 44px;
     padding-inline: 8px;
     font-size: 10px;
+  }
+
+  .form-question-drag,
+  .form-question-menu summary {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
   }
 
   .form-canvas-section-heading {

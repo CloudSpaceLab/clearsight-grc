@@ -20,7 +20,22 @@ export type FormTemplate = MonitoringFormTemplate & {
   sections: FormTemplateSection[];
 };
 
-export type FormLibraryItem = { template: FormTemplate; active_version?: number; active_status?: LifecycleStatus };
+export type FormLibraryOperation = {
+  command: "forms.template.revise" | "forms.template.transition";
+  label: string;
+  responsibility: string;
+  can_act: boolean;
+  reason: string;
+  allowed_targets?: LifecycleStatus[];
+};
+
+export type FormLibraryItem = {
+  template: FormTemplate;
+  active_version?: number;
+  active_status?: LifecycleStatus;
+  authority_available?: boolean;
+  operations?: FormLibraryOperation[];
+};
 
 export type FormFilterField = "status" | "owner" | "program" | "use" | "tag";
 export type FormFilterCondition = {
@@ -46,12 +61,13 @@ export type ReusableFormTemplateRef = { id: string; name: string; code: string; 
 
 export type FormTemplateQuery = {
   search?: string; status?: LifecycleStatus; owner?: string; program?: string;
-  use?: string; tag?: string; filter?: FormFilterExpression; cursor?: string; limit?: number;
+  use?: string; tag?: string; filter?: FormFilterExpression; sort?: "UPDATED_DESC" | "UPDATED_ASC"; cursor?: string; limit?: number;
 };
 
 export type SavedFormViewFilter = {
   search?: string; status?: LifecycleStatus; owner_principal_id?: string; program_id?: string;
   use?: string; tag?: string; expression?: FormFilterExpression; limit?: number;
+  sort?: "UPDATED_DESC" | "UPDATED_ASC";
 };
 export type SavedFormView = { id: string; name: string; filter: SavedFormViewFilter; created_at: string; updated_at: string };
 

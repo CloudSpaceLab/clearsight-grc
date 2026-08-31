@@ -39,10 +39,10 @@ async function captureScenario(scenario) {
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
     await page.goto(scenarioURL(scenario), { waitUntil: "networkidle" });
-    await scenario.run(page);
+    const scenarioMetrics = await scenario.run(page);
     await page.evaluate(() => document.fonts?.ready);
     if (errors.length) throw new Error(`${scenario.name} emitted browser errors:\n${errors.join("\n")}`);
-    await verifyAndCapture(page, scenario);
+    await verifyAndCapture(page, scenario, scenarioMetrics);
   } finally {
     await context.close();
   }
@@ -105,7 +105,7 @@ function scenarioURL(scenario) {
   return `${baseURL}/?tour=off&fixture=${fixture}${scenario.route}`;
 }
 
-async function verifyAndCapture(page, scenario) {
+async function verifyAndCapture(page, scenario, scenarioMetrics) {
   const metrics = await layoutMetrics(page);
   if (metrics.scrollWidth > metrics.clientWidth + 1) throw new Error(`${scenario.name} has horizontal overflow: ${metrics.scrollWidth}px content in ${metrics.clientWidth}px viewport`);
   await page.screenshot({ path: path.join(outputDir, `${scenario.name}.png`), fullPage: false, animations: "disabled", caret: "hide" });
@@ -118,6 +118,7 @@ async function verifyAndCapture(page, scenario) {
     viewport: page.viewportSize(),
     theme: scenario.theme,
     density: "comfortable",
+    ...(scenarioMetrics ? { scenario_metrics: scenarioMetrics } : {}),
     zoom: scenario.zoom,
     capabilities: [...scenario.capabilities],
     metrics,

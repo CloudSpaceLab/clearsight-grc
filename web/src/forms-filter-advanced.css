@@ -1,4 +1,5 @@
-.forms-filter-advanced-button {
+.forms-filter-advanced-button,
+.forms-filter-sort-button {
   flex: 0 0 auto;
   min-height: 36px;
   padding: 0 10px;
@@ -13,7 +14,9 @@
 
 .forms-filter-advanced-button:hover,
 .forms-filter-advanced-button:focus-visible,
-.forms-filter-advanced-button[aria-expanded="true"] {
+.forms-filter-advanced-button[aria-expanded="true"],
+.forms-filter-sort-button:hover,
+.forms-filter-sort-button:focus-visible {
   background: color-mix(in srgb, var(--forms-accent) 7%, transparent);
   color: var(--text);
 }
@@ -208,6 +211,17 @@
   gap: 8px;
 }
 
+.forms-expression-preserved-value {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-2, var(--surface));
+  color: var(--muted);
+}
+
 .forms-expression-condition select,
 .forms-expression-condition input {
   width: 100%;
@@ -311,6 +325,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .forms-filter-advanced-button,
+  .forms-filter-sort-button,
   .forms-status-scopes button {
     transition: none;
   }

@@ -9,6 +9,7 @@ export const requiredFormsCapabilities = Object.freeze([
   "recovery-server-saved", "recovery-device-only", "recovery-conflict", "recovery-recovered", "recovery-file-reselection",
   "response-first", "response-amended",
   "vendor-confirm", "vendor-correct", "vendor-replace", "vendor-review", "vendor-conflict", "vendor-applied",
+  "library-mobile-records", "builder-mobile-actions", "builder-pointer-reorder", "builder-large-performance",
   "viewport-desktop", "viewport-mobile", "viewport-reflow-320", "zoom-200", "theme-light", "theme-dark",
 ]);
 
@@ -32,7 +33,7 @@ const scenarios = [
     capabilities: ["library-list", "library-context-detail", "template-draft", "template-pending", "template-active", "template-retired", "viewport-desktop", "theme-light"],
     run: async (page) => {
       await page.getByLabel("Search templates").waitFor({ state: "visible" });
-      for (const value of ["Draft", "Pending Approval", "Active", "Retired"]) await visible(page, value);
+      for (const value of ["Draft", "Awaiting approval", "Active", "Retired"]) await visible(page, value);
       if (await page.getByLabel("Selected form template").count()) throw new Error("Forms library detail must stay closed until a template is selected.");
       await page.locator(".forms-library-table tbody .forms-row-action").first().click();
       await page.getByLabel("Selected form template").waitFor({ state: "visible" });
@@ -49,7 +50,7 @@ const scenarios = [
     run: async (page) => { await page.getByLabel("Search templates").fill("no matching bank form"); await page.getByRole("heading", { name: "No templates match “no matching bank form”" }).waitFor({ state: "visible" }); },
   },
   {
-    name: "91-forms-new-form-light-1440x900", fixture: "forms-library-lifecycle", route: "#forms",
+    name: "91-forms-new-form-light-1440x900", fixture: "forms-new-form", route: "#forms",
     state: "forms-unified-creation", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["creation-blank", "creation-template", "creation-ai", "creation-import"],
     run: async (page) => {
@@ -188,7 +189,118 @@ const scenarios = [
     capabilities: ["zoom-200"],
     run: async (page) => { await page.getByLabel("Search templates").waitFor({ state: "visible" }); },
   },
+  {
+    name: "112-forms-library-populated-dark-mobile-390x844", fixture: "forms-library-mobile-populated", route: "#forms",
+    state: "forms-library-populated-mobile", theme: "dark", viewport: mobile, zoom: 1, touch: true,
+    capabilities: ["library-list", "library-mobile-records", "viewport-mobile", "theme-dark"],
+    run: async (page) => {
+      const row = page.locator(".forms-library-table tbody tr").first();
+      await row.waitFor({ state: "visible" });
+      const presentation = await row.evaluate((element) => ({
+        display: getComputedStyle(element).display,
+        width: element.getBoundingClientRect().width,
+        viewport: document.documentElement.clientWidth,
+        labels: [...element.querySelectorAll("[data-label]")].map((cell) => cell.getAttribute("data-label")),
+        factWidths: [...element.querySelectorAll("[data-label]")].map((cell) => cell.getBoundingClientRect().width),
+      }));
+      if (presentation.display !== "grid" || presentation.width > presentation.viewport) throw new Error("Populated Forms rows must stack within the mobile viewport.");
+      for (const label of ["State", "Revision", "Owner", "Updated"]) if (!presentation.labels.includes(label)) throw new Error(`Mobile Forms row is missing its ${label} label.`);
+      if (presentation.factWidths.some((width) => width < presentation.width * 0.8)) throw new Error("Mobile Forms facts must span the record card instead of entering the action column.");
+      await row.getByRole("button", { name: /^Open / }).waitFor({ state: "visible" });
+    },
+  },
+  {
+    name: "113-forms-builder-actions-light-mobile-390x844", fixture: "forms-builder-mobile", route: "#forms",
+    state: "forms-builder-mobile-actions", theme: "light", viewport: mobile, zoom: 1, touch: true,
+    capabilities: ["builder-mobile-actions", "viewport-mobile", "theme-light"],
+    run: async (page) => { await verifyMobileBuilder(page); },
+  },
+  {
+    name: "114-forms-builder-reflow-dark-320x800", fixture: "forms-builder-reflow", route: "#forms",
+    state: "forms-builder-reflow-320", theme: "dark", viewport: reflow, zoom: 1, touch: true,
+    capabilities: ["builder-mobile-actions", "viewport-reflow-320", "theme-dark"],
+    run: async (page) => { await verifyMobileBuilder(page); },
+  },
+  {
+    name: "115-forms-builder-pointer-reorder-light-1440x900", fixture: "forms-builder-pointer", route: "#forms",
+    state: "forms-builder-pointer-reorder", theme: "light", viewport: desktop, zoom: 1,
+    capabilities: ["builder-pointer-reorder", "viewport-desktop", "theme-light"],
+    run: async (page) => {
+      await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
+      await page.getByRole("button", { name: "Edit draft" }).click();
+      const questions = page.locator(".form-canvas-question");
+      await questions.nth(1).waitFor({ state: "visible" });
+      const labelsBefore = await page.locator(".form-question-prompt").evaluateAll((inputs) => inputs.map((input) => input.value));
+      const handle = page.getByTitle("Drag question 1 to reorder");
+      await questions.nth(1).scrollIntoViewIfNeeded();
+      const handleBounds = await handle.boundingBox();
+      const targetBounds = await questions.nth(1).boundingBox();
+      if (!handleBounds || !targetBounds) throw new Error("Pointer reorder controls must be measurable before dragging.");
+      await page.mouse.move(handleBounds.x + handleBounds.width / 2, handleBounds.y + handleBounds.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(handleBounds.x + handleBounds.width / 2 + 20, handleBounds.y + handleBounds.height / 2 + 20, { steps: 5 });
+      await page.mouse.move(targetBounds.x + 20, targetBounds.y + 20, { steps: 20 });
+      await page.mouse.up();
+      await page.waitForFunction((expected) => document.querySelector(".form-question-prompt")?.value === expected, labelsBefore[1]);
+      const labelsAfter = await page.locator(".form-question-prompt").evaluateAll((inputs) => inputs.map((input) => input.value));
+      if (labelsAfter[0] !== labelsBefore[1] || labelsAfter[1] !== labelsBefore[0]) throw new Error("Pointer drag must persist the changed question order in the builder.");
+      await verifyBuilderChromeNoOverlap(page);
+    },
+  },
+  {
+    name: "116-forms-builder-large-performance-light-1440x900", fixture: "forms-builder-large", route: "#forms",
+    state: "forms-builder-120-question-performance", theme: "light", viewport: desktop, zoom: 1,
+    capabilities: ["builder-large-performance", "viewport-desktop", "theme-light"],
+    run: async (page) => {
+      const openedAt = await page.evaluate(() => performance.now());
+      await page.getByRole("button", { name: "Open Large control confirmation" }).click();
+      await page.getByRole("button", { name: "Edit draft" }).click();
+      await page.waitForFunction(() => document.querySelectorAll(".form-canvas-question").length === 120);
+      const renderedAt = await page.evaluate(() => performance.now());
+      const question = page.locator(".form-question-prompt").nth(99);
+      await question.scrollIntoViewIfNeeded();
+      const interactionStartedAt = await page.evaluate(() => performance.now());
+      await question.fill("Updated control confirmation 100");
+      await page.waitForFunction(() => document.querySelectorAll(".form-question-prompt")[99]?.value === "Updated control confirmation 100");
+      const interactionFinishedAt = await page.evaluate(() => performance.now());
+      const metrics = { render_ms: Math.round(renderedAt - openedAt), question_update_ms: Math.round(interactionFinishedAt - interactionStartedAt), question_count: 120 };
+      if (metrics.render_ms > 3000) throw new Error(`The 120-question builder took ${metrics.render_ms}ms to become usable; budget is 3000ms.`);
+      if (metrics.question_update_ms > 500) throw new Error(`A large-form question update took ${metrics.question_update_ms}ms; budget is 500ms.`);
+      await verifyBuilderChromeNoOverlap(page);
+      return metrics;
+    },
+  },
 ];
+
+async function verifyBuilderChromeNoOverlap(page) {
+  const toolbar = await page.locator(".form-builder-toolbar").boundingBox();
+  const account = await page.getByRole("button", { name: /^Viewing as / }).boundingBox();
+  if (!toolbar || !account) return;
+  const overlaps = toolbar.x < account.x + account.width && toolbar.x + toolbar.width > account.x
+    && toolbar.y < account.y + account.height && toolbar.y + toolbar.height > account.y;
+  if (overlaps) throw new Error("The sticky builder toolbar must not cover the signed-in account control.");
+}
+
+async function verifyMobileBuilder(page) {
+  await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
+  await page.getByRole("button", { name: "Edit draft" }).click();
+  await page.getByLabel("Form canvas").waitFor({ state: "visible" });
+  for (const name of ["Preview", "Save draft", "Send for approval"]) {
+    const control = page.getByRole("button", { name, exact: true });
+    await control.waitFor({ state: "visible" });
+    const bounds = await control.boundingBox();
+    if (!bounds || bounds.height < 44) throw new Error(`${name} must remain visible with a 44px target in mobile authoring.`);
+  }
+  const review = page.getByRole("button", { name: /^Review/ });
+  const reviewBounds = await review.boundingBox();
+  if (!reviewBounds || reviewBounds.height < 44) throw new Error("Review must retain a 44px target in mobile authoring.");
+  const dragHandle = page.getByTitle("Drag question 1 to reorder");
+  await dragHandle.waitFor({ state: "visible" });
+  const dragBounds = await dragHandle.boundingBox();
+  if (!dragBounds || dragBounds.height < 44 || dragBounds.width < 44) throw new Error("The pointer reorder handle must retain a 44px target.");
+  await page.getByLabel("Question 1 actions").click();
+  await page.getByRole("button", { name: "Move down" }).waitFor({ state: "visible" });
+}
 
 export const formsEvidenceScenarios = Object.freeze(scenarios.map((scenario) => Object.freeze({
   ...scenario,

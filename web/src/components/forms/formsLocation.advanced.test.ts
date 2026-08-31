@@ -30,4 +30,10 @@ describe("advanced Forms location state", () => {
     window.history.replaceState(null, "", "#forms?filter=%7B%22kind%22%3A%22condition%22%2C%22field%22%3A%22reviewer%22%2C%22operator%22%3A%22is%22%2C%22value%22%3A%22person-a%22%7D");
     expect(readFormsQuery(window.location.hash).filter).toBeUndefined();
   });
+
+  it("round-trips the non-default updated-time sort", () => {
+    writeFormsLocation({ sort: "UPDATED_ASC", limit: 25 });
+    expect(window.location.hash).toBe("#forms?sort=UPDATED_ASC");
+    expect(readFormsQuery(window.location.hash).sort).toBe("UPDATED_ASC");
+  });
 });

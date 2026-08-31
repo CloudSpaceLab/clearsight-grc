@@ -45,7 +45,7 @@ const tabs = ["Templates", "Sent forms", "Responses", "Imports", "Communications
 const libraryRevalidationIntervalMs = 30_000;
 type FormsTab = typeof tabs[number];
 type LoadState = "loading" | "live" | "unavailable";
-type EditorState = { mode: "create" } | { mode: "edit"; template: FormTemplate };
+type EditorState = { mode: "create" } | { mode: "edit"; template: FormTemplate; canSendForApproval: boolean };
 
 type Props = {
   organizationName?: string;
@@ -83,7 +83,10 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
   const selected = useMemo(() => page.items.find((item) => item.template.id === targetID), [page.items, targetID]);
   const selectedItems = useMemo(() => page.items.filter((item) => selectedIDs.has(item.template.id)), [page.items, selectedIDs]);
-  const bulkTransition = selectedItems.length > 0 && selectedItems.every((item) => item.template.status === "DRAFT" && isTemplateApprovalReady(item.template))
+  const bulkTransition = selectedItems.length > 0 && selectedItems.every((item) => item.template.status === "DRAFT"
+    && isTemplateApprovalReady(item.template)
+    && item.authority_available === true
+    && item.operations?.some((operation) => operation.command === "forms.template.transition" && operation.can_act && operation.allowed_targets?.includes("PENDING_APPROVAL")))
     ? "PENDING_APPROVAL" as const
     : undefined;
   const customView = hasCustomView(query);
@@ -114,7 +117,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   useEffect(() => {
     const timer = window.setTimeout(() => { void refresh(query); }, query.search ? 220 : 0);
     return () => window.clearTimeout(timer);
-  }, [query.search, query.status, query.owner, query.program, query.use, query.tag, query.filter, query.limit]);
+  }, [query.search, query.status, query.owner, query.program, query.use, query.tag, query.filter, query.sort, query.limit]);
 
   useEffect(() => {
     if (!autoRevalidationEnabled) return;
@@ -131,7 +134,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       window.removeEventListener("focus", revalidateIfStale);
       document.removeEventListener("visibilitychange", revalidateIfStale);
     };
-  }, [autoRevalidationEnabled, query.search, query.status, query.owner, query.program, query.use, query.tag, query.filter, query.limit]);
+  }, [autoRevalidationEnabled, query.search, query.status, query.owner, query.program, query.use, query.tag, query.filter, query.sort, query.limit]);
 
   useEffect(() => {
     let active = true;
@@ -235,8 +238,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     const next = clearedFormsQuery(query);
     invalidatePagedLoad();
     setQuery(next);
-    onTarget?.(undefined);
-    writeFormsLocation(next, undefined, true);
+    writeFormsLocation(next, targetID, true);
   }
 
   function openCreate() {
@@ -260,8 +262,11 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     window.location.hash = "#imports";
   }
 
-  function openEdit(template: FormTemplate) {
-    setEditor({ mode: "edit", template });
+  function openEdit(item: FormLibraryItem) {
+    const canSendForApproval = item.authority_available === true && Boolean(item.operations?.some((operation) =>
+      operation.command === "forms.template.transition" && operation.can_act && operation.allowed_targets?.includes("PENDING_APPROVAL"),
+    ));
+    setEditor({ mode: "edit", template: item.template, canSendForApproval });
     setAIOpen(false);
     setAIProposal(null);
     setError(null);
@@ -276,12 +281,12 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       use: view.filter.use,
       tag: view.filter.tag,
       filter: view.filter.expression,
+      sort: view.filter.sort ?? "UPDATED_DESC",
       limit: view.filter.limit ?? query.limit ?? 25,
     };
     invalidatePagedLoad();
     setQuery(next);
-    onTarget?.(undefined);
-    writeFormsLocation(next, undefined, true);
+    writeFormsLocation(next, targetID, true);
   }
 
   async function submitSavedView(event: FormEvent<HTMLFormElement>) {
@@ -324,7 +329,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     try {
       const created = await instantiateStarterTemplate(starter.code);
       setNewFormOpen(false);
-      setEditor({ mode: "edit", template: created });
+      setEditor({ mode: "edit", template: created, canSendForApproval: false });
       choose(created.id);
       setNotice("Starter copied into an ordinary draft. Review its exact fields and quality checks before approval.");
       await refresh();
@@ -430,7 +435,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         key={editor.mode === "edit" ? `${editor.template.id}:${editor.template.version}` : "new-form"}
         initialValue={editor.mode === "edit" ? editor.template : undefined}
         saveDraft={saveEditorDraft}
-        onSendForApproval={sendEditorForApproval}
+        onSendForApproval={editor.mode === "create" || editor.canSendForApproval ? sendEditorForApproval : undefined}
         onSaved={(form) => { void editorSaved(form); }}
         onCancel={() => setEditor(null)}
         reusableTemplates={reusableTemplates}
@@ -475,7 +480,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         busy={busy}
         onClose={() => choose(undefined)}
         onClearFilters={clearFiltersAndTarget}
-        onEdit={() => { if (selected) openEdit(selected.template); }}
+        onEdit={() => { if (selected) openEdit(selected); }}
         onTransition={(to) => { if (selected) void transition(selected, to); }}
       />
     </div> : <FormsTabContent tab={activeTab as Exclude<FormsTab, "Templates">}/>} 
@@ -483,7 +488,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 }
 
 function hasCustomView(query: FormTemplateQuery) {
-  return Boolean(query.search || query.status || query.owner || query.program || query.use || query.tag || query.filter);
+  return Boolean(query.search || query.status || query.owner || query.program || query.use || query.tag || query.filter || query.sort === "UPDATED_ASC");
 }
 
 function toggleSelected(id: string, selected: Set<string>, setSelected: (value: Set<string>) => void) {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FilterCondition, FilterField } from "./filterModel";
-import { filterDefinition, formFilterRegistry } from "./filterRegistry";
+import { filterDefinition, selectableFormFilterRegistry } from "./filterRegistry";
 
 type Props = {
   activeFields: ReadonlySet<FilterField>;
@@ -12,7 +12,7 @@ export function FilterPicker({ activeFields, onApply, onClose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [field, setField] = useState<FilterField>();
   const [value, setValue] = useState("");
-  const available = useMemo(() => formFilterRegistry.filter((item) => !activeFields.has(item.field)), [activeFields]);
+  const available = useMemo(() => selectableFormFilterRegistry.filter((item) => !activeFields.has(item.field)), [activeFields]);
   const definition = field ? filterDefinition(field) : undefined;
 
   useEffect(() => {
