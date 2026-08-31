@@ -1,4 +1,4 @@
-export type ConfigurationSection = "overview" | "access" | "authority" | "data" | "automation" | "operations";
+export type ConfigurationSection = "overview" | "access" | "authority" | "data" | "automation" | "ai" | "operations";
 
 export type ConfigurationArea = {
   id: Exclude<ConfigurationSection, "overview">;
@@ -10,7 +10,8 @@ export const configurationAreas: ConfigurationArea[] = [
   { id: "access", label: "People & access", description: "Sign-in, directory sources, people, groups and workspace access." },
   { id: "authority", label: "Authority & routing", description: "Responsibilities, approval routes, delegations and escalation." },
   { id: "data", label: "Data & integrations", description: "Document imports, connected sources, mappings and reconciliation." },
-  { id: "automation", label: "Automation & AI", description: "Governed automation policies, AI workloads and AI policy rollout." },
+  { id: "automation", label: "Automation", description: "Governed automation policies and execution guardrails." },
+  { id: "ai", label: "AI governance", description: "AI workloads, policy rollout and governed AI controls." },
   { id: "operations", label: "System operations", description: "Background processing and calculated Program status health." },
 ];
 
