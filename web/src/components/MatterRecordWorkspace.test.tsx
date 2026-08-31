@@ -167,7 +167,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={onBack}/>);
 
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
-    expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Assigned to Program Owner");
+    expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Assigned performer Program Owner");
     expect(screen.getByText("Due 26 Aug 2026")).toBeTruthy();
     expect(screen.getByText("2 missing information items")).toBeTruthy();
     expect(screen.getByText("final DPCO evidence checklist")).toBeTruthy();
@@ -456,7 +456,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     expect(await screen.findByText("licensed DPCO")).toBeTruthy();
-    expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Assigned to Program Owner");
+    expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Assigned performer Program Owner");
     expect(screen.queryByRole("button", { name: "Edit Filing Channel" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Change issue owner" })).toBeNull();
   });
@@ -659,6 +659,34 @@ describe("Matter record workspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm issue status" }));
 
     await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 7, "DECISION_REQUIRED", "Management authorization is required."));
+  });
+
+  it("keeps scope confirmation assigned to the accountable owner when the viewer can authorize a different transition", async () => {
+    const scopeReview = { ...detail, next_action: "Confirm scope and owner", actions: [] };
+    vi.mocked(loadMatter).mockResolvedValue(scopeReview);
+    vi.mocked(loadMatterOperations).mockResolvedValue({
+      ...operations,
+      operations: [
+        {
+          command: "matter.assign", label: "Change issue owner", responsibility: "ACCOUNTABLE_OWNER", can_act: false,
+          assigned_to: { id: "owner-1", display_name: "Program Owner", kind: "PERSON", role: "PROGRAM_OWNER" },
+          reason: "This issue is assigned to the Program Owner.",
+        },
+        {
+          command: "matter.transition", label: "Authorize issue status", responsibility: "AUTHORIZER", can_act: true,
+          assigned_to: { id: "authorizer-1", display_name: "Chief Risk Officer", kind: "PERSON", role: "CRO" },
+          reason: "You can authorize a later status change.", allowed_targets: ["DECISION_REQUIRED"],
+        },
+      ],
+    });
+
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    const dominant = await screen.findByTestId("dominant-next-action");
+    expect(dominant.textContent).toContain("Change issue owner");
+    expect(dominant.textContent).toContain("This issue is assigned to the Program Owner.");
+    expect(dominant.textContent).not.toContain("Authorize issue status");
+    expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Accountable owner Program Owner");
   });
 
   it("shows only ordinary lifecycle targets to the accountable owner", async () => {
