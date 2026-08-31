@@ -654,6 +654,27 @@ describe("static stakeholder demo transport", () => {
     expect(distributions.items.map((item) => item.purpose).join(" ")).toContain("Delivered");
     expect(distributions.items.map((item) => item.purpose).join(" ")).toContain("Revoked");
 
+    window.history.replaceState(null, "", "/?fixture=forms-sent-empty");
+    expect(await staticDemoRequest<{ items: unknown[]; next_cursor?: string }>("/api/v1/forms/distributions")).toEqual({ items: [] });
+
+    window.history.replaceState(null, "", "/?fixture=forms-sent-populated");
+    const populated = await staticDemoRequest<{ items: Array<{ id: string; title: string }> }>("/api/v1/forms/distributions");
+    expect(populated.items.map((item) => item.id)).toEqual(["distribution-vendor-review", "distribution-certification-review"]);
+    const selected = await staticDemoRequest<{ distribution: { id: string; title: string } }>("/api/v1/forms/distributions/distribution-certification-review");
+    expect(selected.distribution).toMatchObject({ id: "distribution-certification-review", title: "PCI-DSS certificate renewal" });
+
+    window.history.replaceState(null, "", "/?fixture=forms-sent-partial");
+    expect(await staticDemoRequest<{ next_cursor?: string }>("/api/v1/forms/distributions")).toMatchObject({ next_cursor: "sample-sent-page-2" });
+
+    window.history.replaceState(null, "", "/?fixture=forms-sent-lifecycle");
+    const locked = await staticDemoRequest<{ distribution: { status: string; version: number } }>("/api/v1/forms/distributions/distribution-vendor-review/lock", { method: "POST", body: JSON.stringify({ expected_version: 3 }) });
+    expect(locked.distribution).toMatchObject({ status: "LOCKED", version: 4 });
+
+    window.history.replaceState(null, "", "/?fixture=forms-sent-unauthorized");
+    await expect(staticDemoRequest("/api/v1/forms/distributions")).rejects.toMatchObject({ status: 401, code: "session_required" });
+    window.history.replaceState(null, "", "/?fixture=forms-sent-error");
+    await expect(staticDemoRequest("/api/v1/forms/distributions")).rejects.toMatchObject({ status: 503, code: "sent_forms_unavailable" });
+
     window.history.replaceState(null, "", "/?fixture=forms-response-history");
     const responses = await staticDemoRequest<{ items: Array<{ revision: number; current: boolean }> }>("/api/v1/forms/distributions/distribution-vendor-review/responses");
     expect(responses.items).toMatchObject([{ revision: 1, current: false }, { revision: 2, current: true }]);

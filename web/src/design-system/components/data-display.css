@@ -46,6 +46,11 @@
   .cs-data-table tbody tr td::before { color: var(--cs-table-heading-text); font-size: var(--cs-table-heading-size); font-weight: var(--cs-table-heading-weight); content: attr(data-label); }
 }
 
+@media (max-width: 380px) {
+  .cs-filter-bar__summary { align-items: stretch; flex-direction: column; }
+  .cs-filter-bar__summary .cs-button { inline-size: 100%; }
+}
+
 @media (forced-colors: active) {
   .cs-data-table tbody tr[data-selected] { outline: var(--cs-table-border-width) solid Highlight; }
 }

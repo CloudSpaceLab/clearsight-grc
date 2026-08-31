@@ -63,7 +63,7 @@
   --cs-border-strong: var(--cs-primitive-color-neutral-400);
   --cs-text-primary: color-mix(in srgb, var(--cs-primitive-color-neutral-800) 88%, var(--cs-primitive-color-neutral-950));
   --cs-text-strong: color-mix(in srgb, var(--cs-primitive-color-neutral-900) 88%, var(--cs-primitive-color-black));
-  --cs-text-muted: color-mix(in srgb, var(--cs-primitive-color-neutral-600) 74%, var(--cs-primitive-color-neutral-700));
+  --cs-text-muted: color-mix(in srgb, var(--cs-primitive-color-neutral-600) 50%, var(--cs-primitive-color-neutral-700));
   --cs-text-muted-2: color-mix(in srgb, var(--cs-primitive-color-neutral-600) 90%, var(--cs-primitive-color-neutral-700));
   --cs-separator: var(--cs-primitive-color-neutral-400);
   --cs-accent-cyan: var(--cs-primitive-color-cyan-700);

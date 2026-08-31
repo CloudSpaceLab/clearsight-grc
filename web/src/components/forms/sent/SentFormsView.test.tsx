@@ -49,6 +49,7 @@ describe("SentFormsView", () => {
     api.loadDistributionPage.mockResolvedValue({ items: [] });
     render(<SentFormsView/>);
     expect(await screen.findByText("No sent forms match these filters")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Send form" })).toHaveLength(1);
     expect(screen.queryByRole("table")).toBeNull();
     expect(screen.queryByRole("complementary", { name: "Selected distribution" })).toBeNull();
   });

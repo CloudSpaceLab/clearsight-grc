@@ -19,20 +19,25 @@ try {
 }
 
 async function captureScenario(scenario) {
+  const layoutViewport = {
+    width: Math.round(scenario.viewport.width / scenario.zoom),
+    height: Math.round(scenario.viewport.height / scenario.zoom),
+  };
   const context = await browser.newContext({
-    viewport: scenario.viewport,
+    viewport: layoutViewport,
     colorScheme: scenario.theme,
     hasTouch: Boolean(scenario.touch),
-    reducedMotion: "reduce",
+    reducedMotion: scenario.reducedMotion ?? "no-preference",
+    forcedColors: scenario.forcedColors ?? "none",
     locale: "en-NG",
     timezoneId: "Africa/Lagos",
     deviceScaleFactor: scenario.zoom,
   });
   try {
-    await context.addInitScript(({ selectedTheme }) => {
+    await context.addInitScript(({ selectedTheme, selectedDensity }) => {
       localStorage.setItem("clearsight.theme", selectedTheme);
-      localStorage.setItem("clearsight.density", "comfortable");
-    }, { selectedTheme: scenario.theme });
+      localStorage.setItem("clearsight.density", selectedDensity);
+    }, { selectedTheme: scenario.theme, selectedDensity: scenario.density ?? "comfortable" });
     const page = await context.newPage();
     if (scenario.fixture === "forms-recovery-restored") await seedRecoveryEnvelope(page);
     const errors = [];
@@ -115,9 +120,13 @@ async function verifyAndCapture(page, scenario, scenarioMetrics) {
     route: scenario.route,
     fixture: scenario.fixture,
     state: scenario.state,
-    viewport: page.viewportSize(),
+    viewport: scenario.viewport,
+    physicalViewport: scenario.viewport,
+    layoutViewport: page.viewportSize(),
     theme: scenario.theme,
-    density: "comfortable",
+    density: scenario.density ?? "comfortable",
+    forcedColors: scenario.forcedColors ?? "none",
+    reducedMotion: scenario.reducedMotion ?? "no-preference",
     ...(scenarioMetrics ? { scenario_metrics: scenarioMetrics } : {}),
     zoom: scenario.zoom,
     capabilities: [...scenario.capabilities],

@@ -1,2 +1,2 @@
-export { FocusedSheet } from "./ui";
-export type { FocusedSheetProps } from "./ui";
+export { FocusedSheet } from "./ui/FocusedSheet";
+export type { FocusedSheetProps } from "./ui/FocusedSheet";

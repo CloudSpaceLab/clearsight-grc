@@ -301,6 +301,14 @@ function staticDistributionDetail() {
 }
 
 function formsDistributionPopulation(fixture: string) {
+  if (["forms-sent-empty", "forms-sent-unauthorized", "forms-sent-error"].includes(fixture)) return [];
+  if (["forms-sent-populated", "forms-sent-partial", "forms-sent-lifecycle", "forms-sent-reflow", "forms-sent-zoom"].includes(fixture)) {
+    const base = staticDistributionDetail().distribution;
+    return [
+      base,
+      { ...base, id: "distribution-certification-review", title: "PCI-DSS certificate renewal", purpose: "Collect the vendor's current PCI-DSS certificate and review period.", subject_id: "vendor-relationship-card-processing", deadline: "2027-10-10T16:00:00Z", version: 1 },
+    ];
+  }
   if (fixture !== "forms-distribution-history") return [staticDistributionDetail().distribution];
   const base = staticDistributionDetail().distribution;
   const definitions = [
@@ -809,7 +817,18 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/forms/starter-templates" && method === "GET") return clone({ items: [] }) as T;
   if (pathname === "/api/v1/forms/saved-views" && method === "GET") return clone({ items: fixture === "forms-library-governance" ? [{ id: "forms-view-approval-ready", name: "Approval-ready drafts", filter: { status: "DRAFT", limit: 25 }, version: 1, created_at: now, updated_at: now }] : [] }) as T;
   if (pathname === "/api/v1/forms/recipient-candidates" && method === "GET") return clone({ items: [{ principal_id: "role-vendor-risk", display_name: "Vendor Risk Reviewer", context_label: "Third-party risk" }, { principal_id: "role-payments-owner", display_name: "Payments Service Owner", context_label: "Payments" }], has_more: false }) as T;
-  if (pathname === "/api/v1/forms/distributions" && method === "GET") return clone({ items: formsDistributionPopulation(fixture) }) as T;
+  if (pathname === "/api/v1/forms/distributions" && method === "GET") {
+    if (fixture === "forms-sent-unauthorized") throw new StaticDemoHTTPError(401, "session_required", "Sign in to review sent forms.");
+    if (fixture === "forms-sent-error") throw new StaticDemoHTTPError(503, "sent_forms_unavailable", "Sent forms are temporarily unavailable.");
+    return clone({ items: formsDistributionPopulation(fixture), ...(fixture === "forms-sent-partial" ? { next_cursor: "sample-sent-page-2" } : {}) }) as T;
+  }
+  const distributionTransitionMatch = pathname.match(/^\/api\/v1\/forms\/distributions\/([^/]+)\/(lock|reopen|revoke)$/);
+  if (distributionTransitionMatch && method === "POST") {
+    const selected = formsDistributionDetail(fixture, decodeURIComponent(distributionTransitionMatch[1]!));
+    if (!selected) throw new StaticDemoHTTPError(404, "distribution_not_found", "The selected sent form is no longer available.");
+    const status = distributionTransitionMatch[2] === "lock" ? "LOCKED" : distributionTransitionMatch[2] === "reopen" ? "OPEN" : "REVOKED";
+    return clone({ ...selected, distribution: { ...selected.distribution, status, version: selected.distribution.version + 1, updated_at: now }, workspace: { ...selected.workspace, status, version: selected.workspace.version + 1, updated_at: now } }) as T;
+  }
   const distributionMatch = pathname.match(/^\/api\/v1\/forms\/distributions\/([^/]+)$/);
   if (distributionMatch && method === "GET") {
     const selected = formsDistributionDetail(fixture, decodeURIComponent(distributionMatch[1]!));

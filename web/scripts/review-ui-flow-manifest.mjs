@@ -244,6 +244,13 @@ if (manifest) {
     if (capture.state !== scenario.state) mismatches.push(`state ${capture.state ?? "missing"}`);
     if (capture.theme !== scenario.theme) mismatches.push(`theme ${capture.theme ?? "missing"}`);
     if (capture.viewport?.width !== scenario.viewport.width || capture.viewport?.height !== scenario.viewport.height) mismatches.push(`viewport ${capture.viewport?.width ?? "?"}x${capture.viewport?.height ?? "?"}`);
+    if (capture.physicalViewport?.width !== scenario.viewport.width || capture.physicalViewport?.height !== scenario.viewport.height) mismatches.push(`physical viewport ${capture.physicalViewport?.width ?? "?"}x${capture.physicalViewport?.height ?? "?"}`);
+    const expectedLayoutWidth = Math.round(scenario.viewport.width / scenario.zoom);
+    const expectedLayoutHeight = Math.round(scenario.viewport.height / scenario.zoom);
+    if (capture.layoutViewport?.width !== expectedLayoutWidth || capture.layoutViewport?.height !== expectedLayoutHeight) mismatches.push(`layout viewport ${capture.layoutViewport?.width ?? "?"}x${capture.layoutViewport?.height ?? "?"}`);
+    if (capture.density !== (scenario.density ?? "comfortable")) mismatches.push(`density ${capture.density ?? "missing"}`);
+    if (capture.forcedColors !== (scenario.forcedColors ?? "none")) mismatches.push(`forced colors ${capture.forcedColors ?? "missing"}`);
+    if (capture.reducedMotion !== (scenario.reducedMotion ?? "no-preference")) mismatches.push(`reduced motion ${capture.reducedMotion ?? "missing"}`);
     if (capture.zoom !== scenario.zoom) mismatches.push(`zoom ${capture.zoom ?? "missing"}`);
     const recordedCapabilities = new Set(capture.capabilities ?? []);
     const absent = scenario.capabilities.filter((capability) => !recordedCapabilities.has(capability));
