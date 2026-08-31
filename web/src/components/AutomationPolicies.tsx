@@ -1,7 +1,5 @@
-import "../identity-access.css";
 import type { AutomationPolicy } from "../types";
 import { EmptyState } from "./EmptyState";
-import { IdentityAccessPanel } from "./IdentityAccessPanel";
 
 type LoadState = "loading" | "live" | "unavailable";
 
@@ -11,13 +9,6 @@ type Props = {
 };
 
 export function AutomationPolicies({ policies, state }: Props) {
-  return <>
-    <IdentityAccessPanel/>
-    <AutomationPolicyContent policies={policies} state={state}/>
-  </>;
-}
-
-function AutomationPolicyContent({ policies, state }: Props) {
   if (state === "loading") {
     return <section className="automation-policies workspace-loading" aria-live="polite" aria-busy="true">Loading automation policies…</section>;
   }
@@ -31,7 +22,7 @@ function AutomationPolicyContent({ policies, state }: Props) {
     </header>
     {!policies.length
       ? <EmptyState label="Automation policy" title="No automation policies in this scope" description="No automated actions are approved for the current scope."/>
-      : <div className="automation-policy-list">{policies.map((policy) => <PolicyRow key={policy.id} policy={policy}/>)}</div>}
+      : <div className="automation-policy-list">{policies.map((policy) => <PolicyRow key={policy.id} policy={policy}/>)}</div>
     <p className="automation-policy-note">Only active policies can run actions. Review execution history for completed actions and outcome checks.</p>
   </section>;
 }
