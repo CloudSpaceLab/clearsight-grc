@@ -32,13 +32,15 @@ import "./defect-review-fixes.css";
 import "./monitoring.css";
 import "./forms-foundation.css";
 import "./vendors.css";
+import "./configure-workspace.css";
+import "./enterprise-shell.css";
 
 purgeLegacyCaptureSession(sessionStorage);
 const invitationToken = consumeCaptureInvitation(window);
 const root = document.getElementById("root");
 if (!root) throw new Error("Application root is missing");
 const params = new URLSearchParams(window.location.search);
-const presentation = runtimePresentation(window.location.search);
+const presentation = import.meta.env.VITE_STATIC_DEMO === "true" ? "demo" : runtimePresentation(window.location.search);
 const fixture = params.get("fixture");
 const lifecycleEvidence = import.meta.env.VITE_STATIC_DEMO === "true" && fixture === "today-lifecycle";
 const operatingEvidence = import.meta.env.VITE_STATIC_DEMO === "true" && fixture === "operating-mutations";
