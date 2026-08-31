@@ -149,4 +149,37 @@ describe("Forms template dashboard", () => {
       nowSpy.mockRestore();
     }
   });
+
+  it("does not collapse expanded pages during automatic stale revalidation", async () => {
+    let now = 1_000;
+    const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => now);
+    const additionalItems = Array.from({ length: 25 }, (_, index): FormLibraryItem => ({
+      template: {
+        ...item.template,
+        id: `template-extra-${index + 1}`,
+        code: `EXTRA-${index + 1}`,
+        name: `Extra form ${index + 1}`,
+      },
+    }));
+    api.loadFormTemplatePage.mockReset();
+    api.loadFormTemplatePage
+      .mockResolvedValueOnce({ items: [item], next_cursor: "next", total: 26 })
+      .mockResolvedValueOnce({ items: additionalItems, total: 26 });
+
+    try {
+      render(<FormsWorkspace/>);
+      await screen.findByRole("button", { name: "Open Vendor due diligence" });
+      fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+      await screen.findByRole("button", { name: "Open Extra form 25" });
+      expect(api.loadFormTemplatePage.mock.calls.length).toBe(2);
+
+      now += 31_000;
+      window.dispatchEvent(new Event("focus"));
+      await Promise.resolve();
+      expect(api.loadFormTemplatePage.mock.calls.length).toBe(2);
+      expect(screen.getByRole("button", { name: "Open Extra form 25" })).toBeTruthy();
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
 });
