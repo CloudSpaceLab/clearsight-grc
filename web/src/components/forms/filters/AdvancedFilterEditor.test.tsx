@@ -8,7 +8,7 @@ describe("AdvancedFilterEditor", () => {
     render(<AdvancedFilterEditor onApply={onApply} onClose={vi.fn()}/>);
 
     expect(screen.getByRole("dialog", { name: "Advanced form filters" })).toBeInTheDocument();
-    expect(screen.getByLabelText("1 of 12 filter nodes used")).toBeInTheDocument();
+    expect(screen.getByLabelText("2 of 12 filter nodes used")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Apply filters" })).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText("Advanced filter match mode"), { target: { value: "or" } });
