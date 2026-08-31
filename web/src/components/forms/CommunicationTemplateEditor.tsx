@@ -46,7 +46,7 @@ import type {
   CommunicationNode,
   CommunicationTemplate,
 } from "../../formsCommunicationApi";
-import { Button, SelectField, TextField } from "../ui";
+import { Button, PopoverDialog, SelectField, TextField } from "../ui";
 
 const variables = [
   "recipient_name",
@@ -364,23 +364,15 @@ function LexicalToolbar() {
 function VariableToolbar() {
   const [editor] = useLexicalComposerContext();
   return (
-    <div
-      className="forms-variable-palette"
-      aria-label="Protected communication variables"
-    >
-      {variables.map((value) => (
-        <Button
-          variant="quiet"
-          size="compact"
-          key={value}
-          onPress={() =>
-            editor.update(() =>
-              $insertNodes([$createVariableNode(`{{${value}}}`)]),
-            )
-          }
-        >{`{{${value}}}`}</Button>
-      ))}
-    </div>
+    <PopoverDialog label="Insert protected variable" placement="top start" trigger={<Button size="compact">Insert protected variable</Button>}>
+      <div className="forms-variable-palette" aria-label="Protected communication variables">
+        {variables.map((value) => (
+          <Button variant="quiet" size="compact" key={value} onPress={() => editor.update(() => $insertNodes([$createVariableNode(`{{${value}}}`)]))}>
+            {`{{${value}}}`}
+          </Button>
+        ))}
+      </div>
+    </PopoverDialog>
   );
 }
 

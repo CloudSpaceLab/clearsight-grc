@@ -451,6 +451,9 @@
   padding-top: var(--cs-space-group);
   border-top: 1px solid var(--cs-border-default);
 }
+.forms-dialog-editor .forms-lexical-editor {
+  min-height: 100px;
+}
 @media (max-width: 1050px) {
   .forms-communication-workspace {
     grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);

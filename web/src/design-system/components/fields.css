@@ -93,11 +93,6 @@
   cursor: not-allowed;
 }
 
-.cs-field__control:is([type="date"], [type="time"], [type="datetime-local"]) {
-  padding-block: var(--cs-primitive-space-2);
-  accent-color: var(--cs-border-interactive);
-}
-
 textarea.cs-field__control {
   min-height: var(--cs-field-textarea-min-height);
   padding-block: var(--cs-primitive-space-3);

@@ -1,3 +1,4 @@
+import axe from "axe-core";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import CommunicationsView from "./CommunicationsView";
@@ -46,5 +47,8 @@ describe("Communications workspace", () => {
     expect(screen.getByRole("heading", { name: "Communications", hidden: true })).toBeTruthy();
     expect(screen.getByRole("dialog", { name: "Create template revision" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Insert protected variable" })).toBeTruthy();
+    const results = await axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.map((violation) => violation.id)).toEqual([]);
   });
 });
