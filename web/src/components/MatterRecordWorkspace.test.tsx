@@ -24,6 +24,12 @@ vi.mock("../matterOperationsApi", () => ({
 
 vi.mock("../continuityCommands", () => ({ addMatterAction: vi.fn(), addResponsePackage: vi.fn(), recordMatterDecision: vi.fn(), recordVerificationResult: vi.fn(), transitionMatter: vi.fn(), transitionMatterAction: vi.fn(), transitionResponsePackage: vi.fn() }));
 
+async function chooseSharedOption(label: string, option: string) {
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(label, "i") }));
+  fireEvent.click(await screen.findByRole("option", { name: option }));
+  await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+}
+
 const detail: MatterAggregate = {
   type_label: "Regulatory change",
   status_label: "Work in progress",
@@ -273,9 +279,10 @@ describe("Matter record workspace", () => {
 
     expect(await screen.findByText("Chief Compliance Officer")).toBeTruthy();
     expect(screen.queryByText("authorizer-1")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Change issue status" }));
-    fireEvent.change(screen.getByLabelText("Reason for status change"), { target: { value: "New evidence requires the issue to be assessed again." } });
-    fireEvent.click(screen.getByRole("button", { name: "Confirm issue status" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Authorize issue status" }).at(-1)!);
+    expect(screen.getByRole("dialog", { name: "Authorize issue status" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Authorization basis/), { target: { value: "New evidence requires the issue to be assessed again." } });
+    fireEvent.click(screen.getByRole("button", { name: "Record authorization" }));
 
     await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 12, "ASSESSMENT", "New evidence requires the issue to be assessed again."));
   });
@@ -407,8 +414,10 @@ describe("Matter record workspace", () => {
     await waitFor(() => expect(changeMatterContext).toHaveBeenCalledWith("matter-1", 7, expect.objectContaining({ kind: "ADD_MISSING", label: "approved signatory" })));
 
     fireEvent.click(await screen.findByRole("button", { name: "Change issue owner" }));
-    fireEvent.change(screen.getByLabelText("New issue owner"), { target: { value: "owner-2" } });
-    fireEvent.change(screen.getByLabelText("Reason for reassignment"), { target: { value: "Assign the current Privacy Operations owner." } });
+    expect(screen.getByRole("dialog", { name: "Change issue owner" })).toBeTruthy();
+    expect(screen.getByText(/attempt delivery of an assignment email/i)).toBeTruthy();
+    await chooseSharedOption("New issue owner", "Privacy Operations Lead · PROGRAM_OWNER");
+    fireEvent.change(screen.getByLabelText(/Reason for reassignment/), { target: { value: "Assign the current Privacy Operations owner." } });
     fireEvent.click(screen.getByRole("button", { name: "Assign issue owner" }));
     await waitFor(() => expect(assignMatter).toHaveBeenCalledWith("matter-1", 8, "owner-2", "Assign the current Privacy Operations owner."));
   });
@@ -516,8 +525,10 @@ describe("Matter record workspace", () => {
     await waitFor(() => expect(updateMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 7, expect.objectContaining({ description: "Map every section to its approved source." })));
 
     fireEvent.click(await screen.findByRole("button", { name: "Change owner for Update the annual return evidence checklist" }));
-    fireEvent.change(screen.getByLabelText("New action owner"), { target: { value: "owner-2" } });
-    fireEvent.change(screen.getByLabelText("Reason for action reassignment"), { target: { value: "Assign the process owner who maintains the evidence." } });
+    expect(screen.getByRole("dialog", { name: "Change action owner" })).toBeTruthy();
+    expect(screen.getByText(/attempt delivery of an assignment email/i)).toBeTruthy();
+    await chooseSharedOption("New action owner", "Privacy Operations Lead · PROGRAM_OWNER");
+    fireEvent.change(screen.getByLabelText(/Reason for action reassignment/), { target: { value: "Assign the process owner who maintains the evidence." } });
     fireEvent.click(screen.getByRole("button", { name: "Assign action owner" }));
     await waitFor(() => expect(assignMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 8, "owner-2", "Assign the process owner who maintains the evidence."));
   });
@@ -587,9 +598,10 @@ describe("Matter record workspace", () => {
       evidenceReferences: ["audit-workpaper-2026", "approved-return-pack"], rationale: "All ten sections were independently checked.",
     })));
     expect(await screen.findByText("Ready to close")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Close issue" }));
-    fireEvent.change(screen.getByLabelText("Reason for status change"), { target: { value: "The independent outcome check passed." } });
-    fireEvent.click(screen.getByRole("button", { name: "Confirm issue status" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Authorize issue status" }).at(-1)!);
+    await chooseSharedOption("Next issue status", "Closed");
+    fireEvent.change(screen.getByLabelText(/Authorization basis/), { target: { value: "The independent outcome check passed." } });
+    fireEvent.click(screen.getByRole("button", { name: "Record authorization" }));
     await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 8, "CLOSED", "The independent outcome check passed."));
   });
 
@@ -651,12 +663,14 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     await screen.findByRole("heading", { name: "Independent results" });
-    fireEvent.click(screen.getAllByRole("button", { name: "Change issue status" }).at(-1)!);
-    const target = screen.getByLabelText("Next issue status") as HTMLSelectElement;
-    expect([...target.options].map((option) => option.value)).toEqual(["DECISION_REQUIRED", "CANCELLED"]);
-    fireEvent.change(target, { target: { value: "DECISION_REQUIRED" } });
-    fireEvent.change(screen.getByLabelText("Reason for status change"), { target: { value: "Management authorization is required." } });
-    fireEvent.click(screen.getByRole("button", { name: "Confirm issue status" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Authorize issue status" }).at(-1)!);
+    fireEvent.click(screen.getByRole("button", { name: /Next issue status/i }));
+    expect(await screen.findByRole("option", { name: "Decision needed" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Cancelled" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("option", { name: "Decision needed" }));
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+    fireEvent.change(screen.getByLabelText(/Authorization basis/), { target: { value: "Management authorization is required." } });
+    fireEvent.click(screen.getByRole("button", { name: "Record authorization" }));
 
     await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 7, "DECISION_REQUIRED", "Management authorization is required."));
   });
@@ -711,8 +725,10 @@ describe("Matter record workspace", () => {
 
     await screen.findByRole("heading", { name: "Independent results" });
     fireEvent.click(screen.getAllByRole("button", { name: "Change issue status" }).at(-1)!);
-    const target = screen.getByLabelText("Next issue status") as HTMLSelectElement;
-    expect([...target.options].map((option) => option.value)).toEqual(["ACTION_IN_PROGRESS", "RESPONSE_PREPARATION", "VERIFICATION"]);
+    fireEvent.click(screen.getByRole("button", { name: /Next issue status/i }));
+    expect(await screen.findByRole("option", { name: "Work in progress" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Response Preparation" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Outcome check" })).toBeTruthy();
   });
 
   it("records a decision proposal and keeps its append-only history visible", async () => {
@@ -762,9 +778,10 @@ describe("Matter record workspace", () => {
     await waitFor(() => expect(addResponsePackage).toHaveBeenCalledWith("matter-1", 7, { purpose: "Answer the annual return evidence request", audience: "NDPC", manifest: { references: ["annual-return-pack", "ownership-register"] } }));
 
     expect(await screen.findByText("Compliance Reviewer", { exact: false })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Update response status for Answer the annual return evidence request" }));
-    fireEvent.change(screen.getByLabelText("Reason for response status change"), { target: { value: "The evidence package is complete for compliance review." } });
-    fireEvent.click(screen.getByRole("button", { name: "Confirm response status" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review response for Answer the annual return evidence request" }));
+    expect(screen.getByRole("dialog", { name: "Review response" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Review basis/), { target: { value: "The evidence package is complete for compliance review." } });
+    fireEvent.click(screen.getByRole("button", { name: "Record review" }));
     await waitFor(() => expect(transitionResponsePackage).toHaveBeenCalledWith("matter-1", "package-1", 8, "IN_REVIEW", "The evidence package is complete for compliance review."));
   });
 });

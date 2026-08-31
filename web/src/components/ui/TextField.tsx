@@ -13,9 +13,9 @@ export type TextFieldProps = {
   type?: TextFieldType;
   name?: string;
   autoComplete?: string;
-  min?: number;
-  max?: number;
-  step?: number;
+  min?: number | string;
+  max?: number | string;
+  step?: number | string;
   maxLength?: number;
   isDisabled?: boolean;
   isReadOnly?: boolean;

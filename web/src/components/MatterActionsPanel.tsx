@@ -6,6 +6,7 @@ import type { MatterOperation } from "../matterOperationsApi";
 import { addMatterAction, transitionMatterAction } from "../continuityCommands";
 import type { MatterAction, MatterAggregate, RecordResponsibleParty } from "../types";
 import { selectedDateEndOfLocalDay, storedDeadlineLocalDate } from "../dueDate";
+import { Button, FocusedSheet, Notice, SelectField, TextArea } from "./ui";
 
 type Props = {
   aggregate: MatterAggregate;
@@ -119,16 +120,26 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
         {!statusOperation?.can_act && statusOperation?.reason && <p className="matter-operation-reason">{statusOperation.reason}</p>}
       </section>;
     })}</div> : <p>No actions have been recorded for this issue.</p>}
-    {active && <form className="matter-operation-form" onSubmit={submit}>
+    {active && active.kind !== "assign" && <form className="matter-operation-form" onSubmit={submit}>
       {(active.kind === "add" || active.kind === "edit") && <><label><span>Action title</span><input value={title} onChange={(event) => setTitle(event.target.value)} required/></label><label className="wide"><span>Action description</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} required/></label><label><span>Action due date</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)}/></label></>}
       {active.kind === "add" && <label><span>Action owner</span><select value={owner} onChange={(event) => setOwner(event.target.value)} required><option value="">Select an eligible performer</option>{candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.display_name} · {candidate.role}</option>)}</select></label>}
-      {active.kind === "assign" && <label><span>New action owner</span><select value={owner} onChange={(event) => setOwner(event.target.value)} required><option value="">Select an eligible performer</option>{candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.display_name} · {candidate.role}</option>)}</select></label>}
       {active.kind === "status" && <label><span>Next action status</span><select value={target} onChange={(event) => setTarget(event.target.value)} required>{activeOperation?.allowed_targets?.map((value) => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label>}
-      {active.kind !== "add" && <label className="wide"><span>{active.kind === "edit" ? "Reason for changing this action" : active.kind === "assign" ? "Reason for action reassignment" : `Status rationale${rationaleRequired ? "" : " (optional)"}`}</span><textarea value={rationale} onChange={(event) => setRationale(event.target.value)} rows={2} required={rationaleRequired}/></label>}
+      {active.kind !== "add" && <label className="wide"><span>{active.kind === "edit" ? "Reason for changing this action" : `Status rationale${rationaleRequired ? "" : " (optional)"}`}</span><textarea value={rationale} onChange={(event) => setRationale(event.target.value)} rows={2} required={rationaleRequired}/></label>}
       {error && <div className="matter-form-error wide" role="alert"><span>{error}</span>{conflict && <button className="secondary-button" type="button" onClick={onReload}>Reload current issue</button>}</div>}
-      <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving || (active.kind === "status" && !target)}>{saving ? "Saving…" : active.kind === "add" ? "Create assigned action" : active.kind === "edit" ? "Save action" : active.kind === "assign" ? "Assign action owner" : "Update action status"}</button><button className="text-button" type="button" onClick={() => setActive(null)}>Cancel</button></div>
+      <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving || (active.kind === "status" && !target)}>{saving ? "Saving…" : active.kind === "add" ? "Create assigned action" : active.kind === "edit" ? "Save action" : "Update action status"}</button><button className="text-button" type="button" onClick={() => setActive(null)}>Cancel</button></div>
       {activeAction && <p className="matter-form-context wide">Changing: {activeAction.title}</p>}
     </form>}
+    {active?.kind === "assign" && <FocusedSheet label="Change action owner" closeLabel="Close action reassignment" onClose={() => setActive(null)}>
+      <div className="cs-sheet-heading"><span className="eyebrow">Assigned performer</span><h2>Change action owner</h2><p>Choose an eligible performer for this action and record why the work is moving.</p></div>
+      <form className="cs-sheet-form" onSubmit={submit}>
+        <dl className="cs-sheet-facts"><div><dt>Action</dt><dd>{activeAction?.title ?? "Selected action"}</dd></div><div><dt>Current performer</dt><dd>{activeOperation?.assigned_to?.display_name ?? "Recorded performer unavailable"}</dd></div></dl>
+        <SelectField label="New action owner" value={owner || undefined} placeholder="Select an eligible performer" allowsEmpty={false} isRequired options={candidates.map((candidate) => ({ id: candidate.id, label: candidate.role ? `${candidate.display_name} · ${candidate.role}` : candidate.display_name }))} onChange={(value) => setOwner(value ?? "")}/>
+        <Notice tone="info">After the assignment is recorded, ClearSight will attempt delivery of an assignment email to the staff mailbox held in the active directory. If no usable mailbox is available, the action assignment still takes effect and email delivery is recorded as unavailable.</Notice>
+        <TextArea label="Reason for action reassignment" value={rationale} onChange={setRationale} rows={3} isRequired description="This reason remains with the action assignment history."/>
+        {error && <Notice tone="error"><span>{error}</span>{conflict && <Button variant="secondary" onPress={onReload}>Reload current issue</Button>}</Notice>}
+        <div className="cs-sheet-actions"><Button type="button" variant="quiet" isDisabled={saving} onPress={() => setActive(null)}>Cancel</Button><Button type="submit" variant="primary" isDisabled={!owner || !rationale.trim()} isLoading={saving}>Assign action owner</Button></div>
+      </form>
+    </FocusedSheet>}
     {notice && <p className="inline-success" role="status">{notice}</p>}
   </article>;
 }

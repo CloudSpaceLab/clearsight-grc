@@ -349,6 +349,7 @@ const scenarios = [
     capabilities: ["foundation-component-variants", "select-themed-open", "density-compact", "theme-dark"],
     run: async (page) => {
       const trigger = page.getByRole("button", { name: /Sample response status/ });
+      await trigger.scrollIntoViewIfNeeded();
       await trigger.click();
       await page.getByRole("listbox").waitFor({ state: "visible" });
       await assertDarkPopup(page);
@@ -409,7 +410,7 @@ const scenarios = [
     name: "123-forms-sent-light-effective-200pct", fixture: "forms-sent-zoom", route: "#forms",
     state: "forms-sent-effective-200pct-layout", theme: "light", density: "comfortable", viewport: desktop, zoom: 2,
     capabilities: ["sent-populated-table", "zoom-200", "theme-light"],
-    run: async (page) => { await openFormsTab(page, "Sent forms"); await assertSentFormsControls(page, 44); await page.getByRole("button", { name: /Status/ }).click(); await page.getByRole("listbox").waitFor({ state: "visible" }); },
+    run: async (page) => { await openFormsTab(page, "Sent forms"); await assertSentFormsControls(page, 44); const trigger = page.getByRole("button", { name: /Status/ }); await trigger.scrollIntoViewIfNeeded(); await trigger.click(); await page.getByRole("listbox").waitFor({ state: "visible" }); },
   },
   {
     name: "124-forms-component-gallery-forced-colors-focus-1440x900", fixture: "ui-component-gallery", route: "#ui-components",

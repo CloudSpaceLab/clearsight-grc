@@ -3,6 +3,12 @@
 **Status date:** 2026-08-31
 **Current execution:** Release integration and deployment verification for governed Forms, vendor refresh and operational workflows
 
+## Governed work handoffs — implementation verification
+
+The current change corrects the Matter handoff selector, resolves seeded demo staff through the normal position/role path, delivers issue and Action assignment email through an idempotent outbox consumer, and moves the highest-risk vendor request, reassignment, response-signing and issue-authorization interactions onto shared focused sheets and fields. Shared list overlays no longer lock the document scroll container; the measured Form Builder sticky-toolbar jump was 363px before the correction. Date controls now inherit the shared light/dark field treatment.
+
+Focused browser and integration verification remains required before release: render the affected desktop/light, desktop/dark, 390px and 320px states; run the full UI review and backend gates; deploy the exact merged revision; then execute one controlled non-production reassignment and verify only redacted delivery status plus manual inbox receipt. PostgreSQL migration rollback/reapply and the hosted email acceptance journey cannot be inferred from unit tests.
+
 ## Governed Forms UX #103 — code closure in verification
 
 The accepted Forms UX direction now preserves selected-template context across filters and saved views, supports server-backed newest/oldest updated sorting, uses the shared focus-managed and scroll-locked sheet for template detail, replaces narrow-screen table overflow with labelled stacked records, and keeps every material builder action visible at 320–390px. Library lifecycle actions now come from bounded exact-template authority reads and fail closed when responsibility cannot be checked. Question duplication, safe pointer reordering, keyboard Move up/Move down and exact Review Fix focus are executable. The deterministic Forms evidence contract includes populated mobile library, mobile/reflow builder, real desktop pointer drag and 120-question performance fixtures.

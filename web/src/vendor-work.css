@@ -2,6 +2,7 @@
 .vendor-work-panel .section-heading-row { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
 .vendor-work-panel .section-heading-row h2, .vendor-work-form h3, .vendor-work-group h3 { margin: 0; }
 .vendor-work-panel .section-heading-row p { margin: .35rem 0 0; color: var(--muted); }
+.vendor-work-request-sheet .vendor-work-form { margin-block-start: 1.5rem; padding: 0; border: 0; background: transparent; }
 .vendor-work-group { display: grid; gap: .75rem; margin-top: 1rem; }
 .vendor-work-card { min-width: 0; display: grid; gap: .75rem; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .vendor-work-card-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
@@ -18,7 +19,7 @@
 .vendor-work-secure-link { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; align-items: end; }
 .vendor-work-secure-link label { display: grid; gap: .35rem; min-width: 0; }
 .vendor-work-secure-link small { grid-column: 1 / -1; color: var(--muted); }
-.vendor-work-action label, .vendor-work-form label, .vendor-work-decision label { display: grid; gap: .35rem; }
+.vendor-work-action label, .vendor-work-form > label, .vendor-work-decision label { display: grid; gap: .35rem; }
 .vendor-work-form { min-width: 0; display: grid; gap: 1rem; margin-top: 1rem; padding: 1rem; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); }
 .vendor-work-form input, .vendor-work-form select, .vendor-work-form textarea, .vendor-work-decision input, .vendor-work-decision textarea { min-width: 0; max-width: 100%; width: 100%; }
 .vendor-work-form textarea, .vendor-work-decision textarea { resize: vertical; }

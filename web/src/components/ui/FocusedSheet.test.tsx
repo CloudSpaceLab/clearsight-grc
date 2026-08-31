@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { FocusedSheet } from "./index";
+import { FocusedSheet, SelectField, TextArea } from "./index";
 
 describe("FocusedSheet", () => {
   it("labels focused work, contains focus and restores the invoker", async () => {
@@ -22,6 +22,7 @@ describe("FocusedSheet", () => {
     const dialog = await screen.findByRole("dialog", { name: "Evidence review" });
     expect(document.body.contains(dialog)).toBe(true);
     expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body.style.paddingRight).not.toBe(`${window.innerWidth}px`);
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close" })));
 
     fireEvent.keyDown(dialog, { key: "Escape" });
@@ -45,5 +46,27 @@ describe("FocusedSheet", () => {
     const sheet = screen.getByRole("dialog", { name: "Create a form" }).closest(".cs-sheet");
     expect(sheet?.className).toContain("cs-sheet--wide");
     expect(sheet?.className).not.toContain("side-panel");
+  });
+
+  it("keeps the sheet open when a portalled select option is chosen", async () => {
+    function Harness() {
+      const [open, setOpen] = useState(true);
+      const [owner, setOwner] = useState<string>("owner-2");
+      const [reason, setReason] = useState("");
+      return open ? <FocusedSheet label="Change issue owner" onClose={() => setOpen(false)}>
+        <SelectField label="New issue owner" value={owner} placeholder="Choose an owner" options={[{ id: "owner-2", label: "Privacy Operations Lead" }]} onChange={(value) => setOwner(value ?? "")}/>
+        <TextArea label="Reason for reassignment" value={reason} onChange={setReason}/>
+      </FocusedSheet> : null;
+    }
+
+    render(<Harness/>);
+    const dialog = screen.getByRole("dialog", { name: "Change issue owner" });
+    fireEvent.click(screen.getByRole("button", { name: /New issue owner/i }));
+    expect((await screen.findByRole("listbox")).closest('[role="dialog"]')).toBe(dialog);
+    fireEvent.click(screen.getByRole("option", { name: "Privacy Operations Lead" }));
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+
+    expect(screen.getByRole("dialog", { name: "Change issue owner" })).toBeTruthy();
+    expect(screen.getByLabelText("Reason for reassignment")).toBeTruthy();
   });
 });

@@ -99,6 +99,20 @@ textarea.cs-field__control {
   resize: vertical;
 }
 
+.cs-field__control:is([type="date"], [type="time"], [type="datetime-local"]) {
+  color-scheme: inherit;
+  min-inline-size: 0;
+}
+
+.cs-field__control:is([type="date"], [type="time"], [type="datetime-local"])::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+.cs-field__control:is([type="date"], [type="time"], [type="datetime-local"]):disabled::-webkit-calendar-picker-indicator,
+.cs-field__control:is([type="date"], [type="time"], [type="datetime-local"])[readonly]::-webkit-calendar-picker-indicator {
+  cursor: default;
+}
+
 .cs-field__description,
 .cs-select-field__description,
 .cs-field__error,

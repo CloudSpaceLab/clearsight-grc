@@ -40,6 +40,8 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
   const [portalContainer, setPortalContainer] = useState<Element>();
   const selectRef = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
+    // Keep the option list inside the active landmark or modal boundary while
+    // React Aria positions it independently from document layout.
     const nextContainer = node.closest('[role="dialog"], main, [role="main"]') ?? undefined;
     setPortalContainer((current) => current === nextContainer ? current : nextContainer);
   }, []);

@@ -6,6 +6,8 @@ import { defineMatterOutcomeCheck, retireMatterOutcomeCheck, supersedeMatterOutc
 import type { MatterOperation } from "../matterOperationsApi";
 import { recordVerificationResult, transitionMatter } from "../continuityCommands";
 import type { EvidenceSource, MatterAggregate, RecordResponsibleParty, VerificationContract } from "../types";
+import { matterStatusPresentation } from "./matterResponsePresentation";
+import { Button, FocusedSheet, Notice, SelectField, TextArea } from "./ui";
 
 type Props = {
   aggregate: MatterAggregate;
@@ -261,6 +263,7 @@ export function MatterOutcomePanel({ aggregate, operations, responsibleParties =
   const activeContract = active && "contractID" in active ? aggregate.verification_contracts.find((contract) => contract.id === active.contractID) : undefined;
   const activeDefinitionOperation = active?.kind === "supersede" ? operationFor(operations, "matter.outcome.supersede", active.contractID) : defineOperation;
   const allowedStatusTargets = (transitionOperation?.allowed_targets ?? []).filter((value) => value !== "CLOSED" || aggregate.closure.ready);
+  const statusPresentation = matterStatusPresentation(transitionOperation);
 
   return <article className="matter-record-panel matter-outcome-panel" id="matter-operation-matter.outcome.define">
     <div className="matter-record-section-heading">
@@ -303,10 +306,10 @@ export function MatterOutcomePanel({ aggregate, operations, responsibleParties =
 
     {aggregate.closure.ready ? <div className="matter-closure-state ready"><strong>Ready to close</strong><p>All stored actions and outcome checks satisfy the closure rules.</p></div> : aggregate.closure.reasons.length > 0 && <div className="matter-closure-state"><strong>Before this issue can close</strong><ul>{aggregate.closure.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}
 
-    {!active && transitionOperation?.can_act && allowedStatusTargets.length > 0 && <button className="secondary-button matter-status-button" type="button" onClick={beginStatus}>{aggregate.closure.ready && allowedStatusTargets.includes("CLOSED") ? "Close issue" : "Change issue status"}</button>}
+    {!active && transitionOperation?.can_act && allowedStatusTargets.length > 0 && <Button variant="secondary" onPress={beginStatus}>{transitionOperation.responsibility === "AUTHORIZER" ? statusPresentation.action : aggregate.closure.ready && allowedStatusTargets.includes("CLOSED") ? "Close issue" : statusPresentation.action}</Button>}
     {!transitionOperation?.can_act && transitionOperation?.reason && <p className="matter-operation-reason">{transitionOperation.reason}</p>}
 
-    {active && <form className="matter-operation-form" onSubmit={submit}>
+    {active && active.kind !== "status" && <form className="matter-operation-form" onSubmit={submit}>
       {(active.kind === "define" || active.kind === "supersede") && <>
         <label className="wide"><span>Expected outcome</span><textarea rows={3} value={expectedOutcome} onChange={(event) => setExpectedOutcome(event.target.value)} required/></label>
         <label><span>Linked action</span><select value={actionID} onChange={(event) => setActionID(event.target.value)}><option value="">Issue-level outcome</option>{aggregate.actions.map((action) => <option key={action.id} value={action.id}>{action.title}</option>)}</select></label>
@@ -332,13 +335,20 @@ export function MatterOutcomePanel({ aggregate, operations, responsibleParties =
         <label className="wide"><span>Evidence references (optional)</span><textarea rows={2} value={evidenceReferences} onChange={(event) => setEvidenceReferences(event.target.value)} placeholder="One artifact or source reference per line"/></label>
         <label className="wide"><span>Result rationale</span><textarea rows={2} value={rationale} onChange={(event) => setRationale(event.target.value)} required/></label>
       </>}
-      {active.kind === "status" && <>
-        {allowedStatusTargets.length > 1 && <label><span>Next issue status</span><select value={target} onChange={(event) => setTarget(event.target.value)}>{allowedStatusTargets.map((value) => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label>}
-        <label className="wide"><span>Reason for status change</span><textarea rows={2} value={rationale} onChange={(event) => setRationale(event.target.value)} required/></label>
-      </>}
       {error && <div className="matter-form-error wide" role="alert"><span>{error}</span>{conflict && <button className="secondary-button" type="button" onClick={onReload}>Reload current issue</button>}</div>}
-      <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving || (active.kind === "status" && !target) || ((active.kind === "define" || active.kind === "supersede") && !reviewerCandidateID) || ((active.kind === "supersede" || active.kind === "retire") && !rationale.trim())}>{saving ? "Saving…" : active.kind === "define" ? "Save outcome check" : active.kind === "supersede" ? "Replace outcome check" : active.kind === "retire" ? "End outcome check" : active.kind === "result" ? "Record outcome result" : "Confirm issue status"}</button><button className="text-button" type="button" onClick={() => setActive(null)}>Cancel</button></div>
+      <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving || ((active.kind === "define" || active.kind === "supersede") && !reviewerCandidateID) || ((active.kind === "supersede" || active.kind === "retire") && !rationale.trim())}>{saving ? "Saving…" : active.kind === "define" ? "Save outcome check" : active.kind === "supersede" ? "Replace outcome check" : active.kind === "retire" ? "End outcome check" : "Record outcome result"}</button><button className="text-button" type="button" onClick={() => setActive(null)}>Cancel</button></div>
     </form>}
+    {active?.kind === "status" && <FocusedSheet label={statusPresentation.sheet} closeLabel={`Close ${statusPresentation.sheet.toLowerCase()}`} onClose={() => setActive(null)}>
+      <div className="cs-sheet-heading"><span className="eyebrow">{transitionOperation?.responsibility === "AUTHORIZER" ? "Authorization" : "Issue lifecycle"}</span><h2>{statusPresentation.sheet}</h2><p>Review the current issue state and record only the transition permitted by your assigned responsibility.</p></div>
+      <form className="cs-sheet-form" onSubmit={submit}>
+        <dl className="cs-sheet-facts"><div><dt>Issue</dt><dd>{aggregate.matter.title}</dd></div><div><dt>Current state</dt><dd>{statusLabel(aggregate.matter.status)}</dd></div><div><dt>Current responsibility</dt><dd>{transitionOperation?.assigned_to?.display_name ?? transitionOperation?.responsibility ?? "Responsibility unavailable"}</dd></div><div><dt>Next state</dt><dd>{target ? statusLabel(target) : "No permitted state available"}</dd></div></dl>
+        {allowedStatusTargets.length > 1 && <SelectField label="Next issue status" value={target || undefined} placeholder="Select the permitted issue state" allowsEmpty={false} isRequired options={allowedStatusTargets.map((value) => ({ id: value, label: statusLabel(value) }))} onChange={(value) => setTarget(value ?? "")}/>}
+        <Notice tone="info">{statusPresentation.consequence}</Notice>
+        <TextArea label={statusPresentation.rationaleLabel} value={rationale} onChange={setRationale} rows={3} isRequired description="This basis remains with the issue status history."/>
+        {error && <Notice tone="error"><span>{error}</span>{conflict && <Button variant="secondary" onPress={onReload}>Reload current issue</Button>}</Notice>}
+        <div className="cs-sheet-actions"><Button type="button" variant="quiet" isDisabled={saving} onPress={() => setActive(null)}>Cancel</Button><Button type="submit" variant="primary" isDisabled={!target || !rationale.trim()} isLoading={saving}>{statusPresentation.submit}</Button></div>
+      </form>
+    </FocusedSheet>}
     {notice && <p className="inline-success" role="status">{notice}</p>}
   </article>;
 }

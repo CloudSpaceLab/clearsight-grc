@@ -69,8 +69,8 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | `SearchField` | Compact, visibly recognizable search for one named record population; labelled, loading and disabled states. |
 | `SelectableRecord` | One record in a bounded master list with visible title, metadata, optional supporting detail and accessible selected state. |
 | `CheckboxField` | Selected, unselected and indeterminate choices; visible or visually hidden labels; optional guidance and disabled state. |
-| `TextArea` | Multi-line responses; disabled, read-only, invalid and loading states. |
-| `SelectField` | One selection from a bounded list with themed listbox keyboard behavior. |
+| `TextArea` | Multi-line responses with bounded length; disabled, read-only, invalid and loading states. |
+| `SelectField` | One selection from a bounded list with themed listbox keyboard behavior and a non-modal overlay that does not resize or lock the document scroll container. |
 | `Tabs` | Automatic peer-view navigation with one selected indicator and wrapped compact behavior. |
 | `ScopeBar` | One selected bounded result scope with stored counts and horizontal-overflow replacement behavior. |
 | `StatusBadge` | Neutral, information, success, warning, error and unknown labelled states. |
@@ -81,7 +81,7 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | `FilterBar` | Responsive fields, result count and clear handling. |
 | `FilterChip` | A removable applied filter or named action that reopens advanced filter logic; default and accent treatments. |
 | `DataTable` | Populated, selected, loading, pagination and stacked-mobile data presentation. |
-| `FocusedSheet` | Dismissable, focus-contained detail or action in default or wide composition, with full-height mobile replacement. |
+| `FocusedSheet` | Dismissable, focus-contained detail or action in default or wide composition, with full-height mobile replacement and shared heading, facts, form and action anatomy for governed work. |
 | `FocusedDialog` | Centered, dismissable desktop decision or creation surface in default or wide composition, with full-height mobile replacement. |
 | `PopoverDialog` | Dismissable, focus-contained short contextual work anchored to its trigger. Long or consequential work uses `FocusedSheet`. |
 
@@ -101,6 +101,10 @@ Migration is explicit rather than inferred from visual similarity. A file is mig
 - **Dedicated page:** complex or protected work requiring several sections, parallel work or a durable saved state.
 
 The dedicated Program record keeps calculated state distinct from operating lifecycle status. Focused forms use only current Program-owned objects and authority-returned candidates. On narrow screens, the two-column record becomes a single reading order, action groups become full-width controls and fixed navigation must not cover the active form or result.
+
+Issue and Action reassignment uses one focused sheet that shows the exact work, current responsibility, an authority-returned eligible person and the required reason. Recording the assignment and attempting the assignee email are separate durable outcomes: the assignment remains effective if no usable staff mailbox is available, and the UI states that limitation before submission.
+
+Response handling names the actor's exact task. Reviewer, signatory, transmitter, acknowledgement recorder and issue authorizer actions use distinct labels, required basis fields and consequence copy. Sign-off never claims transmission; transmission never claims acknowledgement; authorization never claims that assigned work or an independent outcome check has completed.
 
 Do not default every concept to a dashboard card. Choose lists, rows, details, tables, timelines or focused forms according to the operator's task.
 
@@ -190,6 +194,8 @@ Vendor rows and details use a stored safe raster when available and a stable mon
 ### Vendor requests for Programs and issues
 
 A Program or issue or change may link one or more vendor relationships without transferring the bank owner's responsibility. `Request vendor work` uses the existing form revision, invitation, capture, artifact and submission experience. The request keeps one primary Program or Matter target, a concise purpose, a bank owner, a reviewer, a deadline and an immutable sequence of the initial request and any requested changes.
+
+`Request vendor work` opens as a wide focused sheet on desktop and a full-height replacement on narrow screens. Request kind, linked vendor work, approved form revision, layout, recipient and deadline use shared field contracts; opening any list must not shift the page or change the sticky workspace geometry.
 
 `Link vendor` opens a focused sheet with a blurred, opaque-fallback backdrop. Search is bounded and delayed briefly while typing; each choice shows the stored vendor icon or monogram, legal name, service, criticality and relationship status. The sheet traps keyboard focus, supports Escape, restores focus to its trigger and preserves the search, selection and purpose after a recoverable failure.
 

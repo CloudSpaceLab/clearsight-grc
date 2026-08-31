@@ -10,6 +10,7 @@ export type TextAreaProps = {
   placeholder?: string;
   name?: string;
   rows?: number;
+  maxLength?: number;
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isRequired?: boolean;
@@ -17,7 +18,7 @@ export type TextAreaProps = {
   isLoading?: boolean;
 };
 
-export function TextArea({ label, value, onChange, description, errorMessage, placeholder, name, rows = 4, isDisabled = false, isReadOnly = false, isRequired = false, isInvalid = false, isLoading = false }: TextAreaProps) {
+export function TextArea({ label, value, onChange, description, errorMessage, placeholder, name, rows = 4, maxLength, isDisabled = false, isReadOnly = false, isRequired = false, isInvalid = false, isLoading = false }: TextAreaProps) {
   const change: ChangeEventHandler<HTMLTextAreaElement> = (event) => onChange(event.target.value);
   return <FormField label={label} description={description} errorMessage={errorMessage} isInvalid={isInvalid} isRequired={isRequired} isLoading={isLoading}>
     {(control) => <textarea
@@ -27,6 +28,7 @@ export function TextArea({ label, value, onChange, description, errorMessage, pl
       value={value}
       placeholder={placeholder}
       rows={rows}
+      maxLength={maxLength}
       disabled={isDisabled}
       readOnly={isReadOnly}
       required={isRequired}
