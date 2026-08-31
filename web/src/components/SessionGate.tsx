@@ -1,49 +1,58 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { loadContext, loadDemoAccounts, loadSessionStatus, loginDemo, logoutDemo, type DemoAccount, type RuntimeContext } from "../api";
 import { apiErrorKind } from "../http";
 import type { RuntimePresentation } from "../runtimePresentation";
 import { DemoLoginPage } from "./DemoLoginPage";
 
 type GateState = "checking" | "ready" | "login";
-type DemoRuntime = RuntimeContext & { demo_mode?: boolean };
+type SessionRuntime = RuntimeContext & { demo_mode?: boolean };
 
-export function DemoAuthGate({ children, presentation = "demo" }: { children: ReactNode; presentation?: RuntimePresentation }) {
+export type DemoSessionTools = {
+  accounts: DemoAccount[];
+  currentAccountLabel: string;
+  switchAccount: (account: DemoAccount) => Promise<void>;
+};
+
+const DemoSessionContext = createContext<DemoSessionTools | null>(null);
+
+export function useDemoSessionTools() {
+  return useContext(DemoSessionContext);
+}
+
+export function SessionGate({ children, presentation = "enterprise" }: { children: ReactNode; presentation?: RuntimePresentation }) {
   const [state, setState] = useState<GateState>("checking");
   const [accounts, setAccounts] = useState<DemoAccount[]>([]);
   const [demoMode, setDemoMode] = useState(false);
-  const [switchError, setSwitchError] = useState("");
   const [loginError, setLoginError] = useState("");
-  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [currentAccountLabel, setCurrentAccountLabel] = useState("Demo account");
-  const [accountHost, setAccountHost] = useState<Element | null>(null);
 
-  async function rememberContext(context: DemoRuntime) {
+  async function rememberContext(context: SessionRuntime) {
     const isDemo = context.demo_mode === true;
     setDemoMode(isDemo);
-    if (isDemo) {
-      const available = await loadDemoAccounts().catch(() => []);
-      setAccounts(available);
-      const actorRoles = new Set(context.actor.role_codes ?? []);
-      const matched = available
-        .map((account) => ({ account, score: account.role_codes.filter((role) => actorRoles.has(role)).length }))
-        .filter((candidate) => candidate.score > 0)
-        .sort((left, right) => right.score - left.score || right.account.role_codes.length - left.account.role_codes.length)[0]?.account;
-      setCurrentAccountLabel(matched?.label ?? context.actor.name ?? "Demo account");
+    if (!isDemo) {
+      setAccounts([]);
+      setCurrentAccountLabel(context.actor.name || "Signed-in account");
       return;
     }
-    setCurrentAccountLabel(context.actor.name || "Signed-in account");
+
+    const available = await loadDemoAccounts().catch(() => []);
+    setAccounts(available);
+    const actorRoles = new Set(context.actor.role_codes ?? []);
+    const matched = available
+      .map((account) => ({ account, score: account.role_codes.filter((role) => actorRoles.has(role)).length }))
+      .filter((candidate) => candidate.score > 0)
+      .sort((left, right) => right.score - left.score || right.account.role_codes.length - left.account.role_codes.length)[0]?.account;
+    setCurrentAccountLabel(matched?.label ?? context.actor.name ?? "Demo account");
   }
 
   async function enter() {
     setState("checking");
-    setSwitchError("");
     setLoginError("");
     let status;
     try {
       status = await loadSessionStatus();
     } catch {
-      // Keep compatibility with deployments released before session discovery.
+      // Compatibility with deployments released before session discovery.
     }
 
     if (status && !status.authenticated && status.demo_login_available) {
@@ -53,9 +62,10 @@ export function DemoAuthGate({ children, presentation = "demo" }: { children: Re
       setState(available.length ? "login" : "ready");
       return;
     }
+
     if (status?.authenticated) {
       try {
-        await rememberContext(await loadContext() as DemoRuntime);
+        await rememberContext(await loadContext() as SessionRuntime);
       } catch (error) {
         if (apiErrorKind(error) === "unauthorized" && status.demo_login_available) {
           const available = await loadDemoAccounts().catch(() => []);
@@ -71,7 +81,7 @@ export function DemoAuthGate({ children, presentation = "demo" }: { children: Re
     }
 
     try {
-      await rememberContext(await loadContext() as DemoRuntime);
+      await rememberContext(await loadContext() as SessionRuntime);
       setState("ready");
       return;
     } catch (error) {
@@ -94,14 +104,8 @@ export function DemoAuthGate({ children, presentation = "demo" }: { children: Re
   }
 
   useEffect(() => { void enter(); }, []);
-  useEffect(() => {
-    if (state !== "ready") { setAccountHost(null); return; }
-    setAccountHost(document.querySelector(".context-role"));
-  }, [state]);
 
-  async function switchRole(account: DemoAccount) {
-    setSwitchError("");
-    setAccountMenuOpen(false);
+  async function switchAccount(account: DemoAccount) {
     try {
       await logoutDemo();
       setState("checking");
@@ -113,22 +117,16 @@ export function DemoAuthGate({ children, presentation = "demo" }: { children: Re
     }
   }
 
+  const demoTools = useMemo<DemoSessionTools | null>(() => demoMode && presentation === "demo" ? {
+    accounts,
+    currentAccountLabel,
+    switchAccount,
+  } : null, [accounts, currentAccountLabel, demoMode, presentation]);
+
   if (state === "checking") {
     return <main className="demo-login-shell"><section className="demo-login-panel compact" aria-live="polite" aria-busy="true"><span className="eyebrow">ClearSight</span><h1>Opening your workspace…</h1></section></main>;
   }
   if (state === "login") return <DemoLoginPage accounts={accounts} onAuthenticated={enter} initialError={loginError}/>;
 
-  const canSwitchRole = demoMode && presentation === "demo";
-  const accountControl = canSwitchRole && <div className="demo-account-menu-wrap">
-    <button className="demo-account-menu-trigger" type="button" aria-label={`Viewing as ${currentAccountLabel}`} aria-expanded={accountMenuOpen} aria-controls="demo-account-menu" onClick={() => setAccountMenuOpen((open) => !open)}><span>Viewing as</span> <strong>{currentAccountLabel}</strong></button>
-    {accountMenuOpen && <div className="demo-account-menu" id="demo-account-menu" aria-label="Switch demo account">
-      <span>Choose another account</span>
-      {accounts.filter((account) => account.label !== currentAccountLabel).map((account) => <button key={account.username} type="button" onClick={() => void switchRole(account)}>Switch to {account.label}</button>)}
-    </div>}
-    {switchError && <span role="alert">{switchError}</span>}
-  </div>;
-  return <>
-    {children}
-    {accountControl && (accountHost ? createPortal(accountControl, accountHost) : accountControl)}
-  </>;
+  return <DemoSessionContext.Provider value={demoTools}>{children}</DemoSessionContext.Provider>;
 }

@@ -163,13 +163,16 @@ describe("runtime navigation", () => {
     expect(screen.queryByText(/Cannot read properties/i)).toBeNull();
   });
 
-  it("keeps real imports available and removes reference navigation when demo mode is off", async () => {
+  it("keeps import capability in administration and removes reference tooling when demo mode is off", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
 
-    expect((await screen.findAllByRole("button", { name: /Imports/ })).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("button", { name: "Forms" })).length).toBeGreaterThan(0);
     await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("off"));
+    expect(screen.getByLabelText("Administration")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Imports/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
+    expect(screen.queryByText("Demo environment")).toBeNull();
   });
 
   it("provides Vendors as a first-class navigation destination", async () => {
@@ -262,12 +265,15 @@ describe("runtime navigation", () => {
     expect(loadEvidenceRequest).toHaveBeenCalledWith("request-vendor-1");
   });
 
-  it("exposes the stakeholder reference experience when demo mode is on", async () => {
+  it("keeps stakeholder reference journeys secondary when explicit demo presentation is on", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(true));
-    render(<App />);
+    render(<App presentation="demo"/>);
 
-    expect((await screen.findAllByRole("button", { name: /Explore/ })).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("button", { name: /Imports/ }).length).toBeGreaterThan(0);
+    await screen.findByText("Stakeholder demo");
+    expect(screen.getByText("Demo environment")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Reference journeys" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Imports/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
     await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("on"));
   });
 
@@ -275,9 +281,10 @@ describe("runtime navigation", () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(true));
     render(<App presentation="live-preview" />);
 
-    await screen.findByText("Live preview · Non-production");
+    await screen.findByText("Non-production data");
     await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("off"));
     expect(screen.queryByText("Stakeholder demo")).toBeNull();
+    expect(screen.queryByText("Demo environment")).toBeNull();
     expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
   });
 
@@ -297,7 +304,7 @@ describe("runtime navigation", () => {
     const exact = deferred<EvidenceRequest>();
     vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(denied.id)], generated_at: "2026-08-07T15:00:00Z" });
     vi.mocked(loadEvidenceRequest).mockReturnValue(exact.promise);
-    render(<App />);
+    render(<App presentation="demo"/>);
 
     await screen.findByText("Stakeholder demo");
     await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(denied.id, "eligibility_preload"));

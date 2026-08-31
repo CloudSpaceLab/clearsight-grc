@@ -2,7 +2,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { loadContext, loadDemoAccounts, loadSessionStatus, loginDemo, logoutDemo, type RuntimeContext } from "../api";
 import { ApiError } from "../http";
-import { DemoAuthGate } from "./DemoAuthGate";
+import type { RuntimePresentation } from "../runtimePresentation";
+import { DemoEnvironmentMenu } from "./DemoEnvironmentMenu";
+import { SessionGate } from "./SessionGate";
 
 vi.mock("../api", () => ({
   loadContext: vi.fn(),
@@ -38,6 +40,17 @@ beforeEach(() => {
   vi.mocked(logoutDemo).mockResolvedValue(undefined);
 });
 
+function renderSession(presentation: RuntimePresentation = "demo") {
+  return render(<SessionGate presentation={presentation}>
+    <div>Workspace</div>
+    <DemoEnvironmentMenu onOpenReferenceJourneys={vi.fn()}/>
+  </SessionGate>);
+}
+
+async function openDemoEnvironment() {
+  fireEvent.click(await screen.findByText("Demo environment", { selector: "summary" }));
+}
+
 it("opens demo role login without probing protected context while signed out", async () => {
   vi.mocked(loadSessionStatus).mockResolvedValue({ authenticated: false, demo_login_available: true });
   vi.mocked(loadDemoAccounts).mockResolvedValue([{
@@ -47,7 +60,7 @@ it("opens demo role login without probing protected context while signed out", a
     role_codes: ["CRO", "EXECUTIVE"],
   }]);
 
-  render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
+  renderSession();
 
   expect(await screen.findByRole("heading", { name: "Choose a demo account" })).not.toBeNull();
   expect(screen.getByRole("button", { name: /Chief Risk Officer\s*CRO · Executive/ })).toBeTruthy();
@@ -55,12 +68,13 @@ it("opens demo role login without probing protected context while signed out", a
 });
 
 it("loads protected context after session discovery confirms authentication", async () => {
-  render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
+  renderSession();
 
   expect(await screen.findByText("Workspace")).not.toBeNull();
   expect(loadSessionStatus).toHaveBeenCalledTimes(1);
   expect(loadContext).toHaveBeenCalledTimes(1);
-  await waitFor(() => expect(screen.getByRole("button", { name: "Viewing as Chief Risk Officer" })).not.toBeNull());
+  await openDemoEnvironment();
+  expect(screen.getByText("Chief Risk Officer", { selector: ".demo-environment-account strong" })).toBeTruthy();
 });
 
 it("uses the demo catalogue label when runtime context exposes a principal id", async () => {
@@ -72,16 +86,16 @@ it("uses the demo catalogue label when runtime context exposes a principal id", 
     demo_mode: true,
   } as RuntimeContext & { demo_mode: boolean });
 
-  render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
+  renderSession();
+  await openDemoEnvironment();
 
-  expect(await screen.findByRole("button", { name: "Viewing as System Administrator" })).toBeTruthy();
+  expect(screen.getByText("System Administrator", { selector: ".demo-environment-account strong" })).toBeTruthy();
   expect(screen.queryByText("00000000-0000-4000-8000-000000000104")).toBeNull();
 });
 
 it("switches directly to another demo account after securely logging out", async () => {
-  render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
-
-  fireEvent.click(await screen.findByRole("button", { name: "Viewing as Chief Risk Officer" }));
+  renderSession();
+  await openDemoEnvironment();
   fireEvent.click(screen.getByRole("button", { name: "Switch to System Administrator" }));
 
   await waitFor(() => expect(logoutDemo).toHaveBeenCalledTimes(1));
@@ -100,18 +114,19 @@ it("shows the replacement account when demo roles share a broad role", async () 
     .mockResolvedValueOnce({ tenant: { id: "bank-demo", name: "Clear Bank" }, legal_entity: { id: "bank-ng", name: "Clear Bank Nigeria" }, actor: { id: "role-cro", name: "Chief Risk Officer", role_codes: ["CRO", "EXECUTIVE"] }, mode: "memory", demo_mode: true } as RuntimeContext & { demo_mode: boolean })
     .mockResolvedValueOnce({ tenant: { id: "bank-demo", name: "Clear Bank" }, legal_entity: { id: "bank-ng", name: "Clear Bank Nigeria" }, actor: { id: "role-cco", name: "Chief Compliance Officer", role_codes: ["CCO", "EXECUTIVE", "COMPLIANCE_OFFICER"] }, mode: "memory", demo_mode: true } as RuntimeContext & { demo_mode: boolean });
 
-  render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
-  fireEvent.click(await screen.findByRole("button", { name: "Viewing as Chief Risk Officer" }));
+  renderSession();
+  await openDemoEnvironment();
   fireEvent.click(screen.getByRole("button", { name: "Switch to Chief Compliance Officer" }));
 
-  expect(await screen.findByRole("button", { name: "Viewing as Chief Compliance Officer" })).toBeTruthy();
+  expect(await screen.findByText("Workspace")).toBeTruthy();
+  await openDemoEnvironment();
+  expect(screen.getByText("Chief Compliance Officer", { selector: ".demo-environment-account strong" })).toBeTruthy();
 });
 
 it("returns to the account chooser when the replacement account cannot sign in", async () => {
   vi.mocked(loginDemo).mockRejectedValueOnce(new Error("Replacement sign-in failed"));
-  render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
-
-  fireEvent.click(await screen.findByRole("button", { name: "Viewing as Chief Risk Officer" }));
+  renderSession();
+  await openDemoEnvironment();
   fireEvent.click(screen.getByRole("button", { name: "Switch to System Administrator" }));
 
   expect(await screen.findByRole("heading", { name: "Choose a demo account" })).toBeTruthy();
@@ -121,7 +136,7 @@ it("returns to the account chooser when the replacement account cannot sign in",
 it("uses the compatibility context flow when session discovery is unavailable", async () => {
   vi.mocked(loadSessionStatus).mockRejectedValue(new Error("not deployed"));
 
-  render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
+  renderSession();
 
   expect(await screen.findByText("Workspace")).not.toBeNull();
   expect(loadContext).toHaveBeenCalledTimes(1);
@@ -136,15 +151,26 @@ it("returns to demo role login when the session expires before context loads", a
     role_codes: ["CRO"],
   }]);
 
-  render(<DemoAuthGate><div>Workspace</div></DemoAuthGate>);
+  renderSession();
 
   expect(await screen.findByRole("heading", { name: "Choose a demo account" })).not.toBeNull();
   expect(screen.queryByText("Workspace")).toBeNull();
 });
 
-it("keeps demo authentication while hiding role switching in live preview", async () => {
-  render(<DemoAuthGate presentation="live-preview"><div>Workspace</div></DemoAuthGate>);
+it("defaults to enterprise presentation and keeps demo account switching inside explicit demo presentation", async () => {
+  render(<SessionGate><div>Workspace</div><DemoEnvironmentMenu onOpenReferenceJourneys={vi.fn()}/></SessionGate>);
 
   expect(await screen.findByText("Workspace")).not.toBeNull();
-  expect(screen.queryByRole("button", { name: /Viewing as/ })).toBeNull();
+  await openDemoEnvironment();
+  expect(screen.queryByText("Viewing as")).toBeNull();
+  expect(screen.queryByRole("button", { name: /Switch to/ })).toBeNull();
+});
+
+it("keeps demo authentication while hiding account switching in live preview", async () => {
+  renderSession("live-preview");
+
+  expect(await screen.findByText("Workspace")).not.toBeNull();
+  await openDemoEnvironment();
+  expect(screen.queryByText("Viewing as")).toBeNull();
+  expect(screen.queryByRole("button", { name: /Switch to/ })).toBeNull();
 });

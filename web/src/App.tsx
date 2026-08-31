@@ -1,23 +1,17 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
-  loadAIGovernancePolicies,
-  loadAIGovernanceWorkloads,
-  loadAutomationPolicies,
   loadContext,
   loadEvidenceRequest,
   loadEvidenceRequests,
   loadEvidenceSources,
-  loadIntegrity,
-  loadPolicies,
-  loadProjectionHealth,
   loadReadiness,
   loadToday,
-  loadWorkflowTasks,
-  reconcileProgramState,
   resolveAuthority,
 } from "./api";
 import type { RuntimeContext } from "./api";
-import { CapturePanel, ConfigureView, ExploreView, ProgramsView, RoutingPanel, TodayView, WorkView, type RoutingLoadState } from "./AppViews";
+import { CapturePanel, ProgramsView, ReferenceJourneysView, RoutingPanel, TodayView, WorkView, type RoutingLoadState } from "./AppViews";
+import { AdministrationMenu } from "./components/AdministrationMenu";
+import { DemoEnvironmentMenu } from "./components/DemoEnvironmentMenu";
 import { DisplayPreferencesMenu } from "./components/DisplayPreferences";
 import { DocumentImportWorkspace } from "./components/DocumentImportWorkspace";
 import { FocusedSheet } from "./components/FocusedSheet";
@@ -30,14 +24,13 @@ import { canRespondToEvidenceRequest, isEvidenceRequestAssignedToActor } from ".
 import { parseRoute, routeHash } from "./appRouting";
 import type { View, WorkspaceTarget, WorkTab } from "./appRouting";
 import type { RuntimePresentation } from "./runtimePresentation";
-import type { AIGovernancePolicy, AIGovernanceWorkload, AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, GuideStep, IntegrityFinding, PolicySummary, Readiness, WorkflowTask } from "./types";
-import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
+import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, GuideStep, Readiness } from "./types";
 
 const FormsWorkspace = lazy(() => import("./components/FormsWorkspace").then((module) => ({ default: module.FormsWorkspace })));
 const VendorsWorkspace = lazy(() => import("./components/VendorsWorkspace").then((module) => ({ default: module.VendorsWorkspace })));
+const ConfigureWorkspace = lazy(() => import("./components/configure/ConfigureWorkspace").then((module) => ({ default: module.ConfigureWorkspace })));
 
 type LoadState = "idle" | "loading" | "live" | "unavailable";
-type SectionLoadState = Exclude<LoadState, "idle">;
 type ConnectionState = "loading" | "live" | "sample" | "unavailable";
 type PrimaryEvidenceLoad = { targetID?: string; state: "idle" | "loading" | "live" | "unavailable" };
 type VendorGuideIntent = { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" | "open-vendor-next-action" };
@@ -59,7 +52,7 @@ const fallbackItems: AttentionItem[] = [{
   id: "fallback-change", type: "REGULATORY_CHANGE", title: "Review proposed digital-channel requirements", why_now: "Seven provisions may affect mobile banking and two payment vendors.", scope: "Digital Channels · Reference data", state: "Applicability review", evidence: "Official source recorded", owner: "Regulatory Compliance", due_at: new Date(Date.now() + 3 * 86400000).toISOString(), primary_action: "Review the proposed requirements", intervention_class: "REVIEW", material_conclusion: "Seven source-linked provisions may change digital-channel obligations.", recommendation: { proposed_action: "Review the proposed requirements", rationale: "The source change may affect mobile banking and two payment vendors." },
 }];
 
-function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) {
+function App({ presentation = "enterprise" }: { presentation?: RuntimePresentation }) {
   const initialRoute = parseRoute(window.location.hash);
   const [runtime, setRuntime] = useState<ProductRuntime | null>(null);
   const [activeView, setActiveView] = useState<View>(initialRoute.view);
@@ -79,21 +72,6 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   const [captureState, setCaptureState] = useState<CaptureLoadState>("loading");
   const [captureRequestID, setCaptureRequestID] = useState<string | undefined>();
   const [readiness, setReadiness] = useState<Readiness | null>(null);
-  const [policies, setPolicies] = useState<PolicySummary[]>([]);
-  const [policyState, setPolicyState] = useState<SectionLoadState>("loading");
-  const [integrity, setIntegrity] = useState<IntegrityFinding[]>([]);
-  const [integrityState, setIntegrityState] = useState<SectionLoadState>("loading");
-  const [tasks, setTasks] = useState<WorkflowTask[]>([]);
-  const [taskState, setTaskState] = useState<SectionLoadState>("loading");
-  const [configureState, setConfigureState] = useState<LoadState>("idle");
-  const [automationPolicies, setAutomationPolicies] = useState<AutomationPolicy[]>([]);
-  const [automationPolicyState, setAutomationPolicyState] = useState<SectionLoadState>("loading");
-  const [aiGovernancePolicies, setAIGovernancePolicies] = useState<AIGovernancePolicy[]>([]);
-  const [aiGovernancePolicyState, setAIGovernancePolicyState] = useState<SectionLoadState>("loading");
-  const [aiGovernanceWorkloads, setAIGovernanceWorkloads] = useState<AIGovernanceWorkload[]>([]);
-  const [aiGovernanceWorkloadState, setAIGovernanceWorkloadState] = useState<SectionLoadState>("loading");
-  const [projectionHealth, setProjectionHealth] = useState<ProjectionHealth | null>(null);
-  const [projectionState, setProjectionState] = useState<SectionLoadState>("loading");
   const [sources, setSources] = useState<EvidenceSource[]>([]);
   const [evidenceByID, setEvidenceByID] = useState<Record<string, EvidenceRequest>>({});
   const [evidenceWorkspaceIDs, setEvidenceWorkspaceIDs] = useState<string[]>([]);
@@ -115,6 +93,7 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   const demoMode = serverDemoMode && presentation === "demo";
   const importsEnabled = runtime != null && runtime.capabilities?.document_import !== false;
   const configureEnabled = runtime != null && runtime.capabilities?.config_read !== false;
+  const referenceJourneysEnabled = demoMode && runtime?.capabilities?.reference_journeys !== false;
 
   useEffect(() => {
     void Promise.allSettled([loadContext(), loadToday(), loadReadiness()]).then(([contextResult, todayResult, readinessResult]) => {
@@ -185,8 +164,8 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   useEffect(() => {
     document.documentElement.dataset.clearsightDemo = demoMode ? "on" : "off";
     if (!runtime) return;
-    if ((!demoMode && activeView === "explore") || (!importsEnabled && activeView === "imports") || (!configureEnabled && activeView === "configure")) navigate("today");
-  }, [runtime, demoMode, importsEnabled, configureEnabled, activeView]);
+    if ((!referenceJourneysEnabled && activeView === "explore") || (!importsEnabled && activeView === "imports") || (!configureEnabled && activeView === "configure")) navigate("today");
+  }, [runtime, referenceJourneysEnabled, importsEnabled, configureEnabled, activeView]);
 
   async function loadEvidenceWorkspace(requestedID?: string) {
     const loadID = ++evidenceWorkspaceLoadID.current;
@@ -272,48 +251,23 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
     setRuntime(nextRuntime);
   }
 
-  async function loadConfigureWorkspace() {
-    setConfigureState("loading");
-    setPolicyState("loading"); setIntegrityState("loading"); setTaskState("loading"); setProjectionState("loading"); setAutomationPolicyState("loading"); setAIGovernancePolicyState("loading"); setAIGovernanceWorkloadState("loading");
-    const [policiesResult, integrityResult, tasksResult, projectionResult, automationResult, aiPolicyResult, aiWorkloadResult] = await Promise.allSettled([loadPolicies(), loadIntegrity(), loadWorkflowTasks(), loadProjectionHealth(), loadAutomationPolicies(), loadAIGovernancePolicies(), loadAIGovernanceWorkloads()]);
-    if (policiesResult.status === "fulfilled") { setPolicies(policiesResult.value); setPolicyState("live"); } else { setPolicies([]); setPolicyState("unavailable"); }
-    if (integrityResult.status === "fulfilled") { setIntegrity(integrityResult.value); setIntegrityState("live"); } else { setIntegrity([]); setIntegrityState("unavailable"); }
-    if (tasksResult.status === "fulfilled") { setTasks(tasksResult.value); setTaskState("live"); } else { setTasks([]); setTaskState("unavailable"); }
-    if (projectionResult.status === "fulfilled") { setProjectionHealth(projectionResult.value[0] ?? null); setProjectionState("live"); } else { setProjectionHealth(null); setProjectionState("unavailable"); }
-    if (automationResult.status === "fulfilled") { setAutomationPolicies(automationResult.value); setAutomationPolicyState("live"); } else { setAutomationPolicies([]); setAutomationPolicyState("unavailable"); }
-    if (aiPolicyResult.status === "fulfilled") { setAIGovernancePolicies(aiPolicyResult.value); setAIGovernancePolicyState("live"); } else { setAIGovernancePolicies([]); setAIGovernancePolicyState("unavailable"); }
-    if (aiWorkloadResult.status === "fulfilled") { setAIGovernanceWorkloads(aiWorkloadResult.value); setAIGovernanceWorkloadState("live"); } else { setAIGovernanceWorkloads([]); setAIGovernanceWorkloadState("unavailable"); }
-    setConfigureState([policiesResult, integrityResult, tasksResult, projectionResult, automationResult, aiPolicyResult, aiWorkloadResult].some((result) => result.status === "fulfilled") ? "live" : "unavailable");
-  }
-
-  async function checkProgramStatusRecords(): Promise<ReconcileResult> {
-    const result = await reconcileProgramState();
-    const health = await loadProjectionHealth();
-    setProjectionHealth(health[0] ?? null);
-    setProjectionState("live");
-    return result;
-  }
-
   useEffect(() => {
     if (!runtime || activeView !== "work" || workTab !== "evidence") return;
     if (evidenceRequestState === "idle" || evidenceSourceState === "idle") { void loadEvidenceWorkspace(target.evidenceID); return; }
     if (evidenceRequestState === "live" && target.evidenceID && !evidenceWorkspaceIDs.includes(target.evidenceID)) void ensureEvidenceTarget(target.evidenceID);
   }, [runtime, activeView, workTab, evidenceRequestState, evidenceSourceState, target.evidenceID, evidenceWorkspaceIDs]);
 
-  useEffect(() => {
-    if (activeView === "configure" && configureEnabled && configureState === "idle") void loadConfigureWorkspace();
-  }, [activeView, configureEnabled, configureState]);
-
   const evidenceRequests = evidenceWorkspaceIDs.flatMap((id) => evidenceByID[id] ? [evidenceByID[id]] : []);
   const organizationName = runtime?.tenant.name || runtime?.tenant.id || "Organization unavailable";
   const legalEntityName = runtime?.legal_entity.name || runtime?.legal_entity.id || "Legal entity unavailable";
   const actorName = runtime?.actor.name || runtime?.actor.id || "User unavailable";
   const roleName = humanRole(runtime?.actor.role_codes?.[0]) || "Role not provided";
-  const navigation: Array<{ label: string; view: View }> = [
-    { label: "Today", view: "today" }, { label: "Programs", view: "programs" }, { label: "Forms", view: "forms" }, { label: "Vendors", view: "vendors" }, { label: "Work", view: "work" },
-    ...(importsEnabled ? [{ label: "Imports", view: "imports" as View }] : []),
-    ...(demoMode ? [{ label: "Explore", view: "explore" as View }] : []),
-    ...(configureEnabled ? [{ label: "Configure", view: "configure" as View }] : []),
+  const operatingNavigation: Array<{ label: string; view: View }> = [
+    { label: "Today", view: "today" },
+    { label: "Programs", view: "programs" },
+    { label: "Work", view: "work" },
+    { label: "Vendors", view: "vendors" },
+    { label: "Forms", view: "forms" },
   ];
 
   function cancelVendorGuideIntent(reason: string) {
@@ -435,20 +389,34 @@ function App({ presentation = "demo" }: { presentation?: RuntimePresentation }) 
   }
 
   return <div className="app-shell">
-    <aside className="sidebar" aria-label="Primary navigation"><div className="brand-mark" aria-label="ClearSight">C</div><nav>{navigation.map(({ label, view }) => <button className={view === activeView ? "nav-item active" : "nav-item"} key={view} aria-current={view === activeView ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><b>{label}</b></button>)}</nav><div className="avatar" aria-label={`Signed in as ${actorName}`}>{initials(actorName)}</div></aside>
+    <aside className="sidebar" aria-label="Primary navigation">
+      <div className="brand-mark" aria-label="ClearSight">C</div>
+      <nav>{operatingNavigation.map(({ label, view }) => <button className={view === activeView ? "nav-item active" : "nav-item"} key={view} aria-current={view === activeView ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><b>{label}</b></button>)}</nav>
+      {configureEnabled && <div className="sidebar-secondary"><button className={activeView === "configure" ? "nav-item active" : "nav-item"} type="button" aria-current={activeView === "configure" ? "page" : undefined} onClick={() => navigate("configure")}><NavigationIcon view="configure"/><b>Configure</b></button></div>}
+      <div className="avatar" aria-label={`Signed in as ${actorName}`}>{initials(actorName)}</div>
+    </aside>
     <main>
-      <div className="context-bar" aria-label="Active workspace context"><div><strong>{organizationName}</strong><span>{legalEntityName}</span></div><div className="context-role"><DisplayPreferencesMenu/><span>{roleName}</span>{demoMode ? <mark>Stakeholder demo</mark> : serverDemoMode && presentation === "live-preview" ? <mark>Live preview · Non-production</mark> : null}</div></div>
+      <div className="context-bar" aria-label="Active workspace context">
+        <div><strong>{organizationName}</strong><span>{legalEntityName}</span></div>
+        <div className="context-role">
+          <DisplayPreferencesMenu/>
+          <AdministrationMenu enabled={configureEnabled} onOpen={() => navigate("configure")}/>
+          {referenceJourneysEnabled && <DemoEnvironmentMenu onOpenReferenceJourneys={() => navigate("explore")}/>} 
+          <span>{roleName}</span>
+          {serverDemoMode ? <mark>{demoMode ? "Stakeholder demo" : "Non-production data"}</mark> : null}
+        </div>
+      </div>
       {(activeView === "today" || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>}
       {activeView === "today" && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>} 
       {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")}/>}
-      {activeView === "forms" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Forms…</div>}><FormsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.formTemplateID} onTarget={(id) => navigate("forms", id ? { formTemplateID: id } : {})}/></Suspense>}
-      {activeView === "vendors" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships…</div>}><VendorsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.vendorRelationshipID} guideIntent={vendorGuideIntent} onGuideIntentCompleted={completeVendorGuideIntent} onGuideIntentFailed={failVendorGuideIntent} onTarget={(id) => navigate("vendors", id ? { vendorRelationshipID: id } : {})} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} onOpenForms={() => navigate("forms")}/></Suspense>}
       {activeView === "work" && <WorkView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} evidenceScopeToken={evidenceScopeEpoch.current} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} onBackMatter={() => navigate("work", {}, "matters")} sources={sources} requests={evidenceRequests} evidenceSourceState={evidenceSourceState === "idle" ? "loading" : evidenceSourceState} evidenceRequestState={evidenceRequestState === "idle" ? "loading" : evidenceRequestState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} onEvidenceRequestUpdated={updateEvidenceEntity} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)}/>}
+      {activeView === "vendors" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships…</div>}><VendorsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.vendorRelationshipID} guideIntent={vendorGuideIntent} onGuideIntentCompleted={completeVendorGuideIntent} onGuideIntentFailed={failVendorGuideIntent} onTarget={(id) => navigate("vendors", id ? { vendorRelationshipID: id } : {})} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} onOpenForms={() => navigate("forms")}/></Suspense>}
+      {activeView === "forms" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Forms…</div>}><FormsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.formTemplateID} onTarget={(id) => navigate("forms", id ? { formTemplateID: id } : {})}/></Suspense>}
       {activeView === "imports" && importsEnabled && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Compare regulatory documents with current Programs, controls and evidence.</p></div></header><DocumentImportWorkspace/></>}
-      {activeView === "explore" && demoMode && <ExploreView organizationName={organizationName}/>}
-      {activeView === "configure" && configureEnabled && <ConfigureView policies={policies} policyState={policyState} findings={integrity} integrityState={integrityState} tasks={tasks} taskState={taskState} projectionHealth={projectionHealth} projectionState={projectionState} canReconcileProjection={runtime?.capabilities?.platform_operations_write === true} automationPolicies={automationPolicies} automationPolicyState={automationPolicyState} aiGovernancePolicies={aiGovernancePolicies} aiGovernancePolicyState={aiGovernancePolicyState} aiGovernanceWorkloads={aiGovernanceWorkloads} aiGovernanceWorkloadState={aiGovernanceWorkloadState} state={configureState} onRetry={() => void loadConfigureWorkspace()} onReconcile={checkProgramStatusRecords}/>}
+      {activeView === "explore" && referenceJourneysEnabled && <ReferenceJourneysView organizationName={organizationName}/>}
+      {activeView === "configure" && configureEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Configuration…</div>}><ConfigureWorkspace importsEnabled={importsEnabled} canReconcileProjection={runtime?.capabilities?.platform_operations_write === true} onOpenImports={() => navigate("imports")}/></Suspense>}
     </main>
-    <nav className="mobile-nav" aria-label="Mobile navigation">{navigation.map(({ label, view }) => <button key={view} type="button" aria-current={activeView === view ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><span>{label}</span></button>)}</nav>
+    <nav className="mobile-nav" aria-label="Mobile navigation">{operatingNavigation.map(({ label, view }) => <button key={view} type="button" aria-current={activeView === view ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><span>{label}</span></button>)}</nav>
     {activePanel !== "none" && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}>{activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}</FocusedSheet>}
   </div>;
 }
@@ -458,6 +426,7 @@ function humanRole(value?: string) {
   if (/^[A-Z0-9]+$/.test(value)) return value;
   return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
+
 function evidenceRuntimeScopeKey(runtime: ProductRuntime | null) {
   if (!runtime) return undefined;
   return `${runtime.tenant.id}\u0000${runtime.legal_entity.id}\u0000${runtime.actor.id}`;

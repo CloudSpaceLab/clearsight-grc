@@ -35,6 +35,40 @@ it("shows a bounded governance inventory in business language", () => {
   expect(screen.queryByText(/JSON/i)).toBeNull();
 });
 
+it("keeps creation composers closed until an administrator explicitly opens one", () => {
+  render(<GovernanceAdminWorkspace
+    policies={[]}
+    delegations={[]}
+    eligiblePeople={[]}
+    currentEntity={{ id: "entity-1", label: "ClearSight Bank Plc" }}
+    policyRoles={[{ code: "CONTROL_ASSURANCE", label: "Control Assurance" }]}
+    actorId="actor-1"
+    canConfigure
+    loadState="ready"
+    createDelegation={vi.fn()}
+    createPolicyDraft={vi.fn()}
+    policyAction={vi.fn()}
+    delegationAction={vi.fn()}
+  />);
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByRole("combobox", { name: "Legal entity" })).toBeNull();
+  expect(screen.queryByRole("textbox", { name: "Policy name" })).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "New delegation" }));
+  expect(screen.getByRole("dialog", { name: "New delegation" })).toBeTruthy();
+  expect(screen.getByRole("combobox", { name: "Legal entity" })).toBeTruthy();
+  expect(screen.queryByRole("textbox", { name: "Policy name" })).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Close delegation form" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "New routing policy" }));
+  expect(screen.getByRole("dialog", { name: "New routing policy" })).toBeTruthy();
+  expect(screen.getByRole("textbox", { name: "Policy name" })).toBeTruthy();
+  expect(screen.queryByRole("combobox", { name: "Legal entity" })).toBeNull();
+});
+
 it("offers policy submission or independent approval without allowing self-approval", async () => {
   const policyAction = vi.fn().mockResolvedValue(undefined);
   render(<GovernanceAdminWorkspace
@@ -109,6 +143,7 @@ it("creates a typed whole-entity delegation from labelled people and responsibil
     delegationAction={vi.fn()}
   />);
 
+  fireEvent.click(screen.getByRole("button", { name: "New delegation" }));
   fireEvent.change(screen.getByRole("combobox", { name: "Legal entity" }), { target: { value: "entity-1" } });
   fireEvent.change(screen.getByRole("combobox", { name: "Person giving authority" }), { target: { value: "person-ada" } });
   fireEvent.change(screen.getByRole("combobox", { name: "Person receiving authority" }), { target: { value: "person-tunde" } });
@@ -131,6 +166,7 @@ it("creates a typed whole-entity delegation from labelled people and responsibil
     endsAt: new Date("2026-09-08T17:00").toISOString(),
     reason: "Annual leave cover for payment review",
   }));
+  expect(screen.queryByRole("dialog", { name: "New delegation" })).toBeNull();
   expect(screen.queryByText(/person-ada|person-tunde|\{.*kind.*\}/i)).toBeNull();
 });
 
@@ -148,6 +184,7 @@ it("loads responsibility-scoped labelled people before creating a delegation", a
     createDelegation={createDelegation} createPolicyDraft={vi.fn()} policyAction={vi.fn()} delegationAction={vi.fn()}
   />);
 
+  fireEvent.click(screen.getByRole("button", { name: "New delegation" }));
   fireEvent.change(screen.getByRole("combobox", { name: "Responsibility" }), { target: { value: "REVIEWER" } });
   await waitFor(() => expect(loadDelegationCandidates).toHaveBeenCalledWith("REVIEWER", ""));
   expect((await screen.findAllByRole("option", { name: "Ada Okafor · Risk assurance lead" })).length).toBeGreaterThan(0);
@@ -166,6 +203,7 @@ it("creates a routing policy draft from business fields and labelled role choice
     policyAction={vi.fn()} delegationAction={vi.fn()}
   />);
 
+  fireEvent.click(screen.getByRole("button", { name: "New routing policy" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Policy name" }), { target: { value: "Payment review route" } });
   fireEvent.change(screen.getByRole("textbox", { name: "Policy code" }), { target: { value: "PAYMENT_REVIEW" } });
   fireEvent.change(screen.getByRole("combobox", { name: "Policy responsibility" }), { target: { value: "REVIEWER" } });
@@ -180,6 +218,7 @@ it("creates a routing policy draft from business fields and labelled role choice
     roleCode: "CONTROL_ASSURANCE", objectType: "MATTER", decisionType: "", minMateriality: 2, priority: 100,
     effectiveFrom: new Date("2026-09-01T00:00").toISOString(),
   }));
+  expect(screen.queryByRole("dialog", { name: "New routing policy" })).toBeNull();
   expect(screen.queryByText(/\{"rules"|CONTROL_ASSURANCE/)).toBeNull();
 });
 
@@ -214,8 +253,8 @@ it("preserves loaded inventory and disables every mutation when authority is deg
   expect(screen.getByRole("heading", { name: "Payment approval route" })).toBeTruthy();
   expect(screen.getByRole("alert").textContent).toMatch(/Current approval authority could not be confirmed.*Existing records remain available/i);
   expect((screen.getByRole("button", { name: "Submit Payment approval route for approval" }) as HTMLButtonElement).disabled).toBe(true);
-  expect((screen.getByRole("combobox", { name: "Legal entity" }) as HTMLSelectElement).disabled).toBe(true);
-  expect((screen.getByRole("button", { name: "Create delegation draft" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "New delegation" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.queryByRole("dialog")).toBeNull();
   expect(policyAction).not.toHaveBeenCalled();
 });
 
@@ -235,7 +274,8 @@ it("states when the current legal-entity population is unavailable and no prior 
   expect(screen.getByRole("alert").textContent).toBe("The current legal-entity governance population could not be loaded. Refresh this page to try again; no changes are available.");
   expect(screen.queryByText(/No routing policies were returned/)).toBeNull();
   expect(screen.queryByText(/No delegations were returned/)).toBeNull();
-  expect((screen.getByRole("button", { name: "Create delegation draft" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "New delegation" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 it("offers one reason-bearing terminal action for active records to an eligible actor", async () => {
