@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { IdentityAccessPanel } from "./IdentityAccessPanel";
 
@@ -58,9 +58,9 @@ it("keeps access inventory primary and opens one focused creation workflow at a 
   expect(api.loadIdentityAccessOverview).toHaveBeenCalledTimes(1);
 
   fireEvent.click(screen.getByRole("button", { name: "Add source" }));
-  expect(screen.getByRole("dialog", { name: "Add provisioning source" })).toBeTruthy();
-  fireEvent.change(screen.getByRole("textbox", { name: "Code" }), { target: { value: "OKTA" } });
-  fireEvent.click(screen.getByRole("button", { name: "Create source" }));
+  const sourceDialog = screen.getByRole("dialog", { name: "Add provisioning source" });
+  fireEvent.change(within(sourceDialog).getByRole("textbox", { name: "Code" }), { target: { value: "OKTA" } });
+  fireEvent.click(within(sourceDialog).getByRole("button", { name: "Create source" }));
 
   await waitFor(() => expect(api.createIdentitySource).toHaveBeenCalledWith({ code: "OKTA", identity_issuer: undefined, subject_attribute: "externalId" }));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add provisioning source" })).toBeNull());
@@ -69,11 +69,11 @@ it("keeps access inventory primary and opens one focused creation workflow at a 
   expect(api.loadIdentityAccessOverview).toHaveBeenCalledTimes(1);
 
   fireEvent.click(screen.getByRole("button", { name: "Add mapping" }));
-  expect(screen.getByRole("dialog", { name: "Add group role mapping" })).toBeTruthy();
-  fireEvent.change(screen.getByRole("combobox", { name: "Directory group" }), { target: { value: "group-1" } });
-  fireEvent.change(screen.getByRole("combobox", { name: "Role" }), { target: { value: "role-1" } });
-  fireEvent.change(screen.getByRole("textbox", { name: "Department path (optional)" }), { target: { value: "BANK / RISK" } });
-  fireEvent.click(screen.getByRole("button", { name: "Add mapping" }));
+  const bindingDialog = screen.getByRole("dialog", { name: "Add group role mapping" });
+  fireEvent.change(within(bindingDialog).getByRole("combobox", { name: "Directory group" }), { target: { value: "group-1" } });
+  fireEvent.change(within(bindingDialog).getByRole("combobox", { name: "Role" }), { target: { value: "role-1" } });
+  fireEvent.change(within(bindingDialog).getByRole("textbox", { name: "Department path (optional)" }), { target: { value: "BANK / RISK" } });
+  fireEvent.click(within(bindingDialog).getByRole("button", { name: "Add mapping" }));
 
   await waitFor(() => expect(api.createGroupRoleBinding).toHaveBeenCalledWith({ group_id: "group-1", role_template_id: "role-1", department_path: ["BANK", "RISK"] }));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add group role mapping" })).toBeNull());
