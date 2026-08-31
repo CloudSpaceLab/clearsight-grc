@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { AutomationAISection } from "./AutomationAISection";
+import { AIGovernanceSection } from "./AIGovernanceSection";
+import { AutomationSection } from "./AutomationSection";
 import { AuthorityRoutingSection } from "./AuthorityRoutingSection";
 import { ConfigureNavigation } from "./ConfigureNavigation";
 import { ConfigureOverview } from "./ConfigureOverview";
@@ -44,7 +45,8 @@ export function ConfigureWorkspace({ importsEnabled, canReconcileProjection, onO
         {section === "access" && <PeopleAccessSection/>}
         {section === "authority" && <AuthorityRoutingSection/>}
         {section === "data" && <DataIntegrationsSection importsEnabled={importsEnabled} onOpenImports={onOpenImports}/>} 
-        {section === "automation" && <AutomationAISection/>}
+        {section === "automation" && <AutomationSection/>}
+        {section === "ai" && <AIGovernanceSection/>}
         {section === "operations" && <SystemOperationsSection canReconcile={canReconcileProjection}/>} 
       </section>
     </div>
