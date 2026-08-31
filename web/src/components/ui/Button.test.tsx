@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ActionLink, Button, IconButton } from "./index";
+import { ActionCard, ActionLink, Button, IconButton } from "./index";
 
 describe("Button", () => {
   it("runs a named primary action", () => {
@@ -34,5 +34,15 @@ describe("Button", () => {
     render(<ActionLink href="/forms">Open Forms</ActionLink>);
 
     expect((screen.getByRole("link", { name: "Open Forms" }) as HTMLAnchorElement).getAttribute("href")).toBe("/forms");
+  });
+
+  it("presents a named creation choice with supporting context", () => {
+    const choose = vi.fn();
+    render(<ActionCard title="Blank form" description="Start with an empty governed draft" onPress={choose} icon={<span aria-hidden="true">+</span>}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: /Blank form/ }));
+
+    expect(choose).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Start with an empty governed draft")).toBeTruthy();
   });
 });

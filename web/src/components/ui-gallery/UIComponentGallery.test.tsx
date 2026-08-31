@@ -10,12 +10,13 @@ describe("UIComponentGallery", () => {
     }
 
     const contracts = Array.from(view.container.querySelectorAll<HTMLElement>("[data-component-contract]"));
-    expect(contracts.length).toBeGreaterThanOrEqual(17);
+    expect(contracts.length).toBeGreaterThanOrEqual(18);
     for (const contract of contracts) {
       expect(contract.getAttribute("aria-label")).toMatch(/^Sample component data:/);
       expect(within(contract).getByText(/Keyboard:/)).toBeTruthy();
     }
     expect(screen.getByRole("checkbox", { name: "Include sample evidence" })).toBeTruthy();
     expect(screen.getByRole("spinbutton", { name: "Sample response limit" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Create sample request" })).toBeTruthy();
   });
 });

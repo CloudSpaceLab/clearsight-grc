@@ -38,7 +38,7 @@ Tokens have three levels:
 
 1. **Primitive tokens** (`--cs-primitive-*`) store raw colour, spacing, type, radius, border, icon, shadow, duration, easing and z-index values. Product components do not consume raw values when a semantic role exists.
 2. **Semantic tokens** express a role across theme and context: canvas/surface, primary/strong/muted text, default/strong/interactive/invalid border, primary/destructive action, information/success/warning/error/unknown feedback, focus, spacing, type, motion, overlay and document roles.
-3. **Component tokens** (`--cs-button-*`, `--cs-field-*`, `--cs-checkbox-*`, `--cs-select-*`, `--cs-tabs-*`, `--cs-overlay-*`, `--cs-table-*` and related families) bind the semantic roles to a closed component contract. A new component token must be useful to every instance of that component family; page-specific layout stays in feature CSS.
+3. **Component tokens** (`--cs-button-*`, `--cs-action-card-*`, `--cs-field-*`, `--cs-checkbox-*`, `--cs-select-*`, `--cs-tabs-*`, `--cs-overlay-*`, `--cs-table-*` and related families) bind the semantic roles to a closed component contract. A new component token must be useful to every instance of that component family; page-specific layout stays in feature CSS.
 
 `web/src/design-system/tokens/` owns the three-level foundation. `web/src/ui-preferences.css` supplies compatible legacy theme mappings while surfaces migrate. Components must not create a private light/dark palette when a semantic role already represents the meaning.
 
@@ -59,6 +59,7 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | Family | Supported contract |
 | --- | --- |
 | `Button` | Primary, secondary, quiet and destructive actions; comfortable or compact density; disabled and loading states. |
+| `ActionCard` | One consequential route with a title, concise supporting context, optional icon and disabled state. |
 | `ActionLink` | Real navigation only. |
 | `IconButton` | Named icon actions using the Button variants. |
 | `FormField` | Shared label, required marker, guidance and validation anatomy. |
@@ -74,7 +75,7 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | `EmptyState` | A named checked population, current empty result and next valid action. |
 | `FilterBar` | Responsive fields, result count and clear handling. |
 | `DataTable` | Populated, selected, loading, pagination and stacked-mobile data presentation. |
-| `FocusedSheet` | Dismissable, focus-contained detail or action with full-height mobile replacement. |
+| `FocusedSheet` | Dismissable, focus-contained detail or action in default or wide composition, with full-height mobile replacement. |
 
 The static-only UI component gallery renders every family from production exports. New variants update the closed TypeScript union, component tokens, this table and the gallery in the same change.
 

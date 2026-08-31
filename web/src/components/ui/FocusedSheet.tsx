@@ -9,9 +9,10 @@ export type FocusedSheetProps = {
   children: ReactNode;
   panelClassName?: string;
   closeLabel?: string;
+  size?: "default" | "wide";
 };
 
-export function FocusedSheet({ label, onClose, children, panelClassName = "", closeLabel = "Close" }: FocusedSheetProps) {
+export function FocusedSheet({ label, onClose, children, panelClassName = "", closeLabel = "Close", size = "default" }: FocusedSheetProps) {
   const invokerRef = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export function FocusedSheet({ label, onClose, children, panelClassName = "", cl
     onOpenChange={(open) => { if (!open) onClose(); }}
     onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
   >
-    <Modal className={`cs-sheet side-panel ${panelClassName}`.trim()}>
+    <Modal className={`cs-sheet cs-sheet--${size} ${panelClassName}`.trim()}>
       <Dialog aria-label={label} className="cs-sheet__dialog">
         <div className="cs-sheet__close">
           <IconButton autoFocus aria-label={closeLabel} onPress={onClose} variant="quiet"><CloseIcon/></IconButton>
