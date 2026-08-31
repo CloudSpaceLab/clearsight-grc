@@ -135,6 +135,43 @@
 .cs-action-card[data-focus-visible] { outline: var(--cs-focus-width) solid var(--cs-button-focus); outline-offset: var(--cs-focus-offset); }
 .cs-action-card[data-disabled] { opacity: var(--cs-button-disabled-opacity); cursor: not-allowed; transform: none; }
 
+.cs-selectable-record {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: var(--cs-selectable-record-gap);
+  padding: var(--cs-selectable-record-padding);
+  border: var(--cs-button-border-width) solid var(--cs-selectable-record-border);
+  border-radius: var(--cs-selectable-record-radius);
+  background: var(--cs-selectable-record-bg);
+  color: var(--cs-selectable-record-metadata);
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--cs-selectable-record-transition), border-color var(--cs-selectable-record-transition), box-shadow var(--cs-selectable-record-transition);
+}
+
+.cs-selectable-record[data-hovered],
+.cs-selectable-record[data-pressed] {
+  border-color: var(--cs-selectable-record-border-hover);
+  background: var(--cs-selectable-record-bg-hover);
+}
+
+.cs-selectable-record[data-selected] {
+  border-color: var(--cs-selectable-record-border-selected);
+  background: var(--cs-selectable-record-bg-selected);
+  box-shadow: inset var(--cs-primitive-border-2) 0 var(--cs-selectable-record-border-selected);
+}
+
+.cs-selectable-record[data-focus-visible] {
+  outline: var(--cs-focus-width) solid var(--cs-selectable-record-focus);
+  outline-offset: var(--cs-focus-offset);
+}
+
+.cs-selectable-record[data-disabled] { opacity: var(--cs-button-disabled-opacity); cursor: not-allowed; }
+.cs-selectable-record__title { min-width: 0; color: var(--cs-selectable-record-title); font-weight: 700; overflow-wrap: anywhere; }
+.cs-selectable-record__metadata { color: var(--cs-selectable-record-metadata); font-size: var(--cs-font-size-caption); }
+.cs-selectable-record__description { color: var(--cs-selectable-record-description); font-size: var(--cs-font-size-caption); line-height: var(--cs-leading-body); }
+
 .cs-filter-chip {
   display: inline-flex;
   min-block-size: var(--cs-filter-chip-height);
