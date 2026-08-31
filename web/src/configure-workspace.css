@@ -1,0 +1,67 @@
+.configure-workspace { min-width: 0; }
+.configure-topbar { margin-bottom: 26px; }
+.configure-topbar h1 { font-size: clamp(34px, 4vw, 48px); }
+.configure-shell { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 32px; align-items: start; }
+.configure-navigation { position: sticky; top: 78px; display: grid; gap: 4px; padding: 6px; border: 1px solid var(--border); border-radius: 16px; background: color-mix(in srgb, var(--surface) 88%, transparent); }
+.configure-navigation button { width: 100%; min-width: 0; border: 0; border-radius: 11px; padding: 10px 11px; display: grid; gap: 3px; text-align: left; color: var(--muted); background: transparent; cursor: pointer; }
+.configure-navigation button:hover { color: var(--text); background: color-mix(in srgb, var(--surface-2) 68%, transparent); }
+.configure-navigation button.active { color: var(--text); background: color-mix(in srgb, var(--violet) 10%, var(--surface-2)); box-shadow: inset 2px 0 0 color-mix(in srgb, var(--violet) 70%, transparent); }
+.configure-navigation span { font-size: 12px; font-weight: 700; }
+.configure-navigation small { color: var(--muted); font-size: 9px; line-height: 1.4; }
+.configure-content { min-width: 0; }
+.configure-domain, .configure-overview { display: grid; gap: 20px; }
+.configure-domain-header { min-height: 76px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.configure-domain-header > div { max-width: 760px; }
+.configure-domain-header h2 { margin-top: 5px; font-size: 25px; }
+.configure-domain-header p { margin: 6px 0 0; max-width: 720px; font-size: 12px; }
+.configure-area-list { overflow: hidden; border: 1px solid var(--border); border-radius: 16px; background: color-mix(in srgb, var(--surface) 92%, transparent); }
+.configure-area-list.compact { align-self: start; }
+.configure-area-row { width: 100%; min-width: 0; border: 0; border-bottom: 1px solid var(--border); padding: 18px 20px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(170px, auto); gap: 22px; align-items: center; text-align: left; color: var(--text); background: transparent; cursor: pointer; }
+.configure-area-row:last-child { border-bottom: 0; }
+.configure-area-row:not(.passive):not(:disabled):hover { background: color-mix(in srgb, var(--surface-2) 64%, transparent); }
+.configure-area-row:disabled { cursor: not-allowed; }
+.configure-area-row.passive { cursor: default; }
+.configure-area-copy { min-width: 0; display: grid; gap: 4px; }
+.configure-area-copy strong { font-size: 14px; letter-spacing: -.01em; }
+.configure-area-copy small { color: var(--muted); font-size: 11px; line-height: 1.45; }
+.configure-area-state { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 14px; color: var(--muted); font-size: 10px; }
+.configure-area-state b { color: var(--cyan); font-size: 20px; font-weight: 400; }
+.configure-status-strip { display: grid; grid-template-columns: minmax(190px, .45fr) minmax(0, 1fr); gap: 20px; align-items: center; padding: 16px 18px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--surface-2) 58%, transparent); }
+.configure-status-strip > div { display: grid; gap: 3px; }
+.configure-status-strip span { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.configure-status-strip strong { font-size: 15px; }
+.configure-status-strip p { margin: 0; font-size: 11px; }
+.configure-context-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.configure-context-panel { min-width: 0; border: 1px solid var(--border); border-radius: 15px; padding: 16px 18px; background: color-mix(in srgb, var(--surface) 92%, transparent); }
+.configure-subheader { margin-bottom: 10px; }
+.configure-subheader h3 { font-size: 13px; }
+.configure-subheader p { margin: 4px 0 0; font-size: 10px; }
+.configure-compact-list { display: grid; }
+.configure-context-panel .finding-row, .configure-context-panel .task-row { padding-block: 11px; }
+.configure-domain > .identity-access-panel { margin: 0; }
+.configure-domain > .automation-policies, .configure-domain > .ai-governance { margin-top: 0; }
+.configure-domain > .projection-health-card { margin: 0; }
+
+@media (max-width: 1020px) {
+  .configure-shell { grid-template-columns: 190px minmax(0, 1fr); gap: 20px; }
+  .configure-context-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 820px) {
+  .configure-shell { grid-template-columns: 1fr; gap: 16px; }
+  .configure-navigation { position: static; grid-auto-flow: column; grid-auto-columns: minmax(145px, 1fr); overflow-x: auto; scroll-snap-type: x proximity; }
+  .configure-navigation button { scroll-snap-align: start; min-height: 62px; }
+  .configure-domain-header { min-height: 0; }
+}
+
+@media (max-width: 560px) {
+  .configure-topbar { margin-bottom: 18px; }
+  .configure-topbar h1 { font-size: 34px; }
+  .configure-navigation { margin-inline: -2px; }
+  .configure-navigation small { display: none; }
+  .configure-navigation button { min-height: 44px; align-content: center; }
+  .configure-domain-header { display: grid; gap: 12px; padding-bottom: 14px; }
+  .configure-area-row { grid-template-columns: 1fr; gap: 8px; padding: 15px 16px; }
+  .configure-area-state { justify-content: space-between; }
+  .configure-status-strip { grid-template-columns: 1fr; gap: 8px; }
+}
