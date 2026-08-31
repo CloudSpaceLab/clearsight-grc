@@ -35,6 +35,10 @@ function selectQuestion(index = 0) {
   return question;
 }
 
+function selectedResponseType() {
+  return screen.getByLabelText("Inspector response type");
+}
+
 function completeBase() {
   fireEvent.change(screen.getByLabelText("Form name"), { target: { value: "Vendor due diligence" } });
   fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Collect information required for the vendor review." } });
@@ -52,7 +56,7 @@ beforeEach(() => {
 describe("FormBuilder", () => {
   it("offers every approved response type without exposing internal field codes", () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
-    const responseType = screen.getByLabelText("Response type");
+    const responseType = selectedResponseType();
     expect(within(responseType).getAllByRole("option").map((option) => option.textContent)).toEqual([
       "Short answer", "Long answer", "Email address", "Telephone number", "Web address",
       "Whole number", "Decimal number", "Percentage", "Currency amount", "Date", "Yes or No",
@@ -65,10 +69,10 @@ describe("FormBuilder", () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     selectQuestion();
     expect(screen.getByLabelText("Minimum characters")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Response type"), { target: { value: "date" } });
+    fireEvent.change(selectedResponseType(), { target: { value: "date" } });
     expect(screen.getByLabelText("Earliest date").getAttribute("type")).toBe("date");
     expect(screen.getByLabelText("Latest date").getAttribute("type")).toBe("date");
-    fireEvent.change(screen.getByLabelText("Response type"), { target: { value: "file" } });
+    fireEvent.change(selectedResponseType(), { target: { value: "file" } });
     expect(screen.getByRole("group", { name: "Accepted files" })).toBeTruthy();
     expect(screen.getByLabelText("Maximum file size (MB)")).toBeTruthy();
     expect(screen.queryByLabelText("Minimum characters")).toBeNull();
@@ -77,7 +81,7 @@ describe("FormBuilder", () => {
   it("deduplicates pasted choices before persistence", async () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     completeBase();
-    fireEvent.change(screen.getByLabelText("Response type"), { target: { value: "single_select" } });
+    fireEvent.change(selectedResponseType(), { target: { value: "single_select" } });
     fireEvent.change(screen.getByLabelText("Choices"), { target: { value: "Nigeria\nGhana\nnigeria\n\nKenya" } });
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(createFormTemplate).toHaveBeenCalledTimes(1));
@@ -87,7 +91,7 @@ describe("FormBuilder", () => {
   it("duplicates a section with regenerated field keys and rewritten internal conditions", async () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     completeBase();
-    fireEvent.change(screen.getByLabelText("Response type"), { target: { value: "yes_no" } });
+    fireEvent.change(selectedResponseType(), { target: { value: "yes_no" } });
     fireEvent.click(screen.getByRole("button", { name: "+ Question" }));
     const second = selectQuestion(1);
     fireEvent.change(second, { target: { value: "Explain the answer" } });
@@ -181,7 +185,7 @@ describe("FormBuilder", () => {
   it("persists governed record-target, cache and file limits through the shared contract", async () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     completeBase();
-    fireEvent.change(screen.getByLabelText("Response type"), { target: { value: "vendor_document" } });
+    fireEvent.change(selectedResponseType(), { target: { value: "vendor_document" } });
     fireEvent.click(screen.getByText(/Data handling/));
     fireEvent.change(screen.getByLabelText("Collection purpose"), { target: { value: "REPLACE_HELD_DOCUMENT" } });
     fireEvent.change(screen.getByLabelText("Record target key"), { target: { value: "vendor.registration_document" } });
@@ -202,7 +206,7 @@ describe("FormBuilder", () => {
     const onSaved = vi.fn();
     render(<FormBuilder programID="program-1" onSaved={onSaved} onCancel={vi.fn()}/>);
     completeBase();
-    fireEvent.change(screen.getByLabelText("Response type"), { target: { value: "email" } });
+    fireEvent.change(selectedResponseType(), { target: { value: "email" } });
     selectOverview();
     fireEvent.change(screen.getByLabelText("Default layout"), { target: { value: "WIZARD" } });
     fireEvent.click(screen.getByLabelText("Allow respondents to switch layouts"));

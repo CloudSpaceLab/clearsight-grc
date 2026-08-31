@@ -150,6 +150,7 @@ describe("Forms workspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
     const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
     fireEvent.click(launcher.getByRole("button", { name: /^Blank form\b/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Overview" }));
     fireEvent.change(screen.getByLabelText("Code"), { target: { value: "OPS" } });
     fireEvent.change(screen.getByLabelText("Form name"), { target: { value: "Operations review" } });
     fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Collect current operating evidence." } });
@@ -173,7 +174,7 @@ describe("Forms workspace", () => {
     const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
     fireEvent.click(launcher.getByRole("button", { name: "Use Vendor security review template" }));
     await waitFor(() => expect(api.instantiateStarterTemplate).toHaveBeenCalledWith("VENDOR-SECURITY"));
-    expect(await screen.findByText("Edit Vendor security review")).toBeTruthy();
+    expect(await screen.findByText("Vendor security review")).toBeTruthy();
   });
 
   it("opens governed AI authoring without replacing the manual builder", async () => {

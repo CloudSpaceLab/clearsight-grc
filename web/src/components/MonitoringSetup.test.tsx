@@ -79,7 +79,7 @@ describe("monitoring setup", () => {
     const onSaved = vi.fn();
     render(<FormBuilder programID="program-1" onSaved={onSaved} onCancel={vi.fn()}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Use password reset review" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use password reset example" }));
     expect(screen.getAllByLabelText("Question")).toHaveLength(5);
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
 
