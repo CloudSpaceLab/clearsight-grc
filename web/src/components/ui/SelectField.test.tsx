@@ -43,7 +43,7 @@ describe("SelectField", () => {
     fireEvent.click(screen.getByRole("button", { name: /Completed/ }));
     fireEvent.keyDown(await screen.findByRole("listbox"), { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
-    expect(document.activeElement).toBe(trigger);
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
   it("has no representative semantic accessibility violations while open", async () => {

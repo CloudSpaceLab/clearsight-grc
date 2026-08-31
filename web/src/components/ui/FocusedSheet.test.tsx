@@ -22,7 +22,7 @@ describe("FocusedSheet", () => {
     const dialog = await screen.findByRole("dialog", { name: "Evidence review" });
     expect(document.body.contains(dialog)).toBe(true);
     expect(document.body.style.overflow).toBe("hidden");
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close" })));
 
     fireEvent.keyDown(dialog, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
