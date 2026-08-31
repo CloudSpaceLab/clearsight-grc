@@ -2,9 +2,11 @@
 
 **Date:** 2026-08-31
 
-**Status:** Direction approved; written specification pending review
+**Status:** Superseded by [`2026-08-31-clearsight-ui-foundations-and-forms-migration-design.md`](2026-08-31-clearsight-ui-foundations-and-forms-migration-design.md)
 
 **Scope:** Governed Forms template authoring in the internal bank workspace
+
+> This document preserves the builder-specific audit and interaction decisions. Implementation follows the broader UI-foundation and Forms-migration specification, which incorporates these requirements into shared product components.
 
 ## 1. Decision summary
 
