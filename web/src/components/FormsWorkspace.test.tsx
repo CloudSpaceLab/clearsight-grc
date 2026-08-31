@@ -1,7 +1,8 @@
 import axe from "axe-core";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { FormLibraryItem } from "../formsTypes";
+import type { FormLibraryItem, StarterTemplate } from "../formsTypes";
+import { appearanceStorageKey } from "./forms/formsAppearance";
 import { FormsWorkspace } from "./FormsWorkspace";
 
 const api = vi.hoisted(() => ({
@@ -49,6 +50,27 @@ const draftItem: FormLibraryItem = {
   active_status: "ACTIVE",
 };
 
+const starter: StarterTemplate = {
+  code: "VENDOR-SECURITY",
+  catalog_version: 3,
+  published_on: "2026-08-01",
+  reference_label: "Reviewed vendor security pattern",
+  template: {
+    ...draftItem.template,
+    id: "starter-vendor-security",
+    code: "VENDOR-SECURITY",
+    name: "Vendor security review",
+    purpose: "Review core security safeguards before onboarding a critical provider.",
+    sections: [{ id: "access", title: "Access controls" }, { id: "evidence", title: "Evidence" }],
+    fields: [
+      { id: "mfa", section_id: "access", label: "Is MFA enforced for privileged access?", type: "yes_no", required: true },
+      { id: "pam", section_id: "access", label: "Describe privileged access monitoring.", type: "long_text", required: true },
+      { id: "evidence", section_id: "evidence", label: "Upload supporting evidence.", type: "file", required: false },
+    ],
+    tags: ["vendor", "security"],
+  },
+};
+
 beforeEach(() => {
   window.history.replaceState(null, "", "#forms");
   window.localStorage.clear();
@@ -86,33 +108,49 @@ describe("Forms workspace", () => {
     expect(reusable?.textContent).toMatch(/Active.*v1/);
   });
 
-  it("offers a graphical recovery path when no search result matches", async () => {
+  it("offers one creation entry point when no search result matches", async () => {
     render(<FormsWorkspace initialSearch="outsourcing"/>);
     expect(await screen.findByText("No templates match “outsourcing”")).toBeTruthy();
     expect(screen.getByText("No matches")).toBeTruthy();
-    expect(screen.getAllByRole("button", { name: "Create form template" }).length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Browse starter templates" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "+ New form" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Browse starter templates" })).toBeNull();
     expect(screen.getByRole("button", { name: "Clear filters" })).toBeTruthy();
   });
 
-  it("applies and persists safe browser-local workspace styling", async () => {
+  it("loads configured workspace branding without exposing styling in the Forms task flow", async () => {
+    window.localStorage.setItem(appearanceStorageKey("entity-a"), JSON.stringify({ accentColor: "#118844", logoURL: "/bank-logo.svg" }));
     const view = render(<FormsWorkspace organizationName="Clear Bank" legalEntityName="Nigeria Bank" appearanceScope="entity-a"/>);
     expect((await screen.findAllByText("Vendor due diligence")).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByText("Style workspace"));
-    fireEvent.change(screen.getByLabelText("Workspace accent color"), { target: { value: "#118844" } });
     await waitFor(() => expect((view.container.querySelector(".forms-workspace") as HTMLElement).style.getPropertyValue("--forms-accent")).toBe("#118844"));
-
-    fireEvent.change(screen.getByLabelText("Bank or organization logo"), { target: { value: "/bank-logo.svg" } });
-    fireEvent.click(screen.getByRole("button", { name: "Apply logo" }));
     expect(await screen.findByAltText("Clear Bank logo")).toBeTruthy();
-    expect(window.localStorage.getItem("clearsight:forms:appearance:entity-a")).toContain("bank-logo.svg");
+    expect(screen.queryByText("Style workspace")).toBeNull();
+    expect(screen.getByText("Create, send and govern information requests.")).toBeTruthy();
   });
 
-  it("uses the full governed builder for new templates", async () => {
+  it("opens Blank, Template, AI and Import from one New form launcher", async () => {
+    api.loadStarterTemplates.mockResolvedValueOnce([starter]);
+    render(<FormsWorkspace/>);
+    await screen.findAllByText("Vendor due diligence");
+    expect(screen.queryByRole("button", { name: "Draft with AI" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
+    const dialog = await screen.findByRole("dialog", { name: "New form" });
+    const launcher = within(dialog);
+    for (const method of ["Blank form", "Draft with AI", "From template", "Import"]) {
+      expect(launcher.getByRole("button", { name: new RegExp(`^${method}\\b`) })).toBeTruthy();
+    }
+    expect(launcher.getByText("Vendor security review")).toBeTruthy();
+    expect(launcher.getByLabelText("Vendor security review preview")).toBeTruthy();
+    expect(screen.queryByText("Style workspace")).toBeNull();
+  });
+
+  it("uses the full governed builder for a blank form", async () => {
     api.createLibraryFormDraft.mockResolvedValueOnce({ ...draftItem.template, id: "template-new", version: 1 });
     render(<FormsWorkspace/>);
     expect((await screen.findAllByText("Vendor due diligence")).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: "Create form template" }));
+    fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
+    const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
+    fireEvent.click(launcher.getByRole("button", { name: /^Blank form\b/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Overview" }));
     fireEvent.change(screen.getByLabelText("Code"), { target: { value: "OPS" } });
     fireEvent.change(screen.getByLabelText("Form name"), { target: { value: "Operations review" } });
     fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Collect current operating evidence." } });
@@ -127,6 +165,18 @@ describe("Forms workspace", () => {
     });
   });
 
+  it("creates an ordinary governed draft from a starter template", async () => {
+    api.loadStarterTemplates.mockResolvedValueOnce([starter]);
+    api.instantiateStarterTemplate.mockResolvedValueOnce({ ...starter.template, id: "template-from-starter", version: 1, status: "DRAFT" });
+    render(<FormsWorkspace/>);
+    await screen.findAllByText("Vendor due diligence");
+    fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
+    const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
+    fireEvent.click(launcher.getByRole("button", { name: "Use Vendor security review template" }));
+    await waitFor(() => expect(api.instantiateStarterTemplate).toHaveBeenCalledWith("VENDOR-SECURITY"));
+    expect(await screen.findByText("Vendor security review")).toBeTruthy();
+  });
+
   it("opens governed AI authoring without replacing the manual builder", async () => {
     api.createAIFormProposal.mockResolvedValueOnce({
       id: "ai-proposal", source_kind: "AI", status: "REVIEW_REQUIRED",
@@ -137,11 +187,22 @@ describe("Forms workspace", () => {
     });
     render(<FormsWorkspace/>);
     await screen.findAllByText("Vendor due diligence");
-    fireEvent.click(screen.getByRole("button", { name: "Draft with AI" }));
+    fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
+    const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
+    fireEvent.click(launcher.getByRole("button", { name: /^Draft with AI\b/ }));
     expect(screen.getByRole("button", { name: "Open manual builder" })).toBeTruthy();
     fireEvent.change(screen.getByRole("textbox", { name: "What should this form collect or change?" }), { target: { value: "Collect current ownership details." } });
     fireEvent.click(screen.getByRole("button", { name: "Generate field proposal" }));
     expect(await screen.findByRole("heading", { name: "Review proposed form fields" })).toBeTruthy();
+  });
+
+  it("routes Import through the existing governed import workspace", async () => {
+    render(<FormsWorkspace/>);
+    await screen.findAllByText("Vendor due diligence");
+    fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
+    const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
+    fireEvent.click(launcher.getByRole("button", { name: /^Import\b/ }));
+    expect(window.location.hash).toBe("#imports");
   });
 
   it("edits a draft by creating an immutable next revision", async () => {

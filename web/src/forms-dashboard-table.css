@@ -1,0 +1,101 @@
+.forms-library-table-wrap {
+  margin-top: 4px;
+  overflow: auto;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.forms-library-table {
+  min-width: 880px;
+}
+
+.forms-library-table th {
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.forms-library-table td {
+  padding: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+  vertical-align: middle;
+}
+
+.forms-library-table tbody tr {
+  transition: background-color 140ms ease;
+}
+
+.forms-library-table tbody tr:hover {
+  background: color-mix(in srgb, var(--forms-accent) 3%, transparent);
+}
+
+.forms-library-table tbody tr.selected {
+  background: color-mix(in srgb, var(--forms-accent) 7%, transparent);
+}
+
+.forms-library-select {
+  width: 38px;
+}
+
+.forms-row-open {
+  display: grid;
+  width: 100%;
+  min-width: 220px;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.forms-row-open strong {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.forms-row-open span,
+.forms-library-revision span {
+  max-width: 520px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.forms-library-revision {
+  display: grid;
+  gap: 3px;
+}
+
+.forms-library-revision strong {
+  font-size: 12px;
+}
+
+.forms-library-owner,
+.forms-library-updated {
+  font-size: 11px;
+}
+
+.forms-row-action {
+  min-height: 34px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--forms-accent);
+  font-weight: 650;
+}
+
+.forms-row-action:hover,
+.forms-row-action:focus-visible {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--forms-accent) 6%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forms-library-table tbody tr {
+    transition: none;
+  }
+}

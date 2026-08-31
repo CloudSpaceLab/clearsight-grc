@@ -1,0 +1,32 @@
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import type { FormTemplateQuery } from "../../../formsTypes";
+import { FilterBar } from "./FilterBar";
+
+describe("Forms FilterBar", () => {
+  it("adds a typed status filter from one contextual picker", () => {
+    const onChange = vi.fn();
+    render(<FilterBar query={{ limit: 25 }} onChange={onChange} resultCount={8}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Filter" }));
+    const picker = screen.getByRole("dialog", { name: "Add filter" });
+    fireEvent.click(within(picker).getByRole("button", { name: /Status/ }));
+    fireEvent.change(within(picker).getByLabelText("Status value"), { target: { value: "ACTIVE" } });
+    fireEvent.click(within(picker).getByRole("button", { name: "Apply filter" }));
+
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ status: "ACTIVE", limit: 25 }));
+  });
+
+  it("renders active filters as removable chips without turning search into a filter node", () => {
+    const onChange = vi.fn();
+    const query: FormTemplateQuery = { search: "vendor", status: "ACTIVE", owner: "principal-1", limit: 25 };
+    render(<FilterBar query={query} onChange={onChange}/>);
+
+    expect((screen.getByRole("searchbox", { name: "Search templates" }) as HTMLInputElement).value).toBe("vendor");
+    expect(screen.getByRole("button", { name: "Remove Status filter" }).textContent).toContain("Active");
+    expect(screen.getByRole("button", { name: "Remove Owner filter" }).textContent).toContain("principal-1");
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Status filter" }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ search: "vendor", status: undefined, owner: "principal-1", limit: 25 }));
+  });
+});

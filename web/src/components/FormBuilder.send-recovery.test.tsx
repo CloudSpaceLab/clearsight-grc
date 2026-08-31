@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { FormTemplate } from "../monitoringTypes";
 import { FormBuilder } from "./FormBuilder";
@@ -37,6 +37,9 @@ describe("FormBuilder approval recovery", () => {
 
     fireEvent.change(screen.getByLabelText("Form name"), { target: { value: "Updated vendor review" } });
     fireEvent.click(screen.getByRole("button", { name: "Send for approval" }));
+    const handoff = within(await screen.findByRole("dialog", { name: "Send form for approval" }));
+    expect(saveDraft).not.toHaveBeenCalled();
+    fireEvent.click(handoff.getByRole("button", { name: "Send for approval" }));
 
     await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(sendForApproval).toHaveBeenCalledWith(persisted));

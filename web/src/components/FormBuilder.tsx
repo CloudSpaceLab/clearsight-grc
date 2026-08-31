@@ -5,9 +5,17 @@ import type { ReusableFormTemplateRef } from "../formsTypes";
 import { createFormTemplate } from "../monitoringApi";
 import type { CreateFormTemplateInput, FormFieldType, FormScoringMode, FormTemplate } from "../monitoringTypes";
 import type { CaptureFieldConstraints, CaptureFormContract } from "../types";
+import { FocusedSheet } from "./FocusedSheet";
 import { FormPreview } from "./forms/FormPreview";
-import { FormPropertyPanel } from "./forms/FormPropertyPanel";
-import { FormQualityPanel } from "./forms/FormQualityPanel";
+import { FormApprovalSheet } from "./forms/builder/FormApprovalSheet";
+import { FormBuilderResponsiveNav } from "./forms/builder/FormBuilderResponsiveNav";
+import { FormBuilderToolbar } from "./forms/builder/FormBuilderToolbar";
+import { FormCanvas } from "./forms/builder/FormCanvas";
+import { FormInspector } from "./forms/builder/FormInspector";
+import { FormOutline } from "./forms/builder/FormOutline";
+import { FormReviewDrawer, reviewIssueCount } from "./forms/builder/FormReviewDrawer";
+import { ReusableSectionPicker } from "./forms/builder/ReusableSectionPicker";
+import type { BuilderSelection } from "./forms/builder/builderSelection";
 import {
   addRequiredSignOff,
   blankField,
@@ -36,6 +44,8 @@ type Props = {
   allowIncompleteComplianceDraft?: boolean;
 };
 
+type ResponsivePane = "outline" | "settings";
+
 const passwordResetQuestions = [
   "Was the customer’s identity verified before the reset?",
   "Was the one-time code sent only to a registered channel?",
@@ -58,6 +68,11 @@ export function FormBuilder({
   const [draft, setDraft] = useState<FormDraft>(() => draftFromTemplate(initialValue));
   const [nextSection, setNextSection] = useState(() => maxGeneratedNumber(draft.sections.map((section) => section.id), "section"));
   const [nextField, setNextField] = useState(() => maxGeneratedNumber(draft.fields.map((field) => field.id), "question"));
+  const [selection, setSelection] = useState<BuilderSelection>(() => draft.fields[0] ? { kind: "field", fieldID: draft.fields[0].id } : { kind: "overview" });
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const [responsivePane, setResponsivePane] = useState<ResponsivePane | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -74,6 +89,7 @@ export function FormBuilder({
   );
   const approvalReady = !issues.some((issue) => issue.blocking);
   const draftValid = !draftIssues.some((issue) => issue.blocking);
+  const reviewCount = reviewIssueCount(issues, draft.fields);
   const initialInput = useMemo(() => initialValue ? buildCreateInput(draftFromTemplate(initialValue)) : undefined, [initialValue]);
   const changedFromInitial = !initialInput || JSON.stringify(initialInput) !== JSON.stringify(createInput);
 
@@ -136,6 +152,7 @@ export function FormBuilder({
     const id = `section_${nextSection}`;
     setDraft((current) => ({ ...current, sections: [...current.sections, { id, title: "" }] }));
     setNextSection((current) => current + 1);
+    setSelection({ kind: "section", sectionID: id });
   }
 
   function duplicateCurrentSection(sectionID: string) {
@@ -149,6 +166,7 @@ export function FormBuilder({
     });
     setNextSection(copied.nextSection);
     setNextField(copied.nextField);
+    setSelection({ kind: "section", sectionID: copied.section.id });
   }
 
   function insertReusableSection(template: FormTemplate, sectionID: string) {
@@ -162,6 +180,7 @@ export function FormBuilder({
     });
     setNextSection(copied.nextSection);
     setNextField(copied.nextField);
+    setSelection({ kind: "section", sectionID: copied.section.id });
   }
 
   function moveSection(index: number, offset: -1 | 1) {
@@ -180,13 +199,18 @@ export function FormBuilder({
       const fields = current.fields.map((field) => field.section_id === sectionID ? { ...field, section_id: replacement } : field);
       return { ...current, ...reconcileAuthoringOrder(sections, fields) };
     });
+    if (selection.kind === "section" && selection.sectionID === sectionID) setSelection({ kind: "overview" });
   }
 
-  function addField(type: FormFieldType) {
+  function addField(type: FormFieldType = "short_text", requestedSectionID?: string) {
     if (draft.fields.length >= 200) return;
-    const sectionID = draft.sections[0]?.id ?? "section_1";
-    setDraft((current) => ({ ...current, fields: [...current.fields, blankField(nextField, sectionID, type)] }));
+    const sectionID = requestedSectionID && draft.sections.some((section) => section.id === requestedSectionID)
+      ? requestedSectionID
+      : draft.sections[0]?.id ?? "section_1";
+    const field = blankField(nextField, sectionID, type);
+    setDraft((current) => ({ ...current, fields: [...current.fields, field] }));
     setNextField((current) => current + 1);
+    setSelection({ kind: "field", fieldID: field.id });
   }
 
   function moveField(index: number, offset: -1 | 1) {
@@ -204,11 +228,15 @@ export function FormBuilder({
   }
 
   function removeField(index: number) {
+    const removing = draft.fields[index];
     setDraft((current) => {
       if (current.fields.length <= 1) return current;
       const fields = current.fields.filter((_, fieldIndex) => fieldIndex !== index);
       return { ...current, ...reconcileAuthoringOrder(current.sections, fields) };
     });
+    if (removing && selection.kind === "field" && selection.fieldID === removing.id) {
+      setSelection({ kind: "section", sectionID: removing.section_id ?? draft.sections[0]?.id ?? "section_1" });
+    }
   }
 
   function addSignOff() {
@@ -217,6 +245,7 @@ export function FormBuilder({
     const result = addRequiredSignOff(draft.fields, sectionID, nextField);
     setDraft((current) => ({ ...current, fields: [...current.fields, result.field] }));
     setNextField(result.nextField);
+    setSelection({ kind: "field", fieldID: result.field.id });
   }
 
   function usePasswordResetReview() {
@@ -242,6 +271,7 @@ export function FormBuilder({
     });
     setNextSection(2);
     setNextField(fields.length + 1);
+    setSelection({ kind: "field", fieldID: fields[0]!.id });
     setError("");
   }
 
@@ -256,11 +286,12 @@ export function FormBuilder({
     return first?.message ?? fallback;
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function saveCurrentDraft() {
+    if (saving) return;
     setError("");
     if (!draftValid) {
       setError(qualityError(draftIssues, "Resolve the draft validation checks before saving."));
+      setReviewOpen(true);
       return;
     }
     setSaving(true);
@@ -274,11 +305,17 @@ export function FormBuilder({
     }
   }
 
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void saveCurrentDraft();
+  }
+
   async function sendForApproval() {
     if (!onSendForApproval || saving) return;
     setError("");
     if (!approvalReady) {
       setError(qualityError());
+      setReviewOpen(true);
       return;
     }
     const needsPersist = !initialValue || changedFromInitial;
@@ -291,8 +328,6 @@ export function FormBuilder({
       onSaved(transitioned ?? candidate);
     } catch (caught) {
       if (needsPersist && candidate) {
-        // Persistence already created a new immutable revision. Return that exact
-        // draft to the workspace instead of retrying against its stale parent.
         onSaved(candidate);
         return;
       }
@@ -302,59 +337,128 @@ export function FormBuilder({
     }
   }
 
-  return <form className="monitoring-builder form-builder forms-authoring-shell" noValidate onSubmit={submit}>
-    <div className="monitoring-builder-heading">
-      <div><span className="eyebrow">Collection form</span><h4>{initialValue ? `Edit ${initialValue.name}` : "New collection form"}</h4><p>Build the exact governed response contract, validate it, then save a draft or send the current revision for independent approval.</p></div>
-      {!initialValue && <button className="secondary-button" type="button" onClick={usePasswordResetReview}>Use password reset review</button>}
-    </div>
-
-    <div className="monitoring-form-grid">
-      <label><span>Form name</span><input value={draft.name} maxLength={200} onChange={(event) => patch({ name: event.target.value })} required/></label>
-      <label><span>Code</span><input value={draft.code} maxLength={80} onChange={(event) => patch({ code: event.target.value })} required/></label>
-      <label className="full"><span>Purpose</span><textarea value={draft.purpose} maxLength={1000} onChange={(event) => patch({ purpose: event.target.value })} rows={2} required/></label>
-    </div>
-
-    <fieldset className="builder-panel">
-      <legend>Response and scoring</legend>
-      <div className="builder-control-grid">
-        <label><span>Default layout</span><select value={draft.presentation} onChange={(event) => patch({ presentation: event.target.value as FormDraft["presentation"] })}><option value="AUTOMATIC">Choose by form length</option><option value="CLASSIC">Show all questions</option><option value="WIZARD">Show one section at a time</option></select></label>
-        <label><span>Scoring mode</span><select value={draft.scoringMode} onChange={(event) => setScoringMode(event.target.value as FormScoringMode)}><option value="NONE">No score</option><option value="RISK">Risk score</option><option value="COMPLIANCE">Compliance score</option></select></label>
-        <label className="compact-control"><input type="checkbox" checked={draft.allowModeSwitch} onChange={(event) => patch({ allowModeSwitch: event.target.checked })}/> Allow respondents to switch layouts</label>
-      </div>
-    </fieldset>
-
-    <div className="form-authoring-layout">
-      <FormPropertyPanel
-        scoringMode={draft.scoringMode}
+  function renderOutlinePane(closeAfterSelection = false) {
+    const closeResponsivePane = () => {
+      if (closeAfterSelection) setResponsivePane(null);
+    };
+    return <div className="form-builder-outline-shell">
+      <FormOutline
         sections={draft.sections}
         fields={draft.fields}
+        issues={issues}
+        selection={selection}
+        onSelect={(next) => { setSelection(next); closeResponsivePane(); }}
+        onAddSection={() => { addSection(); closeResponsivePane(); }}
+        onAddField={() => { addField("short_text"); closeResponsivePane(); }}
+      />
+      <ReusableSectionPicker
         reusableTemplates={reusableTemplates}
         loadReusableTemplate={loadReusableTemplate}
+        sectionLimitReached={draft.sections.length >= 20}
+        onInsert={(template, sectionID) => { insertReusableSection(template, sectionID); closeResponsivePane(); }}
+      />
+      {!initialValue && <button className="text-button form-outline-example" type="button" onClick={() => { usePasswordResetReview(); closeResponsivePane(); }}>Use password reset example</button>}
+    </div>;
+  }
+
+  function renderInspectorPane() {
+    return <FormInspector
+      draft={draft}
+      selection={selection}
+      onPatch={patch}
+      onScoringMode={setScoringMode}
+      onSectionsChange={(sections) => patch({ sections })}
+      onFieldChange={updateField}
+      onFieldTypeChange={updateFieldType}
+      onFieldConstraint={updateFieldConstraint}
+      onFieldScoringToggle={toggleFieldScoring}
+      onMoveSection={moveSection}
+      onDuplicateSection={duplicateCurrentSection}
+      onRemoveSection={removeSection}
+      onMoveField={moveField}
+      onRemoveField={removeField}
+    />;
+  }
+
+  return <form className="monitoring-builder form-builder forms-authoring-shell form-builder-workspace" noValidate onSubmit={submit}>
+    <FormBuilderToolbar
+      title={draft.name}
+      saving={saving}
+      approvalReady={approvalReady}
+      reviewCount={reviewCount}
+      canSendForApproval={Boolean(onSendForApproval)}
+      onCancel={onCancel}
+      onPreview={() => setPreviewOpen(true)}
+      onReview={() => setReviewOpen(true)}
+      onSave={() => void saveCurrentDraft()}
+      onSendForApproval={onSendForApproval ? () => setApprovalOpen(true) : undefined}
+    />
+
+    <FormBuilderResponsiveNav
+      onOutline={() => setResponsivePane("outline")}
+      onSettings={() => setResponsivePane("settings")}
+    />
+
+    <div className="form-builder-grid">
+      {renderOutlinePane()}
+
+      <FormCanvas
+        draft={draft}
+        selection={selection}
+        onPatch={patch}
         onSectionsChange={(sections) => patch({ sections })}
         onFieldChange={updateField}
         onFieldTypeChange={updateFieldType}
-        onFieldConstraint={updateFieldConstraint}
-        onFieldScoringToggle={toggleFieldScoring}
+        onSelect={setSelection}
+        onAddField={(sectionID) => addField("short_text", sectionID)}
         onAddSection={addSection}
-        onDuplicateSection={duplicateCurrentSection}
-        onMoveSection={moveSection}
-        onRemoveSection={removeSection}
-        onInsertReusableSection={insertReusableSection}
-        onAddField={addField}
         onMoveField={moveField}
         onRemoveField={removeField}
       />
-      <FormQualityPanel scoringMode={draft.scoringMode} sections={draft.sections} fields={draft.fields} issues={issues} onAddRequiredSignOff={addSignOff}/>
+
+      {renderInspectorPane()}
     </div>
 
-    <FormPreview contract={previewContract}/>
+    {error && <p className="inline-form-error form-builder-error" role="alert">{error}</p>}
 
-    {error && <p className="inline-form-error" role="alert">{error}</p>}
-    <div className="monitoring-form-actions">
-      <button className="text-button" type="button" onClick={onCancel}>Cancel</button>
-      <button className={onSendForApproval ? "secondary-button" : "primary-button"} type="submit" disabled={saving}>{saving ? "Saving…" : "Save draft"}</button>
-      {onSendForApproval && <button className="primary-button" type="button" disabled={saving || !approvalReady} onClick={() => void sendForApproval()}>{saving ? "Working…" : "Send for approval"}</button>}
-    </div>
+    {previewOpen && <FocusedSheet label="Form preview" closeLabel="Close form preview" panelClassName="form-preview-sheet" onClose={() => setPreviewOpen(false)}>
+      <div className="form-preview-sheet-content"><FormPreview contract={previewContract}/></div>
+    </FocusedSheet>}
+
+    {reviewOpen && <FormReviewDrawer
+      issues={issues}
+      fields={draft.fields}
+      initialValue={initialValue}
+      onFix={setSelection}
+      onAddRequiredSignOff={() => { addSignOff(); setReviewOpen(false); }}
+      onClose={() => setReviewOpen(false)}
+    />}
+
+    {approvalOpen && <FormApprovalSheet
+      input={createInput}
+      changedFromInitial={changedFromInitial}
+      saving={saving}
+      onClose={() => setApprovalOpen(false)}
+      onConfirm={() => { setApprovalOpen(false); void sendForApproval(); }}
+    />}
+
+    {responsivePane === "outline" && <FocusedSheet
+      label="Form outline"
+      closeLabel="Close form outline"
+      panelClassName="form-builder-responsive-sheet form-builder-outline-sheet"
+      onClose={() => setResponsivePane(null)}
+    >
+      {renderOutlinePane(true)}
+    </FocusedSheet>}
+
+    {responsivePane === "settings" && <FocusedSheet
+      label="Form settings"
+      closeLabel="Close form settings"
+      panelClassName="form-builder-responsive-sheet form-builder-settings-sheet"
+      onClose={() => setResponsivePane(null)}
+    >
+      {renderInspectorPane()}
+    </FocusedSheet>}
   </form>;
 }
 

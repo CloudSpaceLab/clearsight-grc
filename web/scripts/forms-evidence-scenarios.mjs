@@ -1,5 +1,6 @@
 export const requiredFormsCapabilities = Object.freeze([
-  "library-empty", "library-list", "library-search", "library-saved-filter", "library-recent", "library-bulk-action",
+  "library-empty", "library-list", "library-search", "library-saved-filter", "library-context-detail", "library-bulk-action",
+  "creation-blank", "creation-template", "creation-ai", "creation-import",
   "template-draft", "template-pending", "template-active", "template-retired", "weights-invalid", "weights-valid",
   "import-pending", "import-partial", "import-truncated", "import-failed", "import-proposal",
   "communication-compose", "communication-delivered", "communication-fallback", "communication-amended",
@@ -28,14 +29,38 @@ const scenarios = [
   {
     name: "89-forms-library-lifecycle-light-1440x900", fixture: "forms-library-lifecycle", route: "#forms",
     state: "forms-library-lifecycle", theme: "light", viewport: desktop, zoom: 1,
-    capabilities: ["library-list", "library-recent", "template-draft", "template-pending", "template-active", "template-retired", "viewport-desktop", "theme-light"],
-    run: async (page) => { await visible(page, "Recently updated"); for (const value of ["Draft", "Pending Approval", "Active", "Retired"]) await visible(page, value); },
+    capabilities: ["library-list", "library-context-detail", "template-draft", "template-pending", "template-active", "template-retired", "viewport-desktop", "theme-light"],
+    run: async (page) => {
+      await page.getByLabel("Search templates").waitFor({ state: "visible" });
+      for (const value of ["Draft", "Pending Approval", "Active", "Retired"]) await visible(page, value);
+      if (await page.getByLabel("Selected form template").count()) throw new Error("Forms library detail must stay closed until a template is selected.");
+      await page.locator(".forms-library-table tbody .forms-row-action").first().click();
+      await page.getByLabel("Selected form template").waitFor({ state: "visible" });
+      await visible(page, "Latest stored");
+      await visible(page, "Reusable now");
+      await page.getByRole("button", { name: "Close form detail" }).click();
+      await page.getByLabel("Selected form template").waitFor({ state: "detached" });
+    },
   },
   {
     name: "90-forms-library-empty-dark-mobile-390x844", fixture: "forms-library-empty", route: "#forms",
     state: "forms-library-empty", theme: "dark", viewport: mobile, zoom: 1, touch: true,
     capabilities: ["library-empty", "library-search", "viewport-mobile", "theme-dark"],
     run: async (page) => { await page.getByLabel("Search templates").fill("no matching bank form"); await page.getByRole("heading", { name: "No templates match “no matching bank form”" }).waitFor({ state: "visible" }); },
+  },
+  {
+    name: "91-forms-new-form-light-1440x900", fixture: "forms-library-lifecycle", route: "#forms",
+    state: "forms-unified-creation", theme: "light", viewport: desktop, zoom: 1,
+    capabilities: ["creation-blank", "creation-template", "creation-ai", "creation-import"],
+    run: async (page) => {
+      await page.getByRole("button", { name: "+ New form", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "New form" });
+      await dialog.waitFor({ state: "visible" });
+      for (const method of ["Blank form", "From template", "Draft with AI", "Import"]) {
+        await dialog.getByRole("button", { name: new RegExp(`^${method}\\b`) }).waitFor({ state: "visible" });
+      }
+      await dialog.getByRole("heading", { name: "Starter templates", exact: true }).waitFor({ state: "visible" });
+    },
   },
   {
     name: "94-forms-saved-filter-bulk-light-1440x900", fixture: "forms-library-governance", route: "#forms",
@@ -47,13 +72,31 @@ const scenarios = [
     name: "95-forms-invalid-weights-light-1440x900", fixture: "forms-weights-invalid", route: "#forms",
     state: "forms-invalid-compliance-weights", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["weights-invalid"],
-    run: async (page) => { await page.getByRole("button", { name: "Open Compliance scoring review" }).click(); await page.getByRole("button", { name: "Edit draft" }).click(); await visible(page, "40% remains to allocate in Control confirmation"); await visible(page, "50% remains to allocate across scored sections"); },
+    run: async (page) => {
+      await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
+      await page.getByRole("button", { name: "Edit draft" }).click();
+      await page.getByLabel("Form canvas").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: /^Review/ }).click();
+      await page.getByLabel("Form review").waitFor({ state: "visible" });
+      await visible(page, "40% remains to allocate in Control confirmation");
+      await visible(page, "50% remains to allocate across scored sections");
+    },
   },
   {
     name: "96-forms-valid-weights-dark-1440x900", fixture: "forms-weights-valid", route: "#forms",
     state: "forms-valid-compliance-weights", theme: "dark", viewport: desktop, zoom: 1,
     capabilities: ["weights-valid", "theme-dark"],
-    run: async (page) => { await page.getByRole("button", { name: "Open Compliance scoring review" }).click(); await page.getByRole("button", { name: "Edit draft" }).click(); await visible(page, "The current draft satisfies the deterministic contract checks required before approval."); await visible(page, "100%"); },
+    run: async (page) => {
+      await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
+      await page.getByRole("button", { name: "Edit draft" }).click();
+      await page.getByLabel("Form outline").waitFor({ state: "visible" });
+      await page.getByLabel("Form canvas").waitFor({ state: "visible" });
+      await page.getByLabel("Question settings").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: /^Review/ }).click();
+      await page.getByLabel("Form review").waitFor({ state: "visible" });
+      await visible(page, "Deterministic approval checks pass");
+      await visible(page, "No blocking contract issue is present in the current draft.");
+    },
   },
   {
     name: "97-forms-import-outcomes-light-1440x900", fixture: "forms-import-outcomes", route: "#imports",

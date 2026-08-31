@@ -33,9 +33,11 @@ it("moves questions only among siblings in the same section", async () => {
   const saveDraft = vi.fn().mockResolvedValue(form);
   render(<FormBuilder initialValue={form} saveDraft={saveDraft} onSaved={vi.fn()} onCancel={vi.fn()}/>);
 
+  fireEvent.click(screen.getByRole("button", { name: "Second A" }));
   expect((screen.getByRole("button", { name: "Move Second A up" }) as HTMLButtonElement).disabled).toBe(true);
-  expect((screen.getByRole("button", { name: "Move Second B down" }) as HTMLButtonElement).disabled).toBe(true);
 
+  fireEvent.click(screen.getByRole("button", { name: "Second B" }));
+  expect((screen.getByRole("button", { name: "Move Second B down" }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Move Second B up" }));
   fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
 

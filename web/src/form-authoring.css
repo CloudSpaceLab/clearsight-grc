@@ -1,1 +1,3 @@
-/* Consolidated into forms-foundation.css for shared gzip compression. */
+@import "./form-builder-workspace.css";
+@import "./form-builder-responsive.css";
+@import "./form-builder-approval.css";

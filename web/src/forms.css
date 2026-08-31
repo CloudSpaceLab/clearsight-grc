@@ -1,2 +1,4 @@
 @import "./forms-task11.css";
-/* Consolidated into forms-foundation.css for shared gzip compression. */
+@import "./forms-dashboard.css";
+@import "./forms-creation.css";
+/* Shared Forms foundation remains loaded from main.tsx; focused task layers override it intentionally. */

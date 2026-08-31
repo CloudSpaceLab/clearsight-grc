@@ -70,7 +70,7 @@ describe("Forms workspace location state", () => {
 
     expect(onTarget).toHaveBeenCalledWith(undefined);
     expect(window.location.hash).toBe("#forms?search=outsourcing&status=ACTIVE&tag=third-party");
-    await waitFor(() => expect(api.loadFormTemplatePage).toHaveBeenCalledWith(expect.objectContaining({ search: "outsourcing", status: "ACTIVE", tag: "third-party" })));
+    await waitFor(() => expect(api.loadFormTemplatePage).toHaveBeenCalledWith(expect.objectContaining({ search: "outsourcing", status: "ACTIVE", tag: "third-party" }), expect.anything()));
   });
 
   it("clears filters and the selected target without restoring stale query state", async () => {

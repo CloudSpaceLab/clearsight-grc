@@ -28,8 +28,8 @@ function formQuery(query: FormTemplateQuery = {}) {
   return encoded ? `?${encoded}` : "";
 }
 
-export function loadFormTemplatePage(query: FormTemplateQuery = {}): Promise<FormTemplatePage> {
-  return requestJSON<FormTemplatePage>(apiBase, `/api/v1/forms/templates${formQuery(query)}`);
+export function loadFormTemplatePage(query: FormTemplateQuery = {}, signal?: AbortSignal): Promise<FormTemplatePage> {
+  return requestJSON<FormTemplatePage>(apiBase, `/api/v1/forms/templates${formQuery(query)}`, signal ? { signal } : undefined);
 }
 export function loadFormTemplateRevision(id: string, version: number): Promise<FormTemplate> {
   return requestJSON<FormTemplate>(apiBase, `/api/v1/forms/templates/${encodeURIComponent(id)}/revisions/${version}`);
