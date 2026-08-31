@@ -149,6 +149,49 @@ textarea.cs-field__control {
   font-size: var(--cs-font-size-caption);
 }
 
+.cs-checkbox-field {
+  display: inline-grid;
+  grid-template-columns: var(--cs-checkbox-size) minmax(0, 1fr);
+  gap: var(--cs-field-gap);
+  align-items: start;
+  color: var(--cs-field-text);
+  cursor: pointer;
+}
+
+.cs-checkbox-field__box {
+  display: grid;
+  width: var(--cs-checkbox-size);
+  height: var(--cs-checkbox-size);
+  place-items: center;
+  border: var(--cs-checkbox-border-width) solid var(--cs-checkbox-border);
+  border-radius: var(--cs-checkbox-radius);
+  background: var(--cs-checkbox-bg);
+  color: var(--cs-checkbox-selected-text);
+  font-weight: 800;
+}
+
+.cs-checkbox-field[data-selected] .cs-checkbox-field__box,
+.cs-checkbox-field[data-indeterminate] .cs-checkbox-field__box {
+  border-color: var(--cs-checkbox-selected-bg);
+  background: var(--cs-checkbox-selected-bg);
+}
+
+.cs-checkbox-field[data-focus-visible] .cs-checkbox-field__box {
+  outline: var(--cs-focus-width) solid var(--cs-checkbox-focus);
+  outline-offset: var(--cs-focus-offset);
+}
+
+.cs-checkbox-field[data-disabled] {
+  opacity: var(--cs-field-disabled-opacity);
+  cursor: not-allowed;
+}
+
+.cs-checkbox-field__content { display: grid; gap: var(--cs-primitive-space-1); min-width: 0; }
+.cs-checkbox-field__label { color: var(--cs-field-label); font-size: var(--cs-font-size-control); font-weight: 700; }
+.cs-checkbox-field__description { color: var(--cs-field-description); font-size: var(--cs-font-size-caption); line-height: var(--cs-leading-body); }
+.cs-checkbox-field--label-hidden { display: inline-grid; grid-template-columns: var(--cs-checkbox-size); }
+.cs-checkbox-field--label-hidden .cs-checkbox-field__content { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
 @media (max-width: 760px) {
   .cs-field__control,
   .cs-select-field__trigger { font-size: var(--cs-font-size-input-mobile); }
@@ -158,4 +201,7 @@ textarea.cs-field__control {
   .cs-field__control,
   .cs-select-field__trigger,
   .cs-select-field__popover { border-color: CanvasText; }
+  .cs-checkbox-field__box { border-color: CanvasText; }
+  .cs-checkbox-field[data-selected] .cs-checkbox-field__box,
+  .cs-checkbox-field[data-indeterminate] .cs-checkbox-field__box { background: Highlight; color: HighlightText; }
 }

@@ -35,6 +35,14 @@
   --cs-field-focus: var(--cs-focus-ring);
   --cs-field-disabled-opacity: 0.56;
   --cs-field-textarea-min-height: 112px;
+  --cs-checkbox-size: var(--cs-primitive-icon-20);
+  --cs-checkbox-radius: var(--cs-primitive-radius-6);
+  --cs-checkbox-border-width: var(--cs-primitive-border-1);
+  --cs-checkbox-border: var(--cs-border-strong);
+  --cs-checkbox-bg: var(--cs-bg-surface-1);
+  --cs-checkbox-selected-bg: var(--cs-action-primary);
+  --cs-checkbox-selected-text: var(--cs-action-primary-text);
+  --cs-checkbox-focus: var(--cs-focus-ring);
   --cs-select-popover-radius: var(--cs-primitive-radius-14);
   --cs-select-popover-shadow: var(--cs-shadow-overlay);
   --cs-select-popover-bg: var(--cs-bg-surface-1);
@@ -63,7 +71,7 @@
   --cs-overlay-radius: var(--cs-primitive-radius-14);
   --cs-overlay-shadow: var(--cs-shadow-overlay);
   --cs-overlay-z: var(--cs-z-sheet);
-  --cs-overlay-close-z: var(--cs-z-sticky);
+  --cs-overlay-close-z: var(--cs-z-menu);
   --cs-overlay-backdrop: var(--cs-bg-overlay);
   --cs-overlay-bg: var(--cs-bg-surface-1);
   --cs-overlay-text: var(--cs-text-primary);

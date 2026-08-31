@@ -116,8 +116,8 @@ describe("Forms workspace", () => {
   it("offers one creation entry point when no search result matches", async () => {
     render(<FormsWorkspace initialSearch="outsourcing"/>);
     expect(await screen.findByText("No templates match “outsourcing”")).toBeTruthy();
-    expect(screen.getByText("No matches")).toBeTruthy();
-    expect(screen.getAllByRole("button", { name: "+ New form" }).length).toBeGreaterThan(0);
+    expect(screen.getByText("Form templates matching “outsourcing”")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Create form" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Browse starter templates" })).toBeNull();
     expect(screen.getByRole("button", { name: "Clear filters" })).toBeTruthy();
   });
@@ -137,7 +137,7 @@ describe("Forms workspace", () => {
     render(<FormsWorkspace/>);
     await screen.findAllByText("Vendor due diligence");
     expect(screen.queryByRole("button", { name: "Draft with AI" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create form" }));
     const dialog = await screen.findByRole("dialog", { name: "New form" });
     const launcher = within(dialog);
     for (const method of ["Blank form", "Draft with AI", "From template", "Import"]) {
@@ -152,7 +152,7 @@ describe("Forms workspace", () => {
     api.createLibraryFormDraft.mockResolvedValueOnce({ ...draftItem.template, id: "template-new", version: 1 });
     render(<FormsWorkspace/>);
     expect((await screen.findAllByText("Vendor due diligence")).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create form" }));
     const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
     fireEvent.click(launcher.getByRole("button", { name: /^Blank form\b/ }));
     fireEvent.click(screen.getByRole("button", { name: "Overview" }));
@@ -175,7 +175,7 @@ describe("Forms workspace", () => {
     api.instantiateStarterTemplate.mockResolvedValueOnce({ ...starter.template, id: "template-from-starter", version: 1, status: "DRAFT" });
     render(<FormsWorkspace/>);
     await screen.findAllByText("Vendor due diligence");
-    fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create form" }));
     const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
     fireEvent.click(launcher.getByRole("button", { name: "Use Vendor security review template" }));
     await waitFor(() => expect(api.instantiateStarterTemplate).toHaveBeenCalledWith("VENDOR-SECURITY"));
@@ -192,7 +192,7 @@ describe("Forms workspace", () => {
     });
     render(<FormsWorkspace/>);
     await screen.findAllByText("Vendor due diligence");
-    fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create form" }));
     const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
     fireEvent.click(launcher.getByRole("button", { name: /^Draft with AI\b/ }));
     expect(screen.getByRole("button", { name: "Open manual builder" })).toBeTruthy();
@@ -204,7 +204,7 @@ describe("Forms workspace", () => {
   it("routes Import through the existing governed import workspace", async () => {
     render(<FormsWorkspace/>);
     await screen.findAllByText("Vendor due diligence");
-    fireEvent.click(screen.getByRole("button", { name: "+ New form" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create form" }));
     const launcher = within(await screen.findByRole("dialog", { name: "New form" }));
     fireEvent.click(launcher.getByRole("button", { name: /^Import\b/ }));
     expect(window.location.hash).toBe("#imports");

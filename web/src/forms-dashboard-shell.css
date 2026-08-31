@@ -25,45 +25,31 @@
 .forms-saved-view {
   display: inline-flex;
   align-items: center;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
-  border-radius: 999px;
+  gap: var(--cs-space-inline);
 }
 
-.forms-saved-view button {
-  min-height: 30px;
-  border: 0;
-  background: transparent;
+.forms-notice-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cs-space-group);
 }
 
-.forms-saved-view button + button {
-  width: 30px;
-  padding: 0;
-  color: var(--muted);
-}
-
-.forms-secondary-actions {
-  margin: 10px 0 2px;
-}
-
-.forms-secondary-actions > button {
-  min-height: 34px;
-  padding-inline: 0;
-  border: 0;
-  background: transparent;
-  color: var(--forms-accent);
-  font-weight: 650;
+.forms-load-more {
+  display: flex;
+  justify-content: center;
+  margin-block: var(--cs-space-group);
 }
 
 .forms-bulk {
   position: sticky;
-  z-index: 12;
+  z-index: var(--cs-z-sticky);
   top: 8px;
   margin: 10px 0;
   padding: 9px 12px;
   border: 1px solid color-mix(in srgb, var(--forms-accent) 28%, var(--border));
-  border-radius: 12px;
+  border-radius: var(--cs-surface-radius);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
-  box-shadow: 0 10px 30px color-mix(in srgb, var(--ink, #07111d) 8%, transparent);
+  box-shadow: var(--cs-shadow-raised);
   backdrop-filter: blur(16px);
 }

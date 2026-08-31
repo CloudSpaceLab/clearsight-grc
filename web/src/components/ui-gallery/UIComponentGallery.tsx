@@ -3,6 +3,7 @@ import {
   ActionLink,
   Button,
   Card,
+  CheckboxField,
   DataTable,
   EmptyState,
   FilterBar,
@@ -41,6 +42,7 @@ const sampleColumns: readonly DataColumn<SampleRow>[] = [
 
 export function UIComponentGallery() {
   const [name, setName] = useState("Sample vendor");
+  const [included, setIncluded] = useState(false);
   const [notes, setNotes] = useState("");
   const [selection, setSelection] = useState<"OPEN" | "LOCKED">("OPEN");
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
@@ -66,12 +68,13 @@ export function UIComponentGallery() {
         <FormField label="Sample reference" description="Enter the reference used for this sample." isRequired>{(control) => <input {...control} value="SAMPLE-001" readOnly/>}</FormField>
       </Contract>
       <Contract family="TextField" job="Collects one short text value." keyboard="Tab focuses the field." prohibited="Do not use it for a bounded option list.">
-        <div className="ui-gallery__grid"><TextField label="Sample vendor name" value={name} onChange={setName}/><TextField label="Sample invalid value" value="Unverified" onChange={() => undefined} errorMessage="Provide the verified sample value."/><TextField label="Sample read-only owner" value="Sample Compliance Officer" onChange={() => undefined} isReadOnly/><TextField label="Sample disabled field" value="Unavailable" onChange={() => undefined} isDisabled/></div>
+        <div className="ui-gallery__grid"><TextField label="Sample vendor name" value={name} onChange={setName}/><TextField label="Sample response limit" type="number" value="5" min={1} max={10} step={1} onChange={() => undefined}/><TextField label="Sample invalid value" value="Unverified" onChange={() => undefined} errorMessage="Provide the verified sample value."/><TextField label="Sample read-only owner" value="Sample Compliance Officer" onChange={() => undefined} isReadOnly/><TextField label="Sample disabled field" value="Unavailable" onChange={() => undefined} isDisabled/></div>
       </Contract>
       <Contract family="TextArea" job="Collects a longer written response." keyboard="Tab focuses the field; line breaks remain available." prohibited="Do not use it for file evidence."><TextArea label="Sample review note" value={notes} onChange={setNotes} description="Describe what the sample reviewer confirmed."/></Contract>
     </GalleryGroup>
 
     <GalleryGroup title="Selection">
+      <Contract family="CheckboxField" job="Includes or excludes one named option." keyboard="Space changes the selection after focus." prohibited="Do not use it for mutually exclusive choices."><CheckboxField label="Include sample evidence" description="Adds the sample evidence to this review only." isSelected={included} onChange={setIncluded}/></Contract>
       <Contract family="SelectField" job="Selects one value from a bounded list." keyboard="Arrow keys move; Enter selects; Escape closes." prohibited="Do not replace searchable remote results with this control."><SelectField label="Sample response status" value={selection} placeholder="Select sample status" options={selections} onChange={(value) => value && setSelection(value)}/></Contract>
     </GalleryGroup>
 

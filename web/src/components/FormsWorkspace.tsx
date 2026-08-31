@@ -42,6 +42,7 @@ import { defaultFormsAccent, loadFormsAppearance, type FormsAppearance } from ".
 import { preserveLibraryRevisionMetadata } from "./forms/formRevisionInput";
 import { isTemplateApprovalReady } from "./forms/formQuality";
 import { clearedFormsQuery, readFormsQuery, writeFormsLocation } from "./forms/formsLocation";
+import { Button, IconButton, Notice, TextField } from "./ui";
 
 const libraryRevalidationIntervalMs = 30_000;
 type LoadState = "loading" | "live" | "unavailable";
@@ -403,13 +404,13 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       legalEntityName={legalEntityName}
       appearance={appearance}
       action={activeTab === "Templates" && !editor && !aiOpen && !aiProposal
-        ? <button className="forms-primary" type="button" onClick={() => setNewFormOpen(true)}>+ New form</button>
+        ? <Button variant="primary" onPress={() => setNewFormOpen(true)}>Create form</Button>
         : undefined}
     />
 
     <FormsNavigation activeTab={activeTab} onChange={(tab) => { setActiveTab(tab); setEditor(null); setNewFormOpen(false); setAIOpen(false); setAIProposal(null); }}>
-    {error && <div className="forms-message error" role="alert">{error}</div>}
-    {notice && <div className="forms-message" role="status">{notice}<button type="button" aria-label="Dismiss Forms notice" onClick={() => setNotice(null)}>×</button></div>}
+    {error && <Notice tone="error">{error}</Notice>}
+    {notice && <Notice><div className="forms-notice-content"><span>{notice}</span><IconButton variant="quiet" aria-label="Dismiss Forms notice" onPress={() => setNotice(null)}>×</IconButton></div></Notice>}
 
     {newFormOpen && <NewFormLauncher
       starters={starters}
@@ -423,10 +424,10 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
     {activeTab === "Templates" && aiProposal ? <div className="forms-proposal-shell">
       <FormProposalReview proposal={aiProposal} onProposalChange={setAIProposal} onDraftCreated={(id) => { choose(id); void refresh(); }}/>
-      <div className="forms-authoring-recovery"><button className="secondary-button" type="button" onClick={() => { setAIProposal(null); setAIOpen(true); }}>Revise objective</button><button type="button" className="text-button" onClick={() => { setAIProposal(null); setAIOpen(false); }}>Return to form library</button></div>
+      <div className="forms-authoring-recovery"><Button onPress={() => { setAIProposal(null); setAIOpen(true); }}>Revise objective</Button><Button variant="quiet" onPress={() => { setAIProposal(null); setAIOpen(false); }}>Return to form library</Button></div>
     </div> : activeTab === "Templates" && aiOpen ? <div className="forms-proposal-shell">
       <FormAIComposer baseTemplate={selected ? { id: selected.template.id, name: selected.template.name, version: selected.template.version } : undefined} onProposal={(proposal) => { setAIProposal(proposal); setAIOpen(false); }}/>
-      <div className="forms-authoring-recovery"><button className="secondary-button" type="button" onClick={openCreate}>Open manual builder</button><button type="button" className="text-button" onClick={() => setAIOpen(false)}>Return to form library</button></div>
+      <div className="forms-authoring-recovery"><Button onPress={openCreate}>Open manual builder</Button><Button variant="quiet" onPress={() => setAIOpen(false)}>Return to form library</Button></div>
     </div> : activeTab === "Templates" && editor ? <div className="forms-editor-shell">
       <FormBuilder
         key={editor.mode === "edit" ? `${editor.template.id}:${editor.template.version}` : "new-form"}
@@ -450,25 +451,24 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         {state === "live" && <FormStatusScopes query={query} facets={page.facets} onChange={replaceQuery}/>} 
 
         {(savedViews.length > 0 || customView) && <div className="forms-saved-views" aria-label="Saved form views">
-          {savedViews.length > 0 && <><span>Views</span>{savedViews.map((view) => <span className="forms-saved-view" key={view.id}><button type="button" onClick={() => applySavedView(view)}>{view.name}</button><button type="button" aria-label={`Delete saved view ${view.name}`} disabled={busy === `delete-view:${view.id}`} onClick={() => void removeSavedView(view.id)}>×</button></span>)}</>}
-          {customView && <button type="button" className="forms-link-button" onClick={() => setSaveViewOpen((open) => !open)}>Save view</button>}
-          {saveViewOpen && <form className="forms-save-view" onSubmit={submitSavedView}><label><span>View name</span><input value={savedViewName} onChange={(event) => setSavedViewName(event.target.value)} maxLength={120}/></label><button type="submit" disabled={!savedViewName.trim() || busy === "save-view"}>Save</button></form>}
+          {savedViews.length > 0 && <><span>Views</span>{savedViews.map((view) => <span className="forms-saved-view" key={view.id}><Button size="compact" variant="quiet" onPress={() => applySavedView(view)}>{view.name}</Button><IconButton variant="quiet" aria-label={`Delete saved view ${view.name}`} isDisabled={busy === `delete-view:${view.id}`} onPress={() => void removeSavedView(view.id)}>×</IconButton></span>)}</>}
+          {customView && <Button size="compact" variant="quiet" onPress={() => setSaveViewOpen((open) => !open)}>Save view</Button>}
+          {saveViewOpen && <form className="forms-save-view" onSubmit={submitSavedView}><TextField label="View name" value={savedViewName} onChange={setSavedViewName} maxLength={120}/><Button type="submit" isDisabled={!savedViewName.trim() || busy === "save-view"}>Save</Button></form>}
         </div>}
 
-        {selectedItems.length > 0 && <div className="forms-bulk" role="status"><strong>{selectedItems.length} selected</strong>{bulkTransition ? <button type="button" disabled={busy === "bulk-transition"} onClick={() => void runBulkTransition()}>Send {selectedItems.length} for approval</button> : <span>Bulk approval is available only when every selected row is an approval-ready draft with the same permitted lifecycle action.</span>}<button type="button" onClick={() => setSelectedIDs(new Set())}>Clear selection</button></div>}
+        {selectedItems.length > 0 && <div className="forms-bulk" role="status"><strong>{selectedItems.length} selected</strong>{bulkTransition ? <Button isLoading={busy === "bulk-transition"} onPress={() => void runBulkTransition()}>Send {selectedItems.length} for approval</Button> : <span>Bulk approval is available only when every selected row is an approval-ready draft with the same permitted lifecycle action.</span>}<Button variant="quiet" onPress={() => setSelectedIDs(new Set())}>Clear selection</Button></div>}
 
         {state === "loading" ? <div className="forms-loading" aria-live="polite" aria-busy="true">Loading form templates…</div>
-          : state === "unavailable" ? <FormsEmptyState tone="unavailable" eyebrow="Connection" title="Forms are temporarily unavailable" detail="The library could not be read, and no template state was changed." actions={<button type="button" onClick={() => void refresh()}>Retry</button>}/>
+          : state === "unavailable" ? <FormsEmptyState population="Form templates in this legal entity" title="Forms are temporarily unavailable" detail="The library could not be read, and no template state was changed." actions={<Button onPress={() => void refresh()}>Retry</Button>}/>
           : page.items.length === 0 ? <FormsEmptyState
-            tone={query.search ? "search" : "empty"}
-            eyebrow={query.search ? "No matches" : "Start here"}
+            population={query.search ? `Form templates matching “${query.search}”` : "Form templates in this legal entity"}
             title={query.search ? `No templates match “${query.search}”` : "Create your governed form library"}
             detail={query.search ? "Adjust the search or filters, or create a new form without losing your current view." : "Start with a blank form, a proven template, an AI proposal, or an existing source."}
-            actions={<><button className="forms-primary" type="button" onClick={() => setNewFormOpen(true)}>+ New form</button>{customView && <button className="text-button" type="button" onClick={clearFiltersAndTarget}>Clear filters</button>}</>}
+            actions={<><Button variant="primary" onPress={() => setNewFormOpen(true)}>Create form</Button>{customView && <Button variant="quiet" onPress={clearFiltersAndTarget}>Clear filters</Button>}</>}
           />
           : <TemplateLibraryTable items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/>} 
 
-        {page.next_cursor && state === "live" && <button className="forms-load-more" type="button" disabled={busy === "load-more"} onClick={() => void loadMore()}>{busy === "load-more" ? "Loading…" : "Load more"}</button>}
+        {page.next_cursor && state === "live" && <div className="forms-load-more"><Button isLoading={busy === "load-more"} onPress={() => void loadMore()}>Load more</Button></div>}
       </div>
 
       <TemplateDetailDrawer

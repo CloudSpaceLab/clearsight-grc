@@ -38,7 +38,7 @@ Tokens have three levels:
 
 1. **Primitive tokens** (`--cs-primitive-*`) store raw colour, spacing, type, radius, border, icon, shadow, duration, easing and z-index values. Product components do not consume raw values when a semantic role exists.
 2. **Semantic tokens** express a role across theme and context: canvas/surface, primary/strong/muted text, default/strong/interactive/invalid border, primary/destructive action, information/success/warning/error/unknown feedback, focus, spacing, type, motion, overlay and document roles.
-3. **Component tokens** (`--cs-button-*`, `--cs-field-*`, `--cs-select-*`, `--cs-tabs-*`, `--cs-overlay-*`, `--cs-table-*` and related families) bind the semantic roles to a closed component contract. A new component token must be useful to every instance of that component family; page-specific layout stays in feature CSS.
+3. **Component tokens** (`--cs-button-*`, `--cs-field-*`, `--cs-checkbox-*`, `--cs-select-*`, `--cs-tabs-*`, `--cs-overlay-*`, `--cs-table-*` and related families) bind the semantic roles to a closed component contract. A new component token must be useful to every instance of that component family; page-specific layout stays in feature CSS.
 
 `web/src/design-system/tokens/` owns the three-level foundation. `web/src/ui-preferences.css` supplies compatible legacy theme mappings while surfaces migrate. Components must not create a private light/dark palette when a semantic role already represents the meaning.
 
@@ -62,7 +62,8 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | `ActionLink` | Real navigation only. |
 | `IconButton` | Named icon actions using the Button variants. |
 | `FormField` | Shared label, required marker, guidance and validation anatomy. |
-| `TextField` | Text, search, email, URL and telephone values; disabled, read-only, invalid and loading states. |
+| `TextField` | Text, search, email, URL, telephone and numeric values; numeric minimum, maximum and step constraints; disabled, read-only, invalid and loading states. |
+| `CheckboxField` | Selected, unselected and indeterminate choices; visible or visually hidden labels; optional guidance and disabled state. |
 | `TextArea` | Multi-line responses; disabled, read-only, invalid and loading states. |
 | `SelectField` | One selection from a bounded list with themed listbox keyboard behavior. |
 | `Tabs` | Automatic peer-view navigation with one selected indicator and wrapped compact behavior. |

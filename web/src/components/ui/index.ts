@@ -1,5 +1,7 @@
 export { ActionLink, Button, IconButton } from "./Button";
 export type { ActionLinkProps, ButtonProps, ButtonSize, ButtonVariant, IconButtonProps } from "./Button";
+export { CheckboxField } from "./CheckboxField";
+export type { CheckboxFieldProps } from "./CheckboxField";
 export { EmptyState } from "./EmptyState";
 export { DataTable } from "./DataTable";
 export type { DataColumn, DataTablePagination, DataTableProps } from "./DataTable";
