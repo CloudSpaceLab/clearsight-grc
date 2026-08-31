@@ -31,14 +31,18 @@ beforeEach(() => {
   transitionGovernancePolicy.mockResolvedValue({ id: "policy-1", code: "PAYMENT", name: "Payment approval", status: "PENDING_APPROVAL", legal_entity_id: "entity-1", current_version: 1, version: 3, maker_id: "actor-1" });
 });
 
-it("uses server-scoped people and labelled roles for creation workflows", async () => {
+it("uses server-scoped people and labelled roles for explicit creation workflows", async () => {
   createGovernancePolicyDraft.mockResolvedValue({ id: "policy-2", code: "NEW_ROUTE", name: "New route", status: "DRAFT", legal_entity_id: "entity-1", current_version: 1, version: 1, maker_id: "actor-1" });
   render(<GovernanceAdminPanel/>);
   await screen.findByRole("heading", { name: "Payment approval" });
 
+  fireEvent.click(screen.getByRole("button", { name: "New delegation" }));
   fireEvent.change(screen.getByRole("combobox", { name: "Responsibility" }), { target: { value: "REVIEWER" } });
   await waitFor(() => expect(searchGovernanceDelegationCandidates).toHaveBeenCalledWith("REVIEWER", ""));
   expect((await screen.findAllByRole("option", { name: "Ada Okafor · Risk lead" })).length).toBeGreaterThan(0);
+
+  fireEvent.click(screen.getByRole("button", { name: "Close delegation form" }));
+  fireEvent.click(screen.getByRole("button", { name: "New routing policy" }));
   expect(screen.getByRole("option", { name: "Control Assurance" })).toBeTruthy();
 });
 
