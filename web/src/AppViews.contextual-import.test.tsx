@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ProgramsView, WorkView } from "./AppViews";
 
@@ -7,7 +8,7 @@ vi.mock("./components/MattersWorkspace", () => ({ MattersWorkspace: () => <div>M
 vi.mock("./components/EvidenceWorkspace", () => ({ EvidenceWorkspace: () => <div>Evidence workspace</div> }));
 vi.mock("./components/BankJourneysWorkspace", () => ({ BankJourneysWorkspace: () => <div>Reference journeys</div> }));
 vi.mock("./components/TodayInterventions", () => ({ TodayInterventions: () => <div>Today interventions</div> }));
-vi.mock("./components/WorkspaceErrorBoundary", () => ({ WorkspaceErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
+vi.mock("./components/WorkspaceErrorBoundary", () => ({ WorkspaceErrorBoundary: ({ children }: { children: ReactNode }) => <>{children}</> }));
 
 afterEach(() => vi.restoreAllMocks());
 
