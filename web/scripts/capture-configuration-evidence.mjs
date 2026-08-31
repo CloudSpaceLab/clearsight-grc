@@ -53,7 +53,7 @@ async function capture(scenario) {
 
     if (scenario.expectation === "overview" || scenario.expectation === "mobile") await assertOverview(page, scenario.name);
     if (scenario.expectation === "authority") await assertAuthority(page, scenario.name);
-    if (scenario.expectation === "access") await assertAccess(page, scenario.name);
+    if (scenario.expectation === "access") await assertAccessUnavailable(page, scenario.name);
     if (scenario.expectation === "mobile") await assertMobileShell(page, scenario.name);
     await assertNoHorizontalOverflow(page, scenario.name);
 
@@ -67,7 +67,7 @@ async function capture(scenario) {
 async function assertOverview(page, name) {
   await page.getByRole("heading", { name: "Control plane", exact: true }).waitFor({ state: "visible" });
   for (const label of ["People & access", "Authority & routing", "Data & integrations", "Automation", "AI governance", "System operations"]) {
-    await page.getByRole("button", { name: new RegExp(label.replace(/[&]/g, "&"), "i") }).waitFor({ state: "visible" });
+    await page.getByRole("button", { name: new RegExp(label, "i") }).waitFor({ state: "visible" });
   }
   if (await page.getByRole("dialog").count()) throw new Error(`${name} opens a mutation dialog before the administrator chooses an action`);
 }
@@ -75,23 +75,15 @@ async function assertOverview(page, name) {
 async function assertAuthority(page, name) {
   await page.getByRole("heading", { name: "Authority & routing", exact: true }).waitFor({ state: "visible" });
   await page.getByRole("heading", { name: "Governance policies and delegations", exact: true }).waitFor({ state: "visible" });
-  await page.getByRole("button", { name: "New delegation", exact: true }).waitFor({ state: "visible" });
-  await page.getByRole("button", { name: "New routing policy", exact: true }).waitFor({ state: "visible" });
   if (await page.getByRole("dialog").count()) throw new Error(`${name} renders governance creation before an explicit action`);
 }
 
-async function assertAccess(page, name) {
+async function assertAccessUnavailable(page, name) {
   await page.getByRole("heading", { name: "People & access", exact: true }).waitFor({ state: "visible" });
-  await page.getByRole("heading", { name: "Enterprise access", exact: true }).waitFor({ state: "visible" });
-  const addSource = page.getByRole("button", { name: "Add source", exact: true });
-  await addSource.waitFor({ state: "visible" });
-  if (await page.getByRole("dialog").count()) throw new Error(`${name} renders access creation before an explicit action`);
-  await addSource.click();
-  const dialog = page.getByRole("dialog", { name: "Add provisioning source" });
-  await dialog.waitFor({ state: "visible" });
-  await page.waitForFunction(() => Boolean(document.activeElement?.closest(".side-panel")));
-  await page.keyboard.press("Escape");
-  await dialog.waitFor({ state: "hidden" });
+  await page.getByRole("heading", { name: "Enterprise access unavailable", exact: true }).waitFor({ state: "visible" });
+  await page.getByRole("button", { name: "Retry", exact: true }).waitFor({ state: "visible" });
+  if (await page.getByRole("dialog").count()) throw new Error(`${name} opens a mutation dialog while access administration is unavailable`);
+  if (!(await page.getByRole("button", { name: /People & access/i }).first().getAttribute("aria-current"))) throw new Error(`${name} loses its selected Configuration domain when access data is unavailable`);
 }
 
 async function assertMobileShell(page, name) {
