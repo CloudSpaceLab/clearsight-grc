@@ -8,6 +8,7 @@ const mounts = vi.hoisted(() => ({
   authority: vi.fn(),
   data: vi.fn(),
   automation: vi.fn(),
+  ai: vi.fn(),
   operations: vi.fn(),
 }));
 
@@ -39,10 +40,17 @@ vi.mock("./DataIntegrationsSection", () => ({
   },
 }));
 
-vi.mock("./AutomationAISection", () => ({
-  AutomationAISection: () => {
+vi.mock("./AutomationSection", () => ({
+  AutomationSection: () => {
     mounts.automation();
-    return <div>Automation and AI surface</div>;
+    return <div>Automation surface</div>;
+  },
+}));
+
+vi.mock("./AIGovernanceSection", () => ({
+  AIGovernanceSection: () => {
+    mounts.ai();
+    return <div>AI governance surface</div>;
   },
 }));
 
@@ -67,6 +75,7 @@ it("renders only the selected administrative domain and keeps selection in the r
   expect(mounts.authority).not.toHaveBeenCalled();
   expect(mounts.data).not.toHaveBeenCalled();
   expect(mounts.automation).not.toHaveBeenCalled();
+  expect(mounts.ai).not.toHaveBeenCalled();
   expect(mounts.operations).not.toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: /People & access/ }));
@@ -76,14 +85,20 @@ it("renders only the selected administrative domain and keeps selection in the r
   expect(mounts.authority).not.toHaveBeenCalled();
   expect(mounts.data).not.toHaveBeenCalled();
   expect(mounts.automation).not.toHaveBeenCalled();
+  expect(mounts.ai).not.toHaveBeenCalled();
   expect(mounts.operations).not.toHaveBeenCalled();
 
-  fireEvent.click(screen.getByRole("button", { name: /Automation & AI/ }));
-  expect(screen.getByText("Automation and AI surface")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /^Automation/ }));
+  expect(screen.getByText("Automation surface")).toBeTruthy();
   expect(window.location.hash).toBe("#configure/automation");
   expect(mounts.automation).toHaveBeenCalled();
-  expect(mounts.authority).not.toHaveBeenCalled();
-  expect(mounts.data).not.toHaveBeenCalled();
+  expect(mounts.ai).not.toHaveBeenCalled();
+  expect(mounts.operations).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: /AI governance/ }));
+  expect(screen.getByText("AI governance surface")).toBeTruthy();
+  expect(window.location.hash).toBe("#configure/ai");
+  expect(mounts.ai).toHaveBeenCalled();
   expect(mounts.operations).not.toHaveBeenCalled();
 });
 
@@ -99,4 +114,5 @@ it("opens a deep-linked configuration domain without mounting overview first", (
   expect(mounts.authority).not.toHaveBeenCalled();
   expect(mounts.data).not.toHaveBeenCalled();
   expect(mounts.automation).not.toHaveBeenCalled();
+  expect(mounts.ai).not.toHaveBeenCalled();
 });
