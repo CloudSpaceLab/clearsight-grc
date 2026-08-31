@@ -42,6 +42,8 @@ Tokens have three levels:
 
 `web/src/design-system/tokens/` owns the three-level foundation. `web/src/ui-preferences.css` supplies compatible legacy theme mappings while surfaces migrate. Components must not create a private light/dark palette when a semantic role already represents the meaning.
 
+Shared action foregrounds are owned by the component token layer (`--cs-button-primary-text`, `--cs-button-secondary-text`, `--cs-button-quiet-text` and `--cs-button-destructive-text`). Legacy feature styles must not apply an unlayered global button foreground or font shorthand because that would override the layered component contract in both themes.
+
 Theme preference supports **System**, **Light** and **Dark**. Comfortable controls are 44px high. Compact controls are 40px high on a fine-pointer desktop; compact mode does not reduce touch targets below 44px. Spacing uses the 4px primitive scale with 8px as the normal grouping rhythm. Component radii come from the 6px, 10px and 14px primitives; large guide or illustration treatments may keep a larger documented radius outside operational controls. Shadows and blur remain subtle and never carry state.
 
 Typography uses Inter, Segoe UI Variable, Segoe UI, then system sans-serif. Headings use tight tracking; operational copy uses normal sentence case. Uppercase is limited to compact metadata labels.
