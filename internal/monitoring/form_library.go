@@ -11,16 +11,17 @@ import (
 )
 
 type FormLibraryFilter struct {
-	TenantID         string          `json:"-"`
-	LegalEntityID    string          `json:"-"`
-	Search           string          `json:"search,omitempty"`
-	ProgramID        string          `json:"program_id,omitempty"`
-	OwnerPrincipalID string          `json:"owner_principal_id,omitempty"`
-	Use              string          `json:"use,omitempty"`
-	Tag              string          `json:"tag,omitempty"`
-	Status           LifecycleStatus `json:"status,omitempty"`
-	Cursor           string          `json:"-"`
-	Limit            int             `json:"limit,omitempty"`
+	TenantID         string                `json:"-"`
+	LegalEntityID    string                `json:"-"`
+	Search           string                `json:"search,omitempty"`
+	ProgramID        string                `json:"program_id,omitempty"`
+	OwnerPrincipalID string                `json:"owner_principal_id,omitempty"`
+	Use              string                `json:"use,omitempty"`
+	Tag              string                `json:"tag,omitempty"`
+	Status           LifecycleStatus       `json:"status,omitempty"`
+	Expression       *FormFilterExpression `json:"expression,omitempty"`
+	Cursor           string                `json:"-"`
+	Limit            int                   `json:"limit,omitempty"`
 }
 
 type FormLibraryItem struct {
@@ -30,8 +31,10 @@ type FormLibraryItem struct {
 }
 
 type FormTemplatePage struct {
-	Items      []FormLibraryItem `json:"items"`
-	NextCursor string            `json:"next_cursor,omitempty"`
+	Items      []FormLibraryItem  `json:"items"`
+	NextCursor string             `json:"next_cursor,omitempty"`
+	Total      *int               `json:"total,omitempty"`
+	Facets     *FormLibraryFacets `json:"facets,omitempty"`
 }
 
 type SavedFormView struct {
