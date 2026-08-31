@@ -66,8 +66,9 @@ async function capture(scenario) {
 
 async function assertOverview(page, name) {
   await page.getByRole("heading", { name: "Control plane", exact: true }).waitFor({ state: "visible" });
+  const overview = page.locator(".configure-area-list");
   for (const label of ["People & access", "Authority & routing", "Data & integrations", "Automation", "AI governance", "System operations"]) {
-    await page.getByRole("button", { name: new RegExp(label, "i") }).waitFor({ state: "visible" });
+    await overview.getByRole("button", { name: new RegExp(`^${label}\\b`, "i") }).waitFor({ state: "visible" });
   }
   if (await page.getByRole("dialog").count()) throw new Error(`${name} opens a mutation dialog before the administrator chooses an action`);
 }
@@ -83,7 +84,8 @@ async function assertAccessUnavailable(page, name) {
   await page.getByRole("heading", { name: "Enterprise access unavailable", exact: true }).waitFor({ state: "visible" });
   await page.getByRole("button", { name: "Retry", exact: true }).waitFor({ state: "visible" });
   if (await page.getByRole("dialog").count()) throw new Error(`${name} opens a mutation dialog while access administration is unavailable`);
-  if (!(await page.getByRole("button", { name: /People & access/i }).first().getAttribute("aria-current"))) throw new Error(`${name} loses its selected Configuration domain when access data is unavailable`);
+  const selected = page.getByRole("navigation", { name: "Configuration areas" }).getByRole("button", { name: /^People & access\b/i });
+  if (!(await selected.getAttribute("aria-current"))) throw new Error(`${name} loses its selected Configuration domain when access data is unavailable`);
 }
 
 async function assertMobileShell(page, name) {
