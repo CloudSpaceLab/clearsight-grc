@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { createFormMonitoringCheck, createMonitoringLinkedIssue, createSourceMonitoringCheck, evaluateMonitoringSource, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection, transitionFormTemplate, transitionMonitoringCheck } from "../monitoringApi";
 import type { FormTemplate, LifecycleStatus, MonitoringCheck, MonitoringResult } from "../monitoringTypes";
 import type { ProgramAggregate } from "../types";
-import { FormBuilder } from "./FormBuilder";
 import { DataSourceBuilder } from "./DataSourceBuilder";
 import type { SourceBinding } from "../sourceConfigApi";
 import type { ProgramOperation } from "../programOperationsApi";
+
+const FormBuilder = lazy(() => import("./FormBuilder").then((module) => ({ default: module.FormBuilder })));
 
 type Props = { aggregate: ProgramAggregate; actorPrincipalID: string; canConfigureSources: boolean; operations: ProgramOperation[]; onOpenMatter?: (matterID: string) => void };
 type SetupMode = "closed" | "choose" | "form" | "source";
@@ -202,7 +203,9 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
       <button type="button" aria-label="Connected data" disabled={!canDefineCheck || !canConfigureSources} onClick={() => setMode("source")}><strong>Connected data</strong><span>{!canDefineCheck ? checkDefineOperation?.reason ?? "The current Program owner must add this check." : canConfigureSources ? "Check a status endpoint and calculate risk from the returned value." : "A GRC administrator can connect a new source."}</span></button>
     </div>}
     {canDefineForm && mode === "form" && (
-      <FormBuilder programID={aggregate.program.id} onCancel={() => setMode("choose")} onSaved={(form) => { setForms((current) => latestByID([...current, form])); setMode("closed"); setNotice("Form draft saved."); }}/>
+      <Suspense fallback={<p className="monitoring-builder-loading" role="status">Loading form editor…</p>}>
+        <FormBuilder programID={aggregate.program.id} onCancel={() => setMode("choose")} onSaved={(form) => { setForms((current) => latestByID([...current, form])); setMode("closed"); setNotice("Form draft saved."); }}/>
+      </Suspense>
     )}
     {canDefineCheck && mode === "source" && (
       <DataSourceBuilder onCancel={() => setMode("choose")} onSaved={(binding, config) => void addSourceCheck(binding, config)}/>
