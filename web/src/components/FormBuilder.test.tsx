@@ -98,7 +98,7 @@ describe("FormBuilder", () => {
     fireEvent.click(screen.getByText("Logic"));
     fireEvent.change(screen.getByLabelText("Show this question when"), { target: { value: "question_1" } });
     fireEvent.change(screen.getByLabelText("Condition value"), { target: { value: "Yes" } });
-    fireEvent.click(screen.getByRole("button", { name: "Questions" }));
+    fireEvent.click(screen.getByRole("button", { name: /Questions/ }));
     fireEvent.click(screen.getByText("Section actions"));
     fireEvent.click(screen.getByRole("button", { name: "Duplicate Questions" }));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
