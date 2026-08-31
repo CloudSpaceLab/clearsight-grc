@@ -11,6 +11,7 @@ import type { FilterCondition, FilterExpression, FilterField } from "./filterMod
 import { filterDefinition, formatFilterValue } from "./filterRegistry";
 import { AdvancedFilterEditor } from "./AdvancedFilterEditor";
 import { FilterPicker } from "./FilterPicker";
+import { Button, FilterChip, PopoverDialog, SearchField } from "../../ui";
 
 type Props = {
   query: FormTemplateQuery;
@@ -37,65 +38,57 @@ export function FilterBar({ query, onChange, resultCount, revalidating = false }
   }
 
   return <div className="forms-filter-bar">
-    <label className="forms-filter-search">
-      <span className="sr-only">Search templates</span>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-      <input
-        type="search"
-        aria-label="Search templates"
-        value={query.search ?? ""}
-        placeholder="Search forms…"
-        onChange={(event) => onChange({ ...query, search: event.target.value || undefined, cursor: undefined })}
-      />
-    </label>
+    <SearchField
+      label="Search templates"
+      value={query.search ?? ""}
+      placeholder="Search forms…"
+      isLoading={revalidating}
+      onChange={(search) => onChange({ ...query, search: search || undefined, cursor: undefined })}
+    />
 
     <div className="forms-filter-chips" aria-label="Active form filters">
       {conditions.map((condition) => {
         const definition = filterDefinition(condition.field);
-        return <button
-          type="button"
-          className="forms-filter-chip"
+        return <FilterChip
           key={condition.field}
-          aria-label={`Remove ${definition.label} filter`}
-          title={`Remove ${definition.label} filter`}
-          onClick={() => onChange(removeFilter(query, condition.field))}
-        >
-          <span>{definition.label}</span>
-          <strong>{formatFilterValue(condition.field, condition.value)}</strong>
-          <span aria-hidden="true">×</span>
-        </button>;
+          label={definition.label}
+          value={formatFilterValue(condition.field, condition.value)}
+          onRemove={() => onChange(removeFilter(query, condition.field))}
+        />;
       })}
 
-      {advancedSummary && <button
-        type="button"
-        className="forms-filter-chip advanced"
-        aria-label="Edit advanced filters"
-        onClick={() => { setOpen(false); setAdvancedOpen(true); }}
-      >
-        <span>Advanced</span>
-        <strong>{advancedSummary}</strong>
-      </button>}
+      {advancedSummary && <FilterChip
+        label="Advanced"
+        value={advancedSummary}
+        emphasis="accent"
+        actionLabel="Edit advanced filters"
+        onPress={() => { setOpen(false); setAdvancedOpen(true); }}
+      />}
 
-      <div className="forms-filter-add">
-        <button type="button" className="forms-filter-add-button" aria-expanded={open} onClick={() => { setAdvancedOpen(false); setOpen((value) => !value); }}>+ Filter</button>
-        {open && <FilterPicker activeFields={activeFields} onApply={apply} onClose={() => setOpen(false)}/>} 
-      </div>
-      <button
-        type="button"
-        className="forms-filter-advanced-button"
+      <PopoverDialog
+        label="Add filter"
+        isOpen={open}
+        onOpenChange={(next) => { setAdvancedOpen(false); setOpen(next); }}
+        trigger={<Button size="compact">+ Filter</Button>}
+      >
+        <FilterPicker activeFields={activeFields} onApply={apply} onClose={() => setOpen(false)}/>
+      </PopoverDialog>
+      <Button
+        size="compact"
+        variant="quiet"
         aria-expanded={advancedOpen}
-        onClick={() => { setOpen(false); setAdvancedOpen(true); }}
+        onPress={() => { setOpen(false); setAdvancedOpen(true); }}
       >
         {advancedSummary ? "Edit logic" : "Advanced"}
-      </button>
-      <button
-        type="button"
-        className="forms-filter-sort-button"
+      </Button>
+      <Button
+        size="compact"
+        variant="quiet"
         aria-label={query.sort === "UPDATED_ASC" ? "Sort by newest update" : "Sort by oldest update"}
-        onClick={() => onChange({ ...query, sort: query.sort === "UPDATED_ASC" ? "UPDATED_DESC" : "UPDATED_ASC", cursor: undefined })}
+        onPress={() => onChange({ ...query, sort: query.sort === "UPDATED_ASC" ? "UPDATED_DESC" : "UPDATED_ASC", cursor: undefined })}
       >
         Updated {query.sort === "UPDATED_ASC" ? "↑" : "↓"}
-      </button>
+      </Button>
     </div>
 
     <div className="forms-filter-status" aria-live="polite">

@@ -4,7 +4,7 @@ import type { FormTemplateQuery } from "../../../formsTypes";
 import { FilterBar } from "./FilterBar";
 
 describe("Forms FilterBar", () => {
-  it("adds a typed status filter from one contextual picker", () => {
+  it("adds a typed status filter from one contextual picker", async () => {
     const onChange = vi.fn();
     render(<FilterBar query={{ limit: 25 }} onChange={onChange} resultCount={8}/>);
 
@@ -13,7 +13,8 @@ describe("Forms FilterBar", () => {
     expect(within(picker).queryByRole("button", { name: /Owner/ })).toBeNull();
     expect(within(picker).queryByRole("button", { name: /Program/ })).toBeNull();
     fireEvent.click(within(picker).getByRole("button", { name: /Status/ }));
-    fireEvent.change(within(picker).getByLabelText("Status value"), { target: { value: "ACTIVE" } });
+    fireEvent.click(within(picker).getByRole("button", { name: /Status value/ }));
+    fireEvent.click(await screen.findByRole("option", { name: "Active" }));
     fireEvent.click(within(picker).getByRole("button", { name: "Apply filter" }));
 
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ status: "ACTIVE", limit: 25 }));

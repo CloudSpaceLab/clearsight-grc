@@ -20,6 +20,53 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
+func (r *PostgresRepository) ListStarterTemplates(ctx context.Context) ([]StarterTemplate, error) {
+	rows, err := r.pool.Query(ctx, starterTemplateSelect+` WHERE enabled ORDER BY code`)
+	if err != nil {
+		return nil, mapPostgresError(err)
+	}
+	defer rows.Close()
+	values := make([]StarterTemplate, 0)
+	for rows.Next() {
+		value, scanErr := scanStarterTemplate(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		values = append(values, value)
+	}
+	return values, rows.Err()
+}
+
+func (r *PostgresRepository) StarterTemplateByCode(ctx context.Context, code string) (StarterTemplate, error) {
+	value, err := scanStarterTemplate(r.pool.QueryRow(ctx, starterTemplateSelect+` WHERE enabled AND code=$1`, strings.ToUpper(strings.TrimSpace(code))))
+	return value, mapPostgresError(err)
+}
+
+const starterTemplateSelect = `SELECT code,catalog_version,published_on::text,reference_label,name,purpose,approved_uses,tags,sensitivity,scoring_mode,presentation,sections,fields FROM form_starter_templates`
+
+func scanStarterTemplate(row scanner) (StarterTemplate, error) {
+	var value StarterTemplate
+	var presentation, sections, fields []byte
+	err := row.Scan(&value.Code, &value.CatalogVersion, &value.PublishedOn, &value.ReferenceLabel, &value.Template.Name, &value.Template.Purpose, &value.Template.ApprovedUses, &value.Template.Tags, &value.Template.Sensitivity, &value.Template.ScoringMode, &presentation, &sections, &fields)
+	if err != nil {
+		return StarterTemplate{}, err
+	}
+	if err := json.Unmarshal(presentation, &value.Template.Presentation); err != nil {
+		return StarterTemplate{}, err
+	}
+	if err := json.Unmarshal(sections, &value.Template.Sections); err != nil {
+		return StarterTemplate{}, err
+	}
+	if err := json.Unmarshal(fields, &value.Template.Fields); err != nil {
+		return StarterTemplate{}, err
+	}
+	value.Template.Code = value.Code
+	value.Template.StarterCatalogCode = value.Code
+	value.Template.StarterCatalogVersion = value.CatalogVersion
+	value.Template.Lifecycle = Lifecycle{Status: LifecycleDraft, Version: 1}
+	return value, nil
+}
+
 func (r *PostgresRepository) CreateFormRevision(ctx context.Context, value FormTemplate) (FormTemplate, error) {
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {

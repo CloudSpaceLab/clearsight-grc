@@ -1,6 +1,7 @@
 package monitoring
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -8,7 +9,9 @@ import (
 )
 
 func TestStarterCatalogProvidesReviewableVendorDueDiligenceDraft(t *testing.T) {
-	starters, err := StarterTemplates()
+	repo := NewMemoryRepository()
+	repo.SeedStarterTemplates(starterFixture())
+	starters, err := repo.ListStarterTemplates(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +35,17 @@ func TestStarterCatalogProvidesReviewableVendorDueDiligenceDraft(t *testing.T) {
 }
 
 func TestStarterCatalogRejectsUnknownCode(t *testing.T) {
-	if _, err := StarterTemplateByCode("UNKNOWN"); !errors.Is(err, ErrNotFound) {
+	repo := NewMemoryRepository()
+	if _, err := repo.StarterTemplateByCode(context.Background(), "UNKNOWN"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("unknown starter error = %v", err)
 	}
+}
+
+func starterFixture() StarterTemplate {
+	return StarterTemplate{Code: "VENDOR_DUE_DILIGENCE", CatalogVersion: 1, PublishedOn: "2026-08-27", ReferenceLabel: "Reference data for review.", Template: FormTemplate{
+		Code: "VENDOR_DUE_DILIGENCE", Name: "Vendor due diligence review", Purpose: "Collect current vendor evidence.", Sensitivity: "CONFIDENTIAL", ScoringMode: formcontract.ScoringCompliance,
+		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard}, Sections: []formcontract.Section{{ID: "operations", Title: "Operating safeguards", Weight: 100}},
+		Fields:             []TemplateField{{ID: "security_policy", SectionID: "operations", Label: "Security policy is current", Type: formcontract.TypeYesNo, Required: true, Scoring: &formcontract.Scoring{Weight: 100, AnswerScores: map[string]int{"Yes": 100, "No": 0}}}},
+		StarterCatalogCode: "VENDOR_DUE_DILIGENCE", StarterCatalogVersion: 1, Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1},
+	}}
 }

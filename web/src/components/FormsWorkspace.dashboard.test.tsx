@@ -164,7 +164,8 @@ describe("Forms template dashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: "+ Filter" }));
     const picker = screen.getByRole("dialog", { name: "Add filter" });
     fireEvent.click(within(picker).getByRole("button", { name: /Status/ }));
-    fireEvent.change(within(picker).getByLabelText("Status value"), { target: { value: "DRAFT" } });
+    fireEvent.click(within(picker).getByRole("button", { name: /Status value/ }));
+    fireEvent.click(await screen.findByRole("option", { name: "Draft" }));
     fireEvent.click(within(picker).getByRole("button", { name: "Apply filter" }));
 
     expect(screen.getByRole("button", { name: "Remove Status filter" }).textContent).toContain("Draft");

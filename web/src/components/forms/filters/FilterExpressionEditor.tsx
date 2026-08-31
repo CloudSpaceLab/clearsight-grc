@@ -1,18 +1,18 @@
 import type { FilterCondition, FilterExpression, FilterField, FilterGroup } from "./filterModel";
 import { filterExpressionNodeCount } from "./filterModel";
 import { filterDefinition, formatFilterValue, selectableFormFilterRegistry } from "./filterRegistry";
+import { Button, IconButton, SelectField, TextField } from "../../ui";
 
 const MAX_NODES = 12;
 const MAX_DEPTH = 3;
+const matchOptions = [
+  { id: "and", label: "All conditions" },
+  { id: "or", label: "Any condition" },
+] as const;
 
 export function FilterExpressionEditor({ expression, onChange }: { expression: FilterGroup; onChange: (expression: FilterGroup) => void }) {
   const nodeCount = filterExpressionNodeCount(expression);
-  return <GroupEditor
-    group={expression}
-    depth={1}
-    nodeCount={nodeCount}
-    onChange={onChange}
-  />;
+  return <GroupEditor group={expression} depth={1} nodeCount={nodeCount} onChange={onChange}/>;
 }
 
 function GroupEditor({ group, depth, nodeCount, onChange, onRemove }: {
@@ -34,58 +34,42 @@ function GroupEditor({ group, depth, nodeCount, onChange, onRemove }: {
   }
 
   function addCondition() {
-    if (!canAddCondition) return;
-    onChange({ ...group, children: [...group.children, emptyCondition()] });
+    if (canAddCondition) onChange({ ...group, children: [...group.children, emptyCondition()] });
   }
 
   function addGroup() {
     if (!canAddGroup) return;
-    onChange({
-      ...group,
-      children: [...group.children, { kind: "group", operator: "and", children: [emptyCondition()] }],
-    });
+    onChange({ ...group, children: [...group.children, { kind: "group", operator: "and", children: [emptyCondition()] }] });
   }
 
   return <fieldset className={depth === 1 ? "forms-expression-group root" : "forms-expression-group"}>
-    <legend className="sr-only">{depth === 1 ? "Advanced filter logic" : "Filter group"}</legend>
+    <legend className="cs-sr-only">{depth === 1 ? "Advanced filter logic" : "Filter group"}</legend>
     <div className="forms-expression-group-heading">
-      <label>
-        <span>{depth === 1 ? "Match" : "Group"}</span>
-        <select
-          aria-label={depth === 1 ? "Advanced filter match mode" : `Filter group level ${depth} match mode`}
+      <div className="forms-expression-mode">
+        <span aria-hidden="true">{depth === 1 ? "Match" : "Group"}</span>
+        <div className="forms-expression-mode-control"><SelectField
+          label={depth === 1 ? "Advanced filter match mode" : `Filter group level ${depth} match mode`}
           value={group.operator}
-          onChange={(event) => onChange({ ...group, operator: event.target.value as "and" | "or" })}
-        >
-          <option value="and">All conditions</option>
-          <option value="or">Any condition</option>
-        </select>
-      </label>
-      {onRemove && <button type="button" className="text-button" onClick={onRemove}>Remove group</button>}
+          placeholder="Choose match mode"
+          options={matchOptions}
+          allowsEmpty={false}
+          isLabelHidden
+          onChange={(operator) => operator && onChange({ ...group, operator })}
+        /></div>
+      </div>
+      {onRemove && <Button size="compact" variant="quiet" onPress={onRemove}>Remove group</Button>}
     </div>
 
     <div className="forms-expression-children">
       {group.children.map((child, index) => child.kind === "condition"
-        ? <ConditionEditor
-            key={`${depth}:condition:${index}`}
-            condition={child}
-            index={index}
-            onChange={(next) => updateChild(index, next)}
-            onRemove={() => removeChild(index)}
-          />
-        : <GroupEditor
-            key={`${depth}:group:${index}`}
-            group={child}
-            depth={depth + 1}
-            nodeCount={nodeCount}
-            onChange={(next) => updateChild(index, next)}
-            onRemove={() => removeChild(index)}
-          />)}
+        ? <ConditionEditor key={`${depth}:condition:${index}`} condition={child} index={index} onChange={(next) => updateChild(index, next)} onRemove={() => removeChild(index)}/>
+        : <GroupEditor key={`${depth}:group:${index}`} group={child} depth={depth + 1} nodeCount={nodeCount} onChange={(next) => updateChild(index, next)} onRemove={() => removeChild(index)}/>)}
       {group.children.length === 0 && <p className="forms-expression-empty">Add a condition to define this group.</p>}
     </div>
 
     <div className="forms-expression-actions">
-      <button type="button" className="secondary-button" disabled={!canAddCondition} onClick={addCondition}>+ Condition</button>
-      {depth < MAX_DEPTH && <button type="button" className="text-button" disabled={!canAddGroup} onClick={addGroup}>+ Group</button>}
+      <Button size="compact" isDisabled={!canAddCondition} onPress={addCondition}>+ Condition</Button>
+      {depth < MAX_DEPTH && <Button size="compact" variant="quiet" isDisabled={!canAddGroup} onPress={addGroup}>+ Group</Button>}
     </div>
   </fieldset>;
 }
@@ -97,39 +81,41 @@ function ConditionEditor({ condition, index, onChange, onRemove }: {
   onRemove: () => void;
 }) {
   const definition = filterDefinition(condition.field);
-  const definitions = definition.selectable === false
-    ? [definition, ...selectableFormFilterRegistry]
-    : selectableFormFilterRegistry;
+  const definitions = definition.selectable === false ? [definition, ...selectableFormFilterRegistry] : selectableFormFilterRegistry;
 
   function chooseField(field: FilterField) {
     onChange({ kind: "condition", field, operator: "is", value: "" });
   }
 
   return <div className="forms-expression-condition">
-    <select aria-label={`Condition ${index + 1} field`} value={condition.field} onChange={(event) => chooseField(event.target.value as FilterField)}>
-      {definitions.map((item) => <option value={item.field} key={item.field}>{item.label}</option>)}
-    </select>
+    <SelectField
+      label={`Condition ${index + 1} field`}
+      value={condition.field}
+      placeholder="Choose field"
+      options={definitions.map((item) => ({ id: item.field, label: item.label }))}
+      allowsEmpty={false}
+      isLabelHidden
+      onChange={(field) => field && chooseField(field)}
+    />
     <span className="forms-expression-operator">is</span>
-    {definition.selectable === false ? <span
-      className="forms-expression-preserved-value"
-      aria-label={`Condition ${index + 1} ${definition.label} value`}
-    >
+    {definition.selectable === false ? <span className="forms-expression-preserved-value" aria-label={`Condition ${index + 1} ${definition.label} value`}>
       {formatFilterValue(condition.field, condition.value)}
-    </span> : definition.input === "select" ? <select
-      aria-label={`Condition ${index + 1} ${definition.label} value`}
-      value={condition.value}
-      onChange={(event) => onChange({ ...condition, value: event.target.value })}
-    >
-      <option value="">Choose {definition.label.toLowerCase()}</option>
-      {definition.options?.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
-    </select> : <input
-      aria-label={`Condition ${index + 1} ${definition.label} value`}
+    </span> : definition.input === "select" ? <SelectField
+      label={`Condition ${index + 1} ${definition.label} value`}
+      value={condition.value || undefined}
+      placeholder={`Choose ${definition.label.toLowerCase()}`}
+      options={definition.options?.map((option) => ({ id: option.value, label: option.label })) ?? []}
+      isLabelHidden
+      onChange={(value) => onChange({ ...condition, value: value ?? "" })}
+    /> : <TextField
+      label={`Condition ${index + 1} ${definition.label} value`}
       value={condition.value}
       maxLength={200}
       placeholder={definition.placeholder}
-      onChange={(event) => onChange({ ...condition, value: event.target.value })}
+      isLabelHidden
+      onChange={(value) => onChange({ ...condition, value })}
     />}
-    <button type="button" className="icon-button" aria-label={`Remove condition ${index + 1}`} onClick={onRemove}>×</button>
+    <IconButton aria-label={`Remove condition ${index + 1}`} variant="quiet" onPress={onRemove}>×</IconButton>
   </div>;
 }
 

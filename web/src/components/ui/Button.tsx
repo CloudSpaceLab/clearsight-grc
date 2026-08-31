@@ -10,6 +10,7 @@ export type ButtonVariant = "primary" | "secondary" | "quiet" | "destructive";
 export type ButtonSize = "comfortable" | "compact";
 
 export type ButtonProps = Omit<AriaButtonProps, "children" | "className" | "style" | "isDisabled"> & {
+  title?: string;
   variant?: ButtonVariant;
   size?: ButtonSize;
   isDisabled?: boolean;

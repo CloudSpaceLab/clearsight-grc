@@ -32,7 +32,7 @@ The primary user is a compliance form owner finding a reusable form, checking it
 
 The record surface uses the shared data table, status, checkbox, button, notice, empty-state and focused-sheet contracts. This preserves the current Forms APIs, query state, exact revision identity and authority operations. Loading, populated, empty search, unavailable source, saved-filter, bulk selection and lifecycle detail states remain required. At narrow widths the table becomes labelled stacked records and the sheet becomes the shared full-height mobile surface. Copy must distinguish latest stored and currently reusable revisions and must not imply approval or availability when the authority read is missing. Icons remain labelled control aids; the shared sheet owns motion and reduced-motion behavior.
 
-Acceptance evidence is the component gallery plus the deterministic full-host Forms matrix at desktop, mobile, 320px reflow, 200% zoom, light, dark, forced-colors and reduced-motion states. The first migrated render exposed a close action beneath sticky detail content; the shared overlay layer token was corrected and the replacement 122-state render passed. The creation launcher now uses the shared `ActionCard`, button, card, empty-state and focused-sheet contracts. Template search, filter chips, typed filter popovers, advanced expressions and status scopes remain the next migration boundary and are not represented as complete here.
+Acceptance evidence is the component gallery plus the deterministic full-host Forms matrix at desktop, mobile, 320px reflow, 200% zoom, light, dark, forced-colors and reduced-motion states. The first migrated render exposed a close action beneath sticky detail content; the shared overlay layer token was corrected. The creation launcher uses shared action-card, button, card, empty-state and centered-dialog contracts. Template filters use the shared search, filter, field, action, popover, sheet and scope contracts. All Forms selection menus use the themed select contract; Responses and Communications now use shared feedback and primary-action controls. The remaining Builder inputs, Imports, list selectors and rich-text controls are explicitly incomplete.
 
 ## Truth and safety invariants
 
@@ -127,7 +127,7 @@ One `Create form` action opens four methods:
 - Draft with AI → existing governed proposal/review path;
 - Import → existing governed import/conversion workspace.
 
-Starter previews are derived from the actual starter form contract. No second fake form schema is introduced.
+Starter previews are derived from the actual starter form contract. Catalog records are installed by database migration and read through the repository; the API does not construct a second embedded starter schema. Static HTTP fixtures are permitted only in builds marked for automated UI evidence and cannot be enabled by the deployable demo flag alone.
 
 ## Filter contract
 

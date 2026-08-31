@@ -50,7 +50,7 @@ beforeEach(() => {
 describe("Task 11 governed form views", () => {
   it("dispatches the exact active revision with a directory-selected internal recipient", async () => {
     render(<DistributionComposer/>);
-    expect(await screen.findByRole("option", { name: /Control review/ })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /Control review/ })).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Subject identifier"), { target: { value: "control-a" } });
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Quarterly control review" } });
     fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Collect operating evidence" } });

@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import type { ReusableFormTemplateRef } from "../../../formsTypes";
 import type { FormTemplate } from "../../../monitoringTypes";
 import { reusableRefLabel } from "../formAuthoring";
+import { SelectField } from "../../ui";
 
 type Props = {
   reusableTemplates?: ReusableFormTemplateRef[];
@@ -48,8 +49,15 @@ export function ReusableSectionPicker({ reusableTemplates, loadReusableTemplate,
   return <details className="form-outline-reuse">
     <summary>Reuse approved section</summary>
     <div className="form-outline-reuse-body">
-      <label><span>Active template revision</span><select value={selectedTemplateKey} onChange={(event) => void chooseTemplate(event.target.value)}><option value="">Choose a template</option>{reusableTemplates.map((ref) => <option key={`${ref.id}:${ref.version}`} value={`${ref.id}:${ref.version}`}>{reusableRefLabel(ref)}</option>)}</select></label>
-      {sourceTemplate && <label><span>Section to insert</span><select value={sourceSectionID} onChange={(event) => setSourceSectionID(event.target.value)}>{(sourceTemplate.sections ?? []).map((section) => <option key={section.id} value={section.id}>{section.title}</option>)}</select></label>}
+      <SelectField label="Active template revision" value={selectedTemplateKey || undefined} placeholder="Choose a template" options={reusableTemplates.map((ref) => ({ id: `${ref.id}:${ref.version}`, label: reusableRefLabel(ref) }))} onChange={(value) => void chooseTemplate(value ?? "")}/>
+      {sourceTemplate && <SelectField
+        label="Section to insert"
+        value={sourceSectionID}
+        placeholder="Choose a section"
+        allowsEmpty={false}
+        options={(sourceTemplate.sections ?? []).map((section) => ({ id: section.id, label: section.title }))}
+        onChange={(value) => { if (value) setSourceSectionID(value); }}
+      />}
       {sourceState === "loading" && <p role="status">Loading the approved revision…</p>}
       {sourceState === "error" && <p className="inline-form-error" role="alert">That revision is no longer an active reusable template. Nothing was inserted.</p>}
       {sourceTemplate && <button type="button" className="secondary-button" disabled={!sourceSectionID || sectionLimitReached} onClick={() => onInsert(sourceTemplate, sourceSectionID)}>Insert section</button>}

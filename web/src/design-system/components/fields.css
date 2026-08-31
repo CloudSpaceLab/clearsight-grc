@@ -5,6 +5,47 @@
   min-width: 0;
 }
 
+.cs-search-field {
+  position: relative;
+  display: block;
+  inline-size: min(100%, var(--cs-search-width));
+  min-inline-size: 0;
+}
+
+.cs-search-field__icon {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: var(--cs-search-icon-inset);
+  inline-size: var(--cs-search-icon-size);
+  block-size: var(--cs-search-icon-size);
+  transform: translateY(-50%);
+  fill: none;
+  stroke: var(--cs-field-description);
+  stroke-linecap: round;
+  stroke-width: 1.8;
+  pointer-events: none;
+}
+
+.cs-search-field__control {
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: var(--cs-field-height);
+  padding-inline: calc(var(--cs-search-icon-inset) + var(--cs-search-icon-size) + var(--cs-primitive-space-2)) var(--cs-field-padding-inline);
+  border: var(--cs-field-border-width) solid var(--cs-field-border);
+  border-radius: var(--cs-field-radius);
+  background: var(--cs-field-bg);
+  color: var(--cs-field-text);
+  font-size: var(--cs-font-size-control);
+}
+
+.cs-search-field__control:focus-visible {
+  outline: var(--cs-focus-width) solid var(--cs-field-focus);
+  outline-offset: var(--cs-focus-offset);
+  border-color: var(--cs-border-interactive);
+}
+
+.cs-search-field[data-disabled] { opacity: var(--cs-field-disabled-opacity); }
+
 .cs-field__label,
 .cs-select-field__label {
   color: var(--cs-field-label);
@@ -194,13 +235,24 @@ textarea.cs-field__control {
 
 @media (max-width: 760px) {
   .cs-field__control,
-  .cs-select-field__trigger { font-size: var(--cs-font-size-input-mobile); }
+  .cs-select-field__trigger,
+  .cs-search-field__control { font-size: var(--cs-font-size-input-mobile); }
+}
+
+.cs-field--label-hidden > .cs-field__label,
+.cs-select-field--label-hidden > .cs-select-field__label {
+  position: absolute;
+  inline-size: var(--cs-primitive-border-1);
+  block-size: var(--cs-primitive-border-1);
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 @media (forced-colors: active) {
   .cs-field__control,
   .cs-select-field__trigger,
-  .cs-select-field__popover { border-color: CanvasText; }
+  .cs-select-field__popover,
+  .cs-search-field__control { border-color: CanvasText; }
   .cs-checkbox-field__box { border-color: CanvasText; }
   .cs-checkbox-field[data-selected] .cs-checkbox-field__box,
   .cs-checkbox-field[data-indeterminate] .cs-checkbox-field__box { background: Highlight; color: HighlightText; }

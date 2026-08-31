@@ -12,6 +12,7 @@ import (
 type MemoryRepository struct {
 	mu         sync.RWMutex
 	forms      map[string]FormTemplate
+	starters   map[string]StarterTemplate
 	savedViews map[string]SavedFormView
 	checks     map[string]MonitoringCheck
 	results    map[string]MonitoringResult
@@ -20,7 +21,36 @@ type MemoryRepository struct {
 }
 
 func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{forms: map[string]FormTemplate{}, savedViews: map[string]SavedFormView{}, checks: map[string]MonitoringCheck{}, results: map[string]MonitoringResult{}}
+	return &MemoryRepository{forms: map[string]FormTemplate{}, starters: map[string]StarterTemplate{}, savedViews: map[string]SavedFormView{}, checks: map[string]MonitoringCheck{}, results: map[string]MonitoringResult{}}
+}
+
+func (r *MemoryRepository) SeedStarterTemplates(values ...StarterTemplate) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, value := range values {
+		r.starters[strings.ToUpper(strings.TrimSpace(value.Code))] = value
+	}
+}
+
+func (r *MemoryRepository) ListStarterTemplates(_ context.Context) ([]StarterTemplate, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	values := make([]StarterTemplate, 0, len(r.starters))
+	for _, value := range r.starters {
+		values = append(values, value)
+	}
+	sort.Slice(values, func(i, j int) bool { return values[i].Code < values[j].Code })
+	return values, nil
+}
+
+func (r *MemoryRepository) StarterTemplateByCode(_ context.Context, code string) (StarterTemplate, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	value, ok := r.starters[strings.ToUpper(strings.TrimSpace(code))]
+	if !ok {
+		return StarterTemplate{}, ErrNotFound
+	}
+	return value, nil
 }
 
 func (r *MemoryRepository) CreateFormRevision(_ context.Context, value FormTemplate) (FormTemplate, error) {

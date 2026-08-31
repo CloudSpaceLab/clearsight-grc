@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { StarterTemplate } from "../../../formsTypes";
-import { ActionCard, Button, Card, EmptyState, FocusedSheet } from "../../ui";
+import { ActionCard, Button, Card, EmptyState, FocusedDialog } from "../../ui";
 
 type Props = {
   starters: StarterTemplate[];
@@ -23,7 +23,7 @@ export function NewFormLauncher({ starters, busy, onBlank, onAI, onImport, onUse
     gallery.querySelector<HTMLButtonElement>("[data-template-action]")?.focus();
   }
 
-  return <FocusedSheet
+  return <FocusedDialog
     label="New form"
     closeLabel="Close new form"
     size="wide"
@@ -117,7 +117,7 @@ export function NewFormLauncher({ starters, busy, onBlank, onAI, onImport, onUse
         </div> : <EmptyState population="Starter templates in this workspace" title="No starter templates are available" description="Start with a blank form, an AI proposal or an imported source."/>}
       </section>
     </div>
-  </FocusedSheet>;
+  </FocusedDialog>;
 }
 
 function CreationMethod({ icon, title, detail, onClick }: { icon: CreationIcon; title: string; detail: string; onClick: () => void }) {

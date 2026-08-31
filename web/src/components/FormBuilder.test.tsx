@@ -36,7 +36,12 @@ function selectQuestion(index = 0) {
 }
 
 function selectedResponseType() {
-  return screen.getByLabelText("Inspector response type");
+  return screen.getByRole("button", { name: /Inspector response type/ });
+}
+
+function chooseSelect(label: RegExp, option: string) {
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  fireEvent.click(screen.getByRole("option", { name: option }));
 }
 
 function completeBase() {
@@ -57,7 +62,8 @@ describe("FormBuilder", () => {
   it("offers every approved response type without exposing internal field codes", () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     const responseType = selectedResponseType();
-    expect(within(responseType).getAllByRole("option").map((option) => option.textContent)).toEqual([
+    fireEvent.click(responseType);
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
       "Short answer", "Long answer", "Email address", "Telephone number", "Web address",
       "Whole number", "Decimal number", "Percentage", "Currency amount", "Date", "Yes or No",
       "Select one", "Select several", "Checkbox", "Attestation", "File", "Photo", "Signature", "Vendor document",
@@ -69,10 +75,10 @@ describe("FormBuilder", () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     selectQuestion();
     expect(screen.getByLabelText("Minimum characters")).toBeTruthy();
-    fireEvent.change(selectedResponseType(), { target: { value: "date" } });
+    chooseSelect(/Inspector response type/, "Date");
     expect(screen.getByLabelText("Earliest date").getAttribute("type")).toBe("date");
     expect(screen.getByLabelText("Latest date").getAttribute("type")).toBe("date");
-    fireEvent.change(selectedResponseType(), { target: { value: "file" } });
+    chooseSelect(/Inspector response type/, "File");
     expect(screen.getByRole("group", { name: "Accepted files" })).toBeTruthy();
     expect(screen.getByLabelText("Maximum file size (MB)")).toBeTruthy();
     expect(screen.queryByLabelText("Minimum characters")).toBeNull();
@@ -81,7 +87,7 @@ describe("FormBuilder", () => {
   it("deduplicates pasted choices before persistence", async () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     completeBase();
-    fireEvent.change(selectedResponseType(), { target: { value: "single_select" } });
+    chooseSelect(/Inspector response type/, "Select one");
     fireEvent.change(screen.getByLabelText("Choices"), { target: { value: "Nigeria\nGhana\nnigeria\n\nKenya" } });
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(createFormTemplate).toHaveBeenCalledTimes(1));
@@ -91,14 +97,14 @@ describe("FormBuilder", () => {
   it("duplicates a section with regenerated field keys and rewritten internal conditions", async () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     completeBase();
-    fireEvent.change(selectedResponseType(), { target: { value: "yes_no" } });
+    chooseSelect(/Inspector response type/, "Yes or No");
     fireEvent.click(screen.getByRole("button", { name: "+ Question" }));
     const second = selectQuestion(1);
     fireEvent.change(second, { target: { value: "Explain the answer" } });
     fireEvent.click(screen.getByText("Logic"));
-    fireEvent.change(screen.getByLabelText("Show this question when"), { target: { value: "question_1" } });
+    chooseSelect(/Show this question when/, "Primary contact");
     fireEvent.change(screen.getByLabelText("Condition value"), { target: { value: "Yes" } });
-    fireEvent.click(screen.getByRole("button", { name: /Questions/ }));
+    fireEvent.click(screen.getByRole("button", { name: "1Questions" }));
     fireEvent.click(screen.getByText("Section actions"));
     fireEvent.click(screen.getByRole("button", { name: "Duplicate Questions" }));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
@@ -154,12 +160,12 @@ describe("FormBuilder", () => {
   it("blocks a reorder that would place a conditional question before its source", async () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     completeBase();
-    fireEvent.change(selectedResponseType(), { target: { value: "yes_no" } });
+    chooseSelect(/Inspector response type/, "Yes or No");
     fireEvent.click(screen.getByRole("button", { name: "+ Add question" }));
     const dependent = selectQuestion(1);
     fireEvent.change(dependent, { target: { value: "Explain the answer" } });
     fireEvent.click(screen.getByText("Logic"));
-    fireEvent.change(screen.getByLabelText("Show this question when"), { target: { value: "question_1" } });
+    chooseSelect(/Show this question when/, "Primary contact");
     fireEvent.change(screen.getByLabelText("Condition value"), { target: { value: "Yes" } });
 
     const handle = screen.getByTitle("Drag question 2 to reorder");
@@ -204,7 +210,7 @@ describe("FormBuilder", () => {
     />);
     completeBase();
     fireEvent.click(screen.getByText("Reuse approved section"));
-    fireEvent.change(screen.getByLabelText("Active template revision"), { target: { value: "shared-template:3" } });
+    chooseSelect(/Active template revision/, "Shared vendor controls · active v3");
     await waitFor(() => expect(loadReusableTemplate).toHaveBeenCalledWith("shared-template", 3));
     fireEvent.click(await screen.findByRole("button", { name: "Insert section" }));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
@@ -258,12 +264,12 @@ describe("FormBuilder", () => {
   it("persists governed record-target, cache and file limits through the shared contract", async () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     completeBase();
-    fireEvent.change(selectedResponseType(), { target: { value: "vendor_document" } });
+    chooseSelect(/Inspector response type/, "Vendor document");
     fireEvent.click(screen.getByText(/Data handling/));
-    fireEvent.change(screen.getByLabelText("Collection purpose"), { target: { value: "REPLACE_HELD_DOCUMENT" } });
+    chooseSelect(/Collection purpose/, "Replace a held document");
     fireEvent.change(screen.getByLabelText("Record target key"), { target: { value: "vendor.registration_document" } });
     fireEvent.click(screen.getByText("Technical recovery"));
-    fireEvent.change(screen.getByLabelText("Browser recovery"), { target: { value: "NO_BROWSER_CACHE" } });
+    chooseSelect(/Browser recovery/, "Do not cache in browser");
     fireEvent.change(screen.getByLabelText("Maximum file size (MB)"), { target: { value: "10" } });
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(createFormTemplate).toHaveBeenCalledTimes(1));
@@ -279,9 +285,9 @@ describe("FormBuilder", () => {
     const onSaved = vi.fn();
     render(<FormBuilder programID="program-1" onSaved={onSaved} onCancel={vi.fn()}/>);
     completeBase();
-    fireEvent.change(selectedResponseType(), { target: { value: "email" } });
+    chooseSelect(/Inspector response type/, "Email address");
     selectOverview();
-    fireEvent.change(screen.getByLabelText("Default layout"), { target: { value: "WIZARD" } });
+    chooseSelect(/Default layout/, "Show one section at a time");
     fireEvent.click(screen.getByLabelText("Allow respondents to switch layouts"));
     fireEvent.click(screen.getByRole("button", { name: "Preview" }));
     fireEvent.click(screen.getByRole("button", { name: "Preview Classic" }));
