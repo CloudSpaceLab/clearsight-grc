@@ -9,7 +9,8 @@ import type { VendorRelationshipLink } from "./vendorLinkTypes";
 import type { VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "./vendorTypes";
 import type { VendorWorkRequest, VendorWorkResponseView, VendorWorkSendOutcome } from "./vendorWorkTypes";
 
-export const staticDemoEnabled = import.meta.env.VITE_STATIC_DEMO === "true";
+// Static transport is an isolated review fixture, never a deployable demo API.
+export const staticDemoEnabled = import.meta.env.VITE_STATIC_DEMO === "true" && import.meta.env.VITE_UI_EVIDENCE === "true";
 
 export class StaticDemoHTTPError extends Error {
   constructor(readonly status: number, readonly code: string, message: string) {
@@ -804,9 +805,17 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/forms/templates" && method === "GET") {
     const search = url.searchParams.get("search")?.trim().toLowerCase();
     const status = url.searchParams.get("status")?.trim().toUpperCase();
-    const items = formsTemplatePopulation(fixture).filter((form) => (!search || `${form.name} ${form.code} ${form.purpose} ${(form.tags ?? []).join(" ")}`.toLowerCase().includes(search)) && (!status || form.status === status));
+    const searched = formsTemplatePopulation(fixture).filter((form) => !search || `${form.name} ${form.code} ${form.purpose} ${(form.tags ?? []).join(" ")}`.toLowerCase().includes(search));
+    const items = searched.filter((form) => !status || form.status === status);
     items.sort((left, right) => (url.searchParams.get("sort") === "UPDATED_ASC" ? 1 : -1) * (left.updated_at.localeCompare(right.updated_at) || left.id.localeCompare(right.id)));
-    return clone({ items: items.map((template) => ({ template, active_version: template.status === "ACTIVE" ? template.version : undefined, active_status: template.status === "ACTIVE" ? "ACTIVE" : undefined, authority_available: true, operations: staticFormLibraryOperations(template) })) }) as T;
+    const facets = url.searchParams.get("facets")?.split(",").includes("status")
+      ? { status: searched.reduce<Record<string, number>>((counts, form) => ({ ...counts, [form.status]: (counts[form.status] ?? 0) + 1 }), {}) }
+      : undefined;
+    return clone({
+      items: items.map((template) => ({ template, active_version: template.status === "ACTIVE" ? template.version : undefined, active_status: template.status === "ACTIVE" ? "ACTIVE" : undefined, authority_available: true, operations: staticFormLibraryOperations(template) })),
+      total: items.length,
+      ...(facets ? { facets } : {}),
+    }) as T;
   }
   const formRevisionMatch = pathname.match(/^\/api\/v1\/forms\/templates\/([^/]+)\/revisions\/(\d+)$/);
   if (formRevisionMatch && method === "GET") {

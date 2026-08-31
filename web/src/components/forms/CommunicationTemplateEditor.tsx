@@ -16,8 +16,10 @@ import {
   FORMAT_TEXT_COMMAND, TextNode, type EditorConfig, type EditorState, type NodeKey, type SerializedTextNode,
 } from "lexical";
 import type { CommunicationNode, CommunicationTemplate } from "../../formsCommunicationApi";
+import { Button, SelectField, TextField } from "../ui";
 
 const variables = ["recipient_name", "bank_name", "form_title", "task_summary", "due_time", "link_expiry", "access_instructions", "support_contact", "secure_form_link"] as const;
+const actionOptions = ["INVITATION", "REMINDER", "DUE_SOON", "EXPIRED", "CHANGE_REQUESTED", "AMENDMENT", "COMPLETION"].map((id) => ({ id, label: id.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (part) => part.toUpperCase()) })) as Array<{ id: CommunicationTemplate["action"]; label: string }>;
 type SerializedVariableNode = SerializedTextNode & { type: "communication-variable"; version: 1 };
 
 class VariableNode extends TextNode {
@@ -54,8 +56,8 @@ export function CommunicationTemplateEditor({ initial, onSave, busy }: Props) {
   return <section className="forms-communication-editor" aria-labelledby="communication-editor-title">
     <div className="forms-task-heading"><div><span>New message version</span><h3 id="communication-editor-title">{initial ? `Edit ${initial.action} · ${initial.locale} · v${initial.version}` : "Create communication template"}</h3><p>Saving creates a new draft version. Protected variables remain fixed so secure links and recipient details render safely.</p></div></div>
     <div className="forms-task-grid">
-      <label><span>Action</span><select value={action} onChange={(event) => setAction(event.target.value as CommunicationTemplate["action"])}><option>INVITATION</option><option>REMINDER</option><option>DUE_SOON</option><option>EXPIRED</option><option>CHANGE_REQUESTED</option><option>AMENDMENT</option><option>COMPLETION</option></select></label>
-      <label><span>Locale</span><input value={locale} maxLength={20} onChange={(event) => setLocale(event.target.value)}/></label>
+      <SelectField label="Message action" value={action} placeholder="Choose message action" options={actionOptions} allowsEmpty={false} onChange={(value) => { if (value) setAction(value); }}/>
+      <TextField label="Locale" value={locale} maxLength={20} onChange={setLocale}/>
       <label className="forms-task-span"><span>Subject</span><input value={subject} maxLength={200} onChange={(event) => setSubject(event.target.value)}/><div className="forms-variable-palette">{variables.map((value) => <button type="button" key={value} onClick={() => setSubject((current) => `${current} {{${value}}}`.trim())}>{`{{${value}}}`}</button>)}</div></label>
       <label><span>Effective from</span><input type="datetime-local" value={effectiveFrom} onChange={(event) => setEffectiveFrom(event.target.value)}/></label>
       <label><span>Effective until</span><input type="datetime-local" value={effectiveUntil} onChange={(event) => setEffectiveUntil(event.target.value)}/></label>
@@ -65,7 +67,7 @@ export function CommunicationTemplateEditor({ initial, onSave, busy }: Props) {
       <div className="forms-lexical-shell"><RichTextPlugin contentEditable={<ContentEditable className="forms-lexical-editor" aria-label="Communication body"/>} placeholder={<div className="forms-lexical-placeholder">Write governed recipient communication…</div>} ErrorBoundary={LexicalErrorBoundary}/><HistoryPlugin/><ListPlugin/><LinkPlugin/><OnChangePlugin onChange={(state) => setDocument(exportDocument(state))}/></div>
       <VariableToolbar/>
     </LexicalComposer>
-    <div className="forms-task-actions"><button className="forms-primary" type="button" disabled={busy || !locale.trim() || !subject.trim() || document.length === 0 || !effectiveFrom} onClick={() => void onSave({ action, locale: locale.trim(), subject_template: subject.trim(), document, effective_from: new Date(effectiveFrom).toISOString(), effective_until: effectiveUntil ? new Date(effectiveUntil).toISOString() : undefined })}>{busy ? "Saving…" : "Save new draft revision"}</button><small>Complete the required variables and effective dates before saving.</small></div>
+    <div className="forms-task-actions"><Button variant="primary" isDisabled={busy || !locale.trim() || !subject.trim() || document.length === 0 || !effectiveFrom} isLoading={busy} onPress={() => void onSave({ action, locale: locale.trim(), subject_template: subject.trim(), document, effective_from: new Date(effectiveFrom).toISOString(), effective_until: effectiveUntil ? new Date(effectiveUntil).toISOString() : undefined })}>Save new draft revision</Button><small>Complete the required variables and effective dates before saving.</small></div>
   </section>;
 }
 

@@ -22,6 +22,7 @@ export type TextFieldProps = {
   isRequired?: boolean;
   isInvalid?: boolean;
   isLoading?: boolean;
+  isLabelHidden?: boolean;
   onBlur?: FocusEventHandler<HTMLInputElement>;
 };
 
@@ -44,10 +45,11 @@ export function TextField({
   isRequired = false,
   isInvalid = false,
   isLoading = false,
+  isLabelHidden = false,
   onBlur,
 }: TextFieldProps) {
   const change: ChangeEventHandler<HTMLInputElement> = (event) => onChange(event.target.value);
-  return <FormField label={label} description={description} errorMessage={errorMessage} isInvalid={isInvalid} isRequired={isRequired} isLoading={isLoading}>
+  return <FormField label={label} description={description} errorMessage={errorMessage} isInvalid={isInvalid} isRequired={isRequired} isLoading={isLoading} isLabelHidden={isLabelHidden}>
     {(control) => <input
       {...control}
       className="cs-field__control"

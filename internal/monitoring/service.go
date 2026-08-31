@@ -226,7 +226,7 @@ func (s *Service) ListStarterTemplates(ctx context.Context) ([]StarterTemplate, 
 	if _, err := s.requireFormActor(ctx); err != nil {
 		return nil, err
 	}
-	return StarterTemplates()
+	return s.repo.ListStarterTemplates(ctx)
 }
 
 func (s *Service) InstantiateStarterTemplate(ctx context.Context, starterCode string, input InstantiateStarterTemplateInput) (FormTemplate, error) {
@@ -237,7 +237,7 @@ func (s *Service) InstantiateStarterTemplate(ctx context.Context, starterCode st
 	if err := s.authorizeFormCommand(ctx, actor, "LEGAL_ENTITY", actor.LegalEntityID, authority.ResponsibilityOwner, "forms.starter.instantiate", 2); err != nil {
 		return FormTemplate{}, err
 	}
-	starter, err := StarterTemplateByCode(starterCode)
+	starter, err := s.repo.StarterTemplateByCode(ctx, starterCode)
 	if err != nil {
 		return FormTemplate{}, err
 	}

@@ -38,6 +38,8 @@ type Repository interface {
 	Result(context.Context, string, string) (MonitoringResult, error)
 	ListResults(context.Context, string, string, int) ([]MonitoringResult, error)
 	ListFormLibrary(context.Context, FormLibraryFilter) (FormTemplatePage, error)
+	ListStarterTemplates(context.Context) ([]StarterTemplate, error)
+	StarterTemplateByCode(context.Context, string) (StarterTemplate, error)
 	ListSavedFormViews(context.Context, string, string, string) ([]SavedFormView, error)
 	SaveFormView(context.Context, SavedFormView) (SavedFormView, error)
 	DeleteSavedFormView(context.Context, string, string, string, string) error

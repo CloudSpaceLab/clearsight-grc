@@ -1,5 +1,6 @@
 export const requiredFormsCapabilities = Object.freeze([
   "library-empty", "library-list", "library-search", "library-saved-filter", "library-context-detail", "library-bulk-action",
+  "library-filter-picker", "library-advanced-filter", "library-status-scopes",
   "creation-blank", "creation-template", "creation-ai", "creation-import",
   "template-draft", "template-pending", "template-active", "template-retired", "weights-invalid", "weights-valid",
   "import-pending", "import-partial", "import-truncated", "import-failed", "import-proposal",
@@ -9,7 +10,7 @@ export const requiredFormsCapabilities = Object.freeze([
   "recovery-server-saved", "recovery-device-only", "recovery-conflict", "recovery-recovered", "recovery-file-reselection",
   "response-first", "response-amended",
   "vendor-confirm", "vendor-correct", "vendor-replace", "vendor-review", "vendor-conflict", "vendor-applied",
-  "library-mobile-records", "builder-mobile-actions", "builder-pointer-reorder", "builder-large-performance",
+  "library-mobile-records", "builder-mobile-actions", "builder-pointer-reorder", "builder-large-performance", "builder-themed-select",
   "viewport-desktop", "viewport-mobile", "viewport-reflow-320", "zoom-200", "theme-light", "theme-dark",
   "foundation-component-variants", "select-themed-open", "focus-visible", "density-comfortable", "density-compact",
   "sent-empty-replacement", "sent-populated-table", "sent-responsive-sheet", "sent-partial-page", "sent-lifecycle-feedback",
@@ -33,10 +34,11 @@ const scenarios = [
   {
     name: "89-forms-library-lifecycle-light-1440x900", fixture: "forms-library-lifecycle", route: "#forms",
     state: "forms-library-lifecycle", theme: "light", viewport: desktop, zoom: 1,
-    capabilities: ["library-list", "library-context-detail", "template-draft", "template-pending", "template-active", "template-retired", "viewport-desktop", "theme-light"],
+    capabilities: ["library-list", "library-context-detail", "library-status-scopes", "template-draft", "template-pending", "template-active", "template-retired", "viewport-desktop", "theme-light"],
     run: async (page) => {
       await page.getByLabel("Search templates").waitFor({ state: "visible" });
       for (const value of ["Draft", "Awaiting approval", "Active", "Retired"]) await visible(page, value);
+      await page.getByRole("button", { name: /^All \d+$/ }).waitFor({ state: "visible" });
       if (await page.getByLabel("Selected form template").count()) throw new Error("Forms library detail must stay closed until a template is selected.");
       await page.getByRole("button", { name: /^Open / }).first().click();
       await page.getByLabel("Selected form template").waitFor({ state: "visible" });
@@ -64,6 +66,30 @@ const scenarios = [
         await dialog.getByRole("button", { name: new RegExp(`^${method}\\b`) }).waitFor({ state: "visible" });
       }
       await dialog.getByRole("heading", { name: "Starter templates", exact: true }).waitFor({ state: "visible" });
+    },
+  },
+  {
+    name: "92-forms-filter-picker-dark-1440x900", fixture: "forms-library-lifecycle", route: "#forms",
+    state: "forms-library-filter-picker", theme: "dark", viewport: desktop, zoom: 1,
+    capabilities: ["library-filter-picker", "theme-dark", "viewport-desktop"],
+    run: async (page) => {
+      await page.getByRole("button", { name: "+ Filter", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Add filter" });
+      await dialog.waitFor({ state: "visible" });
+      await dialog.getByRole("button", { name: /Status/ }).click();
+      await dialog.getByRole("button", { name: /Status value/ }).waitFor({ state: "visible" });
+    },
+  },
+  {
+    name: "93-forms-advanced-filter-light-1440x900", fixture: "forms-library-lifecycle", route: "#forms",
+    state: "forms-library-advanced-filter", theme: "light", viewport: desktop, zoom: 1,
+    capabilities: ["library-advanced-filter", "theme-light", "viewport-desktop"],
+    run: async (page) => {
+      await page.getByRole("button", { name: "Advanced", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Advanced form filters" });
+      await dialog.waitFor({ state: "visible" });
+      await dialog.getByRole("button", { name: /Advanced filter match mode/ }).waitFor({ state: "visible" });
+      await dialog.getByRole("button", { name: "Apply filters" }).waitFor({ state: "visible" });
     },
   },
   {
@@ -109,10 +135,22 @@ const scenarios = [
     run: async (page) => { for (const value of ["Stored · processing", "Partially extracted · review source gaps", "Extracted with limits · review retained content", "Extraction failed · original retained", "1 proposal to review"]) await visible(page, value); },
   },
   {
+    name: "96a-forms-builder-select-dark-1440x900", fixture: "forms-weights-valid", route: "#forms",
+    state: "forms-builder-themed-select", theme: "dark", viewport: desktop, zoom: 1,
+    capabilities: ["builder-themed-select", "select-themed-open", "theme-dark", "viewport-desktop"],
+    run: async (page) => {
+      await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
+      await page.getByRole("button", { name: "Edit draft" }).click();
+      const select = page.getByRole("button", { name: /Inspector response type/ });
+      await select.click();
+      await page.getByRole("option", { name: "Yes or No", exact: true }).waitFor({ state: "visible" });
+    },
+  },
+  {
     name: "98-forms-communication-compose-light-1440x900", fixture: "forms-communication-compose", route: "#forms",
     state: "forms-communication-compose", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["communication-compose"],
-    run: async (page) => { await openFormsTab(page, "Communications"); await page.getByRole("button", { name: "New template revision" }).click(); await page.getByRole("heading", { name: "Edit INVITATION · en-NG · v3" }).waitFor({ state: "visible" }); },
+    run: async (page) => { await openFormsTab(page, "Communications"); await page.getByRole("button", { name: "Create template revision" }).click(); await page.getByRole("heading", { name: "Edit INVITATION · en-NG · v3" }).waitFor({ state: "visible" }); },
   },
   {
     name: "99-forms-distribution-access-history-light-1440x900", fixture: "forms-distribution-history", route: "#forms",

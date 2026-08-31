@@ -29,18 +29,19 @@ export type SelectFieldProps<T extends string> = {
   isRequired?: boolean;
   isInvalid?: boolean;
   allowsEmpty?: boolean;
+  isLabelHidden?: boolean;
 };
 
 const emptyKey = "__clearsight_empty_selection__";
 
-export function SelectField<T extends string>({ label, value, placeholder, options, onChange, description, errorMessage, isDisabled = false, isRequired = false, isInvalid = false, allowsEmpty = true }: SelectFieldProps<T>) {
+export function SelectField<T extends string>({ label, value, placeholder, options, onChange, description, errorMessage, isDisabled = false, isRequired = false, isInvalid = false, allowsEmpty = true, isLabelHidden = false }: SelectFieldProps<T>) {
   const selectedKey = value ?? null;
   function change(key: Key | null) {
     onChange(key === null || key === emptyKey ? undefined : String(key) as T);
   }
 
   return <Select
-    className="cs-select-field"
+    className={`cs-select-field${isLabelHidden ? " cs-select-field--label-hidden" : ""}`}
     selectedKey={selectedKey}
     onSelectionChange={change}
     placeholder={placeholder}

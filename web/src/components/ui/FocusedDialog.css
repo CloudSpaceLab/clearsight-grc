@@ -1,0 +1,36 @@
+.cs-dialog__overlay {
+  position: fixed;
+  z-index: var(--cs-overlay-z);
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--cs-primitive-space-8);
+  background: var(--cs-overlay-backdrop);
+  backdrop-filter: blur(var(--cs-overlay-blur));
+}
+.cs-dialog {
+  inline-size: min(var(--cs-dialog-width), 100%);
+  max-block-size: var(--cs-dialog-max-height);
+  overflow: auto;
+  color: var(--cs-overlay-text);
+  background: var(--cs-overlay-bg);
+  border: var(--cs-overlay-border-width) solid var(--cs-overlay-border);
+  border-radius: var(--cs-overlay-radius);
+  box-shadow: var(--cs-overlay-shadow);
+}
+.cs-dialog--wide { inline-size: min(var(--cs-dialog-wide-width), 100%); }
+.cs-dialog__body { position: relative; outline: none; }
+.cs-dialog__close { position: sticky; z-index: var(--cs-overlay-close-z); inset-block-start: var(--cs-sheet-padding); float: inline-end; margin: var(--cs-sheet-padding); }
+.cs-dialog__content { padding: var(--cs-sheet-padding); }
+.cs-dialog[data-entering] { animation: cs-dialog-enter var(--cs-overlay-transition); }
+.cs-dialog[data-exiting] { animation: cs-dialog-exit var(--cs-overlay-transition); }
+@keyframes cs-dialog-enter { from { opacity: 0; transform: translateY(var(--cs-primitive-space-3)) scale(.98); } }
+@keyframes cs-dialog-exit { to { opacity: 0; transform: translateY(var(--cs-primitive-space-3)) scale(.98); } }
+@media (max-width: 640px) {
+  .cs-dialog__overlay { place-items: stretch; padding: 0; }
+  .cs-dialog { inline-size: 100%; max-block-size: 100dvh; block-size: 100dvh; border-radius: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs-dialog[data-entering], .cs-dialog[data-exiting] { animation: none; }
+}
+@media (forced-colors: active) { .cs-dialog { border-color: CanvasText; } }
