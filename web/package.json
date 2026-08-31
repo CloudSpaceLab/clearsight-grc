@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
+    "check:ui-contracts": "node --test scripts/ui-contract.nodecheck.mjs",
     "test": "vitest run",
     "review:ui": "node scripts/run-ui-ux-review.mjs",
     "preview": "vite preview"

@@ -73,6 +73,31 @@ Focused dialogs and drawers use the theme backdrop plus `--overlay-blur` to redu
 
 Document reading and comparison surfaces use the document token family. Light mode presents imported material on a white paper-like surface with dark text; dark mode maps the same semantic roles to a quiet dark document surface. Navigation, status and review actions remain visually distinct from the document body.
 
+## Shared component contracts
+
+Migrated product screens import these closed contracts from `components/ui`; feature CSS arranges them but does not restyle their internals.
+
+| Family | Supported contract |
+| --- | --- |
+| `Button` | Primary, secondary, quiet and destructive actions; comfortable or compact density; disabled and loading states. |
+| `ActionLink` | Real navigation only. |
+| `IconButton` | Named icon actions using the Button variants. |
+| `FormField` | Shared label, required marker, guidance and validation anatomy. |
+| `TextField` | Text, search, email, URL and telephone values; disabled, read-only, invalid and loading states. |
+| `TextArea` | Multi-line responses; disabled, read-only, invalid and loading states. |
+| `SelectField` | One selection from a bounded list with themed listbox keyboard behavior. |
+| `Tabs` | Automatic peer-view navigation with one selected indicator and wrapped compact behavior. |
+| `StatusBadge` | Neutral, information, success, warning, error and unknown labelled states. |
+| `Notice` | Information, success, warning and error conditions at the point of work. |
+| `Surface` | Related work containment without implying a record. |
+| `Card` | One coherent object or decision. |
+| `EmptyState` | A named checked population, current empty result and next valid action. |
+| `FilterBar` | Responsive fields, result count and clear handling. |
+| `DataTable` | Populated, selected, loading, pagination and stacked-mobile data presentation. |
+| `FocusedSheet` | Dismissable, focus-contained detail or action with full-height mobile replacement. |
+
+The static-only UI component gallery renders every family from production exports. New variants update the closed TypeScript union, component tokens, this table and the gallery in the same change.
+
 ## Structural patterns
 
 - **Intervention Summary:** actor-scoped read projection for one human review, decision, authorization, evidence exception, escalation or outcome check. It is not new authoritative state.
