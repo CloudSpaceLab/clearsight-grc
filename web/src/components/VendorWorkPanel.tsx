@@ -53,6 +53,8 @@ export function VendorWorkPanel(props: Props) {
   const [loadingMoreLinks, setLoadingMoreLinks] = useState(false);
   const [linkLoadError, setLinkLoadError] = useState(false);
   const loadSequence = useRef(0);
+  const submissionSequence = useRef(0);
+  const savingRef = useRef(false);
   const targetKey = relationshipID ? `RELATIONSHIP:${relationshipID}` : `${targetType}:${targetID}`;
   const activeTarget = useRef(targetKey);
   activeTarget.current = targetKey;
@@ -150,6 +152,8 @@ export function VendorWorkPanel(props: Props) {
   }
 
   function resetDraft() {
+    submissionSequence.current += 1;
+    savingRef.current = false;
     setSelectedLinkID("");
     setRequestKind("GENERAL");
     setPurpose("");
@@ -171,9 +175,11 @@ export function VendorWorkPanel(props: Props) {
 
   async function prepareAndSend(event: FormEvent) {
     event.preventDefault();
-    if (!canSubmit || !selectedRelationship?.relationship || !selectedForm) return;
+    if (savingRef.current || !canSubmit || !selectedRelationship?.relationship || !selectedForm) return;
     const dueAt = endOfDayUTC(dueDate);
     const requestedTarget = targetKey;
+    const submission = ++submissionSequence.current;
+    savingRef.current = true;
     setSaving(true);
     setError("");
     setNotice("");
@@ -183,25 +189,28 @@ export function VendorWorkPanel(props: Props) {
         purpose: purpose.trim(), instructions: instructions.trim(), form_template_id: selectedForm.id,
         form_template_version: selectedForm.version, presentation, vendor_audience: audience.trim(), due_at: dueAt,
       });
-      if (activeTarget.current !== requestedTarget) return;
+      if (activeTarget.current !== requestedTarget || submissionSequence.current !== submission) return;
       setWork((items) => upsertWork(items, prepared));
       try {
         const outcome = await sendVendorWork(prepared.relationship_id, prepared.id, { expected_version: prepared.version, vendor_audience: audience.trim(), invitation_ttl_minutes: invitationTTLMinutes });
-        if (activeTarget.current !== requestedTarget) return;
+        if (activeTarget.current !== requestedTarget || submissionSequence.current !== submission) return;
         setWork((items) => upsertWork(items, outcome.work));
         if (outcome.capture_url) setCaptureURLs((current) => ({ ...current, [outcome.work.id]: outcome.capture_url! }));
         setNotice(deliveryNotice(outcome));
         setCreating(false);
         resetDraft();
       } catch {
-        if (activeTarget.current !== requestedTarget) return;
+        if (activeTarget.current !== requestedTarget || submissionSequence.current !== submission) return;
         setError("The request is saved, but setup could not be completed. Use Complete setup on the request.");
       }
     } catch (caught) {
-      if (activeTarget.current !== requestedTarget) return;
+      if (activeTarget.current !== requestedTarget || submissionSequence.current !== submission) return;
       setError(prepareError(caught));
     } finally {
-      setSaving(false);
+      if (submissionSequence.current === submission) {
+        savingRef.current = false;
+        setSaving(false);
+      }
     }
   }
 
@@ -219,7 +228,7 @@ export function VendorWorkPanel(props: Props) {
     {history.length > 0 && <details className="vendor-work-history" open={current.length === 0}><summary><span>Request history</span><strong>{history.length}</strong></summary><div>{history.map((item) => <VendorWorkCard key={item.id} work={item} form={findForm(forms, item)} relationship={relationships.find((value) => value.link.id === item.relationship_link_id || value.relationship?.relationship.id === item.relationship_id)?.relationship ?? null} onOpenRequest={onOpenRequest} onChanged={(value) => setWork((items) => upsertWork(items, value))}/>)}</div></details>}
     {nextCursor && <button type="button" className="secondary-button vendor-work-load-more" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? "Loading…" : "Load more vendor requests"}</button>}
     {loadMoreError && <p role="alert" className="inline-error">More vendor requests could not be loaded. The current list remains available.</p>}
-    {creating && <FocusedSheet label="Request vendor work" closeLabel="Close vendor request" size="wide" panelClassName="vendor-work-request-sheet" onClose={() => { setCreating(false); resetDraft(); }}>
+    {creating && <FocusedSheet label="Request vendor work" closeLabel={saving ? "Vendor request is being sent" : "Close vendor request"} size="wide" panelClassName="vendor-work-request-sheet" isDismissable={!saving} onClose={() => { if (saving) return; setCreating(false); resetDraft(); }}>
       <div className="cs-sheet-heading"><span className="eyebrow">Vendor request</span><h2>Request vendor work</h2><p>Confirm the vendor, approved collection form, recipient and deadline for this {targetName}.</p></div>
       <form className="vendor-work-form" onSubmit={(event) => void prepareAndSend(event)}>
         <SelectField label="Request type" value={requestKind} placeholder="Choose the work requested" allowsEmpty={false} options={[{ id: "GENERAL", label: "Vendor information or evidence" }, { id: "ADDRESS_VERIFICATION", label: "Registered address verification" }, { id: "CERTIFICATION_REFRESH", label: "ISO 27001 and PCI DSS evidence" }]} onChange={(value) => { if (value) { setRequestKind(value); setFormKey(""); } }}/>

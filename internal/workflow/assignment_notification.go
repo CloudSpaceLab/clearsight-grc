@@ -25,6 +25,7 @@ const (
 	assignmentNotificationRecipientRejected  = "RECIPIENT_REJECTED"
 	assignmentNotificationPermanentFailure   = "PERMANENT_FAILURE"
 	assignmentNotificationTemporaryFailure   = "TEMPORARY_FAILURE"
+	assignmentNotificationDeliveryStarted    = "DELIVERY_STARTED"
 
 	matterOwnerNotificationKind     = "MATTER_OWNER_ASSIGNED"
 	actionPerformerNotificationKind = "ACTION_PERFORMER_ASSIGNED"
@@ -60,7 +61,8 @@ type assignmentNotificationRecord struct {
 
 type assignmentNotificationRepository interface {
 	LoadAssignmentNotification(context.Context, workflowruntime.OutboxEvent, assignmentNotificationEvent) (assignmentNotificationContext, error)
-	GetAssignmentNotification(context.Context, string, string, string) (assignmentNotificationRecord, bool, error)
+	GetAssignmentNotification(context.Context, workflowruntime.OutboxEvent, assignmentNotificationEvent) (assignmentNotificationRecord, bool, error)
+	ClaimAssignmentNotification(context.Context, workflowruntime.OutboxEvent, assignmentNotificationEvent, assignmentNotificationRecord) (bool, error)
 	RecordAssignmentNotification(context.Context, workflowruntime.OutboxEvent, assignmentNotificationEvent, assignmentNotificationRecord) error
 }
 
@@ -92,7 +94,7 @@ func (consumer *AssignmentNotificationConsumer) Publish(ctx context.Context, eve
 	if !relevant {
 		return nil
 	}
-	prior, found, err := consumer.repository.GetAssignmentNotification(ctx, event.ID, assignment.PrincipalID, assignment.NotificationKind)
+	prior, found, err := consumer.repository.GetAssignmentNotification(ctx, event, assignment)
 	if err != nil {
 		return err
 	}
@@ -124,6 +126,18 @@ func (consumer *AssignmentNotificationConsumer) Publish(ctx context.Context, eve
 	})
 	if err != nil {
 		return fmt.Errorf("build staff assignment notification: %w", err)
+	}
+	// SMTP has no portable provider-side idempotency key. Persist the claim before
+	// delivery and treat a stranded claim as an unknown outcome so an outbox retry
+	// cannot send a second message after a process crash.
+	claimed, err := consumer.repository.ClaimAssignmentNotification(ctx, event, assignment, assignmentNotificationRecord{
+		Status: assignmentNotificationDeliveryStarted, RecipientFingerprint: assignmentRecipientFingerprint(address), AttemptedAt: now,
+	})
+	if err != nil {
+		return err
+	}
+	if !claimed {
+		return nil
 	}
 	receipt, deliveryErr := consumer.delivery.DeliverGoverned(ctx, request)
 	record := assignmentNotificationRecord{

@@ -7,6 +7,7 @@ import { addMatterAction, transitionMatterAction } from "../continuityCommands";
 import type { MatterAction, MatterAggregate, RecordResponsibleParty } from "../types";
 import { selectedDateEndOfLocalDay, storedDeadlineLocalDate } from "../dueDate";
 import { Button, FocusedSheet, Notice, SelectField, TextArea } from "./ui";
+import { matterOperationControlID } from "./matterHandoff";
 
 type Props = {
   aggregate: MatterAggregate;
@@ -113,9 +114,9 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
         <div className="matter-action-heading"><div><h3 id={`matter-action-${action.id}`}>{action.title}</h3><p>{action.description}</p></div><span>{statusLabel(action.status)}</span></div>
         <div className="matter-action-meta"><span>{actionResponsibility === "ESCALATION_OWNER" ? "Escalation owner" : "Action owner"}: <strong>{ownerName}</strong></span><span>{formatDate(action.due_at)}</span></div>
         {!active && <div className="matter-action-controls">
-          {editOperation?.can_act && !terminal && <button className="secondary-button" type="button" aria-label={`Edit ${action.title}`} onClick={() => startAction("edit", action)}>Edit action</button>}
-          {assignOperation?.can_act && !terminal && <button className="secondary-button" type="button" aria-label={`Change owner for ${action.title}`} onClick={() => startAction("assign", action)}>Change owner</button>}
-          {statusOperation?.can_act && !terminal && <button className="secondary-button" type="button" aria-label={`Update status for ${action.title}`} onClick={() => startAction("status", action)}>Update status</button>}
+          {editOperation?.can_act && !terminal && <button id={matterOperationControlID(editOperation)} className="secondary-button" type="button" aria-label={`Edit ${action.title}`} onClick={() => startAction("edit", action)}>Edit action</button>}
+          {assignOperation?.can_act && !terminal && <button id={matterOperationControlID(assignOperation)} className="secondary-button" type="button" aria-label={`Change owner for ${action.title}`} onClick={() => startAction("assign", action)}>Change owner</button>}
+          {statusOperation?.can_act && !terminal && <button id={matterOperationControlID(statusOperation)} className="secondary-button" type="button" aria-label={`Update status for ${action.title}`} onClick={() => startAction("status", action)}>Update status</button>}
         </div>}
         {!statusOperation?.can_act && statusOperation?.reason && <p className="matter-operation-reason">{statusOperation.reason}</p>}
       </section>;

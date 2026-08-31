@@ -1,7 +1,7 @@
 import type { MatterOperation } from "../matterOperationsApi";
 import type { MatterAggregate } from "../types";
 import type { RecordResponsibleParty } from "../types";
-import { responsibilityLabel, selectMatterHandoff } from "./matterHandoff";
+import { matterOperationControlID, responsibilityLabel, selectMatterHandoff } from "./matterHandoff";
 
 type Props = {
   aggregate: MatterAggregate;
@@ -25,15 +25,11 @@ export function MatterCurrentHandoff({ aggregate, operations, responsibleParties
   const contradictions = aggregate.matter.contradictions.length;
 
   function moveToOperation() {
-    const containerCommand = operation?.command === "matter.assign" ? "matter.details.update"
-      : operation?.command === "matter.response.transition" ? "matter.decision.record"
-        : operation?.command === "matter.outcome.record" ? "matter.outcome.define"
-          : operation?.command;
-    const target = operation?.subresource_id && operation.command === "matter.action.transition"
-      ? document.getElementById(`matter-operation-${operation.command}-${operation.subresource_id}`)
-      : document.getElementById(`matter-operation-${containerCommand}`);
+    if (!operation) return;
+    const target = document.getElementById(matterOperationControlID(operation));
     target?.scrollIntoView({ behavior: "smooth", block: "center" });
-    target?.querySelector<HTMLElement>("button, input, select, textarea")?.focus();
+    target?.focus();
+    if (target instanceof HTMLButtonElement) target.click();
   }
 
   return <section className="matter-current-handoff" aria-labelledby="matter-current-handoff-title">

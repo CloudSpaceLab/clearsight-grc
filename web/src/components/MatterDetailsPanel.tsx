@@ -7,6 +7,7 @@ import type { MatterOperation } from "../matterOperationsApi";
 import type { MatterAggregate, ProgramAggregate, RecordResponsibleParty } from "../types";
 import { selectedDateEndOfLocalDay, storedDeadlineLocalDate } from "../dueDate";
 import { Button, FocusedSheet, Notice, SelectField, TextArea } from "./ui";
+import { matterOperationControlID } from "./matterHandoff";
 
 type Props = {
   aggregate: MatterAggregate;
@@ -132,8 +133,8 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
     <div className="matter-record-section-heading">
       <div><span className="eyebrow">Issue details</span><h2>Scope, timing and owner</h2></div>
       <div className="matter-panel-actions">
-        {detailsOperation?.can_act && !editing && <button className="secondary-button" type="button" onClick={() => { setEditing(true); setAssigning(false); setLinking(false); setNotice(""); }}>Edit issue details</button>}
-        {assignmentOperation?.can_act && !assigning && <Button variant="secondary" onPress={beginAssignment}>Change issue owner</Button>}
+        {detailsOperation?.can_act && !editing && <button id={matterOperationControlID(detailsOperation)} className="secondary-button" type="button" onClick={() => { setEditing(true); setAssigning(false); setLinking(false); setNotice(""); }}>Edit issue details</button>}
+        {assignmentOperation?.can_act && !assigning && <Button id={matterOperationControlID(assignmentOperation)} variant="secondary" onPress={beginAssignment}>Change issue owner</Button>}
         {linkOperation?.can_act && !linking && <button className="secondary-button" type="button" onClick={() => void beginLink()}>Link to Program</button>}
       </div>
     </div>

@@ -74,9 +74,9 @@ No email is sent from the HTTP request. `MATTER_OWNER_CHANGED` and `ACTION_ASSIG
 4. loads the exact Matter title, action title, due date and legal-entity display name from bounded current records;
 5. builds an HTTPS deep link to the exact issue record from configured application base URL;
 6. renders a shared ClearSight multipart message naming the assigned work, responsibility, assigning actor label when available, due date and next action;
-7. records a redacted delivery receipt keyed by outbox event, principal and notification kind before the event is considered published.
+7. atomically claims a redacted, tenant-scoped delivery receipt keyed by outbox event, principal and notification kind before SMTP, then records the final provider outcome before the event is considered published.
 
-The delivery ledger stores no recipient plaintext, message body or link token. The deep link contains only the Matter identifier and requires normal staff authentication. Missing contact data is a terminal **not deliverable** receipt that does not roll back the assignment. Temporary SMTP failure returns a retryable error; a recorded delivered or terminal receipt makes replay idempotent.
+The delivery ledger stores no recipient plaintext, message body or link token. The deep link contains only the Matter identifier and requires normal staff authentication. Missing contact data is a terminal **not deliverable** receipt that does not roll back the assignment. Temporary SMTP failure returns a retryable error and may claim one later attempt. SMTP offers no portable provider idempotency key, so a stranded **delivery started** claim is an unknown outcome that requires operator reconciliation and is never automatically resent; this prevents a process crash after SMTP acceptance from producing duplicate mail. A recorded delivered, started or terminal receipt makes replay idempotent.
 
 This tranche supplies event-backed email for Matter owner and Action performer assignment. It does not claim a generic notification centre, preferences, digests, bounce processing or arbitrary messaging.
 
@@ -97,6 +97,8 @@ The **Request vendor work** composer opens in a wide `FocusedSheet` so the issue
 - `TextArea` for purpose and instructions;
 - `Notice` for scope, unavailable data, partial delivery and validation;
 - `Button` for cancel, load more and the one primary **Prepare and send request** action.
+
+While prepare/send is in flight, an immediate submission guard prevents a second request and the focused sheet temporarily disables Escape, backdrop, cancel and close dismissal. The busy action and disabled close control state that the request is being sent. Recoverable failure re-enables dismissal without clearing entered values.
 
 Required validation is shown at the relevant field after attempted submit or blur. The selected vendor/service, exact active form revision, presentation, recipient, due date and submission/acceptance distinction remain visible. Preparing and sending retains the truthful partial-outcome recovery path.
 

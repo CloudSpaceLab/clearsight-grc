@@ -48,6 +48,20 @@ describe("FocusedSheet", () => {
     expect(sheet?.className).not.toContain("side-panel");
   });
 
+  it("blocks Escape, backdrop and close controls while consequential work is running", async () => {
+    const close = vi.fn();
+    render(<FocusedSheet label="Sending request" isDismissable={false} onClose={close}><p>Sending…</p></FocusedSheet>);
+    const dialog = screen.getByRole("dialog", { name: "Sending request" });
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    fireEvent.mouseDown(document.querySelector(".cs-sheet__overlay") as HTMLElement);
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(close).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Sending request" })).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Close" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("keeps the sheet open when a portalled select option is chosen", async () => {
     function Harness() {
       const [open, setOpen] = useState(true);

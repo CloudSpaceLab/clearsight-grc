@@ -108,7 +108,7 @@
     "FilterBar": ["result-count", "clear", "stacked-compact"],
     "FilterChip": ["removable", "action", "accent"],
     "DataTable": ["populated", "selected", "loading", "pagination", "stacked-mobile"],
-    "FocusedSheet": ["dismissable", "focus-contained", "default", "wide", "full-height-mobile"],
+    "FocusedSheet": ["dismissable", "non-dismissible-in-flight", "focus-contained", "default", "wide", "full-height-mobile"],
     "FocusedDialog": ["centered-desktop", "full-height-mobile", "dismissable", "focus-contained", "default", "wide"],
     "PopoverDialog": ["anchored", "dismissable", "focus-contained"]
   }

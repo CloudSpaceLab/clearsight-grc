@@ -10,9 +10,24 @@ function textMatches(nextAction: string, value: string | undefined) {
   return candidate.length >= 4 && (nextAction.includes(candidate) || candidate.includes(nextAction));
 }
 
+function mentions(nextAction: string, concepts: string[]) {
+  const words = new Set(nextAction.split(" "));
+  return concepts.some((concept) => words.has(concept));
+}
+
 function operationFor(operations: MatterOperation[], command: string, subresourceID?: string) {
   return operations.find((operation) => operation.command === command
     && (subresourceID === undefined || operation.subresource_id === subresourceID));
+}
+
+function uniqueOperation(operations: MatterOperation[], command: string, subresourceIDs?: string[]) {
+  const matches = operations.filter((operation) => operation.command === command
+    && (subresourceIDs === undefined || (operation.subresource_id !== undefined && subresourceIDs.includes(operation.subresource_id))));
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+export function matterOperationControlID(operation: Pick<MatterOperation, "command" | "subresource_id" | "responsibility">) {
+  return `matter-control-${operation.command}-${operation.subresource_id ?? "record"}-${operation.responsibility}`;
 }
 
 /**
@@ -44,18 +59,44 @@ export function selectMatterHandoff(aggregate: MatterAggregate, operations: Matt
   }
 
   const preferences: string[] = [];
-  if (nextAction.includes("scope") && nextAction.includes("owner")) {
+  if (mentions(nextAction, ["scope"]) && mentions(nextAction, ["owner"])) {
     preferences.push("matter.assign", "matter.details.update");
-  } else if (nextAction.includes("sign") || nextAction.includes("transmi") || nextAction.includes("acknowledg") || nextAction.includes("response")) {
+  } else if (mentions(nextAction, ["sign", "signed", "signing", "signature", "transmit", "transmission", "acknowledge", "acknowledgement", "response"])) {
     preferences.push("matter.response.transition", "matter.response.add");
-  } else if (nextAction.includes("decision") || nextAction.includes("decide")) {
+  } else if (mentions(nextAction, ["decision", "decide"])) {
     preferences.push("matter.decision.record");
-  } else if (nextAction.includes("outcome") || nextAction.includes("verification") || nextAction.includes("verify")) {
+  } else if (mentions(nextAction, ["outcome", "verification", "verify", "verified"])) {
     preferences.push("matter.outcome.record", "matter.outcome.define");
   }
 
+  if (preferences.length === 0) {
+    switch (aggregate.matter.status) {
+      case "DRAFT":
+        return uniqueOperation(operations, "matter.transition");
+      case "INITIAL_REVIEW":
+        return uniqueOperation(operations, "matter.assign") ?? uniqueOperation(operations, "matter.details.update");
+      case "ASSESSMENT":
+      case "DECISION_REQUIRED": {
+        const initialDecision = operations.filter((operation) => operation.command === "matter.decision.record" && !operation.subresource_id);
+        return initialDecision.length === 1 ? initialDecision[0] : uniqueOperation(operations, "matter.decision.record");
+      }
+      case "ACTION_IN_PROGRESS": {
+        const activeActionIDs = aggregate.actions.filter((candidate) => !["IMPLEMENTED", "CANCELLED"].includes(candidate.status)).map((candidate) => candidate.id);
+        return uniqueOperation(operations, "matter.action.transition", activeActionIDs);
+      }
+      case "RESPONSE_PREPARATION": {
+        const responseIDs = aggregate.response_packages.map((candidate) => candidate.id);
+        return uniqueOperation(operations, "matter.response.transition", responseIDs) ?? uniqueOperation(operations, "matter.response.add");
+      }
+      case "VERIFICATION": {
+        const activeContractIDs = aggregate.verification_contracts.filter((candidate) => candidate.status === "ACTIVE").map((candidate) => candidate.id);
+        return uniqueOperation(operations, "matter.outcome.record", activeContractIDs);
+      }
+    }
+  }
+
   for (const command of preferences) {
-    const selected = operationFor(operations, command);
+    const selected = uniqueOperation(operations, command);
     if (selected) return selected;
   }
 
@@ -76,4 +117,3 @@ export function responsibilityLabel(value: string | undefined) {
     default: return "Responsible person";
   }
 }
-

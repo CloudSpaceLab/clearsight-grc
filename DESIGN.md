@@ -81,7 +81,7 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | `FilterBar` | Responsive fields, result count and clear handling. |
 | `FilterChip` | A removable applied filter or named action that reopens advanced filter logic; default and accent treatments. |
 | `DataTable` | Populated, selected, loading, pagination and stacked-mobile data presentation. |
-| `FocusedSheet` | Dismissable, focus-contained detail or action in default or wide composition, with full-height mobile replacement and shared heading, facts, form and action anatomy for governed work. |
+| `FocusedSheet` | Dismissable, focus-contained detail or action in default or wide composition, with full-height mobile replacement and shared heading, facts, form and action anatomy for governed work. Consequential in-flight submission may temporarily disable Escape, backdrop and close controls; the busy action and close control must explain that delivery is in progress. |
 | `FocusedDialog` | Centered, dismissable desktop decision or creation surface in default or wide composition, with full-height mobile replacement. |
 | `PopoverDialog` | Dismissable, focus-contained short contextual work anchored to its trigger. Long or consequential work uses `FocusedSheet`. |
 

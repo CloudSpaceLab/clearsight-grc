@@ -1,5 +1,5 @@
 import { StrictMode } from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadEvidenceSources, loadMatter, loadPrograms } from "../api";
 import { ApiError } from "../http";
@@ -701,6 +701,19 @@ describe("Matter record workspace", () => {
     expect(dominant.textContent).toContain("This issue is assigned to the Program Owner.");
     expect(dominant.textContent).not.toContain("Authorize issue status");
     expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Accountable owner Program Owner");
+  });
+
+  it("opens the exact owner control named by the dominant handoff", async () => {
+    const scopeReview = { ...detail, next_action: "Confirm scope and owner", actions: [] };
+    vi.mocked(loadMatter).mockResolvedValue(scopeReview);
+    vi.mocked(loadMatterOperations).mockResolvedValue(ownerOperations);
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    const dominant = await screen.findByTestId("dominant-next-action");
+    fireEvent.click(within(dominant).getByRole("button", { name: "Change issue owner" }));
+
+    expect(screen.getByRole("dialog", { name: "Change issue owner" })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Edit issue details" })).toBeNull();
   });
 
   it("shows only ordinary lifecycle targets to the accountable owner", async () => {

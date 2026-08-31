@@ -14,11 +14,14 @@ import (
 )
 
 type assignmentNotificationRepositoryStub struct {
-	context   assignmentNotificationContext
-	prior     assignmentNotificationRecord
-	found     bool
-	recorded  assignmentNotificationRecord
-	loadCalls int
+	context     assignmentNotificationContext
+	prior       assignmentNotificationRecord
+	found       bool
+	recorded    assignmentNotificationRecord
+	loadCalls   int
+	claimCalls  int
+	claimDenied bool
+	recordErr   error
 }
 
 func (stub *assignmentNotificationRepositoryStub) LoadAssignmentNotification(context.Context, workflowruntime.OutboxEvent, assignmentNotificationEvent) (assignmentNotificationContext, error) {
@@ -26,12 +29,27 @@ func (stub *assignmentNotificationRepositoryStub) LoadAssignmentNotification(con
 	return stub.context, nil
 }
 
-func (stub *assignmentNotificationRepositoryStub) GetAssignmentNotification(context.Context, string, string, string) (assignmentNotificationRecord, bool, error) {
+func (stub *assignmentNotificationRepositoryStub) GetAssignmentNotification(context.Context, workflowruntime.OutboxEvent, assignmentNotificationEvent) (assignmentNotificationRecord, bool, error) {
 	return stub.prior, stub.found, nil
+}
+
+func (stub *assignmentNotificationRepositoryStub) ClaimAssignmentNotification(_ context.Context, _ workflowruntime.OutboxEvent, _ assignmentNotificationEvent, record assignmentNotificationRecord) (bool, error) {
+	stub.claimCalls++
+	if stub.claimDenied {
+		return false, nil
+	}
+	stub.prior = record
+	stub.found = true
+	return true, nil
 }
 
 func (stub *assignmentNotificationRepositoryStub) RecordAssignmentNotification(_ context.Context, _ workflowruntime.OutboxEvent, _ assignmentNotificationEvent, record assignmentNotificationRecord) error {
 	stub.recorded = record
+	if stub.recordErr != nil {
+		return stub.recordErr
+	}
+	stub.prior = record
+	stub.found = true
 	return nil
 }
 
@@ -194,14 +212,62 @@ func TestAssignmentNotificationRetriesTemporaryDeliveryAndFinalReceiptIsIdempote
 		t.Fatalf("temporary receipt = %#v", repo.recorded)
 	}
 
-	repo.found = true
-	repo.prior = assignmentNotificationRecord{Status: assignmentNotificationDelivered}
+	deliveredAt := time.Date(2026, 8, 31, 10, 2, 0, 0, time.UTC)
+	delivery.err = nil
+	delivery.receipt = evidence.InvitationDeliveryReceipt{Status: evidence.InvitationDelivered, ProviderMessageID: "provider-retry", DeliveredAt: &deliveredAt}
+	if err := consumer.Publish(t.Context(), matterOwnerAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 2 || repo.claimCalls != 2 || repo.recorded.Status != assignmentNotificationDelivered {
+		t.Fatalf("retry delivery calls=%d claims=%d receipt=%#v", delivery.calls, repo.claimCalls, repo.recorded)
+	}
+
 	delivery.calls = 0
 	if err := consumer.Publish(t.Context(), matterOwnerAssignmentEvent(t)); err != nil {
 		t.Fatal(err)
 	}
-	if delivery.calls != 0 || repo.loadCalls != 1 {
+	if delivery.calls != 0 || repo.loadCalls != 2 {
 		t.Fatalf("final replay delivery calls=%d context loads=%d", delivery.calls, repo.loadCalls)
+	}
+}
+
+func TestAssignmentNotificationDoesNotRedeliverWhenFinalReceiptWriteFails(t *testing.T) {
+	recordErr := errors.New("receipt store unavailable")
+	repo := &assignmentNotificationRepositoryStub{context: deliverableAssignmentContext(), recordErr: recordErr}
+	deliveredAt := time.Date(2026, 8, 31, 10, 1, 0, 0, time.UTC)
+	delivery := &assignmentDeliveryStub{receipt: evidence.InvitationDeliveryReceipt{Status: evidence.InvitationDelivered, ProviderMessageID: "provider-1", DeliveredAt: &deliveredAt}}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := consumer.Publish(t.Context(), matterOwnerAssignmentEvent(t)); !errors.Is(err, recordErr) {
+		t.Fatalf("receipt write error = %v", err)
+	}
+	if repo.prior.Status != assignmentNotificationDeliveryStarted || delivery.calls != 1 {
+		t.Fatalf("claim=%#v delivery calls=%d", repo.prior, delivery.calls)
+	}
+	if err := consumer.Publish(t.Context(), matterOwnerAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 1 || repo.claimCalls != 1 {
+		t.Fatalf("replay delivery calls=%d claims=%d", delivery.calls, repo.claimCalls)
+	}
+}
+
+func TestAssignmentNotificationSkipsDeliveryWhenAnotherWorkerOwnsClaim(t *testing.T) {
+	repo := &assignmentNotificationRepositoryStub{context: deliverableAssignmentContext(), claimDenied: true}
+	delivery := &assignmentDeliveryStub{}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := consumer.Publish(t.Context(), matterOwnerAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 0 || repo.claimCalls != 1 {
+		t.Fatalf("delivery calls=%d claims=%d", delivery.calls, repo.claimCalls)
 	}
 }
 

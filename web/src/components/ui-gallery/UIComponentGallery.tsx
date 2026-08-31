@@ -53,6 +53,7 @@ export function UIComponentGallery() {
   const [selection, setSelection] = useState<"OPEN" | "LOCKED">("OPEN");
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [busySheetOpen, setBusySheetOpen] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   return <main className="ui-gallery">
@@ -111,10 +112,11 @@ export function UIComponentGallery() {
     </GalleryGroup>
 
     <GalleryGroup title="Overlays">
-      <Contract family="FocusedSheet" job="Keeps one focused detail or decision above its source view." keyboard="Tab remains inside; Escape closes and restores focus." prohibited="Do not customize the backdrop in a feature."><Button onPress={() => setSheetOpen(true)}>Open sample sheet</Button></Contract>
+      <Contract family="FocusedSheet" job="Keeps one focused detail or decision above its source view." keyboard="Tab remains inside; Escape closes unless consequential submission is in flight." prohibited="Do not customize the backdrop in a feature."><div className="ui-gallery__row"><Button onPress={() => setSheetOpen(true)}>Open sample sheet</Button><Button variant="secondary" onPress={() => setBusySheetOpen(true)}>Open in-flight sample</Button></div></Contract>
       <Contract family="PopoverDialog" job="Keeps short contextual work anchored to its trigger." keyboard="Escape closes and focus returns to the trigger." prohibited="Do not use it for long or consequential workflows."><PopoverDialog label="Sample filter" isOpen={popoverOpen} onOpenChange={setPopoverOpen} trigger={<Button>Open sample filter</Button>}><p>Choose a bounded sample filter.</p><Button onPress={() => setPopoverOpen(false)}>Finish sample filter</Button></PopoverDialog></Contract>
     </GalleryGroup>
     {sheetOpen && <FocusedSheet label="Sample evidence detail" onClose={() => setSheetOpen(false)}><h2>Sample evidence detail</h2><p>This overlay contains labelled sample component data only.</p><Button onPress={() => setSheetOpen(false)}>Finish sample review</Button></FocusedSheet>}
+    {busySheetOpen && <FocusedSheet label="Sample request delivery" closeLabel="Sample request is being sent" isDismissable={false} onClose={() => setBusySheetOpen(false)}><h2>Sample request delivery</h2><Notice tone="info">The sample request is being sent. This sheet remains open until delivery finishes.</Notice><Button isLoading>Sending sample request</Button><Button variant="secondary" onPress={() => setBusySheetOpen(false)}>Finish sample delivery</Button></FocusedSheet>}
   </main>;
 }
 

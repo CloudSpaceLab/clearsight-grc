@@ -155,7 +155,11 @@ class DeploymentConfigTest(unittest.TestCase):
         for value in ("INSERT INTO role_templates", "INSERT INTO org_positions",
                       "INSERT INTO position_role_bindings", "department_path",
                       "CLEARSIGHT_DEMO_STAFF_EMAIL", "INSERT INTO scim_sources",
-                      "INSERT INTO scim_users", "demo-program-owner-contact"):
+                      "INSERT INTO scim_users", "demo-program-owner-contact",
+                      "demo principal mappings differ from the managed fixture",
+                      "demo role mappings differ from the managed fixture",
+                      "demo position mappings differ from the managed fixture",
+                      "demo position-role mappings differ from the managed fixture"):
             self.assertIn(value, foundation)
         self.assertNotIn("opatachibueze+staff", foundation)
         self.assertNotIn("demo_staff_email}'", foundation)

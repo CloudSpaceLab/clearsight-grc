@@ -6,6 +6,7 @@ import type { MatterOperation } from "../matterOperationsApi";
 import { addResponsePackage, recordMatterDecision, transitionResponsePackage } from "../continuityCommands";
 import type { MatterAggregate, ResponseHistoryPage } from "../types";
 import { matterResponsePresentation } from "./matterResponsePresentation";
+import { matterOperationControlID } from "./matterHandoff";
 import { Button, FocusedSheet, Notice, SelectField, TextArea } from "./ui";
 
 type Props = {
@@ -130,8 +131,8 @@ export function MatterDecisionResponsePanel({ aggregate, operations, onUpdated, 
 
   return <article className="matter-record-panel matter-decision-response-panel" id="matter-operation-matter.decision.record">
     <div className="matter-record-section-heading"><div><span className="eyebrow">Decisions and responses</span><h2>Review and external handling</h2></div><div className="matter-panel-actions">
-      {!active && initialDecision?.can_act && !initialDecision.subresource_id && <button className="secondary-button" type="button" onClick={() => beginDecision()}>{initialDecision.label}</button>}
-      {!active && responseAdd?.can_act && <button className="secondary-button" type="button" onClick={beginResponseAdd}>{responseAdd.label}</button>}
+      {!active && initialDecision?.can_act && !initialDecision.subresource_id && <button id={matterOperationControlID(initialDecision)} className="secondary-button" type="button" onClick={() => beginDecision()}>{initialDecision.label}</button>}
+      {!active && responseAdd?.can_act && <button id={matterOperationControlID(responseAdd)} className="secondary-button" type="button" onClick={beginResponseAdd}>{responseAdd.label}</button>}
     </div></div>
 
     <section className="matter-governance-section" aria-labelledby="matter-decision-history"><h3 id="matter-decision-history">Decision history</h3>
@@ -146,7 +147,7 @@ export function MatterDecisionResponsePanel({ aggregate, operations, onUpdated, 
         const operation = operationsFor(operations, "matter.response.transition", response.id);
         const history = responseHistories[response.id];
         const presentation = matterResponsePresentation(operation);
-        return <div className="matter-governance-row" key={response.id}><div><strong>{response.purpose}</strong><span>{statusLabel(response.status)} · {response.audience}</span>{operation?.assigned_to && <small>Current responsibility: {operation.assigned_to.display_name}</small>}<details onToggle={(event) => { if (event.currentTarget.open) void openResponseHistory(response.id); }}><summary>View response status history</summary>{history?.state === "loading" && <p role="status">Loading response status history…</p>}{history?.state === "unavailable" && <p role="alert">Response status history could not be loaded. Close and reopen this history to retry.</p>}{history?.page && <><p>Showing {history.page.items.length} stored transitions{history.page.has_more ? "; older transitions are not shown" : ""}. Loaded {new Date(history.page.generated_at).toLocaleString()}.</p><ol>{history.page.items.map((item) => <li key={`${item.matter_version}-${item.occurred_at}`}><strong>{statusLabel(item.status)}</strong><span>{new Date(item.occurred_at).toLocaleString()} · {item.actor_label}</span><small>Issue version {item.matter_version}</small></li>)}</ol></>}</details></div>{!active && operation?.can_act && <Button variant="secondary" aria-label={`${presentation.action} for ${response.purpose}`} onPress={() => beginResponseStatus(response.id)}>{presentation.action}</Button>}</div>;
+        return <div className="matter-governance-row" key={response.id}><div><strong>{response.purpose}</strong><span>{statusLabel(response.status)} · {response.audience}</span>{operation?.assigned_to && <small>Current responsibility: {operation.assigned_to.display_name}</small>}<details onToggle={(event) => { if (event.currentTarget.open) void openResponseHistory(response.id); }}><summary>View response status history</summary>{history?.state === "loading" && <p role="status">Loading response status history…</p>}{history?.state === "unavailable" && <p role="alert">Response status history could not be loaded. Close and reopen this history to retry.</p>}{history?.page && <><p>Showing {history.page.items.length} stored transitions{history.page.has_more ? "; older transitions are not shown" : ""}. Loaded {new Date(history.page.generated_at).toLocaleString()}.</p><ol>{history.page.items.map((item) => <li key={`${item.matter_version}-${item.occurred_at}`}><strong>{statusLabel(item.status)}</strong><span>{new Date(item.occurred_at).toLocaleString()} · {item.actor_label}</span><small>Issue version {item.matter_version}</small></li>)}</ol></>}</details></div>{!active && operation?.can_act && <Button id={matterOperationControlID(operation)} variant="secondary" aria-label={`${presentation.action} for ${response.purpose}`} onPress={() => beginResponseStatus(response.id)}>{presentation.action}</Button>}</div>;
       })}</div> : <p>No response package has been prepared for this issue.</p>}
     </section>
 

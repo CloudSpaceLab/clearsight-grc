@@ -57,15 +57,18 @@ func (r *PostgresRepository) LoadAssignmentNotification(ctx context.Context, eve
 	return value, nil
 }
 
-func (r *PostgresRepository) GetAssignmentNotification(ctx context.Context, eventID, principalID, notificationKind string) (assignmentNotificationRecord, bool, error) {
+func (r *PostgresRepository) GetAssignmentNotification(ctx context.Context, event workflowruntime.OutboxEvent, assignment assignmentNotificationEvent) (assignmentNotificationRecord, bool, error) {
 	if r == nil || r.pool == nil {
 		return assignmentNotificationRecord{}, false, fmt.Errorf("staff assignment notification repository is unavailable")
 	}
 	var value assignmentNotificationRecord
 	err := r.pool.QueryRow(ctx, `
-		SELECT status,failure_code,provider_message_id,COALESCE(recipient_fingerprint,'\x'::bytea),last_attempted_at,delivered_at
-		FROM staff_assignment_notification_deliveries
-		WHERE outbox_event_id=$1::uuid AND principal_id=$2::uuid AND notification_kind=$3`, eventID, principalID, notificationKind).
+		SELECT d.status,d.failure_code,d.provider_message_id,COALESCE(d.recipient_fingerprint,'\x'::bytea),d.last_attempted_at,d.delivered_at
+		FROM staff_assignment_notification_deliveries d
+		JOIN tenants t ON t.id=d.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND d.outbox_event_id=$2::uuid AND d.principal_id=$3::uuid AND d.notification_kind=$4`,
+		event.TenantID, event.ID, assignment.PrincipalID, assignment.NotificationKind).
 		Scan(&value.Status, &value.FailureCode, &value.ProviderMessageID, &value.RecipientFingerprint, &value.AttemptedAt, &value.DeliveredAt)
 	if err == pgx.ErrNoRows {
 		return assignmentNotificationRecord{}, false, nil
@@ -74,6 +77,30 @@ func (r *PostgresRepository) GetAssignmentNotification(ctx context.Context, even
 		return assignmentNotificationRecord{}, false, fmt.Errorf("load staff assignment notification receipt: %w", err)
 	}
 	return value, true, nil
+}
+
+func (r *PostgresRepository) ClaimAssignmentNotification(ctx context.Context, event workflowruntime.OutboxEvent, assignment assignmentNotificationEvent, record assignmentNotificationRecord) (bool, error) {
+	if r == nil || r.pool == nil {
+		return false, fmt.Errorf("staff assignment notification repository is unavailable")
+	}
+	tag, err := r.pool.Exec(ctx, `
+		INSERT INTO staff_assignment_notification_deliveries(
+			tenant_id,legal_entity_id,outbox_event_id,principal_id,notification_kind,recipient_fingerprint,status,
+			last_attempted_at,created_at,updated_at)
+		SELECT m.tenant_id,m.legal_entity_id,$3::uuid,$4::uuid,$5,$6,$7,$8,$8,$8
+		FROM matters m JOIN tenants t ON t.id=m.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND m.id=$2::uuid
+		ON CONFLICT(tenant_id,outbox_event_id,principal_id,notification_kind) DO UPDATE SET
+			recipient_fingerprint=EXCLUDED.recipient_fingerprint,status=EXCLUDED.status,failure_code='',provider_message_id='',
+			attempt_count=staff_assignment_notification_deliveries.attempt_count+1,last_attempted_at=EXCLUDED.last_attempted_at,
+			delivered_at=NULL,updated_at=EXCLUDED.updated_at
+		WHERE staff_assignment_notification_deliveries.status='TEMPORARY_FAILURE'`,
+		event.TenantID, event.AggregateID, event.ID, assignment.PrincipalID, assignment.NotificationKind,
+		record.RecipientFingerprint, record.Status, record.AttemptedAt)
+	if err != nil {
+		return false, fmt.Errorf("claim staff assignment notification delivery: %w", err)
+	}
+	return tag.RowsAffected() == 1, nil
 }
 
 func (r *PostgresRepository) RecordAssignmentNotification(ctx context.Context, event workflowruntime.OutboxEvent, assignment assignmentNotificationEvent, record assignmentNotificationRecord) error {
@@ -87,9 +114,9 @@ func (r *PostgresRepository) RecordAssignmentNotification(ctx context.Context, e
 		SELECT m.tenant_id,m.legal_entity_id,$3::uuid,$4::uuid,$5,$6,$7,$8,$9,$10,$11,$10,$10
 		FROM matters m JOIN tenants t ON t.id=m.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND m.id=$2::uuid
-		ON CONFLICT(outbox_event_id,principal_id,notification_kind) DO UPDATE SET
+		ON CONFLICT(tenant_id,outbox_event_id,principal_id,notification_kind) DO UPDATE SET
 			recipient_fingerprint=EXCLUDED.recipient_fingerprint,status=EXCLUDED.status,failure_code=EXCLUDED.failure_code,
-			provider_message_id=EXCLUDED.provider_message_id,attempt_count=staff_assignment_notification_deliveries.attempt_count+1,
+			provider_message_id=EXCLUDED.provider_message_id,
 			last_attempted_at=EXCLUDED.last_attempted_at,delivered_at=EXCLUDED.delivered_at,updated_at=EXCLUDED.updated_at`,
 		event.TenantID, event.AggregateID, event.ID, assignment.PrincipalID, assignment.NotificationKind,
 		record.RecipientFingerprint, record.Status, record.FailureCode, record.ProviderMessageID, record.AttemptedAt, record.DeliveredAt)

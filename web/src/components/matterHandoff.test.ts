@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MatterOperation } from "../matterOperationsApi";
 import type { MatterAggregate } from "../types";
-import { responsibilityLabel, selectMatterHandoff } from "./matterHandoff";
+import { matterOperationControlID, responsibilityLabel, selectMatterHandoff } from "./matterHandoff";
 
 const aggregate = {
   type_label: "Vendor issue",
@@ -73,6 +73,46 @@ describe("matter handoff selection", () => {
       operation({ command: "matter.transition", responsibility: "AUTHORIZER", can_act: true }),
       operation({ command: "matter.response.add", responsibility: "PROPOSER", can_act: true }),
     ])).toBeUndefined();
+  });
+
+  it.each([
+    ["DRAFT", "Start initial review", "matter.transition", undefined],
+    ["ASSESSMENT", "Review impact and options", "matter.decision.record", undefined],
+    ["ACTION_IN_PROGRESS", "Complete assigned work", "matter.action.transition", "action-1"],
+    ["VERIFICATION", "Confirm whether the outcome was achieved", "matter.outcome.record", "contract-1"],
+  ])("maps the canonical %s next action to its only governed operation", (status, nextAction, command, subresourceID) => {
+    const canonical: MatterAggregate = {
+      ...aggregate,
+      next_action: nextAction,
+      matter: { ...aggregate.matter, status },
+      actions: status === "ACTION_IN_PROGRESS" ? [{ id: "action-1", title: "Verify address", description: "Check the registered address.", status: "OPEN" }] : [],
+      verification_contracts: status === "VERIFICATION" ? [{ id: "contract-1", expected_outcome: "The registered address is verified.", status: "ACTIVE", observation_period_minutes: 0 }] : [],
+    };
+    const expected = operation({ command, subresource_id: subresourceID, responsibility: status === "VERIFICATION" ? "REVIEWER" : "ACCOUNTABLE_OWNER" });
+
+    expect(selectMatterHandoff(canonical, [expected, operation({ command: "matter.context.change", responsibility: "ACCOUNTABLE_OWNER" })])).toBe(expected);
+  });
+
+  it("does not choose between two active actions when the stored next action is generic", () => {
+    const twoActions: MatterAggregate = {
+      ...aggregate,
+      next_action: "Complete assigned work",
+      matter: { ...aggregate.matter, status: "ACTION_IN_PROGRESS" },
+      actions: [
+        { id: "action-1", title: "Verify address", description: "Check the registered address.", status: "OPEN" },
+        { id: "action-2", title: "Collect certificate", description: "Collect current certification.", status: "IN_PROGRESS" },
+      ],
+    };
+    expect(selectMatterHandoff(twoActions, [
+      operation({ command: "matter.action.transition", subresource_id: "action-1", responsibility: "PERFORMER" }),
+      operation({ command: "matter.action.transition", subresource_id: "action-2", responsibility: "PERFORMER" }),
+    ])).toBeUndefined();
+  });
+
+  it("gives same-command authority routes distinct control targets", () => {
+    const owner = operation({ command: "matter.transition", responsibility: "ACCOUNTABLE_OWNER" });
+    const authorizer = operation({ command: "matter.transition", responsibility: "AUTHORIZER" });
+    expect(matterOperationControlID(owner)).not.toBe(matterOperationControlID(authorizer));
   });
 
   it.each([

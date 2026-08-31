@@ -178,6 +178,36 @@ describe("VendorWorkPanel", () => {
     expect(await screen.findByText("Waiting for vendor")).toBeTruthy();
   });
 
+  it("keeps an in-flight request open and prevents duplicate preparation", async () => {
+    let finishPrepare!: (value: VendorWorkRequest) => void;
+    vi.mocked(prepareVendorWork).mockImplementation(() => new Promise((resolve) => { finishPrepare = resolve; }));
+    vi.mocked(sendVendorWork).mockResolvedValue({ work: { ...work, state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 3 }, state: "DELIVERED" });
+    render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
+
+    await screen.findByText("No vendor requests have been recorded for this Program.");
+    fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
+    await chooseRequestOption("Vendor relationship", "Acme Processing Limited — Card transaction processing");
+    fireEvent.change(screen.getByLabelText(/Request purpose/), { target: { value: work.purpose } });
+    fireEvent.change(screen.getByLabelText(/Instructions for the vendor/), { target: { value: work.instructions } });
+    await chooseRequestOption("Collection form", "Vendor control confirmation · version 4");
+    fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
+    const submit = screen.getByRole("button", { name: "Prepare and send request" });
+    fireEvent.click(submit);
+    fireEvent.click(submit);
+
+    await waitFor(() => expect(prepareVendorWork).toHaveBeenCalledTimes(1));
+    const close = screen.getByRole("button", { name: "Vendor request is being sent" });
+    expect((close as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.keyDown(screen.getByRole("dialog", { name: "Request vendor work" }), { key: "Escape" });
+    fireEvent.mouseDown(document.querySelector(".cs-sheet__overlay") as HTMLElement);
+    expect(screen.getByRole("dialog", { name: "Request vendor work" })).toBeTruthy();
+
+    finishPrepare(work);
+    expect(await screen.findByText("Waiting for vendor")).toBeTruthy();
+    expect(sendVendorWork).toHaveBeenCalledTimes(1);
+  });
+
   it("starts linked Program or issue work from the selected vendor relationship", async () => {
     vi.mocked(prepareVendorWork).mockResolvedValue(work);
     vi.mocked(sendVendorWork).mockResolvedValue({ work: { ...work, state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 3 }, state: "DELIVERED" });

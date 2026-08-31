@@ -87,6 +87,90 @@ BEGIN
   IF (SELECT count(*) FROM position_role_bindings WHERE id BETWEEN '00000000-0000-4000-8000-000000000501'::uuid AND '00000000-0000-4000-8000-000000000508'::uuid AND tenant_id = '00000000-0000-4000-8000-000000000001' AND valid_until IS NULL) <> 8 THEN
     RAISE EXCEPTION 'demo position role bindings differ from the managed fixture';
   END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM (VALUES
+      ('00000000-0000-4000-8000-000000000101'::uuid, 'demo-cro', 'Chief Risk Officer'),
+      ('00000000-0000-4000-8000-000000000102'::uuid, 'demo-cco', 'Chief Compliance Officer'),
+      ('00000000-0000-4000-8000-000000000103'::uuid, 'demo-ciso', 'Chief Information Security Officer'),
+      ('00000000-0000-4000-8000-000000000104'::uuid, 'demo-grc-admin', 'GRC Administrator'),
+      ('00000000-0000-4000-8000-000000000105'::uuid, 'demo-system-admin', 'System Administrator'),
+      ('00000000-0000-4000-8000-000000000106'::uuid, 'demo-auditor', 'Internal Auditor'),
+      ('00000000-0000-4000-8000-000000000107'::uuid, 'demo-program-owner', 'Program Owner'),
+      ('00000000-0000-4000-8000-000000000108'::uuid, 'demo-evidence-respondent', 'Evidence Respondent')
+    ) expected(id, external_ref, display_name)
+    LEFT JOIN principals actual ON actual.id = expected.id
+    WHERE actual.id IS NULL
+       OR actual.tenant_id <> '00000000-0000-4000-8000-000000000001'::uuid
+       OR actual.kind <> 'PERSON'
+       OR actual.external_ref IS DISTINCT FROM expected.external_ref
+       OR actual.display_name IS DISTINCT FROM expected.display_name
+  ) THEN
+    RAISE EXCEPTION 'demo principal mappings differ from the managed fixture';
+  END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM (VALUES
+      ('00000000-0000-4000-8000-000000000401'::uuid, 'CRO'),
+      ('00000000-0000-4000-8000-000000000402'::uuid, 'CCO'),
+      ('00000000-0000-4000-8000-000000000403'::uuid, 'CISO'),
+      ('00000000-0000-4000-8000-000000000404'::uuid, 'GRC_ADMIN'),
+      ('00000000-0000-4000-8000-000000000405'::uuid, 'SYSTEM_ADMIN'),
+      ('00000000-0000-4000-8000-000000000406'::uuid, 'INTERNAL_AUDITOR'),
+      ('00000000-0000-4000-8000-000000000407'::uuid, 'PROGRAM_OWNER'),
+      ('00000000-0000-4000-8000-000000000408'::uuid, 'EVIDENCE_RESPONDENT')
+    ) expected(id, code)
+    LEFT JOIN role_templates actual ON actual.id = expected.id
+    WHERE actual.id IS NULL
+       OR actual.tenant_id <> '00000000-0000-4000-8000-000000000001'::uuid
+       OR actual.code <> expected.code
+       OR actual.valid_until IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'demo role mappings differ from the managed fixture';
+  END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM (VALUES
+      ('00000000-0000-4000-8000-000000000301'::uuid, 'CRO', '00000000-0000-4000-8000-000000000101'::uuid),
+      ('00000000-0000-4000-8000-000000000302'::uuid, 'CCO', '00000000-0000-4000-8000-000000000102'::uuid),
+      ('00000000-0000-4000-8000-000000000303'::uuid, 'CISO', '00000000-0000-4000-8000-000000000103'::uuid),
+      ('00000000-0000-4000-8000-000000000304'::uuid, 'GRC-ADMIN', '00000000-0000-4000-8000-000000000104'::uuid),
+      ('00000000-0000-4000-8000-000000000305'::uuid, 'SYSTEM-ADMIN', '00000000-0000-4000-8000-000000000105'::uuid),
+      ('00000000-0000-4000-8000-000000000306'::uuid, 'INTERNAL-AUDITOR', '00000000-0000-4000-8000-000000000106'::uuid),
+      ('00000000-0000-4000-8000-000000000307'::uuid, 'PROGRAM-OWNER', '00000000-0000-4000-8000-000000000107'::uuid),
+      ('00000000-0000-4000-8000-000000000308'::uuid, 'EVIDENCE-RESPONDENT', '00000000-0000-4000-8000-000000000108'::uuid)
+    ) expected(id, code, occupant_principal_id)
+    LEFT JOIN org_positions actual ON actual.id = expected.id
+    WHERE actual.id IS NULL
+       OR actual.tenant_id <> '00000000-0000-4000-8000-000000000001'::uuid
+       OR actual.legal_entity_id <> '00000000-0000-4000-8000-000000000002'::uuid
+       OR actual.code <> expected.code
+       OR actual.occupant_principal_id IS DISTINCT FROM expected.occupant_principal_id
+       OR actual.valid_until IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'demo position mappings differ from the managed fixture';
+  END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM (VALUES
+      ('00000000-0000-4000-8000-000000000501'::uuid, '00000000-0000-4000-8000-000000000301'::uuid, '00000000-0000-4000-8000-000000000401'::uuid),
+      ('00000000-0000-4000-8000-000000000502'::uuid, '00000000-0000-4000-8000-000000000302'::uuid, '00000000-0000-4000-8000-000000000402'::uuid),
+      ('00000000-0000-4000-8000-000000000503'::uuid, '00000000-0000-4000-8000-000000000303'::uuid, '00000000-0000-4000-8000-000000000403'::uuid),
+      ('00000000-0000-4000-8000-000000000504'::uuid, '00000000-0000-4000-8000-000000000304'::uuid, '00000000-0000-4000-8000-000000000404'::uuid),
+      ('00000000-0000-4000-8000-000000000505'::uuid, '00000000-0000-4000-8000-000000000305'::uuid, '00000000-0000-4000-8000-000000000405'::uuid),
+      ('00000000-0000-4000-8000-000000000506'::uuid, '00000000-0000-4000-8000-000000000306'::uuid, '00000000-0000-4000-8000-000000000406'::uuid),
+      ('00000000-0000-4000-8000-000000000507'::uuid, '00000000-0000-4000-8000-000000000307'::uuid, '00000000-0000-4000-8000-000000000407'::uuid),
+      ('00000000-0000-4000-8000-000000000508'::uuid, '00000000-0000-4000-8000-000000000308'::uuid, '00000000-0000-4000-8000-000000000408'::uuid)
+    ) expected(id, position_id, role_template_id)
+    LEFT JOIN position_role_bindings actual ON actual.id = expected.id
+    WHERE actual.id IS NULL
+       OR actual.tenant_id <> '00000000-0000-4000-8000-000000000001'::uuid
+       OR actual.position_id <> expected.position_id
+       OR actual.role_template_id <> expected.role_template_id
+       OR actual.valid_until IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'demo position-role mappings differ from the managed fixture';
+  END IF;
 END
 $identity_fixture$;
 

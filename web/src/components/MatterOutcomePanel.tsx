@@ -7,6 +7,7 @@ import type { MatterOperation } from "../matterOperationsApi";
 import { recordVerificationResult, transitionMatter } from "../continuityCommands";
 import type { EvidenceSource, MatterAggregate, RecordResponsibleParty, VerificationContract } from "../types";
 import { matterStatusPresentation } from "./matterResponsePresentation";
+import { matterOperationControlID } from "./matterHandoff";
 import { Button, FocusedSheet, Notice, SelectField, TextArea } from "./ui";
 
 type Props = {
@@ -295,7 +296,7 @@ export function MatterOutcomePanel({ aggregate, operations, responsibleParties =
         {results.length > 0 && <details><summary>View outcome result history ({results.length})</summary><p>Showing {Math.min(results.length, 20)} of {results.length} stored results for issue version {aggregate.matter.version}.</p><ol>{results.slice(0, 20).map((item) => <li key={item.id}><strong>{resultLabel(item.result)}</strong><span>Recorded {item.observed_at.slice(0, 10)} by {reviewerLabel(item.id, item.reviewer_principal_id)}</span>{item.rationale && <p>{item.rationale}</p>}</li>)}</ol>{results.length > 20 && <p>Older results are not shown. The issue record contains {results.length - 20} additional results.</p>}</details>}
         {contract.failure_response && <p className="matter-outcome-rationale"><strong>If not achieved:</strong> {failureLabel(contract.failure_response)}</p>}
         {!active && contract.status === "ACTIVE" && <div className="matter-form-actions">
-          {recordOperation?.can_act && <button className="secondary-button" type="button" aria-label={`Record result for ${contract.expected_outcome}`} onClick={() => beginResult(contract)}>Record outcome result</button>}
+          {recordOperation?.can_act && <button id={matterOperationControlID(recordOperation)} className="secondary-button" type="button" aria-label={`Record result for ${contract.expected_outcome}`} onClick={() => beginResult(contract)}>Record outcome result</button>}
           {supersedeOperation?.can_act && <button className="secondary-button" type="button" aria-label={`Replace outcome check for ${contract.expected_outcome}`} onClick={() => beginSupersede(contract)}>Replace outcome check</button>}
           {retireOperation?.can_act && <button className="text-button" type="button" aria-label={`End outcome check for ${contract.expected_outcome}`} onClick={() => beginRetire(contract)}>End outcome check</button>}
         </div>}
@@ -306,7 +307,7 @@ export function MatterOutcomePanel({ aggregate, operations, responsibleParties =
 
     {aggregate.closure.ready ? <div className="matter-closure-state ready"><strong>Ready to close</strong><p>All stored actions and outcome checks satisfy the closure rules.</p></div> : aggregate.closure.reasons.length > 0 && <div className="matter-closure-state"><strong>Before this issue can close</strong><ul>{aggregate.closure.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}
 
-    {!active && transitionOperation?.can_act && allowedStatusTargets.length > 0 && <Button variant="secondary" onPress={beginStatus}>{transitionOperation.responsibility === "AUTHORIZER" ? statusPresentation.action : aggregate.closure.ready && allowedStatusTargets.includes("CLOSED") ? "Close issue" : statusPresentation.action}</Button>}
+    {!active && transitionOperation?.can_act && allowedStatusTargets.length > 0 && <Button id={matterOperationControlID(transitionOperation)} variant="secondary" onPress={beginStatus}>{transitionOperation.responsibility === "AUTHORIZER" ? statusPresentation.action : aggregate.closure.ready && allowedStatusTargets.includes("CLOSED") ? "Close issue" : statusPresentation.action}</Button>}
     {!transitionOperation?.can_act && transitionOperation?.reason && <p className="matter-operation-reason">{transitionOperation.reason}</p>}
 
     {active && active.kind !== "status" && <form className="matter-operation-form" onSubmit={submit}>
