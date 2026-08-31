@@ -152,6 +152,13 @@ class DeploymentConfigTest(unittest.TestCase):
                       "d315abab6729fac5611327a56aa0f3d4ed07aad2ba160106beb0ce7a3f99e91e",
                       "definition IS DISTINCT FROM expected_definition"):
             self.assertIn(value, foundation)
+        for value in ("INSERT INTO role_templates", "INSERT INTO org_positions",
+                      "INSERT INTO position_role_bindings", "department_path",
+                      "CLEARSIGHT_DEMO_STAFF_EMAIL", "INSERT INTO scim_sources",
+                      "INSERT INTO scim_users", "demo-program-owner-contact"):
+            self.assertIn(value, foundation)
+        self.assertNotIn("opatachibueze+staff", foundation)
+        self.assertNotIn("demo_staff_email}'", foundation)
         self.assertIn('install -m 0700 "$stage/scripts/seed-demo-foundation.sh"', release)
 
     def test_go_image_tests_include_repository_contract_fixtures(self) -> None:
