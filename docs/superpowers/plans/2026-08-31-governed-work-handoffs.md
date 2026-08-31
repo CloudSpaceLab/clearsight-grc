@@ -19,6 +19,7 @@
 - `web/src/components/VendorWorkPanel.tsx`: shared-component request composer.
 - `web/src/components/MatterDecisionResponsePanel.tsx`: explicit review/sign/transmit/acknowledge interaction.
 - `web/src/components/ui/TextField.tsx`: date/time constraint typing used by shared fields.
+- `web/src/components/ui/SelectField.tsx`: stable non-modal option-list positioning within the active workspace landmark.
 - `web/src/design-system/components/fields.css`: date indicator and field-state theme treatment.
 - `internal/workflow/assignment_notification.go`: event decoder, message context and consumer policy.
 - `internal/workflow/assignment_notification_postgres.go`: active SCIM contact/current Matter lookup and redacted receipt persistence.
@@ -289,9 +290,11 @@ Run: `npm test -- src/components/matterResponsePresentation.test.ts src/componen
 
 Expected: PASS.
 
-### Task 9: Finish shared date theming and documentation
+### Task 9: Stabilize shared selects, finish date theming and document the contracts
 
 **Files:**
+- Modify: `web/src/components/ui/SelectField.tsx`
+- Modify: `web/src/components/ui/SelectField.test.tsx`
 - Modify: `web/src/components/ui/TextField.tsx`
 - Modify: `web/src/components/ui/Field.test.tsx`
 - Modify: `web/src/design-system/components/fields.css`
@@ -300,21 +303,21 @@ Expected: PASS.
 
 - [ ] **Step 1: Write failing shared-field tests**
 
-Prove date min/max string forwarding, required/error anatomy and shared class ownership.
+Prove an open select does not lock or resize the document scroll container, its listbox remains within the active workspace landmark, and date min/max string forwarding, required/error anatomy and shared class ownership remain correct.
 
 - [ ] **Step 2: Run the red test**
 
-Run: `npm test -- src/components/ui/Field.test.tsx`
+Run: `npm test -- src/components/ui/SelectField.test.tsx src/components/ui/Field.test.tsx`
 
-Expected: FAIL on date constraint typing/presentation assertions.
+Expected: FAIL on document-root scroll locking and date constraint typing/presentation assertions.
 
-- [ ] **Step 3: Implement token-driven date treatment**
+- [ ] **Step 3: Implement stable select overlay and token-driven date treatment**
 
-Extend the prop types and theme the calendar indicator, padding, color-scheme, focus and disabled states through component tokens in both themes.
+Open shared option lists as non-modal, keyboard-dismissible popovers inside the closest dialog or main landmark. Extend the date prop types and theme the calendar indicator, padding, color-scheme, focus and disabled states through component tokens in both themes.
 
 - [ ] **Step 4: Update contracts and rerun**
 
-Run: `npm test -- src/components/ui/Field.test.tsx`
+Run: `npm test -- src/components/ui/SelectField.test.tsx src/components/ui/Field.test.tsx`
 
 Run: `npm run check:ui-contracts`
 

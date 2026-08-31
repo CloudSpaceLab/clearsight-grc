@@ -21,6 +21,7 @@ The deployed CRO journey at `#work/matters/01a04fd2-3f67-7157-ab5e-1f3fd3b5194f`
 5. `MATTER_OWNER_CHANGED` and `ACTION_ASSIGNED` already share the material command transaction, append-only event and outbox. The worker updates Workflow projections but has no staff-contact resolver or assignment delivery consumer. The previously approved vendor-email acceptance specification explicitly left authenticated staff notification channels open.
 6. `VendorWorkPanel`, `MatterDetailsPanel`, `MatterDecisionResponsePanel` and `MatterOutcomePanel` use raw buttons, selects, textareas and inputs despite the closed contracts in `components/ui`. The vendor request shown in the deployed UI therefore retains browser-default menus and visually weak date fields.
 7. Response signing is executable through `matter.response.transition` and `ResponseLifecyclePolicy`, but the UI collapses review, signatory approval, transmission and acknowledgement into the generic action **Update response status**. This weakens role distinction and makes the signing path difficult to discover.
+8. The deployed shared `SelectField` opens its option list as a modal popover. React Aria then applies scroll locking to the document root; in the long Form Builder page this changes the containing geometry of sticky panes even though `window.scrollY` is unchanged. A measured open changed the toolbar from `y=68` to `y=-295`. The fix belongs to the shared select contract, not Form Builder feature CSS.
 
 ## Approaches considered
 
@@ -116,6 +117,8 @@ The focused form shows current state, next state, role, consequence and rational
 ### 7. Shared fields and date presentation
 
 `TextField` accepts string `min`, `max` and `step` values required by native date/time controls as well as numbers. The shared field CSS owns date-indicator color, padding, focus and disabled/read-only contrast in light and dark modes. No feature CSS overrides component fill, border, radius or foreground.
+
+`SelectField` uses a non-modal listbox popover so opening a bounded option list never locks or resizes the document scroll container. The popover remains keyboard dismissible, returns focus to its trigger, and is portalled into the closest dialog or main landmark so it remains in the active workspace's accessibility and stacking context.
 
 The migrated files are added to `web/ui-contract-migrations.json`, the adoption ledger and deterministic state fixtures. `DESIGN.md` gains the responsibility-specific handoff and staff-notification presentation rules; no new palette or typeface is introduced.
 

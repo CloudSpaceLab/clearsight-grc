@@ -47,11 +47,22 @@ describe("SelectField", () => {
   });
 
   it("has no representative semantic accessibility violations while open", async () => {
-    render(<SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/>);
+    render(<main><SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/></main>);
     fireEvent.click(screen.getByRole("button", { name: /Status/ }));
-    await screen.findByRole("listbox");
+    const listbox = await screen.findByRole("listbox");
+    expect(listbox.closest("main")).toBeTruthy();
 
     const results = await axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
     expect(results.violations.map((violation) => violation.id)).toEqual([]);
+  });
+
+  it("keeps the document scroll container stable while the option list is open", async () => {
+    render(<SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: /Status/ }));
+    await screen.findByRole("listbox");
+
+    expect(document.documentElement.style.overflow).not.toBe("hidden");
+    expect(document.documentElement.style.scrollbarGutter).toBe("");
   });
 });
