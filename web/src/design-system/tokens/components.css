@@ -88,4 +88,24 @@
   --cs-empty-padding: var(--cs-primitive-space-8);
   --cs-table-row-padding: var(--cs-primitive-space-3);
   --cs-filter-gap: var(--cs-primitive-space-3);
+  --cs-filter-field-basis: 176px;
+  --cs-filter-field-min: 144px;
+  --cs-filter-count-text: var(--cs-text-muted);
+  --cs-table-border-width: var(--cs-primitive-border-1);
+  --cs-table-border: var(--cs-border-default);
+  --cs-table-radius: var(--cs-primitive-radius-14);
+  --cs-table-bg: var(--cs-bg-surface-1);
+  --cs-table-text: var(--cs-text-primary);
+  --cs-table-heading-bg: var(--cs-bg-surface-2);
+  --cs-table-heading-text: var(--cs-text-muted);
+  --cs-table-heading-size: var(--cs-font-size-caption);
+  --cs-table-heading-weight: 650;
+  --cs-table-row-hover: var(--cs-bg-surface-hover);
+  --cs-table-row-selected: var(--cs-bg-surface-2);
+  --cs-table-transition: var(--cs-motion-fast) var(--cs-ease-standard);
+  --cs-table-pagination-gap: var(--cs-primitive-space-3);
+  --cs-table-mobile-gap: var(--cs-primitive-space-3);
+  --cs-table-mobile-row-gap: var(--cs-primitive-space-2);
+  --cs-table-mobile-padding: var(--cs-primitive-space-4);
+  --cs-table-mobile-label-width: 96px;
 }

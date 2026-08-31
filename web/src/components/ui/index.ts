@@ -1,6 +1,10 @@
 export { ActionLink, Button, IconButton } from "./Button";
 export type { ActionLinkProps, ButtonProps, ButtonSize, ButtonVariant, IconButtonProps } from "./Button";
 export { EmptyState } from "./EmptyState";
+export { DataTable } from "./DataTable";
+export type { DataColumn, DataTablePagination, DataTableProps } from "./DataTable";
+export { FilterBar } from "./FilterBar";
+export type { FilterBarProps } from "./FilterBar";
 export { FocusedSheet } from "./FocusedSheet";
 export type { FocusedSheetProps } from "./FocusedSheet";
 export { FormField } from "./FormField";
