@@ -38,4 +38,12 @@ describe("FocusedSheet", () => {
     fireEvent.mouseDown(document.querySelector(".cs-sheet__overlay") as HTMLElement);
     expect(close).toHaveBeenCalledTimes(1);
   });
+
+  it("supports a closed wide composition for multi-column focused work", () => {
+    render(<FocusedSheet label="Create a form" size="wide" onClose={() => undefined}><p>Creation choices</p></FocusedSheet>);
+
+    const sheet = screen.getByRole("dialog", { name: "Create a form" }).closest(".cs-sheet");
+    expect(sheet?.className).toContain("cs-sheet--wide");
+    expect(sheet?.className).not.toContain("side-panel");
+  });
 });

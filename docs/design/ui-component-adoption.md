@@ -31,6 +31,8 @@ Tranche 1 implements the three-layer token architecture, public component contra
 
 Tranche 2 begins the Templates/library migration at its highest-frequency record surface. The template table now uses the shared data, status, checkbox-selection and action contracts; template details use the shared focused sheet, actions and status feedback; and workspace notices and empty results use the shared feedback contracts. The component foundation adds one labelled `CheckboxField` contract and numeric constraints to `TextField`. These exact files are enforced by the migration manifest and exercised in the component gallery and Forms library state fixtures.
 
+The next creation slice adds a shared `ActionCard` for consequential routes and migrates the new-form launcher to shared action cards, buttons, record cards, empty state and focused sheet. Search, filter chips, typed filter popovers, advanced expressions and status scopes still contain legacy controls; the Templates/library row therefore remains partial rather than promoting the whole Actions, Fields, Overlays or Surfaces families.
+
 Template search, filter selection, saved filter composition, status scopes and the new-form launcher remain legacy controls, so Actions, Fields, Overlays and Surfaces are intentionally not marked migrated for the Templates/library row. The builder, Responses, Imports and Communications remain visually functional legacy surfaces. Builder usability fixes already present—mobile action visibility, keyboard reordering and pointer reordering—are retained, but they do not constitute component-system migration. Every non-Forms workspace also remains outside this tranche.
 
 ## Work left after this tranche

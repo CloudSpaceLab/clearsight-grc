@@ -162,7 +162,7 @@ async function assertFirstActionVisible(page, viewportHeight, name, touch) {
 
 async function assertFocusInsideSheet(page, name) {
   try {
-    await page.waitForFunction(() => Boolean(document.activeElement?.closest(".side-panel")));
+    await page.waitForFunction(() => Boolean(document.activeElement?.closest(".cs-sheet")));
   } catch {
     throw new Error(`${name} allowed keyboard focus to escape the focused-work sheet`);
   }
@@ -200,7 +200,7 @@ async function captureAuthorityForbidden() {
     await page.getByRole("button", { name: "Check authority" }).click();
     await page.getByRole("heading", { name: "Authority details are restricted" }).waitFor();
     await assertFocusInsideSheet(page, capture.name);
-    const authoritySheet = page.locator(".side-panel");
+    const authoritySheet = page.locator(".cs-sheet");
     if (await authoritySheet.getByText("Data Protection Compliance Officer").count()) throw new Error("Forbidden authority state leaked candidate details");
     await saveScreenshot(page, capture.name);
     await record(page, capture, "permission-denied");
@@ -211,7 +211,7 @@ async function captureAuthorityForbidden() {
 
 async function openEvidenceCapture(page) {
   await page.getByRole("button", { name: "Respond to evidence request" }).click();
-  await page.locator(".side-panel").waitFor({ state: "visible" });
+  await page.locator(".cs-sheet").waitFor({ state: "visible" });
 }
 
 async function fillCapture(page) {
@@ -224,7 +224,7 @@ async function captureEvidenceReviewAndReceipt() {
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
-    await page.locator(".side-panel").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
+    await page.locator(".cs-sheet").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
     await assertFocusInsideSheet(page, capture.name);
     await saveScreenshot(page, capture.name);
     await record(page, capture, "response-entry");
@@ -278,7 +278,7 @@ async function captureCaptureConflict() {
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
-    await page.locator(".side-panel").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
+    await page.locator(".cs-sheet").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
     await fillCapture(page);
     await page.getByRole("button", { name: "Review response" }).click();
     await page.getByRole("button", { name: "Submit response" }).click();
@@ -298,7 +298,7 @@ async function captureMobileCaptureAndFocus() {
     const more = page.getByText("More actions", { exact: true });
     if (await more.count()) await more.click();
     await page.getByRole("button", { name: "Respond to evidence request" }).click();
-    await page.locator(".side-panel").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
+    await page.locator(".cs-sheet").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
     await assertFocusInsideSheet(page, capture.name);
     await assertNoHorizontalOverflow(page, capture.name);
     await page.keyboard.press("Tab");

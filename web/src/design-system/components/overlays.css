@@ -19,6 +19,8 @@
   box-shadow: var(--cs-overlay-shadow);
 }
 
+.cs-sheet--wide { inline-size: min(var(--cs-sheet-wide-width), 100%); }
+
 .cs-sheet__dialog { position: relative; min-block-size: 100%; outline: none; }
 
 .cs-sheet__close {

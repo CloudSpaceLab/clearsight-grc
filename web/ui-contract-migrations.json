@@ -1,5 +1,6 @@
 {
   "migratedTsx": [
+    "src/components/ui/ActionCard.tsx",
     "src/components/ui/Button.tsx",
     "src/components/ui/CheckboxField.tsx",
     "src/components/ui/DataTable.tsx",
@@ -24,7 +25,8 @@
     "src/components/forms/sent/SentFormsTable.tsx",
     "src/components/forms/sent/SentFormDetail.tsx",
     "src/components/forms/dashboard/TemplateLibraryTable.tsx",
-    "src/components/forms/dashboard/TemplateDetailDrawer.tsx"
+    "src/components/forms/dashboard/TemplateDetailDrawer.tsx",
+    "src/components/forms/creation/NewFormLauncher.tsx"
   ],
   "migratedCss": [
     "src/design-system/components/actions.css",
@@ -66,6 +68,7 @@
     }
   ],
   "componentFamilies": {
+    "ActionCard": ["title", "description", "icon", "disabled"],
     "Button": ["primary", "secondary", "quiet", "destructive", "comfortable", "compact", "disabled", "loading"],
     "ActionLink": ["navigation"],
     "IconButton": ["primary", "secondary", "quiet", "destructive", "accessible-name"],
@@ -82,6 +85,6 @@
     "EmptyState": ["population", "next-action"],
     "FilterBar": ["result-count", "clear", "stacked-compact"],
     "DataTable": ["populated", "selected", "loading", "pagination", "stacked-mobile"],
-    "FocusedSheet": ["dismissable", "focus-contained", "full-height-mobile"]
+    "FocusedSheet": ["dismissable", "focus-contained", "default", "wide", "full-height-mobile"]
   }
 }

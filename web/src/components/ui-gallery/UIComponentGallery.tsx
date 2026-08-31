@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
+  ActionCard,
   ActionLink,
   Button,
   Card,
@@ -59,6 +60,7 @@ export function UIComponentGallery() {
       <Contract family="Button" job="Runs one named action." keyboard="Enter or Space activates it." prohibited="Do not style a native button in a feature.">
         <div className="ui-gallery__row"><Button variant="primary">Send sample form</Button><Button>Save sample draft</Button><Button variant="quiet">Cancel sample change</Button><Button variant="destructive">Revoke sample request</Button><Button isLoading>Saving sample draft</Button><Button isDisabled>Unavailable action</Button></div>
       </Contract>
+      <Contract family="ActionCard" job="Offers one consequential route with concise supporting context." keyboard="Enter or Space activates it." prohibited="Do not rebuild a card-shaped button in a feature."><ActionCard title="Create sample request" description="Start a governed sample evidence request" icon={<span aria-hidden="true">+</span>}/></Contract>
       <Contract family="ActionLink" job="Navigates to another location." keyboard="Enter follows the link." prohibited="Do not use it for an in-place command."><ActionLink href="#sample-destination">Open sample destination</ActionLink></Contract>
       <Contract family="IconButton" job="Runs a compact, named icon action." keyboard="Enter or Space activates it." prohibited="Do not omit its accessible business name."><IconButton aria-label="Close sample panel"><span aria-hidden="true">×</span></IconButton></Contract>
     </GalleryGroup>
