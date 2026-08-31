@@ -94,7 +94,17 @@ func (a *API) listLibraryForms(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_form_filter", err.Error())
 		return
 	}
-	page, err := service.ListFormLibrary(r.Context(), filter)
+	includeStatusFacets, err := formLibraryStatusFacetsFromRequest(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_form_filter", err.Error())
+		return
+	}
+	var page monitoring.FormTemplatePage
+	if filter.Expression != nil || includeStatusFacets {
+		page, err = service.ListAdvancedFormLibrary(r.Context(), filter, includeStatusFacets)
+	} else {
+		page, err = service.ListFormLibrary(r.Context(), filter)
+	}
 	if err != nil {
 		writeFormsError(w, err)
 		return
@@ -253,7 +263,7 @@ func (a *API) deleteSavedFormView(w http.ResponseWriter, r *http.Request) {
 }
 
 func formLibraryFilterFromRequest(r *http.Request) (monitoring.FormLibraryFilter, error) {
-	allowed := map[string]bool{"tenant_id": true, "search": true, "status": true, "owner": true, "program": true, "use": true, "tag": true, "cursor": true, "limit": true}
+	allowed := map[string]bool{"tenant_id": true, "search": true, "status": true, "owner": true, "program": true, "use": true, "tag": true, "filter": true, "facets": true, "cursor": true, "limit": true}
 	for key := range r.URL.Query() {
 		if !allowed[key] {
 			return monitoring.FormLibraryFilter{}, errors.New("Use only the supported form search and filter options.")
@@ -267,10 +277,14 @@ func formLibraryFilterFromRequest(r *http.Request) (monitoring.FormLibraryFilter
 		}
 		limit = value
 	}
+	expression, err := formLibraryExpressionFromRequest(r)
+	if err != nil {
+		return monitoring.FormLibraryFilter{}, err
+	}
 	return monitoring.FormLibraryFilter{
 		Search: r.URL.Query().Get("search"), Status: monitoring.LifecycleStatus(r.URL.Query().Get("status")),
 		OwnerPrincipalID: r.URL.Query().Get("owner"), ProgramID: r.URL.Query().Get("program"), Use: r.URL.Query().Get("use"), Tag: r.URL.Query().Get("tag"),
-		Cursor: r.URL.Query().Get("cursor"), Limit: limit,
+		Expression: expression, Cursor: r.URL.Query().Get("cursor"), Limit: limit,
 	}, nil
 }
 
