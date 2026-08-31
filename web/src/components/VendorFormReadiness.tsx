@@ -103,7 +103,7 @@ export function VendorFormReadiness({ onClose, onReady }: Props) {
   const selectedProgram = programs.find((item) => item.program.id === selectedProgramID)?.program;
   const waitingForReviewer = current?.status === "PENDING_APPROVAL" && current.submitted_by === actorID;
 
-  return <FocusedSheet label="Set up due-diligence form" onClose={onClose} panelClassName="vendor-form-readiness-sheet" backdropClassName="vendor-form-readiness-backdrop">
+  return <FocusedSheet label="Set up due-diligence form" onClose={onClose} panelClassName="vendor-form-readiness-sheet">
     <div className="vendor-form-readiness">
       <header><span className="eyebrow">Vendor review readiness</span><h2>Set up due-diligence form</h2><p>Attach the bank&apos;s starter questionnaire to a Program, then send it to an independent reviewer before it can be used for vendor reviews.</p></header>
       {state === "loading" && <p aria-live="polite" aria-busy="true">Loading Programs available for this legal entity…</p>}
