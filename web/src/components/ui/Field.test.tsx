@@ -47,8 +47,12 @@ describe("field contracts", () => {
   });
 
   it("supports date and time controls through the shared field contract", () => {
-    render(<TextField label="Effective from" type="datetime-local" value="2026-08-31T19:00" onChange={() => undefined}/>);
-    expect(screen.getByLabelText("Effective from").getAttribute("type")).toBe("datetime-local");
+    render(<TextField label="Effective from" type="datetime-local" value="2026-08-31T19:00" min="2026-08-31T00:00" max="2027-08-31T00:00" step="60" onChange={() => undefined}/>);
+    const input = screen.getByLabelText("Effective from");
+    expect(input.getAttribute("type")).toBe("datetime-local");
+    expect(input.getAttribute("min")).toBe("2026-08-31T00:00");
+    expect(input.getAttribute("max")).toBe("2027-08-31T00:00");
+    expect(input.getAttribute("step")).toBe("60");
   });
 
   it("provides one labelled checkbox contract with description and disabled semantics", () => {

@@ -10,15 +10,17 @@ export type FocusedSheetProps = {
   panelClassName?: string;
   closeLabel?: string;
   size?: "default" | "wide";
+  isDismissable?: boolean;
 };
 
-export function FocusedSheet({ label, onClose, children, panelClassName = "", closeLabel = "Close", size = "default" }: FocusedSheetProps) {
+export function FocusedSheet({ label, onClose, children, panelClassName = "", closeLabel = "Close", size = "default", isDismissable = true }: FocusedSheetProps) {
   const invokerRef = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
 
   useEffect(() => {
     const overflow = document.body.style.overflow;
     const paddingRight = document.body.style.paddingRight;
-    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+    const documentWidth = document.documentElement.clientWidth;
+    const scrollbarWidth = documentWidth > 0 ? Math.max(0, window.innerWidth - documentWidth) : 0;
     const currentPadding = Number.parseFloat(window.getComputedStyle(document.body).paddingRight) || 0;
     document.body.style.overflow = "hidden";
     if (scrollbarWidth > 0) document.body.style.paddingRight = `${currentPadding + scrollbarWidth}px`;
@@ -32,15 +34,15 @@ export function FocusedSheet({ label, onClose, children, panelClassName = "", cl
 
   return <ModalOverlay
     isOpen
-    isDismissable
+    isDismissable={isDismissable}
     className="cs-sheet__overlay panel-backdrop"
-    onOpenChange={(open) => { if (!open) onClose(); }}
-    onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
+    onOpenChange={(open) => { if (!open && isDismissable) onClose(); }}
+    onMouseDown={(event) => { if (isDismissable && event.target === event.currentTarget) onClose(); }}
   >
     <Modal className={`cs-sheet cs-sheet--${size} ${panelClassName}`.trim()}>
       <Dialog aria-label={label} className="cs-sheet__dialog">
         <div className="cs-sheet__close">
-          <IconButton autoFocus aria-label={closeLabel} onPress={onClose} variant="quiet"><CloseIcon/></IconButton>
+          <IconButton autoFocus aria-label={closeLabel} isDisabled={!isDismissable} onPress={onClose} variant="quiet"><CloseIcon/></IconButton>
         </div>
         <div className="cs-sheet__content">{children}</div>
       </Dialog>

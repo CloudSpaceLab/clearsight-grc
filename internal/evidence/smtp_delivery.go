@@ -205,13 +205,21 @@ func (delivery *SMTPDelivery) send(ctx context.Context, recipient string, payloa
 		return err
 	}
 	if _, err := writer.Write(payload); err != nil {
-		_ = writer.Close()
+		// Abandon DATA without writing its terminator. The deferred connection
+		// close prevents a partial payload from being accepted as a message.
 		return err
 	}
 	if err := writer.Close(); err != nil {
-		return err
+		var protocolErr *textproto.Error
+		if errors.As(err, &protocolErr) {
+			return err
+		}
+		return &smtpDeliveryOutcomeUnknownError{err: err}
 	}
-	return client.Quit()
+	if err := client.Quit(); err != nil {
+		return &smtpDeliveryOutcomeUnknownError{err: err}
+	}
+	return nil
 }
 
 func buildSMTPMessage(from, to, subject, plainText, htmlBody, messageID string, sentAt time.Time) ([]byte, error) {
@@ -298,10 +306,23 @@ type smtpRecipientError struct{ err error }
 func (err *smtpRecipientError) Error() string { return err.err.Error() }
 func (err *smtpRecipientError) Unwrap() error { return err.err }
 
+// smtpDeliveryOutcomeUnknownError means the server accepted the DATA payload,
+// but the client could not confirm the later QUIT exchange. Retrying may send a
+// duplicate, so consumers must treat this as terminal pending reconciliation.
+type smtpDeliveryOutcomeUnknownError struct{ err error }
+
+func (err *smtpDeliveryOutcomeUnknownError) Error() string {
+	return "SMTP delivery outcome is unknown after message acceptance"
+}
+func (err *smtpDeliveryOutcomeUnknownError) Unwrap() error { return err.err }
+
 func smtpFailureReceipt(err error) InvitationDeliveryReceipt {
 	code := InvitationFailureTemporary
 	var recipientErr *smtpRecipientError
-	if errors.As(err, &recipientErr) {
+	var outcomeUnknown *smtpDeliveryOutcomeUnknownError
+	if errors.As(err, &outcomeUnknown) {
+		code = InvitationFailureOutcomeUnknown
+	} else if errors.As(err, &recipientErr) {
 		code = InvitationFailureRecipientRejected
 		if smtpTemporary(recipientErr.err) {
 			code = InvitationFailureTemporary

@@ -96,6 +96,7 @@
 .matter-form-actions button { min-height: 44px; }
 .matter-form-error { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; border: 1px solid color-mix(in srgb, var(--coral) 50%, var(--border)); border-radius: 10px; color: var(--coral); }
 .matter-form-context { margin: 0; font-size: .75rem; }
+
 .matter-action-list { display: grid; gap: 12px; }
 .matter-action-card { padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
 .matter-action-heading { display: flex; justify-content: space-between; gap: 16px; }

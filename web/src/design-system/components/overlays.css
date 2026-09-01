@@ -36,6 +36,16 @@
   padding: max(var(--cs-sheet-padding), env(safe-area-inset-top)) max(var(--cs-sheet-padding), env(safe-area-inset-right)) max(var(--cs-sheet-padding), env(safe-area-inset-bottom)) max(var(--cs-sheet-padding), env(safe-area-inset-left));
 }
 
+.cs-sheet-heading { display: grid; gap: 8px; padding-inline-end: 52px; }
+.cs-sheet-heading :is(h2, p) { margin: 0; }
+.cs-sheet-heading p { color: var(--muted); }
+.cs-sheet-form { display: grid; gap: 18px; margin-block-start: 24px; }
+.cs-sheet-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; margin: 0; }
+.cs-sheet-facts div { display: grid; gap: 4px; }
+.cs-sheet-facts dt { color: var(--muted); font-size: .72rem; }
+.cs-sheet-facts dd { margin: 0; font-weight: 700; }
+.cs-sheet-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+
 .cs-popover {
   inline-size: var(--cs-popover-width);
   max-inline-size: var(--cs-popover-max-width);

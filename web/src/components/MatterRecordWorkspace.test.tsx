@@ -1,5 +1,5 @@
 import { StrictMode } from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadEvidenceSources, loadMatter, loadPrograms } from "../api";
 import { ApiError } from "../http";
@@ -23,6 +23,12 @@ vi.mock("../matterOperationsApi", () => ({
 }));
 
 vi.mock("../continuityCommands", () => ({ addMatterAction: vi.fn(), addResponsePackage: vi.fn(), recordMatterDecision: vi.fn(), recordVerificationResult: vi.fn(), transitionMatter: vi.fn(), transitionMatterAction: vi.fn(), transitionResponsePackage: vi.fn() }));
+
+async function chooseSharedOption(label: string, option: string) {
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(label, "i") }));
+  fireEvent.click(await screen.findByRole("option", { name: option }));
+  await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+}
 
 const detail: MatterAggregate = {
   type_label: "Regulatory change",
@@ -167,7 +173,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={onBack}/>);
 
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
-    expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Assigned to Program Owner");
+    expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Assigned performer Program Owner");
     expect(screen.getByText("Due 26 Aug 2026")).toBeTruthy();
     expect(screen.getByText("2 missing information items")).toBeTruthy();
     expect(screen.getByText("final DPCO evidence checklist")).toBeTruthy();
@@ -273,9 +279,10 @@ describe("Matter record workspace", () => {
 
     expect(await screen.findByText("Chief Compliance Officer")).toBeTruthy();
     expect(screen.queryByText("authorizer-1")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Change issue status" }));
-    fireEvent.change(screen.getByLabelText("Reason for status change"), { target: { value: "New evidence requires the issue to be assessed again." } });
-    fireEvent.click(screen.getByRole("button", { name: "Confirm issue status" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Authorize issue status" }).at(-1)!);
+    expect(screen.getByRole("dialog", { name: "Authorize issue status" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Authorization basis/), { target: { value: "New evidence requires the issue to be assessed again." } });
+    fireEvent.click(screen.getByRole("button", { name: "Record authorization" }));
 
     await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 12, "ASSESSMENT", "New evidence requires the issue to be assessed again."));
   });
@@ -407,8 +414,10 @@ describe("Matter record workspace", () => {
     await waitFor(() => expect(changeMatterContext).toHaveBeenCalledWith("matter-1", 7, expect.objectContaining({ kind: "ADD_MISSING", label: "approved signatory" })));
 
     fireEvent.click(await screen.findByRole("button", { name: "Change issue owner" }));
-    fireEvent.change(screen.getByLabelText("New issue owner"), { target: { value: "owner-2" } });
-    fireEvent.change(screen.getByLabelText("Reason for reassignment"), { target: { value: "Assign the current Privacy Operations owner." } });
+    expect(screen.getByRole("dialog", { name: "Change issue owner" })).toBeTruthy();
+    expect(screen.getByText(/attempt delivery of an assignment email/i)).toBeTruthy();
+    await chooseSharedOption("New issue owner", "Privacy Operations Lead · PROGRAM_OWNER");
+    fireEvent.change(screen.getByLabelText(/Reason for reassignment/), { target: { value: "Assign the current Privacy Operations owner." } });
     fireEvent.click(screen.getByRole("button", { name: "Assign issue owner" }));
     await waitFor(() => expect(assignMatter).toHaveBeenCalledWith("matter-1", 8, "owner-2", "Assign the current Privacy Operations owner."));
   });
@@ -456,7 +465,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     expect(await screen.findByText("licensed DPCO")).toBeTruthy();
-    expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Assigned to Program Owner");
+    expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Assigned performer Program Owner");
     expect(screen.queryByRole("button", { name: "Edit Filing Channel" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Change issue owner" })).toBeNull();
   });
@@ -516,8 +525,10 @@ describe("Matter record workspace", () => {
     await waitFor(() => expect(updateMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 7, expect.objectContaining({ description: "Map every section to its approved source." })));
 
     fireEvent.click(await screen.findByRole("button", { name: "Change owner for Update the annual return evidence checklist" }));
-    fireEvent.change(screen.getByLabelText("New action owner"), { target: { value: "owner-2" } });
-    fireEvent.change(screen.getByLabelText("Reason for action reassignment"), { target: { value: "Assign the process owner who maintains the evidence." } });
+    expect(screen.getByRole("dialog", { name: "Change action owner" })).toBeTruthy();
+    expect(screen.getByText(/attempt delivery of an assignment email/i)).toBeTruthy();
+    await chooseSharedOption("New action owner", "Privacy Operations Lead · PROGRAM_OWNER");
+    fireEvent.change(screen.getByLabelText(/Reason for action reassignment/), { target: { value: "Assign the process owner who maintains the evidence." } });
     fireEvent.click(screen.getByRole("button", { name: "Assign action owner" }));
     await waitFor(() => expect(assignMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 8, "owner-2", "Assign the process owner who maintains the evidence."));
   });
@@ -587,9 +598,10 @@ describe("Matter record workspace", () => {
       evidenceReferences: ["audit-workpaper-2026", "approved-return-pack"], rationale: "All ten sections were independently checked.",
     })));
     expect(await screen.findByText("Ready to close")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Close issue" }));
-    fireEvent.change(screen.getByLabelText("Reason for status change"), { target: { value: "The independent outcome check passed." } });
-    fireEvent.click(screen.getByRole("button", { name: "Confirm issue status" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Authorize issue status" }).at(-1)!);
+    await chooseSharedOption("Next issue status", "Closed");
+    fireEvent.change(screen.getByLabelText(/Authorization basis/), { target: { value: "The independent outcome check passed." } });
+    fireEvent.click(screen.getByRole("button", { name: "Record authorization" }));
     await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 8, "CLOSED", "The independent outcome check passed."));
   });
 
@@ -651,14 +663,70 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     await screen.findByRole("heading", { name: "Independent results" });
-    fireEvent.click(screen.getAllByRole("button", { name: "Change issue status" }).at(-1)!);
-    const target = screen.getByLabelText("Next issue status") as HTMLSelectElement;
-    expect([...target.options].map((option) => option.value)).toEqual(["DECISION_REQUIRED", "CANCELLED"]);
-    fireEvent.change(target, { target: { value: "DECISION_REQUIRED" } });
-    fireEvent.change(screen.getByLabelText("Reason for status change"), { target: { value: "Management authorization is required." } });
-    fireEvent.click(screen.getByRole("button", { name: "Confirm issue status" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Authorize issue status" }).at(-1)!);
+    fireEvent.click(screen.getByRole("button", { name: /Next issue status/i }));
+    expect(await screen.findByRole("option", { name: "Decision needed" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Cancelled" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("option", { name: "Decision needed" }));
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+    fireEvent.change(screen.getByLabelText(/Authorization basis/), { target: { value: "Management authorization is required." } });
+    fireEvent.click(screen.getByRole("button", { name: "Record authorization" }));
 
     await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 7, "DECISION_REQUIRED", "Management authorization is required."));
+  });
+
+  it("keeps scope confirmation assigned to the accountable owner when the viewer can authorize a different transition", async () => {
+    const scopeReview = { ...detail, next_action: "Confirm scope and owner", actions: [] };
+    vi.mocked(loadMatter).mockResolvedValue(scopeReview);
+    vi.mocked(loadMatterOperations).mockResolvedValue({
+      ...operations,
+      operations: [
+        {
+          command: "matter.assign", label: "Change issue owner", responsibility: "ACCOUNTABLE_OWNER", can_act: false,
+          assigned_to: { id: "owner-1", display_name: "Program Owner", kind: "PERSON", role: "PROGRAM_OWNER" },
+          reason: "This issue is assigned to the Program Owner.",
+        },
+        {
+          command: "matter.transition", label: "Authorize issue status", responsibility: "AUTHORIZER", can_act: true,
+          assigned_to: { id: "authorizer-1", display_name: "Chief Risk Officer", kind: "PERSON", role: "CRO" },
+          reason: "You can authorize a later status change.", allowed_targets: ["DECISION_REQUIRED"],
+        },
+      ],
+    });
+
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    const dominant = await screen.findByTestId("dominant-next-action");
+    expect(dominant.textContent).toContain("Change issue owner");
+    expect(dominant.textContent).toContain("This issue is assigned to the Program Owner.");
+    expect(dominant.textContent).not.toContain("Authorize issue status");
+    expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Accountable owner Program Owner");
+  });
+
+  it("opens the exact owner control named by the dominant handoff", async () => {
+    const scopeReview = { ...detail, next_action: "Confirm scope and owner", actions: [] };
+    vi.mocked(loadMatter).mockResolvedValue(scopeReview);
+    vi.mocked(loadMatterOperations).mockResolvedValue(ownerOperations);
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    const dominant = await screen.findByTestId("dominant-next-action");
+    fireEvent.click(within(dominant).getByRole("button", { name: "Change issue owner" }));
+
+    expect(screen.getByRole("dialog", { name: "Change issue owner" })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Edit issue details" })).toBeNull();
+  });
+
+  it("opens the first unresolved fact from the assessment handoff", async () => {
+    const assessment = { ...detail, next_action: "Review impact and options", matter: { ...detail.matter, status: "ASSESSMENT" }, actions: [] };
+    vi.mocked(loadMatter).mockResolvedValue(assessment);
+    vi.mocked(loadMatterOperations).mockResolvedValue(ownerOperations);
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    const dominant = await screen.findByTestId("dominant-next-action");
+    fireEvent.click(within(dominant).getByRole("button", { name: "Update facts and missing information" }));
+
+    expect(screen.getByLabelText("Information to record")).toBeTruthy();
+    expect(screen.getByText("approved owner for the cross-border transfer section")).toBeTruthy();
   });
 
   it("shows only ordinary lifecycle targets to the accountable owner", async () => {
@@ -683,8 +751,10 @@ describe("Matter record workspace", () => {
 
     await screen.findByRole("heading", { name: "Independent results" });
     fireEvent.click(screen.getAllByRole("button", { name: "Change issue status" }).at(-1)!);
-    const target = screen.getByLabelText("Next issue status") as HTMLSelectElement;
-    expect([...target.options].map((option) => option.value)).toEqual(["ACTION_IN_PROGRESS", "RESPONSE_PREPARATION", "VERIFICATION"]);
+    fireEvent.click(screen.getByRole("button", { name: /Next issue status/i }));
+    expect(await screen.findByRole("option", { name: "Work in progress" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Response Preparation" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Outcome check" })).toBeTruthy();
   });
 
   it("records a decision proposal and keeps its append-only history visible", async () => {
@@ -734,9 +804,10 @@ describe("Matter record workspace", () => {
     await waitFor(() => expect(addResponsePackage).toHaveBeenCalledWith("matter-1", 7, { purpose: "Answer the annual return evidence request", audience: "NDPC", manifest: { references: ["annual-return-pack", "ownership-register"] } }));
 
     expect(await screen.findByText("Compliance Reviewer", { exact: false })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Update response status for Answer the annual return evidence request" }));
-    fireEvent.change(screen.getByLabelText("Reason for response status change"), { target: { value: "The evidence package is complete for compliance review." } });
-    fireEvent.click(screen.getByRole("button", { name: "Confirm response status" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review response for Answer the annual return evidence request" }));
+    expect(screen.getByRole("dialog", { name: "Review response" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Review basis/), { target: { value: "The evidence package is complete for compliance review." } });
+    fireEvent.click(screen.getByRole("button", { name: "Record review" }));
     await waitFor(() => expect(transitionResponsePackage).toHaveBeenCalledWith("matter-1", "package-1", 8, "IN_REVIEW", "The evidence package is complete for compliance review."));
   });
 });
