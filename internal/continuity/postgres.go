@@ -667,7 +667,7 @@ func applyMatterProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		if err := json.Unmarshal(event.Payload, &v); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO matter_actions(id,tenant_id,matter_id,title,description,owner_principal_id,required_responsibility,status,due_at,implemented_at,created_at,updated_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,NULLIF($6,'')::uuid,$7,$8,$9,$10,$11,$11,$12)`, v.ID, v.TenantID, v.MatterID, v.Title, v.Description, v.OwnerPrincipalID, ActionResponsibility(v), v.Status, v.DueAt, v.ImplementedAt, v.CreatedAt, v.Version)
+		_, err := tx.Exec(ctx, `INSERT INTO matter_actions(id,tenant_id,matter_id,origin_key,title,description,owner_principal_id,required_responsibility,status,due_at,implemented_at,created_at,updated_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,''),$5,$6,NULLIF($7,'')::uuid,$8,$9,$10,$11,$12,$12,$13)`, v.ID, v.TenantID, v.MatterID, v.OriginKey, v.Title, v.Description, v.OwnerPrincipalID, ActionResponsibility(v), v.Status, v.DueAt, v.ImplementedAt, v.CreatedAt, v.Version)
 		return err
 	case EventActionStateChanged, EventActionUpdated, EventActionAssigned:
 		v, ok, err := matterProjectionAction(event)

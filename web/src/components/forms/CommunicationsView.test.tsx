@@ -30,6 +30,35 @@ beforeEach(() => {
 });
 
 describe("Communications workspace", () => {
+  it("keeps revision creators unavailable when communication configuration cannot be loaded", async () => {
+    api.loadCommunicationProfiles.mockRejectedValue(new Error("You do not have permission to use this administrative function."));
+    api.loadCommunicationTemplates.mockRejectedValue(new Error("You do not have permission to use this administrative function."));
+    render(<CommunicationsView/>);
+
+    expect((await screen.findByRole("alert")).textContent).toContain("You do not have permission");
+    expect(screen.getByRole("button", { name: "Retry loading communications" })).toBeTruthy();
+    expect(screen.queryByText("Template revisions")).toBeNull();
+    expect(screen.queryByText("No communication templates")).toBeNull();
+    for (const name of ["Create profile", "Create template"]) {
+      const buttons = screen.getAllByRole("button", { name });
+      expect(buttons.length).toBeGreaterThan(0);
+      for (const button of buttons) expect(button.hasAttribute("disabled")).toBe(true);
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Create profile" }));
+    expect(screen.queryByRole("dialog", { name: "Create profile revision" })).toBeNull();
+  });
+
+  it("keeps read actions available without exposing communication mutation controls", async () => {
+    render(<CommunicationsView canConfigure={false}/>);
+
+    expect(await screen.findByRole("button", { name: /Invitation.*v3/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Preview message" }).hasAttribute("disabled")).toBe(false);
+    expect(screen.getByRole("button", { name: "Check impact" }).hasAttribute("disabled")).toBe(false);
+    for (const name of ["Create profile revision", "Create template revision", "Edit as new revision", "Retire template", "Create rollback draft", "Send test email"]) {
+      for (const button of screen.getAllByRole("button", { name })) expect(button.hasAttribute("disabled")).toBe(true);
+    }
+  });
+
   it("opens profile revision in a cancellable focused dialog without replacing the workspace", async () => {
     render(<CommunicationsView/>);
     fireEvent.click(await screen.findByRole("button", { name: "Create profile revision" }));

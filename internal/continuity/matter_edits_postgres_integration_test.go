@@ -60,6 +60,7 @@ func TestMatterEditsPersistEventAndOutbox(t *testing.T) {
 	matter, err = service.AddAction(ctx, AddActionInput{
 		TenantID: "matter-edits-test", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 		Title: "Update checklist", Description: "Map every section.", OwnerPrincipalID: performer1, ActorID: ownerID,
+		OriginKey: "integration:annual-return:checklist",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -98,16 +99,16 @@ func TestMatterEditsPersistEventAndOutbox(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var title, checklist, actionDescription, actionOwner string
+	var title, checklist, actionDescription, actionOwner, actionOriginKey string
 	var actionVersion int64
 	if err := pool.QueryRow(ctx, `SELECT title,known_facts->>'final_dpco_checklist' FROM matters WHERE tenant_id=$1::uuid AND id=$2::uuid`, tenantID, matter.Matter.ID).Scan(&title, &checklist); err != nil {
 		t.Fatal(err)
 	}
-	if err := pool.QueryRow(ctx, `SELECT description,owner_principal_id::text,version FROM matter_actions WHERE tenant_id=$1::uuid AND matter_id=$2::uuid AND id=$3::uuid`, tenantID, matter.Matter.ID, actionID).Scan(&actionDescription, &actionOwner, &actionVersion); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT description,owner_principal_id::text,origin_key,version FROM matter_actions WHERE tenant_id=$1::uuid AND matter_id=$2::uuid AND id=$3::uuid`, tenantID, matter.Matter.ID, actionID).Scan(&actionDescription, &actionOwner, &actionOriginKey, &actionVersion); err != nil {
 		t.Fatal(err)
 	}
-	if title != "Annual return filing" || checklist != "Checklist v3" || actionDescription != "Map every section to its current source." || actionOwner != performer2 || actionVersion != 3 {
-		t.Fatalf("current rows not projected: title=%q checklist=%q action=%q owner=%q version=%d", title, checklist, actionDescription, actionOwner, actionVersion)
+	if title != "Annual return filing" || checklist != "Checklist v3" || actionDescription != "Map every section to its current source." || actionOwner != performer2 || actionOriginKey != "integration:annual-return:checklist" || actionVersion != 3 {
+		t.Fatalf("current rows not projected: title=%q checklist=%q action=%q owner=%q origin=%q version=%d", title, checklist, actionDescription, actionOwner, actionOriginKey, actionVersion)
 	}
 
 	for _, eventType := range []string{EventMatterDetailsUpdated, EventMatterContextChanged, EventActionUpdated, EventActionAssigned} {

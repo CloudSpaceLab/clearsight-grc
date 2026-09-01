@@ -73,7 +73,8 @@ VALUES
   ('00000000-0000-4000-8000-000000000505', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000305', '00000000-0000-4000-8000-000000000405', '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}', 100, '2020-01-01T00:00:00Z'),
   ('00000000-0000-4000-8000-000000000506', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000306', '00000000-0000-4000-8000-000000000406', '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}', 100, '2020-01-01T00:00:00Z'),
   ('00000000-0000-4000-8000-000000000507', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000307', '00000000-0000-4000-8000-000000000407', '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}', 100, '2020-01-01T00:00:00Z'),
-  ('00000000-0000-4000-8000-000000000508', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000308', '00000000-0000-4000-8000-000000000408', '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}', 100, '2020-01-01T00:00:00Z')
+  ('00000000-0000-4000-8000-000000000508', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000308', '00000000-0000-4000-8000-000000000408', '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}', 100, '2020-01-01T00:00:00Z'),
+  ('00000000-0000-4000-8000-000000000509', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000307', '00000000-0000-4000-8000-000000000408', '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}', 90, '2020-01-01T00:00:00Z')
 ON CONFLICT (id) DO NOTHING;
 
 DO $identity_fixture$
@@ -84,7 +85,7 @@ BEGIN
   IF (SELECT count(*) FROM role_templates WHERE id BETWEEN '00000000-0000-4000-8000-000000000401'::uuid AND '00000000-0000-4000-8000-000000000408'::uuid AND tenant_id = '00000000-0000-4000-8000-000000000001' AND valid_until IS NULL) <> 8 THEN
     RAISE EXCEPTION 'demo role templates differ from the managed fixture';
   END IF;
-  IF (SELECT count(*) FROM position_role_bindings WHERE id BETWEEN '00000000-0000-4000-8000-000000000501'::uuid AND '00000000-0000-4000-8000-000000000508'::uuid AND tenant_id = '00000000-0000-4000-8000-000000000001' AND valid_until IS NULL) <> 8 THEN
+  IF (SELECT count(*) FROM position_role_bindings WHERE id BETWEEN '00000000-0000-4000-8000-000000000501'::uuid AND '00000000-0000-4000-8000-000000000509'::uuid AND tenant_id = '00000000-0000-4000-8000-000000000001' AND valid_until IS NULL) <> 9 THEN
     RAISE EXCEPTION 'demo position role bindings differ from the managed fixture';
   END IF;
   IF EXISTS (
@@ -162,7 +163,8 @@ BEGIN
       ('00000000-0000-4000-8000-000000000505'::uuid, '00000000-0000-4000-8000-000000000305'::uuid, '00000000-0000-4000-8000-000000000405'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100),
       ('00000000-0000-4000-8000-000000000506'::uuid, '00000000-0000-4000-8000-000000000306'::uuid, '00000000-0000-4000-8000-000000000406'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100),
       ('00000000-0000-4000-8000-000000000507'::uuid, '00000000-0000-4000-8000-000000000307'::uuid, '00000000-0000-4000-8000-000000000407'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100),
-      ('00000000-0000-4000-8000-000000000508'::uuid, '00000000-0000-4000-8000-000000000308'::uuid, '00000000-0000-4000-8000-000000000408'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100)
+      ('00000000-0000-4000-8000-000000000508'::uuid, '00000000-0000-4000-8000-000000000308'::uuid, '00000000-0000-4000-8000-000000000408'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100),
+      ('00000000-0000-4000-8000-000000000509'::uuid, '00000000-0000-4000-8000-000000000307'::uuid, '00000000-0000-4000-8000-000000000408'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 90)
     ) expected(id, position_id, role_template_id, scope, priority)
     LEFT JOIN position_role_bindings actual ON actual.id = expected.id
     WHERE actual.id IS NULL
@@ -256,7 +258,7 @@ BEGIN
         OR code <> 'CLEARSIGHT-DEMO-AUTHORITY'
         OR name <> 'ClearSight demo authority routes'
         OR status <> 'ACTIVE'
-        OR current_version <> 1
+        OR current_version NOT IN (1, 2)
         OR maker_id IS DISTINCT FROM '00000000-0000-4000-8000-000000000104'::uuid
         OR checker_id IS DISTINCT FROM '00000000-0000-4000-8000-000000000106'::uuid
         OR submitted_at IS NULL
@@ -334,6 +336,107 @@ VALUES (
 )
 ON CONFLICT (policy_id, version) DO NOTHING;
 
+INSERT INTO routing_policy_versions(
+  id, policy_id, legal_entity_id, version, definition, checksum, effective_from,
+  created_by, approved_by, approved_at
+)
+VALUES (
+  '00000000-0000-4000-8000-000000000203',
+  '00000000-0000-4000-8000-000000000201',
+  '00000000-0000-4000-8000-000000000002',
+  2,
+  $definition${
+    "rules": [
+      {"id":"demo-program-authorizer","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"PROGRAM","object_id":"*","responsibility":"AUTHORIZER","decision_type":"program.transition","min_materiality":0,"priority":200,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000101"}},
+      {"id":"demo-accountable-owner","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"ACCOUNTABLE_OWNER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000107"}},
+      {"id":"demo-reviewer","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"REVIEWER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000106"}},
+      {"id":"demo-authorizer","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"AUTHORIZER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000101"}},
+      {"id":"demo-signatory","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"SIGNATORY","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000102"}},
+      {"id":"demo-transmitter","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"TRANSMITTER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000102"}},
+      {"id":"demo-acknowledger","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"ACKNOWLEDGEMENT_RECORDER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000102"}},
+      {"id":"demo-performer","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"PERFORMER","min_materiality":0,"priority":100,"selector":{"kind":"ROLE","ref":"EVIDENCE_RESPONDENT"}},
+      {"id":"demo-proposer","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"PROPOSER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000102"}},
+      {"id":"demo-challenger","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"INDEPENDENT_CHALLENGER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000106"}},
+      {"id":"demo-escalation-owner","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"ESCALATION_OWNER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000101"}}
+    ]
+  }$definition$::jsonb,
+  '157b7a984f7930c08002715ebc320f7dd1b0f2eb986cc03c18c7ff346065ce9f',
+  '2020-01-01T00:00:00Z'::timestamptz,
+  '00000000-0000-4000-8000-000000000104',
+  '00000000-0000-4000-8000-000000000106',
+  clock_timestamp()
+)
+ON CONFLICT (policy_id, version) DO NOTHING;
+
+UPDATE routing_policies
+SET current_version = 2,
+    version = CASE WHEN current_version = 1 THEN version + 1 ELSE version END,
+    updated_at = CASE WHEN current_version = 1 THEN clock_timestamp() ELSE updated_at END
+WHERE id = '00000000-0000-4000-8000-000000000201'
+  AND current_version IN (1, 2);
+
 SELECT refresh_effective_authority_routes('00000000-0000-4000-8000-000000000001');
+
+DO $authority_v2$
+DECLARE
+  expected_definition jsonb := $definition${
+    "rules": [
+      {"id":"demo-program-authorizer","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"PROGRAM","object_id":"*","responsibility":"AUTHORIZER","decision_type":"program.transition","min_materiality":0,"priority":200,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000101"}},
+      {"id":"demo-accountable-owner","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"ACCOUNTABLE_OWNER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000107"}},
+      {"id":"demo-reviewer","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"REVIEWER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000106"}},
+      {"id":"demo-authorizer","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"AUTHORIZER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000101"}},
+      {"id":"demo-signatory","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"SIGNATORY","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000102"}},
+      {"id":"demo-transmitter","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"TRANSMITTER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000102"}},
+      {"id":"demo-acknowledger","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"ACKNOWLEDGEMENT_RECORDER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000102"}},
+      {"id":"demo-performer","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"PERFORMER","min_materiality":0,"priority":100,"selector":{"kind":"ROLE","ref":"EVIDENCE_RESPONDENT"}},
+      {"id":"demo-proposer","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"PROPOSER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000102"}},
+      {"id":"demo-challenger","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"INDEPENDENT_CHALLENGER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000106"}},
+      {"id":"demo-escalation-owner","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"*","object_id":"*","responsibility":"ESCALATION_OWNER","min_materiality":0,"priority":100,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000101"}}
+    ]
+  }$definition$::jsonb;
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM routing_policies
+    WHERE id = '00000000-0000-4000-8000-000000000201'
+      AND status = 'ACTIVE' AND current_version = 2
+  ) OR NOT EXISTS (
+    SELECT 1 FROM routing_policy_versions
+    WHERE id = '00000000-0000-4000-8000-000000000203'
+      AND policy_id = '00000000-0000-4000-8000-000000000201'
+      AND version = 2
+      AND definition IS NOT DISTINCT FROM expected_definition
+      AND checksum = '157b7a984f7930c08002715ebc320f7dd1b0f2eb986cc03c18c7ff346065ce9f'
+      AND approved_by = '00000000-0000-4000-8000-000000000106'
+      AND approved_at IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'demo authority policy v2 differs from the approved managed fixture';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM effective_authority_routes
+    WHERE tenant_id = '00000000-0000-4000-8000-000000000001'
+      AND source_rule_id = 'demo-performer'
+      AND policy_version = 'CLEARSIGHT-DEMO-AUTHORITY:v2'
+      AND selector_kind = 'ROLE'
+      AND selector_ref = 'EVIDENCE_RESPONDENT'
+  ) THEN
+    RAISE EXCEPTION 'demo performer route was not projected from authority policy v2';
+  END IF;
+  IF (
+    SELECT count(DISTINCT op.occupant_principal_id)
+    FROM role_templates rt
+    JOIN position_role_bindings prb ON prb.role_template_id = rt.id AND prb.tenant_id = rt.tenant_id
+    JOIN org_positions op ON op.id = prb.position_id AND op.tenant_id = prb.tenant_id
+    WHERE rt.tenant_id = '00000000-0000-4000-8000-000000000001'
+      AND rt.code = 'EVIDENCE_RESPONDENT'
+      AND rt.valid_until IS NULL AND prb.valid_until IS NULL AND op.valid_until IS NULL
+      AND op.occupant_principal_id IN (
+        '00000000-0000-4000-8000-000000000107'::uuid,
+        '00000000-0000-4000-8000-000000000108'::uuid
+      )
+  ) <> 2 THEN
+    RAISE EXCEPTION 'demo performer route does not resolve both governed assignees';
+  END IF;
+END
+$authority_v2$;
 COMMIT;
 SQL

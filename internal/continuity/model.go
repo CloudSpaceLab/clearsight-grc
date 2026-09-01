@@ -432,6 +432,7 @@ type Action struct {
 	ID                     string       `json:"id"`
 	TenantID               string       `json:"tenant_id"`
 	MatterID               string       `json:"matter_id"`
+	OriginKey              string       `json:"origin_key,omitempty"`
 	Title                  string       `json:"title"`
 	Description            string       `json:"description"`
 	OwnerPrincipalID       string       `json:"owner_principal_id,omitempty"`

@@ -392,6 +392,9 @@ func normalizeSeedConfig(config SeedConfig) SeedConfig {
 	if config.OwnerPrincipalID == "" {
 		config.OwnerPrincipalID = config.ActorID
 	}
+	if config.ContributorPrincipalID == "" {
+		config.ContributorPrincipalID = config.OwnerPrincipalID
+	}
 	if config.ReviewerPrincipalID == "" {
 		config.ReviewerPrincipalID = config.ActorID
 	}
@@ -402,8 +405,8 @@ func normalizeSeedConfig(config SeedConfig) SeedConfig {
 }
 
 func validateSeedConfig(config SeedConfig) error {
-	if strings.TrimSpace(config.TenantID) == "" || strings.TrimSpace(config.ActorID) == "" || strings.TrimSpace(config.OwnerPrincipalID) == "" || strings.TrimSpace(config.ReviewerPrincipalID) == "" || strings.TrimSpace(config.SignatoryPrincipalID) == "" {
-		return fmt.Errorf("tenant, actor, owner, reviewer and signatory are required")
+	if strings.TrimSpace(config.TenantID) == "" || strings.TrimSpace(config.ActorID) == "" || strings.TrimSpace(config.OwnerPrincipalID) == "" || strings.TrimSpace(config.ContributorPrincipalID) == "" || strings.TrimSpace(config.ReviewerPrincipalID) == "" || strings.TrimSpace(config.SignatoryPrincipalID) == "" {
+		return fmt.Errorf("tenant, actor, owner, contributor, reviewer and signatory are required")
 	}
 	return nil
 }

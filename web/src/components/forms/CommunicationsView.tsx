@@ -30,7 +30,7 @@ import {
   TextField,
 } from "../ui";
 
-export default function CommunicationsView() {
+export default function CommunicationsView({ canConfigure = true }: { canConfigure?: boolean }) {
   const [profiles, setProfiles] = useState<CommunicationProfile[]>([]);
   const [templates, setTemplates] = useState<CommunicationTemplate[]>([]);
   const [selected, setSelected] = useState<CommunicationTemplate>();
@@ -42,12 +42,14 @@ export default function CommunicationsView() {
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "unavailable">("loading");
 
   useEffect(() => {
     void refresh();
   }, []);
   async function refresh() {
     setError(undefined);
+    setLoadState("loading");
     try {
       const [profileValues, templateValues] = await Promise.all([
         loadCommunicationProfiles(),
@@ -61,7 +63,11 @@ export default function CommunicationsView() {
             (value) => current && sameTemplate(value, current),
           ) ?? templateValues[0],
       );
+      setLoadState("ready");
     } catch (cause) {
+      setLoadState("unavailable");
+      setProfileOpen(false);
+      setEditorOpen(false);
       setError(
         message(cause, "Communication configuration could not be loaded."),
       );
@@ -160,6 +166,8 @@ export default function CommunicationsView() {
     () => profiles.find((value) => value.status === "ACTIVE") ?? profiles[0],
     [profiles],
   );
+  const configurationAvailable = loadState === "ready";
+  const canChangeConfiguration = configurationAvailable && canConfigure;
   return (
     <>
       <section
@@ -176,16 +184,26 @@ export default function CommunicationsView() {
             </p>
           </div>
           <div className="forms-inline-actions">
-            <Button onPress={() => setProfileOpen(true)}>
+            <Button isDisabled={!canChangeConfiguration || Boolean(busy)} onPress={() => setProfileOpen(true)}>
               {profile ? "Create profile revision" : "Create profile"}
             </Button>
-            <Button variant="primary" onPress={() => setEditorOpen(true)}>
+            <Button variant="primary" isDisabled={!canChangeConfiguration || Boolean(busy)} onPress={() => setEditorOpen(true)}>
               {selected ? "Create template revision" : "Create template"}
             </Button>
           </div>
         </div>
         {error && <Notice tone="error">{error}</Notice>}
         {notice && <Notice tone="success">{notice}</Notice>}
+        {loadState === "loading" && <div className="forms-loading" aria-live="polite" aria-busy="true">Loading communication configuration…</div>}
+        {loadState === "unavailable" && (
+          <EmptyState
+            population="Communication profiles and templates for this legal entity"
+            title="Communication configuration is unavailable"
+            description="The current profile and template revisions could not be loaded. Check your access or retry the request."
+            action={<Button onPress={() => void refresh()}>Retry loading communications</Button>}
+          />
+        )}
+        {loadState === "ready" && <>
         <div className="forms-communication-summary">
           <div>
             <span>Active profile</span>
@@ -256,7 +274,7 @@ export default function CommunicationsView() {
                 <div className="forms-inline-actions">
                   <Button
                     size="compact"
-                    isDisabled={Boolean(busy)}
+                    isDisabled={!configurationAvailable || Boolean(busy)}
                     isLoading={busy === "preview"}
                     onPress={() => void serverPreview()}
                   >
@@ -264,13 +282,13 @@ export default function CommunicationsView() {
                   </Button>
                   <Button
                     size="compact"
-                    isDisabled={Boolean(busy)}
+                    isDisabled={!configurationAvailable || Boolean(busy)}
                     isLoading={busy === "impact"}
                     onPress={() => void serverImpact()}
                   >
                     Check impact
                   </Button>
-                  <Button size="compact" onPress={() => setEditorOpen(true)}>
+                  <Button size="compact" isDisabled={!canChangeConfiguration || Boolean(busy)} onPress={() => setEditorOpen(true)}>
                     Edit as new revision
                   </Button>
                 </div>
@@ -304,7 +322,7 @@ export default function CommunicationsView() {
                   {selected.status === "DRAFT" && (
                     <Button
                       variant="primary"
-                      isDisabled={Boolean(busy)}
+                      isDisabled={!canChangeConfiguration || Boolean(busy)}
                       onPress={() =>
                         void templateTransition("PENDING_APPROVAL")
                       }
@@ -315,7 +333,7 @@ export default function CommunicationsView() {
                   {selected.status === "PENDING_APPROVAL" && (
                     <Button
                       variant="primary"
-                      isDisabled={Boolean(busy)}
+                      isDisabled={!canChangeConfiguration || Boolean(busy)}
                       onPress={() => void templateTransition("ACTIVE")}
                     >
                       Activate template
@@ -323,14 +341,14 @@ export default function CommunicationsView() {
                   )}
                   {selected.status === "ACTIVE" && (
                     <Button
-                      isDisabled={Boolean(busy)}
+                      isDisabled={!canChangeConfiguration || Boolean(busy)}
                       onPress={() => void templateTransition("RETIRED")}
                     >
                       Retire template
                     </Button>
                   )}
                   <Button
-                    isDisabled={Boolean(busy)}
+                    isDisabled={!canChangeConfiguration || Boolean(busy)}
                     onPress={() => void templateRollback()}
                   >
                     Create rollback draft
@@ -342,10 +360,11 @@ export default function CommunicationsView() {
                     type="email"
                     value={testAddress}
                     onChange={setTestAddress}
+                    isDisabled={!canChangeConfiguration || Boolean(busy)}
                   />
                   <Button
                     variant="primary"
-                    isDisabled={Boolean(busy) || !testAddress.trim()}
+                    isDisabled={!canChangeConfiguration || Boolean(busy) || !testAddress.trim()}
                     isLoading={busy === "test-send"}
                     onPress={() => void testSend()}
                   >
@@ -359,7 +378,7 @@ export default function CommunicationsView() {
                 title="No template is selected"
                 description="Select an existing message template or create the first governed draft."
                 action={
-                  <Button variant="primary" onPress={() => setEditorOpen(true)}>
+                  <Button variant="primary" isDisabled={!canChangeConfiguration || Boolean(busy)} onPress={() => setEditorOpen(true)}>
                     Create template
                   </Button>
                 }
@@ -391,7 +410,7 @@ export default function CommunicationsView() {
                 </dl>
                 <ProfileLifecycle
                   profile={profile}
-                  busy={Boolean(busy)}
+                  busy={!canChangeConfiguration || Boolean(busy)}
                   onTransition={async (to) => {
                     setBusy("profile-transition");
                     try {
@@ -434,6 +453,7 @@ export default function CommunicationsView() {
             )}
           </aside>
         </div>
+        </>}
       </section>
       {profileOpen && (
         <FocusedDialog
