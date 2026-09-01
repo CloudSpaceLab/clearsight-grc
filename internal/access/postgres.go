@@ -18,6 +18,73 @@ func NewPostgresResolver(pool *pgxpool.Pool) *PostgresResolver {
 	return &PostgresResolver{pool: pool}
 }
 
+func (r *PostgresResolver) CanReassign(ctx context.Context, request ReassignmentRequest) (ReassignmentDecision, error) {
+	request.TenantID = strings.TrimSpace(request.TenantID)
+	request.LegalEntityID = strings.TrimSpace(request.LegalEntityID)
+	request.ActorPrincipalID = strings.TrimSpace(request.ActorPrincipalID)
+	request.CurrentOwnerPrincipalID = strings.TrimSpace(request.CurrentOwnerPrincipalID)
+	if request.TenantID == "" || request.LegalEntityID == "" || request.ActorPrincipalID == "" || request.CurrentOwnerPrincipalID == "" {
+		return ReassignmentDecision{}, ErrPrincipalUnavailable
+	}
+	if request.ActorPrincipalID == request.CurrentOwnerPrincipalID {
+		return ReassignmentDecision{Allowed: true, Basis: "CURRENT_ASSIGNEE"}, nil
+	}
+
+	var allowed bool
+	var hierarchyVersion int64
+	err := r.pool.QueryRow(ctx, `
+		WITH RECURSIVE selected_scope AS (
+			SELECT t.id AS tenant_id,le.id AS legal_entity_id
+			FROM tenants t
+			JOIN legal_entities le ON le.tenant_id=t.id
+			WHERE (t.id::text=$1 OR t.slug=$1)
+			  AND (le.id::text=$2 OR le.code=$2)
+			  AND le.valid_from<=clock_timestamp()
+			  AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
+			LIMIT 1
+		), owner_positions AS (
+			SELECT op.id,op.parent_position_id,op.version,ARRAY[op.id] AS visited,0 AS depth
+			FROM org_positions op
+			JOIN selected_scope scope ON scope.tenant_id=op.tenant_id AND scope.legal_entity_id=op.legal_entity_id
+			JOIN principals owner ON owner.tenant_id=op.tenant_id AND owner.id=op.occupant_principal_id
+			WHERE owner.id::text=$4 AND owner.status='ACTIVE'
+			  AND owner.valid_from<=clock_timestamp() AND (owner.valid_until IS NULL OR clock_timestamp()<owner.valid_until)
+			  AND op.valid_from<=clock_timestamp() AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+		), ancestors AS (
+			SELECT * FROM owner_positions
+			UNION ALL
+			SELECT parent.id,parent.parent_position_id,GREATEST(parent.version,child.version),child.visited||parent.id,child.depth+1
+			FROM ancestors child
+			JOIN org_positions parent ON parent.id=child.parent_position_id
+			JOIN selected_scope scope ON scope.tenant_id=parent.tenant_id AND scope.legal_entity_id=parent.legal_entity_id
+			WHERE child.depth<12
+			  AND NOT parent.id=ANY(child.visited)
+			  AND parent.valid_from<=clock_timestamp() AND (parent.valid_until IS NULL OR clock_timestamp()<parent.valid_until)
+		), active_actor AS (
+			SELECT p.id
+			FROM principals p
+			JOIN selected_scope scope ON scope.tenant_id=p.tenant_id
+			WHERE p.id::text=$3 AND p.status='ACTIVE'
+			  AND p.valid_from<=clock_timestamp() AND (p.valid_until IS NULL OR clock_timestamp()<p.valid_until)
+		)
+		SELECT COALESCE(bool_or(a.depth>0 AND p.occupant_principal_id=actor.id),false),COALESCE(max(a.version),0)
+		FROM ancestors a
+		JOIN org_positions p ON p.id=a.id
+		CROSS JOIN active_actor actor`, request.TenantID, request.LegalEntityID, request.ActorPrincipalID, request.CurrentOwnerPrincipalID).
+		Scan(&allowed, &hierarchyVersion)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ReassignmentDecision{Allowed: false}, nil
+	}
+	if err != nil {
+		return ReassignmentDecision{}, fmt.Errorf("resolve reporting-line reassignment: %w", err)
+	}
+	decision := ReassignmentDecision{Allowed: allowed, HierarchyVersion: hierarchyVersion}
+	if allowed {
+		decision.Basis = "REPORTING_ANCESTOR"
+	}
+	return decision, nil
+}
+
 func (r *PostgresResolver) ResolveOIDC(ctx context.Context, tenantID, legalEntityID, issuer, subject string) (Resolution, error) {
 	tenantID = strings.TrimSpace(tenantID)
 	legalEntityID = strings.TrimSpace(legalEntityID)

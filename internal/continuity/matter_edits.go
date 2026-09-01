@@ -48,12 +48,14 @@ type ChangeMatterContextInput struct {
 }
 
 type AssignMatterInput struct {
-	TenantID         string `json:"tenant_id"`
-	MatterID         string `json:"matter_id"`
-	ExpectedVersion  int64  `json:"expected_version"`
-	OwnerPrincipalID string `json:"owner_principal_id"`
-	ActorID          string `json:"actor_id,omitempty"`
-	Rationale        string `json:"rationale"`
+	TenantID                    string `json:"tenant_id"`
+	MatterID                    string `json:"matter_id"`
+	ExpectedVersion             int64  `json:"expected_version"`
+	OwnerPrincipalID            string `json:"owner_principal_id"`
+	ActorID                     string `json:"actor_id,omitempty"`
+	Rationale                   string `json:"rationale"`
+	ReassignmentBasis           string `json:"reassignment_basis,omitempty"`
+	OrganizationPositionVersion int64  `json:"organization_position_version,omitempty"`
 }
 
 type UpdateActionInput struct {
@@ -69,13 +71,15 @@ type UpdateActionInput struct {
 }
 
 type AssignActionInput struct {
-	TenantID         string `json:"tenant_id"`
-	MatterID         string `json:"matter_id"`
-	ActionID         string `json:"action_id"`
-	ExpectedVersion  int64  `json:"expected_version"`
-	OwnerPrincipalID string `json:"owner_principal_id"`
-	ActorID          string `json:"actor_id,omitempty"`
-	Rationale        string `json:"rationale"`
+	TenantID                    string `json:"tenant_id"`
+	MatterID                    string `json:"matter_id"`
+	ActionID                    string `json:"action_id"`
+	ExpectedVersion             int64  `json:"expected_version"`
+	OwnerPrincipalID            string `json:"owner_principal_id"`
+	ActorID                     string `json:"actor_id,omitempty"`
+	Rationale                   string `json:"rationale"`
+	ReassignmentBasis           string `json:"reassignment_basis,omitempty"`
+	OrganizationPositionVersion int64  `json:"organization_position_version,omitempty"`
 }
 
 type matterDetailsUpdatedEvent struct {
@@ -96,10 +100,12 @@ type matterContextChangedEvent struct {
 }
 
 type matterOwnerChangedEvent struct {
-	Matter           Matter `json:"matter"`
-	PreviousOwnerID  string `json:"previous_owner_principal_id,omitempty"`
-	OwnerPrincipalID string `json:"owner_principal_id"`
-	Rationale        string `json:"rationale"`
+	Matter                      Matter `json:"matter"`
+	PreviousOwnerID             string `json:"previous_owner_principal_id,omitempty"`
+	OwnerPrincipalID            string `json:"owner_principal_id"`
+	Rationale                   string `json:"rationale"`
+	ReassignmentBasis           string `json:"reassignment_basis,omitempty"`
+	OrganizationPositionVersion int64  `json:"organization_position_version,omitempty"`
 }
 
 type actionUpdatedEvent struct {
@@ -109,10 +115,12 @@ type actionUpdatedEvent struct {
 }
 
 type actionAssignedEvent struct {
-	Action           Action `json:"action"`
-	PreviousOwnerID  string `json:"previous_owner_principal_id,omitempty"`
-	OwnerPrincipalID string `json:"owner_principal_id"`
-	Rationale        string `json:"rationale"`
+	Action                      Action `json:"action"`
+	PreviousOwnerID             string `json:"previous_owner_principal_id,omitempty"`
+	OwnerPrincipalID            string `json:"owner_principal_id"`
+	Rationale                   string `json:"rationale"`
+	ReassignmentBasis           string `json:"reassignment_basis,omitempty"`
+	OrganizationPositionVersion int64  `json:"organization_position_version,omitempty"`
 }
 
 func (s *Service) UpdateMatterDetails(ctx context.Context, input UpdateMatterDetailsInput) (MatterAggregate, error) {
@@ -311,10 +319,12 @@ func (s *Service) AssignMatter(ctx context.Context, input AssignMatterInput) (Ma
 	matter.OwnerPrincipalID = ownerID
 	matter.UpdatedAt = s.now().UTC()
 	value := matterOwnerChangedEvent{
-		Matter:           matter,
-		PreviousOwnerID:  aggregate.Matter.OwnerPrincipalID,
-		OwnerPrincipalID: ownerID,
-		Rationale:        strings.TrimSpace(input.Rationale),
+		Matter:                      matter,
+		PreviousOwnerID:             aggregate.Matter.OwnerPrincipalID,
+		OwnerPrincipalID:            ownerID,
+		Rationale:                   strings.TrimSpace(input.Rationale),
+		ReassignmentBasis:           strings.TrimSpace(input.ReassignmentBasis),
+		OrganizationPositionVersion: input.OrganizationPositionVersion,
 	}
 	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterOwnerChanged, value, input.ActorID)
 }
@@ -376,10 +386,12 @@ func (s *Service) AssignAction(ctx context.Context, input AssignActionInput) (Ma
 	action.UpdatedAt = s.now().UTC()
 	action.Version++
 	value := actionAssignedEvent{
-		Action:           action,
-		PreviousOwnerID:  previous.OwnerPrincipalID,
-		OwnerPrincipalID: ownerID,
-		Rationale:        strings.TrimSpace(input.Rationale),
+		Action:                      action,
+		PreviousOwnerID:             previous.OwnerPrincipalID,
+		OwnerPrincipalID:            ownerID,
+		Rationale:                   strings.TrimSpace(input.Rationale),
+		ReassignmentBasis:           strings.TrimSpace(input.ReassignmentBasis),
+		OrganizationPositionVersion: input.OrganizationPositionVersion,
 	}
 	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAssigned, value, input.ActorID)
 }

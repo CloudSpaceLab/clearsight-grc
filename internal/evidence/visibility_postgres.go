@@ -105,12 +105,12 @@ func (r *PostgresRepository) listActorRequests(ctx context.Context, tenant, lega
 
 func scanRequestWithRecipient(row scanner) (Request, error) {
 	var value Request
-	var facts, presentation, sections, fields, sourceBindings []byte
+	var facts, presentation, scoreProfile, sections, fields, sourceBindings []byte
 	var recipientType, principalID, displayName, hint, state, issueReason string
 	var audienceHash []byte
 	if err := row.Scan(
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType,
-		&value.EstimatedMinutes, &value.Deadline, &facts, &presentation, &sections, &fields, &sourceBindings, &value.FormTemplateID, &value.FormTemplateVersion, &value.CollectionPeriodStart, &value.CollectionPeriodEnd,
+		&value.EstimatedMinutes, &value.Deadline, &facts, &presentation, &value.ScoringMode, &scoreProfile, &sections, &fields, &sourceBindings, &value.FormTemplateID, &value.FormTemplateVersion, &value.CollectionPeriodStart, &value.CollectionPeriodEnd,
 		&value.Origin.Type, &value.Origin.ID, &value.Origin.Version, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt,
 		&recipientType, &principalID, &displayName, &audienceHash, &hint, &state, &value.Recipient.Revision, &issueReason,
 	); err != nil {
@@ -121,6 +121,11 @@ func scanRequestWithRecipient(row scanner) (Request, error) {
 	}
 	if err := json.Unmarshal(presentation, &value.Presentation); err != nil {
 		return Request{}, err
+	}
+	if len(scoreProfile) > 0 {
+		if err := json.Unmarshal(scoreProfile, &value.ScoreProfile); err != nil {
+			return Request{}, err
+		}
 	}
 	if err := json.Unmarshal(sections, &value.Sections); err != nil {
 		return Request{}, err

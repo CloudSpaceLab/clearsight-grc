@@ -153,6 +153,9 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 	metadata.SubmissionID = submissionID
 	metadata.Revision = revisionNumber
 	metadata.CreatedAt = command.Now.UTC()
+	if metadata.Score != nil {
+		metadata.Score.CalculatedAt = metadata.CreatedAt
+	}
 	if len(state.revisions) > 0 {
 		previous := &state.revisions[len(state.revisions)-1]
 		previous.Current = false
@@ -160,6 +163,11 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 	}
 	metadata.Current = true
 	state.revisions = append(state.revisions, cloneResponseRevision(metadata))
+	durableRevisions := distributions.responseRevisions[command.Session.DistributionID]
+	if len(durableRevisions) > 0 {
+		durableRevisions[len(durableRevisions)-1].Current = false
+	}
+	distributions.responseRevisions[command.Session.DistributionID] = append(durableRevisions, cloneResponseRevision(metadata))
 	state.workspace.Version++
 	state.workspace.UpdatedAt = command.Now.UTC()
 	distributions.workspaces[command.Session.DistributionID] = state.workspace
@@ -171,6 +179,23 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 	}
 	distributions.events = append(distributions.events, event)
 	distributions.outbox = append(distributions.outbox, event)
+	scoreState := ResponseScoreNotConfigured
+	if metadata.Score != nil {
+		scoreState = metadata.Score.State
+	}
+	scoredEvent := distributionEvent{
+		DistributionID: command.Session.DistributionID,
+		Version:        state.workspace.Version,
+		EventType:      fmt.Sprintf("FORM_RESPONSE_SCORED_%d", revisionNumber),
+		OccurredAt:     command.Now.UTC(),
+		Payload: map[string]any{
+			"version": revisionNumber, "response_revision_id": metadata.ID,
+			"form_template_id": command.Request.FormTemplateID, "form_template_version": command.Request.FormTemplateVersion,
+			"score_state": string(scoreState),
+		},
+	}
+	distributions.events = append(distributions.events, scoredEvent)
+	distributions.outbox = append(distributions.outbox, scoredEvent)
 	return WorkspaceSubmissionResult{
 		Workspace: state.workspace,
 		Revision:  cloneResponseRevision(metadata),

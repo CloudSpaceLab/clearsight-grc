@@ -1,6 +1,10 @@
 package evidence
 
-import "time"
+import (
+	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+)
 
 type AccessPolicy string
 
@@ -153,6 +157,7 @@ type ResponseRevision struct {
 	SupersedesRevisionID string
 	AchievedAssurance    AccessAssurance
 	SignoffSummary       map[string]any
+	Score                *ResponseScoreResult
 	ComplianceScore      *float64
 	ScoredWeightCoverage float64
 	State                ResponseRevisionState
@@ -160,6 +165,33 @@ type ResponseRevision struct {
 	ScoringPolicyVersion string
 	Current              bool
 	CreatedAt            time.Time
+}
+
+type ResponseScoreState string
+
+const (
+	ResponseScoreNotConfigured ResponseScoreState = "NOT_CONFIGURED"
+	ResponseScoreFinal         ResponseScoreState = "FINAL"
+	ResponseScoreProvisional   ResponseScoreState = "PROVISIONAL"
+	ResponseScoreFailed        ResponseScoreState = "FAILED"
+)
+
+type ResponseScoreResult struct {
+	Mode                formcontract.ScoringMode          `json:"mode,omitempty"`
+	Direction           formcontract.ScoreDirection       `json:"direction,omitempty"`
+	RawScore            *float64                          `json:"raw_score,omitempty"`
+	AdverseScore        *float64                          `json:"adverse_score,omitempty"`
+	Band                formcontract.ConcernBand          `json:"band,omitempty"`
+	Coverage            float64                           `json:"coverage"`
+	Final               bool                              `json:"final"`
+	State               ResponseScoreState                `json:"state"`
+	ProfileVersion      string                            `json:"profile_version,omitempty"`
+	ProfileChecksum     string                            `json:"profile_checksum,omitempty"`
+	EvaluatorVersion    string                            `json:"evaluator_version,omitempty"`
+	FailureCode         string                            `json:"failure_code,omitempty"`
+	CalculatedAt        time.Time                         `json:"calculated_at,omitempty"`
+	ContributionResults []formcontract.ContributionResult `json:"contribution_results,omitempty"`
+	RuleResults         []formcontract.AdvancedRuleResult `json:"rule_results,omitempty"`
 }
 
 type DistributionBundle struct {

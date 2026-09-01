@@ -44,3 +44,23 @@ type PrincipalResolveOutcome struct {
 type BatchPrincipalResolver interface {
 	ResolvePrincipals(context.Context, string, string, []string) ([]PrincipalResolveOutcome, error)
 }
+
+type ReassignmentRequest struct {
+	TenantID                string
+	LegalEntityID           string
+	ActorPrincipalID        string
+	CurrentOwnerPrincipalID string
+}
+
+type ReassignmentDecision struct {
+	Allowed          bool
+	Basis            string
+	HierarchyVersion int64
+}
+
+// ReassignmentResolver is deliberately narrower than material authority. It
+// may permit only a handoff of stored responsibility; callers must still
+// validate the replacement candidate through the current authority route.
+type ReassignmentResolver interface {
+	CanReassign(context.Context, ReassignmentRequest) (ReassignmentDecision, error)
+}

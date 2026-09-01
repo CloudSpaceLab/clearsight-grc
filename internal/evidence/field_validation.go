@@ -39,6 +39,10 @@ func normalizeFieldContracts(presentation formcontract.Presentation, sections []
 }
 
 func formContract(presentation formcontract.Presentation, sections []formcontract.Section, fields []Field) (formcontract.Contract, error) {
+	return formContractWithScoring(presentation, "", nil, sections, fields)
+}
+
+func formContractWithScoring(presentation formcontract.Presentation, scoringMode formcontract.ScoringMode, scoreProfile *formcontract.ScoreProfile, sections []formcontract.Section, fields []Field) (formcontract.Contract, error) {
 	contractFields := make([]formcontract.Field, len(fields))
 	for index, field := range fields {
 		contractFields[index] = formcontract.Field{
@@ -47,7 +51,7 @@ func formContract(presentation formcontract.Presentation, sections []formcontrac
 			Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring,
 		}
 	}
-	return formcontract.Normalize(formcontract.Contract{Presentation: presentation, Sections: sections, Fields: contractFields})
+	return formcontract.Normalize(formcontract.Contract{Presentation: presentation, ScoringMode: scoringMode, ScoreProfile: scoreProfile, Sections: sections, Fields: contractFields})
 }
 
 func applyContractField(target *Field, source formcontract.Field) {

@@ -29,6 +29,37 @@ beforeEach(() => {
     roles: [{ id: "role-1", code: "RISK_REVIEWER", name: "Risk reviewer", capabilities: ["program_read"] }],
     legal_entities: [],
     bindings: [],
+    positions: [
+      {
+        id: "position-cro",
+        code: "CRO",
+        title: "Chief Risk Officer",
+        function_name: "Risk",
+        department_path: ["BANK", "RISK"],
+        occupant_principal_id: "person-cro",
+        occupant_name: "Ada Okafor",
+        occupant_status: "ACTIVE",
+        role_codes: ["CRO"],
+        valid_from: "2026-01-01T00:00:00Z",
+        version: 3,
+      },
+      {
+        id: "position-owner",
+        code: "PROGRAM_OWNER",
+        title: "Program Owner",
+        function_name: "Risk Operations",
+        department_path: ["BANK", "RISK", "OPERATIONS"],
+        parent_position_id: "position-cro",
+        parent_position_code: "CRO",
+        parent_position_title: "Chief Risk Officer",
+        occupant_principal_id: "person-owner",
+        occupant_name: "Chidi Eze",
+        occupant_status: "ACTIVE",
+        role_codes: ["PROGRAM_OWNER"],
+        valid_from: "2026-01-01T00:00:00Z",
+        version: 4,
+      },
+    ],
     escalation: { pending_timers: 0, escalated_tasks: 0, unresolved_24h: 0, failed_timers: 0 },
     escalation_policies: [],
   });
@@ -56,6 +87,16 @@ it("keeps access inventory primary and opens one focused creation workflow at a 
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.queryByRole("textbox", { name: "Code" })).toBeNull();
   expect(api.loadIdentityAccessOverview).toHaveBeenCalledTimes(1);
+
+  expect(screen.getByRole("tab", { name: "Positions & roles", selected: true })).toBeTruthy();
+  expect(screen.getByText("Ada Okafor")).toBeTruthy();
+  expect(screen.getByText("PROGRAM_OWNER")).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("tab", { name: "Reporting lines" }));
+  expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent === "Chidi Eze reports to Ada Okafor")).toBeTruthy();
+  expect(screen.getByText(/Reporting lines permit responsibility handoff/)).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("tab", { name: "Directory access" }));
 
   fireEvent.click(screen.getByRole("button", { name: "Add source" }));
   const sourceDialog = screen.getByRole("dialog", { name: "Add provisioning source" });

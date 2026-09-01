@@ -17,7 +17,7 @@ describe("TodayInterventions", () => {
     render(<TodayInterventions items={[item]} connection="live" readiness={readiness} readinessState="live" onOpenItem={onOpen}/>);
     expect(screen.getByText("Today", { selector: ".eyebrow" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "1 item needs your action" })).toBeTruthy();
-    expect(screen.getByText("Reviews, approvals and evidence requests assigned to you.")).toBeTruthy();
+    expect(screen.getByText("Assigned work and operational exceptions you are permitted to handle.")).toBeTruthy();
     expect(screen.getByText("Seven provisions may change current obligations.")).toBeTruthy();
     expect(screen.getByText("Recommended action")).toBeTruthy();
     const statusChecks = screen.getByText("Status checks").closest("details") as HTMLDetailsElement | null;
@@ -47,6 +47,27 @@ describe("TodayInterventions", () => {
     expect(window.location.hash).toBe("#imports/document%201/proposal%201");
     expect(onOpen).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "Check authority" })).toBeNull();
+  });
+
+  it("opens a capability-scoped administrator exception at its exact configuration area", () => {
+	const onOpen = vi.fn();
+	const adminItem: AttentionItem = {
+	  ...item,
+	  id: "admin-directory-source",
+	  type: "IDENTITY_SOURCE",
+	  title: "Review BANK_DIRECTORY directory source",
+	  primary_action: "Review directory source",
+	  action_target_type: "CONFIGURE",
+	  action_target_id: "access",
+	  intervention_class: "ESCALATION",
+	};
+	window.history.replaceState(null, "", "#today");
+
+	render(<TodayInterventions items={[adminItem]} connection="live" readiness={readiness} readinessState="live" onOpenItem={onOpen}/>);
+	fireEvent.click(screen.getByRole("button", { name: "Open access settings" }));
+
+	expect(window.location.hash).toBe("#configure/access");
+	expect(onOpen).not.toHaveBeenCalled();
   });
 
   it("does not relabel an ordinary workflow action as prepared or recommended work", () => {

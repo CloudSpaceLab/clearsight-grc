@@ -309,6 +309,41 @@ func TestProgramOperationsExplainCurrentResponsibilitiesAcrossRoles(t *testing.T
 	}
 }
 
+func TestProgramOperationsExposeOnlyOwnerHandoffToReportingManager(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.ProgramAggregate{Program: continuity.Program{
+		ID: "program-1", TenantID: "bank", LegalEntityID: "bank-ng", Code: "TPRM", Name: "Third-party risk",
+		Status: continuity.ProgramActive, OwnerPrincipalID: "program-owner", AuthorityPrincipalID: "cro", Version: 5, CreatedAt: now, UpdatedAt: now,
+	}}
+	authorityResolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner: {
+			Principal:           authority.Principal{ID: "program-owner", DisplayName: "Program owner"},
+			CandidatePrincipals: []authority.Principal{{ID: "replacement-owner", DisplayName: "Replacement owner"}},
+		},
+		authority.ResponsibilityAuthorizer: {Principal: authority.Principal{ID: "cro", DisplayName: "Chief Risk Officer"}},
+	}}
+	api := &API{deps: Dependencies{Authority: authorityResolver, Access: &reassignmentAccessStub{allowed: true}}}
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "risk-manager", Kind: "PERSON"}
+
+	response := api.buildProgramOperations(t.Context(), actor, aggregate, now)
+	find := func(command string) RecordOperation {
+		t.Helper()
+		for _, operation := range response.Operations {
+			if operation.Command == command {
+				return operation
+			}
+		}
+		t.Fatalf("operation %s not found", command)
+		return RecordOperation{}
+	}
+	if operation := find("program.assign"); !operation.CanAct {
+		t.Fatalf("manager cannot open the Program owner handoff: %#v", operation)
+	}
+	if operation := find("program.details.update"); operation.CanAct {
+		t.Fatalf("reporting line granted Program edit authority: %#v", operation)
+	}
+}
+
 func TestProgramOperationsBindWildcardViewerToRecordEntityAndStoredAuthority(t *testing.T) {
 	now := time.Now().UTC()
 	aggregate := continuity.ProgramAggregate{Program: continuity.Program{

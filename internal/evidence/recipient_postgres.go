@@ -48,6 +48,10 @@ func (r *PostgresRepository) CreateRequestWithRecipient(ctx context.Context, val
 	if err != nil {
 		return Request{}, err
 	}
+	scoreProfile, err := marshalScoreProfile(value.ScoreProfile)
+	if err != nil {
+		return Request{}, err
+	}
 	sourceBindingValues := value.SourceBindings
 	if sourceBindingValues == nil {
 		sourceBindingValues = []RequestBindingReference{}
@@ -68,17 +72,17 @@ func (r *PostgresRepository) CreateRequestWithRecipient(ctx context.Context, val
 		INSERT INTO capture_requests(
 			id,tenant_id,legal_entity_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
 			recipient_type,recipient_principal_id,recipient_audience_hash,recipient_hint,recipient_state,recipient_revision,recipient_issue_reason,
-			estimated_minutes,deadline,known_facts,presentation,sections,fields,source_bindings,form_template_id,form_template_version,collection_period_start,collection_period_end,
+			estimated_minutes,deadline,known_facts,presentation,scoring_mode,score_profile,sections,fields,source_bindings,form_template_id,form_template_version,collection_period_start,collection_period_end,
 			origin_type,origin_id,origin_version,status,created_by,version,created_at,updated_at
 		) VALUES(
 			$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10,
-			$11,NULLIF($12,'')::uuid,$13,$14,$15,$16,'',$17,$18,$19::jsonb,$20::jsonb,$21::jsonb,$22::jsonb,$23::jsonb,NULLIF($24,'')::uuid,NULLIF($25,0),$26,$27,
-			NULLIF($28,''),NULLIF($29,''),NULLIF($30,0),$31,NULLIF($32,'')::uuid,$33,$34,$34
+			$11,NULLIF($12,'')::uuid,$13,$14,$15,$16,'',$17,$18,$19::jsonb,$20::jsonb,$21,$22::jsonb,$23::jsonb,$24::jsonb,$25::jsonb,NULLIF($26,'')::uuid,NULLIF($27,0),$28,$29,
+			NULLIF($30,''),NULLIF($31,''),NULLIF($32,0),$33,NULLIF($34,'')::uuid,$35,$36,$36
 		)
 		RETURNING `+requestReturningColumns,
 		value.ID, value.TenantID, value.LegalEntityID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType,
 		value.Recipient.Type, value.Recipient.PrincipalID, nullableAudienceHash(value.Recipient), value.Recipient.AudienceHint, state, revision,
-		value.EstimatedMinutes, value.Deadline, string(facts), string(presentation), string(sections), string(fields), string(sourceBindings), value.FormTemplateID, value.FormTemplateVersion, value.CollectionPeriodStart, value.CollectionPeriodEnd,
+		value.EstimatedMinutes, value.Deadline, string(facts), string(presentation), value.ScoringMode, scoreProfile, string(sections), string(fields), string(sourceBindings), value.FormTemplateID, value.FormTemplateVersion, value.CollectionPeriodStart, value.CollectionPeriodEnd,
 		value.Origin.Type, value.Origin.ID, value.Origin.Version, value.Status, value.CreatedBy, value.Version, value.CreatedAt)
 	created, err := scanRequest(row)
 	if err != nil {

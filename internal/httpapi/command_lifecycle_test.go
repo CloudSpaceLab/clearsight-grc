@@ -4,15 +4,38 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
+
+type reassignmentAccessStub struct {
+	allowed bool
+	calls   []access.ReassignmentRequest
+}
+
+func (s *reassignmentAccessStub) ResolveOIDC(context.Context, string, string, string, string) (access.Resolution, error) {
+	return access.Resolution{}, access.ErrIdentityNotProvisioned
+}
+
+func (s *reassignmentAccessStub) ResolvePrincipal(_ context.Context, tenant, principal, entity string) (access.Resolution, error) {
+	return access.Resolution{TenantID: tenant, PrincipalID: principal, LegalEntityID: entity, DisplayName: principal, Kind: "PERSON"}, nil
+}
+
+func (s *reassignmentAccessStub) CanReassign(_ context.Context, request access.ReassignmentRequest) (access.ReassignmentDecision, error) {
+	s.calls = append(s.calls, request)
+	return access.ReassignmentDecision{Allowed: s.allowed, Basis: "REPORTING_ANCESTOR", HierarchyVersion: 7}, nil
+}
 
 func TestDecisionLifecycleResponsibilityMatrix(t *testing.T) {
 	tests := []struct {
@@ -249,6 +272,132 @@ func TestMatterAssignmentLifecycleValidatesDistinctOwnerAndPerformerCandidates(t
 	}
 	if _, err := api.lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.assign", map[string]any{"owner_principal_id": "outside-scope"}, base); !errors.Is(err, continuity.ErrInvalidState) {
 		t.Fatalf("restricted invisible owner was accepted: %v", err)
+	}
+}
+
+func TestManagerCanOnlyReassignCurrentIssueAndActionOwners(t *testing.T) {
+	ctx := identity.WithActor(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "risk-manager", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: time.Now().UTC().Add(time.Hour)})
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterControlGap, Priority: 4,
+		Title: "Address verification gap", Summary: "Confirm the vendor address.", OwnerPrincipalID: "issue-owner", ActorID: "seed",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matter, err = service.AddAction(continuity.WithTrustedSystemScope(t.Context()), continuity.AddActionInput{
+		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
+		Title: "Verify the address", Description: "Record the address evidence.", OwnerPrincipalID: "action-owner", ActorID: "issue-owner",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	accessResolver := &reassignmentAccessStub{allowed: true}
+	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner: {
+			Principal:           authority.Principal{ID: "issue-owner", DisplayName: "Issue owner"},
+			CandidatePrincipals: []authority.Principal{{ID: "replacement-owner", DisplayName: "Replacement owner"}},
+		},
+		authority.ResponsibilityPerformer: {
+			Principal:           authority.Principal{ID: "action-owner", DisplayName: "Action owner"},
+			CandidatePrincipals: []authority.Principal{{ID: "replacement-performer", DisplayName: "Replacement performer"}},
+		},
+	}}
+	api := &API{deps: Dependencies{Continuity: service, Authority: resolver, Access: accessResolver}}
+	base := commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3}
+
+	matterPayload := map[string]any{"owner_principal_id": "replacement-owner"}
+	policy, err := api.lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.assign", matterPayload, base)
+	if err != nil {
+		t.Fatalf("manager issue reassignment rejected: %v", err)
+	}
+	if !policy.SpecializedAuthorization || matterPayload["reassignment_basis"] != "REPORTING_ANCESTOR" || matterPayload["organization_position_version"] != int64(7) {
+		t.Fatalf("manager authorization basis was not bound to the command: policy=%#v payload=%#v", policy, matterPayload)
+	}
+
+	actionRequest := lifecycleRequest(matter.Matter.ID)
+	actionRequest.SetPathValue("action_id", matter.Actions[0].ID)
+	actionPayload := map[string]any{"owner_principal_id": "replacement-performer"}
+	policy, err = api.lifecycleCommandPolicy(ctx, actionRequest, "bank", "matter.action.assign", actionPayload, base)
+	if err != nil || !policy.SpecializedAuthorization {
+		t.Fatalf("manager action reassignment rejected: policy=%#v err=%v", policy, err)
+	}
+	if len(accessResolver.calls) != 2 || accessResolver.calls[0].CurrentOwnerPrincipalID != "issue-owner" || accessResolver.calls[1].CurrentOwnerPrincipalID != "action-owner" {
+		t.Fatalf("reassignment checks did not bind the current stored owners: %#v", accessResolver.calls)
+	}
+
+	if _, err := api.lifecycleCommandPolicy(ctx, lifecycleRequest(matter.Matter.ID), "bank", "matter.details.update", map[string]any{}, base); !errors.Is(err, commandauth.ErrNotAuthorized) {
+		t.Fatalf("reporting hierarchy leaked non-reassignment authority: %v", err)
+	}
+}
+
+func TestReportingManagerReassignmentPassesTheEnforcedCommandGuardWithoutOtherAuthority(t *testing.T) {
+	repository := continuity.NewMemoryRepository()
+	service := continuity.NewService(repository)
+	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterControlGap, Priority: 4,
+		Title: "Address verification gap", Summary: "Confirm the vendor address.", OwnerPrincipalID: "issue-owner", ActorID: "seed",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner: {
+			Principal:           authority.Principal{ID: "issue-owner", DisplayName: "Issue owner"},
+			CandidatePrincipals: []authority.Principal{{ID: "replacement-owner", DisplayName: "Replacement owner"}},
+		},
+	}}
+	guard, err := commandauth.New(resolver, commandauth.ModeEnforce, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := New(Dependencies{
+		Logger: slog.Default(), Identity: identity.NewDevelopmentAuthenticator("bank", "risk-manager", "bank-ng"), Continuity: service,
+		Authority: resolver, Access: &reassignmentAccessStub{allowed: true}, CommandGuard: guard,
+	})
+	body := strings.NewReader(fmt.Sprintf(`{"expected_version":%d,"owner_principal_id":"replacement-owner","rationale":"The current owner is on emergency leave."}`, matter.Matter.Version))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/matters/"+matter.Matter.ID+"/assignment", body))
+	if response.Code != http.StatusOK || response.Header().Get("X-ClearSight-Command-Authorization") != "specialized" {
+		t.Fatalf("manager reassignment returned %d (%s): %s", response.Code, response.Header().Get("X-ClearSight-Command-Authorization"), response.Body.String())
+	}
+	updated, err := service.GetMatter(continuity.WithTrustedSystemScope(t.Context()), "bank", matter.Matter.ID)
+	if err != nil || updated.Matter.OwnerPrincipalID != "replacement-owner" {
+		t.Fatalf("manager handoff was not committed: owner=%s err=%v", updated.Matter.OwnerPrincipalID, err)
+	}
+	events, err := repository.MatterEvents(continuity.WithTrustedSystemScope(t.Context()), "bank", matter.Matter.ID, nil)
+	if err != nil || len(events) == 0 || !strings.Contains(string(events[len(events)-1].Payload), `"reassignment_basis":"REPORTING_ANCESTOR"`) || !strings.Contains(string(events[len(events)-1].Payload), `"organization_position_version":7`) {
+		t.Fatalf("manager handoff event did not preserve the hierarchy basis: events=%#v err=%v", events, err)
+	}
+}
+
+func TestReportingManagerCanReassignProgramButCannotEditIt(t *testing.T) {
+	ctx := identity.WithActor(t.Context(), identity.Actor{TenantID: "bank", PrincipalID: "risk-manager", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: time.Now().UTC().Add(time.Hour)})
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	program, err := service.CreateProgram(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateProgramInput{
+		TenantID: "bank", LegalEntityID: "bank-ng", Code: "TPRM", Name: "Third-party risk", Type: "RISK",
+		OwningFunction: "Risk", OwnerPrincipalID: "program-owner", AuthorityPrincipalID: "cro", Scope: json.RawMessage(`{}`), EffectiveFrom: time.Now().UTC(), ActorID: "seed",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner: {
+			Principal:           authority.Principal{ID: "program-owner", DisplayName: "Program owner"},
+			CandidatePrincipals: []authority.Principal{{ID: "replacement-owner", DisplayName: "Replacement owner"}},
+		},
+	}}
+	api := &API{deps: Dependencies{Continuity: service, Authority: resolver, Access: &reassignmentAccessStub{allowed: true}}}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/programs/"+program.Program.ID+"/assignment", nil)
+	request.SetPathValue("id", program.Program.ID)
+	request = request.WithContext(ctx)
+	payload := map[string]any{"owner_principal_id": "replacement-owner"}
+	policy, err := api.lifecycleCommandPolicy(ctx, request, "bank", "program.assign", payload, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 3})
+	if err != nil || !policy.SpecializedAuthorization {
+		t.Fatalf("manager Program reassignment rejected: policy=%#v err=%v", policy, err)
+	}
+	if _, err := api.lifecycleCommandPolicy(ctx, request, "bank", "program.details.update", map[string]any{}, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2}); !errors.Is(err, commandauth.ErrNotAuthorized) {
+		t.Fatalf("reporting hierarchy leaked Program edit authority: %v", err)
 	}
 }
 

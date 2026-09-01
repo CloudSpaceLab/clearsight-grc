@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
@@ -83,7 +84,7 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 	for _, spec := range []recordOperationSpec{
 		{Command: "matter.details.update", Label: "Edit issue details", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
 		{Command: "matter.context.change", Label: "Update facts and missing information", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
-		{Command: "matter.assign", Label: "Change issue owner", Responsibility: authority.ResponsibilityOwner, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true},
+		{Command: "matter.assign", Label: "Change issue owner", Responsibility: authority.ResponsibilityOwner, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, ReassignmentPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "matter.action.add", Label: "Add an action", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "matter.link", Label: "Link this issue", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
 		{Command: "matter.outcome.define", Label: "Define an outcome check", Responsibility: authority.ResponsibilityReviewer, Materiality: max(3, aggregate.Matter.Priority), IncludeCandidates: true},
@@ -124,7 +125,7 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 		}
 		actionResponsibility := authority.Responsibility(continuity.ActionResponsibility(action))
 		add(recordOperationSpec{Command: "matter.action.update", SubresourceID: action.ID, ObjectType: "ACTION", ObjectID: action.ID, Label: "Edit action", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID})
-		add(recordOperationSpec{Command: "matter.action.assign", SubresourceID: action.ID, ObjectType: "ACTION", ObjectID: action.ID, Label: "Change action owner", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true})
+		add(recordOperationSpec{Command: "matter.action.assign", SubresourceID: action.ID, ObjectType: "ACTION", ObjectID: action.ID, Label: "Change action owner", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, ReassignmentPrincipalID: action.OwnerPrincipalID, IncludeCandidates: true})
 		targets := continuity.AllowedActionTargets(action.Status)
 		allowed := make([]string, len(targets))
 		for index := range targets {
@@ -207,6 +208,7 @@ type recordOperationSpec struct {
 	CandidateResponsibility authority.Responsibility
 	Materiality             int
 	RequiredPrincipalID     string
+	ReassignmentPrincipalID string
 	IncludeCandidates       bool
 	AllowedTargets          []string
 }
@@ -347,9 +349,19 @@ func (a *API) resolveMatterOperation(ctx context.Context, actor identity.Actor, 
 		allowed = false
 	}
 	operation.CanAct = allowed
+	if !operation.CanAct && strings.TrimSpace(spec.ReassignmentPrincipalID) != "" {
+		if decision, checked := a.canReassignStoredResponsibility(ctx, actor, matter.LegalEntityID, spec.ReassignmentPrincipalID); checked && decision.Allowed {
+			operation.CanAct = true
+			if decision.Basis == "CURRENT_ASSIGNEE" {
+				operation.Reason = "You are the current assignee and can hand this work to another eligible person."
+			} else {
+				operation.Reason = "You are in the current assignee's reporting line and can hand this work to another eligible person."
+			}
+		}
+	}
 	if allowed {
 		operation.Reason = "You hold the current responsibility for this issue and can complete this action."
-	} else if operation.AssignedTo != nil {
+	} else if !operation.CanAct && operation.AssignedTo != nil {
 		operation.Reason = fmt.Sprintf("Assigned to %s for the current issue state.", operation.AssignedTo.DisplayName)
 	} else if strings.TrimSpace(spec.RequiredPrincipalID) != "" {
 		operation.Reason = "This action has a recorded assignee, but their name is unavailable. Your signed-in responsibility does not match the stored assignment."
@@ -359,6 +371,24 @@ func (a *API) resolveMatterOperation(ctx context.Context, actor identity.Actor, 
 		operation.Reason = fmt.Sprintf("The current %s route does not include your signed-in role.", responsibilityLabel(spec.Responsibility))
 	}
 	return operation, true
+}
+
+func (a *API) canReassignStoredResponsibility(ctx context.Context, actor identity.Actor, legalEntityID, currentOwnerID string) (access.ReassignmentDecision, bool) {
+	currentOwnerID = strings.TrimSpace(currentOwnerID)
+	if currentOwnerID == "" {
+		return access.ReassignmentDecision{}, false
+	}
+	if actor.PrincipalID == currentOwnerID {
+		return access.ReassignmentDecision{Allowed: true, Basis: "CURRENT_ASSIGNEE"}, true
+	}
+	resolver, ok := a.deps.Access.(access.ReassignmentResolver)
+	if !ok {
+		return access.ReassignmentDecision{}, false
+	}
+	decision, err := resolver.CanReassign(ctx, access.ReassignmentRequest{
+		TenantID: actor.TenantID, LegalEntityID: legalEntityID, ActorPrincipalID: actor.PrincipalID, CurrentOwnerPrincipalID: currentOwnerID,
+	})
+	return decision, err == nil
 }
 
 func matterOperationRequiresStoredPrincipal(spec recordOperationSpec) bool {

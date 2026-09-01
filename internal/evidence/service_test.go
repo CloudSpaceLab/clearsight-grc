@@ -46,18 +46,26 @@ func TestCreateRequestRetainsExactFormTemplateAndCollectionPeriod(t *testing.T) 
 	service := NewService(repository, NewMemoryObjectStore())
 	service.now = func() time.Time { return now }
 
-	request, err := service.CreateRequest(context.Background(), CreateRequestInput{
+	input := CreateRequestInput{
 		TenantID: "bank", SubjectType: "PROGRAM", SubjectID: "program-1", Title: "Password reset review",
 		Purpose: "Collect the current password reset control review.", WhyYou: "You own the password reset process.",
 		Sensitivity: "INTERNAL", AudienceType: "INTERNAL", Recipient: RecipientInput{Type: RecipientInternalPrincipal, PrincipalID: testCaptureRecipient},
 		EstimatedMinutes: 5, Deadline: now.Add(24 * time.Hour), Fields: []Field{{ID: "identity", Label: "Identity verification completed", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}},
+		ScoringMode: formcontract.ScoringRisk, ScoreProfile: &formcontract.ScoreProfile{
+			Version: "risk-v2", Mode: formcontract.ScoringRisk, Bands: formcontract.DefaultConcernBands(),
+			Contributions: []formcontract.ScoreContribution{{ID: "identity-score", Weight: 100, Predicate: formcontract.Predicate{FieldID: "identity", Operator: formcontract.PredicateEquals, Values: []string{"No"}}, MatchPoints: 100, Missing: formcontract.MissingIndeterminate}},
+		},
 		FormTemplateID: "form-1", FormTemplateVersion: 3, CollectionPeriodStart: &periodStart, CollectionPeriodEnd: &periodEnd,
-	})
+	}
+	request, err := service.CreateRequest(context.Background(), input)
 	if err != nil {
 		t.Fatalf("create request: %v", err)
 	}
 	if request.FormTemplateID != "form-1" || request.FormTemplateVersion != 3 || request.CollectionPeriodStart == nil || !request.CollectionPeriodStart.Equal(periodStart) || request.CollectionPeriodEnd == nil || !request.CollectionPeriodEnd.Equal(periodEnd) {
 		t.Fatalf("request form reference = %#v", request)
+	}
+	if request.ScoringMode != formcontract.ScoringRisk || request.ScoreProfile == nil || request.ScoreProfile.Version != "risk-v2" || request.ScoreProfile.Direction != formcontract.DirectionHighIsPoor {
+		t.Fatalf("request score profile = %#v", request.ScoreProfile)
 	}
 }
 

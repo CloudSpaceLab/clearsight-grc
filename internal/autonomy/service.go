@@ -125,6 +125,13 @@ func (s *Service) ListAutomationPolicies(ctx context.Context, tenant string) ([]
 	return s.repo.ListAutomationPolicies(ctx, tenant)
 }
 
+func (s *Service) GetAutomationPolicy(ctx context.Context, tenant, policyID string, version int64) (AutomationPolicy, error) {
+	if s == nil || s.repo == nil || strings.TrimSpace(tenant) == "" || strings.TrimSpace(policyID) == "" || version < 1 {
+		return AutomationPolicy{}, fmt.Errorf("tenant, policy and positive version are required")
+	}
+	return s.repo.GetAutomationPolicy(ctx, strings.TrimSpace(tenant), strings.TrimSpace(policyID), version)
+}
+
 func assess(signal Signal, detected time.Time) (Drift, error) {
 	dimension, severity, summary, action := "context", 1, "Institutional context changed.", "Review the affected scope."
 	switch signal.Type {

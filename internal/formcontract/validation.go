@@ -87,6 +87,9 @@ func Normalize(input Contract) (Contract, error) {
 	if err := validateScoringContract(input); err != nil {
 		return Contract{}, err
 	}
+	if err := normalizeScoreProfile(&input); err != nil {
+		return Contract{}, err
+	}
 	return input, nil
 }
 
@@ -233,7 +236,7 @@ func validateScoringContract(contract Contract) error {
 
 	switch contract.ScoringMode {
 	case ScoringNone:
-		if len(sectionsWithScoring) != 0 {
+		if len(sectionsWithScoring) != 0 || contract.ScoreProfile != nil {
 			return invalid("NONE scoring mode cannot contain scored fields")
 		}
 	case ScoringRisk:
@@ -243,8 +246,16 @@ func validateScoringContract(contract Contract) error {
 			}
 		}
 	case ScoringCompliance:
-		if len(sectionsWithScoring) == 0 {
+		if len(sectionsWithScoring) == 0 && contract.ScoreProfile == nil {
 			return invalid("COMPLIANCE scoring mode requires scored fields")
+		}
+		if len(sectionsWithScoring) == 0 {
+			for _, section := range contract.Sections {
+				if section.Weight != 0 {
+					return invalid("section weights require legacy compliance field scoring")
+				}
+			}
+			break
 		}
 		sectionWeightTotal := 0
 		for _, section := range contract.Sections {

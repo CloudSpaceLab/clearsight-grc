@@ -62,5 +62,8 @@ func responseRevisionJSON(value evidence.ResponseRevision) map[string]any {
 	if value.ComplianceScore != nil {
 		item["compliance_score"] = *value.ComplianceScore
 	}
+	if value.Score != nil {
+		item["score"] = responseScoreJSON(value.Score, true)
+	}
 	return item
 }

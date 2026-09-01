@@ -40,19 +40,24 @@ func preparePostgresRecipientAdditions(ctx context.Context, store *PostgresDistr
 
 func loadPinnedDistributionForm(ctx context.Context, tx pgx.Tx, distribution FormDistribution) (DistributionFormRevision, error) {
 	var form DistributionFormRevision
-	var presentationJSON, sectionsJSON, fieldsJSON []byte
+	var presentationJSON, scoreProfileJSON, sectionsJSON, fieldsJSON []byte
 	if err := tx.QueryRow(ctx, `
-		SELECT id::text,tenant_id::text,legal_entity_id::text,version,sensitivity,presentation,sections,fields
+		SELECT id::text,tenant_id::text,legal_entity_id::text,version,sensitivity,presentation,scoring_mode,score_profile,sections,fields
 		FROM monitoring_form_templates
 		WHERE id=$1::uuid AND tenant_id=$2::uuid AND legal_entity_id=$3::uuid AND version=$4
 		FOR KEY SHARE`, distribution.FormTemplateID, distribution.TenantID, distribution.LegalEntityID, distribution.FormTemplateVersion).Scan(
 		&form.ID, &form.TenantID, &form.LegalEntityID, &form.Version, &form.Sensitivity,
-		&presentationJSON, &sectionsJSON, &fieldsJSON,
+		&presentationJSON, &form.ScoringMode, &scoreProfileJSON, &sectionsJSON, &fieldsJSON,
 	); err != nil {
 		return DistributionFormRevision{}, fmt.Errorf("load pinned distribution form: %w", err)
 	}
 	if err := json.Unmarshal(presentationJSON, &form.Presentation); err != nil {
 		return DistributionFormRevision{}, err
+	}
+	if len(scoreProfileJSON) > 0 {
+		if err := json.Unmarshal(scoreProfileJSON, &form.ScoreProfile); err != nil {
+			return DistributionFormRevision{}, err
+		}
 	}
 	if err := json.Unmarshal(sectionsJSON, &form.Sections); err != nil {
 		return DistributionFormRevision{}, err

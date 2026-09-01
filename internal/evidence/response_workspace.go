@@ -156,6 +156,20 @@ func cloneInt64Map(value map[string]int64) map[string]int64 {
 
 func cloneResponseRevision(value ResponseRevision) ResponseRevision {
 	value.SignoffSummary = cloneAnyMap(value.SignoffSummary)
+	if value.Score != nil {
+		score := *value.Score
+		if value.Score.RawScore != nil {
+			raw := *value.Score.RawScore
+			score.RawScore = &raw
+		}
+		if value.Score.AdverseScore != nil {
+			adverse := *value.Score.AdverseScore
+			score.AdverseScore = &adverse
+		}
+		score.ContributionResults = append([]formcontract.ContributionResult(nil), value.Score.ContributionResults...)
+		score.RuleResults = append([]formcontract.AdvancedRuleResult(nil), value.Score.RuleResults...)
+		value.Score = &score
+	}
 	if value.ComplianceScore != nil {
 		score := *value.ComplianceScore
 		value.ComplianceScore = &score

@@ -1,4 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import "./document-import.css";
+import "./monitoring.css";
+import "./program-record.css";
 import {
   loadContext,
   loadEvidenceRequest,
@@ -29,9 +32,10 @@ import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceReques
 const FormsWorkspace = lazy(() => import("./components/FormsWorkspace").then((module) => ({ default: module.FormsWorkspace })));
 const VendorsWorkspace = lazy(() => import("./components/VendorsWorkspace").then((module) => ({ default: module.VendorsWorkspace })));
 const ConfigureWorkspace = lazy(() => import("./components/configure/ConfigureWorkspace").then((module) => ({ default: module.ConfigureWorkspace })));
+const OversightWorkspace = lazy(() => import("./components/oversight/OversightWorkspace").then((module) => ({ default: module.OversightWorkspace })));
 
 type LoadState = "idle" | "loading" | "live" | "unavailable";
-type ConnectionState = "loading" | "live" | "sample" | "unavailable";
+type ConnectionState = "loading" | "live" | "unavailable";
 type PrimaryEvidenceLoad = { targetID?: string; state: "idle" | "loading" | "live" | "unavailable" };
 type VendorGuideIntent = { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" | "open-vendor-next-action" };
 type ProductRuntime = RuntimeContext & {
@@ -43,14 +47,10 @@ type ProductRuntime = RuntimeContext & {
     config_write?: boolean;
     platform_operations_read?: boolean;
     platform_operations_write?: boolean;
+    oversight_read?: boolean;
   };
   actor: RuntimeContext["actor"] & { role_codes?: string[] };
 };
-
-const sampleMode = import.meta.env.VITE_ENABLE_SAMPLE_DATA === "true";
-const fallbackItems: AttentionItem[] = [{
-  id: "fallback-change", type: "REGULATORY_CHANGE", title: "Review proposed digital-channel requirements", why_now: "Seven provisions may affect mobile banking and two payment vendors.", scope: "Digital Channels · Reference data", state: "Applicability review", evidence: "Official source recorded", owner: "Regulatory Compliance", due_at: new Date(Date.now() + 3 * 86400000).toISOString(), primary_action: "Review the proposed requirements", intervention_class: "REVIEW", material_conclusion: "Seven source-linked provisions may change digital-channel obligations.", recommendation: { proposed_action: "Review the proposed requirements", rationale: "The source change may affect mobile banking and two payment vendors." },
-}];
 
 function App({ presentation = "enterprise" }: { presentation?: RuntimePresentation }) {
   const initialRoute = parseRoute(window.location.hash);
@@ -94,21 +94,16 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const importsEnabled = runtime != null && runtime.capabilities?.document_import !== false;
   const configureEnabled = runtime != null && runtime.capabilities?.config_read !== false;
   const referenceJourneysEnabled = demoMode && runtime?.capabilities?.reference_journeys !== false;
+  const oversightEnabled = runtime?.capabilities?.oversight_read === true;
 
   useEffect(() => {
     void Promise.allSettled([loadContext(), loadToday(), loadReadiness()]).then(([contextResult, todayResult, readinessResult]) => {
       const currentRuntime = contextResult.status === "fulfilled" ? contextResult.value as ProductRuntime : null;
       applyVerifiedRuntime(currentRuntime);
-      const allowFallback = (currentRuntime?.demo_mode === true && presentation === "demo") ||
-        (currentRuntime == null && sampleMode && presentation === "demo");
       if (todayResult.status === "fulfilled") {
         setItems(Array.isArray(todayResult.value.items) ? todayResult.value.items : []);
         setTodayGeneratedAt(todayResult.value.generated_at);
         setConnection("live");
-      } else if (allowFallback) {
-        setItems(fallbackItems);
-        setTodayGeneratedAt(undefined);
-        setConnection("sample");
       } else {
         setItems([]);
         setTodayGeneratedAt(undefined);
@@ -164,8 +159,8 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   useEffect(() => {
     document.documentElement.dataset.clearsightDemo = demoMode ? "on" : "off";
     if (!runtime) return;
-    if ((!referenceJourneysEnabled && activeView === "explore") || (!importsEnabled && activeView === "imports") || (!configureEnabled && activeView === "configure")) navigate("today");
-  }, [runtime, referenceJourneysEnabled, importsEnabled, configureEnabled, activeView]);
+    if ((!referenceJourneysEnabled && activeView === "explore") || (!importsEnabled && activeView === "imports") || (!configureEnabled && activeView === "configure") || (!oversightEnabled && activeView === "oversight")) navigate("today");
+  }, [runtime, referenceJourneysEnabled, importsEnabled, configureEnabled, oversightEnabled, activeView]);
 
   async function loadEvidenceWorkspace(requestedID?: string) {
     const loadID = ++evidenceWorkspaceLoadID.current;
@@ -264,6 +259,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const roleName = humanRole(runtime?.actor.role_codes?.[0]) || "Role not provided";
   const operatingNavigation: Array<{ label: string; view: View }> = [
     { label: "Today", view: "today" },
+    ...(oversightEnabled ? [{ label: "Oversight", view: "oversight" as View }] : []),
     { label: "Programs", view: "programs" },
     { label: "Work", view: "work" },
     { label: "Vendors", view: "vendors" },
@@ -294,7 +290,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   function closePanel() { captureLoadID.current++; routingLoadID.current++; setActivePanel("none"); }
 
   async function inspectRouting(item: AttentionItem) {
-    if (!item.authority || !item.action_target_type || !item.action_target_id) return;
+    if (!item.authority || !isAuthorityObjectType(item.action_target_type) || !item.action_target_id) return;
     const loadID = ++routingLoadID.current;
     setRoutingItem(item); setResolution(null); setRoutingState("loading"); setActivePanel("routing");
     try {
@@ -408,6 +404,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       </div>
       {(activeView === "today" || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>}
       {activeView === "today" && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>} 
+      {activeView === "oversight" && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading oversight…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")}/></Suspense>}
       {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
       {activeView === "work" && <WorkView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} evidenceScopeToken={evidenceScopeEpoch.current} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} onBackMatter={() => navigate("work", {}, "matters")} sources={sources} requests={evidenceRequests} evidenceSourceState={evidenceSourceState === "idle" ? "loading" : evidenceSourceState} evidenceRequestState={evidenceRequestState === "idle" ? "loading" : evidenceRequestState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} onEvidenceRequestUpdated={updateEvidenceEntity} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
       {activeView === "vendors" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships…</div>}><VendorsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.vendorRelationshipID} guideIntent={vendorGuideIntent} onGuideIntentCompleted={completeVendorGuideIntent} onGuideIntentFailed={failVendorGuideIntent} onTarget={(id) => navigate("vendors", id ? { vendorRelationshipID: id } : {})} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} onOpenForms={() => navigate("forms")}/></Suspense>}
@@ -420,6 +417,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     <nav className="mobile-nav" aria-label="Mobile navigation">{operatingNavigation.map(({ label, view }) => <button key={view} type="button" aria-current={activeView === view ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><span>{label}</span></button>)}</nav>
     {activePanel !== "none" && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}>{activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}</FocusedSheet>}
   </div>;
+}
+
+function isAuthorityObjectType(value: AttentionItem["action_target_type"]): value is "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST" {
+  return value === "PROGRAM" || value === "MATTER" || value === "EVIDENCE_REQUEST";
 }
 
 function humanRole(value?: string) {

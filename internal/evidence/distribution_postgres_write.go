@@ -14,9 +14,9 @@ import (
 
 func loadExactActiveDistributionForm(ctx context.Context, tx pgx.Tx, input CreateDistributionInput) (DistributionFormRevision, error) {
 	var form DistributionFormRevision
-	var presentationJSON, sectionsJSON, fieldsJSON []byte
+	var presentationJSON, scoreProfileJSON, sectionsJSON, fieldsJSON []byte
 	err := tx.QueryRow(ctx, `
-		SELECT f.id::text,f.tenant_id::text,f.legal_entity_id::text,f.version,f.sensitivity,f.presentation,f.sections,f.fields
+		SELECT f.id::text,f.tenant_id::text,f.legal_entity_id::text,f.version,f.sensitivity,f.presentation,f.scoring_mode,f.score_profile,f.sections,f.fields
 		FROM monitoring_form_templates f
 		JOIN tenants t ON t.id=f.tenant_id
 		JOIN legal_entities le ON le.id=f.legal_entity_id AND le.tenant_id=f.tenant_id
@@ -26,7 +26,7 @@ func loadExactActiveDistributionForm(ctx context.Context, tx pgx.Tx, input Creat
 		  AND f.status='ACTIVE' AND f.is_current
 		FOR KEY SHARE`, input.FormTemplateID, input.FormTemplateVersion, input.TenantID, input.LegalEntityID).Scan(
 		&form.ID, &form.TenantID, &form.LegalEntityID, &form.Version, &form.Sensitivity,
-		&presentationJSON, &sectionsJSON, &fieldsJSON,
+		&presentationJSON, &form.ScoringMode, &scoreProfileJSON, &sectionsJSON, &fieldsJSON,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return DistributionFormRevision{}, fmt.Errorf("form revision must be the exact active revision in the requested legal entity")
@@ -36,6 +36,11 @@ func loadExactActiveDistributionForm(ctx context.Context, tx pgx.Tx, input Creat
 	}
 	if err := json.Unmarshal(presentationJSON, &form.Presentation); err != nil {
 		return DistributionFormRevision{}, err
+	}
+	if len(scoreProfileJSON) > 0 {
+		if err := json.Unmarshal(scoreProfileJSON, &form.ScoreProfile); err != nil {
+			return DistributionFormRevision{}, err
+		}
 	}
 	if err := json.Unmarshal(sectionsJSON, &form.Sections); err != nil {
 		return DistributionFormRevision{}, err
@@ -80,6 +85,10 @@ func insertDistributionRequest(ctx context.Context, tx pgx.Tx, distribution Form
 	if err != nil {
 		return err
 	}
+	scoreProfileJSON, err := marshalScoreProfile(form.ScoreProfile)
+	if err != nil {
+		return err
+	}
 	audienceType := "EXTERNAL"
 	principalID := ""
 	var audienceHash any
@@ -98,16 +107,16 @@ func insertDistributionRequest(ctx context.Context, tx pgx.Tx, distribution Form
 		INSERT INTO capture_requests(
 			id,tenant_id,legal_entity_id,distribution_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
 			recipient_type,recipient_principal_id,recipient_audience_hash,recipient_hint,recipient_state,recipient_revision,recipient_issue_reason,
-			estimated_minutes,deadline,known_facts,presentation,sections,fields,source_bindings,form_template_id,form_template_version,
+			estimated_minutes,deadline,known_facts,presentation,scoring_mode,score_profile,sections,fields,source_bindings,form_template_id,form_template_version,
 			status,created_by,version,created_at,updated_at
 		) VALUES(
 			$1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8,$8,$9,$10,
-			$11,NULLIF($12,'')::uuid,$13,$14,'ASSIGNED',1,'',$15,$16,'{}'::jsonb,$17::jsonb,$18::jsonb,$19::jsonb,'[]'::jsonb,$20::uuid,$21,
-			'READY',$22::uuid,1,$23,$23
+			$11,NULLIF($12,'')::uuid,$13,$14,'ASSIGNED',1,'',$15,$16,'{}'::jsonb,$17::jsonb,$18,$19::jsonb,$20::jsonb,$21::jsonb,'[]'::jsonb,$22::uuid,$23,
+			'READY',$24::uuid,1,$25,$25
 		)`, recipient.safe.RequestID, distribution.TenantID, distribution.LegalEntityID, distribution.ID,
 		distribution.SubjectType, distribution.SubjectID, distribution.Title, distribution.Purpose, form.Sensitivity,
 		audienceType, recipient.safe.Type, principalID, audienceHash, hint, estimatedMinutes, distribution.Deadline,
-		string(presentationJSON), string(sectionsJSON), string(fieldsJSON), form.ID, form.Version, distribution.CreatedBy, now)
+		string(presentationJSON), form.ScoringMode, scoreProfileJSON, string(sectionsJSON), string(fieldsJSON), form.ID, form.Version, distribution.CreatedBy, now)
 	if err != nil {
 		return fmt.Errorf("insert TO capture request: %w", err)
 	}

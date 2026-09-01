@@ -2,7 +2,7 @@ import { EmptyState } from "./EmptyState";
 import { WorkItemIcon } from "./WorkItemIcon";
 import type { AttentionItem, InterventionClass, Readiness } from "../types";
 
-type ConnectionState = "loading" | "live" | "sample" | "unavailable";
+type ConnectionState = "loading" | "live" | "unavailable";
 type ReadinessState = "loading" | "live" | "unavailable";
 type FocusedAttentionItem = AttentionItem & { action_target_sub_id?: string };
 
@@ -23,7 +23,7 @@ export function TodayInterventions({ items, connection, readiness, readinessStat
   return <>
     <section className="intervention-brief" id="today-brief" aria-labelledby="intervention-heading">
       <header className="intervention-heading">
-        <div><span className="eyebrow">Today</span><h2 id="intervention-heading">{title}</h2><p>Reviews, approvals and evidence requests assigned to you.</p></div>
+        <div><span className="eyebrow">Today</span><h2 id="intervention-heading">{title}</h2><p>Assigned work and operational exceptions you are permitted to handle.</p></div>
       </header>
       {connection === "loading"
         ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Today…</div>
@@ -31,7 +31,7 @@ export function TodayInterventions({ items, connection, readiness, readinessStat
           ? <EmptyState kind="unavailable" label="Today" title="Today could not be loaded" description="Retry the assigned-work list before relying on its current items." action="Try again" onAction={onRetry}/>
           : items.length
             ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
-            : <div id="attention-list"><EmptyState label="Today" title="Nothing needs your action right now" description="There are no open reviews, approvals or evidence requests assigned to you in this scope."/></div>}
+            : <div id="attention-list"><EmptyState label="Today" title="Nothing needs your action right now" description="No assigned work or permitted operational exceptions are open for you in this scope."/></div>}
     </section>
     <StatusChecks readiness={readiness} state={readinessState}/>
   </>;
@@ -58,7 +58,7 @@ function InterventionRow({ item, onOpen, onInspectAuthority }: { item: Attention
       <strong>{nextAction}</strong>
       {item.recommendation?.rationale && item.recommendation.rationale !== conclusion && <small>{item.recommendation.rationale}</small>}
       {item.verification && <VerificationContext item={item}/>} 
-      {canOpen ? <button className="primary-button" type="button" onClick={() => openItem(item, onOpen)}>{openLabel(targetType)}</button> : <small>No linked record is available.</small>}
+      {canOpen ? <button className="primary-button" type="button" onClick={() => openItem(item, onOpen)}>{openLabel(targetType, item.action_target_id)}</button> : <small>No linked record is available.</small>}
       {canInspectAuthority && <button className="text-button" type="button" onClick={() => onInspectAuthority?.(item)}>Check authority</button>}
     </div>
   </article>;
@@ -69,6 +69,10 @@ function openItem(item: AttentionItem, fallback: (item: AttentionItem) => void) 
   if ((focused.action_target_type as string | undefined) === "DOCUMENT_IMPORT" && focused.action_target_id) {
     const proposal = focused.action_target_sub_id ? `/${encodeURIComponent(focused.action_target_sub_id)}` : "";
     window.location.hash = `imports/${encodeURIComponent(focused.action_target_id)}${proposal}`;
+    return;
+  }
+  if (focused.action_target_type === "CONFIGURE" && focused.action_target_id) {
+    window.location.hash = `configure/${encodeURIComponent(focused.action_target_id)}`;
     return;
   }
   fallback(item);
@@ -114,11 +118,12 @@ function StatusChecks({ readiness, state }: { readiness: Readiness | null; state
   </details>;
 }
 
-function openLabel(target?: string) {
+function openLabel(target?: string, targetID?: string) {
   if (target === "PROGRAM") return "Open program";
   if (target === "MATTER") return "Open issue";
   if (target === "EVIDENCE_REQUEST") return "Open request";
   if (target === "DOCUMENT_IMPORT") return "Open proposal";
+  if (target === "CONFIGURE") return targetID === "operations" ? "Open system operations" : "Open access settings";
   return "Open item";
 }
 

@@ -635,12 +635,40 @@ func (r *MemoryRepository) CreateArtifact(_ context.Context, artifact Artifact) 
 
 func cloneRequest(value Request) Request {
 	value.KnownFacts = cloneMap(value.KnownFacts)
+	value.ScoreProfile = cloneScoreProfile(value.ScoreProfile)
 	value.Sections = cloneSections(value.Sections)
 	value.Fields = cloneFields(value.Fields)
 	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
 	value.CollectionPeriodStart = cloneTimePointer(value.CollectionPeriodStart)
 	value.CollectionPeriodEnd = cloneTimePointer(value.CollectionPeriodEnd)
 	return value
+}
+
+func cloneScoreProfile(value *formcontract.ScoreProfile) *formcontract.ScoreProfile {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	cloned.Bands = append([]formcontract.ScoreBandRange(nil), value.Bands...)
+	cloned.Contributions = append([]formcontract.ScoreContribution(nil), value.Contributions...)
+	for index := range cloned.Contributions {
+		cloned.Contributions[index].Predicate = cloneScorePredicate(value.Contributions[index].Predicate)
+	}
+	cloned.Rules = append([]formcontract.ScoreRule(nil), value.Rules...)
+	for index := range cloned.Rules {
+		cloned.Rules[index].Predicate = cloneScorePredicate(value.Rules[index].Predicate)
+	}
+	return &cloned
+}
+
+func cloneScorePredicate(value formcontract.Predicate) formcontract.Predicate {
+	cloned := value
+	cloned.Values = append([]string(nil), value.Values...)
+	cloned.Children = append([]formcontract.Predicate(nil), value.Children...)
+	for index := range cloned.Children {
+		cloned.Children[index] = cloneScorePredicate(value.Children[index])
+	}
+	return cloned
 }
 
 func cloneSections(input []formcontract.Section) []formcontract.Section {

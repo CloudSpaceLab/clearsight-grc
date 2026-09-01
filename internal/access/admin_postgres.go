@@ -19,6 +19,60 @@ func NewPostgresAdministrator(pool *pgxpool.Pool) *PostgresAdministrator {
 	return &PostgresAdministrator{pool: pool}
 }
 
+func (a *PostgresAdministrator) OperationalStatus(ctx context.Context, tenant string, limit int) (OperationalStatus, error) {
+	tenant = strings.TrimSpace(tenant)
+	if tenant == "" {
+		return OperationalStatus{}, ErrAdminInvalid
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	var tenantID string
+	if err := a.pool.QueryRow(ctx, `SELECT id::text FROM tenants WHERE id::text=$1 OR slug=$1`, tenant).Scan(&tenantID); errors.Is(err, pgx.ErrNoRows) {
+		return OperationalStatus{}, ErrAdminNotFound
+	} else if err != nil {
+		return OperationalStatus{}, err
+	}
+
+	result := OperationalStatus{}
+	rows, err := a.pool.Query(ctx, `
+		SELECT ss.id::text,ss.code,ss.status,COALESCE(ss.identity_issuer,''),ss.subject_attribute,
+		       (SELECT count(*) FROM scim_users su WHERE su.source_id=ss.id AND su.active AND su.deleted_at IS NULL),
+		       (SELECT count(*) FROM directory_groups dg WHERE dg.source_id=ss.id AND dg.deleted_at IS NULL),
+		       GREATEST(
+		         COALESCE((SELECT max(su.updated_at) FROM scim_users su WHERE su.source_id=ss.id),ss.updated_at),
+		         COALESCE((SELECT max(dg.updated_at) FROM directory_groups dg WHERE dg.source_id=ss.id),ss.updated_at)
+		       ),ss.created_at,ss.updated_at
+		FROM scim_sources ss
+		WHERE ss.tenant_id=$1::uuid AND upper(ss.status)<>'ACTIVE'
+		ORDER BY ss.code LIMIT $2`, tenantID, limit)
+	if err != nil {
+		return OperationalStatus{}, err
+	}
+	for rows.Next() {
+		var value SCIMSourceSummary
+		if err := rows.Scan(&value.ID, &value.Code, &value.Status, &value.IdentityIssuer, &value.SubjectAttribute, &value.ActiveUsers, &value.ActiveGroups, &value.LastActivityAt, &value.CreatedAt, &value.UpdatedAt); err != nil {
+			rows.Close()
+			return OperationalStatus{}, err
+		}
+		result.SourceExceptions = append(result.SourceExceptions, value)
+	}
+	if err := closeRows(rows); err != nil {
+		return OperationalStatus{}, err
+	}
+
+	if err := a.pool.QueryRow(ctx, `
+		SELECT
+		  (SELECT count(*) FROM workflow_timers wt WHERE wt.tenant_id=$1::uuid AND wt.timer_type='MATTER_ESCALATION' AND wt.state IN ('READY','CLAIMED')),
+		  (SELECT count(*) FROM workflow_tasks wt WHERE wt.tenant_id=$1::uuid AND wt.status='ESCALATED' AND COALESCE(wt.context->>'escalation_active','')='true'),
+		  (SELECT count(*) FROM workflow_events we WHERE we.tenant_id=$1::uuid AND we.event_type='WORK_ESCALATION_UNRESOLVED' AND we.occurred_at>=clock_timestamp()-interval '24 hours'),
+		  (SELECT count(*) FROM workflow_timers wt WHERE wt.tenant_id=$1::uuid AND wt.timer_type='MATTER_ESCALATION' AND wt.state='FAILED')`, tenantID).
+		Scan(&result.Escalation.PendingTimers, &result.Escalation.EscalatedTasks, &result.Escalation.Unresolved24h, &result.Escalation.FailedTimers); err != nil {
+		return OperationalStatus{}, err
+	}
+	return result, nil
+}
+
 func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntity string, limit int) (AdminOverview, error) {
 	tenant, legalEntity = strings.TrimSpace(tenant), strings.TrimSpace(legalEntity)
 	if tenant == "" || legalEntity == "" {
@@ -52,6 +106,38 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 			return AdminOverview{}, err
 		}
 		result.Sources = append(result.Sources, value)
+	}
+	if err := closeRows(rows); err != nil {
+		return AdminOverview{}, err
+	}
+
+	rows, err = a.pool.Query(ctx, `
+		SELECT op.id::text,op.code,op.title,COALESCE(op.function_name,''),op.department_path,
+		       COALESCE(parent.id::text,''),COALESCE(parent.code,''),COALESCE(parent.title,''),
+		       COALESCE(occupant.id::text,''),COALESCE(occupant.display_name,''),COALESCE(occupant.status,''),
+		       COALESCE(array_agg(DISTINCT rt.code ORDER BY rt.code) FILTER (WHERE rt.id IS NOT NULL),ARRAY[]::text[]),
+		       op.valid_from,op.valid_until,op.version
+		FROM org_positions op
+		LEFT JOIN org_positions parent ON parent.tenant_id=op.tenant_id AND parent.id=op.parent_position_id
+		LEFT JOIN principals occupant ON occupant.tenant_id=op.tenant_id AND occupant.id=op.occupant_principal_id
+		LEFT JOIN position_role_bindings prb ON prb.tenant_id=op.tenant_id AND prb.position_id=op.id
+		  AND prb.valid_from<=clock_timestamp() AND (prb.valid_until IS NULL OR clock_timestamp()<prb.valid_until)
+		LEFT JOIN role_templates rt ON rt.tenant_id=prb.tenant_id AND rt.id=prb.role_template_id
+		  AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+		WHERE op.tenant_id=$1::uuid AND op.legal_entity_id=$2::uuid
+		  AND op.valid_from<=clock_timestamp() AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+		GROUP BY op.id,parent.id,parent.code,parent.title,occupant.id,occupant.display_name,occupant.status
+		ORDER BY cardinality(op.department_path),op.department_path,op.code LIMIT $3`, tenantID, entityID, limit)
+	if err != nil {
+		return AdminOverview{}, err
+	}
+	for rows.Next() {
+		var value PositionSummary
+		if err := rows.Scan(&value.ID, &value.Code, &value.Title, &value.FunctionName, &value.DepartmentPath, &value.ParentPositionID, &value.ParentPositionCode, &value.ParentPositionTitle, &value.OccupantPrincipalID, &value.OccupantName, &value.OccupantStatus, &value.RoleCodes, &value.ValidFrom, &value.ValidUntil, &value.Version); err != nil {
+			rows.Close()
+			return AdminOverview{}, err
+		}
+		result.Positions = append(result.Positions, value)
 	}
 	if err := closeRows(rows); err != nil {
 		return AdminOverview{}, err

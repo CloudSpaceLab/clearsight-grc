@@ -104,6 +104,7 @@ export function FormBuilder({
     setDraft((current) => ({
       ...current,
       scoringMode,
+      scoreProfile: current.scoreProfile && current.scoreProfile.mode === scoringMode ? current.scoreProfile : undefined,
       sections: scoringMode === "COMPLIANCE" ? current.sections : current.sections.map((section) => ({ ...section, weight: undefined })),
       fields: scoringMode === "NONE" ? current.fields.map((field) => ({ ...field, scoring: undefined })) : current.fields,
     }));
@@ -346,6 +347,7 @@ export function FormBuilder({
       name: "Password reset security review",
       purpose: "Confirm that password reset safeguards operated during the reporting period.",
       scoringMode: "RISK",
+      scoreProfile: undefined,
       presentation: "AUTOMATIC",
       allowModeSwitch: false,
       sections: [{ id: "section_1", title: "Security review" }],
@@ -446,6 +448,7 @@ export function FormBuilder({
   function renderInspectorPane() {
     return <FormInspector
       draft={draft}
+      templateRevision={initialValue ? { id: initialValue.id, version: initialValue.version } : undefined}
       selection={selection}
       onPatch={patch}
       onScoringMode={setScoringMode}

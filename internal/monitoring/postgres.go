@@ -42,17 +42,22 @@ func (r *PostgresRepository) StarterTemplateByCode(ctx context.Context, code str
 	return value, mapPostgresError(err)
 }
 
-const starterTemplateSelect = `SELECT code,catalog_version,published_on::text,reference_label,name,purpose,approved_uses,tags,sensitivity,scoring_mode,presentation,sections,fields FROM form_starter_templates`
+const starterTemplateSelect = `SELECT code,catalog_version,published_on::text,reference_label,name,purpose,approved_uses,tags,sensitivity,scoring_mode,score_profile,presentation,sections,fields FROM form_starter_templates`
 
 func scanStarterTemplate(row scanner) (StarterTemplate, error) {
 	var value StarterTemplate
-	var presentation, sections, fields []byte
-	err := row.Scan(&value.Code, &value.CatalogVersion, &value.PublishedOn, &value.ReferenceLabel, &value.Template.Name, &value.Template.Purpose, &value.Template.ApprovedUses, &value.Template.Tags, &value.Template.Sensitivity, &value.Template.ScoringMode, &presentation, &sections, &fields)
+	var scoreProfile, presentation, sections, fields []byte
+	err := row.Scan(&value.Code, &value.CatalogVersion, &value.PublishedOn, &value.ReferenceLabel, &value.Template.Name, &value.Template.Purpose, &value.Template.ApprovedUses, &value.Template.Tags, &value.Template.Sensitivity, &value.Template.ScoringMode, &scoreProfile, &presentation, &sections, &fields)
 	if err != nil {
 		return StarterTemplate{}, err
 	}
 	if err := json.Unmarshal(presentation, &value.Template.Presentation); err != nil {
 		return StarterTemplate{}, err
+	}
+	if len(scoreProfile) > 0 && string(scoreProfile) != "null" {
+		if err := json.Unmarshal(scoreProfile, &value.Template.ScoreProfile); err != nil {
+			return StarterTemplate{}, err
+		}
 	}
 	if err := json.Unmarshal(sections, &value.Template.Sections); err != nil {
 		return StarterTemplate{}, err
@@ -108,15 +113,23 @@ func insertFormRevision(ctx context.Context, db queryRower, value FormTemplate) 
 	if err != nil {
 		return FormTemplate{}, errors.Join(ErrInvalid, err)
 	}
+	var scoreProfile any
+	if value.ScoreProfile != nil {
+		encoded, encodeErr := json.Marshal(value.ScoreProfile)
+		if encodeErr != nil {
+			return FormTemplate{}, errors.Join(ErrInvalid, encodeErr)
+		}
+		scoreProfile = string(encoded)
+	}
 	created, err := scanForm(db.QueryRow(ctx, `
 		INSERT INTO monitoring_form_templates AS f(
-			id,tenant_id,legal_entity_id,program_id,code,name,purpose,owner_principal_id,responsible_team,approved_uses,tags,jurisdiction,industry,sensitivity,scoring_mode,next_review_at,starter_catalog_code,starter_catalog_version,
+			id,tenant_id,legal_entity_id,program_id,code,name,purpose,owner_principal_id,responsible_team,approved_uses,tags,jurisdiction,industry,sensitivity,scoring_mode,score_profile,next_review_at,starter_catalog_code,starter_catalog_version,
 			presentation,sections,fields,status,is_current,effective_from,effective_until,version,created_by,submitted_by,approved_by,rejected_by,created_at,updated_at)
 		VALUES(
-			$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),NULLIF($3,'')::uuid,NULLIF($4,'')::uuid,$5,$6,$7,NULLIF($8,'')::uuid,$9,$10,$11,$12,$13,$14,$15,$16,NULLIF($17,''),NULLIF($18,0),
-			$19::jsonb,$20::jsonb,$21::jsonb,$22,$23,$24,$25,$26,NULLIF($27,'')::uuid,NULLIF($28,'')::uuid,NULLIF($29,'')::uuid,NULLIF($30,'')::uuid,$31,$32)
+			$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),NULLIF($3,'')::uuid,NULLIF($4,'')::uuid,$5,$6,$7,NULLIF($8,'')::uuid,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,$17,NULLIF($18,''),NULLIF($19,0),
+			$20::jsonb,$21::jsonb,$22::jsonb,$23,$24,$25,$26,$27,NULLIF($28,'')::uuid,NULLIF($29,'')::uuid,NULLIF($30,'')::uuid,NULLIF($31,'')::uuid,$32,$33)
 		RETURNING `+formProjection,
-		value.ID, value.TenantID, value.LegalEntityID, value.ProgramID, value.Code, value.Name, value.Purpose, value.OwnerPrincipalID, value.ResponsibleTeam, value.ApprovedUses, value.Tags, value.Jurisdiction, value.Industry, value.Sensitivity, value.ScoringMode, value.NextReviewAt, value.StarterCatalogCode, value.StarterCatalogVersion,
+		value.ID, value.TenantID, value.LegalEntityID, value.ProgramID, value.Code, value.Name, value.Purpose, value.OwnerPrincipalID, value.ResponsibleTeam, value.ApprovedUses, value.Tags, value.Jurisdiction, value.Industry, value.Sensitivity, value.ScoringMode, scoreProfile, value.NextReviewAt, value.StarterCatalogCode, value.StarterCatalogVersion,
 		presentation, sections, fields, value.Status, value.IsCurrent, value.EffectiveFrom, value.EffectiveUntil, value.Version, value.CreatedBy, value.SubmittedBy, value.ApprovedBy, value.RejectedBy, value.CreatedAt, value.UpdatedAt))
 	return created, mapPostgresError(err)
 }
@@ -555,7 +568,7 @@ func (r *PostgresRepository) Result(ctx context.Context, tenant, id string) (Mon
 const checkSelect = `SELECT c.id::text,c.tenant_id::text,c.program_id::text,COALESCE(c.requirement_id::text,''),COALESCE(c.control_implementation_id::text,''),COALESCE(c.evidence_contract_id::text,''),c.code,c.name,c.claim,c.input_kind,COALESCE(c.form_template_id::text,''),COALESCE(c.form_template_version,0),COALESCE(c.binding_id::text,''),COALESCE(c.binding_version,0),c.source_rules,c.thresholds,c.freshness_minutes,c.minimum_coverage,COALESCE(c.owner_principal_id::text,''),COALESCE(c.reviewer_principal_id::text,''),c.failure_action,c.status,c.is_current,c.effective_from,c.effective_until,c.version,COALESCE(c.created_by::text,''),COALESCE(c.submitted_by::text,''),COALESCE(c.approved_by::text,''),COALESCE(c.rejected_by::text,''),c.created_at,c.updated_at FROM monitoring_checks c JOIN tenants t ON t.id=c.tenant_id`
 const resultSelect = `SELECT r.id::text,r.tenant_id::text,r.program_id::text,r.monitoring_check_id::text,r.monitoring_check_version,r.input_kind,r.input_reference_id,r.input_reference_version,r.evaluation,r.source_receipt,r.submission_provenance,r.evaluated_at,r.evaluator_version,r.created_at FROM monitoring_results r JOIN tenants t ON t.id=r.tenant_id`
 const formProjection = `f.id::text,f.tenant_id::text,COALESCE(f.legal_entity_id::text,''),COALESCE(f.program_id::text,''),f.code,f.name,f.purpose,
-	COALESCE(f.owner_principal_id::text,''),f.responsible_team,f.approved_uses,f.tags,f.jurisdiction,f.industry,f.sensitivity,f.scoring_mode,f.next_review_at,COALESCE(f.starter_catalog_code,''),COALESCE(f.starter_catalog_version,0),
+	COALESCE(f.owner_principal_id::text,''),f.responsible_team,f.approved_uses,f.tags,f.jurisdiction,f.industry,f.sensitivity,f.scoring_mode,f.score_profile,f.next_review_at,COALESCE(f.starter_catalog_code,''),COALESCE(f.starter_catalog_version,0),
 	f.presentation,f.sections,f.fields,f.status,f.is_current,f.effective_from,f.effective_until,f.version,
 	COALESCE(f.created_by::text,''),COALESCE(f.submitted_by::text,''),COALESCE(f.approved_by::text,''),COALESCE(f.rejected_by::text,''),f.created_at,f.updated_at`
 
@@ -567,10 +580,10 @@ func scanForm(row scanner) (FormTemplate, error) {
 
 func scanFormWithExtra(row scanner, extra ...any) (FormTemplate, error) {
 	var value FormTemplate
-	var presentation, sections, fields []byte
+	var scoreProfile, presentation, sections, fields []byte
 	targets := []any{
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.ProgramID, &value.Code, &value.Name, &value.Purpose,
-		&value.OwnerPrincipalID, &value.ResponsibleTeam, &value.ApprovedUses, &value.Tags, &value.Jurisdiction, &value.Industry, &value.Sensitivity, &value.ScoringMode, &value.NextReviewAt, &value.StarterCatalogCode, &value.StarterCatalogVersion,
+		&value.OwnerPrincipalID, &value.ResponsibleTeam, &value.ApprovedUses, &value.Tags, &value.Jurisdiction, &value.Industry, &value.Sensitivity, &value.ScoringMode, &scoreProfile, &value.NextReviewAt, &value.StarterCatalogCode, &value.StarterCatalogVersion,
 		&presentation, &sections, &fields, &value.Status, &value.IsCurrent, &value.EffectiveFrom, &value.EffectiveUntil, &value.Version, &value.CreatedBy, &value.SubmittedBy, &value.ApprovedBy, &value.RejectedBy, &value.CreatedAt, &value.UpdatedAt,
 	}
 	err := row.Scan(append(targets, extra...)...)
@@ -585,6 +598,11 @@ func scanFormWithExtra(row scanner, extra ...any) (FormTemplate, error) {
 	}
 	if err := json.Unmarshal(fields, &value.Fields); err != nil {
 		return FormTemplate{}, err
+	}
+	if len(scoreProfile) > 0 {
+		if err := json.Unmarshal(scoreProfile, &value.ScoreProfile); err != nil {
+			return FormTemplate{}, err
+		}
 	}
 	return value, nil
 }

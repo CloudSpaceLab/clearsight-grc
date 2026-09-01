@@ -8,7 +8,7 @@ import {
   type FormDraft,
   type FormQualityIssue,
 } from "./formAuthoring";
-import { validateFieldContractBounds, validateSectionContractBounds } from "./formContractQuality";
+import { validateAdvancedScoreProfile, validateFieldContractBounds, validateSectionContractBounds } from "./formContractQuality";
 export type { FormQualityIssue } from "./formAuthoring";
 
 export function evaluateQuality(draft: FormDraft): FormQualityIssue[] {
@@ -69,7 +69,9 @@ export function evaluateQuality(draft: FormDraft): FormQualityIssue[] {
     }
   }
 
-  if (draft.scoringMode === "NONE" && draft.fields.some((field) => field.scoring)) block("scoring-none", "Remove scored questions or choose a scoring mode.");
+  if (draft.scoringMode === "NONE" && (draft.fields.some((field) => field.scoring) || draft.scoreProfile)) block("scoring-none", "Remove scoring rules or choose a scoring mode.");
+  if (draft.scoreProfile && draft.scoreProfile.mode !== draft.scoringMode) block("score-profile-mode", "The advanced score profile must use the selected scoring mode.");
+  validateAdvancedScoreProfile(draft.scoreProfile, draft.fields, block);
   if (draft.scoringMode === "RISK" && draft.sections.some((section) => (section.weight ?? 0) !== 0)) block("risk-section-weight", "Section weights are only valid for compliance scoring.");
   if (draft.scoringMode === "COMPLIANCE") validateCompliance(draft, block);
   return issues;
@@ -96,6 +98,10 @@ export function isTemplateApprovalReady(template: FormTemplate) {
 
 function validateCompliance(draft: FormDraft, block: (id: string, message: string, extra?: Partial<FormQualityIssue>) => void) {
   const scoredSections = draft.sections.filter((section) => draft.fields.some((field) => field.section_id === section.id && field.scoring));
+  if (draft.scoreProfile && !scoredSections.length) {
+    for (const section of draft.sections) if ((section.weight ?? 0) !== 0) block(`compliance-profile-section:${section.id}`, `${section.title || "Section"} cannot carry a legacy section weight when advanced scoring is used.`, { sectionID: section.id });
+    return;
+  }
   if (!scoredSections.length) {
     block("compliance-scored-fields", "Compliance scoring requires at least one scored question.");
     return;

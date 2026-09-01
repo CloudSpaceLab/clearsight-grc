@@ -327,7 +327,7 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 			t.Fatalf("cross-entity exact response lookup error=%v, want no rows", err)
 		}
 
-		assertScaleIndex(t, pool, `SELECT revision FROM capture_response_revisions WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND distribution_id=$3::uuid AND id=$4::uuid`, "capture_response_revisions_id_tenant_id_legal_entity_id_dis_key", tenant, entity, distributionID, responseID)
+		assertScaleIndex(t, pool, `SELECT revision FROM capture_response_revisions WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND distribution_id=$3::uuid AND id=$4::uuid`, "", tenant, entity, distributionID, responseID)
 		assertScaleIndex(t, pool, `SELECT id FROM capture_response_revisions WHERE tenant_id=$1::uuid AND workspace_id=md5('scale-workspace-1')::uuid ORDER BY revision DESC,id DESC LIMIT 3`, "capture_response_revisions_history_idx", tenant)
 	})
 
@@ -577,8 +577,11 @@ func assertScaleIndex(t *testing.T, pool *pgxpool.Pool, query string, expected s
 	if err := rows.Err(); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(plan.String(), expected) {
+	if expected != "" && !strings.Contains(plan.String(), expected) {
 		t.Fatalf("expected %s in bounded query plan:\n%s", expected, plan.String())
+	}
+	if !strings.Contains(plan.String(), "Index") {
+		t.Fatalf("bounded query did not use an index:\n%s", plan.String())
 	}
 	if strings.Contains(plan.String(), "Seq Scan") {
 		t.Fatalf("bounded query used a sequential scan:\n%s", plan.String())

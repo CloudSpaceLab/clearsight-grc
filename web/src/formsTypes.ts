@@ -1,5 +1,5 @@
 import type { CapturePresentation } from "./types";
-import type { CreateFormTemplateInput, FormScoringMode, FormTemplate as MonitoringFormTemplate, FormTemplateField, FormTemplateSection, LifecycleStatus } from "./monitoringTypes";
+import type { CreateFormTemplateInput, FormScoringMode, FormScoreProfile, FormTemplate as MonitoringFormTemplate, FormTemplateField, FormTemplateSection, LifecycleStatus } from "./monitoringTypes";
 import type { DocumentSourceAnchor } from "./documentTypes";
 
 export type { FormScoringMode } from "./monitoringTypes";
@@ -13,6 +13,7 @@ export type FormTemplate = MonitoringFormTemplate & {
   industry?: string;
   sensitivity: string;
   scoring_mode: FormScoringMode;
+  score_profile?: FormScoreProfile;
   next_review_at?: string;
   starter_catalog_code?: string;
   starter_catalog_version?: number;
@@ -90,6 +91,7 @@ export type FormProposalSourceKind = "DOCUMENT" | "AI";
 export type FormProposalChangeKind = "ADD_FIELD" | "UPDATE_FIELD" | "REMOVE_FIELD";
 export type FormProposalContract = {
   scoring_mode: FormScoringMode;
+  score_profile?: FormScoreProfile;
   presentation: CapturePresentation;
   sections: FormTemplateSection[];
   fields: FormTemplateField[];

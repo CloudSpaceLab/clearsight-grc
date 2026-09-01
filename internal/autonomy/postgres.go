@@ -5,9 +5,11 @@ package autonomy
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -159,6 +161,41 @@ func (r *PostgresRepository) ListAutomationPolicies(ctx context.Context, tenant 
 		values = append(values, value)
 	}
 	return values, rows.Err()
+}
+
+func (r *PostgresRepository) GetAutomationPolicy(ctx context.Context, tenant, id string, version int64) (AutomationPolicy, error) {
+	row := r.pool.QueryRow(ctx, `
+		SELECT ap.id::text,t.slug,ap.code,ap.name,ap.action_class,ap.eligibility,ap.blast_radius_limit,
+		       ap.verification_contract,ap.status,COALESCE(ap.rollout_mode,''),COALESCE(ap.checksum,''),
+		       COALESCE(ap.maker_id::text,''),COALESCE(ap.checker_id::text,''),
+		       COALESCE(ap.effective_from,'epoch'::timestamptz),COALESCE(ap.effective_until,'epoch'::timestamptz),
+		       COALESCE(ap.submitted_at,'epoch'::timestamptz),COALESCE(ap.approved_at,'epoch'::timestamptz),
+		       COALESCE(ap.activated_at,'epoch'::timestamptz),COALESCE(ap.suspended_at,'epoch'::timestamptz),
+		       COALESCE(ap.retired_at,'epoch'::timestamptz),ap.created_at,ap.updated_at,ap.version,ap.record_version
+		FROM automation_policies ap JOIN tenants t ON t.id=ap.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND ap.id::text=$2 AND ap.version=$3`, tenant, id, version)
+	var value AutomationPolicy
+	var eligibility, blastRadius, verification []byte
+	var effectiveFrom, effectiveUntil, submittedAt, approvedAt, activatedAt, suspendedAt, retiredAt time.Time
+	err := row.Scan(
+		&value.ID, &value.TenantID, &value.Code, &value.Name, &value.ActionClass,
+		&eligibility, &blastRadius, &verification, &value.Status, &value.RolloutMode, &value.Checksum,
+		&value.MakerID, &value.CheckerID, &effectiveFrom, &effectiveUntil, &submittedAt, &approvedAt,
+		&activatedAt, &suspendedAt, &retiredAt, &value.CreatedAt, &value.UpdatedAt, &value.Version, &value.RecordVersion,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return AutomationPolicy{}, ErrAutomationPolicyNotFound
+	}
+	if err != nil {
+		return AutomationPolicy{}, fmt.Errorf("get automation policy: %w", err)
+	}
+	value.Eligibility = append(json.RawMessage(nil), eligibility...)
+	value.BlastRadiusLimit = append(json.RawMessage(nil), blastRadius...)
+	value.VerificationContract = append(json.RawMessage(nil), verification...)
+	value.EffectiveFrom, value.EffectiveUntil = automationTime(effectiveFrom), automationTime(effectiveUntil)
+	value.SubmittedAt, value.ApprovedAt = automationTime(submittedAt), automationTime(approvedAt)
+	value.ActivatedAt, value.SuspendedAt, value.RetiredAt = automationTime(activatedAt), automationTime(suspendedAt), automationTime(retiredAt)
+	return value, nil
 }
 
 func automationTime(value time.Time) *time.Time {
