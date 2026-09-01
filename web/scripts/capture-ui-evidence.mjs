@@ -107,6 +107,7 @@ async function capturePage(capture) {
     await saveScreenshot(page, capture.name);
     await record(page, capture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
     await assertNoHorizontalOverflow(page, capture.name);
+    await assertGuideLauncherDoesNotBlockNavigation(page, capture.name, capture.viewport.width);
     if (capture.assertFirstActionVisible) await assertFirstActionVisible(page, capture.viewport.height, capture.name, capture.touch === true);
     if (capture.assertNoConfigureNav && await page.getByRole("button", { name: /Configure/ }).count()) throw new Error(`${capture.name} exposes Configure without config-read capability`);
     if (capture.fixture === "evidence-requests-unavailable") {
@@ -117,6 +118,24 @@ async function capturePage(capture) {
     if (capture.fixture === "configure-partial" && !(await page.getByText("Confirm the final DPCO review date").isVisible())) throw new Error("Configure partial-degradation state hid still-available workflow ownership");
   } finally {
     await context.close();
+  }
+}
+
+async function assertGuideLauncherDoesNotBlockNavigation(page, name, viewportWidth) {
+  if (viewportWidth <= 820) return;
+  const launcher = page.locator(".guide-launcher");
+  if (!await launcher.isVisible()) return;
+  const launcherBox = await launcher.boundingBox();
+  if (!launcherBox) return;
+  for (const button of await page.locator(".sidebar button").all()) {
+    if (!await button.isVisible()) continue;
+    const buttonBox = await button.boundingBox();
+    if (!buttonBox) continue;
+    const overlaps = launcherBox.x < buttonBox.x + buttonBox.width
+      && launcherBox.x + launcherBox.width > buttonBox.x
+      && launcherBox.y < buttonBox.y + buttonBox.height
+      && launcherBox.y + launcherBox.height > buttonBox.y;
+    if (overlaps) throw new Error(`${name} places the guide launcher over a sidebar action.`);
   }
 }
 
