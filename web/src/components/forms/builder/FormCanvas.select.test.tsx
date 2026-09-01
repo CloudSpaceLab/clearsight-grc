@@ -11,6 +11,7 @@ describe("FormCanvas response type", () => {
       onPatch={vi.fn()} onSectionsChange={vi.fn()} onFieldChange={vi.fn()} onFieldTypeChange={vi.fn()} onSelect={vi.fn()} onAddField={vi.fn()} onAddSection={vi.fn()} onMoveField={vi.fn()} onReorderField={vi.fn()} onDuplicateField={vi.fn()} onRemoveField={vi.fn()}
     />);
 
+    expect(screen.getByRole("region", { name: "Form canvas" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Response type/ }).classList.contains("cs-select-field__trigger")).toBe(true);
     expect(document.querySelector("select[aria-label='Response type']")).toBeNull();
   });

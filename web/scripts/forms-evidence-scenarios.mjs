@@ -160,8 +160,11 @@ const scenarios = [
       await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
       await page.getByRole("button", { name: "Edit draft" }).click();
       const select = page.getByRole("button", { name: /Inspector response type/ });
+      const before = await builderGeometry(page);
       await select.click();
       await page.getByRole("option", { name: "Yes or No", exact: true }).waitFor({ state: "visible" });
+      const after = await builderGeometry(page);
+      if (JSON.stringify(after) !== JSON.stringify(before)) throw new Error(`Opening the response-type menu changed builder geometry: before=${JSON.stringify(before)} after=${JSON.stringify(after)}.`);
     },
   },
   {
@@ -436,6 +439,16 @@ async function assertDarkPopup(page) {
   const color = await page.locator(".cs-select-field__popover").evaluate((element) => getComputedStyle(element).backgroundColor);
   const channels = color.match(/\d+(?:\.\d+)?/g)?.slice(0, 3).map(Number) ?? [];
   if (channels.length !== 3 || channels.reduce((sum, value) => sum + value, 0) / 3 > 110) throw new Error(`The dark Select popup must use a dark semantic surface, received ${color}.`);
+}
+
+async function builderGeometry(page) {
+  return page.locator(".form-builder-grid").evaluate((grid) => ({
+    bodyWidth: document.body.scrollWidth,
+    documentHeight: document.body.scrollHeight,
+    scrollTop: document.scrollingElement?.scrollTop ?? 0,
+    grid: [grid.getBoundingClientRect().x, grid.getBoundingClientRect().width, grid.getBoundingClientRect().height],
+    columns: [...grid.children].map((column) => [column.getBoundingClientRect().x, column.getBoundingClientRect().width, column.getBoundingClientRect().height]),
+  }));
 }
 
 async function assertStackedSentRows(page) {

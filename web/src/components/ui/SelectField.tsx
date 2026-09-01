@@ -40,9 +40,18 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
   const [portalContainer, setPortalContainer] = useState<Element>();
   const selectRef = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
-    // Keep the option list inside the active landmark or modal boundary while
-    // React Aria positions it independently from document layout.
-    const nextContainer = node.closest('[role="dialog"], main, [role="main"]') ?? undefined;
+    // A modal remains the option list's accessibility and dismissal boundary.
+    // Outside a modal, use the outer workspace landmark: nested builder/canvas
+    // landmarks can be sticky or scrollable and must not become the popover's
+    // positioning or focus-scroll container.
+    const dialog = node.closest('[role="dialog"]');
+    let landmark = node.closest('main, [role="main"]');
+    while (landmark) {
+      const parentLandmark = landmark.parentElement?.closest('main, [role="main"]') ?? null;
+      if (!parentLandmark) break;
+      landmark = parentLandmark;
+    }
+    const nextContainer = dialog ?? landmark ?? undefined;
     setPortalContainer((current) => current === nextContainer ? current : nextContainer);
   }, []);
   function change(key: Key | null) {
