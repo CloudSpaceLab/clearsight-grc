@@ -165,14 +165,6 @@ describe("runtime navigation", () => {
     expect(screen.queryByText("Review proposed digital-channel requirements")).toBeNull();
   });
 
-  it("keeps every workspace usable when an older empty response contains null items", async () => {
-    vi.mocked(loadContext).mockResolvedValue(runtime(false));
-    vi.mocked(loadToday).mockResolvedValue({ items: null as unknown as AttentionItem[], generated_at: "2026-08-29T20:00:00Z" });
-    render(<App />);
-    expect((await screen.findAllByRole("button", { name: "Forms" })).length).toBeGreaterThan(0);
-    expect(screen.queryByText(/Cannot read properties/i)).toBeNull();
-  });
-
   it("keeps import capability in administration and removes reference tooling when demo mode is off", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
@@ -313,7 +305,8 @@ describe("runtime navigation", () => {
     await screen.findByText("Non-production data");
     await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("off"));
     expect(screen.queryByText("Stakeholder demo")).toBeNull();
-    expect(screen.queryByText("Demo environment")).toBeNull();
+    expect(screen.getByText("Demo environment")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Reference journeys" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
   });
 

@@ -397,7 +397,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         <div className="context-role">
           <DisplayPreferencesMenu/>
           <AdministrationMenu enabled={configureEnabled} onOpen={() => navigate("configure")}/>
-          {referenceJourneysEnabled && <DemoEnvironmentMenu onOpenReferenceJourneys={() => navigate("explore")}/>} 
+          {serverDemoMode && <DemoEnvironmentMenu onOpenReferenceJourneys={referenceJourneysEnabled ? () => navigate("explore") : undefined}/>}
           <span>{roleName}</span>
           {serverDemoMode ? <mark>{demoMode ? "Stakeholder demo" : "Non-production data"}</mark> : null}
         </div>

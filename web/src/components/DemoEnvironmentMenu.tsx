@@ -1,14 +1,14 @@
 import { useDemoSessionTools } from "./SessionGate";
 
-export function DemoEnvironmentMenu({ onOpenReferenceJourneys }: { onOpenReferenceJourneys: () => void }) {
+export function DemoEnvironmentMenu({ onOpenReferenceJourneys }: { onOpenReferenceJourneys?: () => void }) {
   const session = useDemoSessionTools();
   const alternateAccounts = session?.accounts.filter((account) => account.label !== session.currentAccountLabel) ?? [];
   const summaryLabel = session ? `Viewing as ${session.currentAccountLabel}. Demo environment` : "Demo environment";
 
   return <details className="demo-environment-menu">
-    <summary role="button" aria-label={summaryLabel}>Demo environment</summary>
+    <summary role="button" aria-label={summaryLabel}>{session ? `Viewing as ${session.currentAccountLabel}` : "Demo environment"}</summary>
     <div className="shell-popover" role="group" aria-label="Demo environment tools">
-      <div><strong>Non-production sample data</strong><span>Use the same enterprise workspace with reference records and optional scenario guidance.</span></div>
+      <div><strong>Non-production sample data</strong><span>This workspace contains seeded reference records for role-based testing.</span></div>
       {session && <div className="demo-environment-account" aria-live="polite">
         <span>Viewing as</span>
         <strong>{session.currentAccountLabel}</strong>
@@ -17,7 +17,7 @@ export function DemoEnvironmentMenu({ onOpenReferenceJourneys }: { onOpenReferen
         <span>Switch account</span>
         {alternateAccounts.map((account) => <button key={account.username} type="button" onClick={() => void session?.switchAccount(account)}>Switch to {account.label}</button>)}
       </div>}
-      <button type="button" onClick={onOpenReferenceJourneys}>Reference journeys</button>
+      {onOpenReferenceJourneys && <button type="button" onClick={onOpenReferenceJourneys}>Reference journeys</button>}
     </div>
   </details>;
 }
