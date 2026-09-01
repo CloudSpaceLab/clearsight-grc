@@ -30,7 +30,7 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			return policy, fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
 		}
 		if strings.TrimSpace(actor.LegalEntityID) == "" || actor.LegalEntityID == "*" {
-			return policy, fmt.Errorf("%w: one verified legal entity is required", commandauth.ErrLegalEntityMismatch)
+			return policy, formpolicy.ErrNotFound
 		}
 		if name != "forms.response-policy.create" {
 			if a.deps.FormPolicies == nil {

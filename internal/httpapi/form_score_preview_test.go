@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -63,6 +64,20 @@ func TestFormScorePreviewRejectsMissingVersionAndOversizedAnswerSet(t *testing.T
 				t.Fatalf("status = %d body=%s", response.Code, response.Body.String())
 			}
 		})
+	}
+}
+
+func TestFormScorePreviewRejectsOversizedNestedDocumentValues(t *testing.T) {
+	handler, _ := scorePreviewHandler(t)
+	oversized := strings.Repeat("x", 513)
+	body, _ := json.Marshal(map[string]any{
+		"form_template_version": 2,
+		"answers":               map[string]formcontract.AnswerValue{"certified": {Document: &formcontract.DocumentAnswer{ArtifactID: oversized, DocumentType: "certificate"}}},
+	})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/config/form-templates/form-a/score-preview", bytes.NewReader(body)))
+	if response.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("nested document bound = %d %s", response.Code, response.Body.String())
 	}
 }
 

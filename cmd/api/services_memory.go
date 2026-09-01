@@ -35,6 +35,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		version = "no-demo-policy"
 		rules = nil
 	}
+	authorityService := authority.NewResolver(version, rules)
 	autonomyRepo := autonomy.NewMemoryRepository()
 	auto := autonomy.NewService(autonomyRepo)
 	if cfg.DemoMode {
@@ -83,6 +84,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	}
 	distributionService := evidence.NewDistributionService(distributionStore)
 	formPolicies := formpolicy.NewService(formpolicy.NewMemoryRepository(), formDistributionReader{repo: monitoringRepo}, distributionService)
+	formPolicies.ConfigureActivationAuthority(formPolicyActivationAuthority{Automation: auto, Authority: authorityService})
 	communicationService := evidence.NewCommunicationService(evidence.NewMemoryCommunicationStore())
 	communicationBrands := evidence.NewCommunicationBrandService(evidence.NewMemoryCommunicationBrandStore(), store)
 	communicationDelivery, err := configuredCommunicationDelivery(cfg)
@@ -138,7 +140,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	oversightService := oversight.NewService(oversightRepo)
 
 	return serviceSet{
-		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
+		Mode: "memory", Authority: authorityService, Governance: governance.NewService(governance.NewMemoryRepository()),
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		FormPolicies: formPolicies,

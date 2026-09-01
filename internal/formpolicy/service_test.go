@@ -24,6 +24,12 @@ type policyResponseReader struct {
 	items []evidence.CompletedResponseSummary
 }
 
+type policyActivationAuthority struct{ err error }
+
+func (validator policyActivationAuthority) ValidatePolicyActivation(context.Context, Actor, Policy) error {
+	return validator.err
+}
+
 func (reader *policyResponseReader) ListCompletedResponses(_ context.Context, query evidence.CompletedResponseQuery) (evidence.CompletedResponsePage, error) {
 	items := make([]evidence.CompletedResponseSummary, 0, len(reader.items))
 	for _, item := range reader.items {
@@ -60,6 +66,24 @@ func TestPolicyLifecycleRequiresFreshSimulationAndDistinctChecker(t *testing.T) 
 	active, err := service.Activate(context.Background(), checker, approved.ID, approved.RecordVersion)
 	if err != nil || active.Status != PolicyActive || active.ActivatedAt == nil {
 		t.Fatalf("active = %#v, err = %v", active, err)
+	}
+}
+
+func TestPolicyActivationFailsClosedWithoutCurrentAuthorityValidation(t *testing.T) {
+	service, _, _ := newPolicyTestService(t)
+	service.activationAuthority = nil
+	maker := Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "maker"}
+	checker := Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "checker"}
+	draft := createPolicyFixture(t, service, maker, RolloutShadow)
+	preview, _ := service.Simulate(context.Background(), maker, draft.ID, draft.RecordVersion)
+	pending, _ := service.Submit(context.Background(), maker, draft.ID, draft.RecordVersion, preview.ID)
+	approved, _ := service.Approve(context.Background(), checker, pending.ID, pending.RecordVersion, preview.ID)
+	if _, err := service.Activate(context.Background(), checker, approved.ID, approved.RecordVersion); !errors.Is(err, ErrAuthorityUnavailable) {
+		t.Fatalf("activation without current authority err = %v", err)
+	}
+	service.ConfigureActivationAuthority(policyActivationAuthority{err: ErrActivationAuthority})
+	if _, err := service.Activate(context.Background(), checker, approved.ID, approved.RecordVersion); !errors.Is(err, ErrActivationAuthority) {
+		t.Fatalf("activation with invalid current route err = %v", err)
 	}
 }
 
@@ -198,6 +222,7 @@ func newPolicyTestService(t *testing.T) (*Service, *policyResponseReader, *polic
 	}}
 	forms := &policyFormReader{form: evidence.DistributionFormRevision{ID: "form-a", TenantID: "bank", LegalEntityID: "entity", Version: 3, Active: true, ScoringMode: formcontract.ScoringCompliance}}
 	service := NewService(NewMemoryRepository(), forms, responses)
+	service.ConfigureActivationAuthority(policyActivationAuthority{})
 	service.now = func() time.Time { return time.Date(2026, 9, 1, 11, 0, 0, 0, time.UTC) }
 	next := 0
 	service.newID = func() (string, error) { next++; return fmt.Sprintf("id-%d", next), nil }

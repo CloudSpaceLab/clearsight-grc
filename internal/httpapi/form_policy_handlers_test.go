@@ -52,15 +52,15 @@ func (unavailableFormPolicyAuthority) Policies(context.Context, string) ([]autho
 func TestFormPolicyRoutesUseVerifiedGovernanceClasses(t *testing.T) {
 	routes := (&API{}).formPolicyRoutes()
 	want := map[string]routeClass{
-		"GET /api/v1/forms/response-policies":                routeAuthenticatedRead,
-		"POST /api/v1/forms/response-policies":               routeMaterialCommand,
-		"GET /api/v1/forms/response-policies/{id}":           routeAuthenticatedRead,
-		"POST /api/v1/forms/response-policies/{id}/simulate": routeMaterialCommand,
-		"POST /api/v1/forms/response-policies/{id}/submit":   routeMaterialCommand,
-		"POST /api/v1/forms/response-policies/{id}/approve":  routeMaterialCommand,
-		"POST /api/v1/forms/response-policies/{id}/activate": routeMaterialCommand,
-		"POST /api/v1/forms/response-policies/{id}/suspend":  routeMaterialCommand,
-		"POST /api/v1/forms/response-policies/{id}/rollback": routeMaterialCommand,
+		"GET /api/v1/config/form-response-policies":                routeAuthenticatedRead,
+		"POST /api/v1/config/form-response-policies":               routeMaterialCommand,
+		"GET /api/v1/config/form-response-policies/{id}":           routeAuthenticatedRead,
+		"POST /api/v1/config/form-response-policies/{id}/simulate": routeMaterialCommand,
+		"POST /api/v1/config/form-response-policies/{id}/submit":   routeMaterialCommand,
+		"POST /api/v1/config/form-response-policies/{id}/approve":  routeMaterialCommand,
+		"POST /api/v1/config/form-response-policies/{id}/activate": routeMaterialCommand,
+		"POST /api/v1/config/form-response-policies/{id}/suspend":  routeMaterialCommand,
+		"POST /api/v1/config/form-response-policies/{id}/rollback": routeMaterialCommand,
 	}
 	for _, route := range routes {
 		key := route.Method + " " + route.Path
@@ -101,7 +101,7 @@ func TestCreateFormPolicyIgnoresClientIdentityFields(t *testing.T) {
 		t.Fatal(err)
 	}
 	response := httptest.NewRecorder()
-	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/forms/response-policies", bytes.NewReader(payload)))
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/config/form-response-policies", bytes.NewReader(payload)))
 	if response.Code != http.StatusCreated {
 		t.Fatalf("create: %d %s", response.Code, response.Body.String())
 	}
@@ -162,12 +162,12 @@ func TestFormPolicyCommandFailsClosedAfterAuthorityRevocation(t *testing.T) {
 	})
 	payload, _ := json.Marshal(validHTTPPolicyInput())
 	response := httptest.NewRecorder()
-	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/forms/response-policies", bytes.NewReader(payload)))
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/config/form-response-policies", bytes.NewReader(payload)))
 	if response.Code != http.StatusForbidden {
 		t.Fatalf("revoked authority command = %d %s", response.Code, response.Body.String())
 	}
 	list := httptest.NewRecorder()
-	handler.ServeHTTP(list, httptest.NewRequest(http.MethodGet, "/api/v1/forms/response-policies", nil))
+	handler.ServeHTTP(list, httptest.NewRequest(http.MethodGet, "/api/v1/config/form-response-policies", nil))
 	if list.Code != http.StatusOK || !strings.Contains(list.Body.String(), `"items":[]`) {
 		t.Fatalf("revoked command mutated policy state: %d %s", list.Code, list.Body.String())
 	}
@@ -185,7 +185,7 @@ func TestFormPolicyCommandReturnsServiceUnavailableWhenAuthorityCannotBeChecked(
 	})
 	payload, _ := json.Marshal(validHTTPPolicyInput())
 	response := httptest.NewRecorder()
-	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/forms/response-policies", bytes.NewReader(payload)))
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/config/form-response-policies", bytes.NewReader(payload)))
 	if response.Code != http.StatusServiceUnavailable {
 		t.Fatalf("authority failure = %d %s", response.Code, response.Body.String())
 	}
@@ -196,6 +196,19 @@ func TestMissingFormPolicyCommandReturnsNotFoundBeforeAuthority(t *testing.T) {
 	response := policyAction(t, handler, "missing", "simulate", "maker-a", map[string]any{"expected_version": 1})
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("missing policy = %d %s", response.Code, response.Body.String())
+	}
+}
+
+func TestFormPolicyReadWithoutExactLegalEntityReturnsNotFound(t *testing.T) {
+	handler := New(Dependencies{
+		Logger:       slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity:     identity.NewDevelopmentAuthenticator("bank-a", "admin-a", "*", "GRC_ADMIN"),
+		FormPolicies: newHTTPFormPolicyService(),
+	})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/config/form-response-policies", nil))
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("missing exact scope = %d %s", response.Code, response.Body.String())
 	}
 }
 
@@ -236,7 +249,7 @@ func createHTTPPolicy(t *testing.T, handler http.Handler) formpolicy.Policy {
 	t.Helper()
 	payload, _ := json.Marshal(validHTTPPolicyInput())
 	response := httptest.NewRecorder()
-	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/forms/response-policies", bytes.NewReader(payload)))
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/config/form-response-policies", bytes.NewReader(payload)))
 	if response.Code != http.StatusCreated {
 		t.Fatalf("create: %d %s", response.Code, response.Body.String())
 	}
@@ -250,7 +263,7 @@ func createHTTPPolicy(t *testing.T, handler http.Handler) formpolicy.Policy {
 func policyAction(t *testing.T, handler http.Handler, id, action, actor string, body map[string]any) *httptest.ResponseRecorder {
 	t.Helper()
 	payload, _ := json.Marshal(body)
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/forms/response-policies/"+id+"/"+action, bytes.NewReader(payload))
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/config/form-response-policies/"+id+"/"+action, bytes.NewReader(payload))
 	request.Header.Set("X-ClearSight-Demo-Principal", actor)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)

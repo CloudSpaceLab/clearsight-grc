@@ -3,6 +3,7 @@ package autonomy
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 )
 
@@ -85,5 +86,12 @@ func TestAutomationPoliciesAreTenantScopedLatestAndPreserveGuardrails(t *testing
 	}
 	if _, err := service.ListAutomationPolicies(context.Background(), ""); err == nil {
 		t.Fatal("expected tenant requirement")
+	}
+	exact, err := service.GetAutomationPolicy(context.Background(), "bank-demo", "policy-1", 1)
+	if err != nil || exact.ID != "policy-1" || exact.Version != 1 {
+		t.Fatalf("exact automation policy = %#v err=%v", exact, err)
+	}
+	if _, err := service.GetAutomationPolicy(context.Background(), "other-bank", "policy-1", 1); !errors.Is(err, ErrAutomationPolicyNotFound) {
+		t.Fatalf("cross-tenant exact lookup err = %v", err)
 	}
 }

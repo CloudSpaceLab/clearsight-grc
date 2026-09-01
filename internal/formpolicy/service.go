@@ -10,15 +10,22 @@ import (
 )
 
 type Service struct {
-	repo      Repository
-	forms     FormReader
-	responses CompletedResponseReader
-	now       func() time.Time
-	newID     func() (string, error)
+	repo                Repository
+	forms               FormReader
+	responses           CompletedResponseReader
+	activationAuthority ActivationAuthority
+	now                 func() time.Time
+	newID               func() (string, error)
 }
 
 func NewService(repo Repository, forms FormReader, responses CompletedResponseReader) *Service {
 	return &Service{repo: repo, forms: forms, responses: responses, now: time.Now, newID: id.NewUUIDv7}
+}
+
+func (service *Service) ConfigureActivationAuthority(authority ActivationAuthority) {
+	if service != nil {
+		service.activationAuthority = authority
+	}
 }
 
 func (service *Service) Create(ctx context.Context, actor Actor, input CreateInput) (Policy, error) {
@@ -160,6 +167,12 @@ func (service *Service) Activate(ctx context.Context, actor Actor, policyID stri
 		return Policy{}, ErrMakerChecker
 	}
 	if err := service.requireActiveForm(ctx, actor, value.Eligibility); err != nil {
+		return Policy{}, err
+	}
+	if service.activationAuthority == nil {
+		return Policy{}, ErrAuthorityUnavailable
+	}
+	if err := service.activationAuthority.ValidatePolicyActivation(ctx, actor, value); err != nil {
 		return Policy{}, err
 	}
 	receipt, err := service.requireFreshSimulation(ctx, actor, value, value.ApprovedSimulationID)

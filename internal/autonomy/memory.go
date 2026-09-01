@@ -89,3 +89,14 @@ func (r *MemoryRepository) ListAutomationPolicies(_ context.Context, tenant stri
 	})
 	return values, nil
 }
+
+func (r *MemoryRepository) GetAutomationPolicy(_ context.Context, tenant, id string, version int64) (AutomationPolicy, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, value := range r.policies {
+		if value.TenantID == tenant && value.ID == id && value.Version == version {
+			return value, nil
+		}
+	}
+	return AutomationPolicy{}, ErrAutomationPolicyNotFound
+}

@@ -153,7 +153,7 @@ func (a *API) formPolicyContext(w http.ResponseWriter, r *http.Request) (*formpo
 		return nil, formpolicy.Actor{}, false
 	}
 	if strings.TrimSpace(actor.LegalEntityID) == "" || actor.LegalEntityID == "*" {
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "legal_entity_required", "Choose one legal entity before working with response policies.")
+		httpx.WriteError(w, http.StatusNotFound, "policy_scope_not_found", "No response-policy scope was found for this legal-entity view.")
 		return nil, formpolicy.Actor{}, false
 	}
 	return a.deps.FormPolicies, formpolicy.Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}, true
@@ -175,7 +175,9 @@ func writeFormPolicyError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusConflict, "policy_changed", "The response policy changed. Reload it before continuing.")
 	case errors.Is(err, formpolicy.ErrMakerChecker):
 		httpx.WriteError(w, http.StatusConflict, "independent_approval_required", "A different authorized person must approve this policy.")
-	case errors.Is(err, formpolicy.ErrInvalid), errors.Is(err, formpolicy.ErrInvalidTransition), errors.Is(err, formpolicy.ErrPreviewRequired), errors.Is(err, formpolicy.ErrPreviewStale), errors.Is(err, formpolicy.ErrFormInactive), errors.Is(err, formpolicy.ErrShadowRequired):
+	case errors.Is(err, formpolicy.ErrAuthorityUnavailable):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "policy_authority_unavailable", "The current policy route could not be checked. No change was made.")
+	case errors.Is(err, formpolicy.ErrInvalid), errors.Is(err, formpolicy.ErrInvalidTransition), errors.Is(err, formpolicy.ErrPreviewRequired), errors.Is(err, formpolicy.ErrPreviewStale), errors.Is(err, formpolicy.ErrFormInactive), errors.Is(err, formpolicy.ErrShadowRequired), errors.Is(err, formpolicy.ErrActivationAuthority):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "policy_not_ready", "Check the policy definition, current form revision, simulation, and rollout state before continuing.")
 	default:
 		httpx.WriteError(w, http.StatusInternalServerError, "policy_update_failed", "The response policy could not be updated. No change was made.")

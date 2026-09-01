@@ -14,7 +14,7 @@ func (a *API) formPolicyRoutes() []routeSpec {
 			Materiality: materiality, BindLegalEntity: true, ActorField: noActorField,
 		}), identity.PermissionConfigWrite)
 	}
-	base := "/api/v1/forms/response-policies"
+	base := "/api/v1/config/form-response-policies"
 	return []routeSpec{
 		withPermission(read(base, a.listFormPolicies), identity.PermissionConfigRead),
 		command(base, "forms.response-policy.create", authority.ResponsibilityOwner, 4, a.createFormPolicy),

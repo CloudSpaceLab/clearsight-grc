@@ -64,6 +64,11 @@ func boundedPreviewAnswers(answers map[string]formcontract.AnswerValue) bool {
 				return false
 			}
 		}
+		if document := answer.Document; document != nil {
+			if len(document.ArtifactID) > 512 || len(document.DocumentType) > 128 || len(document.Reference) > 2048 || len(document.IssuedBy) > 512 || len(document.IssuedOn) > 64 || len(document.ExpiresOn) > 64 {
+				return false
+			}
+		}
 	}
 	return true
 }

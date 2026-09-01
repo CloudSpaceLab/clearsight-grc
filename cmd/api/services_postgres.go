@@ -38,6 +38,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	if err != nil {
 		return serviceSet{}, err
 	}
+	authorityService := authority.NewEffectivePostgresService(pool)
 	store, err := evidence.NewLocalObjectStore(cfg.ArtifactRoot)
 	if err != nil {
 		pool.Close()
@@ -82,6 +83,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	}
 	distributionService := evidence.NewDistributionService(distributionStore)
 	formPolicies := formpolicy.NewService(formpolicy.NewPostgresRepository(pool), formDistributionReader{repo: monitoringRepo}, distributionService)
+	formPolicies.ConfigureActivationAuthority(formPolicyActivationAuthority{Automation: auto, Authority: authorityService})
 	communicationStore := evidence.NewPostgresCommunicationStore(evidenceRepo)
 	communicationService := evidence.NewCommunicationService(communicationStore)
 	communicationBrands := evidence.NewCommunicationBrandService(evidence.NewPostgresCommunicationBrandStore(evidenceRepo), store)
@@ -121,7 +123,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	}
 	logger.Info("postgres repositories enabled", "max_connections", cfg.DatabaseMaxConns, "artifact_root", cfg.ArtifactRoot, "demo_mode", cfg.DemoMode)
 	return serviceSet{
-		Mode: "postgres", Authority: authority.NewEffectivePostgresService(pool), Governance: governance.NewService(governance.NewPostgresRepository(pool)),
+		Mode: "postgres", Authority: authorityService, Governance: governance.NewService(governance.NewPostgresRepository(pool)),
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		FormPolicies: formPolicies,

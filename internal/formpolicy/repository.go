@@ -26,3 +26,11 @@ type FormReader interface {
 type CompletedResponseReader interface {
 	ListCompletedResponses(context.Context, evidence.CompletedResponseQuery) (evidence.CompletedResponsePage, error)
 }
+
+// ActivationAuthority revalidates external governance dependencies immediately
+// before a policy becomes executable. Implementations must fail closed when the
+// referenced Automation Policy, subject resolver, Matter route, service actor or
+// current authorizer cannot be confirmed.
+type ActivationAuthority interface {
+	ValidatePolicyActivation(context.Context, Actor, Policy) error
+}

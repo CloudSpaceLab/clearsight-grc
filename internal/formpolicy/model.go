@@ -10,15 +10,17 @@ import (
 const ActionClassCreateMatter = "FORM_RESPONSE_CREATE_MATTER"
 
 var (
-	ErrNotFound          = errors.New("form response policy not found")
-	ErrConflict          = errors.New("form response policy version conflict")
-	ErrInvalid           = errors.New("form response policy invalid")
-	ErrInvalidTransition = errors.New("form response policy transition invalid")
-	ErrMakerChecker      = errors.New("form response policy maker-checker violation")
-	ErrPreviewRequired   = errors.New("form response policy simulation required")
-	ErrPreviewStale      = errors.New("form response policy simulation is stale")
-	ErrFormInactive      = errors.New("form response policy form revision is not active")
-	ErrShadowRequired    = errors.New("form response policy requires shadow history")
+	ErrNotFound             = errors.New("form response policy not found")
+	ErrConflict             = errors.New("form response policy version conflict")
+	ErrInvalid              = errors.New("form response policy invalid")
+	ErrInvalidTransition    = errors.New("form response policy transition invalid")
+	ErrMakerChecker         = errors.New("form response policy maker-checker violation")
+	ErrPreviewRequired      = errors.New("form response policy simulation required")
+	ErrPreviewStale         = errors.New("form response policy simulation is stale")
+	ErrFormInactive         = errors.New("form response policy form revision is not active")
+	ErrShadowRequired       = errors.New("form response policy requires shadow history")
+	ErrAuthorityUnavailable = errors.New("form response policy authority is unavailable")
+	ErrActivationAuthority  = errors.New("form response policy activation authority is invalid")
 )
 
 type PolicyStatus string
