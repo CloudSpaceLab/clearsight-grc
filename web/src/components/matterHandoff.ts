@@ -48,6 +48,14 @@ function uniqueOperationAllowingTarget(operations: MatterOperation[], command: s
   return matches.length === 1 ? matches[0] : undefined;
 }
 
+function responsePreparationOperation(operations: MatterOperation[]) {
+  const existingResponseWork = operations.filter((operation) => operation.command === "matter.response.transition");
+  if (existingResponseWork.length > 0) {
+    return existingResponseWork.length === 1 ? existingResponseWork[0] : undefined;
+  }
+  return uniqueOperation(operations, "matter.response.add");
+}
+
 export function matterOperationControlID(operation: Pick<MatterOperation, "command" | "subresource_id" | "responsibility">) {
   return `matter-control-${operation.command}-${operation.subresource_id ?? "record"}-${operation.responsibility}`;
 }
@@ -78,7 +86,7 @@ export function selectMatterHandoff(aggregate: MatterAggregate, operations: Matt
   }
 
   if (nextAction === "prepare response") {
-    return uniqueOperation(operations, "matter.response.add");
+    return responsePreparationOperation(operations);
   }
 
   const preferences: string[] = [];
@@ -109,7 +117,7 @@ export function selectMatterHandoff(aggregate: MatterAggregate, operations: Matt
         return uniqueOperation(operations, "matter.action.transition", activeActionIDs);
       }
       case "RESPONSE_PREPARATION": {
-        return uniqueOperation(operations, "matter.response.add");
+        return responsePreparationOperation(operations);
       }
       case "VERIFICATION": {
         const activeContractIDs = aggregate.verification_contracts.filter((candidate) => candidate.status === "ACTIVE").map((candidate) => candidate.id);

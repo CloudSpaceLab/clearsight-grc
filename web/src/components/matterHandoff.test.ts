@@ -80,7 +80,7 @@ describe("matter handoff selection", () => {
     ["ASSESSMENT", "Review impact and options", operation({ command: "matter.context.change", responsibility: "ACCOUNTABLE_OWNER" }), operation({ command: "matter.transition", responsibility: "AUTHORIZER", allowed_targets: ["DECISION_REQUIRED", "CANCELLED"] })],
     ["DECISION_REQUIRED", "Record decision", operation({ command: "matter.decision.record", responsibility: "PROPOSER", allowed_targets: ["PROPOSED"] }), operation({ command: "matter.transition", responsibility: "ACCOUNTABLE_OWNER", allowed_targets: ["ACTION_IN_PROGRESS"] })],
     ["ACTION_IN_PROGRESS", "Complete assigned work", operation({ command: "matter.action.transition", subresource_id: "action-1", responsibility: "PERFORMER" }), operation({ command: "matter.context.change", responsibility: "ACCOUNTABLE_OWNER" })],
-    ["RESPONSE_PREPARATION", "Prepare response", operation({ command: "matter.response.add", responsibility: "PROPOSER" }), operation({ command: "matter.response.transition", subresource_id: "response-1", responsibility: "REVIEWER" })],
+    ["RESPONSE_PREPARATION", "Prepare response", operation({ command: "matter.response.add", responsibility: "PROPOSER" }), operation({ command: "matter.transition", responsibility: "AUTHORIZER", allowed_targets: ["VERIFICATION"] })],
     ["VERIFICATION", "Confirm whether the outcome was achieved", operation({ command: "matter.outcome.record", subresource_id: "contract-1", responsibility: "REVIEWER" }), operation({ command: "matter.context.change", responsibility: "ACCOUNTABLE_OWNER" })],
   ])("maps the canonical %s next action from the real API operation shape", (status, nextAction, expected, unrelated) => {
     const canonical: MatterAggregate = {
@@ -89,10 +89,43 @@ describe("matter handoff selection", () => {
       matter: { ...aggregate.matter, status },
       actions: status === "ACTION_IN_PROGRESS" ? [{ id: "action-1", title: "Verify address", description: "Check the registered address.", status: "OPEN" }] : [],
       verification_contracts: status === "VERIFICATION" ? [{ id: "contract-1", expected_outcome: "The registered address is verified.", status: "ACTIVE", observation_period_minutes: 0 }] : [],
-      response_packages: status === "RESPONSE_PREPARATION" ? [{ id: "response-1", purpose: "Existing response", audience: "Regulator", status: "DRAFT" }] : [],
+      response_packages: [],
     };
 
     expect(selectMatterHandoff(canonical, [expected, unrelated])).toBe(expected);
+  });
+
+  it("records acknowledgement for a transmitted response instead of preparing a duplicate package", () => {
+    const withTransmittedResponse: MatterAggregate = {
+      ...aggregate,
+      next_action: "Prepare response",
+      matter: { ...aggregate.matter, status: "RESPONSE_PREPARATION" },
+      response_packages: [{ id: "response-1", purpose: "Regulatory response", audience: "Regulator", status: "TRANSMITTED" }],
+    };
+    const acknowledgement = operation({
+      command: "matter.response.transition",
+      subresource_id: "response-1",
+      responsibility: "ACKNOWLEDGEMENT_RECORDER",
+      allowed_targets: ["ACKNOWLEDGED"],
+    });
+    expect(selectMatterHandoff(withTransmittedResponse, [
+      operation({ command: "matter.response.add", responsibility: "PROPOSER" }),
+      acknowledgement,
+    ])).toBe(acknowledgement);
+  });
+
+  it("does not replace ambiguous draft response work with a new response package", () => {
+    const withDraftResponse: MatterAggregate = {
+      ...aggregate,
+      next_action: "Prepare response",
+      matter: { ...aggregate.matter, status: "RESPONSE_PREPARATION" },
+      response_packages: [{ id: "response-1", purpose: "Regulatory response", audience: "Regulator", status: "DRAFT" }],
+    };
+    expect(selectMatterHandoff(withDraftResponse, [
+      operation({ command: "matter.response.add", responsibility: "PROPOSER" }),
+      operation({ command: "matter.response.transition", subresource_id: "response-1", responsibility: "REVIEWER", allowed_targets: ["IN_REVIEW"] }),
+      operation({ command: "matter.response.transition", subresource_id: "response-1", responsibility: "PROPOSER", allowed_targets: ["WITHDRAWN"] }),
+    ])).toBeUndefined();
   });
 
   it("prefers one exact named record over a shorter containment match", () => {
