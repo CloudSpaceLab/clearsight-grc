@@ -38,11 +38,12 @@ export function SessionGate({ children, presentation = "enterprise" }: { childre
     const available = await loadDemoAccounts().catch(() => []);
     setAccounts(available);
     const actorRoles = new Set(context.actor.role_codes ?? []);
-    const matched = available
+    const matchedByName = available.find((account) => account.label === context.actor.name);
+    const matchedByRole = available
       .map((account) => ({ account, score: account.role_codes.filter((role) => actorRoles.has(role)).length }))
       .filter((candidate) => candidate.score > 0)
       .sort((left, right) => right.score - left.score || right.account.role_codes.length - left.account.role_codes.length)[0]?.account;
-    setCurrentAccountLabel(matched?.label ?? context.actor.name ?? "Demo account");
+    setCurrentAccountLabel(matchedByName?.label ?? matchedByRole?.label ?? context.actor.name ?? "Demo account");
   }
 
   async function enter() {
@@ -117,7 +118,7 @@ export function SessionGate({ children, presentation = "enterprise" }: { childre
     }
   }
 
-  const demoTools = useMemo<DemoSessionTools | null>(() => demoMode && presentation === "demo" ? {
+  const demoTools = useMemo<DemoSessionTools | null>(() => demoMode && presentation !== "live-preview" ? {
     accounts,
     currentAccountLabel,
     switchAccount,

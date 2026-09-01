@@ -48,7 +48,7 @@ function renderSession(presentation: RuntimePresentation = "demo") {
 }
 
 async function openDemoEnvironment() {
-  fireEvent.click(await screen.findByText("Demo environment", { selector: "summary" }));
+  fireEvent.click(await screen.findByRole("button", { name: /Open demo account menu/ }));
 }
 
 it("opens demo role login without probing protected context while signed out", async () => {
@@ -157,20 +157,20 @@ it("returns to demo role login when the session expires before context loads", a
   expect(screen.queryByText("Workspace")).toBeNull();
 });
 
-it("defaults to enterprise presentation and keeps demo account switching inside explicit demo presentation", async () => {
+it("keeps demo account switching available in the normal enterprise presentation", async () => {
   render(<SessionGate><div>Workspace</div><DemoEnvironmentMenu onOpenReferenceJourneys={vi.fn()}/></SessionGate>);
 
   expect(await screen.findByText("Workspace")).not.toBeNull();
   await openDemoEnvironment();
-  expect(screen.queryByText("Viewing as")).toBeNull();
-  expect(screen.queryByRole("button", { name: /Switch to/ })).toBeNull();
+  expect(screen.getByText("Viewing as")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Switch to System Administrator" })).toBeTruthy();
 });
 
 it("keeps demo authentication while hiding account switching in live preview", async () => {
   renderSession("live-preview");
 
   expect(await screen.findByText("Workspace")).not.toBeNull();
-  await openDemoEnvironment();
+  expect(screen.getByRole("button", { name: "Demo environment" })).toBeTruthy();
   expect(screen.queryByText("Viewing as")).toBeNull();
   expect(screen.queryByRole("button", { name: /Switch to/ })).toBeNull();
 });

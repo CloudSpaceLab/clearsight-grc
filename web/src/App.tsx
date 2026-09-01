@@ -94,6 +94,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const importsEnabled = runtime != null && runtime.capabilities?.document_import !== false;
   const configureEnabled = runtime != null && runtime.capabilities?.config_read !== false;
   const referenceJourneysEnabled = demoMode && runtime?.capabilities?.reference_journeys !== false;
+  const demoAccountMenuEnabled = serverDemoMode && presentation !== "live-preview";
 
   useEffect(() => {
     void Promise.allSettled([loadContext(), loadToday(), loadReadiness()]).then(([contextResult, todayResult, readinessResult]) => {
@@ -401,7 +402,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         <div className="context-role">
           <DisplayPreferencesMenu/>
           <AdministrationMenu enabled={configureEnabled} onOpen={() => navigate("configure")}/>
-          {referenceJourneysEnabled && <DemoEnvironmentMenu onOpenReferenceJourneys={() => navigate("explore")}/>} 
+          {demoAccountMenuEnabled && <DemoEnvironmentMenu onOpenReferenceJourneys={referenceJourneysEnabled ? () => navigate("explore") : undefined}/>}
           <span>{roleName}</span>
           {serverDemoMode ? <mark>{demoMode ? "Stakeholder demo" : "Non-production data"}</mark> : null}
         </div>

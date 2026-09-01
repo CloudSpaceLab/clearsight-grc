@@ -277,6 +277,15 @@ describe("runtime navigation", () => {
     await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("on"));
   });
 
+  it("keeps the demo account menu available without enabling reference journeys", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(true));
+    render(<App/>);
+
+    await screen.findByText("Non-production data");
+    expect(screen.getByText("Demo environment")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Reference journeys" })).toBeNull();
+  });
+
   it("uses live API data without demo-only presentation when requested", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(true));
     render(<App presentation="live-preview" />);
