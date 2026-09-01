@@ -43,6 +43,110 @@ const (
 	ScoringCompliance ScoringMode = "COMPLIANCE"
 )
 
+type ScoreDirection string
+
+const (
+	DirectionHighIsPoor ScoreDirection = "HIGH_IS_POOR"
+	DirectionLowIsPoor  ScoreDirection = "LOW_IS_POOR"
+)
+
+type MissingScoreBehaviour string
+
+const (
+	MissingIndeterminate MissingScoreBehaviour = "INDETERMINATE"
+	MissingExclude       MissingScoreBehaviour = "EXCLUDE"
+	MissingZero          MissingScoreBehaviour = "ZERO"
+)
+
+type ConcernBand string
+
+const (
+	ConcernLow      ConcernBand = "LOW"
+	ConcernModerate ConcernBand = "MODERATE"
+	ConcernHigh     ConcernBand = "HIGH"
+	ConcernCritical ConcernBand = "CRITICAL"
+)
+
+type PredicateOperator string
+
+const (
+	PredicateEquals        PredicateOperator = "EQUALS"
+	PredicateNotEquals     PredicateOperator = "NOT_EQUALS"
+	PredicateIn            PredicateOperator = "IN"
+	PredicateNotIn         PredicateOperator = "NOT_IN"
+	PredicateContains      PredicateOperator = "CONTAINS"
+	PredicateContainsAny   PredicateOperator = "CONTAINS_ANY"
+	PredicateContainsAll   PredicateOperator = "CONTAINS_ALL"
+	PredicateGreaterThan   PredicateOperator = "GREATER_THAN"
+	PredicateGreaterEqual  PredicateOperator = "GREATER_OR_EQUAL"
+	PredicateLessThan      PredicateOperator = "LESS_THAN"
+	PredicateLessEqual     PredicateOperator = "LESS_OR_EQUAL"
+	PredicateNumberBetween PredicateOperator = "NUMBER_BETWEEN"
+	PredicateDateBefore    PredicateOperator = "DATE_BEFORE"
+	PredicateDateOnOrAfter PredicateOperator = "DATE_ON_OR_AFTER"
+	PredicateDateBetween   PredicateOperator = "DATE_BETWEEN"
+	PredicateAnswered      PredicateOperator = "ANSWERED"
+	PredicateUnanswered    PredicateOperator = "UNANSWERED"
+	PredicateAnd           PredicateOperator = "AND"
+	PredicateOr            PredicateOperator = "OR"
+	PredicateNot           PredicateOperator = "NOT"
+)
+
+type Predicate struct {
+	FieldID  string            `json:"field_id,omitempty"`
+	Operator PredicateOperator `json:"operator"`
+	Values   []string          `json:"values,omitempty"`
+	Children []Predicate       `json:"children,omitempty"`
+}
+
+type ScoreContribution struct {
+	ID             string                `json:"id"`
+	Label          string                `json:"label"`
+	Weight         int                   `json:"weight"`
+	Predicate      Predicate             `json:"predicate"`
+	MatchPoints    int                   `json:"match_points"`
+	NonMatchPoints int                   `json:"non_match_points"`
+	Missing        MissingScoreBehaviour `json:"missing"`
+	Required       bool                  `json:"required,omitempty"`
+}
+
+type RuleEffectKind string
+
+const (
+	EffectContribution RuleEffectKind = "CONTRIBUTION"
+	EffectFloor        RuleEffectKind = "FLOOR"
+	EffectCap          RuleEffectKind = "CAP"
+	EffectDisqualify   RuleEffectKind = "DISQUALIFY"
+)
+
+type RuleEffect struct {
+	Kind   RuleEffectKind `json:"kind"`
+	Value  int            `json:"value,omitempty"`
+	Weight int            `json:"weight,omitempty"`
+}
+
+type ScoreRule struct {
+	ID        string     `json:"id"`
+	Label     string     `json:"label"`
+	Predicate Predicate  `json:"predicate"`
+	Effect    RuleEffect `json:"effect"`
+}
+
+type ScoreBandRange struct {
+	Band    ConcernBand `json:"band"`
+	From    int         `json:"from"`
+	Through int         `json:"through"`
+}
+
+type ScoreProfile struct {
+	Version       string              `json:"version"`
+	Mode          ScoringMode         `json:"mode"`
+	Direction     ScoreDirection      `json:"direction"`
+	Contributions []ScoreContribution `json:"contributions"`
+	Rules         []ScoreRule         `json:"rules,omitempty"`
+	Bands         []ScoreBandRange    `json:"bands"`
+}
+
 type CollectionIntent string
 
 const (
@@ -156,10 +260,11 @@ type Field struct {
 }
 
 type Contract struct {
-	Presentation Presentation `json:"presentation"`
-	ScoringMode  ScoringMode  `json:"scoring_mode,omitempty"`
-	Sections     []Section    `json:"sections"`
-	Fields       []Field      `json:"fields"`
+	Presentation Presentation  `json:"presentation"`
+	ScoringMode  ScoringMode   `json:"scoring_mode,omitempty"`
+	ScoreProfile *ScoreProfile `json:"score_profile,omitempty"`
+	Sections     []Section     `json:"sections"`
+	Fields       []Field       `json:"fields"`
 }
 
 type DocumentAnswer struct {
