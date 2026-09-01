@@ -14,6 +14,7 @@ import { MatterDecisionResponsePanel } from "./MatterDecisionResponsePanel";
 import { RecordSnapshotControl } from "./RecordSnapshotControl";
 import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
+import { selectMatterHandoff } from "./matterHandoff";
 
 type Props = {
   matterID: string;
@@ -36,6 +37,7 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props
   const [operationsState, setOperationsState] = useState<LoadState>("loading");
   const [aggregate, setAggregate] = useState<MatterAggregate | null>(null);
   const [operations, setOperations] = useState<MatterOperations | null>(null);
+  const [assignmentIntent, setAssignmentIntent] = useState(0);
   const loadIDs = useRef({ aggregate: 0, operations: 0 });
   const activeTarget = useRef({ id: matterID, generation: 0 });
   const startedTargetID = useRef<string | null>(null);
@@ -117,6 +119,8 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props
     ? operations.operations
     : operations?.operations.map((operation) => ({ ...operation, can_act: false })) ?? [];
   const responsibleParties = operationsState === "live" && operationVersionMatches ? operations?.responsible_parties ?? [] : [];
+  const handoffOperation = aggregate ? selectMatterHandoff(aggregate, currentOperations) : undefined;
+  const assignmentIsDominant = handoffOperation?.command === "matter.assign";
 
   return <section className="matter-record-workspace" aria-label="Issue or change record">
     <button aria-label="Back to issues and changes" className="text-button matter-record-back" type="button" onClick={onBack}>← Back to issues and changes</button>
@@ -141,9 +145,18 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props
       {operations && !operations.authority_available && <div className="inline-notice" role="status"><strong>Responsibilities are temporarily unavailable.</strong> Values and stored owners remain visible, but changes are disabled until authority routing recovers. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}
       {operationsState === "live" && operations?.responsibility_labels_complete === false && <div className="inline-notice" role="status"><strong>Some assignee names could not be loaded.</strong> Recorded responsibilities remain visible, and available actions still use the current authority route. <button className="text-button" type="button" onClick={() => void loadOperations()}>Reload assignee names</button></div>}
       {operationsOutdated && <div className="inline-notice" role="status"><strong>Issue responsibilities are out of date.</strong> Issue values remain visible, but changes are disabled until responsibilities match issue version {aggregate.matter.version}. <button className="text-button" type="button" onClick={() => void reloadRecord()}>Reload issue data</button></div>}
-      <MatterCurrentHandoff aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties}/>
+      <MatterCurrentHandoff
+        aggregate={aggregate}
+        operations={currentOperations}
+        responsibleParties={responsibleParties}
+        onInvokeOperation={(operation) => {
+          if (operation.command !== "matter.assign") return false;
+          setAssignmentIntent((value) => value + 1);
+          return true;
+        }}
+      />
       <section className="matter-record-grid">
-        <MatterDetailsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+        <MatterDetailsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} assignmentIntent={assignmentIntent} suppressAssignmentAction={assignmentIsDominant} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterInformationPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterActionsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterDecisionResponsePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>

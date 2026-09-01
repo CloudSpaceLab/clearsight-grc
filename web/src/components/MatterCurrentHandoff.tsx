@@ -7,6 +7,7 @@ type Props = {
   aggregate: MatterAggregate;
   operations: MatterOperation[];
   responsibleParties?: RecordResponsibleParty[];
+  onInvokeOperation?: (operation: MatterOperation) => boolean;
 };
 
 function formatDate(value?: string) {
@@ -14,7 +15,7 @@ function formatDate(value?: string) {
   return `Due ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(value))}`;
 }
 
-export function MatterCurrentHandoff({ aggregate, operations, responsibleParties = [] }: Props) {
+export function MatterCurrentHandoff({ aggregate, operations, responsibleParties = [], onInvokeOperation }: Props) {
   const operation = selectMatterHandoff(aggregate, operations);
   const currentAction = aggregate.actions.find((candidate) => aggregate.next_action.toLowerCase().includes(candidate.title.toLowerCase()));
   const storedActionOwner = responsibleParties.find((party) => party.scope === "ACTION" && party.subresource_id === currentAction?.id)?.display_name;
@@ -26,6 +27,7 @@ export function MatterCurrentHandoff({ aggregate, operations, responsibleParties
 
   function moveToOperation() {
     if (!operation) return;
+    if (onInvokeOperation?.(operation)) return;
     const target = document.getElementById(matterOperationControlID(operation));
     target?.scrollIntoView({ behavior: "smooth", block: "center" });
     target?.focus();

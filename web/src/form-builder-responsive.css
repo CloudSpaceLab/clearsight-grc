@@ -20,6 +20,10 @@
 }
 
 .form-builder-responsive-sheet .form-builder-outline-shell {
+  position: static;
+  top: auto;
+  max-height: none;
+  overflow: visible;
   border: 0;
   background: transparent;
 }

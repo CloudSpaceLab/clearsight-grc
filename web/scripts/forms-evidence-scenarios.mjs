@@ -349,8 +349,13 @@ const scenarios = [
       const interactionStartedAt = await page.evaluate(() => performance.now());
       await question.fill("Updated control confirmation 100");
       await page.waitForFunction(() => document.querySelectorAll(".form-question-prompt")[99]?.value === "Updated control confirmation 100");
+      const outline = page.locator(".form-builder-outline-shell");
+      await outline.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+      await outline.getByText("Reuse approved section", { exact: true }).click();
+      await outline.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+      const outlineMetrics = await assertBuilderOutlineContained(outline);
       const interactionFinishedAt = await page.evaluate(() => performance.now());
-      const metrics = { render_ms: Math.round(renderedAt - openedAt), question_update_ms: Math.round(interactionFinishedAt - interactionStartedAt), question_count: 120 };
+      const metrics = { render_ms: Math.round(renderedAt - openedAt), question_update_ms: Math.round(interactionFinishedAt - interactionStartedAt), question_count: 120, ...outlineMetrics };
       if (metrics.render_ms > 3000) throw new Error(`The 120-question builder took ${metrics.render_ms}ms to become usable; budget is 3000ms.`);
       if (metrics.question_update_ms > 500) throw new Error(`A large-form question update took ${metrics.question_update_ms}ms; budget is 500ms.`);
       await verifyBuilderChromeNoOverlap(page);
@@ -459,6 +464,22 @@ async function assertDarkPopup(page) {
   const color = await page.locator(".cs-select-field__popover").evaluate((element) => getComputedStyle(element).backgroundColor);
   const channels = color.match(/\d+(?:\.\d+)?/g)?.slice(0, 3).map(Number) ?? [];
   if (channels.length !== 3 || channels.reduce((sum, value) => sum + value, 0) / 3 > 110) throw new Error(`The dark Select popup must use a dark semantic surface, received ${color}.`);
+}
+
+async function assertBuilderOutlineContained(outline) {
+  return outline.evaluate((pane) => {
+    const paneBounds = pane.getBoundingClientRect();
+    const paneStyle = getComputedStyle(pane);
+    const visible = [...pane.querySelectorAll(".form-outline-item, .form-outline-actions, .form-outline-reuse")]
+      .map((element) => element.getBoundingClientRect())
+      .filter((bounds) => bounds.height > 0 && bounds.top >= paneBounds.top - 1 && bounds.bottom <= paneBounds.bottom + 1)
+      .sort((left, right) => left.top - right.top);
+    for (let index = 1; index < visible.length; index += 1) {
+      if (visible[index].top < visible[index - 1].bottom - 1) throw new Error("Form outline controls overlap while the pane is scrolled.");
+    }
+    if (!paneStyle.overflowY.match(/auto|scroll/) || pane.scrollTop <= 0 || pane.scrollHeight <= pane.clientHeight) throw new Error("The long form outline did not use its independent scroll boundary.");
+    return { outline_scroll_top: Math.round(pane.scrollTop), outline_scroll_height: pane.scrollHeight, outline_client_height: pane.clientHeight };
+  });
 }
 
 async function builderGeometry(page) {

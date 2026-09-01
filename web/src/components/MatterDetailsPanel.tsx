@@ -13,6 +13,8 @@ type Props = {
   aggregate: MatterAggregate;
   operations: MatterOperation[];
   responsibleParties?: RecordResponsibleParty[];
+  assignmentIntent?: number;
+  suppressAssignmentAction?: boolean;
   onUpdated: (value: MatterAggregate) => void | Promise<void>;
   onReload: () => void;
 };
@@ -21,7 +23,7 @@ function operationFor(operations: MatterOperation[], command: string) {
   return operations.find((operation) => operation.command === command);
 }
 
-export function MatterDetailsPanel({ aggregate, operations, responsibleParties = [], onUpdated, onReload }: Props) {
+export function MatterDetailsPanel({ aggregate, operations, responsibleParties = [], assignmentIntent = 0, suppressAssignmentAction = false, onUpdated, onReload }: Props) {
   const detailsOperation = operationFor(operations, "matter.details.update");
   const assignmentOperation = operationFor(operations, "matter.assign");
   const linkOperation = operationFor(operations, "matter.link");
@@ -57,6 +59,10 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
     setError("");
     setConflict(false);
   }
+
+  useEffect(() => {
+    if (assignmentIntent > 0) beginAssignment();
+  }, [assignmentIntent]);
 
   useEffect(() => {
     if (!aggregate.links.length) return;
@@ -134,7 +140,7 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
       <div><span className="eyebrow">Issue details</span><h2>Scope, timing and owner</h2></div>
       <div className="matter-panel-actions">
         {detailsOperation?.can_act && !editing && <button id={matterOperationControlID(detailsOperation)} className="secondary-button" type="button" onClick={() => { setEditing(true); setAssigning(false); setLinking(false); setNotice(""); }}>Edit issue details</button>}
-        {assignmentOperation?.can_act && !assigning && <Button id={matterOperationControlID(assignmentOperation)} variant="secondary" onPress={beginAssignment}>Change issue owner</Button>}
+        {assignmentOperation?.can_act && !assigning && !suppressAssignmentAction && <Button id={matterOperationControlID(assignmentOperation)} variant="secondary" onPress={beginAssignment}>Change issue owner</Button>}
         {linkOperation?.can_act && !linking && <button className="secondary-button" type="button" onClick={() => void beginLink()}>Link to Program</button>}
       </div>
     </div>

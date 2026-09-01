@@ -208,6 +208,15 @@ function formsTemplatePopulation(fixture: string) {
       sections,
       fields,
       updated_at: "2026-08-30T12:06:00Z",
+    }, {
+      ...template,
+      id: "form-approved-reuse",
+      code: "FORM-APPROVED-REUSE",
+      name: "Approved evidence checks",
+      status: "ACTIVE" as const,
+      is_current: true,
+      version: 4,
+      updated_at: "2026-08-30T12:05:00Z",
     }];
   }
   if (["forms-library-lifecycle", "forms-library-mobile-populated", "forms-new-form"].includes(fixture)) return [

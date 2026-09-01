@@ -735,6 +735,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     const dominant = await screen.findByTestId("dominant-next-action");
+    expect(screen.getAllByRole("button", { name: "Change issue owner" })).toHaveLength(1);
     fireEvent.click(within(dominant).getByRole("button", { name: "Change issue owner" }));
 
     expect(screen.getByRole("dialog", { name: "Change issue owner" })).toBeTruthy();
