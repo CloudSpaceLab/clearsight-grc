@@ -109,6 +109,7 @@ type Policy struct {
 	RecordVersion           int64           `json:"record_version"`
 	CreatedAt               time.Time       `json:"created_at"`
 	UpdatedAt               time.Time       `json:"updated_at"`
+	LastActorID             string          `json:"-"`
 }
 
 type SimulationReceipt struct {
@@ -157,6 +158,31 @@ type ExecutionReceipt struct {
 	ReasonCode              string         `json:"reason_code,omitempty"`
 	CreatedMatter           bool           `json:"created_matter"`
 	CreatedAt               time.Time      `json:"created_at"`
+}
+
+type EpisodeState string
+
+const (
+	EpisodeOpen   EpisodeState = "OPEN"
+	EpisodeClosed EpisodeState = "CLOSED"
+)
+
+type AdverseEpisode struct {
+	ID                     string       `json:"id"`
+	TenantID               string       `json:"tenant_id"`
+	LegalEntityID          string       `json:"legal_entity_id"`
+	PolicyCode             string       `json:"policy_code"`
+	PolicyID               string       `json:"policy_id"`
+	PolicyVersion          int64        `json:"policy_version"`
+	SubjectType            string       `json:"subject_type"`
+	SubjectID              string       `json:"subject_id"`
+	State                  EpisodeState `json:"state"`
+	MatterID               string       `json:"matter_id,omitempty"`
+	LastResponseRevisionID string       `json:"last_response_revision_id"`
+	OpenedAt               time.Time    `json:"opened_at"`
+	ClosedAt               *time.Time   `json:"closed_at,omitempty"`
+	UpdatedAt              time.Time    `json:"updated_at"`
+	RecordVersion          int64        `json:"record_version"`
 }
 
 type CreateInput struct {

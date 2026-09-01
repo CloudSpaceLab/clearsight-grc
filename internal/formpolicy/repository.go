@@ -15,6 +15,8 @@ type Repository interface {
 	HasShadowHistory(context.Context, string, string, string, int64) (bool, error)
 	SaveSimulation(context.Context, SimulationReceipt) (SimulationReceipt, error)
 	GetSimulation(context.Context, string, string, string) (SimulationReceipt, error)
+	CreateExecution(context.Context, ExecutionReceipt) (ExecutionReceipt, bool, error)
+	OpenEpisode(context.Context, AdverseEpisode) (AdverseEpisode, bool, error)
 }
 
 type FormReader interface {

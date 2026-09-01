@@ -2,7 +2,9 @@ package formpolicy
 
 import (
 	"context"
+	"fmt"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
@@ -12,10 +14,12 @@ type MemoryRepository struct {
 	mu          sync.RWMutex
 	policies    map[string]Policy
 	simulations map[string]SimulationReceipt
+	executions  map[string]ExecutionReceipt
+	episodes    map[string]AdverseEpisode
 }
 
 func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{policies: map[string]Policy{}, simulations: map[string]SimulationReceipt{}}
+	return &MemoryRepository{policies: map[string]Policy{}, simulations: map[string]SimulationReceipt{}, executions: map[string]ExecutionReceipt{}, episodes: map[string]AdverseEpisode{}}
 }
 
 func policyKey(tenantID, legalEntityID, id string) string {
@@ -128,6 +132,35 @@ func (repo *MemoryRepository) GetSimulation(_ context.Context, tenantID, legalEn
 		return SimulationReceipt{}, ErrNotFound
 	}
 	return value, nil
+}
+
+func (repo *MemoryRepository) CreateExecution(_ context.Context, value ExecutionReceipt) (ExecutionReceipt, bool, error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+	key := value.TenantID + "|" + value.LegalEntityID + "|" + value.PolicyID + "|" + fmt.Sprint(value.PolicyVersion) + "|" + value.ResponseRevisionID
+	if stored, exists := repo.executions[key]; exists {
+		if executionFingerprint(stored) != executionFingerprint(value) {
+			return ExecutionReceipt{}, false, ErrConflict
+		}
+		return stored, false, nil
+	}
+	repo.executions[key] = value
+	return value, true, nil
+}
+
+func (repo *MemoryRepository) OpenEpisode(_ context.Context, value AdverseEpisode) (AdverseEpisode, bool, error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+	key := value.TenantID + "|" + value.LegalEntityID + "|" + value.PolicyCode + "|" + value.SubjectType + "|" + value.SubjectID
+	if stored, exists := repo.episodes[key]; exists && stored.State == EpisodeOpen {
+		return stored, false, nil
+	}
+	repo.episodes[key] = value
+	return value, true, nil
+}
+
+func executionFingerprint(value ExecutionReceipt) string {
+	return strings.Join([]string{value.TenantID, value.LegalEntityID, value.PolicyID, fmt.Sprint(value.PolicyVersion), value.AutomationPolicyID, fmt.Sprint(value.AutomationPolicyVersion), value.ResponseRevisionID, string(value.State), value.MatterID, value.ReasonCode, fmt.Sprint(value.CreatedMatter)}, "|")
 }
 
 func clonePolicy(value Policy) Policy {

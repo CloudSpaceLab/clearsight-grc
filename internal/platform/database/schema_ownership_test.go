@@ -55,6 +55,26 @@ func TestEveryUpMigrationHasDownPair(t *testing.T) {
 	}
 }
 
+func TestFormResponsePolicySchemaKeepsScopeAndIdempotencyInDatabase(t *testing.T) {
+	root := repositoryRoot(t)
+	raw, err := os.ReadFile(filepath.Join(root, "migrations", "000065_form_scoring_and_response_policies.up.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sql := strings.ToLower(strings.Join(strings.Fields(string(raw)), " "))
+	for _, required := range []string{
+		"foreign key (legal_entity_id,tenant_id) references legal_entities(id,tenant_id)",
+		"foreign key (tenant_id,legal_entity_id,form_template_id,form_template_version) references monitoring_form_templates(tenant_id,legal_entity_id,id,version)",
+		"unique(tenant_id,legal_entity_id,policy_id,policy_version,response_revision_id)",
+		"on form_response_policy_adverse_episodes(tenant_id,legal_entity_id,policy_code,subject_type,subject_id) where state='open'",
+		"where aggregate_type='form_response_policy'",
+	} {
+		if !strings.Contains(sql, required) {
+			t.Fatalf("form-response policy migration is missing database invariant %q", required)
+		}
+	}
+}
+
 func liveTablesFromMigrations(t *testing.T, migrationDir string) map[string]struct{} {
 	t.Helper()
 	paths, err := filepath.Glob(filepath.Join(migrationDir, "*.up.sql"))

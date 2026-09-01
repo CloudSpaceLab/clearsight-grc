@@ -50,6 +50,7 @@ func (service *Service) Create(ctx context.Context, actor Actor, input CreateInp
 		EffectiveFrom: input.EffectiveFrom, EffectiveUntil: input.EffectiveUntil,
 		Version: version, RecordVersion: 1, CreatedAt: now, UpdatedAt: now,
 	}
+	value.LastActorID = actor.PrincipalID
 	value.Checksum = policyChecksum(value)
 	return service.repo.CreatePolicy(ctx, value)
 }
@@ -118,6 +119,7 @@ func (service *Service) Submit(ctx context.Context, actor Actor, policyID string
 	}
 	now := service.currentTime()
 	value.Status, value.ApprovedSimulationID, value.SubmittedAt = PolicyPendingApproval, strings.TrimSpace(simulationID), &now
+	value.LastActorID = actor.PrincipalID
 	return service.update(ctx, value, expectedVersion, now)
 }
 
@@ -141,6 +143,7 @@ func (service *Service) Approve(ctx context.Context, actor Actor, policyID strin
 	}
 	now := service.currentTime()
 	value.Status, value.CheckerID, value.ApprovedAt = PolicyApproved, actor.PrincipalID, &now
+	value.LastActorID = actor.PrincipalID
 	return service.update(ctx, value, expectedVersion, now)
 }
 
@@ -184,6 +187,7 @@ func (service *Service) Activate(ctx context.Context, actor Actor, policyID stri
 		return Policy{}, ErrInvalidTransition
 	}
 	value.Status, value.CheckerID, value.ActivatedAt = PolicyActive, actor.PrincipalID, &now
+	value.LastActorID = actor.PrincipalID
 	return service.update(ctx, value, expectedVersion, now)
 }
 
@@ -198,6 +202,7 @@ func (service *Service) Suspend(ctx context.Context, actor Actor, policyID strin
 	}
 	now := service.currentTime()
 	value.Status, value.SuspendedAt = PolicySuspended, &now
+	value.LastActorID = actor.PrincipalID
 	return service.update(ctx, value, expectedVersion, now)
 }
 
@@ -235,6 +240,7 @@ func (service *Service) Rollback(ctx context.Context, actor Actor, policyID stri
 	rolled.ApprovedSimulationID, rolled.SupersedesPolicyID, rolled.RollbackOfPolicyID = "", current.ID, current.ID
 	rolled.SubmittedAt, rolled.ApprovedAt, rolled.ActivatedAt, rolled.SuspendedAt, rolled.RetiredAt = nil, nil, nil, nil, nil
 	rolled.CreatedAt, rolled.UpdatedAt = now, now
+	rolled.LastActorID = actor.PrincipalID
 	rolled.Checksum = policyChecksum(rolled)
 	return service.repo.CreatePolicy(ctx, rolled)
 }
