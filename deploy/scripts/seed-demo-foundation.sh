@@ -111,19 +111,21 @@ BEGIN
   IF EXISTS (
     SELECT 1
     FROM (VALUES
-      ('00000000-0000-4000-8000-000000000401'::uuid, 'CRO'),
-      ('00000000-0000-4000-8000-000000000402'::uuid, 'CCO'),
-      ('00000000-0000-4000-8000-000000000403'::uuid, 'CISO'),
-      ('00000000-0000-4000-8000-000000000404'::uuid, 'GRC_ADMIN'),
-      ('00000000-0000-4000-8000-000000000405'::uuid, 'SYSTEM_ADMIN'),
-      ('00000000-0000-4000-8000-000000000406'::uuid, 'INTERNAL_AUDITOR'),
-      ('00000000-0000-4000-8000-000000000407'::uuid, 'PROGRAM_OWNER'),
-      ('00000000-0000-4000-8000-000000000408'::uuid, 'EVIDENCE_RESPONDENT')
-    ) expected(id, code)
+      ('00000000-0000-4000-8000-000000000401'::uuid, 'CRO', ARRAY['AUTHORIZER','ESCALATION_OWNER']::text[], ARRAY['read:all','governance:authorize']::text[]),
+      ('00000000-0000-4000-8000-000000000402'::uuid, 'CCO', ARRAY['AUTHORIZER','SIGNATORY','TRANSMITTER','ACKNOWLEDGEMENT_RECORDER','PROPOSER']::text[], ARRAY['read:all','governance:authorize']::text[]),
+      ('00000000-0000-4000-8000-000000000403'::uuid, 'CISO', ARRAY['ACCOUNTABLE_OWNER']::text[], ARRAY['read:all']::text[]),
+      ('00000000-0000-4000-8000-000000000404'::uuid, 'GRC_ADMIN', ARRAY['PROPOSER']::text[], ARRAY['configure:governance']::text[]),
+      ('00000000-0000-4000-8000-000000000405'::uuid, 'SYSTEM_ADMIN', ARRAY[]::text[], ARRAY['configure:system']::text[]),
+      ('00000000-0000-4000-8000-000000000406'::uuid, 'INTERNAL_AUDITOR', ARRAY['REVIEWER','INDEPENDENT_CHALLENGER']::text[], ARRAY['read:all','review:evidence']::text[]),
+      ('00000000-0000-4000-8000-000000000407'::uuid, 'PROGRAM_OWNER', ARRAY['ACCOUNTABLE_OWNER','PERFORMER']::text[], ARRAY['manage:program','manage:matter']::text[]),
+      ('00000000-0000-4000-8000-000000000408'::uuid, 'EVIDENCE_RESPONDENT', ARRAY['PERFORMER']::text[], ARRAY['respond:evidence']::text[])
+    ) expected(id, code, responsibilities, capabilities)
     LEFT JOIN role_templates actual ON actual.id = expected.id
     WHERE actual.id IS NULL
        OR actual.tenant_id <> '00000000-0000-4000-8000-000000000001'::uuid
        OR actual.code <> expected.code
+       OR actual.responsibilities IS DISTINCT FROM expected.responsibilities
+       OR actual.capabilities IS DISTINCT FROM expected.capabilities
        OR actual.valid_until IS NOT NULL
   ) THEN
     RAISE EXCEPTION 'demo role mappings differ from the managed fixture';
@@ -153,20 +155,22 @@ BEGIN
   IF EXISTS (
     SELECT 1
     FROM (VALUES
-      ('00000000-0000-4000-8000-000000000501'::uuid, '00000000-0000-4000-8000-000000000301'::uuid, '00000000-0000-4000-8000-000000000401'::uuid),
-      ('00000000-0000-4000-8000-000000000502'::uuid, '00000000-0000-4000-8000-000000000302'::uuid, '00000000-0000-4000-8000-000000000402'::uuid),
-      ('00000000-0000-4000-8000-000000000503'::uuid, '00000000-0000-4000-8000-000000000303'::uuid, '00000000-0000-4000-8000-000000000403'::uuid),
-      ('00000000-0000-4000-8000-000000000504'::uuid, '00000000-0000-4000-8000-000000000304'::uuid, '00000000-0000-4000-8000-000000000404'::uuid),
-      ('00000000-0000-4000-8000-000000000505'::uuid, '00000000-0000-4000-8000-000000000305'::uuid, '00000000-0000-4000-8000-000000000405'::uuid),
-      ('00000000-0000-4000-8000-000000000506'::uuid, '00000000-0000-4000-8000-000000000306'::uuid, '00000000-0000-4000-8000-000000000406'::uuid),
-      ('00000000-0000-4000-8000-000000000507'::uuid, '00000000-0000-4000-8000-000000000307'::uuid, '00000000-0000-4000-8000-000000000407'::uuid),
-      ('00000000-0000-4000-8000-000000000508'::uuid, '00000000-0000-4000-8000-000000000308'::uuid, '00000000-0000-4000-8000-000000000408'::uuid)
-    ) expected(id, position_id, role_template_id)
+      ('00000000-0000-4000-8000-000000000501'::uuid, '00000000-0000-4000-8000-000000000301'::uuid, '00000000-0000-4000-8000-000000000401'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100),
+      ('00000000-0000-4000-8000-000000000502'::uuid, '00000000-0000-4000-8000-000000000302'::uuid, '00000000-0000-4000-8000-000000000402'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100),
+      ('00000000-0000-4000-8000-000000000503'::uuid, '00000000-0000-4000-8000-000000000303'::uuid, '00000000-0000-4000-8000-000000000403'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100),
+      ('00000000-0000-4000-8000-000000000504'::uuid, '00000000-0000-4000-8000-000000000304'::uuid, '00000000-0000-4000-8000-000000000404'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100),
+      ('00000000-0000-4000-8000-000000000505'::uuid, '00000000-0000-4000-8000-000000000305'::uuid, '00000000-0000-4000-8000-000000000405'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100),
+      ('00000000-0000-4000-8000-000000000506'::uuid, '00000000-0000-4000-8000-000000000306'::uuid, '00000000-0000-4000-8000-000000000406'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100),
+      ('00000000-0000-4000-8000-000000000507'::uuid, '00000000-0000-4000-8000-000000000307'::uuid, '00000000-0000-4000-8000-000000000407'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100),
+      ('00000000-0000-4000-8000-000000000508'::uuid, '00000000-0000-4000-8000-000000000308'::uuid, '00000000-0000-4000-8000-000000000408'::uuid, '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}'::jsonb, 100)
+    ) expected(id, position_id, role_template_id, scope, priority)
     LEFT JOIN position_role_bindings actual ON actual.id = expected.id
     WHERE actual.id IS NULL
        OR actual.tenant_id <> '00000000-0000-4000-8000-000000000001'::uuid
        OR actual.position_id <> expected.position_id
        OR actual.role_template_id <> expected.role_template_id
+       OR actual.scope IS DISTINCT FROM expected.scope
+       OR actual.priority <> expected.priority
        OR actual.valid_until IS NOT NULL
   ) THEN
     RAISE EXCEPTION 'demo position-role mappings differ from the managed fixture';

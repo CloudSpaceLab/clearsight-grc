@@ -159,7 +159,11 @@ class DeploymentConfigTest(unittest.TestCase):
                       "demo principal mappings differ from the managed fixture",
                       "demo role mappings differ from the managed fixture",
                       "demo position mappings differ from the managed fixture",
-                      "demo position-role mappings differ from the managed fixture"):
+                      "demo position-role mappings differ from the managed fixture",
+                      "actual.responsibilities IS DISTINCT FROM expected.responsibilities",
+                      "actual.capabilities IS DISTINCT FROM expected.capabilities",
+                      "actual.scope IS DISTINCT FROM expected.scope",
+                      "actual.priority <> expected.priority"):
             self.assertIn(value, foundation)
         self.assertNotIn("opatachibueze+staff", foundation)
         self.assertNotIn("demo_staff_email}'", foundation)

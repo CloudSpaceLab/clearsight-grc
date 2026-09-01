@@ -271,6 +271,30 @@ func TestAssignmentNotificationSkipsDeliveryWhenAnotherWorkerOwnsClaim(t *testin
 	}
 }
 
+func TestAssignmentNotificationDoesNotRetryUnknownPostAcceptanceOutcome(t *testing.T) {
+	repo := &assignmentNotificationRepositoryStub{context: deliverableAssignmentContext()}
+	delivery := &assignmentDeliveryStub{receipt: evidence.InvitationDeliveryReceipt{
+		Status: evidence.InvitationDeliveryFailed, FailureCode: evidence.InvitationFailureOutcomeUnknown,
+	}}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := consumer.Publish(t.Context(), matterOwnerAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if repo.recorded.Status != assignmentNotificationOutcomeUnknown || delivery.calls != 1 {
+		t.Fatalf("receipt=%#v delivery calls=%d", repo.recorded, delivery.calls)
+	}
+	if err := consumer.Publish(t.Context(), matterOwnerAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 1 {
+		t.Fatalf("unknown outcome was redelivered: calls=%d", delivery.calls)
+	}
+}
+
 func TestAssignmentNotificationIgnoresUnrelatedEventsAndRejectsInsecureBaseURL(t *testing.T) {
 	repo := &assignmentNotificationRepositoryStub{}
 	delivery := &assignmentDeliveryStub{}

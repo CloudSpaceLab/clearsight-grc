@@ -11,7 +11,7 @@ CREATE TABLE staff_assignment_notification_deliveries (
     principal_id uuid NOT NULL,
     notification_kind text NOT NULL CHECK (notification_kind IN ('MATTER_OWNER_ASSIGNED','ACTION_PERFORMER_ASSIGNED')),
     recipient_fingerprint bytea,
-    status text NOT NULL CHECK (status IN ('DELIVERY_STARTED','DELIVERED','CONTACT_UNAVAILABLE','ASSIGNMENT_SUPERSEDED','RECIPIENT_REJECTED','PERMANENT_FAILURE','TEMPORARY_FAILURE')),
+    status text NOT NULL CHECK (status IN ('DELIVERY_STARTED','DELIVERY_OUTCOME_UNKNOWN','DELIVERED','CONTACT_UNAVAILABLE','ASSIGNMENT_SUPERSEDED','RECIPIENT_REJECTED','PERMANENT_FAILURE','TEMPORARY_FAILURE')),
     failure_code text NOT NULL DEFAULT '' CHECK (failure_code = btrim(failure_code) AND char_length(failure_code) <= 128),
     provider_message_id text NOT NULL DEFAULT '' CHECK (provider_message_id = btrim(provider_message_id) AND char_length(provider_message_id) <= 512),
     attempt_count integer NOT NULL DEFAULT 1 CHECK (attempt_count > 0),

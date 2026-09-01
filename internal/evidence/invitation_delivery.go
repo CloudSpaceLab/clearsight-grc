@@ -25,6 +25,7 @@ const (
 	InvitationFailureTemporary         InvitationDeliveryFailureCode = "TEMPORARY_FAILURE"
 	InvitationFailurePermanent         InvitationDeliveryFailureCode = "PERMANENT_FAILURE"
 	InvitationFailureProviderError     InvitationDeliveryFailureCode = "DELIVERY_PROVIDER_ERROR"
+	InvitationFailureOutcomeUnknown    InvitationDeliveryFailureCode = "DELIVERY_OUTCOME_UNKNOWN"
 	InvitationFailureInvalidReceipt    InvitationDeliveryFailureCode = "INVALID_RECEIPT"
 )
 
@@ -250,6 +251,7 @@ func validInvitationFailureCode(code InvitationDeliveryFailureCode) bool {
 		InvitationFailureTemporary,
 		InvitationFailurePermanent,
 		InvitationFailureProviderError,
+		InvitationFailureOutcomeUnknown,
 		InvitationFailureInvalidReceipt:
 		return len(code) <= 64
 	default:

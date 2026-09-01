@@ -716,6 +716,19 @@ describe("Matter record workspace", () => {
     expect(screen.queryByRole("dialog", { name: "Edit issue details" })).toBeNull();
   });
 
+  it("opens the first unresolved fact from the assessment handoff", async () => {
+    const assessment = { ...detail, next_action: "Review impact and options", matter: { ...detail.matter, status: "ASSESSMENT" }, actions: [] };
+    vi.mocked(loadMatter).mockResolvedValue(assessment);
+    vi.mocked(loadMatterOperations).mockResolvedValue(ownerOperations);
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    const dominant = await screen.findByTestId("dominant-next-action");
+    fireEvent.click(within(dominant).getByRole("button", { name: "Update facts and missing information" }));
+
+    expect(screen.getByLabelText("Information to record")).toBeTruthy();
+    expect(screen.getByText("approved owner for the cross-border transfer section")).toBeTruthy();
+  });
+
   it("shows only ordinary lifecycle targets to the accountable owner", async () => {
     const assessment = { ...detail, matter: { ...detail.matter, status: "ASSESSMENT" } };
     vi.mocked(loadMatter).mockResolvedValue(assessment);

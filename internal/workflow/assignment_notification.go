@@ -26,6 +26,7 @@ const (
 	assignmentNotificationPermanentFailure   = "PERMANENT_FAILURE"
 	assignmentNotificationTemporaryFailure   = "TEMPORARY_FAILURE"
 	assignmentNotificationDeliveryStarted    = "DELIVERY_STARTED"
+	assignmentNotificationOutcomeUnknown     = "DELIVERY_OUTCOME_UNKNOWN"
 
 	matterOwnerNotificationKind     = "MATTER_OWNER_ASSIGNED"
 	actionPerformerNotificationKind = "ACTION_PERFORMER_ASSIGNED"
@@ -197,6 +198,9 @@ func decodeAssignmentNotificationEvent(event workflowruntime.OutboxEvent) (assig
 }
 
 func assignmentNotificationStatus(receipt evidence.InvitationDeliveryReceipt, deliveryErr error) string {
+	if receipt.FailureCode == evidence.InvitationFailureOutcomeUnknown {
+		return assignmentNotificationOutcomeUnknown
+	}
 	if deliveryErr != nil || receipt.Status == evidence.InvitationLinkCreatedEmailNotSent || receipt.FailureCode == evidence.InvitationFailureTemporary || receipt.FailureCode == evidence.InvitationFailureProviderError {
 		return assignmentNotificationTemporaryFailure
 	}

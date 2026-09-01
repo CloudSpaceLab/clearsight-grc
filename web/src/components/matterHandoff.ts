@@ -10,6 +10,23 @@ function textMatches(nextAction: string, value: string | undefined) {
   return candidate.length >= 4 && (nextAction.includes(candidate) || candidate.includes(nextAction));
 }
 
+type NamedWork = { kind: "action" | "response" | "contract"; id: string; text: string };
+const ambiguousNamedWork = Symbol("ambiguousNamedWork");
+
+function namedWorkFor(aggregate: MatterAggregate, nextAction: string): NamedWork | typeof ambiguousNamedWork | undefined {
+  const candidates: NamedWork[] = [
+    ...aggregate.actions.map((candidate) => ({ kind: "action" as const, id: candidate.id, text: normalize(candidate.title) })),
+    ...aggregate.response_packages.map((candidate) => ({ kind: "response" as const, id: candidate.id, text: normalize(candidate.purpose) })),
+    ...aggregate.verification_contracts.map((candidate) => ({ kind: "contract" as const, id: candidate.id, text: normalize(candidate.expected_outcome) })),
+  ].filter((candidate) => candidate.text.length >= 4);
+  const exact = candidates.filter((candidate) => candidate.text === nextAction);
+  if (exact.length === 1) return exact[0];
+  if (exact.length > 1) return ambiguousNamedWork;
+  const partial = candidates.filter((candidate) => textMatches(nextAction, candidate.text));
+  if (partial.length === 1) return partial[0];
+  return partial.length > 1 ? ambiguousNamedWork : undefined;
+}
+
 function mentions(nextAction: string, concepts: string[]) {
   const words = new Set(nextAction.split(" "));
   return concepts.some((concept) => words.has(concept));
@@ -26,6 +43,11 @@ function uniqueOperation(operations: MatterOperation[], command: string, subreso
   return matches.length === 1 ? matches[0] : undefined;
 }
 
+function uniqueOperationAllowingTarget(operations: MatterOperation[], command: string, target: string) {
+  const matches = operations.filter((operation) => operation.command === command && operation.allowed_targets?.includes(target));
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
 export function matterOperationControlID(operation: Pick<MatterOperation, "command" | "subresource_id" | "responsibility">) {
   return `matter-control-${operation.command}-${operation.subresource_id ?? "record"}-${operation.responsibility}`;
 }
@@ -38,24 +60,25 @@ export function matterOperationControlID(operation: Pick<MatterOperation, "comma
 export function selectMatterHandoff(aggregate: MatterAggregate, operations: MatterOperation[]) {
   const nextAction = normalize(aggregate.next_action);
 
-  const action = aggregate.actions.find((candidate) => textMatches(nextAction, candidate.title));
-  if (action) {
-    const selected = operationFor(operations, "matter.action.transition", action.id)
-      ?? operationFor(operations, "matter.action.update", action.id)
-      ?? operationFor(operations, "matter.action.assign", action.id);
-    if (selected) return selected;
+  const namedWork = namedWorkFor(aggregate, nextAction);
+  if (namedWork === ambiguousNamedWork) return undefined;
+  if (namedWork) {
+    if (namedWork.kind === "action") {
+      const selected = operationFor(operations, "matter.action.transition", namedWork.id)
+        ?? operationFor(operations, "matter.action.update", namedWork.id)
+        ?? operationFor(operations, "matter.action.assign", namedWork.id);
+      if (selected) return selected;
+    } else if (namedWork.kind === "response") {
+      const selected = operationFor(operations, "matter.response.transition", namedWork.id);
+      if (selected) return selected;
+    } else {
+      const selected = operationFor(operations, "matter.outcome.record", namedWork.id);
+      if (selected) return selected;
+    }
   }
 
-  const response = aggregate.response_packages.find((candidate) => textMatches(nextAction, candidate.purpose));
-  if (response) {
-    const selected = operationFor(operations, "matter.response.transition", response.id);
-    if (selected) return selected;
-  }
-
-  const contract = aggregate.verification_contracts.find((candidate) => textMatches(nextAction, candidate.expected_outcome));
-  if (contract) {
-    const selected = operationFor(operations, "matter.outcome.record", contract.id);
-    if (selected) return selected;
+  if (nextAction === "prepare response") {
+    return uniqueOperation(operations, "matter.response.add");
   }
 
   const preferences: string[] = [];
@@ -72,10 +95,11 @@ export function selectMatterHandoff(aggregate: MatterAggregate, operations: Matt
   if (preferences.length === 0) {
     switch (aggregate.matter.status) {
       case "DRAFT":
-        return uniqueOperation(operations, "matter.transition");
+        return uniqueOperationAllowingTarget(operations, "matter.transition", "INITIAL_REVIEW");
       case "INITIAL_REVIEW":
         return uniqueOperation(operations, "matter.assign") ?? uniqueOperation(operations, "matter.details.update");
       case "ASSESSMENT":
+        return uniqueOperation(operations, "matter.context.change");
       case "DECISION_REQUIRED": {
         const initialDecision = operations.filter((operation) => operation.command === "matter.decision.record" && !operation.subresource_id);
         return initialDecision.length === 1 ? initialDecision[0] : uniqueOperation(operations, "matter.decision.record");
@@ -85,8 +109,7 @@ export function selectMatterHandoff(aggregate: MatterAggregate, operations: Matt
         return uniqueOperation(operations, "matter.action.transition", activeActionIDs);
       }
       case "RESPONSE_PREPARATION": {
-        const responseIDs = aggregate.response_packages.map((candidate) => candidate.id);
-        return uniqueOperation(operations, "matter.response.transition", responseIDs) ?? uniqueOperation(operations, "matter.response.add");
+        return uniqueOperation(operations, "matter.response.add");
       }
       case "VERIFICATION": {
         const activeContractIDs = aggregate.verification_contracts.filter((candidate) => candidate.status === "ACTIVE").map((candidate) => candidate.id);

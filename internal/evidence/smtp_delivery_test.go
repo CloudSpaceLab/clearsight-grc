@@ -44,7 +44,7 @@ func TestSMTPDeliveryUsesSTARTTLSAndSendsRenderedAlternatives(t *testing.T) {
 	defer listener.Close()
 	port := listener.Addr().(*net.TCPAddr).Port
 	result := make(chan smtpTestServerResult, 1)
-	go runSMTPStartTLSServer(listener, certificate, result)
+	go runSMTPStartTLSServer(listener, certificate, false, false, result)
 
 	delivery, err := NewSMTPDelivery(SMTPDeliveryConfig{
 		Host: "localhost", Port: port, FromAddress: "forms@example.test",
@@ -98,13 +98,83 @@ func TestSMTPDeliveryUsesSTARTTLSAndSendsRenderedAlternatives(t *testing.T) {
 	}
 }
 
+func TestSMTPDeliveryDoesNotMarkPostAcceptanceDisconnectAsRetryable(t *testing.T) {
+	certificate, roots := smtpTestCertificate(t)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	result := make(chan smtpTestServerResult, 1)
+	go runSMTPStartTLSServer(listener, certificate, false, true, result)
+
+	delivery, err := NewSMTPDelivery(SMTPDeliveryConfig{
+		Host: "localhost", Port: listener.Addr().(*net.TCPAddr).Port, FromAddress: "forms@example.test",
+		TLSMode: SMTPTLSStartTLS, Environment: "production", RootCAs: roots,
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	delivery.newID = func() (string, error) { return "0198f000-0000-7000-8000-000000000002", nil }
+
+	receipt, err := delivery.Deliver(context.Background(), InvitationDeliveryRequest{
+		RecipientAddress: "owner@example.test", InvitationLink: "https://forms.example.test/s/selector",
+		Subject: "Example Bank: control review", PlainText: "Open the secure form.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if receipt.Status != InvitationDeliveryFailed || receipt.FailureCode != InvitationFailureOutcomeUnknown {
+		t.Fatalf("post-acceptance receipt = %+v", receipt)
+	}
+	server := <-result
+	if server.err != nil || len(server.message) == 0 {
+		t.Fatalf("server result = %+v", server)
+	}
+}
+
+func TestSMTPDeliveryDoesNotRetryWhenDataAcceptanceReplyIsLost(t *testing.T) {
+	certificate, roots := smtpTestCertificate(t)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	result := make(chan smtpTestServerResult, 1)
+	go runSMTPStartTLSServer(listener, certificate, true, false, result)
+
+	delivery, err := NewSMTPDelivery(SMTPDeliveryConfig{
+		Host: "localhost", Port: listener.Addr().(*net.TCPAddr).Port, FromAddress: "forms@example.test",
+		TLSMode: SMTPTLSStartTLS, Environment: "production", RootCAs: roots,
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	delivery.newID = func() (string, error) { return "0198f000-0000-7000-8000-000000000003", nil }
+
+	receipt, err := delivery.Deliver(context.Background(), InvitationDeliveryRequest{
+		RecipientAddress: "owner@example.test", InvitationLink: "https://forms.example.test/s/selector",
+		Subject: "Example Bank: control review", PlainText: "Open the secure form.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if receipt.Status != InvitationDeliveryFailed || receipt.FailureCode != InvitationFailureOutcomeUnknown {
+		t.Fatalf("lost DATA acknowledgement receipt = %+v", receipt)
+	}
+	server := <-result
+	if server.err != nil || len(server.message) == 0 {
+		t.Fatalf("server result = %+v", server)
+	}
+}
+
 type smtpTestServerResult struct {
 	startTLS bool
 	message  []byte
 	err      error
 }
 
-func runSMTPStartTLSServer(listener net.Listener, certificate tls.Certificate, result chan<- smtpTestServerResult) {
+func runSMTPStartTLSServer(listener net.Listener, certificate tls.Certificate, dropBeforeDataAck, dropAfterDataAck bool, result chan<- smtpTestServerResult) {
 	serverResult := smtpTestServerResult{}
 	conn, err := listener.Accept()
 	if err != nil {
@@ -205,6 +275,10 @@ func runSMTPStartTLSServer(listener net.Listener, certificate tls.Certificate, r
 		result <- serverResult
 		return
 	}
+	if dropBeforeDataAck {
+		result <- serverResult
+		return
+	}
 	if err := writeLine("250 queued"); err != nil {
 		serverResult.err = err
 		result <- serverResult
@@ -213,6 +287,10 @@ func runSMTPStartTLSServer(listener net.Listener, certificate tls.Certificate, r
 	line, err = readLine()
 	if err != nil || line != "QUIT" {
 		serverResult.err = smtpTestProtocolError("expected QUIT", line, err)
+		result <- serverResult
+		return
+	}
+	if dropAfterDataAck {
 		result <- serverResult
 		return
 	}

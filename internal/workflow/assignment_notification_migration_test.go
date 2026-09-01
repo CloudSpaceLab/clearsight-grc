@@ -18,6 +18,7 @@ func TestAssignmentNotificationMigrationScopesEveryReferenceAndReceiptToTenant(t
 		"FOREIGN KEY (OUTBOX_EVENT_ID, TENANT_ID) REFERENCES OUTBOX_EVENTS(ID, TENANT_ID)",
 		"FOREIGN KEY (PRINCIPAL_ID, TENANT_ID) REFERENCES PRINCIPALS(ID, TENANT_ID)",
 		"DELIVERY_STARTED",
+		"DELIVERY_OUTCOME_UNKNOWN",
 	} {
 		if !strings.Contains(sql, required) {
 			t.Fatalf("assignment notification migration is missing %q", required)
