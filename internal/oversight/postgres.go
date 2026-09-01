@@ -79,10 +79,10 @@ func (m *Maintainer) Maintain(ctx context.Context, now time.Time, limit int) (in
 	rows, err := m.Repository.pool.Query(ctx, `
 		SELECT t.id::text,le.id::text
 		FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id
-		WHERE le.valid_from<=$1 AND (le.valid_until IS NULL OR $1<le.valid_until)
+		WHERE le.valid_from<=$1::timestamptz AND (le.valid_until IS NULL OR $1::timestamptz<le.valid_until)
 		  AND NOT EXISTS (
 		    SELECT 1 FROM oversight_snapshots os
-		    WHERE os.tenant_id=le.tenant_id AND os.legal_entity_id=le.id AND os.generated_at>$1-interval '5 minutes'
+		    WHERE os.tenant_id=le.tenant_id AND os.legal_entity_id=le.id AND os.generated_at>$1::timestamptz-interval '5 minutes'
 		  )
 		ORDER BY le.id LIMIT $2`, now, limit)
 	if err != nil {
@@ -147,8 +147,8 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		       count(*) FILTER (WHERE scope_state='EXCLUDED'),
 		       count(*) FILTER (WHERE scope_state='UNKNOWN'),
 		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND priority>=4),
-		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND due_at<$3),
-		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND due_at>=$3 AND due_at<$3+interval '7 days'),
+		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND due_at<$3::timestamptz),
+		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND due_at>=$3::timestamptz AND due_at<$3::timestamptz+interval '7 days'),
 		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND owner_principal_id IS NULL),
 		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND EXISTS (
 		         SELECT 1 FROM verification_results vr WHERE vr.tenant_id=matters.tenant_id AND vr.matter_id=matters.id AND vr.result IN ('FAIL','INCONCLUSIVE')
@@ -176,8 +176,8 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		FROM matters m LEFT JOIN principals p ON p.tenant_id=m.tenant_id AND p.id=m.owner_principal_id
 		WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.status NOT IN ('CLOSED','CANCELLED')
 		  AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
-		  AND (m.priority>=4 OR m.due_at<$3 OR m.owner_principal_id IS NULL)
-		ORDER BY (m.due_at<$3) DESC,m.priority DESC,m.due_at NULLS LAST,m.updated_at DESC,m.id DESC LIMIT 30`, scope.TenantID, scope.LegalEntityID, now)
+		  AND (m.priority>=4 OR m.due_at<$3::timestamptz OR m.owner_principal_id IS NULL)
+		ORDER BY (m.due_at<$3::timestamptz) DESC,m.priority DESC,m.due_at NULLS LAST,m.updated_at DESC,m.id DESC LIMIT 30`, scope.TenantID, scope.LegalEntityID, now)
 	if err != nil {
 		return Snapshot{}, err
 	}
@@ -198,7 +198,7 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 	rows.Close()
 
 	rows, err = r.pool.Query(ctx, `
-		SELECT matter_type,count(*) FILTER (WHERE priority=5),count(*) FILTER (WHERE priority=4),count(*) FILTER (WHERE priority<4),count(*) FILTER (WHERE due_at<$3)
+		SELECT matter_type,count(*) FILTER (WHERE priority=5),count(*) FILTER (WHERE priority=4),count(*) FILTER (WHERE priority<4),count(*) FILTER (WHERE due_at<$3::timestamptz)
 		FROM matters WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND status NOT IN ('CLOSED','CANCELLED')
 		  AND (NOT (scope ? 'access') OR upper(btrim(scope->>'access')) IN ('PUBLIC','INTERNAL'))
 		GROUP BY matter_type ORDER BY count(*) DESC,matter_type LIMIT 30`, scope.TenantID, scope.LegalEntityID, now)
@@ -221,10 +221,10 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 
 	var age0, age8, age31, age91 int
 	if err := r.pool.QueryRow(ctx, `
-		SELECT count(*) FILTER (WHERE created_at>=$3-interval '7 days'),
-		       count(*) FILTER (WHERE created_at<$3-interval '7 days' AND created_at>=$3-interval '30 days'),
-		       count(*) FILTER (WHERE created_at<$3-interval '30 days' AND created_at>=$3-interval '90 days'),
-		       count(*) FILTER (WHERE created_at<$3-interval '90 days')
+		SELECT count(*) FILTER (WHERE created_at>=$3::timestamptz-interval '7 days'),
+		       count(*) FILTER (WHERE created_at<$3::timestamptz-interval '7 days' AND created_at>=$3::timestamptz-interval '30 days'),
+		       count(*) FILTER (WHERE created_at<$3::timestamptz-interval '30 days' AND created_at>=$3::timestamptz-interval '90 days'),
+		       count(*) FILTER (WHERE created_at<$3::timestamptz-interval '90 days')
 		FROM matters WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND status NOT IN ('CLOSED','CANCELLED')
 		  AND (NOT (scope ? 'access') OR upper(btrim(scope->>'access')) IN ('PUBLIC','INTERNAL'))`, scope.TenantID, scope.LegalEntityID, now).
 		Scan(&age0, &age8, &age31, &age91); err != nil {

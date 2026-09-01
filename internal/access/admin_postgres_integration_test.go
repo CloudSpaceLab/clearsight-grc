@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func TestIdentityAccessAdminRevokesSourceDerivedEligibilityWithoutDeletingPrincipal(t *testing.T) {
+func TestIdentityAccessAdminRevokesSourceDerivedGrantWithoutDeletingPrincipal(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL is not configured")
@@ -118,8 +118,12 @@ func TestIdentityAccessAdminRevokesSourceDerivedEligibilityWithoutDeletingPrinci
 	if err := admin.RevokeSCIMSource(ctx, tenantID, source.ID, adminID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := resolver.ResolvePrincipal(ctx, tenantID, user.PrincipalID, entityID); !errors.Is(err, ErrPrincipalUnavailable) {
-		t.Fatalf("revoked source must remove group-derived entity eligibility, got %v", err)
+	revoked, err := resolver.ResolvePrincipal(ctx, tenantID, user.PrincipalID, entityID)
+	if err != nil {
+		t.Fatalf("active position must preserve entity eligibility after source revoke: %v", err)
+	}
+	if identity.HasDepartmentPermission(identity.Actor{DepartmentGrants: revoked.DepartmentGrants}, []string{"BANK", "RISK"}, identity.PermissionIdentityRead) {
+		t.Fatalf("revoked source must remove its group-derived permission: %#v", revoked.DepartmentGrants)
 	}
 	var principalStatus string
 	if err := pool.QueryRow(ctx, `SELECT status FROM principals WHERE id=$1::uuid`, user.PrincipalID).Scan(&principalStatus); err != nil {
