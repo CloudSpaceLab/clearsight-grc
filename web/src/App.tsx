@@ -31,7 +31,7 @@ const VendorsWorkspace = lazy(() => import("./components/VendorsWorkspace").then
 const ConfigureWorkspace = lazy(() => import("./components/configure/ConfigureWorkspace").then((module) => ({ default: module.ConfigureWorkspace })));
 
 type LoadState = "idle" | "loading" | "live" | "unavailable";
-type ConnectionState = "loading" | "live" | "sample" | "unavailable";
+type ConnectionState = "loading" | "live" | "unavailable";
 type PrimaryEvidenceLoad = { targetID?: string; state: "idle" | "loading" | "live" | "unavailable" };
 type VendorGuideIntent = { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" | "open-vendor-next-action" };
 type ProductRuntime = RuntimeContext & {
@@ -46,11 +46,6 @@ type ProductRuntime = RuntimeContext & {
   };
   actor: RuntimeContext["actor"] & { role_codes?: string[] };
 };
-
-const sampleMode = import.meta.env.VITE_ENABLE_SAMPLE_DATA === "true";
-const fallbackItems: AttentionItem[] = [{
-  id: "fallback-change", type: "REGULATORY_CHANGE", title: "Review proposed digital-channel requirements", why_now: "Seven provisions may affect mobile banking and two payment vendors.", scope: "Digital Channels · Reference data", state: "Applicability review", evidence: "Official source recorded", owner: "Regulatory Compliance", due_at: new Date(Date.now() + 3 * 86400000).toISOString(), primary_action: "Review the proposed requirements", intervention_class: "REVIEW", material_conclusion: "Seven source-linked provisions may change digital-channel obligations.", recommendation: { proposed_action: "Review the proposed requirements", rationale: "The source change may affect mobile banking and two payment vendors." },
-}];
 
 function App({ presentation = "enterprise" }: { presentation?: RuntimePresentation }) {
   const initialRoute = parseRoute(window.location.hash);
@@ -99,16 +94,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     void Promise.allSettled([loadContext(), loadToday(), loadReadiness()]).then(([contextResult, todayResult, readinessResult]) => {
       const currentRuntime = contextResult.status === "fulfilled" ? contextResult.value as ProductRuntime : null;
       applyVerifiedRuntime(currentRuntime);
-      const allowFallback = (currentRuntime?.demo_mode === true && presentation === "demo") ||
-        (currentRuntime == null && sampleMode && presentation === "demo");
       if (todayResult.status === "fulfilled") {
         setItems(Array.isArray(todayResult.value.items) ? todayResult.value.items : []);
         setTodayGeneratedAt(todayResult.value.generated_at);
         setConnection("live");
-      } else if (allowFallback) {
-        setItems(fallbackItems);
-        setTodayGeneratedAt(undefined);
-        setConnection("sample");
       } else {
         setItems([]);
         setTodayGeneratedAt(undefined);
@@ -294,7 +283,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   function closePanel() { captureLoadID.current++; routingLoadID.current++; setActivePanel("none"); }
 
   async function inspectRouting(item: AttentionItem) {
-    if (!item.authority || !item.action_target_type || !item.action_target_id) return;
+    if (!item.authority || !isAuthorityObjectType(item.action_target_type) || !item.action_target_id) return;
     const loadID = ++routingLoadID.current;
     setRoutingItem(item); setResolution(null); setRoutingState("loading"); setActivePanel("routing");
     try {
@@ -420,6 +409,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     <nav className="mobile-nav" aria-label="Mobile navigation">{operatingNavigation.map(({ label, view }) => <button key={view} type="button" aria-current={activeView === view ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><span>{label}</span></button>)}</nav>
     {activePanel !== "none" && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}>{activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}</FocusedSheet>}
   </div>;
+}
+
+function isAuthorityObjectType(value: AttentionItem["action_target_type"]): value is "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST" {
+  return value === "PROGRAM" || value === "MATTER" || value === "EVIDENCE_REQUEST";
 }
 
 function humanRole(value?: string) {

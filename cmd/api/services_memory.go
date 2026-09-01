@@ -16,7 +16,6 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
@@ -25,11 +24,8 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
-
-const todayItemLimit = 50
 
 func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serviceSet, error) {
 	version, rules := authority.DemoPolicySet()
@@ -126,30 +122,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		tasks = nil
 	}
 	workflowService := workflow.NewService(workflow.NewMemoryRepository(tasks))
-	todayService := today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {
-		if cfg.DemoMode {
-			journeys, err := verticals.List(loadCtx, actor.TenantID)
-			if err != nil {
-				return nil, err
-			}
-			visible := make([]bankverticals.Journey, 0, len(journeys))
-			for _, journey := range journeys {
-				if journey.VisibleTo(actor.PrincipalID) {
-					visible = append(visible, journey)
-				}
-			}
-			return bankverticals.TodayItems(visible, time.Now().UTC()), nil
-		}
-
-		assigned, err := workflowService.List(loadCtx, workflow.ListFilter{
-			TenantID: actor.TenantID, PrincipalID: actor.PrincipalID,
-			ActiveOnly: true, VisibleMatterWorkOnly: true, Limit: todayItemLimit,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return today.FromWorkflowTasksForActor(assigned, actor.PrincipalID), nil
-	})
+	backgroundJobs := operations.NewService(continuityRepo, runtimeRepo)
+	todayService := actorTodayService(workflowService, nil, backgroundJobs)
 
 	return serviceSet{
 		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
@@ -157,7 +131,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		ObjectStore: store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
-		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
+		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Close: func() {},
 	}, nil
 }
 

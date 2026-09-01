@@ -155,6 +155,16 @@ beforeEach(() => {
 });
 
 describe("runtime navigation", () => {
+  it("does not replace an unavailable actor queue with static sample work in demo presentation", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(true));
+    vi.mocked(loadToday).mockRejectedValue(new Error("Today projection unavailable"));
+
+    render(<App presentation="demo"/>);
+
+    expect(await screen.findByRole("heading", { name: "Today is unavailable" })).toBeTruthy();
+    expect(screen.queryByText("Review proposed digital-channel requirements")).toBeNull();
+  });
+
   it("keeps every workspace usable when an older empty response contains null items", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     vi.mocked(loadToday).mockResolvedValue({ items: null as unknown as AttentionItem[], generated_at: "2026-08-29T20:00:00Z" });

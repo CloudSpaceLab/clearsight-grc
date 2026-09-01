@@ -91,6 +91,15 @@ type AdminOverview struct {
 	Escalation    EscalationRuntimeStatus   `json:"escalation"`
 }
 
+// OperationalStatus is the bounded exception projection used by actor-facing
+// administration queues. It deliberately excludes people, group membership,
+// role bindings and other configuration detail that is not needed to decide
+// whether an administrator must act.
+type OperationalStatus struct {
+	SourceExceptions []SCIMSourceSummary     `json:"source_exceptions"`
+	Escalation       EscalationRuntimeStatus `json:"escalation"`
+}
+
 type CreateSCIMSourceInput struct {
 	TenantID         string `json:"tenant_id"`
 	Code             string `json:"code"`

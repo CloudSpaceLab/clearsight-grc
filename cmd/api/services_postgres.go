@@ -17,7 +17,6 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
@@ -28,12 +27,9 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 	"github.com/alexedwards/scs/pgxstore"
 )
-
-const todayItemLimit = 50
 
 func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) (serviceSet, error) {
 	pool, err := database.Open(ctx, cfg)
@@ -105,30 +101,9 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	verticals.ConfigureMonitoring(monitoringService)
 	workflowService := workflow.NewService(workflow.NewPostgresRepository(pool))
-	todayService := today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {
-		if cfg.DemoMode {
-			journeys, listErr := verticals.List(loadCtx, actor.TenantID)
-			if listErr != nil {
-				return nil, listErr
-			}
-			visible := make([]bankverticals.Journey, 0, len(journeys))
-			for _, journey := range journeys {
-				if journey.VisibleTo(actor.PrincipalID) {
-					visible = append(visible, journey)
-				}
-			}
-			return bankverticals.TodayItems(visible, time.Now().UTC()), nil
-		}
-
-		assigned, listErr := workflowService.List(loadCtx, workflow.ListFilter{
-			TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
-			ActiveOnly: true, VisibleActorWorkOnly: true, Limit: todayItemLimit,
-		})
-		if listErr != nil {
-			return nil, listErr
-		}
-		return today.FromWorkflowTasksForActor(assigned, actor.PrincipalID), nil
-	})
+	accessAdmin := access.NewPostgresAdministrator(pool)
+	backgroundJobs := operations.NewService(continuityRepo, runtimeRepo)
+	todayService := actorTodayService(workflowService, accessAdmin, backgroundJobs)
 	sessionStore := pgxstore.NewWithConfig(pool, pgxstore.Config{CleanUpInterval: 5 * time.Minute, TableName: "web_sessions"})
 	scimService, err := scimapi.New(scimapi.NewPostgresRepository(pool), logger)
 	if err != nil {
@@ -147,7 +122,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		ObjectStore: store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
-		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo),
-		Access: access.NewPostgresResolver(pool), AccessAdmin: access.NewPostgresAdministrator(pool), SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
+		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs,
+		Access: access.NewPostgresResolver(pool), AccessAdmin: accessAdmin, SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
 	}, nil
 }
