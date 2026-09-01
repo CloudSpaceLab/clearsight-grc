@@ -173,6 +173,21 @@ describe("static stakeholder demo transport", () => {
     expect(programOperations.operations.filter((item: any) => item.command === "program.evidence.assess" && item.subresource_id === "contract-training")).toEqual([expect.objectContaining({ can_act: false, assigned_to: expect.objectContaining({ id: "role-training-reviewer" }) })]);
   });
 
+  it("uses the authorized Program Owner identity for the action-reassignment review fixture", async () => {
+    const module = await demo();
+    window.history.replaceState(null, "", "/?fixture=matter-action-reassignment");
+    await module.loadStaticDemoFixtures(async () => new Response(JSON.stringify(fixtures)));
+
+    const context = await module.staticDemoRequest<any>("/api/v1/context");
+    const operations = await module.staticDemoRequest<any>("/api/v1/matters/matter-gaid-change/operations?tenant_id=bank-demo");
+    const assign = operations.operations.find((item: any) => item.command === "matter.action.assign" && item.subresource_id === "action-1");
+    const transition = operations.operations.find((item: any) => item.command === "matter.action.transition" && item.subresource_id === "action-1");
+
+    expect(context.actor.id).toBe("role-dpo");
+    expect(assign).toMatchObject({ can_act: true, assigned_to: { id: "role-dpo" } });
+    expect(transition).toMatchObject({ assigned_to: { id: "role-privacy-control" } });
+  });
+
   it("removes current Program and issue relationships while preserving version checks", async () => {
     const { staticDemoRequest } = await demo();
     const program = await staticDemoRequest<{ program: { version: number }; requirement_control_links: Array<{ id: string }> }>("/api/v1/programs/program-ndpa");

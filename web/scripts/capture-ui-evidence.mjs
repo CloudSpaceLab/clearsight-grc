@@ -37,6 +37,7 @@ const captures = [
   { name: "86-vendor-form-readiness-light-1440x900", route: "#vendors", title: "Vendors", fixture: "vendor-no-form", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-form-readiness", openFormReadiness: true },
   { name: "87-vendor-link-sheet-light-1440x900", route: "#programs/program-ndpa", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-link-focused-sheet", openVendorLink: true },
   { name: "88-vendor-link-sheet-dark-mobile-390x844", route: "#programs/program-ndpa", title: "Programs", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "vendor-link-focused-sheet-mobile", openVendorLink: true },
+  { name: "89-matter-action-reassignment-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-action-reassignment", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "matter-action-reassignment", openActionReassignment: true },
 ];
 
 try {
@@ -94,6 +95,14 @@ async function capturePage(capture) {
       await dialog.waitFor({ state: "visible" });
       await dialog.getByLabel("Search vendor relationships").fill("Acme");
       await dialog.getByRole("radio", { name: /Acme Processing Limited.*Card transaction processing/ }).waitFor({ state: "visible" });
+    }
+    if (capture.openActionReassignment) {
+      await page.getByRole("button", { name: /Change owner for Complete the annual return evidence checklist/ }).click();
+      const dialog = page.getByRole("dialog", { name: "Change action owner" });
+      await dialog.waitFor({ state: "visible" });
+      await dialog.getByText("Privacy Control Owner", { exact: true }).waitFor({ state: "visible" });
+      await dialog.getByRole("button", { name: /Select an eligible performer New action owner/ }).waitFor({ state: "visible" });
+      if (await dialog.getByRole("button", { name: "Assign action owner" }).isEnabled()) throw new Error(`${capture.name} permits reassignment before a replacement and reason are entered`);
     }
     await saveScreenshot(page, capture.name);
     await record(page, capture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));

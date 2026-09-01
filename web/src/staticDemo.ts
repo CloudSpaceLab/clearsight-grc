@@ -108,7 +108,8 @@ export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.
   if (!response.ok) throw new Error(`Static demo fixtures are unavailable (HTTP ${response.status}).`);
   const fixtures = await response.json() as StaticDemoFixtures;
   programID = "program-ndpa"; matterID = "matter-gaid-change";
-  currentStaticActor = workflowRuntime().accounts[0]!.actor;
+  const reviewActorID = activeFixture() === "matter-action-reassignment" ? "role-dpo" : "role-cro";
+  currentStaticActor = workflowRuntime().accounts.find((account) => account.actor.id === reviewActorID)?.actor ?? workflowRuntime().accounts[0]!.actor;
   programReviewAcknowledged = false; demoForms.splice(0, demoForms.length, clone(staticFormLibraryTemplate())); demoChecks.splice(0, demoChecks.length, clone(monitoringCheck)); monitoringResults.clear(); monitoringResults.set(monitoringCheck.id, clone(monitoringResult)); monitoringIssues.clear(); createdSources.splice(0); sourceConnections.splice(0); sourceViews.splice(0); sourceBindings.splice(0);
   program = clone(fixtures.program);
   programSummary = clone(fixtures.programSummary);

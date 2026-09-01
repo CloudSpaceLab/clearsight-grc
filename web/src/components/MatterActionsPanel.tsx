@@ -39,6 +39,10 @@ function statusLabel(value: string) {
   }
 }
 
+function responsibilityLabel(value: string) {
+  return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
 export function MatterActionsPanel({ aggregate, operations, responsibleParties = [], onUpdated, onReload }: Props) {
   const addOperation = operationFor(operations, "matter.action.add");
   const [active, setActive] = useState<Active>(null);
@@ -63,7 +67,7 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
   function startAction(kind: "edit" | "assign" | "status", action: MatterAction) {
     setActive({ kind, actionID: action.id }); setTitle(action.title); setDescription(action.description); setDate(storedDeadlineLocalDate(action.due_at)); setRationale(""); setError(""); setNotice("");
     const operation = operationFor(operations, kind === "assign" ? "matter.action.assign" : kind === "status" ? "matter.action.transition" : "matter.action.update", action.id);
-    setOwner(operation?.candidates?.[0]?.id ?? action.owner_principal_id ?? "");
+    setOwner(kind === "assign" ? "" : operation?.candidates?.[0]?.id ?? action.owner_principal_id ?? "");
     setTarget(operation?.allowed_targets?.[0] ?? "");
   }
 
@@ -98,6 +102,12 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
   const activeAction = active && active.kind !== "add" ? actionFor(active.actionID) : undefined;
   const activeOperation = active && active.kind !== "add" ? operationFor(operations, active.kind === "edit" ? "matter.action.update" : active.kind === "assign" ? "matter.action.assign" : "matter.action.transition", active.actionID) : addOperation;
   const candidates = activeOperation?.candidates ?? addOperation?.candidates ?? [];
+  const activePerformerOperation = activeAction ? operationFor(operations, "matter.action.transition", activeAction.id) : undefined;
+  const activeResponsibility = activeAction?.required_responsibility || "PERFORMER";
+  const storedActivePerformer = activeAction ? responsibleParties.find((party) => party.scope === "ACTION" && party.subresource_id === activeAction.id && party.responsibility === activeResponsibility) : undefined;
+  const currentPerformerID = activePerformerOperation?.assigned_to?.id ?? activeAction?.owner_principal_id;
+  const currentPerformerName = activePerformerOperation?.assigned_to?.display_name ?? storedActivePerformer?.display_name;
+  const reassignmentCandidates = candidates.filter((candidate) => candidate.id !== currentPerformerID);
   const rationaleRequired = active?.kind === "edit" || active?.kind === "assign" || (active?.kind === "status" && ["BLOCKED", "CANCELLED"].includes(target));
 
   return <article className="matter-record-panel matter-actions-panel" id="matter-operation-matter.action.add">
@@ -133,8 +143,9 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
     {active?.kind === "assign" && <FocusedSheet label="Change action owner" closeLabel="Close action reassignment" onClose={() => setActive(null)}>
       <div className="cs-sheet-heading"><span className="eyebrow">Assigned performer</span><h2>Change action owner</h2><p>Choose an eligible performer for this action and record why the work is moving.</p></div>
       <form className="cs-sheet-form" onSubmit={submit}>
-        <dl className="cs-sheet-facts"><div><dt>Action</dt><dd>{activeAction?.title ?? "Selected action"}</dd></div><div><dt>Current performer</dt><dd>{activeOperation?.assigned_to?.display_name ?? "Recorded performer unavailable"}</dd></div></dl>
-        <SelectField label="New action owner" value={owner || undefined} placeholder="Select an eligible performer" allowsEmpty={false} isRequired options={candidates.map((candidate) => ({ id: candidate.id, label: candidate.role ? `${candidate.display_name} · ${candidate.role}` : candidate.display_name }))} onChange={(value) => setOwner(value ?? "")}/>
+        <dl className="cs-sheet-facts"><div><dt>Action</dt><dd>{activeAction?.title ?? "Selected action"}</dd></div><div><dt>Current performer</dt><dd>{currentPerformerName ?? "Recorded performer unavailable"}</dd></div></dl>
+        <SelectField label="New action owner" value={owner || undefined} placeholder={reassignmentCandidates.length ? "Select an eligible performer" : "No alternative performer available"} allowsEmpty={false} isRequired isDisabled={!reassignmentCandidates.length} options={reassignmentCandidates.map((candidate) => ({ id: candidate.id, label: candidate.display_name, description: candidate.role ? `Eligible as ${responsibilityLabel(candidate.role)}` : undefined }))} onChange={(value) => setOwner(value ?? "")}/>
+        {!reassignmentCandidates.length && <Notice tone="warning">No alternative performer is currently eligible for this action. Update the responsibility route before changing the owner.</Notice>}
         <Notice tone="info">After the assignment is recorded, ClearSight will attempt delivery of an assignment email to the staff mailbox held in the active directory. If no usable mailbox is available, the action assignment still takes effect and email delivery is recorded as unavailable.</Notice>
         <TextArea label="Reason for action reassignment" value={rationale} onChange={setRationale} rows={3} isRequired description="This reason remains with the action assignment history."/>
         {error && <Notice tone="error"><span>{error}</span>{conflict && <Button variant="secondary" onPress={onReload}>Reload current issue</Button>}</Notice>}
