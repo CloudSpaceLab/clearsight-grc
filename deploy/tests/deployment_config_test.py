@@ -33,6 +33,15 @@ class DeploymentConfigTest(unittest.TestCase):
         self.assertIn(r"^[0-9]{6}_[a-z0-9_]+\.up\.sql$", script)
         self.assertNotIn(".down.sql", script)
 
+    def test_historical_ai_rollback_uses_an_isolated_boundary_database(self) -> None:
+        workflow = self.read(".github/workflows/ci.yml")
+        self.assertIn("clearsight_ai_governance_rollback", workflow)
+        self.assertIn('ai_rollback_migrations="$(mktemp -d)"', workflow)
+        self.assertIn("migrations/{000001..000036}_*.up.sql", workflow)
+        self.assertIn('bash deploy/scripts/migrate.sh "$ai_rollback_migrations"', workflow)
+        self.assertIn("-d clearsight_ai_governance_rollback", workflow)
+        self.assertIn("dropdb -h localhost -U clearsight --if-exists clearsight_ai_governance_rollback", workflow)
+
     def test_source_catalog_migration_normalizes_legacy_timestamps(self) -> None:
         migration = self.read("migrations/000030_source_access_catalog.up.sql")
         self.assertIn("GREATEST(updated_at,created_at)", migration)
