@@ -24,7 +24,7 @@ vi.mock("../matterOperationsApi", () => ({
 
 vi.mock("../continuityCommands", () => ({ addMatterAction: vi.fn(), addResponsePackage: vi.fn(), recordMatterDecision: vi.fn(), recordVerificationResult: vi.fn(), transitionMatter: vi.fn(), transitionMatterAction: vi.fn(), transitionResponsePackage: vi.fn() }));
 
-async function chooseSharedOption(label: string, option: string) {
+async function chooseSharedOption(label: string, option: string | RegExp) {
   fireEvent.click(screen.getByRole("button", { name: new RegExp(label, "i") }));
   fireEvent.click(await screen.findByRole("option", { name: option }));
   await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
@@ -527,10 +527,35 @@ describe("Matter record workspace", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Change owner for Update the annual return evidence checklist" }));
     expect(screen.getByRole("dialog", { name: "Change action owner" })).toBeTruthy();
     expect(screen.getByText(/attempt delivery of an assignment email/i)).toBeTruthy();
-    await chooseSharedOption("New action owner", "Privacy Operations Lead · PROGRAM_OWNER");
+    await chooseSharedOption("New action owner", /^Privacy Operations Lead/);
     fireEvent.change(screen.getByLabelText(/Reason for action reassignment/), { target: { value: "Assign the process owner who maintains the evidence." } });
     fireEvent.click(screen.getByRole("button", { name: "Assign action owner" }));
     await waitFor(() => expect(assignMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 8, "owner-2", "Assign the process owner who maintains the evidence."));
+  });
+
+  it("shows the current performer and requires an explicit different owner in the reassignment sheet", async () => {
+    const currentPerformer = { id: "performer-1", display_name: "Evidence Respondent", kind: "PERSON", role: "EVIDENCE_RESPONDENT" } as const;
+    const reassignmentOperations: MatterOperations = {
+      ...actionOwnerOperations,
+      operations: actionOwnerOperations.operations.map((operation) => operation.command === "matter.action.transition" && operation.subresource_id === "action-1"
+        ? { ...operation, assigned_to: currentPerformer }
+        : operation),
+    };
+    vi.mocked(loadMatterOperations).mockResolvedValue(reassignmentOperations);
+    vi.mocked(assignMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, actions: [{ ...detail.actions[0]!, owner_principal_id: "owner-2" }] });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Change owner for Update the annual return evidence checklist" }));
+    const dialog = screen.getByRole("dialog", { name: "Change action owner" });
+    expect(within(dialog).getByText("Evidence Respondent")).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: /Select an eligible performer New action owner/i })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Assign action owner" }).hasAttribute("disabled")).toBe(true);
+
+    await chooseSharedOption("New action owner", /^Privacy Operations Lead/);
+    fireEvent.change(within(dialog).getByLabelText(/Reason for action reassignment/), { target: { value: "Assign the process owner who maintains the evidence." } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Assign action owner" }));
+
+    await waitFor(() => expect(assignMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 7, "owner-2", "Assign the process owner who maintains the evidence."));
   });
 
   it("lets only the current performer update Action status and keeps the outcome pending after implementation", async () => {
