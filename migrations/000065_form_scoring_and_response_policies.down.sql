@@ -59,9 +59,4 @@ ALTER TABLE monitoring_form_templates
     DROP CONSTRAINT IF EXISTS monitoring_form_templates_score_profile_ck,
     DROP COLUMN IF EXISTS score_profile;
 
-ALTER TABLE automation_policies
-    DROP CONSTRAINT IF EXISTS automation_policies_updated_after_created_ck,
-    DROP COLUMN IF EXISTS updated_at,
-    DROP COLUMN IF EXISTS created_at;
-
 COMMIT;

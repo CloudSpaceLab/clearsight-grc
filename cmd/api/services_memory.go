@@ -84,7 +84,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	}
 	distributionService := evidence.NewDistributionService(distributionStore)
 	formPolicies := formpolicy.NewService(formpolicy.NewMemoryRepository(), formDistributionReader{repo: monitoringRepo}, distributionService)
-	formPolicies.ConfigureActivationAuthority(formPolicyActivationAuthority{Automation: auto, Authority: authorityService})
+	formPolicies.ConfigureActivationAuthority(formPolicyActivationAuthority{Automation: auto, Authority: authorityService, Subjects: evidence.CanonicalSubjectTypeRegistry{}})
 	communicationService := evidence.NewCommunicationService(evidence.NewMemoryCommunicationStore())
 	communicationBrands := evidence.NewCommunicationBrandService(evidence.NewMemoryCommunicationBrandStore(), store)
 	communicationDelivery, err := configuredCommunicationDelivery(cfg)

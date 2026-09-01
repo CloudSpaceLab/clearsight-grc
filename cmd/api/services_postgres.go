@@ -83,7 +83,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	}
 	distributionService := evidence.NewDistributionService(distributionStore)
 	formPolicies := formpolicy.NewService(formpolicy.NewPostgresRepository(pool), formDistributionReader{repo: monitoringRepo}, distributionService)
-	formPolicies.ConfigureActivationAuthority(formPolicyActivationAuthority{Automation: auto, Authority: authorityService})
+	formPolicies.ConfigureActivationAuthority(formPolicyActivationAuthority{Automation: auto, Authority: authorityService, Subjects: evidence.CanonicalSubjectTypeRegistry{}})
 	communicationStore := evidence.NewPostgresCommunicationStore(evidenceRepo)
 	communicationService := evidence.NewCommunicationService(communicationStore)
 	communicationBrands := evidence.NewCommunicationBrandService(evidence.NewPostgresCommunicationBrandStore(evidenceRepo), store)

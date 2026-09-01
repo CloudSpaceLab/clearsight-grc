@@ -75,6 +75,27 @@ func TestFormResponsePolicySchemaKeepsScopeAndIdempotencyInDatabase(t *testing.T
 	}
 }
 
+func TestAutomationPolicyTimestampRepairUsesFollowUpMigration(t *testing.T) {
+	root := repositoryRoot(t)
+	prior, err := os.ReadFile(filepath.Join(root, "migrations", "000065_form_scoring_and_response_policies.up.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(strings.ToLower(string(prior)), "alter table automation_policies") {
+		t.Fatal("an applied form-policy migration must not be rewritten to repair automation policy timestamps")
+	}
+	followUp, err := os.ReadFile(filepath.Join(root, "migrations", "000066_automation_policy_timestamps.up.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sql := strings.ToLower(strings.Join(strings.Fields(string(followUp)), " "))
+	for _, required := range []string{"alter table automation_policies", "add column created_at", "add column updated_at"} {
+		if !strings.Contains(sql, required) {
+			t.Fatalf("automation timestamp repair is missing %q", required)
+		}
+	}
+}
+
 func liveTablesFromMigrations(t *testing.T, migrationDir string) map[string]struct{} {
 	t.Helper()
 	paths, err := filepath.Glob(filepath.Join(migrationDir, "*.up.sql"))

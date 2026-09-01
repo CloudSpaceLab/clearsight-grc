@@ -1,13 +1,5 @@
 BEGIN;
 
--- Earlier automation-policy readers already exposed these lifecycle timestamps,
--- but the original table did not persist them. Policy activation and exact
--- revision reconstruction require the authoritative values.
-ALTER TABLE automation_policies
-    ADD COLUMN created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    ADD COLUMN updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    ADD CONSTRAINT automation_policies_updated_after_created_ck CHECK (updated_at >= created_at);
-
 ALTER TABLE monitoring_form_templates
     ADD COLUMN score_profile jsonb,
     ADD CONSTRAINT monitoring_form_templates_score_profile_ck CHECK (

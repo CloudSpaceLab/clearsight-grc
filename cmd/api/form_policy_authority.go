@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -11,14 +13,19 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
 )
 
+type formPolicySubjectRegistry interface {
+	SupportsSubjectType(string) bool
+}
+
 type formPolicyActivationAuthority struct {
 	Automation *autonomy.Service
 	Authority  authority.Service
+	Subjects   formPolicySubjectRegistry
 	Now        func() time.Time
 }
 
 func (validator formPolicyActivationAuthority) ValidatePolicyActivation(ctx context.Context, actor formpolicy.Actor, policy formpolicy.Policy) error {
-	if validator.Automation == nil || validator.Authority == nil {
+	if validator.Automation == nil || validator.Authority == nil || validator.Subjects == nil {
 		return formpolicy.ErrAuthorityUnavailable
 	}
 	automationPolicy, err := validator.Automation.GetAutomationPolicy(ctx, actor.TenantID, policy.AutomationPolicyID, policy.AutomationPolicyVersion)
@@ -32,7 +39,7 @@ func (validator formPolicyActivationAuthority) ValidatePolicyActivation(ctx cont
 	if validator.Now != nil {
 		now = validator.Now().UTC()
 	}
-	if automationPolicy.Status != autonomy.AutomationPolicyActive || automationPolicy.ActionClass != formpolicy.ActionClassCreateMatter || automationPolicy.EffectiveFrom != nil && automationPolicy.EffectiveFrom.After(now) || automationPolicy.EffectiveUntil != nil && !automationPolicy.EffectiveUntil.After(now) {
+	if automationPolicy.Status != autonomy.AutomationPolicyActive || automationPolicy.ActionClass != formpolicy.ActionClassCreateMatter || strings.TrimSpace(automationPolicy.Checksum) == "" || automationPolicy.EffectiveFrom != nil && automationPolicy.EffectiveFrom.After(now) || automationPolicy.EffectiveUntil != nil && !automationPolicy.EffectiveUntil.After(now) || !automationPolicyAllowsFormPolicy(automationPolicy, policy) {
 		return formpolicy.ErrActivationAuthority
 	}
 	authorizer, err := validator.resolve(ctx, authority.ResolveInput{
@@ -49,6 +56,9 @@ func (validator formPolicyActivationAuthority) ValidatePolicyActivation(ctx cont
 		return err
 	}
 	for _, subjectType := range policy.Eligibility.SubjectTypes {
+		if !validator.Subjects.SupportsSubjectType(subjectType) {
+			return formpolicy.ErrActivationAuthority
+		}
 		if _, err := validator.resolve(ctx, authority.ResolveInput{
 			TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ObjectType: strings.ToUpper(subjectType), ObjectID: "*",
 			Responsibility: authority.ResponsibilityOwner, DecisionType: "forms.response-policy.subject.resolve", Materiality: policy.Action.Priority,
@@ -67,6 +77,32 @@ func (validator formPolicyActivationAuthority) ValidatePolicyActivation(ctx cont
 		return formpolicy.ErrActivationAuthority
 	}
 	return nil
+}
+
+func automationPolicyAllowsFormPolicy(approved autonomy.AutomationPolicy, policy formpolicy.Policy) bool {
+	if !strings.EqualFold(strings.TrimSpace(approved.RolloutMode), string(policy.Rollout)) {
+		return false
+	}
+	eligibility, err := json.Marshal(policy.Eligibility)
+	if err != nil || !sameJSON(approved.Eligibility, eligibility) {
+		return false
+	}
+	blastRadius, err := json.Marshal(policy.BlastRadius)
+	if err != nil || !sameJSON(approved.BlastRadiusLimit, blastRadius) {
+		return false
+	}
+	outcome, err := json.Marshal(policy.Outcome)
+	return err == nil && sameJSON(approved.VerificationContract, outcome)
+}
+
+func sameJSON(left, right []byte) bool {
+	var leftValue, rightValue any
+	if json.Unmarshal(left, &leftValue) != nil || json.Unmarshal(right, &rightValue) != nil {
+		return false
+	}
+	leftCanonical, _ := json.Marshal(leftValue)
+	rightCanonical, _ := json.Marshal(rightValue)
+	return bytes.Equal(leftCanonical, rightCanonical)
 }
 
 func (validator formPolicyActivationAuthority) resolve(ctx context.Context, input authority.ResolveInput) (authority.Resolution, error) {
