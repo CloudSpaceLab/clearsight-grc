@@ -349,12 +349,12 @@ const scenarios = [
       const interactionStartedAt = await page.evaluate(() => performance.now());
       await question.fill("Updated control confirmation 100");
       await page.waitForFunction(() => document.querySelectorAll(".form-question-prompt")[99]?.value === "Updated control confirmation 100");
+      const interactionFinishedAt = await page.evaluate(() => performance.now());
       const outline = page.locator(".form-builder-outline-shell");
       await outline.evaluate((element) => { element.scrollTop = element.scrollHeight; });
       await outline.getByText("Reuse approved section", { exact: true }).click();
       await outline.evaluate((element) => { element.scrollTop = element.scrollHeight; });
       const outlineMetrics = await assertBuilderOutlineContained(outline);
-      const interactionFinishedAt = await page.evaluate(() => performance.now());
       const metrics = { render_ms: Math.round(renderedAt - openedAt), question_update_ms: Math.round(interactionFinishedAt - interactionStartedAt), question_count: 120, ...outlineMetrics };
       if (metrics.render_ms > 3000) throw new Error(`The 120-question builder took ${metrics.render_ms}ms to become usable; budget is 3000ms.`);
       if (metrics.question_update_ms > 500) throw new Error(`A large-form question update took ${metrics.question_update_ms}ms; budget is 500ms.`);
