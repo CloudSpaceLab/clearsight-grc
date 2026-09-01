@@ -112,6 +112,38 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 	}
 
 	rows, err = a.pool.Query(ctx, `
+		SELECT op.id::text,op.code,op.title,COALESCE(op.function_name,''),op.department_path,
+		       COALESCE(parent.id::text,''),COALESCE(parent.code,''),COALESCE(parent.title,''),
+		       COALESCE(occupant.id::text,''),COALESCE(occupant.display_name,''),COALESCE(occupant.status,''),
+		       COALESCE(array_agg(DISTINCT rt.code ORDER BY rt.code) FILTER (WHERE rt.id IS NOT NULL),ARRAY[]::text[]),
+		       op.valid_from,op.valid_until,op.version
+		FROM org_positions op
+		LEFT JOIN org_positions parent ON parent.tenant_id=op.tenant_id AND parent.id=op.parent_position_id
+		LEFT JOIN principals occupant ON occupant.tenant_id=op.tenant_id AND occupant.id=op.occupant_principal_id
+		LEFT JOIN position_role_bindings prb ON prb.tenant_id=op.tenant_id AND prb.position_id=op.id
+		  AND prb.valid_from<=clock_timestamp() AND (prb.valid_until IS NULL OR clock_timestamp()<prb.valid_until)
+		LEFT JOIN role_templates rt ON rt.tenant_id=prb.tenant_id AND rt.id=prb.role_template_id
+		  AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+		WHERE op.tenant_id=$1::uuid AND op.legal_entity_id=$2::uuid
+		  AND op.valid_from<=clock_timestamp() AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+		GROUP BY op.id,parent.id,parent.code,parent.title,occupant.id,occupant.display_name,occupant.status
+		ORDER BY cardinality(op.department_path),op.department_path,op.code LIMIT $3`, tenantID, entityID, limit)
+	if err != nil {
+		return AdminOverview{}, err
+	}
+	for rows.Next() {
+		var value PositionSummary
+		if err := rows.Scan(&value.ID, &value.Code, &value.Title, &value.FunctionName, &value.DepartmentPath, &value.ParentPositionID, &value.ParentPositionCode, &value.ParentPositionTitle, &value.OccupantPrincipalID, &value.OccupantName, &value.OccupantStatus, &value.RoleCodes, &value.ValidFrom, &value.ValidUntil, &value.Version); err != nil {
+			rows.Close()
+			return AdminOverview{}, err
+		}
+		result.Positions = append(result.Positions, value)
+	}
+	if err := closeRows(rows); err != nil {
+		return AdminOverview{}, err
+	}
+
+	rows, err = a.pool.Query(ctx, `
 		SELECT p.id::text,p.display_name,p.status,COALESCE(su.user_name,''),COALESCE(ss.code,''),COALESCE(ss.status,'')
 		FROM principals p
 		LEFT JOIN scim_users su ON su.tenant_id=p.tenant_id AND su.principal_id=p.id AND su.deleted_at IS NULL

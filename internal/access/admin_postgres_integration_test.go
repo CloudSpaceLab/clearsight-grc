@@ -31,6 +31,8 @@ func TestIdentityAccessAdminRevokesSourceDerivedEligibilityWithoutDeletingPrinci
 		entityID = "8a333333-3333-7333-8333-333333333332"
 		adminID  = "8a333333-3333-7333-8333-333333333333"
 		roleID   = "8a333333-3333-7333-8333-333333333334"
+		croID    = "8a333333-3333-7333-8333-333333333335"
+		ownerID  = "8a333333-3333-7333-8333-333333333336"
 	)
 	cleanup := func(cleanCtx context.Context) {
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
@@ -43,6 +45,8 @@ func TestIdentityAccessAdminRevokesSourceDerivedEligibilityWithoutDeletingPrinci
 	mustAdminExec(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'BANK-NG','Bank NG','NG',$3)`, entityID, tenantID, now.Add(-time.Hour))
 	mustAdminExec(t, ctx, pool, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($1::uuid,$2::uuid,'PERSON','Identity administrator','ACTIVE',$3)`, adminID, tenantID, now.Add(-time.Hour))
 	mustAdminExec(t, ctx, pool, `INSERT INTO role_templates(id,tenant_id,code,name,responsibilities,capabilities,valid_from) VALUES($1::uuid,$2::uuid,'RISK_REVIEWER','Risk reviewer',ARRAY['REVIEWER'],ARRAY['IDENTITY_READ'],$3)`, roleID, tenantID, now.Add(-time.Hour))
+	mustAdminExec(t, ctx, pool, `INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,function_name,department_path,occupant_principal_id,valid_from,version) VALUES($1::uuid,$2::uuid,$3::uuid,'CRO','Chief Risk Officer','Risk',ARRAY['BANK','RISK'],$4::uuid,$5,3)`, croID, tenantID, entityID, adminID, now.Add(-time.Hour))
+	mustAdminExec(t, ctx, pool, `INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,valid_from) VALUES($1::uuid,$2::uuid,$3::uuid,$4)`, tenantID, croID, roleID, now.Add(-time.Hour))
 
 	admin := NewPostgresAdministrator(pool)
 	token, digest, err := NewProvisioningToken()
@@ -55,7 +59,6 @@ func TestIdentityAccessAdminRevokesSourceDerivedEligibilityWithoutDeletingPrinci
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	scimRepo := scimapi.NewPostgresRepository(pool)
 	scimSource, err := scimRepo.AuthenticateSource(ctx, digest[:])
 	if err != nil {
@@ -65,6 +68,7 @@ func TestIdentityAccessAdminRevokesSourceDerivedEligibilityWithoutDeletingPrinci
 	if err != nil {
 		t.Fatal(err)
 	}
+	mustAdminExec(t, ctx, pool, `INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,function_name,parent_position_id,department_path,occupant_principal_id,valid_from,version) VALUES($1::uuid,$2::uuid,$3::uuid,'PROGRAM_OWNER','Program Owner','Risk Operations',$4::uuid,ARRAY['BANK','RISK','OPERATIONS'],$5::uuid,$6,4)`, ownerID, tenantID, entityID, croID, user.PrincipalID, now.Add(-time.Hour))
 	group, err := scimRepo.CreateGroup(ctx, scimSource, scimapi.Group{ExternalID: "risk-reviewers", DisplayName: "Risk Reviewers", Members: []scimapi.GroupMember{{UserID: user.ID}}})
 	if err != nil {
 		t.Fatal(err)
@@ -103,6 +107,12 @@ func TestIdentityAccessAdminRevokesSourceDerivedEligibilityWithoutDeletingPrinci
 	}
 	if len(overview.Bindings) != 1 || overview.Bindings[0].ID != binding.ID {
 		t.Fatalf("unexpected binding overview: %#v", overview.Bindings)
+	}
+	if len(overview.Positions) != 2 {
+		t.Fatalf("expected two active positions, got %#v", overview.Positions)
+	}
+	if overview.Positions[1].ParentPositionID != croID || overview.Positions[1].OccupantName != "Alice" || overview.Positions[1].Version != 4 {
+		t.Fatalf("expected exact reporting-line inventory, got %#v", overview.Positions[1])
 	}
 
 	if err := admin.RevokeSCIMSource(ctx, tenantID, source.ID, adminID); err != nil {

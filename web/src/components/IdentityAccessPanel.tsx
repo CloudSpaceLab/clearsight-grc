@@ -17,8 +17,10 @@ import {
 } from "../identityAccessApi";
 import { GroupRoleBindingComposer, ProvisioningSourceComposer } from "./access/IdentityAccessComposers";
 import { IdentityAccessInventory } from "./access/IdentityAccessInventory";
+import { OrganizationInventory } from "./access/OrganizationInventory";
 
 type Composer = "source" | "binding" | null;
+type WorkspaceArea = "positions" | "reporting" | "directory" | "escalation";
 
 export function IdentityAccessPanel() {
   const [overview, setOverview] = useState<IdentityAccessOverview | null>(null);
@@ -27,6 +29,7 @@ export function IdentityAccessPanel() {
   const [notice, setNotice] = useState("");
   const [token, setToken] = useState("");
   const [composer, setComposer] = useState<Composer>(null);
+  const [area, setArea] = useState<WorkspaceArea>("positions");
   const [policyID, setPolicyID] = useState("");
   const [sequenceID, setSequenceID] = useState("");
   const [previewDepartment, setPreviewDepartment] = useState("");
@@ -224,7 +227,17 @@ export function IdentityAccessPanel() {
     {notice && <div className="inline-notice" role="status">{notice}</div>}
     {token && <div className="identity-token" role="status"><div><strong>Provisioning token — shown once</strong><p>Copy this token to your SCIM provider now. It cannot be recovered after you leave this screen.</p><code>{token}</code></div><div className="identity-token-actions"><button className="secondary-button" type="button" onClick={() => void navigator.clipboard?.writeText(token)}>Copy</button><button className="text-button" type="button" onClick={() => setToken("")}>Hide</button></div></div>}
 
-    <div className="identity-access-grid">
+    <div className="identity-access-tabs" role="tablist" aria-label="Identity and access areas">
+      <AreaTab area="positions" active={area} onSelect={setArea}>Positions & roles</AreaTab>
+      <AreaTab area="reporting" active={area} onSelect={setArea}>Reporting lines</AreaTab>
+      <AreaTab area="directory" active={area} onSelect={setArea}>Directory access</AreaTab>
+      <AreaTab area="escalation" active={area} onSelect={setArea}>Escalation routes</AreaTab>
+    </div>
+
+    <div className="identity-access-area" role="tabpanel" aria-label={areaLabel(area)}>
+      {(area === "positions" || area === "reporting") && <OrganizationInventory positions={overview.positions} mode={area}/>}
+
+      {area === "directory" && <div className="identity-access-grid">
       <IdentityAccessInventory
         signIn={overview.sign_in}
         sources={overview.sources}
@@ -239,7 +252,9 @@ export function IdentityAccessPanel() {
         onRevokeSource={(source) => void revokeSource(source)}
         onRetireBinding={(binding) => void retireBinding(binding)}
       />
+      </div>}
 
+      {area === "escalation" && <div className="identity-access-grid identity-access-grid-single">
       <article className="config-card identity-escalation-card"><div className="section-header"><div><h3>Escalations</h3><p>Overdue work, pending escalation levels and routing failures.</p></div>{pendingRevision && <span className="identity-health">Revision v{pendingRevision.version} pending</span>}</div><div className="identity-metrics"><div><strong>{overview.escalation.escalated_tasks}</strong><span>Escalated work</span></div><div><strong>{overview.escalation.pending_timers}</strong><span>Pending levels</span></div><div><strong>{overview.escalation.unresolved_24h}</strong><span>Unresolved · 24h</span></div><div><strong>{overview.escalation.failed_timers}</strong><span>Failed timers</span></div></div>
         {overview.escalation_policies.length ? <form className="identity-inline-form" onSubmit={(event) => void loadPreview(event)}><h4>Preview escalation route</h4><label>Policy<select value={policyID} onChange={(event) => { setPolicyID(event.target.value); setPreview(null); setGuardStepIndex(0); }}><option value="">Choose policy</option>{overview.escalation_policies.map((policy) => <option key={policy.policy_id} value={policy.policy_id}>{policy.code} · active v{policy.version}{policy.pending_revision ? ` · proposed v${policy.pending_revision.version}` : ""}</option>)}</select></label><label>Sequence<select value={sequenceID} onChange={(event) => { setSequenceID(event.target.value); setPreview(null); setGuardStepIndex(0); }}><option value="">Choose sequence</option>{sequences.map((sequence) => <option key={sequence.ID} value={sequence.ID}>{sequence.ID} · {sequence.Trigger}</option>)}</select></label><label>Starting department<input value={previewDepartment} onChange={(event) => setPreviewDepartment(event.target.value)} placeholder="BANK / RISK / OPERATIONS"/></label><button className="secondary-button" disabled={!policyID || !sequenceID || isBusy} type="submit">Preview {pendingRevision ? "proposed" : "active"} levels</button></form> : <p className="muted-copy">No active escalation sequence is configured.</p>}
         {selectedSequence && <div className={`identity-guard-summary ${hasCandidateGuards ? "configured" : "open"}`}><strong>{hasCandidateGuards ? "Recipient filters configured" : "No role or group filter"}</strong><span>{hasCandidateGuards ? "Each level is limited to the configured roles or groups." : "Recipients are selected by responsibility, authority, visibility and department."}</span></div>}
@@ -252,6 +267,7 @@ export function IdentityAccessPanel() {
         {preview && <ol className="identity-preview">{preview.steps.map((step) => <li key={step.index}><span>After {step.after}</span><strong>{humanize(step.responsibility)}</strong><small>{step.scope === "DEPARTMENT" ? step.department_path?.join(" / ") : step.scope === "LEGAL_ENTITY" ? "Legal entity scope" : "Department ancestry unavailable"}</small>{(step.source_roles?.length ?? 0) > 0 && <small className="identity-guard-line"><b>From:</b> {step.source_roles?.map(humanize).join(" or ")}</small>}{((step.target_roles?.length ?? 0) > 0 || (step.target_group_ids?.length ?? 0) > 0) && <small className="identity-guard-line"><b>Allowed target:</b> {formatTargetGuards(step.target_roles ?? [], step.target_group_ids ?? [], groupNames)}</small>}</li>)}</ol>}
         <p className="identity-footnote">These filters restrict eligible recipients. Approval authority still comes from the active authority policy, and changes require independent approval.</p>
       </article>
+      </div>}
     </div>
 
     <ProvisioningSourceComposer open={composer === "source"} busy={busy === "source-create"} onClose={() => setComposer(null)} onCreate={createSource}/>
@@ -274,3 +290,11 @@ function formatTargetGuards(roles: string[], groupIDs: string[], groupNames: Map
 }
 function shortID(value: string) { return value.length > 12 ? `${value.slice(0, 8)}…${value.slice(-4)}` : value; }
 function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
+
+function AreaTab({ area, active, onSelect, children }: { area: WorkspaceArea; active: WorkspaceArea; onSelect: (area: WorkspaceArea) => void; children: string }) {
+  return <button type="button" role="tab" aria-selected={active === area} onClick={() => onSelect(area)}>{children}</button>;
+}
+
+function areaLabel(area: WorkspaceArea) {
+  return ({ positions: "Positions and roles", reporting: "Reporting lines", directory: "Directory access", escalation: "Escalation routes" } as const)[area];
+}
