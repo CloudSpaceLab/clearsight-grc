@@ -165,8 +165,19 @@ const scenarios = [
       select = page.getByRole("button", { name: /Vendor document Inspector response type/ });
       await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
       const before = await builderGeometry(page);
+      await select.evaluate((trigger) => {
+        const field = trigger.closest(".cs-select-field");
+        if (!field) throw new Error("The response-type trigger is missing its SelectField boundary.");
+        const observer = new MutationObserver(() => {
+          if (!field.hasAttribute("data-open")) return;
+          observer.disconnect();
+          window.setTimeout(() => window.scrollBy({ top: 11, behavior: "instant" }), 10);
+        });
+        observer.observe(field, { attributes: true, attributeFilter: ["data-open"] });
+      });
       await select.click();
       await page.getByRole("option", { name: "Vendor document", exact: true }).waitFor({ state: "visible" });
+      await page.waitForTimeout(50);
       const after = await builderGeometry(page);
       if (JSON.stringify(after) !== JSON.stringify(before)) throw new Error(`Opening the response-type menu changed builder geometry: before=${JSON.stringify(before)} after=${JSON.stringify(after)}.`);
       const popup = page.locator(".cs-select-field__popover");
