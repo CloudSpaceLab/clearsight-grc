@@ -103,6 +103,13 @@ func TestPostgresExtractionDetailsRoundTripWithoutLegacyReconstruction(t *testin
 	if len(reloaded.Degradations) != 1 || reloaded.Degradations[0].Code != "DOCX_IMAGES_NOT_EXTRACTED" || reloaded.Degradations[0].Anchor == nil || reloaded.Degradations[0].Anchor.Paragraph != "paragraph-5" {
 		t.Fatalf("structured degradation did not round-trip: %#v", reloaded.Degradations)
 	}
+	summaries, err := repo.ListScoped(ctx, tenantSlug, entityID, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 || summaries[0].ID != documentID || summaries[0].ParserVersion != processed.ParserVersion {
+		t.Fatalf("scoped summary did not preserve parser metadata: %#v", summaries)
+	}
 }
 
 func cleanupExtractionDetailsIntegration(ctx context.Context, pool *pgxpool.Pool, tenantID string) {

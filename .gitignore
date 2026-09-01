@@ -10,6 +10,7 @@
 coverage.out
 *.coverprofile
 .gocache
+.tmp-go-cache
 
 # Web
 web/node_modules/
