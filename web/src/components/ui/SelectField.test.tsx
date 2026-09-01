@@ -80,4 +80,53 @@ describe("SelectField", () => {
     expect(document.documentElement.style.overflow).not.toBe("hidden");
     expect(document.documentElement.style.scrollbarGutter).toBe("");
   });
+
+  it("restores an initial positioning scroll without closing a selected option list", async () => {
+    let scrollY = 0;
+    const originalScrollY = Object.getOwnPropertyDescriptor(window, "scrollY");
+    Object.defineProperty(window, "scrollY", { configurable: true, get: () => scrollY });
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation((optionsOrX?: ScrollToOptions | number, y?: number) => {
+      scrollY = typeof optionsOrX === "number" ? y ?? 0 : optionsOrX?.top ?? 0;
+    });
+
+    try {
+      render(<main><SelectField label="Response type" value="COMPLETED" placeholder="Choose response type" options={options} onChange={() => undefined}/><div id="cs-overlay-root"/></main>);
+      fireEvent.click(screen.getByRole("button", { name: /Completed Response type/ }));
+      await screen.findByRole("listbox");
+
+      scrollY = 11;
+      fireEvent.scroll(document);
+
+      await waitFor(() => expect(screen.getByRole("listbox")).toBeTruthy());
+      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    } finally {
+      scrollTo.mockRestore();
+      if (originalScrollY) Object.defineProperty(window, "scrollY", originalScrollY);
+      else Reflect.deleteProperty(window, "scrollY");
+    }
+  });
+
+  it("still closes an open option list when the user scrolls after positioning completes", async () => {
+    let scrollY = 0;
+    let now = 1_000;
+    const originalScrollY = Object.getOwnPropertyDescriptor(window, "scrollY");
+    Object.defineProperty(window, "scrollY", { configurable: true, get: () => scrollY });
+    const performanceNow = vi.spyOn(performance, "now").mockImplementation(() => now);
+
+    try {
+      render(<main><SelectField label="Response type" value="COMPLETED" placeholder="Choose response type" options={options} onChange={() => undefined}/><div id="cs-overlay-root"/></main>);
+      fireEvent.click(screen.getByRole("button", { name: /Completed Response type/ }));
+      await screen.findByRole("listbox");
+
+      now += 500;
+      scrollY = 80;
+      fireEvent.scroll(document);
+
+      await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+    } finally {
+      performanceNow.mockRestore();
+      if (originalScrollY) Object.defineProperty(window, "scrollY", originalScrollY);
+      else Reflect.deleteProperty(window, "scrollY");
+    }
+  });
 });
