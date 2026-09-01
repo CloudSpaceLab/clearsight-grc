@@ -46,16 +46,24 @@ describe("SelectField", () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
-  it("portals the option list to the outer workspace landmark instead of a nested layout landmark", async () => {
-    render(<main data-testid="workspace"><main data-testid="canvas"><SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/></main></main>);
+  it("portals the option list into the fixed workspace overlay root", async () => {
+    render(<main data-testid="workspace"><main data-testid="canvas"><SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/></main><div id="cs-overlay-root" data-testid="overlay-root"/></main>);
     fireEvent.click(screen.getByRole("button", { name: /Status/ }));
     const listbox = await screen.findByRole("listbox");
     expect(listbox.closest("main")).toBe(screen.getByTestId("workspace"));
+    expect(screen.getByTestId("overlay-root").contains(listbox)).toBe(true);
     expect(screen.getByTestId("canvas").contains(listbox)).toBe(false);
   });
 
+  it("keeps a dialog as the option list dismissal boundary", async () => {
+    render(<div role="dialog" aria-label="Assignment"><SelectField label="Owner" placeholder="Choose owner" options={options} onChange={() => undefined}/></div>);
+    fireEvent.click(screen.getByRole("button", { name: /Owner/ }));
+    const listbox = await screen.findByRole("listbox");
+    expect(listbox.closest('[role="dialog"]')).toBe(screen.getByRole("dialog", { name: "Assignment" }));
+  });
+
   it("has no representative semantic accessibility violations while open", async () => {
-    render(<main><SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/></main>);
+    render(<main><SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/><div id="cs-overlay-root"/></main>);
     fireEvent.click(screen.getByRole("button", { name: /Status/ }));
     await screen.findByRole("listbox");
 

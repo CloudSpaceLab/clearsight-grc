@@ -156,8 +156,7 @@ textarea.cs-field__control {
 
 .cs-select-field__popover {
   min-width: var(--trigger-width);
-  max-height: var(--cs-select-popover-max-height);
-  overflow: auto;
+  overflow: hidden;
   padding: var(--cs-select-popover-padding);
   border: var(--cs-field-border-width) solid var(--cs-select-popover-border);
   border-radius: var(--cs-select-popover-radius);
@@ -170,6 +169,10 @@ textarea.cs-field__control {
 .cs-select-field__listbox {
   display: grid;
   gap: var(--cs-primitive-space-1);
+  max-height: var(--cs-select-popover-max-height);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   outline: none;
 }
 

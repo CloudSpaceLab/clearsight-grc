@@ -70,7 +70,7 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | `SelectableRecord` | One record in a bounded master list with visible title, metadata, optional supporting detail and accessible selected state. |
 | `CheckboxField` | Selected, unselected and indeterminate choices; visible or visually hidden labels; optional guidance and disabled state. |
 | `TextArea` | Multi-line responses with bounded length; disabled, read-only, invalid and loading states. |
-| `SelectField` | One selection from a bounded list with themed listbox keyboard behavior and a non-modal overlay that does not resize or lock the document scroll container. |
+| `SelectField` | One selection from a bounded list with themed listbox keyboard behavior and a non-modal fixed overlay root outside sticky workspace layouts. The bounded listbox owns option scrolling so opening a selected value cannot resize, scroll or lock the document container; dialogs remain the dismissal boundary for their own lists. |
 | `Tabs` | Automatic peer-view navigation with one selected indicator and wrapped compact behavior. |
 | `ScopeBar` | One selected bounded result scope with stored counts and horizontal-overflow replacement behavior. |
 | `StatusBadge` | Neutral, information, success, warning, error and unknown labelled states. |
