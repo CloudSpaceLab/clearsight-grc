@@ -854,6 +854,18 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     if (!selected) throw new StaticDemoHTTPError(404, "distribution_not_found", "The selected sent form is no longer available.");
     return clone(selected) as T;
   }
+  const completedResponse = {
+    id: "response-revision-acme-2", distribution_id: "distribution-vendor-review", form_template_id: "form-vendor-due-diligence", form_template_version: 2,
+    title: "Vendor due diligence review", subject_type: "VENDOR", subject_id: "vendor-acme-processing", revision: 2, current: true, state: "FINAL",
+    score: { mode: "COMPLIANCE", direction: "LOW_IS_POOR", raw_score: 86, adverse_score: 14, band: "LOW", coverage: 1, final: true, state: "FINAL", profile_version: "vendor-review-2026", profile_checksum: "sample-checksum", evaluator_version: "advanced-v1", calculated_at: "2026-08-27T13:15:00Z", contribution_results: [], rule_results: [] },
+    completed_at: "2026-08-27T13:15:00Z",
+  };
+  if (pathname === "/api/v1/forms/responses" && method === "GET") return clone({ items: fixture === "forms-response-history" ? [completedResponse] : [] }) as T;
+  const completedResponseMatch = pathname.match(/^\/api\/v1\/forms\/responses\/([^/]+)$/);
+  if (completedResponseMatch && method === "GET") {
+    if (fixture !== "forms-response-history" || decodeURIComponent(completedResponseMatch[1]!) !== completedResponse.id) throw new StaticDemoHTTPError(404, "response_not_found", "The selected completed response is no longer available.");
+    return clone({ response: completedResponse, revision: { id: completedResponse.id, revision: 2, supersedes_revision_id: "response-revision-acme-1", achieved_assurance: "EMAIL_VERIFIED", signoff_summary: { attested: true, signer: "Vendor security lead" }, compliance_score: 86, scored_weight_coverage: 100, state: "FINAL", critical_field_results: [], scoring_policy_version: "vendor-review-2026", current: true, created_at: completedResponse.completed_at, score: completedResponse.score } }) as T;
+  }
   const responseRevisionMatch = pathname.match(/^\/api\/v1\/forms\/distributions\/([^/]+)\/responses$/);
   if (responseRevisionMatch && method === "GET") return clone({ items: [
     ...(fixture === "forms-response-history" ? [{ id: "response-revision-acme-1", revision: 1, achieved_assurance: "LINK_POSSESSION", signoff_summary: { attested: true, signer: "Vendor security lead" }, compliance_score: 72, scored_weight_coverage: 100, state: "FINAL", critical_field_results: [], scoring_policy_version: "vendor-review-2026", current: false, created_at: "2026-08-20T13:15:00Z" }] : []),

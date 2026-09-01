@@ -245,13 +245,13 @@ const scenarios = [
     name: "106-forms-response-history-light-1440x900", fixture: "forms-response-history", route: "#forms",
     state: "forms-response-first-and-amended", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["response-first", "response-amended"],
-    run: async (page) => { await openFormsTab(page, "Responses"); await visible(page, "Revision 1"); await visible(page, "Revision 2 · Current"); },
+    run: async (page) => { await openFormsTab(page, "Responses"); await page.getByRole("button", { name: "Review Vendor due diligence review response" }).click(); await visible(page, "Revision 1"); await visible(page, "Revision 2 · Current"); },
   },
   {
     name: "106a-forms-response-history-dark-1440x900", fixture: "forms-response-history", route: "#forms",
     state: "forms-response-first-and-amended-dark", theme: "dark", viewport: desktop, zoom: 1,
     capabilities: ["response-first", "response-amended", "theme-dark", "viewport-desktop"],
-    run: async (page) => { await openFormsTab(page, "Responses"); await page.getByLabel("Version history").waitFor({ state: "visible" }); await visible(page, "Revision 2 · Current"); },
+    run: async (page) => { await openFormsTab(page, "Responses"); await page.getByRole("button", { name: "Review Vendor due diligence review response" }).click(); await page.getByLabel("Version history").waitFor({ state: "visible" }); await visible(page, "Revision 2 · Current"); },
   },
   {
     name: "107-forms-vendor-held-actions-dark-mobile-390x844", fixture: "forms-vendor-held-actions", route: "/capture",

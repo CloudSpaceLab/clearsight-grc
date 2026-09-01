@@ -1,4 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import "./document-import.css";
+import "./monitoring.css";
+import "./program-record.css";
 import {
   loadContext,
   loadEvidenceRequest,

@@ -15,6 +15,7 @@ import {
   type IdentityAccessOverview,
   type IdentitySource,
 } from "../identityAccessApi";
+import "../identity-access.css";
 import { GroupRoleBindingComposer, ProvisioningSourceComposer } from "./access/IdentityAccessComposers";
 import { IdentityAccessInventory } from "./access/IdentityAccessInventory";
 import { OrganizationInventory } from "./access/OrganizationInventory";

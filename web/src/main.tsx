@@ -13,7 +13,6 @@ import "./cinematic-guide.css";
 import "./evidence.css";
 import "./continuity.css";
 import "./journeys.css";
-import "./document-import.css";
 import "./document-handoff.css";
 import "./interventions.css";
 import "./ai-governance.css";
@@ -24,10 +23,8 @@ import "./visual-review-fixes.css";
 import "./capture-inputs.css";
 import "./capture-access.css";
 import "./operating-mutations.css";
-import "./program-record.css";
 import "./demo-login.css";
 import "./defect-review-fixes.css";
-import "./monitoring.css";
 import "./enterprise-shell.css";
 
 const UIComponentGallery = lazy(() => import("./components/ui-gallery/UIComponentGallery").then((module) => ({ default: module.UIComponentGallery })));

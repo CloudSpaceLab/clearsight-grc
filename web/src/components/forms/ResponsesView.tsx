@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   loadCompletedResponse,
   loadCompletedResponses,
+  loadResponseRevisions,
   type CompletedResponseDetail,
   type CompletedResponseQuery,
   type CompletedResponseSummary,
@@ -10,6 +11,7 @@ import {
   type ResponseScoreMode,
   type ResponseScoreState,
   type ResponseSort,
+  type ResponseRevision,
 } from "../../formsDistributionApi";
 import { ApiError } from "../../http";
 import {
@@ -61,6 +63,8 @@ export function ResponsesView() {
   const [detailState, setDetailState] = useState<DetailState>("idle");
   const [detail, setDetail] = useState<CompletedResponseDetail>();
   const [detailError, setDetailError] = useState<string>();
+  const [revisions, setRevisions] = useState<ResponseRevision[]>([]);
+  const [revisionsError, setRevisionsError] = useState<string>();
   const requestSequence = useRef(0);
 
   useEffect(() => {
@@ -114,15 +118,25 @@ export function ResponsesView() {
   }
 
   async function reviewResponse(id: string) {
+    const selected = items.find((value) => value.id === id);
+    if (!selected) return;
     setSelectedID(id);
     setDetail(undefined);
     setDetailError(undefined);
+    setRevisions([]);
+    setRevisionsError(undefined);
     setDetailState("loading");
-    try {
-      setDetail(await loadCompletedResponse(id));
+    const [detailResult, revisionsResult] = await Promise.allSettled([
+      loadCompletedResponse(id),
+      loadResponseRevisions(selected.distribution_id),
+    ]);
+    if (revisionsResult.status === "fulfilled") setRevisions(revisionsResult.value.items);
+    else setRevisionsError(message(revisionsResult.reason, "Response version history could not be loaded."));
+    if (detailResult.status === "fulfilled") {
+      setDetail(detailResult.value);
       setDetailState("live");
-    } catch (cause) {
-      setDetailError(message(cause, "This completed response could not be loaded."));
+    } else {
+      setDetailError(message(detailResult.reason, "This completed response could not be loaded."));
       setDetailState("error");
     }
   }
@@ -186,7 +200,7 @@ export function ResponsesView() {
     </div>
 
     {selectedID && <FocusedSheet label={`Review ${items.find((value) => value.id === selectedID)?.title ?? "completed"} response`} size="wide" panelClassName="forms-response-review" onClose={() => { setSelectedID(undefined); setDetail(undefined); setDetailState("idle"); }}>
-      <ResponseReview state={detailState} detail={detail} error={detailError}/>
+      <ResponseReview state={detailState} detail={detail} error={detailError} revisions={revisions} revisionsError={revisionsError}/>
     </FocusedSheet>}
   </section>;
 }
@@ -200,7 +214,7 @@ function ConcernBadge({ score }: { score?: ResponseScore }) {
   return <StatusBadge tone={concernTone(score)}>{concernText(score)}</StatusBadge>;
 }
 
-function ResponseReview({ state, detail, error }: { state: DetailState; detail?: CompletedResponseDetail; error?: string }) {
+function ResponseReview({ state, detail, error, revisions, revisionsError }: { state: DetailState; detail?: CompletedResponseDetail; error?: string; revisions: ResponseRevision[]; revisionsError?: string }) {
   if (state === "loading") return <p role="status">Loading the completed response and score explanation…</p>;
   if (state === "error") return <EmptyState population="The selected completed response" title="Response details could not be loaded" description={error ?? "Select the response again to retry."}/>;
   if (state !== "live" || !detail) return null;
@@ -221,6 +235,11 @@ function ResponseReview({ state, detail, error }: { state: DetailState; detail?:
       <div><dt>Score state</dt><dd>{humanize(score?.state ?? "NOT_CONFIGURED")}</dd></div>
       <div><dt>Scoring profile</dt><dd>{score?.profile_version || detail.revision.scoring_policy_version || "Not configured"}</dd></div>
     </dl>
+    <section className="forms-response-review__history" aria-label="Version history">
+      <div><p>Submitted versions</p><h3>Version history</h3></div>
+      {revisionsError && <Notice tone="warning">{revisionsError} The selected response remains available.</Notice>}
+      {revisions.length > 0 && <ol>{revisions.map((revision) => <li key={revision.id}><strong>Revision {revision.revision}{revision.current ? " · Current" : ""}</strong><span>{assuranceLabel(revision.achieved_assurance)} · {formatDateTime(revision.created_at)}</span></li>)}</ol>}
+    </section>
     <ScoreExplanation score={score}/>
     <Notice tone="info">This submitted version cannot be changed. Send an amended form when the subject must provide updated information.</Notice>
   </div>;

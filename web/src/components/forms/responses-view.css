@@ -42,6 +42,12 @@
 .forms-response-review__summary p { color: var(--forms-response-detail-label); font-size: var(--cs-font-size-caption); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .forms-response-review__summary h3 { color: var(--cs-text-strong); font-size: clamp(1.5rem, 4vw, 2.25rem); font-variant-numeric: tabular-nums; }
 .forms-response-review__summary span { color: var(--cs-text-muted); }
+.forms-response-review__history { display: grid; gap: var(--cs-space-group); }
+.forms-response-review__history :is(h3, p, ol) { margin: 0; }
+.forms-response-review__history > div > p { color: var(--cs-status-info); font-size: var(--cs-font-size-caption); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.forms-response-review__history ol { display: grid; gap: var(--cs-primitive-space-2); padding: 0; list-style: none; }
+.forms-response-review__history li { display: flex; justify-content: space-between; gap: var(--cs-space-group); padding: var(--cs-primitive-space-3); border: var(--cs-surface-border-width) solid var(--forms-response-detail-border); border-radius: var(--cs-button-radius); }
+.forms-response-review__history li span { color: var(--cs-text-muted); }
 .forms-response-review__explanation { display: grid; gap: var(--cs-space-group); }
 .forms-response-review__explanation :is(h3, p, ul) { margin: 0; }
 .forms-response-review__explanation > div > p { color: var(--cs-status-info); font-size: var(--cs-font-size-caption); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
@@ -52,4 +58,5 @@
 @media (max-width: 700px) {
   .forms-responses__subject span { max-inline-size: 100%; white-space: normal; }
   .forms-response-review__summary { align-items: start; flex-direction: column; }
+  .forms-response-review__history li { flex-direction: column; }
 }

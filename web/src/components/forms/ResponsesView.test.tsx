@@ -21,6 +21,10 @@ beforeEach(() => {
   window.history.replaceState(null, "", "/#forms");
   for (const value of Object.values(distributionApi)) value.mockReset();
   distributionApi.loadCompletedResponses.mockResolvedValue({ items: [completedResponse] });
+  distributionApi.loadResponseRevisions.mockResolvedValue({ items: [
+    { id: "response-a-1", revision: 1, achieved_assurance: "LINK_POSSESSION", scored_weight_coverage: 80, state: "FINAL", current: false, created_at: "2026-08-20T09:30:00Z" },
+    { id: "response-a", revision: 2, achieved_assurance: "EMAIL_VERIFIED", scored_weight_coverage: 90, state: "FINAL", current: true, created_at: "2026-09-01T09:30:00Z" },
+  ] });
   distributionApi.loadCompletedResponse.mockResolvedValue({
     response: completedResponse,
     revision: { id: "response-a", revision: 2, achieved_assurance: "EMAIL_VERIFIED", scored_weight_coverage: 90, state: "FINAL", current: true, created_at: "2026-09-01T09:30:00Z", score: completedResponse.score },
@@ -65,6 +69,10 @@ describe("completed response portfolio", () => {
 
     expect(await screen.findByRole("dialog", { name: "Review Vendor certification refresh response" })).toBeTruthy();
     expect(screen.getByText("Email verified")).toBeTruthy();
+    expect(distributionApi.loadResponseRevisions).toHaveBeenCalledWith("distribution-a");
+    expect(screen.getByRole("region", { name: "Version history" })).toBeTruthy();
+    expect(screen.getByText("Revision 1")).toBeTruthy();
+    expect(screen.getByText("Revision 2 · Current")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Edit response" })).toBeNull();
     const results = await axe.run(view.container, { rules: { "color-contrast": { enabled: false } } });
     expect(results.violations.map((violation) => violation.id)).toEqual([]);
