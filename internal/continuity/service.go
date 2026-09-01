@@ -186,6 +186,7 @@ type AddActionInput struct {
 	OwnerPrincipalID string     `json:"owner_principal_id,omitempty"`
 	DueAt            *time.Time `json:"due_at,omitempty"`
 	ActorID          string     `json:"actor_id,omitempty"`
+	OriginKey        string     `json:"-"`
 }
 
 type TransitionActionInput struct {
@@ -1039,15 +1040,26 @@ func (s *Service) AddAction(ctx context.Context, input AddActionInput) (MatterAg
 		return MatterAggregate{}, err
 	}
 	ownerID := strings.TrimSpace(input.OwnerPrincipalID)
+	originKey := strings.TrimSpace(input.OriginKey)
 	if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" || ownerID == "" {
 		return MatterAggregate{}, fmt.Errorf("title, description and owner_principal_id are required")
+	}
+	if len(originKey) > 160 {
+		return MatterAggregate{}, fmt.Errorf("origin_key must not exceed 160 characters")
+	}
+	if originKey != "" {
+		for _, action := range aggregate.Actions {
+			if action.OriginKey == originKey {
+				return MatterAggregate{}, ErrDuplicate
+			}
+		}
 	}
 	valueID, err := id.NewUUIDv7()
 	if err != nil {
 		return MatterAggregate{}, err
 	}
 	now := s.now().UTC()
-	value := Action{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), OwnerPrincipalID: ownerID, RequiredResponsibility: "PERFORMER", Status: ActionPlanned, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
+	value := Action{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, OriginKey: originKey, Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), OwnerPrincipalID: ownerID, RequiredResponsibility: "PERFORMER", Status: ActionPlanned, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
 	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAdded, value, input.ActorID)
 }
 

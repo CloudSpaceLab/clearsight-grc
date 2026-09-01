@@ -135,6 +135,7 @@ class DeploymentConfigTest(unittest.TestCase):
         self.assertIn("./cmd/seed-bank-reference", dockerfile)
         self.assertIn("/clearsight-seed-bank-reference", release)
         self.assertIn("-tenant 00000000-0000-4000-8000-000000000001", release)
+        self.assertIn("-contributor 00000000-0000-4000-8000-000000000108", release)
         self.assertIn("/var/lib/clearsight/artifacts:Z", compose)
         self.assertEqual(compose.count("/var/lib/clearsight/artifacts:Z"), 2)
         self.assertIn("chown 65532:65532", bootstrap)
@@ -150,6 +151,9 @@ class DeploymentConfigTest(unittest.TestCase):
                       "00000000-0000-4000-8000-000000000104",
                       "00000000-0000-4000-8000-000000000106",
                       "d315abab6729fac5611327a56aa0f3d4ed07aad2ba160106beb0ce7a3f99e91e",
+                      "157b7a984f7930c08002715ebc320f7dd1b0f2eb986cc03c18c7ff346065ce9f",
+                      '"kind":"ROLE","ref":"EVIDENCE_RESPONDENT"',
+                      "demo performer route does not resolve both governed assignees",
                       "definition IS DISTINCT FROM expected_definition"):
             self.assertIn(value, foundation)
         for value in ("INSERT INTO role_templates", "INSERT INTO org_positions",

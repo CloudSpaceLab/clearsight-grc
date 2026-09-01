@@ -9,11 +9,16 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 )
 
+const (
+	regulatoryChecklistActionTitle          = "Update the annual return evidence checklist"
+	regulatoryEvidenceCollectionActionTitle = "Collect the two outstanding annual return evidence sections"
+	regulatoryEvidenceCollectionOriginKey   = "reference:gaid-2025:outstanding-evidence"
+)
+
 func (s *Service) ensureRegulatoryChange(ctx context.Context, config SeedConfig, program continuity.ProgramAggregate, sourceID string) error {
 	matter, err := s.continuity.MatterByTriggerKey(ctx, config.TenantID, triggerRegulatoryChange)
 	if errors.Is(err, continuity.ErrNotFound) {
-		_, err = s.seedRegulatoryChange(ctx, config, program, sourceID)
-		return err
+		matter, err = s.seedRegulatoryChange(ctx, config, program, sourceID)
 	}
 	if err != nil {
 		return err
@@ -53,13 +58,13 @@ func (s *Service) ensureRegulatoryChange(ctx context.Context, config SeedConfig,
 	if err != nil {
 		return err
 	}
-	actions := currentActions(matter.Actions)
-	if len(actions) == 0 {
+	checklist, checklistFound := regulatoryChecklistAction(matter)
+	if !checklistFound {
 		matter, err = s.continuity.AddAction(ctx, continuity.AddActionInput{
 			TenantID:         config.TenantID,
 			MatterID:         matter.Matter.ID,
 			ExpectedVersion:  matter.Matter.Version,
-			Title:            "Update the annual return evidence checklist",
+			Title:            regulatoryChecklistActionTitle,
 			Description:      "Assign each evidence section, record its authoritative source and move the internal approval date to 1 March.",
 			OwnerPrincipalID: config.OwnerPrincipalID,
 			DueAt:            timePointer(config.Now.Add(10 * 24 * time.Hour)),
@@ -68,21 +73,39 @@ func (s *Service) ensureRegulatoryChange(ctx context.Context, config SeedConfig,
 		if err != nil {
 			return err
 		}
-		actions = currentActions(matter.Actions)
+		checklist, checklistFound = regulatoryChecklistAction(matter)
 	}
-	action := actions[len(actions)-1]
-	if action.Status == continuity.ActionPlanned {
-		matter, err = s.continuity.TransitionAction(ctx, continuity.TransitionActionInput{TenantID: config.TenantID, MatterID: matter.Matter.ID, ActionID: action.ID, ExpectedVersion: matter.Matter.Version, To: continuity.ActionInProgress, ActorID: config.OwnerPrincipalID})
+	if !checklistFound {
+		return fmt.Errorf("reference checklist action was not recorded")
+	}
+	if checklist.Status == continuity.ActionPlanned {
+		matter, err = s.continuity.TransitionAction(ctx, continuity.TransitionActionInput{TenantID: config.TenantID, MatterID: matter.Matter.ID, ActionID: checklist.ID, ExpectedVersion: matter.Matter.Version, To: continuity.ActionInProgress, ActorID: config.OwnerPrincipalID})
 		if err != nil {
 			return err
 		}
 	}
-	if !hasActiveVerificationContract(matter, action.ID) {
+	if _, found := actionByOriginKey(matter.Actions, regulatoryEvidenceCollectionOriginKey); !found {
+		matter, err = s.continuity.AddAction(ctx, continuity.AddActionInput{
+			TenantID:         config.TenantID,
+			MatterID:         matter.Matter.ID,
+			ExpectedVersion:  matter.Matter.Version,
+			Title:            regulatoryEvidenceCollectionActionTitle,
+			OriginKey:        regulatoryEvidenceCollectionOriginKey,
+			Description:      "Provide the authoritative source and proposed evidence owner for the two annual return sections that are not yet complete.",
+			OwnerPrincipalID: config.ContributorPrincipalID,
+			DueAt:            timePointer(config.Now.Add(6 * 24 * time.Hour)),
+			ActorID:          config.ActorID,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	if !hasActiveVerificationContract(matter, checklist.ID) {
 		_, err = s.continuity.AddVerificationContract(ctx, continuity.AddVerificationContractInput{
 			TenantID:                 config.TenantID,
 			MatterID:                 matter.Matter.ID,
 			ExpectedVersion:          matter.Matter.Version,
-			ActionID:                 action.ID,
+			ActionID:                 checklist.ID,
 			ExpectedOutcome:          "Every required annual return evidence section has an owner, authoritative source, internal approval date and DPCO review status.",
 			Baseline:                 mustJSON(map[string]any{"complete_sections": 8, "required_sections": 10}),
 			Scope:                    mustJSON(map[string]any{"journey_code": JourneyRegulatoryChange, "filing_year": 2027}),
@@ -94,4 +117,36 @@ func (s *Service) ensureRegulatoryChange(ctx context.Context, config SeedConfig,
 		})
 	}
 	return err
+}
+
+func currentActionByTitle(actions []continuity.Action, title string) (continuity.Action, bool) {
+	for _, action := range actions {
+		if action.Title == title && action.Status != continuity.ActionCancelled {
+			return action, true
+		}
+	}
+	return continuity.Action{}, false
+}
+
+func regulatoryChecklistAction(matter continuity.MatterAggregate) (continuity.Action, bool) {
+	for _, contract := range matter.VerificationContracts {
+		if contract.Status != continuity.VerificationActive || contract.ActionID == "" || scopeString(contract.Scope, "journey_code") != string(JourneyRegulatoryChange) {
+			continue
+		}
+		for _, action := range matter.Actions {
+			if action.ID == contract.ActionID && action.Status != continuity.ActionCancelled {
+				return action, true
+			}
+		}
+	}
+	return currentActionByTitle(matter.Actions, regulatoryChecklistActionTitle)
+}
+
+func actionByOriginKey(actions []continuity.Action, originKey string) (continuity.Action, bool) {
+	for _, action := range actions {
+		if action.OriginKey == originKey {
+			return action, true
+		}
+	}
+	return continuity.Action{}, false
 }

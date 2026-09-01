@@ -212,6 +212,64 @@ func TestInstallSampleResumesPartiallyTransitionedMatter(t *testing.T) {
 	}
 }
 
+func TestInstallSampleSeedsEvidenceCollectionWorkForASeparateContributor(t *testing.T) {
+	ctx := continuity.WithTrustedSystemScope(context.Background())
+	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, "bank-ng")
+	service := NewService(continuityService, evidenceService)
+	config := normalizeSeedConfig(DemoSeedConfig())
+	config.Now = now
+
+	if _, err := service.InstallSample(ctx, config); err != nil {
+		t.Fatal(err)
+	}
+	matter, err := continuityService.MatterByTriggerKey(ctx, config.TenantID, triggerRegulatoryChange)
+	if err != nil {
+		t.Fatal(err)
+	}
+	collection, found := actionByOriginKey(matter.Actions, regulatoryEvidenceCollectionOriginKey)
+	if !found {
+		t.Fatalf("reference issue is missing %q: %#v", regulatoryEvidenceCollectionActionTitle, matter.Actions)
+	}
+	if collection.OwnerPrincipalID != config.ContributorPrincipalID || collection.OwnerPrincipalID == config.OwnerPrincipalID {
+		t.Fatalf("collection owner=%q, want separate contributor %q", collection.OwnerPrincipalID, config.ContributorPrincipalID)
+	}
+
+	renamed, err := continuityService.UpdateAction(ctx, continuity.UpdateActionInput{
+		TenantID: config.TenantID, MatterID: matter.Matter.ID, ActionID: collection.ID,
+		ExpectedVersion: matter.Matter.Version, Title: "Collect the remaining annual return records",
+		Description: collection.Description, DueAt: collection.DueAt, ActorID: config.OwnerPrincipalID,
+		Rationale: "Use the working title agreed with the evidence team.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reassigned, err := continuityService.AssignAction(ctx, continuity.AssignActionInput{
+		TenantID: config.TenantID, MatterID: matter.Matter.ID, ActionID: collection.ID,
+		ExpectedVersion: renamed.Matter.Version, OwnerPrincipalID: config.OwnerPrincipalID,
+		ActorID: config.OwnerPrincipalID, Rationale: "Move the current collection work to the Program owner.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := len(reassigned.Actions)
+	if _, err := service.InstallSample(ctx, config); err != nil {
+		t.Fatal(err)
+	}
+	matter, err = continuityService.MatterByTriggerKey(ctx, config.TenantID, triggerRegulatoryChange)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matter.Actions) != before {
+		t.Fatalf("repeat installation duplicated collection work: before=%d after=%d", before, len(matter.Actions))
+	}
+	collection, found = actionByOriginKey(matter.Actions, regulatoryEvidenceCollectionOriginKey)
+	if !found || collection.Title != "Collect the remaining annual return records" || collection.OwnerPrincipalID != config.OwnerPrincipalID {
+		t.Fatalf("repeat installation overwrote governed collection changes: %#v", collection)
+	}
+}
+
 func TestInstallSampleUsesEntityBoundedProgramLookup(t *testing.T) {
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
 	repo := continuity.NewMemoryRepository()

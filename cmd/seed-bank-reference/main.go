@@ -26,6 +26,7 @@ func main() {
 	flag.StringVar(&seed.BankName, "bank-name", "Reference Bank Nigeria", "display name used only inside reference records")
 	flag.StringVar(&seed.ActorID, "actor", "", "principal UUID installing the reference data")
 	flag.StringVar(&seed.OwnerPrincipalID, "owner", "", "principal UUID owning the reference work")
+	flag.StringVar(&seed.ContributorPrincipalID, "contributor", "", "principal UUID performing reference evidence work")
 	flag.StringVar(&seed.ReviewerPrincipalID, "reviewer", "", "independent reviewer principal UUID")
 	flag.StringVar(&seed.SignatoryPrincipalID, "signatory", "", "authorized signatory principal UUID")
 	flag.Parse()

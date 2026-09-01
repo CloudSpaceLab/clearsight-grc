@@ -54,10 +54,11 @@ type Props = {
   appearanceScope?: string;
   targetID?: string;
   initialSearch?: string;
+  canConfigureCommunications?: boolean;
   onTarget?: (id?: string) => void;
 };
 
-export function FormsWorkspace({ organizationName = "Organization", legalEntityName = "Legal entity", appearanceScope, targetID, initialSearch, onTarget }: Props) {
+export function FormsWorkspace({ organizationName = "Organization", legalEntityName = "Legal entity", appearanceScope, targetID, initialSearch, canConfigureCommunications = true, onTarget }: Props) {
   const appearanceKey = appearanceScope?.trim() || legalEntityName;
   const [activeTab, setActiveTab] = useState<FormsTab>("Templates");
   const [query, setQuery] = useState<FormTemplateQuery>(() => readFormsQuery(window.location.hash, initialSearch));
@@ -480,7 +481,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         onEdit={() => { if (selected) openEdit(selected); }}
         onTransition={(to) => { if (selected) void transition(selected, to); }}
       />
-    </div> : <FormsTabContent tab={activeTab as Exclude<FormsTab, "Templates">}/>}
+    </div> : <FormsTabContent tab={activeTab as Exclude<FormsTab, "Templates">} canConfigureCommunications={canConfigureCommunications}/>}
     </FormsNavigation>
   </section>;
 }

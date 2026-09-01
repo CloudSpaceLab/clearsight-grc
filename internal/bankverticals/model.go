@@ -50,25 +50,27 @@ type Journey struct {
 }
 
 type SeedConfig struct {
-	TenantID             string
-	LegalEntityID        string
-	BankName             string
-	ActorID              string
-	OwnerPrincipalID     string
-	ReviewerPrincipalID  string
-	SignatoryPrincipalID string
-	Now                  time.Time
+	TenantID               string
+	LegalEntityID          string
+	BankName               string
+	ActorID                string
+	OwnerPrincipalID       string
+	ContributorPrincipalID string
+	ReviewerPrincipalID    string
+	SignatoryPrincipalID   string
+	Now                    time.Time
 }
 
 func DemoSeedConfig() SeedConfig {
 	return SeedConfig{
-		TenantID:             "bank-demo",
-		LegalEntityID:        "bank-ng",
-		BankName:             "Clear Bank Nigeria",
-		ActorID:              "user-demo",
-		OwnerPrincipalID:     "owner-demo",
-		ReviewerPrincipalID:  "reviewer-demo",
-		SignatoryPrincipalID: "signatory-demo",
+		TenantID:               "bank-demo",
+		LegalEntityID:          "bank-ng",
+		BankName:               "Clear Bank Nigeria",
+		ActorID:                "user-demo",
+		OwnerPrincipalID:       "owner-demo",
+		ContributorPrincipalID: "contributor-demo",
+		ReviewerPrincipalID:    "reviewer-demo",
+		SignatoryPrincipalID:   "signatory-demo",
 	}
 }
 
