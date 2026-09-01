@@ -40,18 +40,14 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
   const [portalContainer, setPortalContainer] = useState<Element>();
   const selectRef = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
-    // A modal remains the option list's accessibility and dismissal boundary.
-    // Outside a modal, use the outer workspace landmark: nested builder/canvas
-    // landmarks can be sticky or scrollable and must not become the popover's
-    // positioning or focus-scroll container.
+    // Keep a modal as the option list's accessibility and dismissal boundary.
+    // Outside a modal, the fixed application overlay root keeps the list out
+    // of sticky, scrollable workspace layouts while retaining the main
+    // landmark boundary. Portalling directly into a layout landmark can make
+    // focusing a selected option scroll the document and immediately close
+    // the list through React Aria's close-on-scroll behavior.
     const dialog = node.closest('[role="dialog"]');
-    let landmark = node.closest('main, [role="main"]');
-    while (landmark) {
-      const parentLandmark = landmark.parentElement?.closest('main, [role="main"]') ?? null;
-      if (!parentLandmark) break;
-      landmark = parentLandmark;
-    }
-    const nextContainer = dialog ?? landmark ?? undefined;
+    const nextContainer = dialog ?? document.getElementById("cs-overlay-root") ?? undefined;
     setPortalContainer((current) => current === nextContainer ? current : nextContainer);
   }, []);
   function change(key: Key | null) {

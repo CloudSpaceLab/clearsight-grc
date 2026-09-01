@@ -159,12 +159,21 @@ const scenarios = [
     run: async (page) => {
       await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
       await page.getByRole("button", { name: "Edit draft" }).click();
-      const select = page.getByRole("button", { name: /Inspector response type/ });
+      let select = page.getByRole("button", { name: /Inspector response type/ });
+      await select.click();
+      await page.getByRole("option", { name: "Vendor document", exact: true }).click();
+      select = page.getByRole("button", { name: /Vendor document Inspector response type/ });
+      await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
       const before = await builderGeometry(page);
       await select.click();
-      await page.getByRole("option", { name: "Yes or No", exact: true }).waitFor({ state: "visible" });
+      await page.getByRole("option", { name: "Vendor document", exact: true }).waitFor({ state: "visible" });
       const after = await builderGeometry(page);
       if (JSON.stringify(after) !== JSON.stringify(before)) throw new Error(`Opening the response-type menu changed builder geometry: before=${JSON.stringify(before)} after=${JSON.stringify(after)}.`);
+      const popup = page.locator(".cs-select-field__popover");
+      const listbox = page.locator(".cs-select-field__listbox");
+      const bounds = await popup.evaluate((element) => ({ height: element.getBoundingClientRect().height, overflow: getComputedStyle(element).overflow }));
+      const listBounds = await listbox.evaluate((element) => ({ height: element.getBoundingClientRect().height, overflowY: getComputedStyle(element).overflowY }));
+      if (bounds.height > 340 || bounds.overflow !== "hidden" || listBounds.height > 320 || listBounds.overflowY !== "auto") throw new Error(`The response-type menu must keep scrolling inside its bounded list: popup=${JSON.stringify(bounds)} list=${JSON.stringify(listBounds)}.`);
     },
   },
   {
