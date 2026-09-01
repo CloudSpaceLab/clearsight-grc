@@ -157,6 +157,9 @@ func (store *PostgresDistributionStore) SubmitResponseWorkspace(ctx context.Cont
 	metadata.Revision = revisionNumber
 	metadata.Current = true
 	metadata.CreatedAt = command.Now.UTC()
+	if metadata.Score != nil {
+		metadata.Score.CalculatedAt = metadata.CreatedAt
+	}
 
 	receipt, err := insertPostgresWorkspaceSubmission(ctx, tx, command, state.View, submissionID, answers)
 	if err != nil {
@@ -172,6 +175,9 @@ func (store *PostgresDistributionStore) SubmitResponseWorkspace(ctx context.Cont
 		return WorkspaceSubmissionResult{}, err
 	}
 	if err := appendPostgresWorkspaceEvent(ctx, tx, command.Session, state.DistributionVersion, "FORM_RESPONSE_REVISION_SUBMITTED", revisionNumber, command.Now); err != nil {
+		return WorkspaceSubmissionResult{}, err
+	}
+	if err := appendPostgresScoredResponseEvent(ctx, tx, command.Session, state.DistributionVersion, command.Request, metadata, command.Now); err != nil {
 		return WorkspaceSubmissionResult{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {

@@ -104,27 +104,28 @@ type Lifecycle struct {
 type TemplateField = formcontract.Field
 
 type FormTemplate struct {
-	ID                    string                    `json:"id"`
-	TenantID              string                    `json:"tenant_id"`
-	LegalEntityID         string                    `json:"legal_entity_id"`
-	ProgramID             string                    `json:"program_id,omitempty"`
-	Code                  string                    `json:"code"`
-	Name                  string                    `json:"name"`
-	Purpose               string                    `json:"purpose"`
-	OwnerPrincipalID      string                    `json:"owner_principal_id,omitempty"`
-	ResponsibleTeam       string                    `json:"responsible_team,omitempty"`
-	ApprovedUses          []string                  `json:"approved_uses,omitempty"`
-	Tags                  []string                  `json:"tags,omitempty"`
-	Jurisdiction          string                    `json:"jurisdiction,omitempty"`
-	Industry              string                    `json:"industry,omitempty"`
-	Sensitivity           string                    `json:"sensitivity"`
-	ScoringMode           formcontract.ScoringMode  `json:"scoring_mode"`
-	NextReviewAt          *time.Time                `json:"next_review_at,omitempty"`
-	StarterCatalogCode    string                    `json:"starter_catalog_code,omitempty"`
-	StarterCatalogVersion int64                     `json:"starter_catalog_version,omitempty"`
-	Presentation          formcontract.Presentation `json:"presentation"`
-	Sections              []formcontract.Section    `json:"sections"`
-	Fields                []TemplateField           `json:"fields"`
+	ID                    string                     `json:"id"`
+	TenantID              string                     `json:"tenant_id"`
+	LegalEntityID         string                     `json:"legal_entity_id"`
+	ProgramID             string                     `json:"program_id,omitempty"`
+	Code                  string                     `json:"code"`
+	Name                  string                     `json:"name"`
+	Purpose               string                     `json:"purpose"`
+	OwnerPrincipalID      string                     `json:"owner_principal_id,omitempty"`
+	ResponsibleTeam       string                     `json:"responsible_team,omitempty"`
+	ApprovedUses          []string                   `json:"approved_uses,omitempty"`
+	Tags                  []string                   `json:"tags,omitempty"`
+	Jurisdiction          string                     `json:"jurisdiction,omitempty"`
+	Industry              string                     `json:"industry,omitempty"`
+	Sensitivity           string                     `json:"sensitivity"`
+	ScoringMode           formcontract.ScoringMode   `json:"scoring_mode"`
+	ScoreProfile          *formcontract.ScoreProfile `json:"score_profile,omitempty"`
+	NextReviewAt          *time.Time                 `json:"next_review_at,omitempty"`
+	StarterCatalogCode    string                     `json:"starter_catalog_code,omitempty"`
+	StarterCatalogVersion int64                      `json:"starter_catalog_version,omitempty"`
+	Presentation          formcontract.Presentation  `json:"presentation"`
+	Sections              []formcontract.Section     `json:"sections"`
+	Fields                []TemplateField            `json:"fields"`
 	Lifecycle
 }
 

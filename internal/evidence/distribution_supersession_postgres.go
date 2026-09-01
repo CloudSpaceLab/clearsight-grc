@@ -18,16 +18,16 @@ func (store *PostgresDistributionStore) LoadSupersessionTargetForm(ctx context.C
 		return DistributionFormRevision{}, ErrDistributionInvalid
 	}
 	var form DistributionFormRevision
-	var presentationJSON, sectionsJSON, fieldsJSON []byte
+	var presentationJSON, scoreProfileJSON, sectionsJSON, fieldsJSON []byte
 	err := store.repo.pool.QueryRow(ctx, `
-		SELECT f.id::text,f.tenant_id::text,f.legal_entity_id::text,f.version,f.sensitivity,f.presentation,f.sections,f.fields
+		SELECT f.id::text,f.tenant_id::text,f.legal_entity_id::text,f.version,f.sensitivity,f.presentation,f.scoring_mode,f.score_profile,f.sections,f.fields
 		FROM monitoring_form_templates f
 		JOIN tenants t ON t.id=f.tenant_id
 		JOIN legal_entities le ON le.id=f.legal_entity_id AND le.tenant_id=f.tenant_id
 		WHERE f.id=$1::uuid AND f.version=$2 AND (t.id::text=$3 OR t.slug=$3) AND (le.id::text=$4 OR le.code=$4)
 		  AND f.status='ACTIVE' AND f.is_current`, formID, version, tenantID, legalEntityID).Scan(
 		&form.ID, &form.TenantID, &form.LegalEntityID, &form.Version, &form.Sensitivity,
-		&presentationJSON, &sectionsJSON, &fieldsJSON,
+		&presentationJSON, &form.ScoringMode, &scoreProfileJSON, &sectionsJSON, &fieldsJSON,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return DistributionFormRevision{}, ErrNotFound
@@ -37,6 +37,11 @@ func (store *PostgresDistributionStore) LoadSupersessionTargetForm(ctx context.C
 	}
 	if err := json.Unmarshal(presentationJSON, &form.Presentation); err != nil {
 		return DistributionFormRevision{}, err
+	}
+	if len(scoreProfileJSON) > 0 {
+		if err := json.Unmarshal(scoreProfileJSON, &form.ScoreProfile); err != nil {
+			return DistributionFormRevision{}, err
+		}
 	}
 	if err := json.Unmarshal(sectionsJSON, &form.Sections); err != nil {
 		return DistributionFormRevision{}, err

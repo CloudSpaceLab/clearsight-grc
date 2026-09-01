@@ -91,6 +91,36 @@ func TestCreateLibraryFormUsesVerifiedIdentity(t *testing.T) {
 	}
 }
 
+func TestCreateLibraryFormPreservesAdvancedScoreProfile(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := libraryService(t, repo, "maker-a")
+	service.newID = func() (string, error) { return "form-a", nil }
+	input := validLibraryFormInput()
+	input.ScoringMode = formcontract.ScoringRisk
+	input.ScoreProfile = &formcontract.ScoreProfile{
+		Version: "risk-v2", Mode: formcontract.ScoringRisk,
+		Bands: formcontract.DefaultConcernBands(),
+		Contributions: []formcontract.ScoreContribution{{
+			ID: "name-score", Weight: 100,
+			Predicate:   formcontract.Predicate{FieldID: "name", Operator: formcontract.PredicateAnswered},
+			MatchPoints: 0, NonMatchPoints: 100, Missing: formcontract.MissingZero,
+		}},
+	}
+
+	created, err := service.CreateLibraryForm(formActorContext("bank-a", "entity-a", "maker-a"), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.ScoreProfile.Version = "mutated-later"
+	stored, err := service.GetLibraryForm(formActorContext("bank-a", "entity-a", "maker-a"), created.ID, created.Version)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.ScoreProfile == nil || stored.ScoreProfile.Version != "risk-v2" || stored.ScoreProfile.Direction != formcontract.DirectionHighIsPoor {
+		t.Fatalf("stored profile = %#v", stored.ScoreProfile)
+	}
+}
+
 func TestCreateLibraryFormFailsClosedWithoutCurrentAuthority(t *testing.T) {
 	guard, err := commandauth.New(formAuthorityStub{err: authority.ErrNoRoute}, commandauth.ModeEnforce, slog.Default())
 	if err != nil {

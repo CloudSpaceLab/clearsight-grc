@@ -94,11 +94,23 @@ func TestResponseWorkspaceCreatesImmutableAmendmentWithoutClosingDistribution(t 
 	if first.Revision.Revision != 1 || first.Revision.SupersedesRevisionID != "" || !first.Revision.Current || first.Revision.AchievedAssurance != AssuranceEmailVerified {
 		t.Fatalf("unexpected first immutable revision: %+v", first.Revision)
 	}
+	if first.Revision.Score == nil || first.Revision.Score.CalculatedAt.IsZero() || !first.Revision.Score.CalculatedAt.Equal(first.Revision.CreatedAt) {
+		t.Fatalf("response score calculation time was not pinned to submission: %#v", first.Revision.Score)
+	}
 	if first.Workspace.Status != ResponseWorkspaceOpen {
 		t.Fatalf("submission closed the workspace before sender lock: %+v", first.Workspace)
 	}
 
 	store := fixture.access.store.(*MemoryDistributionAccessStore)
+	var scoredEventFound bool
+	for _, event := range store.distributions.outbox {
+		if event.EventType == "FORM_RESPONSE_SCORED_1" {
+			scoredEventFound = event.Payload["response_revision_id"] == first.Revision.ID && event.Payload["score_state"] == string(ResponseScoreNotConfigured)
+		}
+	}
+	if !scoredEventFound {
+		t.Fatalf("scored response event was not enqueued with bounded identifiers: %#v", store.distributions.outbox)
+	}
 	store.distributions.mu.RLock()
 	distribution := store.distributions.distributions[fixture.distribution.ID]
 	store.distributions.mu.RUnlock()

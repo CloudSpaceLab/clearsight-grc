@@ -87,7 +87,7 @@ func (r *recordingRequestCreator) CreateRequest(_ context.Context, input evidenc
 		ID: "request-1", TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID,
 		Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity,
 		AudienceType: input.AudienceType, EstimatedMinutes: input.EstimatedMinutes, Deadline: input.Deadline,
-		Presentation: input.Presentation, Sections: input.Sections, Fields: input.Fields, FormTemplateID: input.FormTemplateID, FormTemplateVersion: input.FormTemplateVersion,
+		Presentation: input.Presentation, ScoringMode: input.ScoringMode, ScoreProfile: input.ScoreProfile, Sections: input.Sections, Fields: input.Fields, FormTemplateID: input.FormTemplateID, FormTemplateVersion: input.FormTemplateVersion,
 		CollectionPeriodStart: input.CollectionPeriodStart, CollectionPeriodEnd: input.CollectionPeriodEnd, Version: 1,
 	}, nil
 }
@@ -132,7 +132,11 @@ func TestServiceStartsCollectionFromExactActiveForm(t *testing.T) {
 	activeAt := now.Add(-time.Hour)
 	form := FormTemplate{
 		ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "PASSWORD-RESET", Name: "Password reset review", Purpose: "Collect the password reset control review.",
-		Fields:    []TemplateField{{ID: "identity", Label: "Identity verification completed", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "identity", Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}}}},
+		ScoringMode: formcontract.ScoringRisk,
+		ScoreProfile: &formcontract.ScoreProfile{Version: "risk-v2", Mode: formcontract.ScoringRisk, Direction: formcontract.DirectionHighIsPoor, Bands: formcontract.DefaultConcernBands(), Contributions: []formcontract.ScoreContribution{{
+			ID: "identity-score", Weight: 100, Predicate: formcontract.Predicate{FieldID: "identity", Operator: formcontract.PredicateEquals, Values: []string{"No"}}, MatchPoints: 100, Missing: formcontract.MissingIndeterminate,
+		}}},
+		Fields:    []TemplateField{{ID: "identity", Label: "Identity verification completed", Type: "single_select", Required: true, Options: []string{"Yes", "No"}}},
 		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3},
 	}
 	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
@@ -158,6 +162,9 @@ func TestServiceStartsCollectionFromExactActiveForm(t *testing.T) {
 	}
 	if request.FormTemplateID != "form-1" || request.FormTemplateVersion != 3 || len(request.Fields) != 1 || requests.input.Recipient.PrincipalID != "respondent" || requests.input.SubjectType != "PROGRAM" {
 		t.Fatalf("request = %#v, input = %#v", request, requests.input)
+	}
+	if requests.input.ScoringMode != formcontract.ScoringRisk || requests.input.ScoreProfile == nil || requests.input.ScoreProfile.Version != "risk-v2" {
+		t.Fatalf("collection did not pin the exact score profile: %#v", requests.input.ScoreProfile)
 	}
 	if requests.input.KnownFacts["reviewer"] != "reviewer" {
 		t.Fatalf("reviewer fact missing: %#v", requests.input.KnownFacts)

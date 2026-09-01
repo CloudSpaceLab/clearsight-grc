@@ -171,9 +171,12 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if err != nil {
 		return Request{}, err
 	}
-	fields, err = normalizeFieldContracts(input.Presentation, input.Sections, fields)
+	contract, err := formContractWithScoring(input.Presentation, input.ScoringMode, input.ScoreProfile, input.Sections, fields)
 	if err != nil {
 		return Request{}, err
+	}
+	for index := range fields {
+		applyContractField(&fields[index], contract.Fields[index])
 	}
 	if strings.TrimSpace(input.CreatedBy) != "" {
 		access, ok := s.repo.(SubjectAccessChecker)
@@ -218,8 +221,7 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if !deadline.After(now) {
 		return Request{}, fmt.Errorf("deadline must be in the future")
 	}
-	contract, _ := formContract(input.Presentation, input.Sections, fields)
-	request := Request{ID: valueID, TenantID: input.TenantID, LegalEntityID: scope.LegalEntityID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Presentation: contract.Presentation, Sections: contract.Sections, Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Origin: input.Origin.normalized(), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
+	request := Request{ID: valueID, TenantID: input.TenantID, LegalEntityID: scope.LegalEntityID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Presentation: contract.Presentation, ScoringMode: contract.ScoringMode, ScoreProfile: cloneScoreProfile(contract.ScoreProfile), Sections: contract.Sections, Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Origin: input.Origin.normalized(), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
 	return store.CreateRequestWithRecipient(ctx, request)
 }
 

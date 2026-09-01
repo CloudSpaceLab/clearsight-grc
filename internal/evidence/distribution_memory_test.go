@@ -97,6 +97,50 @@ func TestMemoryDistributionCreatesTORequestsCCWithoutRequestAndOneWorkspace(t *t
 	}
 }
 
+func TestMemoryDistributionPinsExactScoreProfileOnCaptureRequest(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 8, 27, 18, 0, 0, 0, time.UTC)
+	form := activeDistributionForm()
+	form.ScoringMode = formcontract.ScoringRisk
+	form.ScoreProfile = &formcontract.ScoreProfile{
+		Version: "risk-v2", Mode: formcontract.ScoringRisk, Direction: formcontract.DirectionHighIsPoor,
+		Bands: formcontract.DefaultConcernBands(),
+		Contributions: []formcontract.ScoreContribution{{
+			ID: "q1-score", Weight: 100,
+			Predicate:   formcontract.Predicate{FieldID: "q1", Operator: formcontract.PredicateEquals, Values: []string{"No"}},
+			MatchPoints: 100, Missing: formcontract.MissingIndeterminate,
+		}},
+	}
+	repo := NewMemoryRepository(nil, nil)
+	store := NewMemoryDistributionStore(repo, stubDistributionFormReader{form: form}, stubRecipientProtector{})
+	store.now = func() time.Time { return now }
+
+	_, err := store.CreateDistribution(ctx, CreateDistributionInput{
+		TenantID: "tenant-a", LegalEntityID: "entity-a", FormTemplateID: "form-a", FormTemplateVersion: 3,
+		SubjectType: "VENDOR", SubjectID: "00000000-0000-0000-0000-000000000101",
+		Title: "Quarterly resilience review", Purpose: "Confirm the current resilience controls.",
+		AccessPolicy: AccessDirectMagicLink, EstimatedMinutes: 8,
+		Deadline: now.Add(72 * time.Hour), RouteExpiresAt: now.Add(48 * time.Hour), CreatedBy: "actor-a",
+		Recipients: []DistributionRecipientInput{{Role: RecipientTo, Type: RecipientInternalPrincipal, PrincipalID: "principal-a"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	form.ScoreProfile.Version = "mutated-later"
+	form.ScoreProfile.Contributions[0].MatchPoints = 0
+
+	requests, err := repo.ListRequests(ctx, "tenant-a", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(requests) != 1 || requests[0].ScoreProfile == nil {
+		t.Fatalf("pinned request profile = %#v", requests)
+	}
+	if requests[0].ScoringMode != formcontract.ScoringRisk || requests[0].ScoreProfile.Version != "risk-v2" || requests[0].ScoreProfile.Contributions[0].MatchPoints != 100 {
+		t.Fatalf("request did not preserve the exact score profile: %#v", requests[0].ScoreProfile)
+	}
+}
+
 func TestMemoryDistributionRollsBackWhenRecipientProtectionFails(t *testing.T) {
 	ctx := context.Background()
 	now := time.Date(2026, 8, 27, 18, 0, 0, 0, time.UTC)

@@ -249,7 +249,8 @@ func materializeDistributionRequest(requestID string, distribution FormDistribut
 		AudienceType:     audienceType,
 		Recipient:        Recipient{Type: recipient.Type, PrincipalID: recipient.PrincipalID, AudienceHint: recipient.AudienceHint, State: RecipientStateAssigned, Revision: 1},
 		EstimatedMinutes: estimatedMinutes, Deadline: distribution.Deadline, KnownFacts: map[string]string{},
-		Presentation: form.Presentation, Sections: cloneSections(form.Sections), Fields: requestFieldsFromContract(form.Fields),
+		Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: cloneScoreProfile(form.ScoreProfile),
+		Sections: cloneSections(form.Sections), Fields: requestFieldsFromContract(form.Fields),
 		FormTemplateID: form.ID, FormTemplateVersion: form.Version, Status: RequestReady,
 		CreatedBy: distribution.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now,
 	}

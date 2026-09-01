@@ -31,23 +31,24 @@ type Actor struct {
 }
 
 type CreateFormInput struct {
-	ProgramID        string                    `json:"program_id"`
-	LegalEntityID    string                    `json:"legal_entity_id"`
-	Code             string                    `json:"code"`
-	Name             string                    `json:"name"`
-	Purpose          string                    `json:"purpose"`
-	OwnerPrincipalID string                    `json:"owner_principal_id,omitempty"`
-	ResponsibleTeam  string                    `json:"responsible_team,omitempty"`
-	ApprovedUses     []string                  `json:"approved_uses,omitempty"`
-	Tags             []string                  `json:"tags,omitempty"`
-	Jurisdiction     string                    `json:"jurisdiction,omitempty"`
-	Industry         string                    `json:"industry,omitempty"`
-	Sensitivity      string                    `json:"sensitivity,omitempty"`
-	ScoringMode      formcontract.ScoringMode  `json:"scoring_mode,omitempty"`
-	NextReviewAt     *time.Time                `json:"next_review_at,omitempty"`
-	Presentation     formcontract.Presentation `json:"presentation"`
-	Sections         []formcontract.Section    `json:"sections"`
-	Fields           []TemplateField           `json:"fields"`
+	ProgramID        string                     `json:"program_id"`
+	LegalEntityID    string                     `json:"legal_entity_id"`
+	Code             string                     `json:"code"`
+	Name             string                     `json:"name"`
+	Purpose          string                     `json:"purpose"`
+	OwnerPrincipalID string                     `json:"owner_principal_id,omitempty"`
+	ResponsibleTeam  string                     `json:"responsible_team,omitempty"`
+	ApprovedUses     []string                   `json:"approved_uses,omitempty"`
+	Tags             []string                   `json:"tags,omitempty"`
+	Jurisdiction     string                     `json:"jurisdiction,omitempty"`
+	Industry         string                     `json:"industry,omitempty"`
+	Sensitivity      string                     `json:"sensitivity,omitempty"`
+	ScoringMode      formcontract.ScoringMode   `json:"scoring_mode,omitempty"`
+	ScoreProfile     *formcontract.ScoreProfile `json:"score_profile,omitempty"`
+	NextReviewAt     *time.Time                 `json:"next_review_at,omitempty"`
+	Presentation     formcontract.Presentation  `json:"presentation"`
+	Sections         []formcontract.Section     `json:"sections"`
+	Fields           []TemplateField            `json:"fields"`
 }
 
 type CreateFormRevisionInput struct {
@@ -364,7 +365,7 @@ func (s *Service) createLibraryRevision(ctx context.Context, actor identity.Acto
 		ID: id, TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ProgramID: strings.TrimSpace(base.ProgramID),
 		Code: strings.TrimSpace(input.Code), Name: strings.TrimSpace(input.Name), Purpose: strings.TrimSpace(input.Purpose),
 		OwnerPrincipalID: ownerID, ResponsibleTeam: strings.TrimSpace(input.ResponsibleTeam), ApprovedUses: append([]string(nil), input.ApprovedUses...), Tags: append([]string(nil), input.Tags...),
-		Jurisdiction: strings.TrimSpace(input.Jurisdiction), Industry: strings.TrimSpace(input.Industry), Sensitivity: strings.TrimSpace(input.Sensitivity), ScoringMode: contract.ScoringMode, NextReviewAt: input.NextReviewAt,
+		Jurisdiction: strings.TrimSpace(input.Jurisdiction), Industry: strings.TrimSpace(input.Industry), Sensitivity: strings.TrimSpace(input.Sensitivity), ScoringMode: contract.ScoringMode, ScoreProfile: contract.ScoreProfile, NextReviewAt: input.NextReviewAt,
 		StarterCatalogCode: base.StarterCatalogCode, StarterCatalogVersion: base.StarterCatalogVersion,
 		Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: version, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},
@@ -526,8 +527,9 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 		Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: input.RespondentPrincipalID},
 		EstimatedMinutes: estimateMinutes(len(fields)), Deadline: input.Deadline.UTC(),
-		KnownFacts: map[string]string{"reviewer": input.ReviewerPrincipalID, "legal_entity_id": input.LegalEntityID, "reporting_period_start": periodStart.Format(time.RFC3339), "reporting_period_end": periodEnd.Format(time.RFC3339)},
-		Fields:     fields, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
+		KnownFacts:   map[string]string{"reviewer": input.ReviewerPrincipalID, "legal_entity_id": input.LegalEntityID, "reporting_period_start": periodStart.Format(time.RFC3339), "reporting_period_end": periodEnd.Format(time.RFC3339)},
+		Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile,
+		Sections: form.Sections, Fields: fields, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
 		CollectionPeriodStart: &periodStart, CollectionPeriodEnd: &periodEnd, CreatedBy: actor.PrincipalID,
 	})
 }

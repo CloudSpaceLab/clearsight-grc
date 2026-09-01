@@ -10,6 +10,7 @@ func normalizeLibraryDraft(input CreateFormInput) (formcontract.Contract, error)
 	contract, err := formcontract.NormalizeDraft(formcontract.Contract{
 		Presentation: input.Presentation,
 		ScoringMode:  input.ScoringMode,
+		ScoreProfile: input.ScoreProfile,
 		Sections:     input.Sections,
 		Fields:       input.Fields,
 	})
@@ -23,6 +24,7 @@ func validateLibraryApprovalContract(value FormTemplate) error {
 	_, err := formcontract.Normalize(formcontract.Contract{
 		Presentation: value.Presentation,
 		ScoringMode:  value.ScoringMode,
+		ScoreProfile: value.ScoreProfile,
 		Sections:     value.Sections,
 		Fields:       value.Fields,
 	})

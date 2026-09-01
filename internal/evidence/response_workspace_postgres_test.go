@@ -114,6 +114,37 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 	if !errors.As(err, &conflict) || len(conflict.Changed) != 1 || conflict.Changed[0].FieldID != "registered_address" {
 		t.Fatalf("PostgreSQL same-field conflict = %#v, err=%v", conflict, err)
 	}
+	if _, err := pool.Exec(ctx, `
+		CREATE FUNCTION response_score_outbox_failure_test() RETURNS trigger LANGUAGE plpgsql AS $$
+		BEGIN
+			IF NEW.event_type='FORM_RESPONSE_SCORED' THEN RAISE EXCEPTION 'forced response score outbox failure'; END IF;
+			RETURN NEW;
+		END $$;
+		CREATE TRIGGER response_score_outbox_failure_test BEFORE INSERT ON outbox_events
+		FOR EACH ROW EXECUTE FUNCTION response_score_outbox_failure_test()`, pgx.QueryExecModeSimpleProtocol); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DROP TRIGGER IF EXISTS response_score_outbox_failure_test ON outbox_events; DROP FUNCTION IF EXISTS response_score_outbox_failure_test()`, pgx.QueryExecModeSimpleProtocol)
+	})
+	if _, err := access.SubmitResponseWorkspace(ctx, tokens[0], SubmitWorkspaceInput{ExpectedVersion: merged.Workspace.Version}); err == nil {
+		t.Fatal("expected forced scored-response outbox failure")
+	}
+	var failedSubmissions, failedRevisions, failedEvents, failedOutbox int
+	if err := pool.QueryRow(ctx, `SELECT
+		(SELECT count(*) FROM capture_submissions WHERE distribution_id=$1::uuid),
+		(SELECT count(*) FROM capture_response_revisions WHERE distribution_id=$1::uuid),
+		(SELECT count(*) FROM capture_distribution_events WHERE distribution_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_%'),
+		(SELECT count(*) FROM outbox_events WHERE aggregate_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_%')`,
+		bundle.Distribution.ID).Scan(&failedSubmissions, &failedRevisions, &failedEvents, &failedOutbox); err != nil {
+		t.Fatal(err)
+	}
+	if failedSubmissions != 0 || failedRevisions != 0 || failedEvents != 0 || failedOutbox != 0 {
+		t.Fatalf("failed score outbox leaked material state: submissions=%d revisions=%d events=%d outbox=%d", failedSubmissions, failedRevisions, failedEvents, failedOutbox)
+	}
+	if _, err := pool.Exec(ctx, `DROP TRIGGER response_score_outbox_failure_test ON outbox_events; DROP FUNCTION response_score_outbox_failure_test()`, pgx.QueryExecModeSimpleProtocol); err != nil {
+		t.Fatal(err)
+	}
 
 	firstSubmission, err := access.SubmitResponseWorkspace(ctx, tokens[0], SubmitWorkspaceInput{ExpectedVersion: merged.Workspace.Version})
 	if err != nil {
@@ -141,10 +172,12 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 		t.Fatalf("PostgreSQL amendment did not supersede revision 1: %+v", secondSubmission.Revision)
 	}
 
-	var editCount, revisionCount, currentCount, submissionCount, legacySessionCount int
+	var editCount, revisionCount, currentCount, submissionCount, legacySessionCount, scoredEventCount, scoredOutboxCount int
 	var workspaceStatus ResponseWorkspaceStatus
 	var distributionStatus DistributionStatus
-	var firstAddress, secondAddress string
+	var firstAddress, secondAddress, currentScoreState string
+	var currentRawScore float64
+	var currentScoreCalculatedAt time.Time
 	if err := pool.QueryRow(ctx, `
 		SELECT
 		  (SELECT count(*) FROM capture_response_workspace_edits WHERE distribution_id=$1::uuid),
@@ -152,16 +185,24 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 		  (SELECT count(*) FROM capture_response_revisions WHERE distribution_id=$1::uuid AND is_current),
 		  (SELECT count(*) FROM capture_submissions WHERE distribution_id=$1::uuid),
 		  (SELECT count(*) FROM capture_submissions WHERE distribution_id=$1::uuid AND session_id IS NOT NULL),
+		  (SELECT count(*) FROM capture_distribution_events WHERE distribution_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_SCORED_%'),
+		  (SELECT count(*) FROM outbox_events WHERE aggregate_id=$1::uuid AND event_type='FORM_RESPONSE_SCORED'),
 		  (SELECT status FROM capture_response_workspaces WHERE distribution_id=$1::uuid),
 		  (SELECT status FROM capture_form_distributions WHERE id=$1::uuid),
 		  (SELECT answers->'registered_address'->>'text' FROM capture_submissions WHERE id=$2::uuid),
-		  (SELECT answers->'registered_address'->>'text' FROM capture_submissions WHERE id=$3::uuid)`,
+		  (SELECT answers->'registered_address'->>'text' FROM capture_submissions WHERE id=$3::uuid),
+		  (SELECT score_state FROM capture_response_revisions WHERE distribution_id=$1::uuid AND is_current),
+		  (SELECT raw_score FROM capture_response_revisions WHERE distribution_id=$1::uuid AND is_current),
+		  (SELECT score_calculated_at FROM capture_response_revisions WHERE distribution_id=$1::uuid AND is_current)`,
 		bundle.Distribution.ID, firstSubmission.Submission.SubmissionID, secondSubmission.Submission.SubmissionID,
-	).Scan(&editCount, &revisionCount, &currentCount, &submissionCount, &legacySessionCount, &workspaceStatus, &distributionStatus, &firstAddress, &secondAddress); err != nil {
+	).Scan(&editCount, &revisionCount, &currentCount, &submissionCount, &legacySessionCount, &scoredEventCount, &scoredOutboxCount, &workspaceStatus, &distributionStatus, &firstAddress, &secondAddress, &currentScoreState, &currentRawScore, &currentScoreCalculatedAt); err != nil {
 		t.Fatal(err)
 	}
 	if editCount != 3 || revisionCount != 2 || currentCount != 1 || submissionCount != 2 || legacySessionCount != 0 {
 		t.Fatalf("unexpected durable workspace counts: edits=%d revisions=%d current=%d submissions=%d legacy_sessions=%d", editCount, revisionCount, currentCount, submissionCount, legacySessionCount)
+	}
+	if scoredEventCount != 2 || scoredOutboxCount != 2 || currentScoreState != string(ResponseScoreFinal) || currentRawScore != 0 || currentScoreCalculatedAt.IsZero() {
+		t.Fatalf("generalized scoring was not persisted and emitted atomically: events=%d outbox=%d state=%s raw=%v calculated_at=%v", scoredEventCount, scoredOutboxCount, currentScoreState, currentRawScore, currentScoreCalculatedAt)
 	}
 	if workspaceStatus != ResponseWorkspaceOpen || distributionStatus != DistributionOpen {
 		t.Fatalf("submission prematurely closed runtime: workspace=%s distribution=%s", workspaceStatus, distributionStatus)
@@ -189,10 +230,12 @@ func setupResponseWorkspaceFixture(t *testing.T, ctx context.Context, pool *pgxp
 		INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from)
 		VALUES($4::uuid,$1::uuid,'PERSON','Response Workspace Actor','ACTIVE',$6);
 		INSERT INTO monitoring_form_templates(
-			id,tenant_id,legal_entity_id,code,name,purpose,presentation,sections,fields,status,is_current,effective_from,version,created_by,created_at,updated_at
+			id,tenant_id,legal_entity_id,code,name,purpose,presentation,scoring_mode,score_profile,sections,fields,status,is_current,effective_from,version,created_by,created_at,updated_at
 		) VALUES(
 			$5::uuid,$1::uuid,$3::uuid,'WORKSPACE-FORM','Workspace form','Shared response workspace integration.',
 			'{"default_mode":"WIZARD","allow_mode_switch":true}'::jsonb,
+			'RISK',
+			'{"version":"risk-v2","mode":"RISK","direction":"HIGH_IS_POOR","contributions":[{"id":"control-score","label":"Control concern","weight":100,"predicate":{"field_id":"control_confirmed","operator":"EQUALS","values":["No"]},"match_points":100,"non_match_points":0,"missing":"INDETERMINATE"}],"bands":[{"band":"LOW","from":0,"through":24},{"band":"MODERATE","from":25,"through":49},{"band":"HIGH","from":50,"through":74},{"band":"CRITICAL","from":75,"through":100}]}'::jsonb,
 			'[{"id":"general","title":"General"}]'::jsonb,
 			'[
 			  {"id":"registered_address","section_id":"general","label":"Registered address","type":"short_text","required":true},
