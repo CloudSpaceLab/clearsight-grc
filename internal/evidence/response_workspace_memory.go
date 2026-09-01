@@ -163,6 +163,11 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 	}
 	metadata.Current = true
 	state.revisions = append(state.revisions, cloneResponseRevision(metadata))
+	durableRevisions := distributions.responseRevisions[command.Session.DistributionID]
+	if len(durableRevisions) > 0 {
+		durableRevisions[len(durableRevisions)-1].Current = false
+	}
+	distributions.responseRevisions[command.Session.DistributionID] = append(durableRevisions, cloneResponseRevision(metadata))
 	state.workspace.Version++
 	state.workspace.UpdatedAt = command.Now.UTC()
 	distributions.workspaces[command.Session.DistributionID] = state.workspace

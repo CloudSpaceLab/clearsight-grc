@@ -115,7 +115,7 @@ func loadPostgresWorkspaceState(ctx context.Context, tx pgx.Tx, session Distribu
 func loadCurrentPostgresResponseRevision(ctx context.Context, tx pgx.Tx, tenantID, workspaceID string) (ResponseRevision, error) {
 	value, err := scanPostgresResponseRevision(tx.QueryRow(ctx, `
 		SELECT `+responseRevisionProjection+`
-		FROM capture_response_revisions
-		WHERE tenant_id=$1::uuid AND workspace_id=$2::uuid AND is_current`, tenantID, workspaceID))
+		FROM capture_response_revisions r
+		WHERE r.tenant_id=$1::uuid AND r.workspace_id=$2::uuid AND r.is_current`, tenantID, workspaceID))
 	return value, err
 }

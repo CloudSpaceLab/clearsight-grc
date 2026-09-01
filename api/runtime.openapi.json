@@ -188,6 +188,8 @@
       "get": { "operationId": "listFormDistributions", "x-clearsight-route-class": "AUTHENTICATED_READ" },
       "post": { "operationId": "createFormDistribution", "x-clearsight-route-class": "MATERIAL_COMMAND" }
     },
+    "/api/v1/forms/responses": { "get": { "operationId": "listCompletedFormResponses", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/forms/responses/{revision_id}": { "get": { "operationId": "getCompletedFormResponse", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/forms/distributions/{id}": { "get": { "operationId": "getFormDistribution", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/forms/distributions/{id}/responses": { "get": { "operationId": "listFormDistributionResponses", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/forms/distributions/{id}/amend": { "post": { "operationId": "amendFormDistribution", "x-clearsight-route-class": "MATERIAL_COMMAND" } },

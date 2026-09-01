@@ -13,9 +13,9 @@ func (s *PostgresDistributionStore) ListDistributionResponseRevisions(ctx contex
 	}
 	rows, err := s.repo.pool.Query(ctx, `
 		SELECT `+responseRevisionProjection+`
-		FROM capture_response_revisions
-		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND distribution_id=$3::uuid
-		ORDER BY revision DESC,id DESC
+		FROM capture_response_revisions r
+		WHERE r.tenant_id=$1::uuid AND r.legal_entity_id=$2::uuid AND r.distribution_id=$3::uuid
+		ORDER BY r.revision DESC,r.id DESC
 		LIMIT $4`, tenantID, legalEntityID, distributionID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list distribution response revisions: %w", err)

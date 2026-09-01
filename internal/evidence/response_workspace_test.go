@@ -139,6 +139,13 @@ func TestResponseWorkspaceCreatesImmutableAmendmentWithoutClosingDistribution(t 
 	if second.Revision.Revision != 2 || second.Revision.SupersedesRevisionID != first.Revision.ID || !second.Revision.Current {
 		t.Fatalf("amendment did not supersede revision 1: %+v", second.Revision)
 	}
+	currentPage, err := store.distributions.ListCompletedResponses(ctx, CompletedResponseQuery{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "actor-a", CurrentOnly: true, Sort: ResponseSortNewest, Limit: 25})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(currentPage.Items) != 1 || currentPage.Items[0].ID != second.Revision.ID {
+		t.Fatalf("current response portfolio did not supersede the prior revision: %#v", currentPage.Items)
+	}
 
 	registry := memoryWorkspaceRegistryFor(store)
 	registry.mu.Lock()

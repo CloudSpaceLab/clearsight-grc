@@ -9,14 +9,18 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
-const responseRevisionProjection = `id::text,tenant_id::text,legal_entity_id::text,distribution_id::text,workspace_id::text,submission_id::text,
-	revision,COALESCE(supersedes_revision_id::text,''),achieved_assurance,signoff_summary,compliance_score,
-	scored_weight_coverage,state,critical_field_results,scoring_policy_version,is_current,created_at,
-	score_mode,score_direction,raw_score,adverse_score,concern_band,score_state,score_result,score_profile_checksum,score_calculated_at`
+const responseRevisionProjection = `r.id::text,r.tenant_id::text,r.legal_entity_id::text,r.distribution_id::text,r.workspace_id::text,r.submission_id::text,
+	r.revision,COALESCE(r.supersedes_revision_id::text,''),r.achieved_assurance,r.signoff_summary,r.compliance_score,
+	r.scored_weight_coverage,r.state,r.critical_field_results,r.scoring_policy_version,r.is_current,r.created_at,
+	r.score_mode,r.score_direction,r.raw_score,r.adverse_score,r.concern_band,r.score_state,r.score_result,r.score_profile_checksum,r.score_calculated_at`
 
 type responseRevisionScanner interface{ Scan(...any) error }
 
 func scanPostgresResponseRevision(row responseRevisionScanner) (ResponseRevision, error) {
+	return scanPostgresResponseRevisionWithExtra(row)
+}
+
+func scanPostgresResponseRevisionWithExtra(row responseRevisionScanner, extra ...any) (ResponseRevision, error) {
 	var value ResponseRevision
 	var signoffJSON, criticalJSON, scoreJSON []byte
 	var complianceScore, rawScore, adverseScore sql.NullFloat64
@@ -24,12 +28,13 @@ func scanPostgresResponseRevision(row responseRevisionScanner) (ResponseRevision
 	var scoreState string
 	var scoreChecksum string
 	var calculatedAt sql.NullTime
-	if err := row.Scan(
+	targets := []any{
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.DistributionID, &value.WorkspaceID, &value.SubmissionID,
 		&value.Revision, &value.SupersedesRevisionID, &value.AchievedAssurance, &signoffJSON, &complianceScore,
 		&value.ScoredWeightCoverage, &value.State, &criticalJSON, &value.ScoringPolicyVersion, &value.Current, &value.CreatedAt,
 		&mode, &direction, &rawScore, &adverseScore, &band, &scoreState, &scoreJSON, &scoreChecksum, &calculatedAt,
-	); err != nil {
+	}
+	if err := row.Scan(append(targets, extra...)...); err != nil {
 		return ResponseRevision{}, err
 	}
 	if err := json.Unmarshal(signoffJSON, &value.SignoffSummary); err != nil {

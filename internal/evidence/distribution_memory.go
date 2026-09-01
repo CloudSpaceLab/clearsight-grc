@@ -27,6 +27,7 @@ type MemoryDistributionStore struct {
 	recipients          map[string][]memoryDistributionRecipient
 	workspaces          map[string]ResponseWorkspace
 	requestDistribution map[string]string
+	responseRevisions   map[string][]ResponseRevision
 	events              []distributionEvent
 	outbox              []distributionEvent
 }
@@ -41,6 +42,7 @@ func NewMemoryDistributionStore(repo *MemoryRepository, forms DistributionFormRe
 		recipients:          map[string][]memoryDistributionRecipient{},
 		workspaces:          map[string]ResponseWorkspace{},
 		requestDistribution: map[string]string{},
+		responseRevisions:   map[string][]ResponseRevision{},
 	}
 }
 
