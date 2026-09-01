@@ -23,6 +23,7 @@ func TestMemoryCompletedResponsesIsolateFilterAndUseStableCursor(t *testing.T) {
 	}
 	store.responseRevisions = map[string][]ResponseRevision{
 		"distribution-a": {
+			{ID: "response-draft", TenantID: "tenant-a", LegalEntityID: "entity-a", DistributionID: "distribution-a", Revision: 4, State: "DRAFT", Current: true, CreatedAt: base.Add(4 * time.Minute)},
 			completedRevision("response-3", "tenant-a", "entity-a", "distribution-a", base.Add(3*time.Minute), 88, formcontract.ConcernCritical),
 			completedRevision("response-2", "tenant-a", "entity-a", "distribution-a", base.Add(2*time.Minute), 88, formcontract.ConcernCritical),
 			completedRevision("response-1", "tenant-a", "entity-a", "distribution-a", base.Add(time.Minute), 72, formcontract.ConcernHigh),
@@ -61,6 +62,16 @@ func TestMemoryCompletedResponsesIsolateFilterAndUseStableCursor(t *testing.T) {
 	}
 	if _, _, err := store.GetCompletedResponse(context.Background(), "tenant-a", "entity-a", "principal-a", "response-restricted"); err != ErrNotFound {
 		t.Fatalf("restricted response detail leaked: %v", err)
+	}
+	workerValue, err := store.GetCompletedResponseForExecution(context.Background(), "tenant-a", "response-restricted")
+	if err != nil || workerValue.ID != "response-restricted" || workerValue.LegalEntityID != "entity-a" || workerValue.Score == nil {
+		t.Fatalf("exact worker response = %#v err=%v", workerValue, err)
+	}
+	if _, err := store.GetCompletedResponseForExecution(context.Background(), "other-tenant", "response-restricted"); err != ErrNotFound {
+		t.Fatalf("exact worker response crossed tenant scope: %v", err)
+	}
+	if _, err := store.GetCompletedResponseForExecution(context.Background(), "tenant-a", "response-draft"); err != ErrNotFound {
+		t.Fatalf("exact worker response accepted an incomplete revision: %v", err)
 	}
 }
 

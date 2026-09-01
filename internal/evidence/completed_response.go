@@ -14,6 +14,21 @@ import (
 type completedResponseStore interface {
 	ListCompletedResponses(context.Context, CompletedResponseQuery) (CompletedResponsePage, error)
 	GetCompletedResponse(context.Context, string, string, string, string) (CompletedResponseSummary, ResponseRevision, error)
+	GetCompletedResponseForExecution(context.Context, string, string) (CompletedResponseSummary, error)
+}
+
+// GetCompletedResponseForExecution performs one exact tenant/revision lookup
+// for the governed worker. It returns scored metadata only; response answers
+// remain outside the automation event and policy executor.
+func (service *DistributionService) GetCompletedResponseForExecution(ctx context.Context, tenantID, revisionID string) (CompletedResponseSummary, error) {
+	if service == nil || service.store == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(revisionID) == "" {
+		return CompletedResponseSummary{}, ErrDistributionInvalid
+	}
+	reader, ok := service.store.(completedResponseStore)
+	if !ok {
+		return CompletedResponseSummary{}, ErrDistributionInvalid
+	}
+	return reader.GetCompletedResponseForExecution(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(revisionID))
 }
 
 type ResponseSort string

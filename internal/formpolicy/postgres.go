@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -29,17 +30,25 @@ func scanPostgresPolicy(row postgresRow) (Policy, error) {
 	var value Policy
 	var eligibility, action, blast, outcome []byte
 	var rollout, status string
-	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.Code, &value.Name, &value.Purpose, &value.ActionClass,
-		&value.AutomationPolicyID, &value.AutomationPolicyVersion, &eligibility, &action, &blast, &outcome, &rollout, &status,
-		&value.MakerID, &value.CheckerID, &value.Checksum, &value.ApprovedSimulationID, &value.SupersedesPolicyID, &value.RollbackOfPolicyID,
-		&value.EffectiveFrom, &value.EffectiveUntil, &value.SubmittedAt, &value.ApprovedAt, &value.ActivatedAt, &value.SuspendedAt, &value.RetiredAt,
-		&value.Version, &value.RecordVersion, &value.CreatedAt, &value.UpdatedAt)
+	err := row.Scan(postgresPolicyScanTargets(&value, &eligibility, &action, &blast, &outcome, &rollout, &status)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Policy{}, ErrNotFound
 	}
 	if err != nil {
 		return Policy{}, err
 	}
+	return decodePostgresPolicy(value, eligibility, action, blast, outcome, rollout, status)
+}
+
+func postgresPolicyScanTargets(value *Policy, eligibility, action, blast, outcome *[]byte, rollout, status *string) []any {
+	return []any{&value.ID, &value.TenantID, &value.LegalEntityID, &value.Code, &value.Name, &value.Purpose, &value.ActionClass,
+		&value.AutomationPolicyID, &value.AutomationPolicyVersion, eligibility, action, blast, outcome, rollout, status,
+		&value.MakerID, &value.CheckerID, &value.Checksum, &value.ApprovedSimulationID, &value.SupersedesPolicyID, &value.RollbackOfPolicyID,
+		&value.EffectiveFrom, &value.EffectiveUntil, &value.SubmittedAt, &value.ApprovedAt, &value.ActivatedAt, &value.SuspendedAt, &value.RetiredAt,
+		&value.Version, &value.RecordVersion, &value.CreatedAt, &value.UpdatedAt}
+}
+
+func decodePostgresPolicy(value Policy, eligibility, action, blast, outcome []byte, rollout, status string) (Policy, error) {
 	if json.Unmarshal(eligibility, &value.Eligibility) != nil || json.Unmarshal(action, &value.Action) != nil || json.Unmarshal(blast, &value.BlastRadius) != nil || json.Unmarshal(outcome, &value.Outcome) != nil {
 		return Policy{}, fmt.Errorf("%w: stored policy definition cannot be decoded", ErrInvalid)
 	}
@@ -133,6 +142,32 @@ func (repo *PostgresRepository) ListPolicies(ctx context.Context, tenantID, lega
 		values = append(values, value)
 	}
 	return values, rows.Err()
+}
+
+func (repo *PostgresRepository) ListEffectivePolicies(ctx context.Context, tenantID, legalEntityID, formTemplateID string, formTemplateVersion int64, completedAt time.Time, limit int) ([]Policy, error) {
+	if repo == nil || repo.pool == nil || strings.TrimSpace(formTemplateID) == "" || formTemplateVersion < 1 || completedAt.IsZero() || limit < 1 || limit > executionPolicyLimit {
+		return nil, ErrInvalid
+	}
+	rows, err := repo.pool.Query(ctx, `SELECT `+postgresPolicyColumns+` FROM form_response_policy_definitions p JOIN tenants t ON t.id=p.tenant_id JOIN legal_entities le ON le.id=p.legal_entity_id AND le.tenant_id=p.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND p.status='ACTIVE' AND p.activated_at IS NOT NULL AND p.activated_at<=$5 AND p.form_template_id=$3::uuid AND p.form_template_version=$4 AND (p.effective_from IS NULL OR p.effective_from<=$5) AND (p.effective_until IS NULL OR p.effective_until>$5) ORDER BY p.code,p.version DESC,p.id DESC LIMIT $6`, tenantID, legalEntityID, formTemplateID, formTemplateVersion, completedAt, limit+1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	values := []Policy{}
+	for rows.Next() {
+		value, scanErr := scanPostgresPolicy(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(values) > limit {
+		return nil, ErrExecutionPolicyLimit
+	}
+	return values, nil
 }
 
 func (repo *PostgresRepository) NextPolicyVersion(ctx context.Context, tenantID, legalEntityID, code string) (int64, error) {

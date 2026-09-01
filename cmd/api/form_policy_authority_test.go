@@ -70,10 +70,10 @@ func TestFormPolicyActivationAuthorityRechecksAutomationAndCurrentRoutes(t *test
 	if err := validator.ValidatePolicyActivation(t.Context(), actor, policy); err != nil {
 		t.Fatal(err)
 	}
-	if len(routes.inputs) != 4 {
+	if len(routes.inputs) != 5 {
 		t.Fatalf("authority checks = %#v", routes.inputs)
 	}
-	if routes.inputs[0].ObjectType != "FORM_RESPONSE_POLICY" || routes.inputs[1].ObjectType != "MATTER" || routes.inputs[2].ObjectType != "VENDOR_RELATIONSHIP" || routes.inputs[3].Responsibility != authority.ResponsibilityPerformer {
+	if routes.inputs[0].ObjectType != "FORM_RESPONSE_POLICY" || routes.inputs[1].ObjectType != "MATTER" || routes.inputs[2].Responsibility != authority.ResponsibilityReviewer || routes.inputs[3].ObjectType != "VENDOR_RELATIONSHIP" || routes.inputs[4].Responsibility != authority.ResponsibilityPerformer {
 		t.Fatalf("authority checks do not cover current authorizer, Matter, subject and service actor: %#v", routes.inputs)
 	}
 }

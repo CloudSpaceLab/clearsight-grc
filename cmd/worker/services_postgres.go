@@ -14,6 +14,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentcoverage"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
@@ -32,6 +33,7 @@ const (
 	documentProposalWorkProjectionClass = "document-proposal-work-projection"
 	aiGovernanceRetentionClass          = "ai-governance-retention"
 	oversightProjectionClass            = "oversight-projection"
+	formPolicyMaintenanceClass          = "form-response-policy-maintenance"
 )
 
 func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (workerSet, error) {
@@ -85,6 +87,9 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
 	evidenceRepository := evidence.NewPostgresRepository(pool)
 	evidenceService := evidence.NewService(evidenceRepository, store)
+	formPolicyRepository := formpolicy.NewPostgresRepository(pool)
+	formPolicyResponses := evidence.NewDistributionService(evidence.NewPostgresDistributionStore(evidenceRepository, nil))
+	formPolicyExecutor := formpolicy.NewExecutor(formPolicyRepository, formPolicyResponses, formPolicyExecutionAuthority{Automation: autonomyService, Authority: authorityService, Subjects: evidenceRepository})
 	formCommunicationWorker, formReminderScheduler, err := buildFormCommunicationWorker(cfg, pool, evidenceRepository)
 	if err != nil {
 		pool.Close()
@@ -97,7 +102,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	publisher := workflowruntime.NewCompositePublisher(
 		sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork, staffNotifications,
 		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, vendorWorkSubmission,
-		formProposalGeneration, formCommunicationWorker,
+		formProposalGeneration, formCommunicationWorker, formpolicy.ScoredResponsePublisher{Handler: formPolicyExecutor},
 		workflowruntime.LogPublisher{Logger: logger},
 	)
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
@@ -120,6 +125,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.ConfigureClass(documentProposalWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 30 * time.Second, Batch: 100})
 	service.ConfigureClass(aiGovernanceRetentionClass, workflowruntime.WorkClassOptions{Poll: time.Hour, Batch: 500})
 	service.ConfigureClass(oversightProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 20})
+	service.ConfigureClass(formPolicyMaintenanceClass, workflowruntime.WorkClassOptions{Poll: 30 * time.Second, Timeout: 20 * time.Second, Lease: time.Minute, Batch: 100})
 
 	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
 	assessmentProvisioner.ConfigureAuthority(authorityService)
@@ -143,5 +149,6 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(documentProposalWorkProjectionClass, documentProposalWork)
 	service.AddMaintainerClass(aiGovernanceRetentionClass, aiGovernanceRetention)
 	service.AddMaintainerClass(oversightProjectionClass, &oversight.Maintainer{Repository: oversight.NewPostgresRepository(pool)})
+	service.AddMaintainerClass(formPolicyMaintenanceClass, formpolicy.NewMaintainer(formPolicyRepository, formPolicyExecutor, cfg.WorkerID))
 	return workerSet{Runtime: service, Close: pool.Close}, nil
 }

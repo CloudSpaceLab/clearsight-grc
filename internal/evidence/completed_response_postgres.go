@@ -116,6 +116,33 @@ func (s *PostgresDistributionStore) GetCompletedResponse(ctx context.Context, te
 	return summary, revision, nil
 }
 
+func (s *PostgresDistributionStore) GetCompletedResponseForExecution(ctx context.Context, tenantID, revisionID string) (CompletedResponseSummary, error) {
+	if s == nil || s.repo == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(revisionID) == "" {
+		return CompletedResponseSummary{}, ErrDistributionInvalid
+	}
+	var formID, title, subjectType, subjectID string
+	var formVersion int64
+	revision, err := scanPostgresResponseRevisionWithExtra(s.repo.pool.QueryRow(ctx, `
+		SELECT `+responseRevisionProjection+`,d.form_template_id::text,d.form_template_version,d.title,d.subject_type,d.subject_id::text
+		FROM capture_response_revisions r
+		JOIN tenants t ON t.id=r.tenant_id
+		JOIN capture_form_distributions d
+		  ON d.id=r.distribution_id AND d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND r.id::text=$2
+		  AND r.state IN ('FINAL','PROVISIONAL') AND r.score_state IN ('FINAL','PROVISIONAL')`, tenantID, revisionID), &formID, &formVersion, &title, &subjectType, &subjectID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return CompletedResponseSummary{}, ErrNotFound
+	}
+	if err != nil {
+		return CompletedResponseSummary{}, err
+	}
+	return CompletedResponseSummary{
+		ID: revision.ID, TenantID: revision.TenantID, LegalEntityID: revision.LegalEntityID, DistributionID: revision.DistributionID,
+		FormTemplateID: formID, FormTemplateVersion: formVersion, Title: title, SubjectType: subjectType, SubjectID: subjectID,
+		Revision: revision.Revision, Current: revision.Current, State: revision.State, Score: revision.Score, CompletedAt: revision.CreatedAt.UTC(),
+	}, nil
+}
+
 func postgresCompletedResponseOrder(sortOrder ResponseSort, cursor completedResponseCursor, args *[]any) (string, string) {
 	column, direction := "r.adverse_score", "DESC"
 	if sortOrder == ResponseSortNewest {

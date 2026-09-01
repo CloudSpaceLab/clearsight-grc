@@ -79,6 +79,28 @@ func (s *MemoryDistributionStore) GetCompletedResponse(ctx context.Context, tena
 	return CompletedResponseSummary{}, ResponseRevision{}, ErrNotFound
 }
 
+func (s *MemoryDistributionStore) GetCompletedResponseForExecution(_ context.Context, tenantID, revisionID string) (CompletedResponseSummary, error) {
+	if s == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(revisionID) == "" {
+		return CompletedResponseSummary{}, ErrDistributionInvalid
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for distributionID, revisions := range s.responseRevisions {
+		distribution, exists := s.distributions[distributionID]
+		if !exists || distribution.TenantID != tenantID {
+			continue
+		}
+		for _, revision := range revisions {
+			if revision.ID == revisionID && revision.TenantID == tenantID &&
+				(revision.State == ResponseRevisionFinal || revision.State == ResponseRevisionProvisional) && revision.Score != nil &&
+				(revision.Score.State == ResponseScoreFinal || revision.Score.State == ResponseScoreProvisional) {
+				return completedResponseSummary(distribution, revision), nil
+			}
+		}
+	}
+	return CompletedResponseSummary{}, ErrNotFound
+}
+
 func (s *MemoryDistributionStore) completedResponseSubjectVisible(ctx context.Context, tenantID, principalID, subjectType, subjectID string) (bool, error) {
 	switch strings.ToUpper(strings.TrimSpace(subjectType)) {
 	case "PROGRAM", "MATTER", "VENDOR_RELATIONSHIP":

@@ -96,6 +96,36 @@ func TestAutomationPolicyTimestampRepairUsesFollowUpMigration(t *testing.T) {
 	}
 }
 
+func TestFormResponsePolicyMaintenanceUsesDurableLeasesAndExactLookup(t *testing.T) {
+	root := repositoryRoot(t)
+	raw, err := os.ReadFile(filepath.Join(root, "migrations", "000067_form_response_policy_maintenance.up.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sql := strings.ToLower(strings.Join(strings.Fields(string(raw)), " "))
+	for _, required := range []string{
+		"create table form_response_policy_maintenance_jobs",
+		"create table form_response_policy_compensations",
+		"create table form_response_policy_execution_failures",
+		"lease_until timestamptz",
+		"locked_by text",
+		"for update skip locked",
+		"on form_response_policy_definitions(tenant_id,legal_entity_id,form_template_id,form_template_version,status,effective_from,effective_until)",
+	} {
+		if !strings.Contains(sql, required) {
+			t.Fatalf("form-response policy maintenance migration is missing %q", required)
+		}
+	}
+	downRaw, err := os.ReadFile(filepath.Join(root, "migrations", "000067_form_response_policy_maintenance.down.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	down := strings.ToLower(strings.Join(strings.Fields(string(downRaw)), " "))
+	if !strings.Contains(down, "if exists (select 1 from form_response_policy_maintenance_jobs)") || !strings.Contains(down, "raise exception") {
+		t.Fatal("maintenance downgrade must refuse to discard recovery history")
+	}
+}
+
 func liveTablesFromMigrations(t *testing.T, migrationDir string) map[string]struct{} {
 	t.Helper()
 	paths, err := filepath.Glob(filepath.Join(migrationDir, "*.up.sql"))

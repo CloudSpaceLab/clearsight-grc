@@ -158,9 +158,17 @@ func cleanupPolicyFixture(t *testing.T, pool *pgxpool.Pool) {
 	t.Helper()
 	if _, err := pool.Exec(context.Background(), `
 		DELETE FROM outbox_events WHERE tenant_id IN ($1::uuid,$2::uuid);
+		DELETE FROM inbox_receipts WHERE tenant_id IN ($1::uuid,$2::uuid);
 		DELETE FROM form_response_policy_events WHERE tenant_id IN ($1::uuid,$2::uuid);
+		DELETE FROM form_response_policy_maintenance_jobs WHERE tenant_id IN ($1::uuid,$2::uuid);
+		DELETE FROM form_response_policy_compensations WHERE tenant_id IN ($1::uuid,$2::uuid);
+		DELETE FROM form_response_policy_execution_failures WHERE tenant_id IN ($1::uuid,$2::uuid);
 		DELETE FROM form_response_policy_adverse_episodes WHERE tenant_id IN ($1::uuid,$2::uuid);
 		DELETE FROM form_response_policy_executions WHERE tenant_id IN ($1::uuid,$2::uuid);
+		DELETE FROM verification_contracts WHERE tenant_id IN ($1::uuid,$2::uuid) AND matter_id IN (SELECT id FROM matters WHERE source_type='FORM_RESPONSE');
+		DELETE FROM continuity_events WHERE tenant_id IN ($1::uuid,$2::uuid) AND aggregate_type='MATTER';
+		DELETE FROM matter_actions WHERE tenant_id IN ($1::uuid,$2::uuid) AND matter_id IN (SELECT id FROM matters WHERE source_type IN ('FORM_RESPONSE','FORM_RESPONSE_POLICY_EXECUTION','FORM_RESPONSE_POLICY_COMPENSATION'));
+		DELETE FROM matters WHERE tenant_id IN ($1::uuid,$2::uuid) AND source_type IN ('FORM_RESPONSE','FORM_RESPONSE_POLICY_EXECUTION','FORM_RESPONSE_POLICY_COMPENSATION');
 		UPDATE form_response_policy_definitions SET approved_simulation_id=NULL WHERE tenant_id IN ($1::uuid,$2::uuid);
 		DELETE FROM form_response_policy_simulations WHERE tenant_id IN ($1::uuid,$2::uuid);
 		DELETE FROM form_response_policy_definitions WHERE tenant_id IN ($1::uuid,$2::uuid);

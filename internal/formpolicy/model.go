@@ -21,6 +21,7 @@ var (
 	ErrShadowRequired       = errors.New("form response policy requires shadow history")
 	ErrAuthorityUnavailable = errors.New("form response policy authority is unavailable")
 	ErrActivationAuthority  = errors.New("form response policy activation authority is invalid")
+	ErrExecutionPolicyLimit = errors.New("effective form response policy population exceeds the execution bound")
 )
 
 type PolicyStatus string
@@ -160,6 +161,32 @@ type ExecutionReceipt struct {
 	ReasonCode              string         `json:"reason_code,omitempty"`
 	CreatedMatter           bool           `json:"created_matter"`
 	CreatedAt               time.Time      `json:"created_at"`
+}
+
+type CompensationState string
+
+const CompensationReviewRequired CompensationState = "REVIEW_REQUIRED"
+
+type CompensationCandidate struct {
+	JobID             string           `json:"job_id,omitempty"`
+	RollbackPolicy    Policy           `json:"rollback_policy"`
+	OriginalExecution ExecutionReceipt `json:"original_execution"`
+}
+
+type CompensationReceipt struct {
+	ID                    string            `json:"id"`
+	TenantID              string            `json:"tenant_id"`
+	LegalEntityID         string            `json:"legal_entity_id"`
+	RollbackPolicyID      string            `json:"rollback_policy_id"`
+	RollbackPolicyVersion int64             `json:"rollback_policy_version"`
+	OriginalExecutionID   string            `json:"original_execution_id"`
+	MatterID              string            `json:"matter_id"`
+	ReviewMatterID        string            `json:"review_matter_id"`
+	ActorID               string            `json:"actor_id"`
+	ReviewerPrincipalID   string            `json:"reviewer_principal_id"`
+	State                 CompensationState `json:"state"`
+	ReasonCode            string            `json:"reason_code"`
+	CreatedAt             time.Time         `json:"created_at"`
 }
 
 type EpisodeState string
