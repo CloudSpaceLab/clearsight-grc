@@ -110,8 +110,8 @@ func seedCompletedResponseRows(t *testing.T, ctx context.Context, pool *pgxpool.
 			access_policy,status,deadline,route_expires_at,created_by,version,created_at,updated_at
 		)
 		SELECT md5($5||':distribution:'||g)::uuid,$1::uuid,$2::uuid,$4::uuid,1,'VENDOR',md5($5||':subject:'||g)::uuid,
-		       $5||' scored response '||g,'Review the completed scored response.','DIRECT_MAGIC_LINK','COMPLETED',$7 + interval '30 days',$7 + interval '7 days',$3::uuid,1,
-		       $7 - (g % 3000) * interval '1 second',$7 - (g % 3000) * interval '1 second'
+		       $5||' scored response '||g,'Review the completed scored response.','DIRECT_MAGIC_LINK','COMPLETED',$7::timestamptz + interval '30 days',$7::timestamptz + interval '7 days',$3::uuid,1,
+		       $7::timestamptz - (g % 3000) * interval '1 second',$7::timestamptz - (g % 3000) * interval '1 second'
 		FROM generate_series(1,$6) g;
 
 		INSERT INTO capture_requests(
@@ -120,7 +120,7 @@ func seedCompletedResponseRows(t *testing.T, ctx context.Context, pool *pgxpool.
 			status,created_by,version,created_at,updated_at
 		)
 		SELECT md5($5||':request:'||g)::uuid,$1::uuid,$2::uuid,md5($5||':distribution:'||g)::uuid,'VENDOR',md5($5||':subject:'||g),
-		       $5||' request '||g,'Review the response.','Review the response.','INTERNAL','INTERNAL',5,$7 + interval '30 days','{}'::jsonb,
+		       $5||' request '||g,'Review the response.','Review the response.','INTERNAL','INTERNAL',5,$7::timestamptz + interval '30 days','{}'::jsonb,
 		       '{"default_mode":"WIZARD","allow_mode_switch":true}'::jsonb,'RISK','[{"id":"general","title":"General"}]'::jsonb,
 		       '[{"id":"score","section_id":"general","label":"Score","type":"number","required":true}]'::jsonb,'[]'::jsonb,$4::uuid,1,
 		       'SUBMITTED',$3::uuid,1,$7,$7
@@ -132,7 +132,7 @@ func seedCompletedResponseRows(t *testing.T, ctx context.Context, pool *pgxpool.
 
 		INSERT INTO capture_submissions(id,tenant_id,request_id,submitted_by,channel,answers,submitted_at,created_at,distribution_id)
 		SELECT md5($5||':submission:'||g)::uuid,$1::uuid,md5($5||':request:'||g)::uuid,$3::uuid,'INTERNAL',
-		       jsonb_build_object('score',g % 101),$7 - (g % 3000) * interval '1 second',$7 - (g % 3000) * interval '1 second',md5($5||':distribution:'||g)::uuid
+		       jsonb_build_object('score',g % 101),$7::timestamptz - (g % 3000) * interval '1 second',$7::timestamptz - (g % 3000) * interval '1 second',md5($5||':distribution:'||g)::uuid
 		FROM generate_series(1,$6) g;
 
 		INSERT INTO capture_response_revisions(
@@ -142,7 +142,7 @@ func seedCompletedResponseRows(t *testing.T, ctx context.Context, pool *pgxpool.
 		)
 		SELECT md5($5||':response:'||g)::uuid,$1::uuid,$2::uuid,md5($5||':distribution:'||g)::uuid,md5($5||':workspace:'||g)::uuid,
 		       md5($5||':submission:'||g)::uuid,1,'EMAIL_VERIFIED','{}'::jsonb,(g % 101)::numeric,100,'FINAL','[]'::jsonb,'advanced-v1',true,
-		       $7 - (g % 3000) * interval '1 second','RISK','HIGH_IS_POOR',(g % 101)::numeric,(g % 101)::numeric,
+		       $7::timestamptz - (g % 3000) * interval '1 second','RISK','HIGH_IS_POOR',(g % 101)::numeric,(g % 101)::numeric,
 		       CASE WHEN g % 101 >= 75 THEN 'CRITICAL' WHEN g % 101 >= 50 THEN 'HIGH' WHEN g % 101 >= 25 THEN 'MODERATE' ELSE 'LOW' END,
 		       'FINAL',jsonb_build_object('profile_version','advanced-v1','evaluator_version','advanced-score-v1'),'load-proof',$7
 		FROM generate_series(1,$6) g`, pgx.QueryExecModeSimpleProtocol, tenantID, entityID, actorID, formID, prefix, count, now); err != nil {

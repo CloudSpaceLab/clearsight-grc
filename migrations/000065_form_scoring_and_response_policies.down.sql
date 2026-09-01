@@ -1,8 +1,15 @@
 BEGIN;
 
+UPDATE form_starter_templates
+SET score_profile = NULL
+WHERE code='VENDOR_DUE_DILIGENCE'
+  AND catalog_version=1
+  AND score_profile->>'version'='vendor-due-diligence-v1';
+
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM monitoring_form_templates WHERE score_profile IS NOT NULL)
+       OR EXISTS (SELECT 1 FROM form_starter_templates WHERE score_profile IS NOT NULL)
        OR EXISTS (SELECT 1 FROM capture_requests WHERE score_profile IS NOT NULL OR scoring_mode <> 'NONE')
        OR EXISTS (SELECT 1 FROM capture_response_revisions WHERE score_state <> 'NOT_CONFIGURED')
        OR EXISTS (SELECT 1 FROM form_response_policy_definitions)
@@ -57,6 +64,10 @@ ALTER TABLE capture_requests
 
 ALTER TABLE monitoring_form_templates
     DROP CONSTRAINT IF EXISTS monitoring_form_templates_score_profile_ck,
+    DROP COLUMN IF EXISTS score_profile;
+
+ALTER TABLE form_starter_templates
+    DROP CONSTRAINT IF EXISTS form_starter_templates_score_profile_ck,
     DROP COLUMN IF EXISTS score_profile;
 
 COMMIT;

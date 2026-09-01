@@ -58,6 +58,10 @@ func TestPostgresExecutionAppliesMatterReceiptEpisodeEventAndInboxAtomically(t *
 	replay.Receipt.ID = "9f650000-0000-7650-8650-000000000021"
 	replay.Episode.ID = "9f650000-0000-7650-8650-000000000022"
 	replay.Matter.ID = "9f650000-0000-7650-8650-000000000023"
+	replay.Outcome.ID = "9f650000-0000-7650-8650-000000000024"
+	replay.Episode.MatterID = replay.Matter.ID
+	replay.Outcome.MatterID = replay.Matter.ID
+	replay.Matter.TriggerID = replay.Receipt.ID
 	stored, err := repo.ApplyExecution(ctx, replay)
 	if err != nil || stored.ID != command.Receipt.ID || stored.MatterID != command.Matter.ID {
 		t.Fatalf("replayed execution = %#v err=%v", stored, err)
@@ -83,6 +87,7 @@ func TestPostgresRollbackCompensationIsAtomicIdempotentAndDoesNotCloseMatter(t *
 	repo := NewPostgresRepository(pool)
 	policy := postgresPolicyFixture(now)
 	policy.Status, policy.Rollout = PolicyActive, RolloutEnforce
+	policy.BlastRadius.PerRun, policy.BlastRadius.PerDay = 10, 10
 	policy.Checksum = policyChecksum(policy)
 	if _, err := repo.CreatePolicy(ctx, policy); err != nil {
 		t.Fatal(err)
@@ -235,8 +240,18 @@ func TestPostgresConcurrentAdverseResponsesCreateOneMatterAndReuseItsEpisode(t *
 		t.Fatalf("receipts=%#v", receipts)
 	}
 	var matters, episodes int
-	if err := pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM matters WHERE tenant_id=$1::uuid AND source_type='FORM_RESPONSE'),(SELECT count(*) FROM form_response_policy_adverse_episodes WHERE tenant_id=$1::uuid AND state='OPEN')`, policyTenantID).Scan(&matters, &episodes); err != nil || matters != 1 || episodes != 1 {
+	var matterSourceID, episodeResponseID string
+	var matterUpdatedAt, episodeUpdatedAt time.Time
+	if err := pool.QueryRow(ctx, `SELECT
+		(SELECT count(*) FROM matters WHERE tenant_id=$1::uuid AND source_type='FORM_RESPONSE'),
+		(SELECT count(*) FROM form_response_policy_adverse_episodes WHERE tenant_id=$1::uuid AND state='OPEN'),
+		m.source_id::text,m.updated_at,e.last_response_revision_id::text,e.updated_at
+		FROM matters m JOIN form_response_policy_adverse_episodes e ON e.matter_id=m.id AND e.tenant_id=m.tenant_id
+		WHERE m.tenant_id=$1::uuid AND m.source_type='FORM_RESPONSE' AND e.state='OPEN'`, policyTenantID).Scan(&matters, &episodes, &matterSourceID, &matterUpdatedAt, &episodeResponseID, &episodeUpdatedAt); err != nil || matters != 1 || episodes != 1 {
 		t.Fatalf("matters=%d episodes=%d err=%v", matters, episodes, err)
+	}
+	if matterSourceID != second.Response.ID || episodeResponseID != second.Response.ID || !matterUpdatedAt.Equal(second.Receipt.CreatedAt) || !episodeUpdatedAt.Equal(second.Receipt.CreatedAt) {
+		t.Fatalf("latest response regressed: matter=%s/%s episode=%s/%s want=%s/%s", matterSourceID, matterUpdatedAt, episodeResponseID, episodeUpdatedAt, second.Response.ID, second.Receipt.CreatedAt)
 	}
 }
 
@@ -371,9 +386,9 @@ func seedSecondPolicyResponseRevision(t *testing.T, ctx context.Context, pool *p
 	t.Helper()
 	if _, err := pool.Exec(ctx, `
 		UPDATE capture_response_revisions SET is_current=false WHERE id=md5('form-policy:response:1')::uuid;
-		INSERT INTO capture_response_revisions(id,tenant_id,legal_entity_id,distribution_id,workspace_id,submission_id,revision,achieved_assurance,signoff_summary,compliance_score,scored_weight_coverage,state,critical_field_results,scoring_policy_version,is_current,created_at,score_mode,score_direction,raw_score,adverse_score,concern_band,score_state,score_result,score_profile_checksum,score_calculated_at)
-		SELECT 'ddb4fe49-9070-3aa1-4335-58dc7bdaeed3'::uuid,tenant_id,legal_entity_id,distribution_id,workspace_id,submission_id,2,achieved_assurance,signoff_summary,18,100,state,critical_field_results,scoring_policy_version,true,$1,score_mode,score_direction,18,82,'HIGH','FINAL',score_result,score_profile_checksum,$1
-		FROM capture_response_revisions WHERE id=md5('form-policy:response:1')::uuid`, createdAt); err != nil {
+		INSERT INTO capture_response_revisions(id,tenant_id,legal_entity_id,distribution_id,workspace_id,submission_id,revision,supersedes_revision_id,achieved_assurance,signoff_summary,compliance_score,scored_weight_coverage,state,critical_field_results,scoring_policy_version,is_current,created_at,score_mode,score_direction,raw_score,adverse_score,concern_band,score_state,score_result,score_profile_checksum,score_calculated_at)
+		SELECT 'ddb4fe49-9070-3aa1-4335-58dc7bdaeed3'::uuid,tenant_id,legal_entity_id,distribution_id,workspace_id,submission_id,2,id,achieved_assurance,signoff_summary,18,100,state,critical_field_results,scoring_policy_version,true,$1,score_mode,score_direction,18,82,'HIGH','FINAL',score_result,score_profile_checksum,$1
+		FROM capture_response_revisions WHERE id=md5('form-policy:response:1')::uuid`, pgx.QueryExecModeSimpleProtocol, createdAt); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -382,9 +397,9 @@ func seedDistinctSubjectPolicyResponse(t *testing.T, ctx context.Context, pool *
 	t.Helper()
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO capture_form_distributions(id,tenant_id,legal_entity_id,form_template_id,form_template_version,subject_type,subject_id,title,purpose,access_policy,status,deadline,route_expires_at,created_by,version,created_at,updated_at)
-		VALUES('9f650000-0000-7650-8650-000000000052'::uuid,$1::uuid,$2::uuid,$4::uuid,1,'VENDOR','9f650000-0000-7650-8650-000000000051'::uuid,'Second vendor response','Review the second completed response.','DIRECT_MAGIC_LINK','COMPLETED',$5+interval '30 days',$5+interval '7 days',$3::uuid,1,$5,$5);
+		VALUES('9f650000-0000-7650-8650-000000000052'::uuid,$1::uuid,$2::uuid,$4::uuid,1,'VENDOR','9f650000-0000-7650-8650-000000000051'::uuid,'Second vendor response','Review the second completed response.','DIRECT_MAGIC_LINK','COMPLETED',$5::timestamptz+interval '30 days',$5::timestamptz+interval '7 days',$3::uuid,1,$5,$5);
 		INSERT INTO capture_requests(id,tenant_id,legal_entity_id,distribution_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,presentation,scoring_mode,sections,fields,source_bindings,form_template_id,form_template_version,status,created_by,version,created_at,updated_at)
-		VALUES('9f650000-0000-7650-8650-000000000053'::uuid,$1::uuid,$2::uuid,'9f650000-0000-7650-8650-000000000052'::uuid,'VENDOR','9f650000-0000-7650-8650-000000000051'::uuid,'Second vendor request','Review the response.','Review the response.','INTERNAL','INTERNAL',5,$5+interval '30 days','{}','{"default_mode":"CLASSIC","allow_mode_switch":false}','COMPLIANCE','[{"id":"general","title":"Questions"}]','[{"id":"q1","section_id":"general","label":"Question","type":"short_text","required":true}]','[]',$4::uuid,1,'SUBMITTED',$3::uuid,1,$5,$5);
+		VALUES('9f650000-0000-7650-8650-000000000053'::uuid,$1::uuid,$2::uuid,'9f650000-0000-7650-8650-000000000052'::uuid,'VENDOR','9f650000-0000-7650-8650-000000000051'::uuid,'Second vendor request','Review the response.','Review the response.','INTERNAL','INTERNAL',5,$5::timestamptz+interval '30 days','{}','{"default_mode":"CLASSIC","allow_mode_switch":false}','COMPLIANCE','[{"id":"general","title":"Questions"}]','[{"id":"q1","section_id":"general","label":"Question","type":"short_text","required":true}]','[]',$4::uuid,1,'SUBMITTED',$3::uuid,1,$5,$5);
 		INSERT INTO capture_response_workspaces(id,tenant_id,legal_entity_id,distribution_id,status,version,created_at,updated_at)
 		VALUES('9f650000-0000-7650-8650-000000000054'::uuid,$1::uuid,$2::uuid,'9f650000-0000-7650-8650-000000000052'::uuid,'COMPLETED',1,$5,$5);
 		INSERT INTO capture_submissions(id,tenant_id,request_id,submitted_by,channel,answers,submitted_at,created_at,distribution_id)

@@ -114,6 +114,13 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 	if !errors.As(err, &conflict) || len(conflict.Changed) != 1 || conflict.Changed[0].FieldID != "registered_address" {
 		t.Fatalf("PostgreSQL same-field conflict = %#v, err=%v", conflict, err)
 	}
+	var baselineEvents, baselineOutbox int
+	if err := pool.QueryRow(ctx, `SELECT
+		(SELECT count(*) FROM capture_distribution_events WHERE distribution_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_%'),
+		(SELECT count(*) FROM outbox_events WHERE aggregate_id=$1::uuid AND event_type LIKE 'FORM_RESPONSE_%')`,
+		bundle.Distribution.ID).Scan(&baselineEvents, &baselineOutbox); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := pool.Exec(ctx, `
 		CREATE FUNCTION response_score_outbox_failure_test() RETURNS trigger LANGUAGE plpgsql AS $$
 		BEGIN
@@ -139,8 +146,8 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 		bundle.Distribution.ID).Scan(&failedSubmissions, &failedRevisions, &failedEvents, &failedOutbox); err != nil {
 		t.Fatal(err)
 	}
-	if failedSubmissions != 0 || failedRevisions != 0 || failedEvents != 0 || failedOutbox != 0 {
-		t.Fatalf("failed score outbox leaked material state: submissions=%d revisions=%d events=%d outbox=%d", failedSubmissions, failedRevisions, failedEvents, failedOutbox)
+	if failedSubmissions != 0 || failedRevisions != 0 || failedEvents != baselineEvents || failedOutbox != baselineOutbox {
+		t.Fatalf("failed score outbox leaked material state: submissions=%d revisions=%d events=%d/%d outbox=%d/%d", failedSubmissions, failedRevisions, failedEvents, baselineEvents, failedOutbox, baselineOutbox)
 	}
 	if _, err := pool.Exec(ctx, `DROP TRIGGER response_score_outbox_failure_test ON outbox_events; DROP FUNCTION response_score_outbox_failure_test()`, pgx.QueryExecModeSimpleProtocol); err != nil {
 		t.Fatal(err)

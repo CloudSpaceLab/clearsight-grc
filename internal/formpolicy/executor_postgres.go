@@ -215,7 +215,7 @@ func getExecutionFailureTx(ctx context.Context, tx pgx.Tx, command ExecutionComm
 
 func insertExecutionRetryJobTx(ctx context.Context, tx pgx.Tx, receipt ExecutionReceipt) error {
 	_, err := tx.Exec(ctx, `INSERT INTO form_response_policy_maintenance_jobs(tenant_id,legal_entity_id,job_type,response_revision_id,due_at,state,created_at,updated_at)
-		SELECT tenant_id,legal_entity_id,'RECONCILE',response_revision_id,$2+interval '30 seconds','READY',$2,$2
+		SELECT tenant_id,legal_entity_id,'RECONCILE',response_revision_id,$2::timestamptz+interval '30 seconds','READY',$2,$2
 		FROM form_response_policy_execution_failures WHERE id=$1::uuid
 		ON CONFLICT (tenant_id,legal_entity_id,response_revision_id) WHERE job_type='RECONCILE' DO NOTHING`, receipt.ID, receipt.CreatedAt)
 	return normalizePostgresError(err)
@@ -468,7 +468,7 @@ func applyMatchedExecutionTx(ctx context.Context, tx pgx.Tx, command ExecutionCo
 			if err = updateReusedMatterTx(ctx, tx, command, matterID); err != nil {
 				return ExecutionReceipt{}, err
 			}
-			if _, err = tx.Exec(ctx, `UPDATE form_response_policy_adverse_episodes SET policy_id=$6::uuid,policy_version=$7,last_response_revision_id=$8::uuid,updated_at=$9,record_version=record_version+1 WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND legal_entity_id=(SELECT le.id FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id WHERE (t.id::text=$2 OR t.slug=$2) AND (le.id::text=$3 OR le.code=$3)) AND state='OPEN' AND policy_code=$4 AND subject_id=$5::uuid`, episodeID, receipt.TenantID, receipt.LegalEntityID, command.Policy.Code, command.Route.CanonicalSubjectID, command.Policy.ID, command.Policy.Version, command.Response.ID, receipt.CreatedAt); err != nil {
+			if _, err = tx.Exec(ctx, `UPDATE form_response_policy_adverse_episodes SET policy_id=CASE WHEN updated_at<=$9 THEN $6::uuid ELSE policy_id END,policy_version=CASE WHEN updated_at<=$9 THEN $7 ELSE policy_version END,last_response_revision_id=CASE WHEN updated_at<=$9 THEN $8::uuid ELSE last_response_revision_id END,updated_at=GREATEST(updated_at,$9),record_version=record_version+1 WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND legal_entity_id=(SELECT le.id FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id WHERE (t.id::text=$2 OR t.slug=$2) AND (le.id::text=$3 OR le.code=$3)) AND state='OPEN' AND policy_code=$4 AND subject_id=$5::uuid`, episodeID, receipt.TenantID, receipt.LegalEntityID, command.Policy.Code, command.Route.CanonicalSubjectID, command.Policy.ID, command.Policy.Version, command.Response.ID, receipt.CreatedAt); err != nil {
 				return ExecutionReceipt{}, normalizePostgresError(err)
 			}
 			receipt.State, receipt.MatterID, receipt.CreatedMatter, receipt.ReasonCode = ExecutionReused, matterID, false, "OPEN_EPISODE_REUSED"
@@ -592,13 +592,13 @@ func updateReusedMatterTx(ctx context.Context, tx pgx.Tx, command ExecutionComma
 			  AND legal_entity_id=$3::uuid AND status NOT IN ('CLOSED','CANCELLED')
 			FOR UPDATE
 		), updated AS (
-			UPDATE matters m SET source_id=$4::uuid,known_facts=m.known_facts || $5::jsonb,updated_at=$6,version=m.version+1
+			UPDATE matters m SET source_id=CASE WHEN prior.updated_at<=$6 THEN $4::text ELSE m.source_id END,known_facts=CASE WHEN prior.updated_at<=$6 THEN m.known_facts || $5::jsonb ELSE m.known_facts END,updated_at=GREATEST(m.updated_at,$6),version=m.version+1
 			FROM prior WHERE m.id=prior.id RETURNING m.*
 		), payload AS (
 			SELECT jsonb_build_object(
 				'matter',(to_jsonb(updated)-'matter_type') || jsonb_build_object('type',updated.matter_type),
 				'previous',(to_jsonb(prior)-'matter_type') || jsonb_build_object('type',prior.matter_type),
-				'rationale','A later scored response matched the active policy.'
+				'rationale','Another scored response matched the active policy; the latest response remains the current Matter source.'
 			) value,updated.* FROM updated CROSS JOIN prior
 		), event AS (
 			INSERT INTO continuity_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,event_type,payload,actor_type,actor_id,occurred_at)

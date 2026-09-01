@@ -39,7 +39,7 @@ func TestInstallSampleCreatesGovernedVendorFormsIdempotently(t *testing.T) {
 	if len(forms) != 3 {
 		t.Fatalf("active reusable forms=%d, want 3: %#v", len(forms), forms)
 	}
-	want := map[string]int{"VENDOR-DUE-DILIGENCE": 8, "VENDOR-ADDRESS-VERIFICATION": 6, "VENDOR-CERTIFICATION-REFRESH": 5}
+	want := map[string]int{"VENDOR-DUE-DILIGENCE": 8, "VENDOR-ADDRESS-VERIFICATION": 6, "VENDOR-CERTIFICATION-REFRESH": 7}
 	for _, form := range forms {
 		fieldCount, exists := want[form.Code]
 		if !exists || form.Status != monitoring.LifecycleActive || !form.IsCurrent || len(form.Fields) != fieldCount {
@@ -47,6 +47,9 @@ func TestInstallSampleCreatesGovernedVendorFormsIdempotently(t *testing.T) {
 		}
 		if form.CreatedBy != config.ActorID || form.SubmittedBy != config.ActorID || form.ApprovedBy != config.ReviewerPrincipalID {
 			t.Fatalf("maker-checker history was not preserved: %#v", form.Lifecycle)
+		}
+		if form.Code == vendorCertificationRefreshFormCode && (form.ScoringMode != "COMPLIANCE" || form.ScoreProfile == nil || form.ScoreProfile.Version != "vendor-certification-v1") {
+			t.Fatalf("seeded certification scoring was not preserved: %#v", form)
 		}
 		delete(want, form.Code)
 	}

@@ -68,7 +68,7 @@ func (repo *PostgresRepository) ClaimCompensations(ctx context.Context, workerID
 		ORDER BY due_at,id FOR UPDATE SKIP LOCKED LIMIT $2
 	), claimed AS (
 		UPDATE form_response_policy_maintenance_jobs job
-		SET state='CLAIMED',locked_by=$3,lease_until=$1+$4::interval,attempts=attempts+1,updated_at=$1
+		SET state='CLAIMED',locked_by=$3,lease_until=$1::timestamptz+$4::interval,attempts=attempts+1,updated_at=$1
 		FROM due WHERE job.id=due.id RETURNING job.*
 	)
 	SELECT claimed.id::text,`+postgresPolicyColumns+`,
@@ -116,7 +116,7 @@ func (repo *PostgresRepository) RetryCompensation(ctx context.Context, jobID, wo
 		reason = reason[:1000]
 	}
 	tag, err := repo.pool.Exec(ctx, `UPDATE form_response_policy_maintenance_jobs
-		SET state='READY',due_at=$3+LEAST(interval '1 hour',interval '30 seconds'*power(2,LEAST(attempts,7))),
+		SET state='READY',due_at=$3::timestamptz+LEAST(interval '1 hour',interval '30 seconds'*power(2,LEAST(attempts,7))),
 		    locked_by=NULL,lease_until=NULL,last_error=$4,updated_at=$3
 		WHERE id=$1::uuid AND job_type='COMPENSATION' AND state='CLAIMED' AND locked_by=$2 AND lease_until>=clock_timestamp()`, jobID, strings.TrimSpace(workerID), now.UTC(), reason)
 	if err != nil {
@@ -248,7 +248,7 @@ func (repo *PostgresRepository) ClaimReconciliation(ctx context.Context, workerI
 			ORDER BY due_at,id FOR UPDATE SKIP LOCKED LIMIT $2
 		), claimed AS (
 			UPDATE form_response_policy_maintenance_jobs job
-			SET state='CLAIMED',locked_by=$3,lease_until=$1+$4::interval,attempts=attempts+1,updated_at=$1
+			SET state='CLAIMED',locked_by=$3,lease_until=$1::timestamptz+$4::interval,attempts=attempts+1,updated_at=$1
 			FROM due WHERE job.id=due.id
 			RETURNING job.id,job.tenant_id,job.response_revision_id,job.created_at
 		)
@@ -289,7 +289,7 @@ func (repo *PostgresRepository) RetryReconciliation(ctx context.Context, eventID
 	}
 	tag, err := repo.pool.Exec(ctx, `UPDATE form_response_policy_maintenance_jobs
 		SET state=CASE WHEN $5 THEN 'READY' WHEN attempts>=5 THEN 'FAILED' ELSE 'READY' END,
-		    due_at=$3+CASE WHEN $5 THEN LEAST(interval '1 hour',interval '30 seconds'*power(2,LEAST(attempts,7))) ELSE interval '30 seconds' END,
+		    due_at=$3::timestamptz+CASE WHEN $5 THEN LEAST(interval '1 hour',interval '30 seconds'*power(2,LEAST(attempts,7))) ELSE interval '30 seconds' END,
 		    locked_by=NULL,lease_until=NULL,last_error=$4,updated_at=$3
 		WHERE id=$1::uuid AND job_type='RECONCILE' AND state='CLAIMED' AND locked_by=$2 AND lease_until>=clock_timestamp()`, eventID, strings.TrimSpace(workerID), now.UTC(), reason, keepRetrying)
 	if err != nil {
@@ -305,7 +305,7 @@ func (repo *PostgresRepository) retryMaintenanceJob(ctx context.Context, jobID, 
 	if len(reason) > 1000 {
 		reason = reason[:1000]
 	}
-	tag, err := repo.pool.Exec(ctx, `UPDATE form_response_policy_maintenance_jobs SET state=CASE WHEN attempts>=5 THEN 'FAILED' ELSE 'READY' END,due_at=$3+interval '30 seconds',locked_by=NULL,lease_until=NULL,last_error=$4,updated_at=$3 WHERE id=$1::uuid AND state='CLAIMED' AND locked_by=$2 AND lease_until>=clock_timestamp()`, jobID, strings.TrimSpace(workerID), now.UTC(), reason)
+	tag, err := repo.pool.Exec(ctx, `UPDATE form_response_policy_maintenance_jobs SET state=CASE WHEN attempts>=5 THEN 'FAILED' ELSE 'READY' END,due_at=$3::timestamptz+interval '30 seconds',locked_by=NULL,lease_until=NULL,last_error=$4,updated_at=$3 WHERE id=$1::uuid AND state='CLAIMED' AND locked_by=$2 AND lease_until>=clock_timestamp()`, jobID, strings.TrimSpace(workerID), now.UTC(), reason)
 	if err != nil {
 		return normalizePostgresError(err)
 	}
@@ -331,7 +331,7 @@ func (repo *PostgresRepository) MaintainOutcomeChecks(ctx context.Context, worke
 			ORDER BY due_at,id FOR UPDATE SKIP LOCKED LIMIT $2
 		), claimed AS (
 			UPDATE form_response_policy_maintenance_jobs job
-			SET state='CLAIMED',locked_by=$3,lease_until=$1+$4::interval,attempts=attempts+1,updated_at=$1
+			SET state='CLAIMED',locked_by=$3,lease_until=$1::timestamptz+$4::interval,attempts=attempts+1,updated_at=$1
 			FROM due WHERE job.id=due.id RETURNING job.id
 		)
 		SELECT id::text FROM claimed ORDER BY id`, now.UTC(), limit, strings.TrimSpace(workerID), lease.String())

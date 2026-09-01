@@ -9,6 +9,36 @@ ALTER TABLE monitoring_form_templates
         )
     );
 
+ALTER TABLE form_starter_templates
+    ADD COLUMN score_profile jsonb,
+    ADD CONSTRAINT form_starter_templates_score_profile_ck CHECK (
+        score_profile IS NULL OR (
+            jsonb_typeof(score_profile)='object'
+            AND octet_length(score_profile::text) <= 262144
+        )
+    );
+
+UPDATE form_starter_templates
+SET score_profile = '{
+  "version":"vendor-due-diligence-v1",
+  "mode":"COMPLIANCE",
+  "direction":"LOW_IS_POOR",
+  "contributions":[
+    {"id":"security-policy","label":"Information security policy is current","weight":50,"predicate":{"field_id":"security_policy","operator":"EQUALS","values":["Yes"]},"match_points":100,"non_match_points":0,"missing":"INDETERMINATE","required":true},
+    {"id":"incident-process","label":"Incident response process was tested","weight":50,"predicate":{"field_id":"incident_process","operator":"EQUALS","values":["Yes"]},"match_points":100,"non_match_points":0,"missing":"INDETERMINATE","required":true}
+  ],
+  "rules":[
+    {"id":"missing-operating-safeguard","label":"A required operating safeguard is not confirmed","predicate":{"operator":"OR","children":[{"field_id":"security_policy","operator":"EQUALS","values":["No"]},{"field_id":"incident_process","operator":"EQUALS","values":["No"]}]},"effect":{"kind":"DISQUALIFY"}}
+  ],
+  "bands":[
+    {"band":"LOW","from":0,"through":24},
+    {"band":"MODERATE","from":25,"through":49},
+    {"band":"HIGH","from":50,"through":74},
+    {"band":"CRITICAL","from":75,"through":100}
+  ]
+}'::jsonb
+WHERE code='VENDOR_DUE_DILIGENCE' AND catalog_version=1;
+
 ALTER TABLE capture_requests
     ADD COLUMN scoring_mode text NOT NULL DEFAULT 'NONE',
     ADD COLUMN score_profile jsonb,
@@ -47,11 +77,11 @@ ALTER TABLE capture_response_revisions
     );
 
 CREATE INDEX capture_response_revisions_current_adverse_idx
-    ON capture_response_revisions(tenant_id,legal_entity_id,adverse_score DESC,created_at DESC,id DESC)
+    ON capture_response_revisions(tenant_id,legal_entity_id,adverse_score DESC NULLS LAST,created_at DESC,id DESC)
     WHERE is_current AND score_state IN ('FINAL','PROVISIONAL') AND adverse_score IS NOT NULL;
 
 CREATE INDEX capture_response_revisions_current_raw_idx
-    ON capture_response_revisions(tenant_id,legal_entity_id,raw_score DESC,created_at DESC,id DESC)
+    ON capture_response_revisions(tenant_id,legal_entity_id,raw_score DESC NULLS LAST,created_at DESC,id DESC)
     WHERE is_current AND score_state IN ('FINAL','PROVISIONAL') AND raw_score IS NOT NULL;
 
 ALTER TABLE capture_response_revisions

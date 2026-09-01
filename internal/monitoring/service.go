@@ -408,7 +408,7 @@ func (s *Service) CreateForm(ctx context.Context, actor Actor, input CreateFormI
 	if err := validateProgramScope(actor, input.ProgramID, input.LegalEntityID); err != nil {
 		return FormTemplate{}, err
 	}
-	contract, err := formcontract.Normalize(formcontract.Contract{Presentation: input.Presentation, Sections: input.Sections, Fields: input.Fields})
+	contract, err := formcontract.Normalize(formcontract.Contract{Presentation: input.Presentation, ScoringMode: input.ScoringMode, ScoreProfile: input.ScoreProfile, Sections: input.Sections, Fields: input.Fields})
 	if err != nil {
 		return FormTemplate{}, errors.Join(ErrInvalid, err)
 	}
@@ -422,7 +422,7 @@ func (s *Service) CreateForm(ctx context.Context, actor Actor, input CreateFormI
 	now := s.now().UTC()
 	return s.repo.CreateFormRevision(ctx, FormTemplate{
 		ID: valueID, TenantID: actor.TenantID, LegalEntityID: strings.TrimSpace(input.LegalEntityID), ProgramID: strings.TrimSpace(input.ProgramID), Code: strings.TrimSpace(input.Code), Name: strings.TrimSpace(input.Name),
-		Purpose: strings.TrimSpace(input.Purpose), Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
+		Purpose: strings.TrimSpace(input.Purpose), Presentation: contract.Presentation, ScoringMode: contract.ScoringMode, ScoreProfile: contract.ScoreProfile, Sections: contract.Sections, Fields: contract.Fields,
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},
 	})
 }

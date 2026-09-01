@@ -14,6 +14,7 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | Forms · Responses | — | — | — | S | — | — | — | — |
 | Forms · Imports | — | — | — | S | — | — | — | — |
 | Forms · Communications | — | — | — | S | — | — | — | — |
+| Forms · Policies | M | M | M | M | M | M | M | M |
 | External Forms capture and invitation access | — | — | — | — | — | — | — | — |
 | Today | — | — | — | — | — | — | — | — |
 | Oversight | M | — | — | M | — | M | — | M |
@@ -39,6 +40,8 @@ Tranche 4 completes the Templates/library boundary and removes the most visible 
 The governed-work handoff slice applies the shared contracts to the highest-risk interactions in the otherwise unmigrated Work and vendor-request surfaces: issue and Action reassignment, vendor-request composition, response review/sign/transmit/acknowledgement, issue authorization, date entry and list overlays. These files still contain older secondary forms, so the Work and Vendors rows remain unmarked until those complete surfaces are migrated and added to the executable manifest. This partial boundary must not be described as a completed workspace migration.
 
 The Oversight slice uses shared buttons, automatic keyboard tabs, responsive data tables and scoped empty states. Its local metric, intervention and analysis surfaces remain feature-owned because they encode the oversight information hierarchy rather than a reusable generic card family. Both its React control boundary and feature CSS are enforced by the migration manifest.
+
+The scoring-policy slice adds the Policies peer workspace as a fully enforced shared-control boundary and migrates the advanced-scoring portion of the Builder inspector. Policy lifecycle actions, focused creation, typed effective dates, list selection, feedback and bounded data states are registered in the executable manifest. The Builder row remains incomplete because other editor controls still sit outside this slice; this change must not be described as a complete Builder migration.
 
 ## Work left after this tranche
 

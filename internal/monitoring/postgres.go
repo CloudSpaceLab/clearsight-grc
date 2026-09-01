@@ -42,17 +42,22 @@ func (r *PostgresRepository) StarterTemplateByCode(ctx context.Context, code str
 	return value, mapPostgresError(err)
 }
 
-const starterTemplateSelect = `SELECT code,catalog_version,published_on::text,reference_label,name,purpose,approved_uses,tags,sensitivity,scoring_mode,presentation,sections,fields FROM form_starter_templates`
+const starterTemplateSelect = `SELECT code,catalog_version,published_on::text,reference_label,name,purpose,approved_uses,tags,sensitivity,scoring_mode,score_profile,presentation,sections,fields FROM form_starter_templates`
 
 func scanStarterTemplate(row scanner) (StarterTemplate, error) {
 	var value StarterTemplate
-	var presentation, sections, fields []byte
-	err := row.Scan(&value.Code, &value.CatalogVersion, &value.PublishedOn, &value.ReferenceLabel, &value.Template.Name, &value.Template.Purpose, &value.Template.ApprovedUses, &value.Template.Tags, &value.Template.Sensitivity, &value.Template.ScoringMode, &presentation, &sections, &fields)
+	var scoreProfile, presentation, sections, fields []byte
+	err := row.Scan(&value.Code, &value.CatalogVersion, &value.PublishedOn, &value.ReferenceLabel, &value.Template.Name, &value.Template.Purpose, &value.Template.ApprovedUses, &value.Template.Tags, &value.Template.Sensitivity, &value.Template.ScoringMode, &scoreProfile, &presentation, &sections, &fields)
 	if err != nil {
 		return StarterTemplate{}, err
 	}
 	if err := json.Unmarshal(presentation, &value.Template.Presentation); err != nil {
 		return StarterTemplate{}, err
+	}
+	if len(scoreProfile) > 0 && string(scoreProfile) != "null" {
+		if err := json.Unmarshal(scoreProfile, &value.Template.ScoreProfile); err != nil {
+			return StarterTemplate{}, err
+		}
 	}
 	if err := json.Unmarshal(sections, &value.Template.Sections); err != nil {
 		return StarterTemplate{}, err
