@@ -76,12 +76,19 @@ Commit: `git commit -m "feat: add advanced form score profiles"` after staging o
 
 **Files:**
 - Modify: `internal/evidence/distribution.go`
+- Modify: `internal/evidence/model.go`
+- Modify: `internal/evidence/postgres.go`
+- Modify: `internal/evidence/memory.go`
 - Modify: `internal/evidence/response_workspace_scoring.go`
 - Modify: `internal/evidence/response_workspace_scoring_test.go`
 - Modify: `internal/evidence/response_workspace_postgres_write.go`
 - Modify: `internal/evidence/response_workspace_postgres_projection.go`
 - Modify: `internal/evidence/distribution_response_revisions_postgres.go`
 - Modify: `internal/evidence/response_workspace_memory.go`
+- Modify: `internal/monitoring/model.go`
+- Modify: `internal/monitoring/postgres.go`
+- Modify: `internal/monitoring/service.go`
+- Modify: `internal/monitoring/form_library_validation.go`
 - Create: `migrations/000065_form_scoring_and_response_policies.up.sql`
 - Create: `migrations/000065_form_scoring_and_response_policies.down.sql`
 
@@ -129,9 +136,11 @@ type ResponseScoreResult struct {
 }
 ```
 
+Add `ScoringMode` and `ScoreProfile` to the immutable monitoring Form Template revision, `evidence.DistributionFormRevision`, `evidence.CreateRequestInput` and `evidence.Request`. Distribution creation must copy the exact active revision's normalized profile into every TO-backed capture request. Legacy requests without a profile continue through the existing inferred basic-scoring path; new requests must never reload the latest template during submission.
+
 - [ ] **Step 4: Add response columns and indexes in migration 65**
 
-Add `score_mode`, `score_direction`, `raw_score`, `adverse_score`, `concern_band`, `score_state`, bounded `score_result` JSON, profile checksum and calculation time. Add current-response partial indexes for legal entity plus adverse/raw score. The down migration must guard against policy/execution data before removing dependencies.
+Add bounded `score_profile` JSON to `monitoring_form_templates` and `capture_requests`, then add `score_mode`, `score_direction`, `raw_score`, `adverse_score`, `concern_band`, `score_state`, bounded `score_result` JSON, profile checksum and calculation time to response revisions. Add current-response partial indexes for legal entity plus adverse/raw score. The down migration must guard against policy/execution data before removing dependencies.
 
 - [ ] **Step 5: Make score/event/outbox one transaction**
 
