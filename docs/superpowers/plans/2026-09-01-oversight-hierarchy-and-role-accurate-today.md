@@ -141,10 +141,10 @@
 - Modify: `internal/today/service.go`
 - Modify: composition and tests under `cmd/api`
 
-- [ ] Add failing tests proving a failed Today request produces unavailable state even in demo presentation.
-- [ ] Remove `fallbackItems` from the browser.
-- [ ] Ensure deployed demo Today reads normal seeded database records through the same actor-scoped projection.
-- [ ] Prevent `today.DemoItems()` and fixture-specific Today arrays from runtime composition; keep isolated unit fixtures only where explicitly constructed by tests.
+- [x] Add failing tests proving a failed Today request produces unavailable state even in demo presentation.
+- [x] Remove `fallbackItems` from the browser.
+- [x] Ensure deployed demo Today reads normal seeded database records through the same actor-scoped projection.
+- [x] Prevent `today.DemoItems()` and fixture-specific Today arrays from runtime composition; keep isolated unit fixtures only where explicitly constructed by tests.
 
 ### Task 9: Project stored work for every operational role
 
@@ -155,8 +155,8 @@
 - Modify: `cmd/api/services_postgres.go`
 - Modify: Today API/model tests
 
-- [ ] Add failing role-matrix tests for performer, owner, reviewer, challenger, authorizer, signatory, transmitter, acknowledgement recorder, manager and CRO/GRC oversight.
-- [ ] Keep personal Today limited to currently assigned/routed work; oversight visibility alone must not create a Today item.
+- [x] Add failing role-matrix tests for performer, owner, reviewer, challenger, authorizer, signatory, transmitter, acknowledgement recorder, manager and CRO/GRC oversight.
+- [x] Keep personal Today limited to currently assigned/routed work; oversight visibility alone must not create a Today item.
 - [ ] Deduplicate exact target/responsibility/step, sort overdue/materiality/deadline and return generation/source health.
 - [ ] Recheck exact source visibility before `LIMIT`; use keyset continuation when the cap is reached.
 
@@ -169,9 +169,9 @@
 - Modify: Today tests and fixtures
 
 - [ ] Add failing tests for actionable inactive/stale source, provisioning failure, unresolved routing, failed timer, pending independent approval and scheduled activation.
-- [ ] Include only exceptions for which the verified actor holds the current capability/responsibility.
-- [ ] Give every item a real configuration/operations target and executable or explanatory recovery action.
-- [ ] Ensure System Administrator does not receive unrelated risk approvals.
+- [x] Include only exceptions for which the verified actor holds the current capability/responsibility.
+- [x] Give every item a real configuration/operations target and executable or explanatory recovery action.
+- [x] Ensure System Administrator does not receive unrelated risk approvals.
 - [ ] Show the population/source checked and generation time in empty/partial states.
 
 ---
@@ -187,9 +187,9 @@
 - Create: `internal/oversight/projection.go`
 - Create: tests and schema ownership entry
 
-- [ ] Write failing contracts for scope, category, criticality, state, aging, owner/function, source versions, unknown counts and freshness.
-- [ ] Add deterministic cycle-time and estimate cohort semantics with minimum sample and confidence class.
-- [ ] Prohibit static/demo metrics and unknown-to-zero coercion.
+- [x] Write failing contracts for scope, category, criticality, state, aging, owner/function, source versions, unknown counts and freshness.
+- [x] Add deterministic cycle-time and estimate cohort semantics with minimum sample and confidence class.
+- [x] Prohibit static/demo metrics and unknown-to-zero coercion.
 - [ ] Define cardinality, retention, partition/index and recomputation bounds.
 
 ### Task 12: Build and maintain the projection
@@ -200,7 +200,7 @@
 - Add PostgreSQL integration and recovery tests
 
 - [ ] Consume canonical Program/Matter/Action/Workflow/escalation/outcome events idempotently.
-- [ ] Maintain source high-water marks and deduplicated bounded recomputation jobs.
+- [x] Maintain source high-water marks and deduplicated bounded recomputation jobs.
 - [ ] Test replay, out-of-order events, retry, stale source, deletion/retirement, legal-entity isolation and recovery.
 - [ ] Validate query plans and reference workload targets.
 
@@ -211,10 +211,10 @@
 - Modify canonical route registry and runtime OpenAPI
 - Add API tests
 
-- [ ] Require verified identity and exact tenant/entity scope.
-- [ ] Scope CRO/GRC data through current capability and visibility rules; filter restricted records in the repository query.
+- [x] Require verified identity and exact tenant/entity scope.
+- [x] Scope CRO/GRC data through current capability and visibility rules; filter restricted records in the repository query.
 - [ ] Provide bounded filters, keyset drilldowns, freshness and partial-coverage metadata.
-- [ ] Fail closed on scope/authority failure and never load broad populations for browser filtering.
+- [x] Fail closed on scope/authority failure and never load broad populations for browser filtering.
 
 ### Task 14: Build the oversight workspace
 
@@ -226,8 +226,8 @@
 - Modify navigation and role visibility
 
 - [ ] Add failing tests for current/stale/partial/no-data/restricted states and filter-to-drilldown continuity.
-- [ ] Lead with intervention list; use ordered category bars, accessible trends and confidence ranges with table alternatives.
-- [ ] Show median/p75, sample sizes and exclusions; do not create a composite employee score.
+- [x] Lead with intervention list; use ordered category bars, accessible trends and confidence ranges with table alternatives.
+- [x] Show median/p75, sample sizes and exclusions; do not create a composite employee score.
 - [ ] Add authority-scoped individual drilldown with workload/reassignment/blocked context.
 - [ ] Render and inspect all required theme/viewport fixtures.
 

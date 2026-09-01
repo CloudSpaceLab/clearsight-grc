@@ -43,6 +43,7 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 			"identity_configure":        identity.HasPermission(actor, identity.PermissionIdentityConfigure),
 			"platform_operations_read":  identity.HasPermission(actor, identity.PermissionPlatformOperationsRead),
 			"platform_operations_write": identity.HasPermission(actor, identity.PermissionPlatformOperationsWrite),
+			"oversight_read":            identity.HasPermission(actor, identity.PermissionOversightRead),
 		},
 	})
 }

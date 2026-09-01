@@ -16,6 +16,7 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | Forms · Communications | — | — | — | S | — | — | — | — |
 | External Forms capture and invitation access | — | — | — | — | — | — | — | — |
 | Today | — | — | — | — | — | — | — | — |
+| Oversight | M | — | — | M | — | M | — | M |
 | Programs and dedicated Program record | — | — | — | — | — | — | — | — |
 | Vendors and vendor relationship record | — | — | — | — | — | — | — | — |
 | Work · Issues and changes | — | — | — | — | — | — | — | — |
@@ -36,6 +37,8 @@ Tranche 3 adds a shared `ActionCard` for consequential routes and migrates the n
 Tranche 4 completes the Templates/library boundary and removes the most visible Forms control inconsistencies. Template search, removable filters, typed filter selection, bounded advanced expressions and lifecycle scopes use the shared search, filter, popover, field, action, sheet and scope contracts. The creation launcher uses the centered `FocusedDialog`; every Forms select now uses `SelectField`; Responses empty/error/action states and Communications lifecycle/test-send actions use shared feedback, field and button contracts. The remaining Builder inputs, Imports, list selectors and rich-text toolbars are still migration work. Every non-Forms workspace also remains outside this tranche.
 
 The governed-work handoff slice applies the shared contracts to the highest-risk interactions in the otherwise unmigrated Work and vendor-request surfaces: issue and Action reassignment, vendor-request composition, response review/sign/transmit/acknowledgement, issue authorization, date entry and list overlays. These files still contain older secondary forms, so the Work and Vendors rows remain unmarked until those complete surfaces are migrated and added to the executable manifest. This partial boundary must not be described as a completed workspace migration.
+
+The Oversight slice uses shared buttons, automatic keyboard tabs, responsive data tables and scoped empty states. Its local metric, intervention and analysis surfaces remain feature-owned because they encode the oversight information hierarchy rather than a reusable generic card family. Both its React control boundary and feature CSS are enforced by the migration manifest.
 
 ## Work left after this tranche
 

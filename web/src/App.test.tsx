@@ -66,7 +66,7 @@ vi.mock("./evidenceRequestAdminApi", async (importOriginal) => ({
 
 type RuntimeWithCapabilities = RuntimeContext & {
   demo_mode: boolean;
-  capabilities: { document_import: boolean; reference_journeys: boolean };
+  capabilities: { document_import: boolean; reference_journeys: boolean; oversight_read?: boolean };
   actor: RuntimeContext["actor"] & { role_codes: string[] };
 };
 
@@ -183,6 +183,25 @@ describe("runtime navigation", () => {
     expect(screen.queryByRole("button", { name: /Imports/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
     expect(screen.queryByText("Demo environment")).toBeNull();
+  });
+
+  it("shows organization oversight only when the verified runtime grants oversight read", async () => {
+    vi.mocked(loadContext).mockResolvedValue({ ...runtime(false), capabilities: { ...runtime(false).capabilities, oversight_read: true } });
+    render(<App />);
+
+    expect((await screen.findAllByRole("button", { name: "Oversight" })).length).toBeGreaterThan(0);
+  });
+
+  it("does not turn platform administration into risk oversight access", async () => {
+    vi.mocked(loadContext).mockResolvedValue({
+      ...runtime(false),
+      actor: { id: "system-admin", name: "System Administrator", role_codes: ["SYSTEM_ADMIN"] },
+      capabilities: { ...runtime(false).capabilities, oversight_read: false },
+    });
+    render(<App />);
+
+    await screen.findByText("Nothing needs your action right now");
+    expect(screen.queryByRole("button", { name: "Oversight" })).toBeNull();
   });
 
   it("provides Vendors as a first-class navigation destination", async () => {

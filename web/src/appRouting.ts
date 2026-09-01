@@ -1,4 +1,4 @@
-export type View = "today" | "programs" | "forms" | "vendors" | "work" | "imports" | "explore" | "configure";
+export type View = "today" | "oversight" | "programs" | "forms" | "vendors" | "work" | "imports" | "explore" | "configure";
 export type WorkTab = "matters" | "evidence";
 export type WorkspaceTarget = {
   programID?: string;
@@ -19,7 +19,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     if (!value) return undefined;
     try { return decodeURIComponent(value); } catch { return value; }
   };
-  const allowed: View[] = ["today", "programs", "forms", "vendors", "work", "imports", "explore", "configure"];
+  const allowed: View[] = ["today", "oversight", "programs", "forms", "vendors", "work", "imports", "explore", "configure"];
   const view = allowed.includes(parts[0] as View) ? parts[0] as View : "today";
   if (view === "programs") return { view, target: { programID: decodeTarget(parts[1]) } };
   if (view === "forms") return { view, target: { formTemplateID: decodeTarget(parts[1]) } };

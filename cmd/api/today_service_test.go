@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -65,6 +66,42 @@ func TestActorTodayServiceReturnsOnlyCurrentStoredActorWork(t *testing.T) {
 	}
 }
 
+func TestActorTodayServiceProjectsEveryAssignedOperationalResponsibility(t *testing.T) {
+	now := time.Now().UTC()
+	responsibilities := []string{"PERFORMER", "ACCOUNTABLE_OWNER", "PROPOSER", "REVIEWER", "INDEPENDENT_CHALLENGER", "AUTHORIZER", "SIGNATORY", "TRANSMITTER", "ACKNOWLEDGEMENT_RECORDER", "ESCALATION_OWNER"}
+	tasks := make([]workflow.Task, 0, len(responsibilities))
+	for _, responsibility := range responsibilities {
+		tasks = append(tasks, workflow.Task{
+			ID: "task-" + responsibility, TenantID: "bank", WorkflowID: "workflow-" + responsibility,
+			WorkflowKind: workflow.MatterLifecycleWorkflowKind, MatterID: "matter-" + responsibility,
+			MatterScope: json.RawMessage(`{"access":"INTERNAL"}`), MatterPriority: 4,
+			StepKey: "step-" + responsibility, Responsibility: responsibility, PrincipalID: "actor-1",
+			Title: "Complete " + responsibility + " work", Status: workflow.StatusReady,
+			Version: 1, CreatedAt: now, UpdatedAt: now,
+		})
+	}
+
+	items, err := actorTodayService(workflow.NewService(workflow.NewMemoryRepository(tasks)), nil, nil).ListFor(context.Background(), identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "actor-1"})
+	if err != nil {
+		t.Fatalf("list operational work: %v", err)
+	}
+	if len(items) != len(responsibilities) {
+		t.Fatalf("items=%d, want one exact item for each assigned responsibility", len(items))
+	}
+	seen := map[string]bool{}
+	for _, item := range items {
+		if item.Authority == nil || item.ActionTargetType != "MATTER" || item.ActionTargetID == "" {
+			t.Fatalf("assigned work lost authority or target context: %#v", item)
+		}
+		seen[item.Authority.Responsibility] = true
+	}
+	for _, responsibility := range responsibilities {
+		if !seen[responsibility] {
+			t.Fatalf("assigned responsibility %s did not appear in Today", responsibility)
+		}
+	}
+}
+
 func TestActorTodayServiceAddsOnlyCapabilityScopedAdministratorExceptions(t *testing.T) {
 	workflowService := workflow.NewService(workflow.NewMemoryRepository(nil))
 	admin := &todayAdminStub{overview: access.OperationalStatus{
@@ -94,7 +131,7 @@ func TestActorTodayServiceAddsOnlyCapabilityScopedAdministratorExceptions(t *tes
 	}
 
 	admin.calls, jobs.calls = 0, 0
-	ordinary := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "employee"}
+	ordinary := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "employee", PermissionCodes: []string{identity.PermissionOversightRead}}
 	items, err = actorTodayService(workflowService, admin, jobs).ListFor(context.Background(), ordinary)
 	if err != nil {
 		t.Fatalf("list ordinary Today work: %v", err)

@@ -1,0 +1,70 @@
+.oversight-workspace { width: min(1500px, 100%); margin: 0 auto; padding: 34px clamp(20px, 3vw, 48px) 80px; color: var(--text); }
+.oversight-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+.oversight-header h1, .oversight-unavailable h1 { margin: 8px 0 6px; font-size: clamp(1.9rem, 3vw, 2.8rem); letter-spacing: -.035em; }
+.oversight-header p, .oversight-unavailable p { max-width: 720px; margin: 0; color: var(--muted); }
+.oversight-freshness { display: grid; gap: 3px; min-width: 190px; padding: 11px 13px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-10); background: var(--surface); }
+.oversight-freshness strong { font-size: .78rem; }
+.oversight-freshness span { color: var(--muted); font-size: .72rem; }
+.oversight-freshness.current { border-left: 3px solid var(--success); }
+.oversight-freshness.stale { border-left: 3px solid var(--amber); }
+.oversight-scope-line { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; padding: 10px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: .74rem; }
+.oversight-counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+.oversight-metric { display: grid; gap: 5px; min-height: 130px; padding: 17px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-14); background: var(--surface); box-shadow: var(--cs-shadow-raised); }
+.oversight-metric > span { color: var(--muted); font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.oversight-metric strong { align-self: end; font-size: 2rem; line-height: 1; }
+.oversight-metric small { color: var(--muted); font-size: .72rem; }
+.oversight-metric.critical { border-top: 3px solid var(--coral); }
+.oversight-metric.warning { border-top: 3px solid var(--amber); }
+.oversight-attention, .oversight-panel { padding: 20px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-14); background: var(--surface); }
+.oversight-attention h2, .oversight-panel h2 { margin: 4px 0; font-size: 1.15rem; }
+.oversight-inline-counts { display: flex; gap: 8px; }
+.oversight-inline-counts span { padding: 5px 8px; border-radius: var(--cs-primitive-radius-full); background: var(--surface-2); color: var(--muted); font-size: .72rem; }
+.oversight-intervention-list { display: grid; margin-top: 8px; }
+.oversight-intervention-list article { display: grid; grid-template-columns: 42px minmax(0, 1fr) minmax(150px, auto); gap: 13px; align-items: center; padding: 15px 0; border-top: 1px solid var(--border); }
+.oversight-priority { display: grid; place-items: center; width: 38px; height: 38px; border-radius: var(--cs-primitive-radius-10); background: var(--surface-2); font-size: .72rem; font-weight: 750; }
+.oversight-priority.p5 { color: var(--coral); background: var(--coral-soft); }
+.oversight-priority.p4 { color: var(--amber); background: var(--amber-soft); }
+.oversight-intervention-title { display: flex; flex-wrap: wrap; gap: 7px 10px; align-items: baseline; }
+.oversight-intervention-title span { color: var(--muted); font-size: .7rem; }
+.oversight-intervention-list p { margin: 4px 0; color: var(--text); font-size: .82rem; }
+.oversight-intervention-list small { color: var(--muted); font-size: .72rem; }
+.oversight-action { max-width: 230px; }
+.oversight-action > * { max-width: 100%; white-space: normal; }
+.oversight-analysis { margin-top: 18px; }
+.oversight-detail { margin-top: 14px; }
+.oversight-two-column { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .6fr); gap: 14px; }
+.oversight-bars { display: grid; gap: 10px; margin: 14px 0 20px; }
+.oversight-bars > div { display: grid; grid-template-columns: minmax(120px, 190px) minmax(120px, 1fr) 30px; gap: 10px; align-items: center; font-size: .75rem; }
+.oversight-bars > div > div { display: flex; height: 12px; overflow: hidden; border-radius: var(--cs-primitive-radius-full); background: var(--surface-2); }
+.oversight-bars i { display: block; height: 100%; }
+.oversight-bars i.critical { background: var(--coral); }
+.oversight-bars i.high { background: var(--amber); }
+.oversight-bars i.other { background: var(--cyan); }
+.oversight-panel table { width: 100%; border-collapse: collapse; font-size: .76rem; }
+.oversight-panel th { padding: 8px; border-bottom: 1px solid var(--border-strong); color: var(--muted); text-align: left; }
+.oversight-panel td { padding: 10px 8px; border-bottom: 1px solid var(--border); }
+.oversight-aging { display: grid; gap: 15px; margin-top: 18px; }
+.oversight-aging > div > div { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: .76rem; }
+.oversight-aging progress { width: 100%; height: 8px; border: 0; border-radius: var(--cs-primitive-radius-full); accent-color: var(--cyan); }
+.oversight-estimates > div:not(.section-header):not(.oversight-empty) { display: grid; gap: 6px; padding: 14px 0; border-top: 1px solid var(--border); }
+.oversight-estimates > div > div { display: flex; justify-content: space-between; gap: 12px; }
+.oversight-estimates span, .oversight-estimates small { color: var(--muted); font-size: .72rem; }
+.oversight-estimates p { display: flex; gap: 14px; align-items: baseline; margin: 0; }
+.oversight-estimates p b { font-size: 1.2rem; }
+.oversight-panel td > span { display: block; margin-top: 3px; color: var(--muted); font-size: .68rem; }
+.oversight-unavailable { display: grid; gap: 6px; justify-items: start; padding: 32px 10px; }
+
+@media (max-width: 900px) {
+  .oversight-counts { grid-template-columns: 1fr 1fr; }
+  .oversight-two-column { grid-template-columns: 1fr; }
+  .oversight-header { display: grid; }
+}
+@media (max-width: 620px) {
+  .oversight-workspace { padding: 24px 14px 90px; }
+  .oversight-counts { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .oversight-metric { min-height: 116px; padding: 13px; }
+  .oversight-intervention-list article { grid-template-columns: 38px minmax(0, 1fr); }
+  .oversight-action { grid-column: 2; justify-self: start; max-width: 100%; }
+  .oversight-bars > div { grid-template-columns: 105px minmax(90px, 1fr) 24px; }
+  .oversight-inline-counts { display: none; }
+}

@@ -93,6 +93,7 @@ Migration is explicit rather than inferred from visual similarity. A file is mig
 
 - **Intervention Summary:** actor-scoped read projection for one human review, decision, authorization, evidence exception, escalation or outcome check. It is not new authoritative state.
 - **Today:** intervention queue first; quiet status-check context follows the work rather than preceding it with a KPI wall.
+- **Oversight:** freshness and coverage first, then ranked intervention records; risk pressure, historical resolution ranges and owner workload remain supporting analysis rather than personal assignments.
 - **Programs:** ongoing responsibilities, current status and reasons. The portfolio remains a bounded searchable list; an exact Program opens a dedicated operating record. Show calculated-state freshness, reasons, named owner and one dominant actor action before details, requirements, safeguards, evidence, monitoring and linked issues.
 - **Issues and changes:** bounded items needing review, decision, action, response or outcome confirmation. Show the current handoff before history.
 - **Work:** review queues and focused evidence. Complete source inventories are secondary context.

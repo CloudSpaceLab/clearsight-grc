@@ -152,14 +152,21 @@ func TestFromWorkflowTasksForActorProjectsAcknowledgementWithoutInventedReceipt(
 	}
 }
 
-func TestFromWorkflowTasksRecognizesLifecycleResponsibilities(t *testing.T) {
+func TestFromWorkflowTasksRecognizesEveryOperationalResponsibility(t *testing.T) {
 	for _, test := range []struct {
 		responsibility string
 		want           string
 	}{
+		{"PERFORMER", "PERFORMER"},
+		{"ACCOUNTABLE_OWNER", "ACCOUNTABLE_OWNER"},
 		{"PROPOSER", "PROPOSER"},
+		{"REVIEWER", "REVIEWER"},
+		{"INDEPENDENT_CHALLENGER", "INDEPENDENT_CHALLENGER"},
+		{"AUTHORIZER", "AUTHORIZER"},
+		{"SIGNATORY", "SIGNATORY"},
 		{"TRANSMITTER", "TRANSMITTER"},
 		{"ACKNOWLEDGEMENT_RECORDER", "ACKNOWLEDGEMENT_RECORDER"},
+		{"ESCALATION_OWNER", "ESCALATION_OWNER"},
 	} {
 		items := FromWorkflowTasks([]workflow.Task{{
 			ID: test.responsibility, Responsibility: test.responsibility, Title: "Lifecycle work", Status: workflow.StatusReady,

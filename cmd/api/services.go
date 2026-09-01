@@ -17,6 +17,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/scimapi"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
@@ -52,6 +53,7 @@ type serviceSet struct {
 	Coverage                       *documentcoverage.Service
 	Continuity                     *continuity.Service
 	Today                          *today.Service
+	Oversight                      *oversight.Service
 	Workflow                       *workflow.Service
 	Onboarding                     *onboarding.Service
 	Autonomy                       *autonomy.Service

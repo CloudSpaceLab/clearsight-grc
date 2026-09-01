@@ -22,6 +22,7 @@
     "/api/v1/session/status": { "get": { "operationId": "sessionStatus", "security": [], "x-clearsight-route-class": "PUBLIC" } },
     "/api/v1/context": { "get": { "operationId": "actorContext", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/today": { "get": { "operationId": "actorToday", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/oversight": { "get": { "operationId": "oversightSnapshot", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "OVERSIGHT_READ" } },
 
     "/api/v1/authority/resolve": { "post": { "operationId": "resolveAuthority", "x-clearsight-route-class": "AUTHENTICATED_OPERATION" } },
     "/api/v1/authority/simulate": { "post": { "operationId": "simulateAuthority", "x-clearsight-route-class": "AUTHENTICATED_OPERATION", "x-clearsight-permission": "CONFIG_READ" } },

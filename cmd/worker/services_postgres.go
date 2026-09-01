@@ -15,6 +15,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reconciliation"
@@ -30,6 +31,7 @@ const (
 	evidenceWorkProjectionClass         = "evidence-request-work-projection"
 	documentProposalWorkProjectionClass = "document-proposal-work-projection"
 	aiGovernanceRetentionClass          = "ai-governance-retention"
+	oversightProjectionClass            = "oversight-projection"
 )
 
 func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (workerSet, error) {
@@ -117,6 +119,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	// active review without requiring a document mutation.
 	service.ConfigureClass(documentProposalWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 30 * time.Second, Batch: 100})
 	service.ConfigureClass(aiGovernanceRetentionClass, workflowruntime.WorkClassOptions{Poll: time.Hour, Batch: 500})
+	service.ConfigureClass(oversightProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 20})
 
 	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
 	assessmentProvisioner.ConfigureAuthority(authorityService)
@@ -139,5 +142,6 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(evidenceWorkProjectionClass, evidenceWork)
 	service.AddMaintainerClass(documentProposalWorkProjectionClass, documentProposalWork)
 	service.AddMaintainerClass(aiGovernanceRetentionClass, aiGovernanceRetention)
+	service.AddMaintainerClass(oversightProjectionClass, &oversight.Maintainer{Repository: oversight.NewPostgresRepository(pool)})
 	return workerSet{Runtime: service, Close: pool.Close}, nil
 }
