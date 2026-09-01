@@ -46,11 +46,18 @@ describe("SelectField", () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
+  it("portals the option list to the outer workspace landmark instead of a nested layout landmark", async () => {
+    render(<main data-testid="workspace"><main data-testid="canvas"><SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/></main></main>);
+    fireEvent.click(screen.getByRole("button", { name: /Status/ }));
+    const listbox = await screen.findByRole("listbox");
+    expect(listbox.closest("main")).toBe(screen.getByTestId("workspace"));
+    expect(screen.getByTestId("canvas").contains(listbox)).toBe(false);
+  });
+
   it("has no representative semantic accessibility violations while open", async () => {
     render(<main><SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/></main>);
     fireEvent.click(screen.getByRole("button", { name: /Status/ }));
-    const listbox = await screen.findByRole("listbox");
-    expect(listbox.closest("main")).toBeTruthy();
+    await screen.findByRole("listbox");
 
     const results = await axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
     expect(results.violations.map((violation) => violation.id)).toEqual([]);

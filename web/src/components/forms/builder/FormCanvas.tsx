@@ -24,7 +24,7 @@ type Props = {
 export function FormCanvas({ draft, selection, onPatch, onSectionsChange, onFieldChange, onFieldTypeChange, onSelect, onAddField, onAddSection, onMoveField, onReorderField, onDuplicateField, onRemoveField }: Props) {
   const pointerDrag = useRef<{ fromIndex: number; startX: number; startY: number; moved: boolean } | null>(null);
 
-  return <main className="form-builder-canvas" aria-label="Form canvas">
+  return <section className="form-builder-canvas" aria-label="Form canvas">
     <div className="form-canvas-document">
       <header data-builder-target="overview" className={selection.kind === "overview" ? "form-canvas-header selected" : "form-canvas-header"} onClick={() => onSelect({ kind: "overview" })}>
         <input
@@ -170,5 +170,5 @@ export function FormCanvas({ draft, selection, onPatch, onSectionsChange, onFiel
 
       <button className="form-canvas-add-section" type="button" disabled={draft.sections.length >= 20} onClick={onAddSection}>+ Add section</button>
     </div>
-  </main>;
+  </section>;
 }
