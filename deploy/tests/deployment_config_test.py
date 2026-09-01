@@ -172,6 +172,9 @@ class DeploymentConfigTest(unittest.TestCase):
                       "actual.scope IS DISTINCT FROM expected.scope",
                       "actual.priority <> expected.priority"):
             self.assertIn(value, foundation)
+        self.assertGreaterEqual(foundation.count("ON CONFLICT (id) DO UPDATE"), 7)
+        self.assertNotIn("AND name IN ('ClearSight Demonstration Bank'", foundation)
+        self.assertNotIn("AND name IN ('Demonstration Bank Nigeria'", foundation)
         self.assertNotIn("opatachibueze+staff", foundation)
         self.assertNotIn("demo_staff_email}'", foundation)
         self.assertIn('install -m 0700 "$stage/scripts/seed-demo-foundation.sh"', release)
