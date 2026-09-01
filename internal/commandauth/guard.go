@@ -104,8 +104,12 @@ func (g *Guard) Authorize(ctx context.Context, request Request) (Decision, error
 		Materiality: request.Materiality,
 	})
 	if err != nil {
-		decision.Reason = "no current authority route permits this command"
-		return g.reject(decision, fmt.Errorf("%w: %v", ErrNotAuthorized, err))
+		if errors.Is(err, authority.ErrNoRoute) || errors.Is(err, authority.ErrAmbiguousRoute) || errors.Is(err, authority.ErrInvalidInput) {
+			decision.Reason = "no current authority route permits this command"
+			return g.reject(decision, fmt.Errorf("%w: %v", ErrNotAuthorized, err))
+		}
+		decision.Reason = "the current authority route could not be checked"
+		return g.reject(decision, fmt.Errorf("%w: %v", ErrGuardUnavailable, err))
 	}
 	decision.Resolution = &resolution
 	if !resolution.AllowsPrincipal(actor.PrincipalID) {

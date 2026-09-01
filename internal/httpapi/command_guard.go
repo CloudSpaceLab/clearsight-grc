@@ -55,6 +55,14 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 			httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to continue.")
 			return
 		}
+		if strings.HasPrefix(name, "forms.response-policy.") {
+			// Policy scope and command actors always come from the verified request
+			// identity. Identity-like body fields are accepted only for backwards
+			// compatibility and cannot redirect the command.
+			for _, field := range []string{"tenant_id", "legal_entity_id", "maker_id", "checker_id", "actor_id", "principal_id"} {
+				delete(payload, field)
+			}
+		}
 		if (name == "program.create" || name == "matter.create") && actor.LegalEntityID != "" && actor.LegalEntityID != "*" {
 			payload["legal_entity_id"] = actor.LegalEntityID
 		}
@@ -70,6 +78,10 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		if err != nil {
 			if errors.Is(err, commandauth.ErrIdentityRequired) || errors.Is(err, commandauth.ErrTenantMismatch) || errors.Is(err, commandauth.ErrLegalEntityMismatch) || errors.Is(err, commandauth.ErrNotAuthorized) || errors.Is(err, commandauth.ErrGuardUnavailable) {
 				writeCommandAuthorizationError(w, err)
+				return
+			}
+			if strings.HasPrefix(name, "forms.response-policy.") {
+				writeFormPolicyError(w, err)
 				return
 			}
 			writeContinuityError(w, err)

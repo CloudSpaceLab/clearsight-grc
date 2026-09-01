@@ -18,6 +18,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
@@ -53,6 +54,7 @@ type Dependencies struct {
 	FormCommunications               *evidence.CommunicationService
 	FormCommunicationBrands          *evidence.CommunicationBrandService
 	FormCommunicationTestDelivery    *evidence.InvitationDeliveryService
+	FormPolicies                     *formpolicy.Service
 	Monitoring                       *monitoring.Service
 	FormProposals                    *monitoring.FormProposalService
 	ThirdParty                       *thirdparty.Service

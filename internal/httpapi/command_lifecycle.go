@@ -12,6 +12,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 )
@@ -22,6 +23,26 @@ import (
 func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenant, name string, payload map[string]any, policy commandPolicy) (commandPolicy, error) {
 	if strings.HasPrefix(name, "document.proposal.") {
 		return a.documentProposalCommandPolicy(ctx, r, tenant, name, payload, policy)
+	}
+	if strings.HasPrefix(name, "forms.response-policy.") {
+		actor, actorErr := identity.Require(ctx)
+		if actorErr != nil {
+			return policy, fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+		}
+		if strings.TrimSpace(actor.LegalEntityID) == "" || actor.LegalEntityID == "*" {
+			return policy, fmt.Errorf("%w: one verified legal entity is required", commandauth.ErrLegalEntityMismatch)
+		}
+		if name != "forms.response-policy.create" {
+			if a.deps.FormPolicies == nil {
+				return policy, fmt.Errorf("%w: response policy service is unavailable", commandauth.ErrGuardUnavailable)
+			}
+			value, loadErr := a.deps.FormPolicies.Get(ctx, formpolicy.Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}, r.PathValue("id"))
+			if loadErr != nil {
+				return policy, loadErr
+			}
+			payload["legal_entity_id"] = value.LegalEntityID
+			policy.ObjectType, policy.ObjectIDPath = "FORM_RESPONSE_POLICY", "id"
+		}
 	}
 
 	matterID := ""
