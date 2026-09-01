@@ -147,8 +147,86 @@ export type ResponseRevision = {
   scoring_policy_version?: string;
   current: boolean;
   created_at: string;
+  score?: ResponseScore;
 };
 export type ResponseRevisionPage = { items: ResponseRevision[] };
+
+export type ResponseScoreMode = "NONE" | "RISK" | "COMPLIANCE";
+export type ResponseScoreDirection = "HIGH_IS_POOR" | "LOW_IS_POOR";
+export type ResponseConcernBand = "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
+export type ResponseScoreState = "NOT_CONFIGURED" | "FINAL" | "PROVISIONAL" | "FAILED";
+export type ResponseSort = "CONCERN_DESC" | "COMPLETED_DESC" | "RAW_ASC" | "RAW_DESC";
+
+export type ResponseScoreContribution = {
+  id: string;
+  outcome: string;
+  points: number;
+  weight: number;
+};
+
+export type ResponseScoreRule = {
+  id: string;
+  matched: boolean;
+  outcome: string;
+  effect: string;
+  value?: number;
+  weight?: number;
+};
+
+export type ResponseScore = {
+  mode?: ResponseScoreMode;
+  direction?: ResponseScoreDirection;
+  raw_score?: number;
+  adverse_score?: number;
+  band?: ResponseConcernBand;
+  coverage?: number;
+  final?: boolean;
+  state: ResponseScoreState;
+  profile_version?: string;
+  profile_checksum?: string;
+  evaluator_version?: string;
+  failure_code?: string;
+  calculated_at?: string;
+  contribution_results?: ResponseScoreContribution[];
+  rule_results?: ResponseScoreRule[];
+};
+
+export type CompletedResponseSummary = {
+  id: string;
+  distribution_id: string;
+  form_template_id: string;
+  form_template_version: number;
+  title: string;
+  subject_type: string;
+  subject_id: string;
+  revision: number;
+  current: boolean;
+  state: "PROVISIONAL" | "FINAL";
+  score?: ResponseScore;
+  completed_at: string;
+};
+
+export type CompletedResponsePage = { items: CompletedResponseSummary[]; next_cursor?: string };
+export type CompletedResponseDetail = { response: CompletedResponseSummary; revision: ResponseRevision };
+export type CompletedResponseQuery = {
+  form_template_id?: string;
+  form_template_version?: number;
+  subject_type?: string;
+  subject_id?: string;
+  modes?: ResponseScoreMode[];
+  bands?: ResponseConcernBand[];
+  states?: ResponseScoreState[];
+  raw_min?: number;
+  raw_max?: number;
+  adverse_min?: number;
+  adverse_max?: number;
+  completed_from?: string;
+  completed_until?: string;
+  current_only?: boolean;
+  sort?: ResponseSort;
+  cursor?: string;
+  limit?: number;
+};
 
 function queryString(values: Record<string, string | number | undefined>) {
   const params = new URLSearchParams();
@@ -197,6 +275,54 @@ function normalizeWorkspace(raw: Record<string, unknown>): DistributionWorkspace
   return { id: pick<string>("id", "ID"), status: pick<DistributionWorkspace["status"]>("status", "Status"), version: pick<number>("version", "Version"), updated_at: pick<string>("updated_at", "UpdatedAt") };
 }
 
+function normalizeScore(raw: unknown): ResponseScore | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const value = raw as Record<string, unknown>;
+  const optionalNumber = (key: string) => typeof value[key] === "number" ? value[key] as number : undefined;
+  const optionalString = (key: string) => typeof value[key] === "string" && value[key] ? value[key] as string : undefined;
+  return {
+    mode: optionalString("mode") as ResponseScoreMode | undefined,
+    direction: optionalString("direction") as ResponseScoreDirection | undefined,
+    raw_score: optionalNumber("raw_score"), adverse_score: optionalNumber("adverse_score"),
+    band: optionalString("band") as ResponseConcernBand | undefined,
+    coverage: optionalNumber("coverage"), final: typeof value.final === "boolean" ? value.final : undefined,
+    state: (optionalString("state") ?? "NOT_CONFIGURED") as ResponseScoreState,
+    profile_version: optionalString("profile_version"), profile_checksum: optionalString("profile_checksum"),
+    evaluator_version: optionalString("evaluator_version"), failure_code: optionalString("failure_code"),
+    calculated_at: optionalString("calculated_at"),
+    contribution_results: Array.isArray(value.contribution_results) ? value.contribution_results as ResponseScoreContribution[] : undefined,
+    rule_results: Array.isArray(value.rule_results) ? value.rule_results as ResponseScoreRule[] : undefined,
+  };
+}
+
+function normalizeResponseRevision(raw: Record<string, unknown>): ResponseRevision {
+  const pick = <T>(snake: string, pascal: string) => (raw[snake] ?? raw[pascal]) as T;
+  return {
+    id: pick<string>("id", "ID"), revision: pick<number>("revision", "Revision"),
+    supersedes_revision_id: pick<string | undefined>("supersedes_revision_id", "SupersedesRevisionID"),
+    achieved_assurance: pick<ResponseRevision["achieved_assurance"]>("achieved_assurance", "AchievedAssurance"),
+    signoff_summary: pick<Record<string, unknown> | undefined>("signoff_summary", "SignoffSummary"),
+    compliance_score: pick<number | undefined>("compliance_score", "ComplianceScore"),
+    scored_weight_coverage: pick<number>("scored_weight_coverage", "ScoredWeightCoverage") ?? 0,
+    state: pick<ResponseRevision["state"]>("state", "State"),
+    critical_field_results: pick<Array<Record<string, unknown>> | undefined>("critical_field_results", "CriticalFieldResults"),
+    scoring_policy_version: pick<string | undefined>("scoring_policy_version", "ScoringPolicyVersion"),
+    current: pick<boolean>("current", "Current"), created_at: pick<string>("created_at", "CreatedAt"),
+    score: normalizeScore(raw.score ?? raw.Score),
+  };
+}
+
+function normalizeCompletedResponse(raw: Record<string, unknown>): CompletedResponseSummary {
+  const pick = <T>(snake: string, pascal: string) => (raw[snake] ?? raw[pascal]) as T;
+  return {
+    id: pick<string>("id", "ID"), distribution_id: pick<string>("distribution_id", "DistributionID"),
+    form_template_id: pick<string>("form_template_id", "FormTemplateID"), form_template_version: pick<number>("form_template_version", "FormTemplateVersion"),
+    title: pick<string>("title", "Title"), subject_type: pick<string>("subject_type", "SubjectType"), subject_id: pick<string>("subject_id", "SubjectID"),
+    revision: pick<number>("revision", "Revision"), current: pick<boolean>("current", "Current"), state: pick<CompletedResponseSummary["state"]>("state", "State"),
+    score: normalizeScore(raw.score ?? raw.Score), completed_at: pick<string>("completed_at", "CompletedAt"),
+  };
+}
+
 function normalizeDetail(raw: { distribution: Record<string, unknown>; recipients: Record<string, unknown>[]; workspace: Record<string, unknown>; issued_access_routes?: DistributionDetail["issued_access_routes"] }): DistributionDetail {
   return { distribution: normalizeDistribution(raw.distribution), recipients: (raw.recipients ?? []).map(normalizeRecipient), workspace: normalizeWorkspace(raw.workspace), issued_access_routes: raw.issued_access_routes };
 }
@@ -238,5 +364,28 @@ export function transitionDistribution(id: string, version: number, action: "loc
 }
 
 export function loadResponseRevisions(id: string, limit = 100): Promise<ResponseRevisionPage> {
-  return requestJSON(apiBase, `/api/v1/forms/distributions/${encodeURIComponent(id)}/responses${queryString({ limit })}`);
+  return requestJSON<{ items: Record<string, unknown>[] }>(apiBase, `/api/v1/forms/distributions/${encodeURIComponent(id)}/responses${queryString({ limit })}`).then((raw) => ({ items: (raw.items ?? []).map(normalizeResponseRevision) }));
+}
+
+export async function loadCompletedResponses(query: CompletedResponseQuery = {}): Promise<CompletedResponsePage> {
+  const params = new URLSearchParams();
+  const scalar: Record<string, string | number | boolean | undefined> = {
+    form_template_id: query.form_template_id, form_template_version: query.form_template_version,
+    subject_type: query.subject_type, subject_id: query.subject_id,
+    raw_min: query.raw_min, raw_max: query.raw_max, adverse_min: query.adverse_min, adverse_max: query.adverse_max,
+    completed_from: query.completed_from, completed_until: query.completed_until,
+    current_only: query.current_only, sort: query.sort, cursor: query.cursor, limit: query.limit,
+  };
+  for (const [key, value] of Object.entries(scalar)) if (value !== undefined && value !== "") params.set(key, String(value));
+  for (const mode of query.modes ?? []) params.append("mode", mode);
+  for (const band of query.bands ?? []) params.append("band", band);
+  for (const state of query.states ?? []) params.append("score_state", state);
+  const encoded = params.toString();
+  const raw = await requestJSON<{ items: Record<string, unknown>[]; next_cursor?: string }>(apiBase, `/api/v1/forms/responses${encoded ? `?${encoded}` : ""}`);
+  return { items: (raw.items ?? []).map(normalizeCompletedResponse), next_cursor: raw.next_cursor };
+}
+
+export async function loadCompletedResponse(id: string): Promise<CompletedResponseDetail> {
+  const raw = await requestJSON<{ response: Record<string, unknown>; revision: Record<string, unknown> }>(apiBase, `/api/v1/forms/responses/${encodeURIComponent(id)}`);
+  return { response: normalizeCompletedResponse(raw.response), revision: normalizeResponseRevision(raw.revision) };
 }

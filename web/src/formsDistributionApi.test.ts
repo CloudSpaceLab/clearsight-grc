@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { amendDistribution, createDistribution, loadDistributionPage, loadRecipientCandidates, loadResponseRevisions, previewDistributionSupersession, supersedeDistribution } from "./formsDistributionApi";
+import { amendDistribution, createDistribution, loadCompletedResponses, loadDistributionPage, loadRecipientCandidates, loadResponseRevisions, previewDistributionSupersession, supersedeDistribution } from "./formsDistributionApi";
 
 const fetchMock = vi.fn();
 beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock); });
@@ -26,6 +26,28 @@ describe("forms distribution API", () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "r1", revision: 2, achieved_assurance: "EMAIL_VERIFIED", scored_weight_coverage: 100, state: "FINAL", current: true, created_at: "2026-08-28T10:00:00Z" }] }), { status: 200, headers: { "Content-Type": "application/json" } }));
     await expect(loadResponseRevisions("dist/a")).resolves.toMatchObject({ items: [{ revision: 2, current: true }] });
     expect(String(fetchMock.mock.calls[1]?.[0])).toContain("/api/v1/forms/distributions/dist%2Fa/responses?limit=100");
+  });
+
+  it("loads completed responses with server-owned score sorting and filters", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      items: [{
+        id: "response-a", distribution_id: "distribution-a", form_template_id: "form-a", form_template_version: 4,
+        title: "Vendor certification refresh", subject_type: "VENDOR", subject_id: "vendor-a", revision: 2,
+        current: true, state: "FINAL", completed_at: "2026-09-01T09:30:00Z",
+        score: { mode: "COMPLIANCE", direction: "LOW_IS_POOR", raw_score: 42, adverse_score: 58, band: "HIGH", coverage: 0.9, final: true, state: "FINAL", profile_version: "iso-v2", profile_checksum: "checksum", evaluator_version: "advanced-v1", calculated_at: "2026-09-01T09:30:00Z" },
+      }], next_cursor: "next-page",
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+
+    const page = await loadCompletedResponses({ sort: "CONCERN_DESC", bands: ["HIGH", "CRITICAL"], modes: ["COMPLIANCE"], completed_from: "2026-08-01T00:00:00Z", limit: 25 });
+
+    expect(page.items[0]).toMatchObject({ id: "response-a", score: { raw_score: 42, band: "HIGH", coverage: 0.9 } });
+    expect(page.next_cursor).toBe("next-page");
+    const url = String(fetchMock.mock.calls[0]?.[0]);
+    expect(url).toContain("sort=CONCERN_DESC");
+    expect(url).toContain("band=HIGH");
+    expect(url).toContain("band=CRITICAL");
+    expect(url).toContain("mode=COMPLIANCE");
+    expect(url).toContain("completed_from=2026-08-01T00%3A00%3A00Z");
   });
 
   it("amends and supersedes distributions through preview-confirm commands", async () => {
