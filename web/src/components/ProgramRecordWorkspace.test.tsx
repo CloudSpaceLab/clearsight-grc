@@ -472,6 +472,23 @@ describe("Program record workspace", () => {
 	await waitFor(() => expect(assignProgram).toHaveBeenCalledWith("program-1", 4, "owner-2", "The deputy now holds the DPO position."));
   });
 
+  it("shows one working Program owner handoff when reassignment is the dominant manager action", async () => {
+	vi.mocked(loadProgramOperations).mockResolvedValue({
+	  ...operations,
+	  operations: [
+		{ ...operations.operations[0]!, can_act: false, reason: "Assigned to Data Protection Officer." },
+		{ command: "program.assign", label: "Change Program owner", responsibility: "ACCOUNTABLE_OWNER", can_act: true, assigned_to: operations.operations[0]!.assigned_to, candidates: [operations.operations[0]!.assigned_to!, { id: "owner-2", display_name: "Deputy Data Protection Officer", kind: "PERSON", role: "Deputy DPO" }], reason: "You are in the current Program owner's reporting line and can hand it to another eligible person." },
+	  ],
+	});
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+
+	await screen.findByRole("heading", { name: "Scope and ownership" });
+	const ownerButtons = screen.getAllByRole("button", { name: "Change Program owner" });
+	expect(ownerButtons).toHaveLength(1);
+	fireEvent.click(ownerButtons[0]!);
+	expect(screen.getByLabelText("New Program owner")).toBeTruthy();
+  });
+
   it("shows approval authority separately and lets the current authorizer choose an eligible successor", async () => {
 	vi.mocked(loadProgramOperations).mockResolvedValue({
 	  ...operations,

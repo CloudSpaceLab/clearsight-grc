@@ -29,6 +29,10 @@ type commandPolicy struct {
 	DecisionType      string
 	OutcomeObjectType string
 	OutcomePathValue  string
+	// SpecializedAuthorization is set only after lifecycle binding has checked
+	// a narrow server-side policy such as reporting-line reassignment and has
+	// also revalidated the replacement through the current authority route.
+	SpecializedAuthorization bool
 }
 
 // command binds verified identity, resolves the lifecycle-specific authority
@@ -94,6 +98,11 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		restoreJSONBody(r, raw)
 
 		if a.deps.CommandGuard == nil || a.deps.CommandGuard.Mode() == commandauth.ModeOff {
+			a.executeMaterialHandler(w, r, requestPolicy, payload, handler)
+			return
+		}
+		if requestPolicy.SpecializedAuthorization {
+			w.Header().Set("X-ClearSight-Command-Authorization", "specialized")
 			a.executeMaterialHandler(w, r, requestPolicy, payload, handler)
 			return
 		}

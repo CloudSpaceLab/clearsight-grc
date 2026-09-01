@@ -152,6 +152,48 @@ func TestMatterOperationsExplainOwnershipAcrossRoles(t *testing.T) {
 	}
 }
 
+func TestMatterOperationsExposeOnlyReassignmentToCurrentAssigneeOrReportingManager(t *testing.T) {
+	now := time.Now().UTC()
+	aggregate := continuity.MatterAggregate{
+		Matter:  continuity.Matter{ID: "matter-1", TenantID: "bank", LegalEntityID: "bank-ng", Title: "Address verification", Type: continuity.MatterControlGap, Status: continuity.MatterAssessment, Priority: 4, OwnerPrincipalID: "issue-owner", Version: 3, CreatedAt: now, UpdatedAt: now},
+		Actions: []continuity.Action{{ID: "action-1", TenantID: "bank", MatterID: "matter-1", Title: "Verify address", Status: continuity.ActionPlanned, OwnerPrincipalID: "action-owner", Version: 1, CreatedAt: now, UpdatedAt: now}},
+	}
+	authorityResolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner: {
+			Principal:           authority.Principal{ID: "issue-owner", DisplayName: "Issue owner"},
+			CandidatePrincipals: []authority.Principal{{ID: "replacement-owner", DisplayName: "Replacement owner"}},
+		},
+		authority.ResponsibilityPerformer: {
+			Principal:           authority.Principal{ID: "action-owner", DisplayName: "Action owner"},
+			CandidatePrincipals: []authority.Principal{{ID: "replacement-performer", DisplayName: "Replacement performer"}},
+		},
+	}}
+	accessResolver := &reassignmentAccessStub{allowed: true}
+	api := &API{deps: Dependencies{Authority: authorityResolver, Access: accessResolver}}
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "risk-manager", Kind: "PERSON"}
+
+	response := api.buildMatterOperations(t.Context(), actor, aggregate, now)
+	find := func(command, subresource string) RecordOperation {
+		t.Helper()
+		for _, operation := range response.Operations {
+			if operation.Command == command && operation.SubresourceID == subresource {
+				return operation
+			}
+		}
+		t.Fatalf("operation %s/%s not found", command, subresource)
+		return RecordOperation{}
+	}
+	if operation := find("matter.assign", ""); !operation.CanAct {
+		t.Fatalf("manager cannot open the issue handoff: %#v", operation)
+	}
+	if operation := find("matter.action.assign", "action-1"); !operation.CanAct {
+		t.Fatalf("manager cannot open the action handoff: %#v", operation)
+	}
+	if operation := find("matter.details.update", ""); operation.CanAct {
+		t.Fatalf("reporting line granted edit authority: %#v", operation)
+	}
+}
+
 func TestMatterOperationsBindWildcardViewerToRecordEntity(t *testing.T) {
 	now := time.Now().UTC()
 	aggregate := continuity.MatterAggregate{Matter: continuity.Matter{

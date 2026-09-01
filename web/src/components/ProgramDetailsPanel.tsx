@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { assignProgram, assignProgramApprovalAuthority, updateProgramDetails } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
@@ -10,6 +10,8 @@ type Props = {
   responsibleParties?: RecordResponsibleParty[];
   onUpdated: (value: ProgramAggregate) => void;
   onReload: () => void;
+  ownerIntent?: number;
+  suppressOwnerAction?: boolean;
 };
 
 type Mode = "details" | "owner" | "approval" | null;
@@ -21,7 +23,7 @@ function scopeLines(scope: Record<string, unknown>) {
   return Array.isArray(value) ? value.map(String).join(", ") : "";
 }
 
-export function ProgramDetailsPanel({ aggregate, operations, responsibleParties = [], onUpdated, onReload }: Props) {
+export function ProgramDetailsPanel({ aggregate, operations, responsibleParties = [], onUpdated, onReload, ownerIntent = 0, suppressOwnerAction = false }: Props) {
   const program = aggregate.program;
   const detailsOperation = operations.find((operation) => operation.command === "program.details.update");
   const assignOperation = operations.find((operation) => operation.command === "program.assign");
@@ -45,6 +47,17 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
   const [ownerRationale, setOwnerRationale] = useState("");
   const [newApprovalAuthority, setNewApprovalAuthority] = useState("");
   const [approvalRationale, setApprovalRationale] = useState("");
+  const handledOwnerIntent = useRef(0);
+
+  useEffect(() => {
+	if (ownerIntent <= handledOwnerIntent.current || !assignOperation?.can_act) return;
+	handledOwnerIntent.current = ownerIntent;
+	const candidate = assignOperation.candidates?.find((value) => value.id !== program.owner_principal_id && value.id !== program.authority_principal_id);
+	setNewOwner(candidate?.id ?? "");
+	setOwnerRationale("");
+	setError("");
+	setMode("owner");
+  }, [assignOperation, ownerIntent, program.authority_principal_id, program.owner_principal_id]);
 
   function beginDetails() {
     setName(program.name); setOwningFunction(program.owning_function); setJurisdiction(program.jurisdiction ?? "");
@@ -104,7 +117,7 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
   }
 
   return <article className="program-record-panel" id="program-details-panel">
-    <div className="program-panel-heading"><div><span className="eyebrow">Program details</span><h2>Scope and ownership</h2></div><div className="program-panel-actions">{detailsOperation?.can_act && mode !== "details" && <button className="secondary-button" type="button" onClick={beginDetails}>Edit Program details</button>}{assignOperation?.can_act && mode !== "owner" && <button className="secondary-button" type="button" onClick={beginOwner}>Change Program owner</button>}{approvalOperation?.can_act && mode !== "approval" && <button className="secondary-button" type="button" onClick={beginApprovalAuthority}>Change approval authority</button>}</div></div>
+    <div className="program-panel-heading"><div><span className="eyebrow">Program details</span><h2>Scope and ownership</h2></div><div className="program-panel-actions">{detailsOperation?.can_act && mode !== "details" && <button className="secondary-button" type="button" onClick={beginDetails}>Edit Program details</button>}{assignOperation?.can_act && !suppressOwnerAction && mode !== "owner" && <button className="secondary-button" type="button" onClick={beginOwner}>Change Program owner</button>}{approvalOperation?.can_act && mode !== "approval" && <button className="secondary-button" type="button" onClick={beginApprovalAuthority}>Change approval authority</button>}</div></div>
     <dl className="program-record-facts"><div><dt>Code</dt><dd>{program.code}</dd></div><div><dt>Owning function</dt><dd>{program.owning_function}</dd></div><div><dt>Jurisdiction</dt><dd>{program.jurisdiction || "Not recorded"}</dd></div><div><dt>Owner</dt><dd>{owner?.display_name ?? storedOwner ?? (program.owner_principal_id ? "Recorded Program owner unavailable" : "Program owner not assigned")}</dd></div><div><dt>Approval authority</dt><dd>{approvalAuthority?.display_name ?? storedApprovalAuthority ?? (program.authority_principal_id ? "Recorded approval authority unavailable" : "Approval authority not assigned")}</dd></div><div><dt>Effective from</dt><dd>{dateValue(program.effective_from) || "Not recorded"}</dd></div><div><dt>Effective until</dt><dd>{dateValue(program.effective_until) || "No end date"}</dd></div><div><dt>Business lines</dt><dd>{scopeLines(program.scope) || "Not recorded"}</dd></div></dl>
     {mode === "details" && <form className="program-operation-form" onSubmit={(event) => void saveDetails(event)}>
       <label><span>Program name</span><input required value={name} onChange={(event) => setName(event.target.value)}/></label>

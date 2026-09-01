@@ -2,10 +2,12 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
@@ -198,6 +200,8 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		var err error
 		if name == "program.assign" && storedOwner == "" {
 			err = a.validateCurrentResponsibilityRouteActor(ctx, tenant, programAggregate.Program.LegalEntityID, "PROGRAM", programAggregate.Program.ID, name, policy.Materiality, authority.ResponsibilityOwner)
+		} else if name == "program.assign" {
+			policy.SpecializedAuthorization, err = a.validateReassignmentActor(ctx, tenant, programAggregate.Program.LegalEntityID, "PROGRAM", programAggregate.Program.ID, name, policy.Materiality, authority.ResponsibilityOwner, storedOwner, payload)
 		} else {
 			err = a.validateStoredResponsibilityActor(ctx, tenant, programAggregate.Program.LegalEntityID, "PROGRAM", programAggregate.Program.ID, name, policy.Materiality, authority.ResponsibilityOwner, storedOwner)
 		}
@@ -210,6 +214,8 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		var err error
 		if name == "matter.assign" && storedOwner == "" {
 			err = a.validateCurrentResponsibilityRouteActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityOwner)
+		} else if name == "matter.assign" {
+			policy.SpecializedAuthorization, err = a.validateReassignmentActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityOwner, storedOwner, payload)
 		} else {
 			err = a.validateStoredResponsibilityActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityOwner, storedOwner)
 		}
@@ -369,8 +375,14 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			return policy, nil
 		}
 		candidateID := stringValue(payload["owner_principal_id"])
-		if err := a.validateProgramAssignmentCandidate(ctx, tenant, name, *programAggregate, candidateID, authority.ResponsibilityOwner, policy.Materiality); err != nil {
-			return policy, err
+		var candidateErr error
+		if policy.SpecializedAuthorization {
+			candidateErr = a.validateProgramAssignmentCandidateForRoute(ctx, tenant, name, *programAggregate, candidateID, authority.ResponsibilityOwner, policy.Materiality, "PROGRAM", programAggregate.Program.ID, name, false)
+		} else {
+			candidateErr = a.validateProgramAssignmentCandidate(ctx, tenant, name, *programAggregate, candidateID, authority.ResponsibilityOwner, policy.Materiality)
+		}
+		if candidateErr != nil {
+			return policy, candidateErr
 		}
 		return policy, nil
 
@@ -405,7 +417,7 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			return policy, continuity.ErrNotFound
 		}
 		payload["implementation_id"] = implementationID
-		if err := a.validateProgramAssignmentCandidateForRoute(ctx, tenant, name, *programAggregate, stringValue(payload["owner_principal_id"]), authority.ResponsibilityPerformer, policy.Materiality, "CONTROL_IMPLEMENTATION", implementationID, "program.safeguard.transition"); err != nil {
+		if err := a.validateProgramAssignmentCandidateForRoute(ctx, tenant, name, *programAggregate, stringValue(payload["owner_principal_id"]), authority.ResponsibilityPerformer, policy.Materiality, "CONTROL_IMPLEMENTATION", implementationID, "program.safeguard.transition", true); err != nil {
 			return policy, err
 		}
 		return policy, nil
@@ -568,9 +580,19 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			return policy, continuity.ErrNotFound
 		}
 		policy.Materiality = max(policy.Materiality, matterPriority)
-		if err := a.validateStoredResponsibilityActor(ctx, tenant, aggregate.Matter.LegalEntityID, "ACTION", action.ID, name, policy.Materiality, authority.ResponsibilityOwner, aggregate.Matter.OwnerPrincipalID); err != nil {
-			return policy, err
+		managerAuthorization := false
+		matterOwnerErr := a.validateStoredResponsibilityActor(ctx, tenant, aggregate.Matter.LegalEntityID, "ACTION", action.ID, name, policy.Materiality, authority.ResponsibilityOwner, aggregate.Matter.OwnerPrincipalID)
+		if matterOwnerErr != nil {
+			if !errors.Is(matterOwnerErr, commandauth.ErrNotAuthorized) {
+				return policy, matterOwnerErr
+			}
+			_, err = a.validateReassignmentActor(ctx, tenant, aggregate.Matter.LegalEntityID, "ACTION", action.ID, name, policy.Materiality, authority.ResponsibilityPerformer, action.OwnerPrincipalID, payload)
+			if err != nil {
+				return policy, err
+			}
+			managerAuthorization = true
 		}
+		policy.SpecializedAuthorization = managerAuthorization
 		candidateID := stringValue(payload["owner_principal_id"])
 		if err := a.validateMatterAssignmentCandidateForRoute(ctx, tenant, name, *aggregate, candidateID, authority.ResponsibilityPerformer, policy.Materiality, "ACTION", action.ID, name); err != nil {
 			return policy, err
@@ -835,6 +857,36 @@ func (a *API) validateStoredResponsibilityActor(ctx context.Context, tenant, leg
 	return nil
 }
 
+func (a *API) validateReassignmentActor(ctx context.Context, tenant, legalEntity, objectType, objectID, decisionType string, materiality int, responsibility authority.Responsibility, storedPrincipalID string, payload map[string]any) (bool, error) {
+	err := a.validateStoredResponsibilityActor(ctx, tenant, legalEntity, objectType, objectID, decisionType, materiality, responsibility, storedPrincipalID)
+	if err == nil {
+		return false, nil
+	}
+	if !errors.Is(err, commandauth.ErrNotAuthorized) {
+		return false, err
+	}
+	resolver, ok := a.deps.Access.(access.ReassignmentResolver)
+	if !ok {
+		return false, err
+	}
+	actor, actorErr := identity.Require(ctx)
+	if actorErr != nil {
+		return false, fmt.Errorf("%w: verified identity is required", commandauth.ErrIdentityRequired)
+	}
+	decision, resolveErr := resolver.CanReassign(ctx, access.ReassignmentRequest{
+		TenantID: tenant, LegalEntityID: legalEntity, ActorPrincipalID: actor.PrincipalID, CurrentOwnerPrincipalID: storedPrincipalID,
+	})
+	if resolveErr != nil {
+		return false, fmt.Errorf("%w: reporting hierarchy could not be checked", commandauth.ErrGuardUnavailable)
+	}
+	if !decision.Allowed {
+		return false, err
+	}
+	payload["reassignment_basis"] = decision.Basis
+	payload["organization_position_version"] = decision.HierarchyVersion
+	return true, nil
+}
+
 func (a *API) validateCurrentResponsibilityRouteActor(ctx context.Context, tenant, legalEntity, objectType, objectID, decisionType string, materiality int, responsibility authority.Responsibility) error {
 	actor, err := identity.Require(ctx)
 	if err != nil {
@@ -861,10 +913,10 @@ func governedMatterTransition(from, target continuity.MatterStatus) bool {
 }
 
 func (a *API) validateProgramAssignmentCandidate(ctx context.Context, tenant, commandName string, aggregate continuity.ProgramAggregate, candidateID string, candidateResponsibility authority.Responsibility, materiality int) error {
-	return a.validateProgramAssignmentCandidateForRoute(ctx, tenant, commandName, aggregate, candidateID, candidateResponsibility, materiality, "PROGRAM", aggregate.Program.ID, commandName)
+	return a.validateProgramAssignmentCandidateForRoute(ctx, tenant, commandName, aggregate, candidateID, candidateResponsibility, materiality, "PROGRAM", aggregate.Program.ID, commandName, true)
 }
 
-func (a *API) validateProgramAssignmentCandidateForRoute(ctx context.Context, tenant, commandName string, aggregate continuity.ProgramAggregate, candidateID string, candidateResponsibility authority.Responsibility, materiality int, candidateObjectType, candidateObjectID, candidateDecisionType string) error {
+func (a *API) validateProgramAssignmentCandidateForRoute(ctx context.Context, tenant, commandName string, aggregate continuity.ProgramAggregate, candidateID string, candidateResponsibility authority.Responsibility, materiality int, candidateObjectType, candidateObjectID, candidateDecisionType string, validateActor bool) error {
 	candidateID = strings.TrimSpace(candidateID)
 	if candidateID == "" {
 		return fmt.Errorf("%w: owner_principal_id is required", continuity.ErrInvalidState)
@@ -888,7 +940,7 @@ func (a *API) validateProgramAssignmentCandidateForRoute(ctx context.Context, te
 	if storedOwner != "" {
 		actorAllowed = ownerResolution.AllowsPrincipalFor(actor.PrincipalID, storedOwner)
 	}
-	if !actorAllowed {
+	if validateActor && !actorAllowed {
 		return fmt.Errorf("%w: signed-in person does not hold the current Program owner route", continuity.ErrInvalidState)
 	}
 	candidateResolution := ownerResolution

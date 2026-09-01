@@ -6,7 +6,7 @@ import { loadProgramReviewDigest } from "../programReviewApi";
 import type { ProgramReviewDigest as ReviewDigest } from "../programReviewApi";
 import type { ProgramAggregate } from "../types";
 import { EmptyState } from "./EmptyState";
-import { ProgramCurrentPosition } from "./ProgramCurrentPosition";
+import { dominantProgramAction, ProgramCurrentPosition } from "./ProgramCurrentPosition";
 import { ProgramReviewDigest } from "./ProgramReviewDigest";
 import { ProgramDetailsPanel } from "./ProgramDetailsPanel";
 import { ProgramRequirementsPanel } from "./ProgramRequirementsPanel";
@@ -38,6 +38,7 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
   const [aggregate, setAggregate] = useState<ProgramAggregate | null>(null);
   const [operations, setOperations] = useState<ProgramOperations | null>(null);
   const [digest, setDigest] = useState<ReviewDigest | null>(null);
+  const [ownerIntent, setOwnerIntent] = useState(0);
   const loadIDs = useRef({ aggregate: 0, operations: 0, review: 0 });
   const activeTarget = useRef({ id: programID, generation: 0 });
   const startedTargetID = useRef<string | null>(null);
@@ -165,6 +166,8 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
         operations: [],
         responsible_parties: [],
       };
+  const dominantAction = digest ? dominantProgramAction(displayedOperations.operations, digest) : undefined;
+  const ownerActionIsDominant = dominantAction?.command === "program.assign";
 
   return <section className="program-record-workspace" aria-label="Program record">
     <button aria-label="Back to Programs" className="text-button program-record-back" type="button" onClick={onBack}>← Back to Programs</button>
@@ -185,12 +188,12 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
       {reviewState === "unavailable" && <div className="inline-notice" role="status"><strong>Program review status could not be checked.</strong> Program values and calculated status remain visible, but changes are disabled until the current review position is available. <button className="text-button" type="button" onClick={() => void loadReview()}>Retry review status</button></div>}
       {reviewOutdated && <div className="inline-notice" role="status"><strong>Program review status is out of date.</strong> Program values and review history remain visible, but changes are disabled until the latest Program changes have been assessed. <button className="text-button" type="button" onClick={() => void loadReview()}>Reload review status</button></div>}
       {digest
-        ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest}/>
+        ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
         : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label}</h2><div className="program-position-reasons"><h3>Why this status</h3><ul>{(aggregate.current_state?.reasons ?? []).map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul></div></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
       <section className="program-record-grid">
         <article className="program-record-panel" id="program-review-panel">{digest ? <ProgramReviewDigest aggregate={aggregate} initialDigest={digest} canAcknowledge={canAcknowledgeReview} onDigestUpdated={applyDigestUpdated}/> : <div className="inline-notice">Review actions are disabled until the current review status is available.</div>}</article>
 		<ProgramStatusPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
-		<ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+		<ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} ownerIntent={ownerIntent} suppressOwnerAction={ownerActionIsDominant} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
 		<ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
 		<ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
 		<ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/>

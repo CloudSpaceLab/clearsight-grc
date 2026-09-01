@@ -6,6 +6,7 @@ type Props = {
   aggregate: ProgramAggregate;
   operations: ProgramOperations;
   digest: ProgramReviewDigest;
+  onOpenOwnerChange?: () => void;
 };
 
 const actionOrder = [
@@ -24,7 +25,7 @@ const actionOrder = [
   "program.monitoring.define",
 ];
 
-function dominantAction(operations: ProgramOperation[], digest: ProgramReviewDigest) {
+export function dominantProgramAction(operations: ProgramOperation[], digest: ProgramReviewDigest) {
   const executable = operations.filter((operation) => operation.can_act);
   if (!digest.review_required) {
     const withoutReview = executable.filter((operation) => operation.command !== "program.review.accept");
@@ -42,19 +43,23 @@ function actionTarget(command: string) {
   return "program-details-panel";
 }
 
-export function ProgramCurrentPosition({ aggregate, operations, digest }: Props) {
+export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOwnerChange }: Props) {
   const current = aggregate.current_state;
   const assessedVersion = current?.program_version ?? 0;
   const stale = !current || assessedVersion < aggregate.program.version;
   const ownerOperation = operations.operations.find((operation) => operation.command === "program.details.update" || operation.command === "program.assign");
   const owner = ownerOperation?.assigned_to;
   const storedOwner = operations.responsible_parties?.find((party) => party.scope === "RECORD" && party.responsibility === "ACCOUNTABLE_OWNER")?.display_name;
-  const action = dominantAction(operations.operations, digest);
+  const action = dominantProgramAction(operations.operations, digest);
   const reasons = current?.reasons ?? [];
   const calculatedAt = current?.generated_at ? new Date(current.generated_at).toLocaleString() : "time unavailable";
 
   function goToAction() {
     if (!action) return;
+	if (action.command === "program.assign" && onOpenOwnerChange) {
+	  onOpenOwnerChange();
+	  return;
+	}
 	const target = document.getElementById(actionTarget(action.command));
 	if (target && typeof target.scrollIntoView === "function") target.scrollIntoView({ behavior: "smooth", block: "start" });
   }

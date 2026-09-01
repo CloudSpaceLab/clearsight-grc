@@ -84,7 +84,7 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 	approvalAuthorityID := aggregate.Program.AuthorityPrincipalID
 	for _, spec := range []programOperationSpec{
 		{Command: "program.details.update", Label: "Edit Program details", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
-		{Command: "program.assign", Label: "Change Program owner", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID, IncludeCandidates: true},
+		{Command: "program.assign", Label: "Change Program owner", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID, ReassignmentPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "program.approval-authority.assign", DecisionType: "program.transition", Label: "Change approval authority", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID, IncludeCandidates: true},
 		{Command: "program.requirement.add", Label: "Add a requirement", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.safeguard.define", Label: "Define safeguards", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: 2, AssignedPrincipalID: ownerID, IncludeCandidates: true},
@@ -316,6 +316,7 @@ type programOperationSpec struct {
 	CandidateDecisionType   string
 	Materiality             int
 	AssignedPrincipalID     string
+	ReassignmentPrincipalID string
 	IncludeCandidates       bool
 	AllowedTargets          []string
 }
@@ -451,8 +452,20 @@ func (a *API) resolveProgramOperation(ctx context.Context, actor identity.Actor,
 	} else if requiresStoredPrincipal && spec.Command != "program.assign" {
 		operation.CanAct = false
 	}
+	if !operation.CanAct && strings.TrimSpace(spec.ReassignmentPrincipalID) != "" {
+		if decision, checked := a.canReassignStoredResponsibility(ctx, actor, program.LegalEntityID, spec.ReassignmentPrincipalID); checked && decision.Allowed {
+			operation.CanAct = true
+			if decision.Basis == "CURRENT_ASSIGNEE" {
+				operation.Reason = "You are the current Program owner and can hand it to another eligible person."
+			} else {
+				operation.Reason = "You are in the current Program owner's reporting line and can hand it to another eligible person."
+			}
+		}
+	}
 	if operation.CanAct {
-		operation.Reason = "You hold the current responsibility for this Program and can complete this action."
+		if operation.Reason == "" {
+			operation.Reason = "You hold the current responsibility for this Program and can complete this action."
+		}
 	} else if operation.AssignedTo != nil {
 		operation.Reason = fmt.Sprintf("Assigned to %s for the current Program state.", operation.AssignedTo.DisplayName)
 	} else if strings.TrimSpace(spec.AssignedPrincipalID) != "" {
