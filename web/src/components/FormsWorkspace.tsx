@@ -409,7 +409,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         : undefined}
     />
 
-    <FormsNavigation activeTab={activeTab} onChange={(tab) => { setActiveTab(tab); setEditor(null); setNewFormOpen(false); setAIOpen(false); setAIProposal(null); }}>
+    <FormsNavigation activeTab={activeTab} onChange={(tab) => { setActiveTab(tab); setEditor(null); setNewFormOpen(false); setAIOpen(false); setAIProposal(null); setError(null); setNotice(null); }}>
     {error && <Notice tone="error">{error}</Notice>}
     {notice && <Notice><div className="forms-notice-content"><span>{notice}</span><IconButton variant="quiet" aria-label="Dismiss Forms notice" onPress={() => setNotice(null)}>×</IconButton></div></Notice>}
 

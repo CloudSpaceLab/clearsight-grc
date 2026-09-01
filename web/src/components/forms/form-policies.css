@@ -1,0 +1,51 @@
+.forms-policies, .forms-policy-editor, .forms-advanced-scoring { display: grid; gap: var(--cs-space-section); min-inline-size: 0; color: var(--cs-text-primary); }
+.forms-policies__heading, .forms-policy-section-heading, .forms-policy-detail > header, .forms-score-rule__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--cs-space-group); }
+.forms-policies__heading > div, .forms-policy-section-heading > div, .forms-policy-editor > header { display: grid; gap: var(--cs-primitive-space-2); }
+.forms-policies__heading :is(h2, p, span), .forms-policy-section-heading :is(h4, p), .forms-policy-editor :is(h2, h3, p, span), .forms-policy-detail :is(h3, h4, p), .forms-advanced-scoring :is(h4, p) { margin: 0; }
+.forms-policies__heading > div > p, .forms-policy-editor > header > p { color: var(--cs-action-primary); font-size: var(--cs-font-size-caption); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.forms-policies__heading h2, .forms-policy-editor h2, .forms-policy-detail h3, .forms-advanced-scoring strong { color: var(--cs-text-strong); }
+.forms-policies__heading span, .forms-policy-editor > header > span, .forms-policy-section-heading p, .forms-policy-muted { max-inline-size: var(--cs-reading-measure); color: var(--cs-text-muted); line-height: var(--cs-leading-body); }
+.forms-policies__layout { display: grid; grid-template-columns: minmax(17rem, .75fr) minmax(0, 2fr); gap: var(--cs-space-group); align-items: start; }
+.forms-policies__list { display: grid; gap: var(--cs-primitive-space-2); position: sticky; inset-block-start: var(--cs-primitive-space-4); }
+.forms-policy-detail, .forms-policy-editor > section, .forms-score-rule, .forms-score-preview { display: grid; gap: var(--cs-space-group); padding: var(--cs-primitive-space-5); border: var(--cs-primitive-border-1) solid var(--cs-border-default); border-radius: var(--cs-primitive-radius-14); background: var(--cs-bg-surface-1); }
+.forms-policy-detail > header > div { display: grid; gap: var(--cs-primitive-space-2); }
+.forms-policy-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; border-block: var(--cs-primitive-border-1) solid var(--cs-border-default); }
+.forms-policy-facts > div { display: grid; gap: var(--cs-primitive-space-1); padding: var(--cs-primitive-space-3); }
+.forms-policy-facts dt { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+.forms-policy-facts dd { margin: 0; color: var(--cs-text-strong); overflow-wrap: anywhere; }
+.forms-policy-impact { display: grid; gap: var(--cs-primitive-space-3); padding: var(--cs-primitive-space-4); border-radius: var(--cs-primitive-radius-10); background: var(--cs-bg-surface-2); }
+.forms-policy-impact > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--cs-primitive-space-3); }
+.forms-policy-impact strong { color: var(--cs-text-strong); font-size: var(--cs-primitive-font-size-18); }
+.forms-policy-impact :is(span, small) { color: var(--cs-text-muted); }
+.forms-policy-impact ul { display: grid; gap: var(--cs-primitive-space-1); margin: 0; padding-inline-start: var(--cs-primitive-space-5); }
+.forms-policy-editor { padding: var(--cs-primitive-space-2); }
+.forms-policy-editor > section > h3 { color: var(--cs-text-strong); }
+.forms-policy-editor > section > p { color: var(--cs-text-muted); }
+.forms-policy-control-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cs-space-group); align-items: start; }
+.forms-policy-control-grid__full { grid-column: 1 / -1; }
+.forms-policy-checks { display: flex; flex-wrap: wrap; gap: var(--cs-space-group); }
+.forms-policy-editor > footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--cs-primitive-space-2); position: sticky; inset-block-end: 0; padding-block: var(--cs-primitive-space-3); background: var(--cs-bg-surface-1); }
+.forms-advanced-scoring { padding-block: var(--cs-primitive-space-2); }
+.form-builder-inspector .forms-advanced-scoring { gap: var(--cs-primitive-space-5); }
+.form-builder-inspector .forms-policy-control-grid { grid-template-columns: minmax(0, 1fr); }
+.form-builder-inspector .forms-policy-control-grid__full { grid-column: auto; }
+.form-builder-inspector .forms-policy-section-heading, .form-builder-inspector .forms-score-rule__heading { align-items: stretch; flex-direction: column; }
+.forms-advanced-scoring__summary { display: grid; gap: var(--cs-primitive-space-3); }
+.forms-advanced-scoring__summary > div { display: grid; gap: var(--cs-primitive-space-1); }
+.forms-score-rule { padding: var(--cs-primitive-space-4); margin-block-start: var(--cs-primitive-space-3); background: var(--cs-bg-surface-2); }
+.forms-score-predicate { display: grid; gap: var(--cs-primitive-space-3); min-inline-size: 0; margin: 0; padding: var(--cs-primitive-space-3); border: var(--cs-primitive-border-1) solid var(--cs-border-default); border-radius: var(--cs-primitive-radius-10); }
+.forms-score-predicate > legend { padding-inline: var(--cs-primitive-space-1); color: var(--cs-text-strong); font-weight: 700; }
+.forms-score-predicate__row { display: grid; gap: var(--cs-primitive-space-2); min-inline-size: 0; }
+.forms-score-preview__result { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cs-primitive-space-3); padding: var(--cs-primitive-space-3); border-radius: var(--cs-primitive-radius-10); background: var(--cs-bg-surface-2); }
+.forms-score-preview__result > span:last-child { color: var(--cs-text-muted); }
+@media (max-width: 900px) {
+  .forms-policies__layout, .forms-policy-control-grid { grid-template-columns: 1fr; }
+  .forms-policies__list { position: static; }
+  .forms-policy-facts { grid-template-columns: 1fr 1fr; }
+  .forms-policy-control-grid__full { grid-column: auto; }
+}
+@media (max-width: 620px) {
+  .forms-policies__heading, .forms-policy-section-heading, .forms-policy-detail > header, .forms-score-rule__heading { align-items: stretch; flex-direction: column; }
+  .forms-policy-facts { grid-template-columns: 1fr; }
+  .forms-policy-impact > div { align-items: flex-start; flex-direction: column; }
+}

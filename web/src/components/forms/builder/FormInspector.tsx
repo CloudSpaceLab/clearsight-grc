@@ -4,9 +4,11 @@ import type { AuthoringField, AuthoringSection, FormDraft } from "../formAuthori
 import { FormFieldPropertyEditor } from "../FormFieldPropertyEditor";
 import type { BuilderSelection } from "./builderSelection";
 import { SelectField } from "../../ui";
+import { AdvancedScoringEditor } from "./AdvancedScoringEditor";
 
 type Props = {
   draft: FormDraft;
+  templateRevision?: { id: string; version: number };
   selection: BuilderSelection;
   onPatch: (patch: Partial<FormDraft>) => void;
   onScoringMode: (mode: FormScoringMode) => void;
@@ -35,7 +37,7 @@ function PaneHeading({ eyebrow, title, detail }: { eyebrow: string; title: strin
   </div>;
 }
 
-function OverviewInspector({ draft, onPatch, onScoringMode }: Props) {
+function OverviewInspector({ draft, templateRevision, onPatch, onScoringMode }: Props) {
   return <aside className="form-builder-inspector" aria-label="Form settings">
     <PaneHeading eyebrow="Inspector" title="Form settings"/>
     <div className="form-inspector-content">
@@ -52,6 +54,7 @@ function OverviewInspector({ draft, onPatch, onScoringMode }: Props) {
         <div className="form-inspector-group">
           <SelectField label="Scoring mode" value={draft.scoringMode} placeholder="Choose scoring" allowsEmpty={false} options={[{ id: "NONE", label: "No score" }, { id: "RISK", label: "Risk score" }, { id: "COMPLIANCE", label: "Compliance score" }]} onChange={(value) => { if (value) onScoringMode(value as FormScoringMode); }}/>
           <p>Scoring is optional. It remains hidden from ordinary question editing until enabled.</p>
+          {draft.scoringMode !== "NONE" && <AdvancedScoringEditor mode={draft.scoringMode} profile={draft.scoreProfile} fields={draft.fields} templateRevision={templateRevision} onChange={(scoreProfile) => onPatch({ scoreProfile })}/>}
         </div>
       </details>
     </div>
