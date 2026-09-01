@@ -6,6 +6,8 @@ import type { MatterOperation } from "../matterOperationsApi";
 import { addMatterAction, transitionMatterAction } from "../continuityCommands";
 import type { MatterAction, MatterAggregate, RecordResponsibleParty } from "../types";
 import { selectedDateEndOfLocalDay, storedDeadlineLocalDate } from "../dueDate";
+import { Button, FocusedSheet, Notice, SelectField, TextArea } from "./ui";
+import { matterOperationControlID } from "./matterHandoff";
 
 type Props = {
   aggregate: MatterAggregate;
@@ -37,6 +39,10 @@ function statusLabel(value: string) {
   }
 }
 
+function responsibilityLabel(value: string) {
+  return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
 export function MatterActionsPanel({ aggregate, operations, responsibleParties = [], onUpdated, onReload }: Props) {
   const addOperation = operationFor(operations, "matter.action.add");
   const [active, setActive] = useState<Active>(null);
@@ -61,7 +67,7 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
   function startAction(kind: "edit" | "assign" | "status", action: MatterAction) {
     setActive({ kind, actionID: action.id }); setTitle(action.title); setDescription(action.description); setDate(storedDeadlineLocalDate(action.due_at)); setRationale(""); setError(""); setNotice("");
     const operation = operationFor(operations, kind === "assign" ? "matter.action.assign" : kind === "status" ? "matter.action.transition" : "matter.action.update", action.id);
-    setOwner(operation?.candidates?.[0]?.id ?? action.owner_principal_id ?? "");
+    setOwner(kind === "assign" ? "" : operation?.candidates?.[0]?.id ?? action.owner_principal_id ?? "");
     setTarget(operation?.allowed_targets?.[0] ?? "");
   }
 
@@ -96,6 +102,12 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
   const activeAction = active && active.kind !== "add" ? actionFor(active.actionID) : undefined;
   const activeOperation = active && active.kind !== "add" ? operationFor(operations, active.kind === "edit" ? "matter.action.update" : active.kind === "assign" ? "matter.action.assign" : "matter.action.transition", active.actionID) : addOperation;
   const candidates = activeOperation?.candidates ?? addOperation?.candidates ?? [];
+  const activePerformerOperation = activeAction ? operationFor(operations, "matter.action.transition", activeAction.id) : undefined;
+  const activeResponsibility = activeAction?.required_responsibility || "PERFORMER";
+  const storedActivePerformer = activeAction ? responsibleParties.find((party) => party.scope === "ACTION" && party.subresource_id === activeAction.id && party.responsibility === activeResponsibility) : undefined;
+  const currentPerformerID = activePerformerOperation?.assigned_to?.id ?? activeAction?.owner_principal_id;
+  const currentPerformerName = activePerformerOperation?.assigned_to?.display_name ?? storedActivePerformer?.display_name;
+  const reassignmentCandidates = candidates.filter((candidate) => candidate.id !== currentPerformerID);
   const rationaleRequired = active?.kind === "edit" || active?.kind === "assign" || (active?.kind === "status" && ["BLOCKED", "CANCELLED"].includes(target));
 
   return <article className="matter-record-panel matter-actions-panel" id="matter-operation-matter.action.add">
@@ -112,23 +124,34 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
         <div className="matter-action-heading"><div><h3 id={`matter-action-${action.id}`}>{action.title}</h3><p>{action.description}</p></div><span>{statusLabel(action.status)}</span></div>
         <div className="matter-action-meta"><span>{actionResponsibility === "ESCALATION_OWNER" ? "Escalation owner" : "Action owner"}: <strong>{ownerName}</strong></span><span>{formatDate(action.due_at)}</span></div>
         {!active && <div className="matter-action-controls">
-          {editOperation?.can_act && !terminal && <button className="secondary-button" type="button" aria-label={`Edit ${action.title}`} onClick={() => startAction("edit", action)}>Edit action</button>}
-          {assignOperation?.can_act && !terminal && <button className="secondary-button" type="button" aria-label={`Change owner for ${action.title}`} onClick={() => startAction("assign", action)}>Change owner</button>}
-          {statusOperation?.can_act && !terminal && <button className="secondary-button" type="button" aria-label={`Update status for ${action.title}`} onClick={() => startAction("status", action)}>Update status</button>}
+          {editOperation?.can_act && !terminal && <button id={matterOperationControlID(editOperation)} className="secondary-button" type="button" aria-label={`Edit ${action.title}`} onClick={() => startAction("edit", action)}>Edit action</button>}
+          {assignOperation?.can_act && !terminal && <button id={matterOperationControlID(assignOperation)} className="secondary-button" type="button" aria-label={`Change owner for ${action.title}`} onClick={() => startAction("assign", action)}>Change owner</button>}
+          {statusOperation?.can_act && !terminal && <button id={matterOperationControlID(statusOperation)} className="secondary-button" type="button" aria-label={`Update status for ${action.title}`} onClick={() => startAction("status", action)}>Update status</button>}
         </div>}
         {!statusOperation?.can_act && statusOperation?.reason && <p className="matter-operation-reason">{statusOperation.reason}</p>}
       </section>;
     })}</div> : <p>No actions have been recorded for this issue.</p>}
-    {active && <form className="matter-operation-form" onSubmit={submit}>
+    {active && active.kind !== "assign" && <form className="matter-operation-form" onSubmit={submit}>
       {(active.kind === "add" || active.kind === "edit") && <><label><span>Action title</span><input value={title} onChange={(event) => setTitle(event.target.value)} required/></label><label className="wide"><span>Action description</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} required/></label><label><span>Action due date</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)}/></label></>}
       {active.kind === "add" && <label><span>Action owner</span><select value={owner} onChange={(event) => setOwner(event.target.value)} required><option value="">Select an eligible performer</option>{candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.display_name} · {candidate.role}</option>)}</select></label>}
-      {active.kind === "assign" && <label><span>New action owner</span><select value={owner} onChange={(event) => setOwner(event.target.value)} required><option value="">Select an eligible performer</option>{candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.display_name} · {candidate.role}</option>)}</select></label>}
       {active.kind === "status" && <label><span>Next action status</span><select value={target} onChange={(event) => setTarget(event.target.value)} required>{activeOperation?.allowed_targets?.map((value) => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label>}
-      {active.kind !== "add" && <label className="wide"><span>{active.kind === "edit" ? "Reason for changing this action" : active.kind === "assign" ? "Reason for action reassignment" : `Status rationale${rationaleRequired ? "" : " (optional)"}`}</span><textarea value={rationale} onChange={(event) => setRationale(event.target.value)} rows={2} required={rationaleRequired}/></label>}
+      {active.kind !== "add" && <label className="wide"><span>{active.kind === "edit" ? "Reason for changing this action" : `Status rationale${rationaleRequired ? "" : " (optional)"}`}</span><textarea value={rationale} onChange={(event) => setRationale(event.target.value)} rows={2} required={rationaleRequired}/></label>}
       {error && <div className="matter-form-error wide" role="alert"><span>{error}</span>{conflict && <button className="secondary-button" type="button" onClick={onReload}>Reload current issue</button>}</div>}
-      <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving || (active.kind === "status" && !target)}>{saving ? "Saving…" : active.kind === "add" ? "Create assigned action" : active.kind === "edit" ? "Save action" : active.kind === "assign" ? "Assign action owner" : "Update action status"}</button><button className="text-button" type="button" onClick={() => setActive(null)}>Cancel</button></div>
+      <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving || (active.kind === "status" && !target)}>{saving ? "Saving…" : active.kind === "add" ? "Create assigned action" : active.kind === "edit" ? "Save action" : "Update action status"}</button><button className="text-button" type="button" onClick={() => setActive(null)}>Cancel</button></div>
       {activeAction && <p className="matter-form-context wide">Changing: {activeAction.title}</p>}
     </form>}
+    {active?.kind === "assign" && <FocusedSheet label="Change action owner" closeLabel="Close action reassignment" onClose={() => setActive(null)}>
+      <div className="cs-sheet-heading"><span className="eyebrow">Assigned performer</span><h2>Change action owner</h2><p>Choose an eligible performer for this action and record why the work is moving.</p></div>
+      <form className="cs-sheet-form" onSubmit={submit}>
+        <dl className="cs-sheet-facts"><div><dt>Action</dt><dd>{activeAction?.title ?? "Selected action"}</dd></div><div><dt>Current performer</dt><dd>{currentPerformerName ?? "Recorded performer unavailable"}</dd></div></dl>
+        <SelectField label="New action owner" value={owner || undefined} placeholder={reassignmentCandidates.length ? "Select an eligible performer" : "No alternative performer available"} allowsEmpty={false} isRequired isDisabled={!reassignmentCandidates.length} options={reassignmentCandidates.map((candidate) => ({ id: candidate.id, label: candidate.display_name, description: candidate.role ? `Eligible as ${responsibilityLabel(candidate.role)}` : undefined }))} onChange={(value) => setOwner(value ?? "")}/>
+        {!reassignmentCandidates.length && <Notice tone="warning">No alternative performer is currently eligible for this action. Update the responsibility route before changing the owner.</Notice>}
+        <Notice tone="info">After the assignment is recorded, ClearSight will attempt delivery of an assignment email to the staff mailbox held in the active directory. If no usable mailbox is available, the action assignment still takes effect and email delivery is recorded as unavailable.</Notice>
+        <TextArea label="Reason for action reassignment" value={rationale} onChange={setRationale} rows={3} isRequired description="This reason remains with the action assignment history."/>
+        {error && <Notice tone="error"><span>{error}</span>{conflict && <Button variant="secondary" onPress={onReload}>Reload current issue</Button>}</Notice>}
+        <div className="cs-sheet-actions"><Button type="button" variant="quiet" isDisabled={saving} onPress={() => setActive(null)}>Cancel</Button><Button type="submit" variant="primary" isDisabled={!owner || !rationale.trim()} isLoading={saving}>Assign action owner</Button></div>
+      </form>
+    </FocusedSheet>}
     {notice && <p className="inline-success" role="status">{notice}</p>}
   </article>;
 }

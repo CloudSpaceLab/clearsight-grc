@@ -20,7 +20,7 @@ const scripts = [
 await rm(outputDir, { recursive: true, force: true });
 await mkdir(logDir, { recursive: true });
 
-const buildEnvironment = { ...process.env, VITE_STATIC_DEMO: "true" };
+const buildEnvironment = { ...process.env, VITE_STATIC_DEMO: "true", VITE_UI_EVIDENCE: "true" };
 const build = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "build", "--", "--base=/"], {
   cwd: process.cwd(),
   env: buildEnvironment,

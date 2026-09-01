@@ -15,7 +15,6 @@ import "./journeys.css";
 import "./document-import.css";
 import "./document-handoff.css";
 import "./interventions.css";
-import "./automation-policies.css";
 import "./ai-governance.css";
 import "./product-finish.css";
 import "./design-system/index.css";
@@ -24,7 +23,6 @@ import "./visual-review-fixes.css";
 import "./capture-inputs.css";
 import "./capture-access.css";
 import "./operating-mutations.css";
-import "./matter-record.css";
 import "./program-record.css";
 import "./demo-login.css";
 import "./defect-review-fixes.css";
@@ -37,7 +35,7 @@ const App = lazy(() => import("./App"));
 void bootstrapApplication();
 
 async function bootstrapApplication() {
-  const staticDemo = import.meta.env.VITE_STATIC_DEMO === "true";
+  const staticDemo = import.meta.env.VITE_STATIC_DEMO === "true" && import.meta.env.VITE_UI_EVIDENCE === "true";
   if (staticDemo) await import("./staticDemoBootstrap");
 
   purgeLegacyCaptureSession(sessionStorage);

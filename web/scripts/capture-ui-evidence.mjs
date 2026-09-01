@@ -37,6 +37,7 @@ const captures = [
   { name: "86-vendor-form-readiness-light-1440x900", route: "#vendors", title: "Vendors", fixture: "vendor-no-form", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-form-readiness", openFormReadiness: true },
   { name: "87-vendor-link-sheet-light-1440x900", route: "#programs/program-ndpa", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-link-focused-sheet", openVendorLink: true },
   { name: "88-vendor-link-sheet-dark-mobile-390x844", route: "#programs/program-ndpa", title: "Programs", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "vendor-link-focused-sheet-mobile", openVendorLink: true },
+  { name: "89-matter-action-reassignment-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-action-reassignment", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "matter-action-reassignment", openActionReassignment: true },
 ];
 
 try {
@@ -94,6 +95,14 @@ async function capturePage(capture) {
       await dialog.waitFor({ state: "visible" });
       await dialog.getByLabel("Search vendor relationships").fill("Acme");
       await dialog.getByRole("radio", { name: /Acme Processing Limited.*Card transaction processing/ }).waitFor({ state: "visible" });
+    }
+    if (capture.openActionReassignment) {
+      await page.getByRole("button", { name: /Change owner for Complete the annual return evidence checklist/ }).click();
+      const dialog = page.getByRole("dialog", { name: "Change action owner" });
+      await dialog.waitFor({ state: "visible" });
+      await dialog.getByText("Privacy Control Owner", { exact: true }).waitFor({ state: "visible" });
+      await dialog.getByRole("button", { name: /Select an eligible performer New action owner/ }).waitFor({ state: "visible" });
+      if (await dialog.getByRole("button", { name: "Assign action owner" }).isEnabled()) throw new Error(`${capture.name} permits reassignment before a replacement and reason are entered`);
     }
     await saveScreenshot(page, capture.name);
     await record(page, capture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
@@ -162,7 +171,7 @@ async function assertFirstActionVisible(page, viewportHeight, name, touch) {
 
 async function assertFocusInsideSheet(page, name) {
   try {
-    await page.waitForFunction(() => Boolean(document.activeElement?.closest(".side-panel")));
+    await page.waitForFunction(() => Boolean(document.activeElement?.closest(".cs-sheet")));
   } catch {
     throw new Error(`${name} allowed keyboard focus to escape the focused-work sheet`);
   }
@@ -200,7 +209,7 @@ async function captureAuthorityForbidden() {
     await page.getByRole("button", { name: "Check authority" }).click();
     await page.getByRole("heading", { name: "Authority details are restricted" }).waitFor();
     await assertFocusInsideSheet(page, capture.name);
-    const authoritySheet = page.locator(".side-panel");
+    const authoritySheet = page.locator(".cs-sheet");
     if (await authoritySheet.getByText("Data Protection Compliance Officer").count()) throw new Error("Forbidden authority state leaked candidate details");
     await saveScreenshot(page, capture.name);
     await record(page, capture, "permission-denied");
@@ -211,7 +220,7 @@ async function captureAuthorityForbidden() {
 
 async function openEvidenceCapture(page) {
   await page.getByRole("button", { name: "Respond to evidence request" }).click();
-  await page.locator(".side-panel").waitFor({ state: "visible" });
+  await page.locator(".cs-sheet").waitFor({ state: "visible" });
 }
 
 async function fillCapture(page) {
@@ -224,7 +233,7 @@ async function captureEvidenceReviewAndReceipt() {
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
-    await page.locator(".side-panel").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
+    await page.locator(".cs-sheet").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
     await assertFocusInsideSheet(page, capture.name);
     await saveScreenshot(page, capture.name);
     await record(page, capture, "response-entry");
@@ -278,7 +287,7 @@ async function captureCaptureConflict() {
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
-    await page.locator(".side-panel").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
+    await page.locator(".cs-sheet").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
     await fillCapture(page);
     await page.getByRole("button", { name: "Review response" }).click();
     await page.getByRole("button", { name: "Submit response" }).click();
@@ -298,7 +307,7 @@ async function captureMobileCaptureAndFocus() {
     const more = page.getByText("More actions", { exact: true });
     if (await more.count()) await more.click();
     await page.getByRole("button", { name: "Respond to evidence request" }).click();
-    await page.locator(".side-panel").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
+    await page.locator(".cs-sheet").getByRole("heading", { name: "Confirm the remaining annual-return evidence owners" }).waitFor();
     await assertFocusInsideSheet(page, capture.name);
     await assertNoHorizontalOverflow(page, capture.name);
     await page.keyboard.press("Tab");
@@ -490,25 +499,44 @@ async function captureVendorTargetEntry(capture) {
 
 async function fillVendorWorkCreation(page, layout) {
   await page.getByRole("button", { name: "Request vendor work" }).click();
-  const relationship = page.getByLabel("Vendor relationship");
-  const form = page.getByLabel("Collection form");
-  const layoutSelect = page.getByLabel("Form layout");
-  const relationshipValues = await relationship.locator("option").evaluateAll((options) => options.map((option) => option.value));
-  await relationship.selectOption(relationshipValues.includes("vendor-link-program-payments") ? "vendor-link-program-payments" : "vendor-link-matter-payments");
-  await page.getByLabel("Request purpose", { exact: true }).fill("Confirm payment-service controls");
-  await page.getByLabel("Instructions for the vendor", { exact: true }).fill("Complete the control questions and provide the current independent assurance report.");
-  await form.selectOption("form-vendor-due-diligence:3");
-  const layouts = await layoutSelect.locator("option").evaluateAll((options) => options.map((option) => ({ value: option.value, label: option.textContent?.trim() })));
-  if (JSON.stringify(layouts) !== JSON.stringify([{ value: "AUTOMATIC", label: "Automatic" }, { value: "CLASSIC", label: "Classic" }, { value: "WIZARD", label: "Wizard" }])) throw new Error("Vendor work form does not offer Automatic, Classic and Wizard layouts");
-  await layoutSelect.selectOption("CLASSIC");
-  await layoutSelect.selectOption(layout);
-  const contact = page.getByLabel("Vendor contact", { exact: true });
-  const due = page.getByLabel("Due date", { exact: true });
+  await chooseSharedSelectOption(page, "Vendor relationship", 1);
+  await page.getByLabel(/Request purpose/).fill("Confirm payment-service controls");
+  await page.getByLabel(/Instructions for the vendor/).fill("Complete the control questions and provide the current independent assurance report.");
+  await chooseSharedSelectOption(page, "Collection form", /version 3/);
+  await assertSharedSelectOptions(page, "Form layout", ["Automatic", "Classic", "Wizard"]);
+  await chooseSharedSelectOption(page, "Form layout", "Classic");
+  await chooseSharedSelectOption(page, "Form layout", layout === "WIZARD" ? "Wizard" : "Automatic");
+  const contact = page.getByLabel(/Vendor contact/);
+  const due = page.getByLabel(/Due date/);
   if (await contact.getAttribute("type") !== "email" || await due.getAttribute("type") !== "date") throw new Error("Vendor work delivery fields do not use email and date input types");
   await contact.fill("security@acme.example");
   await due.fill("2026-09-30");
   await page.getByText("8 fields · 8 required · 1 document upload", { exact: true }).waitFor({ state: "visible" });
   if (!(await page.getByRole("button", { name: "Prepare and send request" }).isEnabled())) throw new Error("Vendor work request remains unavailable after every required field is completed");
+}
+
+async function chooseSharedSelectOption(page, label, option) {
+  const trigger = page.getByRole("button", { name: new RegExp(label, "i") });
+  await trigger.scrollIntoViewIfNeeded();
+  await trigger.click();
+  const listbox = page.getByRole("listbox");
+  await listbox.waitFor({ state: "visible" });
+  const options = listbox.getByRole("option");
+  if (typeof option === "number") await options.nth(option).click();
+  else await options.filter({ hasText: option }).click();
+  await listbox.waitFor({ state: "detached" });
+}
+
+async function assertSharedSelectOptions(page, label, expected) {
+  const trigger = page.getByRole("button", { name: new RegExp(label, "i") });
+  await trigger.scrollIntoViewIfNeeded();
+  await trigger.click();
+  const listbox = page.getByRole("listbox");
+  await listbox.waitFor({ state: "visible" });
+  const actual = (await listbox.getByRole("option").allTextContents()).map((value) => value.trim());
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Vendor work form layout options were ${JSON.stringify(actual)} instead of ${JSON.stringify(expected)}.`);
+  await page.keyboard.press("Escape");
+  await listbox.waitFor({ state: "detached" });
 }
 
 async function captureVendorWorkCreation() {
@@ -550,7 +578,7 @@ async function captureVendorWorkDeliveryRecovery() {
     await page.getByRole("heading", { name: "Current requests" }).scrollIntoViewIfNeeded();
     await saveScreenshot(page, capture.name);
     await record(page, capture, capture.state);
-    await page.getByLabel("Vendor contact", { exact: true }).fill("security@acme.example");
+    await page.getByLabel(/Vendor contact/).fill("security@acme.example");
     await retry.click();
     await page.getByText("Vendor request sent.", { exact: true }).waitFor({ state: "visible" });
     if (await page.getByRole("button", { name: "Retry delivery" }).count()) throw new Error("Retry delivery remained available after delivery succeeded");
@@ -590,7 +618,7 @@ async function captureVendorWorkReview() {
     const changeMessage = page.getByLabel("What the vendor must change", { exact: true });
     await changeMessage.fill("Provide a clean current assurance report and identify the accountable control owner.");
     await page.getByLabel("Control owner", { exact: true }).check();
-    await page.getByLabel("Vendor contact", { exact: true }).fill("security@acme.example");
+    await page.getByLabel(/Vendor contact/).fill("security@acme.example");
     await page.getByLabel("Revised due date", { exact: true }).fill("2026-10-07");
     if (!(await page.getByRole("button", { name: "Send change request" }).isEnabled())) throw new Error("Change request remains unavailable after its required decision record is complete");
     await page.locator(".vendor-work-decision textarea").first().scrollIntoViewIfNeeded();

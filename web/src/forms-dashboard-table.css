@@ -1,198 +1,33 @@
-.forms-library-table-wrap {
-  margin-top: 4px;
-  overflow: auto;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-}
-
-.forms-library-table {
-  min-width: 880px;
-}
-
-.forms-library-table th {
-  padding: 10px 12px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.forms-library-table td {
-  padding: 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
-  vertical-align: middle;
-}
-
-.forms-library-table tbody tr {
-  transition: background-color 140ms ease;
-}
-
-.forms-library-table tbody tr:hover {
-  background: color-mix(in srgb, var(--forms-accent) 3%, transparent);
-}
-
-.forms-library-table tbody tr.selected {
-  background: color-mix(in srgb, var(--forms-accent) 7%, transparent);
-}
-
-.forms-library-select {
-  width: 38px;
-}
-
-.forms-row-open {
+.forms-library-record,
+.forms-library-revision {
   display: grid;
-  width: 100%;
-  min-width: 220px;
-  gap: 3px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  text-align: left;
+  min-inline-size: 0;
+  gap: var(--cs-primitive-space-1);
 }
 
-.forms-row-open strong {
-  font-size: 13px;
-  line-height: 1.35;
+.forms-library-record strong,
+.forms-library-revision strong {
+  color: var(--cs-text-strong);
+  font-size: var(--cs-font-size-control);
+  line-height: var(--cs-leading-tight);
 }
 
-.forms-row-open span,
+.forms-library-record span,
 .forms-library-revision span {
-  max-width: 520px;
   overflow: hidden;
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  line-height: var(--cs-leading-body);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.forms-library-revision {
-  display: grid;
-  gap: 3px;
-}
-
-.forms-library-revision strong {
-  font-size: 12px;
-}
-
-.forms-library-owner,
-.forms-library-updated {
-  font-size: 11px;
-}
-
-.forms-row-action {
-  min-height: 34px;
-  border-color: transparent;
-  background: transparent;
-  color: var(--forms-accent);
-  font-weight: 650;
-}
-
-.forms-row-action:hover,
-.forms-row-action:focus-visible {
-  border-color: var(--border);
-  background: color-mix(in srgb, var(--forms-accent) 6%, transparent);
-}
-
-@media (max-width: 760px) {
-  .forms-library-table-wrap {
+@media (max-width: 700px) {
+  .forms-library-record span,
+  .forms-library-revision span {
     overflow: visible;
-    border-bottom: 0;
-  }
-
-  .forms-library-table,
-  .forms-library-table tbody {
-    display: grid;
-    width: 100%;
-    min-width: 0;
-    gap: 12px;
-  }
-
-  .forms-library-table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .forms-library-table tbody tr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 44px;
-    gap: 7px 12px;
-    padding: 14px;
-    border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
-    border-radius: 14px;
-    background: var(--surface);
-  }
-
-  .forms-library-table td {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    padding: 2px 0;
-    border-bottom: 0;
-  }
-
-  .forms-library-table td[data-label]::before {
-    flex: 0 0 auto;
-    color: var(--muted);
-    content: attr(data-label);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  .forms-library-table td[data-label] {
-    grid-column: 1 / -1;
-  }
-
-  .forms-library-table .forms-library-select {
-    grid-column: 2;
-    grid-row: 1;
-    width: 44px;
-    min-height: 44px;
-    justify-content: center;
-  }
-
-  .forms-library-table .forms-library-name {
-    grid-column: 1;
-    grid-row: 1;
-    min-height: 44px;
-  }
-
-  .forms-library-table .forms-row-open {
-    min-width: 0;
-    min-height: 44px;
-  }
-
-  .forms-library-table .forms-library-revision {
-    display: flex;
-  }
-
-  .forms-library-table .forms-library-revision span {
-    margin-left: auto;
-  }
-
-  .forms-library-table td:last-child {
-    grid-column: 1 / -1;
-    padding-top: 5px;
-  }
-
-  .forms-library-table .forms-row-action {
-    width: 100%;
-    min-height: 44px;
-    border-color: var(--border);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .forms-library-table tbody tr {
-    transition: none;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    white-space: normal;
   }
 }

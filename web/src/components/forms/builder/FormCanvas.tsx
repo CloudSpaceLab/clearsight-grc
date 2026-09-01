@@ -3,6 +3,7 @@ import type { FormFieldType } from "../../../monitoringTypes";
 import type { AuthoringField, AuthoringSection, FormDraft } from "../formAuthoring";
 import { fieldTypes } from "../formAuthoring";
 import type { BuilderSelection } from "./builderSelection";
+import { SelectField } from "../../ui";
 
 type Props = {
   draft: FormDraft;
@@ -23,7 +24,7 @@ type Props = {
 export function FormCanvas({ draft, selection, onPatch, onSectionsChange, onFieldChange, onFieldTypeChange, onSelect, onAddField, onAddSection, onMoveField, onReorderField, onDuplicateField, onRemoveField }: Props) {
   const pointerDrag = useRef<{ fromIndex: number; startX: number; startY: number; moved: boolean } | null>(null);
 
-  return <main className="form-builder-canvas" aria-label="Form canvas">
+  return <section className="form-builder-canvas" aria-label="Form canvas">
     <div className="form-canvas-document">
       <header data-builder-target="overview" className={selection.kind === "overview" ? "form-canvas-header selected" : "form-canvas-header"} onClick={() => onSelect({ kind: "overview" })}>
         <input
@@ -147,12 +148,15 @@ export function FormCanvas({ draft, selection, onPatch, onSectionsChange, onFiel
                   />
 
                   <div className="form-question-controls">
-                    <label>
-                      <span className="sr-only">Response type</span>
-                      <select aria-label="Response type" value={field.type} onFocus={() => onSelect({ kind: "field", fieldID: field.id })} onChange={(event) => onFieldTypeChange(index, event.target.value as FormFieldType)}>
-                        {fieldTypes.map((type) => <option value={type.value} key={type.value}>{type.label}</option>)}
-                      </select>
-                    </label>
+                    <SelectField
+                      label="Response type"
+                      isLabelHidden
+                      value={field.type}
+                      placeholder="Choose response type"
+                      options={fieldTypes.map((type) => ({ id: type.value, label: type.label }))}
+                      allowsEmpty={false}
+                      onChange={(value) => { if (value) { onSelect({ kind: "field", fieldID: field.id }); onFieldTypeChange(index, value as FormFieldType); } }}
+                    />
                     <label className="form-question-required"><span>Required</span><input type="checkbox" checked={field.required} onChange={(event) => onFieldChange(index, { required: event.target.checked })}/></label>
                   </div>
                 </article>;
@@ -166,5 +170,5 @@ export function FormCanvas({ draft, selection, onPatch, onSectionsChange, onFiel
 
       <button className="form-canvas-add-section" type="button" disabled={draft.sections.length >= 20} onClick={onAddSection}>+ Add section</button>
     </div>
-  </main>;
+  </section>;
 }

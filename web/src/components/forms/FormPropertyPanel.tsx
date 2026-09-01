@@ -4,6 +4,7 @@ import type { FormFieldType, FormTemplate } from "../../monitoringTypes";
 import type { CaptureFieldConstraints } from "../../types";
 import { reusableRefLabel, type AuthoringField, type AuthoringSection } from "./formAuthoring";
 import { FormFieldPropertyEditor } from "./FormFieldPropertyEditor";
+import { SelectField } from "../ui";
 
 type Props = {
   scoringMode: FormScoringMode;
@@ -84,8 +85,15 @@ export function FormPropertyPanel(props: Props) {
       {(props.reusableTemplates?.length ?? 0) > 0 && props.loadReusableTemplate && <details className="builder-reuse-section">
         <summary>Insert section from active template</summary>
         <div className="builder-control-grid">
-          <label><span>Active template revision</span><select value={selectedTemplateKey} onChange={(event) => void chooseReusableTemplate(event.target.value)}><option value="">Choose a template</option>{props.reusableTemplates!.map((ref) => <option key={`${ref.id}:${ref.version}`} value={`${ref.id}:${ref.version}`}>{reusableRefLabel(ref)}</option>)}</select></label>
-          {sourceTemplate && <label><span>Section to insert</span><select value={sourceSectionID} onChange={(event) => setSourceSectionID(event.target.value)}>{(sourceTemplate.sections ?? []).map((section) => <option key={section.id} value={section.id}>{section.title}</option>)}</select></label>}
+          <SelectField label="Active template revision" value={selectedTemplateKey || undefined} placeholder="Choose a template" options={props.reusableTemplates!.map((ref) => ({ id: `${ref.id}:${ref.version}`, label: reusableRefLabel(ref) }))} onChange={(value) => void chooseReusableTemplate(value ?? "")}/>
+          {sourceTemplate && <SelectField
+            label="Section to insert"
+            value={sourceSectionID}
+            placeholder="Choose a section"
+            allowsEmpty={false}
+            options={(sourceTemplate.sections ?? []).map((section) => ({ id: section.id, label: section.title }))}
+            onChange={(value) => { if (value) setSourceSectionID(value); }}
+          />}
         </div>
         {sourceState === "loading" && <p className="field-note" role="status">Loading the approved form version…</p>}
         {sourceState === "error" && <p className="inline-form-error" role="alert">The selected revision is no longer an active reusable template. No section was inserted.</p>}

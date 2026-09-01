@@ -8,6 +8,7 @@ await import("./staticDemoWorkflowRuntime.js");
 async function demo() {
   vi.resetModules();
   vi.stubEnv("VITE_STATIC_DEMO", "true");
+  vi.stubEnv("VITE_UI_EVIDENCE", "true");
   const module = await import("./staticDemo");
   await module.loadStaticDemoFixtures(async () => new Response(JSON.stringify(fixtures)));
   return module;
@@ -20,8 +21,18 @@ beforeEach(() => {
 });
 
 describe("static stakeholder demo transport", () => {
+  it("cannot enable fixture-backed transport outside the UI evidence runtime", async () => {
+    vi.resetModules();
+    vi.stubEnv("VITE_STATIC_DEMO", "true");
+    vi.stubEnv("VITE_UI_EVIDENCE", "false");
+
+    const module = await import("./staticDemo");
+
+    expect(module.staticDemoEnabled).toBe(false);
+  });
+
   it("loads one base-path runtime and can recover after an asset loads without installing it", async () => {
-    vi.resetModules(); vi.stubEnv("VITE_STATIC_DEMO", "true"); const module = await import("./staticDemo");
+    vi.resetModules(); vi.stubEnv("VITE_STATIC_DEMO", "true"); vi.stubEnv("VITE_UI_EVIDENCE", "true"); const module = await import("./staticDemo");
     const scope = globalThis as typeof globalThis & { ClearSightStaticWorkflowRuntime?: unknown }, runtime = scope.ClearSightStaticWorkflowRuntime; delete scope.ClearSightStaticWorkflowRuntime;
     const first = module.loadStaticDemoWorkflowRuntime("/clearsight-grc/");
     const second = module.loadStaticDemoWorkflowRuntime("/clearsight-grc/");
@@ -46,6 +57,7 @@ describe("static stakeholder demo transport", () => {
   it("loads fixtures from the configured deployment base path", async () => {
     vi.resetModules();
     vi.stubEnv("VITE_STATIC_DEMO", "true");
+    vi.stubEnv("VITE_UI_EVIDENCE", "true");
     const module = await import("./staticDemo");
     const requested: string[] = [];
 
@@ -159,6 +171,21 @@ describe("static stakeholder demo transport", () => {
     const programOperations = await staticDemoRequest<any>("/api/v1/programs/program-ndpa/operations?tenant_id=bank-demo");
     expect(programOperations.operations.find((item: any) => item.command === "program.evidence.assess" && item.subresource_id === "contract-return").can_act).toBe(true);
     expect(programOperations.operations.filter((item: any) => item.command === "program.evidence.assess" && item.subresource_id === "contract-training")).toEqual([expect.objectContaining({ can_act: false, assigned_to: expect.objectContaining({ id: "role-training-reviewer" }) })]);
+  });
+
+  it("uses the authorized Program Owner identity for the action-reassignment review fixture", async () => {
+    const module = await demo();
+    window.history.replaceState(null, "", "/?fixture=matter-action-reassignment");
+    await module.loadStaticDemoFixtures(async () => new Response(JSON.stringify(fixtures)));
+
+    const context = await module.staticDemoRequest<any>("/api/v1/context");
+    const operations = await module.staticDemoRequest<any>("/api/v1/matters/matter-gaid-change/operations?tenant_id=bank-demo");
+    const assign = operations.operations.find((item: any) => item.command === "matter.action.assign" && item.subresource_id === "action-1");
+    const transition = operations.operations.find((item: any) => item.command === "matter.action.transition" && item.subresource_id === "action-1");
+
+    expect(context.actor.id).toBe("role-dpo");
+    expect(assign).toMatchObject({ can_act: true, assigned_to: { id: "role-dpo" } });
+    expect(transition).toMatchObject({ assigned_to: { id: "role-privacy-control" } });
   });
 
   it("removes current Program and issue relationships while preserving version checks", async () => {
@@ -634,8 +661,10 @@ describe("static stakeholder demo transport", () => {
     const { staticDemoRequest } = await demo();
 
     window.history.replaceState(null, "", "/?fixture=forms-library-lifecycle");
-    const lifecycle = await staticDemoRequest<{ items: Array<{ template: { status: string } }> }>("/api/v1/forms/templates");
+    const lifecycle = await staticDemoRequest<{ items: Array<{ template: { status: string } }>; total: number; facets: { status: Record<string, number> } }>("/api/v1/forms/templates?facets=status");
     expect(lifecycle.items.map((item) => item.template.status)).toEqual(["DRAFT", "PENDING_APPROVAL", "ACTIVE", "RETIRED"]);
+    expect(lifecycle.total).toBe(4);
+    expect(lifecycle.facets.status).toEqual({ DRAFT: 1, PENDING_APPROVAL: 1, ACTIVE: 1, RETIRED: 1 });
 
     window.history.replaceState(null, "", "/?fixture=forms-library-governance");
     const saved = await staticDemoRequest<{ items: Array<{ name: string; filter: { status: string } }> }>("/api/v1/forms/saved-views");

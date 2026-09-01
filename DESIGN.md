@@ -38,9 +38,11 @@ Tokens have three levels:
 
 1. **Primitive tokens** (`--cs-primitive-*`) store raw colour, spacing, type, radius, border, icon, shadow, duration, easing and z-index values. Product components do not consume raw values when a semantic role exists.
 2. **Semantic tokens** express a role across theme and context: canvas/surface, primary/strong/muted text, default/strong/interactive/invalid border, primary/destructive action, information/success/warning/error/unknown feedback, focus, spacing, type, motion, overlay and document roles.
-3. **Component tokens** (`--cs-button-*`, `--cs-field-*`, `--cs-select-*`, `--cs-tabs-*`, `--cs-overlay-*`, `--cs-table-*` and related families) bind the semantic roles to a closed component contract. A new component token must be useful to every instance of that component family; page-specific layout stays in feature CSS.
+3. **Component tokens** (`--cs-button-*`, `--cs-action-card-*`, `--cs-field-*`, `--cs-search-*`, `--cs-checkbox-*`, `--cs-select-*`, `--cs-filter-chip-*`, `--cs-tabs-*`, `--cs-scope-*`, `--cs-overlay-*`, `--cs-popover-*`, `--cs-table-*` and related families) bind the semantic roles to a closed component contract. A new component token must be useful to every instance of that component family; page-specific layout stays in feature CSS.
 
 `web/src/design-system/tokens/` owns the three-level foundation. `web/src/ui-preferences.css` supplies compatible legacy theme mappings while surfaces migrate. Components must not create a private light/dark palette when a semantic role already represents the meaning.
+
+Shared action foregrounds are owned by the component token layer (`--cs-button-primary-text`, `--cs-button-secondary-text`, `--cs-button-quiet-text` and `--cs-button-destructive-text`). Legacy feature styles must not apply an unlayered global button foreground or font shorthand because that would override the layered component contract in both themes.
 
 Theme preference supports **System**, **Light** and **Dark**. Comfortable controls are 44px high. Compact controls are 40px high on a fine-pointer desktop; compact mode does not reduce touch targets below 44px. Spacing uses the 4px primitive scale with 8px as the normal grouping rhythm. Component radii come from the 6px, 10px and 14px primitives; large guide or illustration treatments may keep a larger documented radius outside operational controls. Shadows and blur remain subtle and never carry state.
 
@@ -59,21 +61,29 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | Family | Supported contract |
 | --- | --- |
 | `Button` | Primary, secondary, quiet and destructive actions; comfortable or compact density; disabled and loading states. |
+| `ActionCard` | One consequential route with a title, concise supporting context, optional icon and disabled state. |
 | `ActionLink` | Real navigation only. |
 | `IconButton` | Named icon actions using the Button variants. |
 | `FormField` | Shared label, required marker, guidance and validation anatomy. |
-| `TextField` | Text, search, email, URL and telephone values; disabled, read-only, invalid and loading states. |
-| `TextArea` | Multi-line responses; disabled, read-only, invalid and loading states. |
-| `SelectField` | One selection from a bounded list with themed listbox keyboard behavior. |
+| `TextField` | Text, search, email, URL, telephone, numeric, date, time and local date-time values; numeric minimum, maximum and step constraints; disabled, read-only, invalid and loading states. |
+| `SearchField` | Compact, visibly recognizable search for one named record population; labelled, loading and disabled states. |
+| `SelectableRecord` | One record in a bounded master list with visible title, metadata, optional supporting detail and accessible selected state. |
+| `CheckboxField` | Selected, unselected and indeterminate choices; visible or visually hidden labels; optional guidance and disabled state. |
+| `TextArea` | Multi-line responses with bounded length; disabled, read-only, invalid and loading states. |
+| `SelectField` | One selection from a bounded list with themed listbox keyboard behavior and a non-modal fixed overlay root outside sticky workspace layouts. The bounded listbox owns option scrolling. If focusing its initial selected option causes incidental document positioning, the field restores the pre-open position without closing; a later user page scroll still dismisses the list. Opening never resizes or locks the document container, and dialogs remain the dismissal boundary for their own lists. |
 | `Tabs` | Automatic peer-view navigation with one selected indicator and wrapped compact behavior. |
+| `ScopeBar` | One selected bounded result scope with stored counts and horizontal-overflow replacement behavior. |
 | `StatusBadge` | Neutral, information, success, warning, error and unknown labelled states. |
 | `Notice` | Information, success, warning and error conditions at the point of work. |
 | `Surface` | Related work containment without implying a record. |
 | `Card` | One coherent object or decision. |
 | `EmptyState` | A named checked population, current empty result and next valid action. |
 | `FilterBar` | Responsive fields, result count and clear handling. |
+| `FilterChip` | A removable applied filter or named action that reopens advanced filter logic; default and accent treatments. |
 | `DataTable` | Populated, selected, loading, pagination and stacked-mobile data presentation. |
-| `FocusedSheet` | Dismissable, focus-contained detail or action with full-height mobile replacement. |
+| `FocusedSheet` | Dismissable, focus-contained detail or action in default or wide composition, with full-height mobile replacement and shared heading, facts, form and action anatomy for governed work. Consequential in-flight submission may temporarily disable Escape, backdrop and close controls; the busy action and close control must explain that delivery is in progress. |
+| `FocusedDialog` | Centered, dismissable desktop decision or creation surface in default or wide composition, with full-height mobile replacement. |
+| `PopoverDialog` | Dismissable, focus-contained short contextual work anchored to its trigger. Long or consequential work uses `FocusedSheet`. |
 
 The static-only UI component gallery renders every family from production exports. New variants update the closed TypeScript union, component tokens, this table and the gallery in the same change.
 
@@ -91,6 +101,10 @@ Migration is explicit rather than inferred from visual similarity. A file is mig
 - **Dedicated page:** complex or protected work requiring several sections, parallel work or a durable saved state.
 
 The dedicated Program record keeps calculated state distinct from operating lifecycle status. Focused forms use only current Program-owned objects and authority-returned candidates. On narrow screens, the two-column record becomes a single reading order, action groups become full-width controls and fixed navigation must not cover the active form or result.
+
+Issue and Action reassignment uses one focused sheet that shows the exact work, current responsibility, an authority-returned eligible person and the required reason. Recording the assignment and attempting the assignee email are separate durable outcomes: the assignment remains effective if no usable staff mailbox is available, and the UI states that limitation before submission.
+
+Response handling names the actor's exact task. Reviewer, signatory, transmitter, acknowledgement recorder and issue authorizer actions use distinct labels, required basis fields and consequence copy. Sign-off never claims transmission; transmission never claims acknowledgement; authorization never claims that assigned work or an independent outcome check has completed.
 
 Do not default every concept to a dashboard card. Choose lists, rows, details, tables, timelines or focused forms according to the operator's task.
 
@@ -180,6 +194,8 @@ Vendor rows and details use a stored safe raster when available and a stable mon
 ### Vendor requests for Programs and issues
 
 A Program or issue or change may link one or more vendor relationships without transferring the bank owner's responsibility. `Request vendor work` uses the existing form revision, invitation, capture, artifact and submission experience. The request keeps one primary Program or Matter target, a concise purpose, a bank owner, a reviewer, a deadline and an immutable sequence of the initial request and any requested changes.
+
+`Request vendor work` opens as a wide focused sheet on desktop and a full-height replacement on narrow screens. Request kind, linked vendor work, approved form revision, layout, recipient and deadline use shared field contracts; opening any list must not shift the page or change the sticky workspace geometry.
 
 `Link vendor` opens a focused sheet with a blurred, opaque-fallback backdrop. Search is bounded and delayed briefly while typing; each choice shows the stored vendor icon or monogram, legal name, service, criticality and relationship status. The sheet traps keyboard focus, supports Escape, restores focus to its trigger and preserves the search, selection and purpose after a recoverable failure.
 

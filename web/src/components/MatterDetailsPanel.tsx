@@ -6,6 +6,8 @@ import { addMatterLink, assignMatter, retireMatterLink, updateMatterDetails } fr
 import type { MatterOperation } from "../matterOperationsApi";
 import type { MatterAggregate, ProgramAggregate, RecordResponsibleParty } from "../types";
 import { selectedDateEndOfLocalDay, storedDeadlineLocalDate } from "../dueDate";
+import { Button, FocusedSheet, Notice, SelectField, TextArea } from "./ui";
+import { matterOperationControlID } from "./matterHandoff";
 
 type Props = {
   aggregate: MatterAggregate;
@@ -44,6 +46,17 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [conflict, setConflict] = useState(false);
+
+  function beginAssignment() {
+    setNewOwner(assignmentOperation?.candidates?.find((candidate) => candidate.id !== aggregate.matter.owner_principal_id)?.id ?? assignmentOperation?.candidates?.[0]?.id ?? "");
+    setAssignmentReason("");
+    setAssigning(true);
+    setEditing(false);
+    setLinking(false);
+    setNotice("");
+    setError("");
+    setConflict(false);
+  }
 
   useEffect(() => {
     if (!aggregate.links.length) return;
@@ -120,8 +133,8 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
     <div className="matter-record-section-heading">
       <div><span className="eyebrow">Issue details</span><h2>Scope, timing and owner</h2></div>
       <div className="matter-panel-actions">
-        {detailsOperation?.can_act && !editing && <button className="secondary-button" type="button" onClick={() => { setEditing(true); setAssigning(false); setLinking(false); setNotice(""); }}>Edit issue details</button>}
-        {assignmentOperation?.can_act && !assigning && <button className="secondary-button" type="button" onClick={() => { setAssigning(true); setEditing(false); setLinking(false); setNotice(""); }}>Change issue owner</button>}
+        {detailsOperation?.can_act && !editing && <button id={matterOperationControlID(detailsOperation)} className="secondary-button" type="button" onClick={() => { setEditing(true); setAssigning(false); setLinking(false); setNotice(""); }}>Edit issue details</button>}
+        {assignmentOperation?.can_act && !assigning && <Button id={matterOperationControlID(assignmentOperation)} variant="secondary" onPress={beginAssignment}>Change issue owner</Button>}
         {linkOperation?.can_act && !linking && <button className="secondary-button" type="button" onClick={() => void beginLink()}>Link to Program</button>}
       </div>
     </div>
@@ -141,12 +154,17 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
       {error && <div className="matter-form-error wide" role="alert"><span>{error}</span>{conflict && <button className="secondary-button" type="button" onClick={onReload}>Reload current issue</button>}</div>}
       <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving}>{saving ? "Saving…" : "Save issue details"}</button><button className="text-button" type="button" onClick={() => setEditing(false)}>Cancel</button></div>
     </form>}
-    {assigning && <form className="matter-operation-form" onSubmit={saveAssignment}>
-      <label><span>New issue owner</span><select value={newOwner} onChange={(event) => setNewOwner(event.target.value)} required><option value="">Select an eligible owner</option>{assignmentOperation?.candidates?.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.display_name} · {candidate.role}</option>)}</select></label>
-      <label className="wide"><span>Reason for reassignment</span><textarea value={assignmentReason} onChange={(event) => setAssignmentReason(event.target.value)} rows={2} required/></label>
-      {error && <div className="matter-form-error wide" role="alert"><span>{error}</span>{conflict && <button className="secondary-button" type="button" onClick={onReload}>Reload current issue</button>}</div>}
-      <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving || !newOwner}>{saving ? "Assigning…" : "Assign issue owner"}</button><button className="text-button" type="button" onClick={() => setAssigning(false)}>Cancel</button></div>
-    </form>}
+    {assigning && <FocusedSheet label="Change issue owner" closeLabel="Close owner reassignment" onClose={() => setAssigning(false)}>
+      <div className="cs-sheet-heading"><span className="eyebrow">Accountable ownership</span><h2>Change issue owner</h2><p>Choose a person returned by the current authority route and record why responsibility is changing.</p></div>
+      <form className="cs-sheet-form" onSubmit={saveAssignment}>
+        <dl className="cs-sheet-facts"><div><dt>Issue</dt><dd>{aggregate.matter.title}</dd></div><div><dt>Current accountable owner</dt><dd>{owner?.display_name ?? storedOwner ?? "Issue owner not assigned"}</dd></div></dl>
+        <SelectField label="New issue owner" value={newOwner || undefined} placeholder="Select an eligible owner" allowsEmpty={false} isRequired options={(assignmentOperation?.candidates ?? []).map((candidate) => ({ id: candidate.id, label: candidate.role ? `${candidate.display_name} · ${candidate.role}` : candidate.display_name }))} onChange={(value) => setNewOwner(value ?? "")}/>
+        <Notice tone="info">After the assignment is recorded, ClearSight will attempt delivery of an assignment email to the staff mailbox held in the active directory. If no usable mailbox is available, the assignment still takes effect and email delivery is recorded as unavailable.</Notice>
+        <TextArea label="Reason for reassignment" value={assignmentReason} onChange={setAssignmentReason} rows={3} isRequired description="This reason remains with the issue ownership history."/>
+        {error && <Notice tone="error"><span>{error}</span>{conflict && <Button variant="secondary" onPress={onReload}>Reload current issue</Button>}</Notice>}
+        <div className="cs-sheet-actions"><Button type="button" variant="quiet" isDisabled={saving} onPress={() => setAssigning(false)}>Cancel</Button><Button type="submit" variant="primary" isDisabled={!newOwner || !assignmentReason.trim()} isLoading={saving}>Assign issue owner</Button></div>
+      </form>
+    </FocusedSheet>}
     {linking && <form className="matter-operation-form" onSubmit={saveLink}>
       <label className="wide"><span>Program</span><select value={programID} onChange={(event) => setProgramID(event.target.value)} required disabled={programsLoading}><option value="">{programsLoading ? "Loading visible Programs…" : "Select a visible Program"}</option>{programs.map((program) => <option key={program.program.id} value={program.program.id}>{program.program.name} · {program.program.code}</option>)}</select></label>
       <label><span>Relationship</span><select value={relationship} onChange={(event) => setRelationship(event.target.value)}><option value="AFFECTS">Affects this Program</option><option value="AROSE_FROM">Arose from this Program</option><option value="REMEDIATES">Remediates a gap in this Program</option><option value="EXCEPTION_TO">Records an exception to this Program</option></select></label>

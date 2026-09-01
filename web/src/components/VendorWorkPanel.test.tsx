@@ -67,6 +67,13 @@ const response = {
   ],
 };
 
+async function chooseRequestOption(label: string, option: string) {
+  const dialog = screen.getByRole("dialog", { name: "Request vendor work" });
+  fireEvent.click(within(dialog).getByRole("button", { name: new RegExp(label, "i") }));
+  fireEvent.click(await screen.findByRole("option", { name: option }));
+  await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+}
+
 describe("VendorWorkPanel", () => {
   beforeEach(() => {
     vi.mocked(loadVendorRelationshipLinks).mockReset().mockResolvedValue({ items: [link] });
@@ -91,12 +98,14 @@ describe("VendorWorkPanel", () => {
 
     await screen.findByText("No vendor requests have been recorded for this issue or change.");
     fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
-    fireEvent.change(screen.getByLabelText("Request type"), { target: { value: "ADDRESS_VERIFICATION" } });
+    expect(screen.getByRole("dialog", { name: "Request vendor work" })).toBeTruthy();
+    await chooseRequestOption("Request type", "Registered address verification");
 
-    expect(screen.getByLabelText("Address verification staff email")).toBeTruthy();
-    expect(screen.getByText(/access to this evidence request only/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Address verification staff email/)).toBeTruthy();
+    expect(screen.getByText(/can access only this evidence request/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Send address check" })).toBeTruthy();
-    expect(screen.getByRole("option", { name: "Verify vendor address · version 1" })).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Request vendor work" })).getByRole("button", { name: /Collection form/i }));
+    expect(await screen.findByRole("option", { name: "Verify vendor address · version 1" })).toBeTruthy();
     expect(screen.queryByRole("option", { name: "Submit current vendor certifications · version 1" })).toBeNull();
   });
 
@@ -116,10 +125,10 @@ describe("VendorWorkPanel", () => {
     expect(screen.queryByText("Matter resolved")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
-    fireEvent.change(screen.getByLabelText("Request type"), { target: { value: "CERTIFICATION_REFRESH" } });
-    expect(screen.getByText(/Request current ISO 27001 and PCI DSS evidence/)).toBeTruthy();
-    expect(screen.getByText(/submission does not mean the bank has accepted/i)).toBeTruthy();
-    expect(screen.getByLabelText("Vendor contact email")).toBeTruthy();
+    await chooseRequestOption("Request type", "ISO 27001 and PCI DSS evidence");
+    expect(screen.getByText(/asked for current ISO 27001 and PCI DSS evidence/i)).toBeTruthy();
+    expect(screen.getByText(/submission does not mean the bank accepted it/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Vendor contact email/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Send certification request" })).toBeTruthy();
   });
 
@@ -148,17 +157,17 @@ describe("VendorWorkPanel", () => {
 
     await screen.findByText("No vendor requests have been recorded for this Program.");
     fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
-    fireEvent.change(screen.getByLabelText("Vendor relationship"), { target: { value: "link-1" } });
-    fireEvent.change(screen.getByLabelText("Request purpose"), { target: { value: work.purpose } });
-    fireEvent.change(screen.getByLabelText("Instructions for the vendor"), { target: { value: work.instructions } });
-    fireEvent.change(screen.getByLabelText("Collection form"), { target: { value: "form-1:4" } });
-    fireEvent.change(screen.getByLabelText("Form layout"), { target: { value: "WIZARD" } });
-    expect((screen.getByLabelText("Vendor contact") as HTMLInputElement).type).toBe("email");
-    fireEvent.change(screen.getByLabelText("Vendor contact"), { target: { value: "assurance@vendor.example" } });
-    fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-09-30" } });
+    await chooseRequestOption("Vendor relationship", "Acme Processing Limited — Card transaction processing");
+    fireEvent.change(screen.getByLabelText(/Request purpose/), { target: { value: work.purpose } });
+    fireEvent.change(screen.getByLabelText(/Instructions for the vendor/), { target: { value: work.instructions } });
+    await chooseRequestOption("Collection form", "Vendor control confirmation · version 4");
+    await chooseRequestOption("Form layout", "Wizard");
+    expect((screen.getByLabelText(/Vendor contact/) as HTMLInputElement).type).toBe("email");
+    fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
 
     expect(screen.getByText("2 fields · 2 required · 1 document upload")).toBeTruthy();
-    expect(screen.getByText("Known vendor and service details will be shown with this request.")).toBeTruthy();
+    expect(screen.getByText(/Known vendor and service details will be shown with this request/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Prepare and send request" }));
 
     await waitFor(() => expect(prepareVendorWork).toHaveBeenCalledWith("relationship-1", expect.objectContaining({
@@ -169,6 +178,36 @@ describe("VendorWorkPanel", () => {
     expect(await screen.findByText("Waiting for vendor")).toBeTruthy();
   });
 
+  it("keeps an in-flight request open and prevents duplicate preparation", async () => {
+    let finishPrepare!: (value: VendorWorkRequest) => void;
+    vi.mocked(prepareVendorWork).mockImplementation(() => new Promise((resolve) => { finishPrepare = resolve; }));
+    vi.mocked(sendVendorWork).mockResolvedValue({ work: { ...work, state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 3 }, state: "DELIVERED" });
+    render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
+
+    await screen.findByText("No vendor requests have been recorded for this Program.");
+    fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
+    await chooseRequestOption("Vendor relationship", "Acme Processing Limited — Card transaction processing");
+    fireEvent.change(screen.getByLabelText(/Request purpose/), { target: { value: work.purpose } });
+    fireEvent.change(screen.getByLabelText(/Instructions for the vendor/), { target: { value: work.instructions } });
+    await chooseRequestOption("Collection form", "Vendor control confirmation · version 4");
+    fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
+    const submit = screen.getByRole("button", { name: "Prepare and send request" });
+    fireEvent.click(submit);
+    fireEvent.click(submit);
+
+    await waitFor(() => expect(prepareVendorWork).toHaveBeenCalledTimes(1));
+    const close = screen.getByRole("button", { name: "Vendor request is being sent" });
+    expect((close as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.keyDown(screen.getByRole("dialog", { name: "Request vendor work" }), { key: "Escape" });
+    fireEvent.mouseDown(document.querySelector(".cs-sheet__overlay") as HTMLElement);
+    expect(screen.getByRole("dialog", { name: "Request vendor work" })).toBeTruthy();
+
+    finishPrepare(work);
+    expect(await screen.findByText("Waiting for vendor")).toBeTruthy();
+    expect(sendVendorWork).toHaveBeenCalledTimes(1);
+  });
+
   it("starts linked Program or issue work from the selected vendor relationship", async () => {
     vi.mocked(prepareVendorWork).mockResolvedValue(work);
     vi.mocked(sendVendorWork).mockResolvedValue({ work: { ...work, state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 3 }, state: "DELIVERED" });
@@ -177,13 +216,12 @@ describe("VendorWorkPanel", () => {
     await screen.findByText("No vendor requests have been recorded for this vendor relationship.");
     expect(loadVendorRelationshipLinks).toHaveBeenCalledWith({ relationship_id: "relationship-1", limit: 50 });
     fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
-    expect(screen.getByRole("option", { name: "Program · Service support" })).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Related Program or issue"), { target: { value: "link-1" } });
-    fireEvent.change(screen.getByLabelText("Request purpose"), { target: { value: work.purpose } });
-    fireEvent.change(screen.getByLabelText("Instructions for the vendor"), { target: { value: work.instructions } });
-    fireEvent.change(screen.getByLabelText("Collection form"), { target: { value: "form-1:4" } });
-    fireEvent.change(screen.getByLabelText("Vendor contact"), { target: { value: "assurance@vendor.example" } });
-    fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-09-30" } });
+    await chooseRequestOption("Related Program or issue", "Program · Service support");
+    fireEvent.change(screen.getByLabelText(/Request purpose/), { target: { value: work.purpose } });
+    fireEvent.change(screen.getByLabelText(/Instructions for the vendor/), { target: { value: work.instructions } });
+    await chooseRequestOption("Collection form", "Vendor control confirmation · version 4");
+    fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
     fireEvent.click(screen.getByRole("button", { name: "Prepare and send request" }));
     await waitFor(() => expect(prepareVendorWork).toHaveBeenCalledWith("relationship-1", expect.objectContaining({ relationship_link_id: "link-1" })));
   });
@@ -193,17 +231,17 @@ describe("VendorWorkPanel", () => {
     render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
     await screen.findByText("No vendor requests have been recorded for this Program.");
     fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
-    fireEvent.change(screen.getByLabelText("Vendor relationship"), { target: { value: "link-1" } });
-    fireEvent.change(screen.getByLabelText("Request purpose"), { target: { value: work.purpose } });
-    fireEvent.change(screen.getByLabelText("Instructions for the vendor"), { target: { value: work.instructions } });
-    fireEvent.change(screen.getByLabelText("Collection form"), { target: { value: "form-1:4" } });
-    fireEvent.change(screen.getByLabelText("Vendor contact"), { target: { value: "assurance@vendor.example" } });
-    fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-09-30" } });
+    await chooseRequestOption("Vendor relationship", "Acme Processing Limited — Card transaction processing");
+    fireEvent.change(screen.getByLabelText(/Request purpose/), { target: { value: work.purpose } });
+    fireEvent.change(screen.getByLabelText(/Instructions for the vendor/), { target: { value: work.instructions } });
+    await chooseRequestOption("Collection form", "Vendor control confirmation · version 4");
+    fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
     fireEvent.click(screen.getByRole("button", { name: "Prepare and send request" }));
 
     expect((await screen.findByRole("alert")).textContent).toContain("The vendor request could not be prepared");
-    expect((screen.getByLabelText("Request purpose") as HTMLInputElement).value).toBe(work.purpose);
-    expect((screen.getByLabelText("Vendor contact") as HTMLInputElement).value).toBe("assurance@vendor.example");
+    expect((screen.getByLabelText(/Request purpose/) as HTMLInputElement).value).toBe(work.purpose);
+    expect((screen.getByLabelText(/Vendor contact/) as HTMLInputElement).value).toBe("assurance@vendor.example");
   });
 
   it("shows the current request action and keeps completed requests in history", async () => {
@@ -236,12 +274,12 @@ describe("VendorWorkPanel", () => {
     render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
     await screen.findByText("No vendor requests have been recorded for this Program.");
     fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
-    fireEvent.change(screen.getByLabelText("Vendor relationship"), { target: { value: "link-1" } });
-    fireEvent.change(screen.getByLabelText("Request purpose"), { target: { value: work.purpose } });
-    fireEvent.change(screen.getByLabelText("Instructions for the vendor"), { target: { value: work.instructions } });
-    fireEvent.change(screen.getByLabelText("Collection form"), { target: { value: "form-1:4" } });
-    fireEvent.change(screen.getByLabelText("Vendor contact"), { target: { value: "assurance@vendor.example" } });
-    fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-09-30" } });
+    await chooseRequestOption("Vendor relationship", "Acme Processing Limited — Card transaction processing");
+    fireEvent.change(screen.getByLabelText(/Request purpose/), { target: { value: work.purpose } });
+    fireEvent.change(screen.getByLabelText(/Instructions for the vendor/), { target: { value: work.instructions } });
+    await chooseRequestOption("Collection form", "Vendor control confirmation · version 4");
+    fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
     fireEvent.click(screen.getByRole("button", { name: "Prepare and send request" }));
 
     expect(await screen.findByRole("button", { name: "Copy secure link" })).toBeTruthy();
@@ -394,6 +432,7 @@ describe("VendorWorkPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Load more linked vendors" }));
 
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Request vendor work" })).getByRole("button", { name: /Vendor relationship/i }));
     expect(await screen.findByRole("option", { name: "Acme Processing Limited — Payment reconciliation" })).toBeTruthy();
     expect(loadVendorRelationshipLinks).toHaveBeenLastCalledWith({ target_type: "PROGRAM", target_id: "program-1", cursor: "next-link", limit: 50 });
   });
@@ -404,12 +443,12 @@ describe("VendorWorkPanel", () => {
     const view = render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
     await screen.findByText("No vendor requests have been recorded for this Program.");
     fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
-    fireEvent.change(screen.getByLabelText("Vendor relationship"), { target: { value: "link-1" } });
-    fireEvent.change(screen.getByLabelText("Request purpose"), { target: { value: work.purpose } });
-    fireEvent.change(screen.getByLabelText("Instructions for the vendor"), { target: { value: work.instructions } });
-    fireEvent.change(screen.getByLabelText("Collection form"), { target: { value: "form-1:4" } });
-    fireEvent.change(screen.getByLabelText("Vendor contact"), { target: { value: "assurance@vendor.example" } });
-    fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-09-30" } });
+    await chooseRequestOption("Vendor relationship", "Acme Processing Limited — Card transaction processing");
+    fireEvent.change(screen.getByLabelText(/Request purpose/), { target: { value: work.purpose } });
+    fireEvent.change(screen.getByLabelText(/Instructions for the vendor/), { target: { value: work.instructions } });
+    await chooseRequestOption("Collection form", "Vendor control confirmation · version 4");
+    fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
     fireEvent.click(screen.getByRole("button", { name: "Prepare and send request" }));
 
     view.rerender(<VendorWorkPanel targetType="MATTER" targetID="matter-2"/>);

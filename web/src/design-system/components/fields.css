@@ -5,6 +5,47 @@
   min-width: 0;
 }
 
+.cs-search-field {
+  position: relative;
+  display: block;
+  inline-size: min(100%, var(--cs-search-width));
+  min-inline-size: 0;
+}
+
+.cs-search-field__icon {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: var(--cs-search-icon-inset);
+  inline-size: var(--cs-search-icon-size);
+  block-size: var(--cs-search-icon-size);
+  transform: translateY(-50%);
+  fill: none;
+  stroke: var(--cs-field-description);
+  stroke-linecap: round;
+  stroke-width: 1.8;
+  pointer-events: none;
+}
+
+.cs-search-field__control {
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: var(--cs-field-height);
+  padding-inline: calc(var(--cs-search-icon-inset) + var(--cs-search-icon-size) + var(--cs-primitive-space-2)) var(--cs-field-padding-inline);
+  border: var(--cs-field-border-width) solid var(--cs-field-border);
+  border-radius: var(--cs-field-radius);
+  background: var(--cs-field-bg);
+  color: var(--cs-field-text);
+  font-size: var(--cs-font-size-control);
+}
+
+.cs-search-field__control:focus-visible {
+  outline: var(--cs-focus-width) solid var(--cs-field-focus);
+  outline-offset: var(--cs-focus-offset);
+  border-color: var(--cs-border-interactive);
+}
+
+.cs-search-field[data-disabled] { opacity: var(--cs-field-disabled-opacity); }
+
 .cs-field__label,
 .cs-select-field__label {
   color: var(--cs-field-label);
@@ -58,6 +99,20 @@ textarea.cs-field__control {
   resize: vertical;
 }
 
+.cs-field__control:is([type="date"], [type="time"], [type="datetime-local"]) {
+  color-scheme: inherit;
+  min-inline-size: 0;
+}
+
+.cs-field__control:is([type="date"], [type="time"], [type="datetime-local"])::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+.cs-field__control:is([type="date"], [type="time"], [type="datetime-local"]):disabled::-webkit-calendar-picker-indicator,
+.cs-field__control:is([type="date"], [type="time"], [type="datetime-local"])[readonly]::-webkit-calendar-picker-indicator {
+  cursor: default;
+}
+
 .cs-field__description,
 .cs-select-field__description,
 .cs-field__error,
@@ -101,8 +156,7 @@ textarea.cs-field__control {
 
 .cs-select-field__popover {
   min-width: var(--trigger-width);
-  max-height: var(--cs-select-popover-max-height);
-  overflow: auto;
+  overflow: hidden;
   padding: var(--cs-select-popover-padding);
   border: var(--cs-field-border-width) solid var(--cs-select-popover-border);
   border-radius: var(--cs-select-popover-radius);
@@ -115,6 +169,10 @@ textarea.cs-field__control {
 .cs-select-field__listbox {
   display: grid;
   gap: var(--cs-primitive-space-1);
+  max-height: var(--cs-select-popover-max-height);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   outline: none;
 }
 
@@ -149,13 +207,70 @@ textarea.cs-field__control {
   font-size: var(--cs-font-size-caption);
 }
 
+.cs-checkbox-field {
+  display: inline-grid;
+  grid-template-columns: var(--cs-checkbox-size) minmax(0, 1fr);
+  gap: var(--cs-field-gap);
+  align-items: start;
+  color: var(--cs-field-text);
+  cursor: pointer;
+}
+
+.cs-checkbox-field__box {
+  display: grid;
+  width: var(--cs-checkbox-size);
+  height: var(--cs-checkbox-size);
+  place-items: center;
+  border: var(--cs-checkbox-border-width) solid var(--cs-checkbox-border);
+  border-radius: var(--cs-checkbox-radius);
+  background: var(--cs-checkbox-bg);
+  color: var(--cs-checkbox-selected-text);
+  font-weight: 800;
+}
+
+.cs-checkbox-field[data-selected] .cs-checkbox-field__box,
+.cs-checkbox-field[data-indeterminate] .cs-checkbox-field__box {
+  border-color: var(--cs-checkbox-selected-bg);
+  background: var(--cs-checkbox-selected-bg);
+}
+
+.cs-checkbox-field[data-focus-visible] .cs-checkbox-field__box {
+  outline: var(--cs-focus-width) solid var(--cs-checkbox-focus);
+  outline-offset: var(--cs-focus-offset);
+}
+
+.cs-checkbox-field[data-disabled] {
+  opacity: var(--cs-field-disabled-opacity);
+  cursor: not-allowed;
+}
+
+.cs-checkbox-field__content { display: grid; gap: var(--cs-primitive-space-1); min-width: 0; }
+.cs-checkbox-field__label { color: var(--cs-field-label); font-size: var(--cs-font-size-control); font-weight: 700; }
+.cs-checkbox-field__description { color: var(--cs-field-description); font-size: var(--cs-font-size-caption); line-height: var(--cs-leading-body); }
+.cs-checkbox-field--label-hidden { display: inline-grid; grid-template-columns: var(--cs-checkbox-size); }
+.cs-checkbox-field--label-hidden .cs-checkbox-field__content { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
 @media (max-width: 760px) {
   .cs-field__control,
-  .cs-select-field__trigger { font-size: var(--cs-font-size-input-mobile); }
+  .cs-select-field__trigger,
+  .cs-search-field__control { font-size: var(--cs-font-size-input-mobile); }
+}
+
+.cs-field--label-hidden > .cs-field__label,
+.cs-select-field--label-hidden > .cs-select-field__label {
+  position: absolute;
+  inline-size: var(--cs-primitive-border-1);
+  block-size: var(--cs-primitive-border-1);
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 @media (forced-colors: active) {
   .cs-field__control,
   .cs-select-field__trigger,
-  .cs-select-field__popover { border-color: CanvasText; }
+  .cs-select-field__popover,
+  .cs-search-field__control { border-color: CanvasText; }
+  .cs-checkbox-field__box { border-color: CanvasText; }
+  .cs-checkbox-field[data-selected] .cs-checkbox-field__box,
+  .cs-checkbox-field[data-indeterminate] .cs-checkbox-field__box { background: Highlight; color: HighlightText; }
 }

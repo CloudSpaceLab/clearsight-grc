@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { FormTemplate } from "../../monitoringTypes";
 import { FormPropertyPanel } from "./FormPropertyPanel";
@@ -61,14 +61,15 @@ describe("FormPropertyPanel reusable revisions", () => {
     const load = vi.fn((id: string) => id === "template-a" ? a.promise : b.promise);
     renderPanel(load);
     fireEvent.click(screen.getByText("Insert section from active template"));
-    const selector = screen.getByLabelText("Active template revision");
-
-    fireEvent.change(selector, { target: { value: "template-a:2" } });
-    fireEvent.change(selector, { target: { value: "template-b:4" } });
+    fireEvent.click(screen.getByRole("button", { name: /Active template revision/ }));
+    fireEvent.click(screen.getByRole("option", { name: "Template A · active v2" }));
+    fireEvent.click(screen.getByRole("button", { name: /Active template revision/ }));
+    fireEvent.click(screen.getByRole("option", { name: "Template B · active v4" }));
     b.resolve(template("template-b", 4, "ACTIVE", "b-section", "Current B"));
 
-    const sectionSelector = await screen.findByLabelText("Section to insert");
-    expect(within(sectionSelector).getByRole("option", { name: "Current B" })).toBeTruthy();
+    const sectionSelector = await screen.findByRole("button", { name: /Section to insert/ });
+    fireEvent.click(sectionSelector);
+    expect(screen.getByRole("option", { name: "Current B" })).toBeTruthy();
 
     a.resolve(template("template-a", 2, "ACTIVE", "a-section", "Stale A"));
     await waitFor(() => expect(screen.queryByRole("option", { name: "Stale A" })).toBeNull());
@@ -77,7 +78,8 @@ describe("FormPropertyPanel reusable revisions", () => {
   it("refuses a revision that is no longer active at insertion time", async () => {
     renderPanel(vi.fn().mockResolvedValue(template("template-a", 2, "RETIRED", "a-section", "Retired A")));
     fireEvent.click(screen.getByText("Insert section from active template"));
-    fireEvent.change(screen.getByLabelText("Active template revision"), { target: { value: "template-a:2" } });
+    fireEvent.click(screen.getByRole("button", { name: /Active template revision/ }));
+    fireEvent.click(screen.getByRole("option", { name: "Template A · active v2" }));
 
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("no longer an active reusable template");

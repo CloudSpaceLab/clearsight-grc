@@ -180,7 +180,7 @@ async function capturePresentationCover() {
   const { context, page } = await openPage({ ...capture, route: "#today", tour: "on", reducedMotion: "reduce" });
   try {
     await assertCinematicGuide(page, "Today guide", "presentation cover");
-    if (await page.locator("[role=dialog], .side-panel").count()) throw new Error("presentation cover contains an open modal or focused-work panel");
+    if (await page.locator("[role=dialog], .cs-sheet").count()) throw new Error("presentation cover contains an open modal or focused-work panel");
     await page.screenshot({ path: coverPath, fullPage: false, animations: "disabled", caret: "hide" });
     const dimensions = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
     if (dimensions.width !== 1600 || dimensions.height !== 900) throw new Error(`presentation cover viewport is ${dimensions.width}x${dimensions.height}`);

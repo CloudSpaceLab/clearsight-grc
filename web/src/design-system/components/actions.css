@@ -98,6 +98,95 @@
   animation: cs-button-spin var(--cs-motion-slow) linear infinite;
 }
 
+.cs-action-card {
+  display: grid;
+  grid-template-columns: var(--cs-target-min) minmax(0, 1fr) auto;
+  min-height: var(--cs-action-card-min-height);
+  align-items: center;
+  gap: var(--cs-space-inline);
+  padding: var(--cs-action-card-padding);
+  border: var(--cs-button-border-width) solid var(--cs-action-card-border);
+  border-radius: var(--cs-action-card-radius);
+  background: var(--cs-action-card-bg);
+  color: var(--cs-text-primary);
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--cs-button-transition), border-color var(--cs-button-transition), transform var(--cs-button-transition);
+}
+
+.cs-action-card__icon {
+  display: grid;
+  width: var(--cs-target-min);
+  height: var(--cs-target-min);
+  place-items: center;
+  border-radius: var(--cs-button-radius);
+  background: var(--cs-action-card-icon-bg);
+  color: var(--cs-action-card-icon-text);
+}
+
+.cs-action-card__copy { display: grid; gap: var(--cs-primitive-space-1); min-width: 0; }
+.cs-action-card__copy strong { color: var(--cs-text-strong); font-size: var(--cs-font-size-control); }
+.cs-action-card__copy small { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); line-height: var(--cs-leading-body); }
+.cs-action-card__arrow { color: var(--cs-text-muted); font-size: var(--cs-primitive-font-size-22); }
+
+.cs-action-card[data-hovered],
+.cs-action-card[data-pressed] { border-color: var(--cs-action-card-border-hover); background: var(--cs-action-card-bg-hover); }
+.cs-action-card[data-pressed] { transform: translateY(var(--cs-primitive-border-1)); }
+.cs-action-card[data-focus-visible] { outline: var(--cs-focus-width) solid var(--cs-button-focus); outline-offset: var(--cs-focus-offset); }
+.cs-action-card[data-disabled] { opacity: var(--cs-button-disabled-opacity); cursor: not-allowed; transform: none; }
+
+.cs-selectable-record {
+  display: grid;
+  width: 100%;
+  gap: var(--cs-primitive-space-1);
+  padding: var(--cs-action-card-padding);
+  border: var(--cs-button-border-width) solid var(--cs-action-card-border);
+  border-radius: var(--cs-action-card-radius);
+  background: var(--cs-action-card-bg);
+  text-align: start;
+}
+
+.cs-selectable-record[data-hovered] {
+  border-color: var(--cs-action-card-border-hover);
+  background: var(--cs-action-card-bg-hover);
+}
+
+.cs-selectable-record[data-selected] {
+  border-color: var(--cs-border-interactive);
+  background: var(--cs-bg-surface-hover);
+}
+
+.cs-selectable-record[data-focus-visible] {
+  outline: var(--cs-focus-width) solid var(--cs-focus-ring);
+}
+
+.cs-selectable-record__title { color: var(--cs-text-strong); font-weight: 700; overflow-wrap: anywhere; }
+.cs-selectable-record__metadata { color: var(--cs-text-primary); font-size: var(--cs-font-size-caption); }
+.cs-selectable-record__description { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+
+.cs-filter-chip {
+  display: inline-flex;
+  min-block-size: var(--cs-filter-chip-height);
+  max-inline-size: 280px;
+  align-items: center;
+  gap: var(--cs-filter-chip-gap);
+  padding-inline: var(--cs-filter-chip-padding-inline);
+  border: var(--cs-button-border-width) solid var(--cs-filter-chip-border);
+  border-radius: var(--cs-filter-chip-radius);
+  background: var(--cs-filter-chip-bg);
+  color: var(--cs-text-primary);
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+}
+
+.cs-filter-chip--accent { border-color: var(--cs-filter-chip-accent-border); }
+.cs-filter-chip__label { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+.cs-filter-chip__value { overflow: hidden; color: var(--cs-text-strong); font-size: var(--cs-font-size-caption); text-overflow: ellipsis; }
+.cs-filter-chip__remove { color: var(--cs-text-muted); font-size: var(--cs-primitive-font-size-18); line-height: 1; }
+.cs-filter-chip[data-hovered], .cs-filter-chip[data-pressed] { background: var(--cs-filter-chip-hover); border-color: var(--cs-filter-chip-accent-border); }
+.cs-filter-chip[data-focus-visible] { outline: var(--cs-focus-width) solid var(--cs-button-focus); outline-offset: var(--cs-focus-offset); }
+
 @keyframes cs-button-spin {
   to { transform: rotate(1turn); }
 }
@@ -106,4 +195,6 @@
   .cs-button,
   .cs-icon-button,
   .cs-action-link { border-color: ButtonText; }
+  .cs-action-card { border-color: ButtonText; }
+  .cs-filter-chip { border-color: ButtonText; }
 }

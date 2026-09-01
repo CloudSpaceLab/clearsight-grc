@@ -1,15 +1,22 @@
 import { useState, type ReactNode } from "react";
 import {
+  ActionCard,
   ActionLink,
   Button,
   Card,
+  CheckboxField,
   DataTable,
   EmptyState,
   FilterBar,
+  FilterChip,
   FocusedSheet,
   FormField,
   IconButton,
   Notice,
+  PopoverDialog,
+  ScopeBar,
+  SearchField,
+  SelectableRecord,
   SelectField,
   StatusBadge,
   Surface,
@@ -41,10 +48,13 @@ const sampleColumns: readonly DataColumn<SampleRow>[] = [
 
 export function UIComponentGallery() {
   const [name, setName] = useState("Sample vendor");
+  const [included, setIncluded] = useState(false);
   const [notes, setNotes] = useState("");
   const [selection, setSelection] = useState<"OPEN" | "LOCKED">("OPEN");
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [busySheetOpen, setBusySheetOpen] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   return <main className="ui-gallery">
     <header className="ui-gallery__header">
@@ -57,6 +67,7 @@ export function UIComponentGallery() {
       <Contract family="Button" job="Runs one named action." keyboard="Enter or Space activates it." prohibited="Do not style a native button in a feature.">
         <div className="ui-gallery__row"><Button variant="primary">Send sample form</Button><Button>Save sample draft</Button><Button variant="quiet">Cancel sample change</Button><Button variant="destructive">Revoke sample request</Button><Button isLoading>Saving sample draft</Button><Button isDisabled>Unavailable action</Button></div>
       </Contract>
+      <Contract family="ActionCard" job="Offers one consequential route with concise supporting context." keyboard="Enter or Space activates it." prohibited="Do not rebuild a card-shaped button in a feature."><ActionCard title="Create sample request" description="Start a governed sample evidence request" icon={<span aria-hidden="true">+</span>}/></Contract>
       <Contract family="ActionLink" job="Navigates to another location." keyboard="Enter follows the link." prohibited="Do not use it for an in-place command."><ActionLink href="#sample-destination">Open sample destination</ActionLink></Contract>
       <Contract family="IconButton" job="Runs a compact, named icon action." keyboard="Enter or Space activates it." prohibited="Do not omit its accessible business name."><IconButton aria-label="Close sample panel"><span aria-hidden="true">×</span></IconButton></Contract>
     </GalleryGroup>
@@ -66,17 +77,21 @@ export function UIComponentGallery() {
         <FormField label="Sample reference" description="Enter the reference used for this sample." isRequired>{(control) => <input {...control} value="SAMPLE-001" readOnly/>}</FormField>
       </Contract>
       <Contract family="TextField" job="Collects one short text value." keyboard="Tab focuses the field." prohibited="Do not use it for a bounded option list.">
-        <div className="ui-gallery__grid"><TextField label="Sample vendor name" value={name} onChange={setName}/><TextField label="Sample invalid value" value="Unverified" onChange={() => undefined} errorMessage="Provide the verified sample value."/><TextField label="Sample read-only owner" value="Sample Compliance Officer" onChange={() => undefined} isReadOnly/><TextField label="Sample disabled field" value="Unavailable" onChange={() => undefined} isDisabled/></div>
+        <div className="ui-gallery__grid"><TextField label="Sample vendor name" value={name} onChange={setName}/><TextField label="Sample response limit" type="number" value="5" min={1} max={10} step={1} onChange={() => undefined}/><TextField label="Sample invalid value" value="Unverified" onChange={() => undefined} errorMessage="Provide the verified sample value."/><TextField label="Sample read-only owner" value="Sample Compliance Officer" onChange={() => undefined} isReadOnly/><TextField label="Sample disabled field" value="Unavailable" onChange={() => undefined} isDisabled/></div>
       </Contract>
+      <Contract family="SearchField" job="Searches the current named record population." keyboard="Tab focuses the search field." prohibited="Do not use it for an unlabeled general input."><SearchField label="Search sample requests" value="" placeholder="Search sample requests…" onChange={() => undefined}/></Contract>
       <Contract family="TextArea" job="Collects a longer written response." keyboard="Tab focuses the field; line breaks remain available." prohibited="Do not use it for file evidence."><TextArea label="Sample review note" value={notes} onChange={setNotes} description="Describe what the sample reviewer confirmed."/></Contract>
     </GalleryGroup>
 
     <GalleryGroup title="Selection">
+      <Contract family="CheckboxField" job="Includes or excludes one named option." keyboard="Space changes the selection after focus." prohibited="Do not use it for mutually exclusive choices."><CheckboxField label="Include sample evidence" description="Adds the sample evidence to this review only." isSelected={included} onChange={setIncluded}/></Contract>
       <Contract family="SelectField" job="Selects one value from a bounded list." keyboard="Arrow keys move; Enter selects; Escape closes." prohibited="Do not replace searchable remote results with this control."><SelectField label="Sample response status" value={selection} placeholder="Select sample status" options={selections} onChange={(value) => value && setSelection(value)}/></Contract>
+      <Contract family="SelectableRecord" job="Selects one record for review while preserving its visible context." keyboard="Enter or Space selects the record." prohibited="Do not rebuild a raw list button with page-specific selected styles."><SelectableRecord title="Sample vendor response" metadata="Current · Submitted 27 August 2026" description="Email verified · Compliance score 86%" isSelected onPress={() => undefined}/></Contract>
     </GalleryGroup>
 
     <GalleryGroup title="Navigation">
       <Contract family="Tabs" job="Moves between peer views in one workspace." keyboard="Arrow keys move and activate; Home and End jump." prohibited="Do not add a second selected indicator."><Tabs ariaLabel="Sample request views" items={tabs} selectedKey={tab} onSelectionChange={setTab}>{(key) => <p>{key === "PENDING" ? "Sample requests awaiting review." : "Sample requests completed in this fixture."}</p>}</Tabs></Contract>
+      <Contract family="ScopeBar" job="Changes one bounded result scope and shows stored counts." keyboard="Tab reaches each scope; Enter or Space selects it." prohibited="Do not present unknown counts as zero."><ScopeBar ariaLabel="Sample request scopes" items={[{ id: "ALL", label: "All", count: 8 }, { id: "OPEN", label: "Open", count: 3 }]} selectedKey="ALL" onSelectionChange={() => undefined}/></Contract>
     </GalleryGroup>
 
     <GalleryGroup title="Feedback">
@@ -92,13 +107,16 @@ export function UIComponentGallery() {
 
     <GalleryGroup title="Data">
       <Contract family="FilterBar" job="Groups filters, result count and reset handling." keyboard="Tab follows the visible field order." prohibited="Do not compress fields below their usable width."><FilterBar label="Sample request filters" fields={<><TextField label="Sample owner" value="" onChange={() => undefined}/><SelectField label="Sample state" placeholder="All sample states" options={selections} onChange={() => undefined}/></>} resultCount={2} onClear={() => undefined}/></Contract>
+      <Contract family="FilterChip" job="Names and removes one applied filter or reopens advanced logic." keyboard="Enter or Space runs its named action." prohibited="Do not use a chip for a lifecycle status."><FilterChip label="Status" value="Responses open" onRemove={() => undefined}/></Contract>
       <Contract family="DataTable" job="Presents comparable populated records and page handling." keyboard="Tab reaches each focusable row and action." prohibited="Do not keep an empty horizontal scroll region."><DataTable ariaLabel="Sample requests" rows={sampleRows} rowKey={(row) => row.id} rowName={(row) => `${row.request}, ${row.status}, owned by ${row.owner}`} columns={sampleColumns} selectedKey="request-1" pagination={{ label: "Sample request pages", nextLabel: "Load next sample page", onNext: () => undefined }}/></Contract>
     </GalleryGroup>
 
     <GalleryGroup title="Overlays">
-      <Contract family="FocusedSheet" job="Keeps one focused detail or decision above its source view." keyboard="Tab remains inside; Escape closes and restores focus." prohibited="Do not customize the backdrop in a feature."><Button onPress={() => setSheetOpen(true)}>Open sample sheet</Button></Contract>
+      <Contract family="FocusedSheet" job="Keeps one focused detail or decision above its source view." keyboard="Tab remains inside; Escape closes unless consequential submission is in flight." prohibited="Do not customize the backdrop in a feature."><div className="ui-gallery__row"><Button onPress={() => setSheetOpen(true)}>Open sample sheet</Button><Button variant="secondary" onPress={() => setBusySheetOpen(true)}>Open in-flight sample</Button></div></Contract>
+      <Contract family="PopoverDialog" job="Keeps short contextual work anchored to its trigger." keyboard="Escape closes and focus returns to the trigger." prohibited="Do not use it for long or consequential workflows."><PopoverDialog label="Sample filter" isOpen={popoverOpen} onOpenChange={setPopoverOpen} trigger={<Button>Open sample filter</Button>}><p>Choose a bounded sample filter.</p><Button onPress={() => setPopoverOpen(false)}>Finish sample filter</Button></PopoverDialog></Contract>
     </GalleryGroup>
     {sheetOpen && <FocusedSheet label="Sample evidence detail" onClose={() => setSheetOpen(false)}><h2>Sample evidence detail</h2><p>This overlay contains labelled sample component data only.</p><Button onPress={() => setSheetOpen(false)}>Finish sample review</Button></FocusedSheet>}
+    {busySheetOpen && <FocusedSheet label="Sample request delivery" closeLabel="Sample request is being sent" isDismissable={false} onClose={() => setBusySheetOpen(false)}><h2>Sample request delivery</h2><Notice tone="info">The sample request is being sent. This sheet remains open until delivery finishes.</Notice><Button isLoading>Sending sample request</Button><Button variant="secondary" onPress={() => setBusySheetOpen(false)}>Finish sample delivery</Button></FocusedSheet>}
   </main>;
 }
 

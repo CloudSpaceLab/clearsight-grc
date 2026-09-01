@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import "../matter-record.css";
 import { loadMatter, loadMatterAt } from "../api";
 import { loadMatterOperations } from "../matterOperationsApi";
 import type { MatterOperations } from "../matterOperationsApi";

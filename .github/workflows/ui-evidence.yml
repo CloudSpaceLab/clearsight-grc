@@ -38,6 +38,7 @@ jobs:
       - name: Build deterministic stakeholder application
         env:
           VITE_STATIC_DEMO: "true"
+          VITE_UI_EVIDENCE: "true"
           VITE_API_BASE_URL: ""
         run: npm run build -- --base=/
       - name: Start local preview

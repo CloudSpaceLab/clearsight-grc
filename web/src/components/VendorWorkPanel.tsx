@@ -13,6 +13,7 @@ import {
   retryVendorWorkDelivery, sendVendorWork, startVendorWorkReview, vendorWorkDocumentURL,
 } from "../vendorWorkApi";
 import type { VendorWorkRequest, VendorWorkRequestKind, VendorWorkResponseView, VendorWorkSendOutcome } from "../vendorWorkTypes";
+import { Button, FocusedSheet, Notice, SelectField, TextArea, TextField } from "./ui";
 import "../vendor-work.css";
 
 type Props = ({ targetType: VendorLinkTargetType; targetID: string; relationshipID?: never } | { relationshipID: string; targetType?: never; targetID?: never }) & { onOpenRequest?: (requestID: string) => void };
@@ -52,6 +53,8 @@ export function VendorWorkPanel(props: Props) {
   const [loadingMoreLinks, setLoadingMoreLinks] = useState(false);
   const [linkLoadError, setLinkLoadError] = useState(false);
   const loadSequence = useRef(0);
+  const submissionSequence = useRef(0);
+  const savingRef = useRef(false);
   const targetKey = relationshipID ? `RELATIONSHIP:${relationshipID}` : `${targetType}:${targetID}`;
   const activeTarget = useRef(targetKey);
   activeTarget.current = targetKey;
@@ -149,6 +152,8 @@ export function VendorWorkPanel(props: Props) {
   }
 
   function resetDraft() {
+    submissionSequence.current += 1;
+    savingRef.current = false;
     setSelectedLinkID("");
     setRequestKind("GENERAL");
     setPurpose("");
@@ -170,9 +175,11 @@ export function VendorWorkPanel(props: Props) {
 
   async function prepareAndSend(event: FormEvent) {
     event.preventDefault();
-    if (!canSubmit || !selectedRelationship?.relationship || !selectedForm) return;
+    if (savingRef.current || !canSubmit || !selectedRelationship?.relationship || !selectedForm) return;
     const dueAt = endOfDayUTC(dueDate);
     const requestedTarget = targetKey;
+    const submission = ++submissionSequence.current;
+    savingRef.current = true;
     setSaving(true);
     setError("");
     setNotice("");
@@ -182,25 +189,28 @@ export function VendorWorkPanel(props: Props) {
         purpose: purpose.trim(), instructions: instructions.trim(), form_template_id: selectedForm.id,
         form_template_version: selectedForm.version, presentation, vendor_audience: audience.trim(), due_at: dueAt,
       });
-      if (activeTarget.current !== requestedTarget) return;
+      if (activeTarget.current !== requestedTarget || submissionSequence.current !== submission) return;
       setWork((items) => upsertWork(items, prepared));
       try {
         const outcome = await sendVendorWork(prepared.relationship_id, prepared.id, { expected_version: prepared.version, vendor_audience: audience.trim(), invitation_ttl_minutes: invitationTTLMinutes });
-        if (activeTarget.current !== requestedTarget) return;
+        if (activeTarget.current !== requestedTarget || submissionSequence.current !== submission) return;
         setWork((items) => upsertWork(items, outcome.work));
         if (outcome.capture_url) setCaptureURLs((current) => ({ ...current, [outcome.work.id]: outcome.capture_url! }));
         setNotice(deliveryNotice(outcome));
         setCreating(false);
         resetDraft();
       } catch {
-        if (activeTarget.current !== requestedTarget) return;
+        if (activeTarget.current !== requestedTarget || submissionSequence.current !== submission) return;
         setError("The request is saved, but setup could not be completed. Use Complete setup on the request.");
       }
     } catch (caught) {
-      if (activeTarget.current !== requestedTarget) return;
+      if (activeTarget.current !== requestedTarget || submissionSequence.current !== submission) return;
       setError(prepareError(caught));
     } finally {
-      setSaving(false);
+      if (submissionSequence.current === submission) {
+        savingRef.current = false;
+        setSaving(false);
+      }
     }
   }
 
@@ -208,7 +218,7 @@ export function VendorWorkPanel(props: Props) {
   if (state === "failed") return <section className="vendor-work-panel" data-testid={relationshipID ? `vendor-work-relationship-${relationshipID}` : `vendor-work-${targetType}-${targetID}`} tabIndex={-1} role="alert"><h2>Vendor requests</h2><p>Vendor requests could not be loaded for this {targetName}. No request state is shown.</p><button type="button" className="secondary-button" onClick={() => void loadAll()}>Try again</button></section>;
 
   return <section className="vendor-work-panel" data-testid={relationshipID ? `vendor-work-relationship-${relationshipID}` : `vendor-work-${targetType}-${targetID}`} tabIndex={-1} aria-labelledby={headingID}>
-    <div className="section-heading-row"><div><h2 id={headingID}>Vendor requests</h2><p>Information, documents or confirmations requested from vendors for this {targetName}.</p></div>{canCreate && !creating && <button type="button" className="primary-button" disabled={!setupAvailable || (relationships.length === 0 && !linkNextCursor) || forms.length === 0} onClick={() => { setCreating(true); setError(""); setNotice(""); }}>Request vendor work</button>}</div>
+    <div className="section-heading-row"><div><h2 id={headingID}>Vendor requests</h2><p>Information, documents or confirmations requested from vendors for this {targetName}.</p></div>{canCreate && !creating && <Button variant="primary" isDisabled={!setupAvailable || (relationships.length === 0 && !linkNextCursor) || forms.length === 0} onPress={() => { setCreating(true); setError(""); setNotice(""); }}>Request vendor work</Button>}</div>
     {canCreate && !setupAvailable && <p className="inline-notice">Linked vendors or approved forms are unavailable. Existing request history remains available.</p>}
     {canCreate && setupAvailable && relationships.length === 0 && !linkNextCursor && <p className="inline-notice">{relationshipID ? "Link this vendor relationship to a Program or issue before requesting vendor work." : `Link a vendor relationship to this ${targetName} before requesting vendor work.`}</p>}
     {canCreate && setupAvailable && forms.length === 0 && <p className="inline-notice">No current approved collection form is available. Activate a form before preparing this request.</p>}
@@ -218,23 +228,25 @@ export function VendorWorkPanel(props: Props) {
     {history.length > 0 && <details className="vendor-work-history" open={current.length === 0}><summary><span>Request history</span><strong>{history.length}</strong></summary><div>{history.map((item) => <VendorWorkCard key={item.id} work={item} form={findForm(forms, item)} relationship={relationships.find((value) => value.link.id === item.relationship_link_id || value.relationship?.relationship.id === item.relationship_id)?.relationship ?? null} onOpenRequest={onOpenRequest} onChanged={(value) => setWork((items) => upsertWork(items, value))}/>)}</div></details>}
     {nextCursor && <button type="button" className="secondary-button vendor-work-load-more" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? "Loading…" : "Load more vendor requests"}</button>}
     {loadMoreError && <p role="alert" className="inline-error">More vendor requests could not be loaded. The current list remains available.</p>}
-    {creating && <form className="vendor-work-form" onSubmit={(event) => void prepareAndSend(event)}>
-      <div><h3>Request vendor work</h3><p>Confirm the vendor, collection form and delivery details for this {targetName}.</p></div>
-      <label>Request type<select value={requestKind} onChange={(event) => { setRequestKind(event.target.value as VendorWorkRequestKind); setFormKey(""); }}><option value="GENERAL">Vendor information or evidence</option><option value="ADDRESS_VERIFICATION">Registered address verification</option><option value="CERTIFICATION_REFRESH">ISO 27001 and PCI DSS evidence</option></select></label>
-      {requestKind === "ADDRESS_VERIFICATION" && <p className="vendor-work-scope-note">This link permits access to this evidence request only. Matter ownership, review and sign-off remain with the assigned bank roles.</p>}
-      {requestKind === "CERTIFICATION_REFRESH" && <p className="vendor-work-scope-note">Request current ISO 27001 and PCI DSS evidence from the vendor. Submission does not mean the bank has accepted the evidence; an assigned reviewer must check and accept it.</p>}
-      <label>{relationshipID ? "Related Program or issue" : "Vendor relationship"}<select value={selectedLinkID} required onChange={(event) => setSelectedLinkID(event.target.value)}><option value="">{relationshipID ? "Choose related work" : "Choose a linked vendor"}</option>{relationships.map(({ link, relationship }) => <option key={link.id} value={link.id} disabled={!relationship}>{relationship ? relationshipID ? `${link.target_type === "PROGRAM" ? "Program" : "Issue or change"} · ${link.purpose_label}` : `${relationship.vendor.legal_name} — ${relationship.relationship.service_name}` : "Vendor details unavailable"}</option>)}</select></label>
-      {linkNextCursor && <button type="button" className="secondary-button" disabled={loadingMoreLinks} onClick={() => void loadMoreLinks()}>{loadingMoreLinks ? "Loading…" : relationshipID ? "Load more related work" : "Load more linked vendors"}</button>}
-      {linkLoadError && <p role="alert" className="inline-error">More related records could not be loaded. The current choices remain available.</p>}
-      <label>Request purpose<input value={purpose} required maxLength={500} onChange={(event) => setPurpose(event.target.value)} placeholder="Confirm annual service controls"/></label>
-      <label>{requestKind === "ADDRESS_VERIFICATION" ? "Instructions for the assigned staff member" : "Instructions for the vendor"}<textarea value={instructions} required maxLength={2000} rows={4} onChange={(event) => setInstructions(event.target.value)} placeholder="State what must be completed or provided."/></label>
-      <div className="vendor-work-form-grid"><label>Collection form<select value={formKey} required onChange={(event) => setFormKey(event.target.value)}><option value="">Choose an approved form</option>{eligibleForms.map((item) => <option key={`${item.id}:${item.version}`} value={`${item.id}:${item.version}`}>{item.name} · version {item.version}</option>)}</select></label><label>Form layout<select value={presentation} onChange={(event) => setPresentation(event.target.value as CapturePresentationMode)}><option value="AUTOMATIC">Automatic</option><option value="CLASSIC">Classic</option><option value="WIZARD">Wizard</option></select></label></div>
-      {selectedForm && <FormSummary form={selectedForm}/>}
-      <div className="vendor-work-form-grid"><label>{requestRecipientLabel(requestKind)}<input type="email" autoComplete="email" value={audience} required maxLength={320} onChange={(event) => setAudience(event.target.value)} placeholder="contact@example.com"/></label><label>Due date<input type="date" min={minimumDueDate()} value={dueDate} required onChange={(event) => setDueDate(event.target.value)}/></label></div>
-      <div className="vendor-work-prefill"><strong>Prefill summary</strong><p>Known vendor and service details will be shown with this request.</p></div>
-      {error && <p role="alert" className="inline-error">{error}</p>}
-      <div className="form-actions"><button type="button" className="secondary-button" disabled={saving} onClick={() => { setCreating(false); resetDraft(); }}>Cancel</button><button type="submit" className="primary-button" disabled={saving || !canSubmit}>{saving ? "Preparing request…" : requestSendLabel(requestKind)}</button></div>
-    </form>}
+    {creating && <FocusedSheet label="Request vendor work" closeLabel={saving ? "Vendor request is being sent" : "Close vendor request"} size="wide" panelClassName="vendor-work-request-sheet" isDismissable={!saving} onClose={() => { if (saving) return; setCreating(false); resetDraft(); }}>
+      <div className="cs-sheet-heading"><span className="eyebrow">Vendor request</span><h2>Request vendor work</h2><p>Confirm the vendor, approved collection form, recipient and deadline for this {targetName}.</p></div>
+      <form className="vendor-work-form" onSubmit={(event) => void prepareAndSend(event)}>
+        <SelectField label="Request type" value={requestKind} placeholder="Choose the work requested" allowsEmpty={false} options={[{ id: "GENERAL", label: "Vendor information or evidence" }, { id: "ADDRESS_VERIFICATION", label: "Registered address verification" }, { id: "CERTIFICATION_REFRESH", label: "ISO 27001 and PCI DSS evidence" }]} onChange={(value) => { if (value) { setRequestKind(value); setFormKey(""); } }}/>
+        {requestKind === "ADDRESS_VERIFICATION" && <Notice tone="info">The recipient can access only this evidence request. Issue ownership, review and sign-off remain with the assigned bank roles.</Notice>}
+        {requestKind === "CERTIFICATION_REFRESH" && <Notice tone="info">The vendor is being asked for current ISO 27001 and PCI DSS evidence. Submission does not mean the bank accepted it; the assigned reviewer must check and accept the evidence.</Notice>}
+        <SelectField label={relationshipID ? "Related Program or issue" : "Vendor relationship"} value={selectedLinkID || undefined} placeholder={relationshipID ? "Choose related work" : "Choose a linked vendor"} isRequired options={relationships.filter((item) => item.relationship).map(({ link, relationship }) => ({ id: link.id, label: relationship ? relationshipID ? `${link.target_type === "PROGRAM" ? "Program" : "Issue or change"} · ${link.purpose_label}` : `${relationship.vendor.legal_name} — ${relationship.relationship.service_name}` : "Vendor details unavailable" }))} onChange={(value) => setSelectedLinkID(value ?? "")}/>
+        {linkNextCursor && <Button type="button" variant="secondary" isLoading={loadingMoreLinks} onPress={() => void loadMoreLinks()}>{relationshipID ? "Load more related work" : "Load more linked vendors"}</Button>}
+        {linkLoadError && <Notice tone="error">More related records could not be loaded. The current choices remain available.</Notice>}
+        <TextField label="Request purpose" value={purpose} onChange={setPurpose} maxLength={500} isRequired placeholder="Confirm annual service controls"/>
+        <TextArea label={requestKind === "ADDRESS_VERIFICATION" ? "Instructions for the assigned staff member" : "Instructions for the vendor"} value={instructions} onChange={setInstructions} maxLength={2000} rows={4} isRequired placeholder="State what must be completed or provided."/>
+        <div className="vendor-work-form-grid"><SelectField label="Collection form" value={formKey || undefined} placeholder="Choose an approved form" isRequired options={eligibleForms.map((item) => ({ id: `${item.id}:${item.version}`, label: `${item.name} · version ${item.version}` }))} onChange={(value) => setFormKey(value ?? "")}/><SelectField label="Form layout" value={presentation} placeholder="Choose a layout" allowsEmpty={false} options={[{ id: "AUTOMATIC", label: "Automatic" }, { id: "CLASSIC", label: "Classic" }, { id: "WIZARD", label: "Wizard" }]} onChange={(value) => { if (value) setPresentation(value); }}/></div>
+        {selectedForm && <FormSummary form={selectedForm}/>}
+        <div className="vendor-work-form-grid"><TextField label={requestRecipientLabel(requestKind)} type="email" autoComplete="email" value={audience} onChange={setAudience} maxLength={320} isRequired isInvalid={Boolean(audience) && !validEmail(audience)} errorMessage="Enter the mailbox that should receive this request." placeholder="contact@example.com"/><TextField label="Due date" type="date" min={minimumDueDate()} value={dueDate} onChange={setDueDate} isRequired description="The request remains open through the end of this date."/></div>
+        <Notice tone="info"><strong>Prefill summary</strong><br/>Known vendor and service details will be shown with this request. The recipient must confirm or correct them and provide the requested evidence.</Notice>
+        {error && <Notice tone="error">{error}</Notice>}
+        <div className="form-actions"><Button type="button" variant="quiet" isDisabled={saving} onPress={() => { setCreating(false); resetDraft(); }}>Cancel</Button><Button type="submit" variant="primary" isDisabled={!canSubmit} isLoading={saving}>{requestSendLabel(requestKind)}</Button></div>
+      </form>
+    </FocusedSheet>}
   </section>;
 }
 

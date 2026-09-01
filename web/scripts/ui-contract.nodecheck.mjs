@@ -28,9 +28,20 @@ test("the shell does not force document overflow at the supported 320px viewport
   assert.doesNotMatch(styles, /body\s*\{[^}]*min-width:\s*320px/i);
 });
 
+test("legacy global CSS cannot override shared button typography or foreground", async () => {
+  const styles = await read("src/styles.css");
+  assert.doesNotMatch(styles, /button\s*,[^{}]*\{[^{}]*font\s*:/is);
+  assert.doesNotMatch(styles, /(?:^|[},])\s*button\s*\{[^{}]*color\s*:/ims);
+});
+
 test("mobile data cards wrap long identifiers within the available column", async () => {
   const styles = await read("src/design-system/components/data-display.css");
   assert.match(styles, /\.cs-data-table tbody tr td\s*\{[^}]*min-inline-size:\s*0[^}]*overflow-wrap:\s*anywhere/is);
+});
+
+test("focused-sheet close actions remain above sticky feature content", async () => {
+  const tokens = await read("src/design-system/tokens/components.css");
+  assert.match(tokens, /--cs-overlay-close-z:\s*var\(--cs-z-menu\)/);
 });
 
 test("raw controls report an exact migrated-file diagnostic", () => {

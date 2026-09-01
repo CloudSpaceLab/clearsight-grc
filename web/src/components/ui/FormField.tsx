@@ -14,16 +14,17 @@ export type FormFieldProps = {
   isInvalid?: boolean;
   isRequired?: boolean;
   isLoading?: boolean;
+  isLabelHidden?: boolean;
   children: (props: FieldControlProps) => ReactNode;
 };
 
-export function FormField({ label, description, errorMessage, isInvalid = false, isRequired = false, isLoading = false, children }: FormFieldProps) {
+export function FormField({ label, description, errorMessage, isInvalid = false, isRequired = false, isLoading = false, isLabelHidden = false, children }: FormFieldProps) {
   const controlID = useId();
   const descriptionID = useId();
   const errorID = useId();
   const describedBy = [description ? descriptionID : undefined, isInvalid && errorMessage ? errorID : undefined].filter(Boolean).join(" ") || undefined;
 
-  return <div className="cs-field" data-invalid={isInvalid || undefined} data-required={isRequired || undefined}>
+  return <div className={`cs-field${isLabelHidden ? " cs-field--label-hidden" : ""}`} data-invalid={isInvalid || undefined} data-required={isRequired || undefined}>
     <label className="cs-field__label" htmlFor={controlID}>
       {label}{isRequired && <><span className="cs-field__required" aria-hidden="true"> *</span><span className="cs-sr-only"> required</span></>}
     </label>

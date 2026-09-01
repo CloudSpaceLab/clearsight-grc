@@ -9,7 +9,7 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | UI component gallery | M | M | M | M | M | M | M | M |
 | Forms shell and peer-view navigation | — | — | — | M | — | — | — | — |
 | Forms · Sent forms | M | M | M | M | M | M | M | M |
-| Forms · Templates/library | — | — | — | S | — | — | — | — |
+| Forms · Templates/library | M | M | M | M | M | M | M | M |
 | Forms · Builder/editor/review | — | — | — | S | — | — | — | — |
 | Forms · Responses | — | — | — | S | — | — | — | — |
 | Forms · Imports | — | — | — | S | — | — | — | — |
@@ -29,10 +29,16 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 
 Tranche 1 implements the three-layer token architecture, public component contracts, component gallery, Forms peer-view navigation and the complete Sent forms workspace migration. The Sent forms boundary includes its actions, filters, themed selection popup, labelled empty result, populated and paginated data, focused detail sheet, lifecycle feedback and narrow-screen stacked records.
 
-The existing Forms template library, builder, Responses, Imports and Communications remain visually functional legacy surfaces. Builder usability fixes already present—mobile action visibility, keyboard reordering and pointer reordering—are retained, but they do not constitute component-system migration. Every non-Forms workspace also remains outside this tranche.
+Tranche 2 begins the Templates/library migration at its highest-frequency record surface. The template table now uses the shared data, status, checkbox-selection and action contracts; template details use the shared focused sheet, actions and status feedback; and workspace notices and empty results use the shared feedback contracts. The component foundation adds one labelled `CheckboxField` contract and numeric constraints to `TextField`. These exact files are enforced by the migration manifest and exercised in the component gallery and Forms library state fixtures.
+
+Tranche 3 adds a shared `ActionCard` for consequential routes and migrates the new-form launcher to shared action cards, buttons, record cards, empty state and focused sheet.
+
+Tranche 4 completes the Templates/library boundary and removes the most visible Forms control inconsistencies. Template search, removable filters, typed filter selection, bounded advanced expressions and lifecycle scopes use the shared search, filter, popover, field, action, sheet and scope contracts. The creation launcher uses the centered `FocusedDialog`; every Forms select now uses `SelectField`; Responses empty/error/action states and Communications lifecycle/test-send actions use shared feedback, field and button contracts. The remaining Builder inputs, Imports, list selectors and rich-text toolbars are still migration work. Every non-Forms workspace also remains outside this tranche.
+
+The governed-work handoff slice applies the shared contracts to the highest-risk interactions in the otherwise unmigrated Work and vendor-request surfaces: issue and Action reassignment, vendor-request composition, response review/sign/transmit/acknowledgement, issue authorization, date entry and list overlays. These files still contain older secondary forms, so the Work and Vendors rows remain unmarked until those complete surfaces are migrated and added to the executable manifest. This partial boundary must not be described as a completed workspace migration.
 
 ## Work left after this tranche
 
-The next Forms migration should cover the template library and builder first because they contain the greatest concentration of repeated controls and the builder screenshot exposed the same native-select and inconsistent-component failures. Responses, Forms Imports, Communications and external capture follow as separately evidenced slices.
+The next migration slice should finish the remaining raw controls in Matter details, Actions, decisions, outcome checks and vendor-response recovery, then add those complete files to the manifest. Forms Builder, Imports, remaining list selectors and external capture continue as separately evidenced slices.
 
-Product-wide adoption needs a separate sequenced plan. Start with shared shell/navigation, then migrate Today, Programs, Vendors, Work, regulatory Imports, Explore and Configure according to task frequency and operational risk. Each slice must preserve domain and authority behavior, add its manifest entries and state fixtures, inspect full-host renders, repair the highest-impact defect and update this table. Until those rows are migrated, describe the result as “UI foundations and Sent forms migrated,” never “ClearSight is fully standardized.”
+Product-wide adoption needs a separate sequenced plan. Start with shared shell/navigation, then migrate Today, Programs, Vendors, Work, regulatory Imports, Explore and Configure according to task frequency and operational risk. Each slice must preserve domain and authority behavior, add its manifest entries and state fixtures, inspect full-host renders, repair the highest-impact defect and update this table. Until those rows are migrated, describe the result as “UI foundations, Sent forms and the Templates workspace migrated,” never “ClearSight is fully standardized.”

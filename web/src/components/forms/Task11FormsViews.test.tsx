@@ -50,7 +50,7 @@ beforeEach(() => {
 describe("Task 11 governed form views", () => {
   it("dispatches the exact active revision with a directory-selected internal recipient", async () => {
     render(<DistributionComposer/>);
-    expect(await screen.findByRole("option", { name: /Control review/ })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /Control review/ })).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Subject identifier"), { target: { value: "control-a" } });
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Quarterly control review" } });
     fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Collect operating evidence" } });
@@ -97,9 +97,13 @@ describe("Task 11 governed form views", () => {
     distributionApi.loadResponseRevisions.mockResolvedValue({ items: [responseRevision] });
     render(<ResponsesView/>);
     expect(await screen.findByText("Revision 2 · Current")).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Response distributions" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Version history" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Revision 2.*Current/ }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByText("Email Verified")).toBeTruthy();
     expect(screen.getByText("92%")).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Edit response" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(/Submitted versions cannot be changed/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Edit response" })).toBeNull();
   });
 
   it("passes semantic accessibility checks for the new sender and immutable-response surfaces", async () => {

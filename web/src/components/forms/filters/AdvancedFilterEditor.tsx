@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FilterExpression, FilterGroup } from "./filterModel";
 import { filterExpressionNodeCount, isServerSerializableExpression } from "./filterModel";
-import { FocusedSheet } from "../../FocusedSheet";
+import { Button, FocusedSheet } from "../../ui";
 import { FilterExpressionEditor } from "./FilterExpressionEditor";
 
 type Props = {
@@ -18,7 +18,7 @@ export function AdvancedFilterEditor({ expression, onApply, onClose }: Props) {
   return <FocusedSheet
     label="Advanced form filters"
     closeLabel="Close advanced filters"
-    panelClassName="forms-advanced-filter-sheet"
+    size="wide"
     onClose={onClose}
   >
     <div className="forms-advanced-filter-content">
@@ -34,10 +34,10 @@ export function AdvancedFilterEditor({ expression, onApply, onClose }: Props) {
       <FilterExpressionEditor expression={draft} onChange={setDraft}/>
 
       <footer className="forms-advanced-filter-footer">
-        <button type="button" className="text-button" disabled={!expression} onClick={() => onApply(undefined)}>Clear advanced</button>
+        <Button variant="quiet" isDisabled={!expression} onPress={() => onApply(undefined)}>Clear advanced</Button>
         <div>
-          <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
-          <button type="button" className="forms-primary" disabled={!valid} onClick={() => onApply(draft)}>Apply filters</button>
+          <Button onPress={onClose}>Cancel</Button>
+          <Button variant="primary" isDisabled={!valid} onPress={() => onApply(draft)}>Apply filters</Button>
         </div>
       </footer>
     </div>

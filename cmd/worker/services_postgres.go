@@ -57,6 +57,11 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 		Signals: autonomyService, Programs: continuityService,
 	}
 	workflowRepository := workflow.NewPostgresRepository(pool)
+	staffNotifications, err := buildStaffNotificationWorker(cfg, workflowRepository)
+	if err != nil {
+		pool.Close()
+		return workerSet{}, err
+	}
 	actionWork := &workflow.MatterActionProjector{Repo: workflowRepository}
 	lifecycleWork := &workflow.MatterLifecycleProjector{
 		Repo: workflowRepository, Continuity: continuityService, Authority: authorityService, Sequence: governanceService,
@@ -88,7 +93,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	assessmentCancellation := newAssessmentCancellationConsumer(evidenceService)
 	vendorWorkSubmission := newVendorWorkSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
 	publisher := workflowruntime.NewCompositePublisher(
-		sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork,
+		sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork, staffNotifications,
 		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, vendorWorkSubmission,
 		formProposalGeneration, formCommunicationWorker,
 		workflowruntime.LogPublisher{Logger: logger},

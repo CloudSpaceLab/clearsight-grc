@@ -1,4 +1,5 @@
 import type { AutomationPolicy } from "../types";
+import "../automation-policies.css";
 import { EmptyState } from "./EmptyState";
 
 type LoadState = "loading" | "live" | "unavailable";

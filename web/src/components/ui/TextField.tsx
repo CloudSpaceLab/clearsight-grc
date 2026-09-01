@@ -1,7 +1,7 @@
 import type { ChangeEventHandler, FocusEventHandler } from "react";
 import { FormField } from "./FormField";
 
-export type TextFieldType = "text" | "search" | "email" | "url" | "tel";
+export type TextFieldType = "text" | "search" | "email" | "url" | "tel" | "number" | "date" | "time" | "datetime-local";
 
 export type TextFieldProps = {
   label: string;
@@ -13,11 +13,16 @@ export type TextFieldProps = {
   type?: TextFieldType;
   name?: string;
   autoComplete?: string;
+  min?: number | string;
+  max?: number | string;
+  step?: number | string;
+  maxLength?: number;
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isRequired?: boolean;
   isInvalid?: boolean;
   isLoading?: boolean;
+  isLabelHidden?: boolean;
   onBlur?: FocusEventHandler<HTMLInputElement>;
 };
 
@@ -31,15 +36,20 @@ export function TextField({
   type = "text",
   name,
   autoComplete,
+  min,
+  max,
+  step,
+  maxLength,
   isDisabled = false,
   isReadOnly = false,
   isRequired = false,
   isInvalid = false,
   isLoading = false,
+  isLabelHidden = false,
   onBlur,
 }: TextFieldProps) {
   const change: ChangeEventHandler<HTMLInputElement> = (event) => onChange(event.target.value);
-  return <FormField label={label} description={description} errorMessage={errorMessage} isInvalid={isInvalid} isRequired={isRequired} isLoading={isLoading}>
+  return <FormField label={label} description={description} errorMessage={errorMessage} isInvalid={isInvalid} isRequired={isRequired} isLoading={isLoading} isLabelHidden={isLabelHidden}>
     {(control) => <input
       {...control}
       className="cs-field__control"
@@ -48,6 +58,10 @@ export function TextField({
       value={value}
       placeholder={placeholder}
       autoComplete={autoComplete}
+      min={min}
+      max={max}
+      step={step}
+      maxLength={maxLength}
       disabled={isDisabled}
       readOnly={isReadOnly}
       required={isRequired}

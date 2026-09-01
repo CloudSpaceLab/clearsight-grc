@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { StarterTemplate } from "../../../formsTypes";
-import { FocusedSheet } from "../../FocusedSheet";
+import { ActionCard, Button, Card, EmptyState, FocusedDialog } from "../../ui";
 
 type Props = {
   starters: StarterTemplate[];
@@ -23,9 +23,10 @@ export function NewFormLauncher({ starters, busy, onBlank, onAI, onImport, onUse
     gallery.querySelector<HTMLButtonElement>("[data-template-action]")?.focus();
   }
 
-  return <FocusedSheet
+  return <FocusedDialog
     label="New form"
     closeLabel="Close new form"
+    size="wide"
     panelClassName="forms-new-form-sheet"
     onClose={onClose}
   >
@@ -75,7 +76,8 @@ export function NewFormLauncher({ starters, busy, onBlank, onAI, onImport, onUse
         {starters.length ? <div className="forms-starter-grid">
           {starters.map((starter) => {
             const expanded = previewCode === starter.code;
-            return <article className="forms-starter-card" key={`${starter.code}:${starter.catalog_version}`}>
+            return <Card key={`${starter.code}:${starter.catalog_version}`}>
+              <div className="forms-starter-card-content">
               <div className="forms-starter-card-copy">
                 <div className="forms-starter-card-title">
                   <strong>{starter.template.name}</strong>
@@ -90,60 +92,48 @@ export function NewFormLauncher({ starters, busy, onBlank, onAI, onImport, onUse
               <StarterPreview starter={starter} expanded={expanded}/>
 
               <div className="forms-starter-actions">
-                <button
-                  type="button"
-                  className="text-button"
+                <Button
+                  variant="quiet"
                   aria-expanded={expanded}
                   aria-label={`${expanded ? "Hide preview for" : "Preview"} ${starter.template.name}`}
-                  onClick={() => setPreviewCode((current) => current === starter.code ? undefined : starter.code)}
+                  onPress={() => setPreviewCode((current) => current === starter.code ? undefined : starter.code)}
                 >
                   {expanded ? "Hide preview" : "Preview"}
-                </button>
-                <button
-                  type="button"
-                  className="forms-primary"
+                </Button>
+                <Button
+                  variant="primary"
                   data-template-action
                   aria-label={`Use ${starter.template.name} template`}
-                  disabled={busy !== null}
-                  onClick={() => onUseStarter(starter)}
+                  isDisabled={busy !== null}
+                  isLoading={busy === `starter:${starter.code}`}
+                  onPress={() => onUseStarter(starter)}
                 >
-                  {busy === `starter:${starter.code}` ? "Creating…" : "Use template"}
-                </button>
+                  Use template
+                </Button>
               </div>
-            </article>;
+              </div>
+            </Card>;
           })}
-        </div> : <div className="forms-starter-empty">
-          <strong>No starter templates are available in this workspace.</strong>
-          <span>You can still start with a blank form, AI proposal, or import.</span>
-        </div>}
+        </div> : <EmptyState population="Starter templates in this workspace" title="No starter templates are available" description="Start with a blank form, an AI proposal or an imported source."/>}
       </section>
     </div>
-  </FocusedSheet>;
+  </FocusedDialog>;
 }
 
 function CreationMethod({ icon, title, detail, onClick }: { icon: CreationIcon; title: string; detail: string; onClick: () => void }) {
-  return <button type="button" className="forms-creation-method" aria-label={title} onClick={onClick}>
-    <CreationIconGraphic type={icon}/>
-    <span>
-      <strong>{title}</strong>
-      <small>{detail}</small>
-    </span>
-    <span className="forms-creation-arrow" aria-hidden="true">›</span>
-  </button>;
+  return <ActionCard title={title} description={detail} icon={<CreationIconGraphic type={icon}/>} onPress={onClick}/>;
 }
 
 type CreationIcon = "blank" | "ai" | "template" | "import";
 
 function CreationIconGraphic({ type }: { type: CreationIcon }) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  return <span className="forms-creation-icon" aria-hidden="true">
-    <svg viewBox="0 0 24 24">
+  return <svg className="forms-creation-icon-graphic" viewBox="0 0 24 24" aria-hidden="true">
       {type === "blank" && <><path {...common} d="M6 3.8h8.5L18 7.3v12.9H6z"/><path {...common} d="M14.5 3.8v3.5H18M9 12h6M12 9v6"/></>}
       {type === "ai" && <><path {...common} d="M5 5.5h14v10H9l-4 3z"/><path {...common} d="M8.5 9.1h7M8.5 12h4.5"/></>}
       {type === "template" && <><rect {...common} x="4" y="4" width="7" height="7" rx="1.2"/><rect {...common} x="13" y="4" width="7" height="7" rx="1.2"/><rect {...common} x="4" y="13" width="7" height="7" rx="1.2"/><rect {...common} x="13" y="13" width="7" height="7" rx="1.2"/></>}
       {type === "import" && <><path {...common} d="M12 4v11M8.5 11.5 12 15l3.5-3.5"/><path {...common} d="M5 18.5h14"/></>}
-    </svg>
-  </span>;
+  </svg>;
 }
 
 function StarterPreview({ starter, expanded }: { starter: StarterTemplate; expanded: boolean }) {

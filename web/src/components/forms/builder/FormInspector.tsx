@@ -3,6 +3,7 @@ import type { CaptureFieldConstraints } from "../../../types";
 import type { AuthoringField, AuthoringSection, FormDraft } from "../formAuthoring";
 import { FormFieldPropertyEditor } from "../FormFieldPropertyEditor";
 import type { BuilderSelection } from "./builderSelection";
+import { SelectField } from "../../ui";
 
 type Props = {
   draft: FormDraft;
@@ -42,14 +43,14 @@ function OverviewInspector({ draft, onPatch, onScoringMode }: Props) {
       <details open>
         <summary>Response experience</summary>
         <div className="form-inspector-group">
-          <label><span>Default layout</span><select value={draft.presentation} onChange={(event) => onPatch({ presentation: event.target.value as FormDraft["presentation"] })}><option value="AUTOMATIC">Choose by form length</option><option value="CLASSIC">Show all questions</option><option value="WIZARD">Show one section at a time</option></select></label>
+          <SelectField label="Default layout" value={draft.presentation} placeholder="Choose a layout" allowsEmpty={false} options={[{ id: "AUTOMATIC", label: "Choose by form length" }, { id: "CLASSIC", label: "Show all questions" }, { id: "WIZARD", label: "Show one section at a time" }]} onChange={(value) => { if (value) onPatch({ presentation: value as FormDraft["presentation"] }); }}/>
           <label className="compact-control"><input type="checkbox" aria-label="Allow respondents to switch layouts" checked={draft.allowModeSwitch} onChange={(event) => onPatch({ allowModeSwitch: event.target.checked })}/> Allow respondents to switch layouts</label>
         </div>
       </details>
       <details>
         <summary>Scoring</summary>
         <div className="form-inspector-group">
-          <label><span>Scoring mode</span><select value={draft.scoringMode} onChange={(event) => onScoringMode(event.target.value as FormScoringMode)}><option value="NONE">No score</option><option value="RISK">Risk score</option><option value="COMPLIANCE">Compliance score</option></select></label>
+          <SelectField label="Scoring mode" value={draft.scoringMode} placeholder="Choose scoring" allowsEmpty={false} options={[{ id: "NONE", label: "No score" }, { id: "RISK", label: "Risk score" }, { id: "COMPLIANCE", label: "Compliance score" }]} onChange={(value) => { if (value) onScoringMode(value as FormScoringMode); }}/>
           <p>Scoring is optional. It remains hidden from ordinary question editing until enabled.</p>
         </div>
       </details>

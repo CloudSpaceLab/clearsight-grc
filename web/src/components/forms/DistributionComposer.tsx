@@ -9,6 +9,7 @@ import {
   type DistributionDetail,
   type RecipientCandidate,
 } from "../../formsDistributionApi";
+import { SelectField } from "../ui";
 
 const policies: Array<{ value: DistributionAccessPolicy; label: string; detail: string }> = [
   { value: "DIRECT_MAGIC_LINK", label: "Direct magic link", detail: "Possession of the recipient-specific link grants access." },
@@ -109,7 +110,7 @@ export function DistributionComposer({ onCreated, onCancel }: Props) {
     <div className="forms-task-heading"><div><span>Send form</span><h2 id="distribution-composer-title">Create form distribution</h2><p>Choose the approved form, who must respond, the deadline and how recipients verify access.</p></div>{onCancel && <button type="button" onClick={onCancel}>Close</button>}</div>
     {error && <div className="forms-message error" role="alert">{error}</div>}
     <div className="forms-task-grid">
-      <label><span>Active form revision</span><select aria-label="Active form revision" value={templateKey} onChange={(event) => setTemplateKey(event.target.value)}><option value="">Select active revision</option>{templates.map((item) => <option key={`${item.id}:${item.version}`} value={`${item.id}:${item.version}`}>{item.name} · {item.code} · v{item.version}</option>)}</select><small>Revision is immutable after send.</small></label>
+      <SelectField label="Active form revision" value={templateKey || undefined} placeholder="Select active revision" description="Revision is immutable after send." options={templates.map((item) => ({ id: `${item.id}:${item.version}`, label: `${item.name} · ${item.code} · v${item.version}` }))} onChange={(value) => setTemplateKey(value ?? "")}/>
       <label><span>Subject type</span><input value={subjectType} maxLength={80} onChange={(event) => setSubjectType(event.target.value)}/></label>
       <label><span>Subject identifier</span><input value={subjectID} maxLength={160} onChange={(event) => setSubjectID(event.target.value)}/></label>
       <label><span>Estimated minutes</span><input type="number" min={1} max={60} value={estimatedMinutes} onChange={(event) => setEstimatedMinutes(Number(event.target.value))}/></label>
@@ -117,7 +118,7 @@ export function DistributionComposer({ onCreated, onCancel }: Props) {
       <label className="forms-task-span"><span>Purpose</span><textarea value={purpose} maxLength={1600} rows={3} onChange={(event) => setPurpose(event.target.value)}/></label>
       <label><span>Deadline</span><input type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)}/><small>The saved deadline includes the {timezone} timezone.</small></label>
       <label><span>Access route expiry</span><input type="datetime-local" value={routeExpiry} onChange={(event) => setRouteExpiry(event.target.value)}/><small>Must be no later than the deadline.</small></label>
-      <label className="forms-task-span"><span>Access policy</span><select value={policy} onChange={(event) => setPolicy(event.target.value as DistributionAccessPolicy)}>{policies.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><small>{policies.find((item) => item.value === policy)?.detail}</small></label>
+      <div className="forms-task-span"><SelectField label="Access policy" value={policy} placeholder="Choose access policy" description={policies.find((item) => item.value === policy)?.detail} allowsEmpty={false} options={policies.map((item) => ({ id: item.value, label: item.label }))} onChange={(value) => { if (value) setPolicy(value); }}/></div>
     </div>
 
     <div className="forms-recipient-panel">
@@ -126,7 +127,7 @@ export function DistributionComposer({ onCreated, onCancel }: Props) {
         <label><span>Find internal recipient</span><input type="search" value={internalQuery} placeholder="Name or identifier" onChange={(event) => setInternalQuery(event.target.value)}/>{candidates.length > 0 && <div className="forms-candidate-list" role="listbox" aria-label="Internal recipient candidates">{candidates.map((candidate) => <button type="button" role="option" key={candidate.principal_id} onClick={() => addInternal(candidate)}><strong>{candidate.display_name}</strong><span>{candidate.context_label || candidate.principal_id}</span></button>)}</div>}</label>
         <div><label><span>External email</span><input type="email" value={externalAddress} onChange={(event) => setExternalAddress(event.target.value)}/></label><label><span>Contact label</span><input value={externalLabel} maxLength={160} onChange={(event) => setExternalLabel(event.target.value)}/></label><button type="button" disabled={!externalAddress.trim() || recipients.length >= 500} onClick={addExternal}>Add external To</button></div>
       </div>
-      <ul className="forms-recipient-list">{recipients.map((recipient, index) => <li key={`${recipient.type}:${recipient.principal_id || recipient.address}:${recipient.role}:${index}`}><div><strong>{recipient.contact_label || recipient.principal_id || maskAddress(recipient.address)}</strong><span>{recipient.role} · {recipient.type === "INTERNAL_PRINCIPAL" ? "Internal" : "External protected"}</span></div><select aria-label={`Role for recipient ${index + 1}`} value={recipient.role} onChange={(event) => setRecipients((current) => current.map((value, i) => i === index ? { ...value, role: event.target.value as "TO" | "CC" } : value))}><option value="TO">To</option><option value="CC">CC</option></select><button type="button" aria-label={`Remove recipient ${index + 1}`} onClick={() => setRecipients((current) => current.filter((_, i) => i !== index))}>Remove</button></li>)}</ul>
+      <ul className="forms-recipient-list">{recipients.map((recipient, index) => <li key={`${recipient.type}:${recipient.principal_id || recipient.address}:${recipient.role}:${index}`}><div><strong>{recipient.contact_label || recipient.principal_id || maskAddress(recipient.address)}</strong><span>{recipient.role} · {recipient.type === "INTERNAL_PRINCIPAL" ? "Internal" : "External protected"}</span></div><SelectField label={`Role for recipient ${index + 1}`} isLabelHidden value={recipient.role} placeholder="Choose role" allowsEmpty={false} options={[{ id: "TO", label: "To" }, { id: "CC", label: "CC" }]} onChange={(role) => { if (role) setRecipients((current) => current.map((value, i) => i === index ? { ...value, role } : value)); }}/><button type="button" aria-label={`Remove recipient ${index + 1}`} onClick={() => setRecipients((current) => current.filter((_, i) => i !== index))}>Remove</button></li>)}</ul>
       {recipients.length === 0 && <p className="forms-muted">No recipients selected.</p>}
     </div>
 

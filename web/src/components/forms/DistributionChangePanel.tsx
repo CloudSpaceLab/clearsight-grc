@@ -10,6 +10,7 @@ import {
   type DistributionSupersessionPreview,
   type RecipientCandidate,
 } from "../../formsDistributionApi";
+import { SelectField } from "../ui";
 import "./distribution-change.css";
 
 type Props = {
@@ -89,7 +90,7 @@ function AmendPanel({ detail, onCancel, onSaved }: Omit<Props, "mode">) {
       </div>
       <fieldset className="forms-change-recipients"><legend>Add recipients</legend><p>New To recipients receive a response task. CC recipients receive the communication without a response task.</p>
         <div className="forms-task-grid">
-          <label><span>Recipient role</span><select value={recipientRole} onChange={(event) => setRecipientRole(event.target.value as "TO" | "CC")}><option value="TO">To</option><option value="CC">CC</option></select></label>
+          <SelectField label="Recipient role" value={recipientRole} placeholder="Choose role" allowsEmpty={false} options={[{ id: "TO", label: "To" }, { id: "CC", label: "CC" }]} onChange={(value) => { if (value) setRecipientRole(value); }}/>
           <label><span>Find internal recipient</span><input type="search" value={internalQuery} placeholder="Name or identifier" onChange={(event) => setInternalQuery(event.target.value)}/>{candidates.length > 0 && <div className="forms-candidate-list" role="listbox" aria-label="Internal recipient candidates">{candidates.map((candidate) => <button type="button" role="option" key={candidate.principal_id} onClick={() => addInternal(candidate)}><strong>{candidate.display_name}</strong><span>{candidate.context_label || candidate.principal_id}</span></button>)}</div>}</label>
           <label><span>External email</span><input type="email" value={externalAddress} onChange={(event) => setExternalAddress(event.target.value)}/></label>
           <label><span>Contact label</span><input value={externalLabel} maxLength={160} onChange={(event) => setExternalLabel(event.target.value)}/></label>
@@ -151,7 +152,7 @@ function SupersedePanel({ detail, onCancel, onSaved }: Omit<Props, "mode">) {
   return <section className="forms-task-card" aria-labelledby="supersede-distribution-title">
     <div className="forms-task-heading"><div><span>Replace sent form</span><h2 id="supersede-distribution-title">Replace form version</h2><p>Preview which submitted answers remain compatible before moving recipients to the approved replacement.</p></div><button type="button" onClick={onCancel}>Close</button></div>
     {error && <div className="forms-message error" role="alert">{error}</div>}
-    <div className="forms-task-grid"><label><span>Approved replacement</span><select value={targetVersion || ""} onChange={(event) => { setTargetVersion(Number(event.target.value)); setPreview(undefined); }}><option value="">Select a different active version</option>{versions.map((item) => <option key={item.version} value={item.version}>{item.name} · v{item.version}</option>)}</select></label></div>
+    <div className="forms-task-grid"><SelectField label="Approved replacement" value={targetVersion ? String(targetVersion) : undefined} placeholder="Select a different active version" options={versions.map((item) => ({ id: String(item.version), label: `${item.name} · v${item.version}` }))} onChange={(value) => { setTargetVersion(Number(value ?? 0)); setPreview(undefined); }}/></div>
     {versions.length === 0 && !error && <div className="forms-task-empty"><strong>No approved replacement is available</strong><span>Activate a newer version of this form before replacing the sent form.</span></div>}
     <div className="forms-task-actions"><button type="button" onClick={() => void loadPreview()} disabled={!targetVersion || busy}>{busy && !preview ? "Checking…" : "Preview replacement"}</button></div>
     {preview && <section className="forms-change-preview" aria-label="Replacement impact"><h3>{compatibleCount} response{compatibleCount === 1 ? "" : "s"} can carry forward</h3><p>{preview.excluded_fields.length} response{preview.excluded_fields.length === 1 ? " needs" : "s need"} a new answer because the field changed or is no longer present.</p>{preview.excluded_fields.length > 0 && <ul>{preview.excluded_fields.map((field) => <li key={field.field_id}><strong>{field.field_id}</strong>{field.reason ? ` · ${field.reason}` : ""}</li>)}</ul>}<label className="forms-check-row"><input type="checkbox" checked={carryForward} disabled={compatibleCount === 0} onChange={(event) => setCarryForward(event.target.checked)}/> Carry compatible responses into the replacement</label><div className="forms-task-actions"><button className="forms-primary" type="button" onClick={() => void confirm()} disabled={busy}>{busy ? "Replacing…" : "Confirm replacement"}</button><button type="button" onClick={onCancel} disabled={busy}>Cancel</button></div></section>}
