@@ -48,8 +48,10 @@ func main() {
 
 	continuityRepo := continuity.NewPostgresRepository(pool)
 	continuityService := continuity.NewService(continuityRepo)
-	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
-	monitoringService := monitoring.NewService(monitoring.NewPostgresRepository(pool), evidenceService)
+	evidenceRepo := evidence.NewPostgresRepository(pool)
+	evidenceService := evidence.NewService(evidenceRepo, evidence.NewMemoryObjectStore())
+	monitoringRepo := monitoring.NewPostgresRepository(pool)
+	monitoringService := monitoring.NewService(monitoringRepo, evidenceService)
 	installer := bankverticals.NewService(continuityService, evidenceService)
 	installer.ConfigureMonitoring(monitoringService)
 	journeys, err := installer.InstallSample(ctx, seed)
@@ -65,10 +67,13 @@ func main() {
 	}
 	journeys, err = installer.List(ctx, seed.TenantID)
 	fatalIf(err)
+	scoring, err := seedScoringAcceptanceResponses(ctx, cfg, pool, seed, journeys, monitoringRepo, evidenceRepo)
+	fatalIf(err)
 	fatalIf(json.NewEncoder(os.Stdout).Encode(map[string]any{
 		"installed_at": time.Now().UTC(),
 		"tenant_id":    seed.TenantID,
 		"journeys":     journeys,
+		"scoring_acceptance": scoring,
 	}))
 }
 
