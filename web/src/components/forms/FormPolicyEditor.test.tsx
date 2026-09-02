@@ -57,6 +57,6 @@ describe("FormPolicyEditor", () => {
   it("fails closed when there is no active approved form revision", () => {
     render(<FormPolicyEditor forms={[]} onCancel={() => undefined} onCreate={vi.fn()}/>);
     expect(screen.getByText(/No active approved scoring forms are available/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Create policy draft" })).toBeDisabled();
+    expect((screen.getByRole("button", { name: "Create policy draft" }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
