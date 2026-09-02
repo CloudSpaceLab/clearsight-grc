@@ -89,13 +89,13 @@ func vendorCertificationRefreshFormInput(programID, legalEntityID string) monito
 func responsePolicyAcceptanceFormInput(programID, legalEntityID string) monitoring.CreateFormInput {
 	return monitoring.CreateFormInput{
 		ProgramID: programID, LegalEntityID: legalEntityID,
-		Code: responsePolicyAcceptanceFormCode,
-		Name: "Control response scoring acceptance",
-		Purpose: "Provide a deterministic good, borderline and poor scored-response population for validating governed automatic Matter policies.",
+		Code:         responsePolicyAcceptanceFormCode,
+		Name:         "Control response scoring acceptance",
+		Purpose:      "Provide a deterministic good, borderline and poor scored-response population for validating governed automatic Matter policies.",
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
-		ScoringMode: formcontract.ScoringCompliance,
+		ScoringMode:  formcontract.ScoringCompliance,
 		ScoreProfile: responsePolicyAcceptanceScoreProfile(),
-		Sections: []formcontract.Section{{ID: "control", Title: "Control assessment", Help: "Answer the bounded control questions used by the response-policy acceptance journey."}},
+		Sections:     []formcontract.Section{{ID: "control", Title: "Control assessment", Help: "Answer the bounded control questions used by the response-policy acceptance journey."}},
 		Fields: []formcontract.Field{
 			{ID: "control_designed", SectionID: "control", Label: "Is the control appropriately designed?", Type: formcontract.TypeYesNo, Required: true},
 			{ID: "control_operating", SectionID: "control", Label: "Is the control operating as designed?", Type: formcontract.TypeYesNo, Required: true},
@@ -108,7 +108,7 @@ func responsePolicyAcceptanceFormInput(programID, legalEntityID string) monitori
 func responsePolicyAcceptanceScoreProfile() *formcontract.ScoreProfile {
 	weightedYes := func(id, fieldID, label string, weight float64) formcontract.ScoreContribution {
 		return formcontract.ScoreContribution{ID: id, Label: label, Weight: weight, Required: true,
-			Predicate: formcontract.Predicate{FieldID: fieldID, Operator: formcontract.PredicateEquals, Values: []string{"Yes"}},
+			Predicate:   formcontract.Predicate{FieldID: fieldID, Operator: formcontract.PredicateEquals, Values: []string{"Yes"}},
 			MatchPoints: 100, NonMatchPoints: 0, Missing: formcontract.MissingIndeterminate}
 	}
 	return &formcontract.ScoreProfile{
@@ -121,7 +121,7 @@ func responsePolicyAcceptanceScoreProfile() *formcontract.ScoreProfile {
 		Rules: []formcontract.ScoreRule{{
 			ID: "critical-gap-open", Label: "An unresolved critical control gap exists",
 			Predicate: formcontract.Predicate{FieldID: "critical_gap", Operator: formcontract.PredicateEquals, Values: []string{"Yes"}},
-			Effect: formcontract.RuleEffect{Kind: formcontract.EffectDisqualify},
+			Effect:    formcontract.RuleEffect{Kind: formcontract.EffectDisqualify},
 		}},
 		Bands: formcontract.DefaultConcernBands(),
 	}
