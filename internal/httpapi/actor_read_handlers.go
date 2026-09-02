@@ -6,6 +6,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 )
 
@@ -15,25 +16,22 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
 		return
 	}
-	roleCodes := identity.NormalizeRoleCodes(actor.RoleCodes)
-	tenantName, legalEntityName, actorName := actor.TenantID, actor.LegalEntityID, actor.PrincipalID
-	if a.deps.DemoMode && actor.TenantID == identity.DurableDemoTenantID {
-		tenantName = "Clear Bank"
-		legalEntityName = "Clear Bank Nigeria"
-		actorName = demoActorName(actor.PrincipalID)
+	resolver := a.deps.RuntimeContext
+	if resolver == nil {
+		resolver = runtimecontext.IdentityResolver{}
 	}
+	resolved, err := resolver.Resolve(r.Context(), actor)
+	if err != nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "context_unavailable", "Your workspace context could not be loaded.")
+		return
+	}
+	resolved.Actor.RoleCodes = identity.NormalizeRoleCodes(resolved.Actor.RoleCodes)
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
-		// Directory-backed display names are enterprise work. Until they are available,
-		// show the verified identifiers rather than ambiguous placeholder organization names.
-		"tenant":       map[string]string{"id": actor.TenantID, "name": tenantName},
-		"legal_entity": map[string]string{"id": actor.LegalEntityID, "name": legalEntityName},
-		"actor": map[string]any{
-			"id": actor.PrincipalID, "name": actorName, "kind": actor.Kind, "role_codes": roleCodes,
-			"department_grants": actor.DepartmentGrants,
-			"assurance_level":   actor.AssuranceLevel, "authentication": actor.AuthenticationMethod, "session_id": actor.SessionID,
-		},
-		"mode":      a.deps.Mode,
-		"demo_mode": a.deps.DemoMode,
+		"tenant":       resolved.Tenant,
+		"legal_entity": resolved.LegalEntity,
+		"actor":        resolved.Actor,
+		"mode":         a.deps.Mode,
+		"demo_mode":    a.deps.DemoMode,
 		"capabilities": map[string]bool{
 			"document_import":           a.deps.DocumentImports != nil,
 			"reference_journeys":        a.deps.DemoMode && a.deps.BankVerticals != nil,
@@ -46,19 +44,6 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 			"oversight_read":            identity.HasPermission(actor, identity.PermissionOversightRead),
 		},
 	})
-}
-
-func demoActorName(principalID string) string {
-	names := map[string]string{
-		identity.DurableDemoPrincipalCRO: "Chief Risk Officer", identity.DurableDemoPrincipalCCO: "Chief Compliance Officer",
-		identity.DurableDemoPrincipalCISO: "Chief Information Security Officer", identity.DurableDemoPrincipalGRCAdmin: "GRC Administrator",
-		identity.DurableDemoPrincipalSystemAdmin: "System Administrator", identity.DurableDemoPrincipalAuditor: "Internal Auditor",
-		identity.DurableDemoPrincipalProgramOwner: "Program Owner", identity.DurableDemoPrincipalEvidenceRespondent: "Evidence Respondent",
-	}
-	if value := names[principalID]; value != "" {
-		return value
-	}
-	return principalID
 }
 
 func (a *API) actorToday(w http.ResponseWriter, r *http.Request) {
