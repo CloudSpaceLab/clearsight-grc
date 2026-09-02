@@ -27,9 +27,9 @@ type ActorRecord struct {
 }
 
 type Context struct {
-	Tenant      NamedRecord  `json:"tenant"`
-	LegalEntity NamedRecord  `json:"legal_entity"`
-	Actor       ActorRecord  `json:"actor"`
+	Tenant      NamedRecord `json:"tenant"`
+	LegalEntity NamedRecord `json:"legal_entity"`
+	Actor       ActorRecord `json:"actor"`
 }
 
 type Resolver interface {
