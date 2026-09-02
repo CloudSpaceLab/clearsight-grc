@@ -15,14 +15,14 @@ type SubjectRegistry interface {
 	SupportsSubjectType(string) bool
 }
 
-type ActivationAuthority struct {
+type ActivationAuthorityResolver struct {
 	Automation *autonomy.Service
 	Authority  authority.Service
 	Subjects   SubjectRegistry
 	Now        func() time.Time
 }
 
-func (validator ActivationAuthority) ValidatePolicyActivation(ctx context.Context, actor Actor, policy Policy) error {
+func (validator ActivationAuthorityResolver) ValidatePolicyActivation(ctx context.Context, actor Actor, policy Policy) error {
 	if validator.Automation == nil || validator.Authority == nil || validator.Subjects == nil {
 		return ErrAuthorityUnavailable
 	}
@@ -201,4 +201,5 @@ func servicePrincipalID(value authority.Resolution) string {
 	return ""
 }
 
+var _ ActivationAuthority = ActivationAuthorityResolver{}
 var _ ExecutionAuthority = ExecutionAuthorityResolver{}
