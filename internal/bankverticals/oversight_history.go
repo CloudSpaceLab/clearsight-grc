@@ -62,10 +62,11 @@ func (s *Service) ensureReferenceMatterHistory(ctx context.Context, config SeedC
 		if !isExpectedReferenceHistory(existing, spec) {
 			return fmt.Errorf("trigger key %s belongs to a non-reference or incompatible issue", triggerKey)
 		}
-		if existing.Matter.Status == continuity.MatterClosed && (!spec.Reopen || existing.Matter.ReopenCount == 1) {
+		if reason := incompleteReferenceHistoryReason(existing, spec); reason == "" {
 			return nil
+		} else {
+			return fmt.Errorf("reference issue %s has incomplete history and cannot yet be resumed safely: %s", spec.Key, reason)
 		}
-		return fmt.Errorf("reference issue %s has incomplete history and cannot yet be resumed safely", spec.Key)
 	}
 	if !errors.Is(err, continuity.ErrNotFound) {
 		return err
@@ -240,4 +241,56 @@ func isExpectedReferenceHistory(aggregate continuity.MatterAggregate, spec refer
 		return false
 	}
 	return scope["sample"] == true && scope["reference_data"] == true && scope["journey_code"] == referenceOversightJourneyCode && scope["history_key"] == spec.Key
+}
+
+func incompleteReferenceHistoryReason(aggregate continuity.MatterAggregate, spec referenceMatterHistory) string {
+	if aggregate.Matter.Status != continuity.MatterClosed || aggregate.Matter.ClosedAt == nil {
+		return "issue is not closed"
+	}
+	wantReopenCount := 0
+	if spec.Reopen {
+		wantReopenCount = 1
+	}
+	if aggregate.Matter.ReopenCount != wantReopenCount {
+		return fmt.Sprintf("reopen count is %d; expected %d", aggregate.Matter.ReopenCount, wantReopenCount)
+	}
+	wantOwner := spec.OwnerID
+	if spec.ReassignTo != "" {
+		wantOwner = spec.ReassignTo
+	}
+	if aggregate.Matter.OwnerPrincipalID != wantOwner {
+		return "current accountable owner does not match the reference handoff"
+	}
+	approvedDecision := false
+	for _, decision := range aggregate.Decisions {
+		if decision.Type == "REFERENCE_HANDLING" && decision.Status == continuity.DecisionApproved && decision.SelectedOption == "PROCEED_WITH_RECORDED_ACTION" {
+			approvedDecision = true
+			break
+		}
+	}
+	if !approvedDecision {
+		return "approved handling decision is missing"
+	}
+	actionOrigin := "reference:oversight:action:" + spec.Key
+	for _, action := range aggregate.Actions {
+		if action.OriginKey != actionOrigin {
+			continue
+		}
+		if action.Status != continuity.ActionImplemented || action.ImplementedAt == nil {
+			return "reference action is not implemented"
+		}
+		for _, contract := range aggregate.VerificationContracts {
+			if contract.ActionID != action.ID || contract.Status != continuity.VerificationActive {
+				continue
+			}
+			for _, result := range aggregate.VerificationResults {
+				if result.ContractID == contract.ID && result.Result == continuity.VerificationPassed && result.ReviewerPrincipalID != action.OwnerPrincipalID {
+					return ""
+				}
+			}
+			return "independent passing outcome check is missing"
+		}
+		return "active outcome-check contract is missing"
+	}
+	return "reference action is missing"
 }

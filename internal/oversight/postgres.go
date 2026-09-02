@@ -247,9 +247,27 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		  SELECT ma.owner_principal_id,count(*) blocked FROM matter_actions ma JOIN matters m ON m.tenant_id=ma.tenant_id AND m.id=ma.matter_id
 		  WHERE ma.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND ma.status='BLOCKED'
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')) GROUP BY ma.owner_principal_id
+		), reassignments AS (
+		  SELECT m.owner_principal_id,count(*) reassigned
+		  FROM matters m JOIN continuity_events e ON e.tenant_id=m.tenant_id AND e.aggregate_type='MATTER' AND e.aggregate_id=m.id
+		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND e.event_type='MATTER_OWNER_CHANGED' AND e.occurred_at>=$3
+		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
+		  GROUP BY m.owner_principal_id
+		), returned_decisions AS (
+		  SELECT m.owner_principal_id,count(*) returned
+		  FROM matters m JOIN continuity_events e ON e.tenant_id=m.tenant_id AND e.aggregate_type='MATTER' AND e.aggregate_id=m.id
+		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND e.event_type='DECISION_ADDED' AND e.occurred_at>=$3
+		    AND e.payload->>'status'='RETURNED'
+		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
+		  GROUP BY m.owner_principal_id
 		)
-		SELECT ow.owner_principal_id::text,p.display_name,ow.current_load,ow.completed,ow.median_hours,ow.p75_hours,ow.sla_samples,ow.sla_met,COALESCE(b.blocked,0),COALESCE(ow.reopened,0)
-		FROM owner_work ow JOIN principals p ON p.tenant_id=$1::uuid AND p.id=ow.owner_principal_id LEFT JOIN blocked b ON b.owner_principal_id=ow.owner_principal_id
+		SELECT ow.owner_principal_id::text,p.display_name,ow.current_load,ow.completed,ow.median_hours,ow.p75_hours,ow.sla_samples,ow.sla_met,
+		       COALESCE(b.blocked,0),COALESCE(ow.reopened,0),COALESCE(r.reassigned,0),COALESCE(rd.returned,0)
+		FROM owner_work ow
+		JOIN principals p ON p.tenant_id=$1::uuid AND p.id=ow.owner_principal_id
+		LEFT JOIN blocked b ON b.owner_principal_id=ow.owner_principal_id
+		LEFT JOIN reassignments r ON r.owner_principal_id=ow.owner_principal_id
+		LEFT JOIN returned_decisions rd ON rd.owner_principal_id=ow.owner_principal_id
 		ORDER BY ow.current_load DESC,ow.completed DESC,p.display_name LIMIT 50`, scope.TenantID, scope.LegalEntityID, periodStart)
 	if err != nil {
 		return Snapshot{}, err
@@ -257,12 +275,13 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 	for rows.Next() {
 		var item Performance
 		var median, p75 *float64
-		var slaSamples, slaMet int
-		if err := rows.Scan(&item.OwnerID, &item.OwnerName, &item.CurrentLoad, &item.Completed, &median, &p75, &slaSamples, &slaMet, &item.Blocked, &item.Reopened); err != nil {
+		var slaSamples, slaMet, reassigned, returned int
+		if err := rows.Scan(&item.OwnerID, &item.OwnerName, &item.CurrentLoad, &item.Completed, &median, &p75, &slaSamples, &slaMet, &item.Blocked, &item.Reopened, &reassigned, &returned); err != nil {
 			rows.Close()
 			return Snapshot{}, err
 		}
 		item.MedianHours, item.P75Hours, item.MeasurementSamples = median, p75, item.Completed
+		item.Reassigned, item.Returned = &reassigned, &returned
 		if slaSamples > 0 {
 			rate := float64(slaMet) / float64(slaSamples)
 			item.SLAAttainment = &rate
@@ -300,18 +319,19 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 	}
 	rows.Close()
 
-	var matterHW, actionHW, taskHW, verificationHW *time.Time
+	var matterHW, actionHW, taskHW, verificationHW, eventHW *time.Time
 	if err := r.pool.QueryRow(ctx, `
 		SELECT max(m.updated_at),
 		       (SELECT max(ma.updated_at) FROM matter_actions ma JOIN matters linked ON linked.tenant_id=ma.tenant_id AND linked.id=ma.matter_id WHERE linked.tenant_id=$1::uuid AND linked.legal_entity_id=$2::uuid AND (NOT (linked.scope ? 'access') OR upper(btrim(linked.scope->>'access')) IN ('PUBLIC','INTERNAL'))),
 		       (SELECT max(wt.updated_at) FROM workflow_tasks wt JOIN workflow_instances wi ON wi.tenant_id=wt.tenant_id AND wi.id=wt.workflow_id LEFT JOIN matters linked_m ON wi.subject_type='MATTER' AND linked_m.tenant_id=wi.tenant_id AND linked_m.id=wi.subject_id LEFT JOIN programs linked_p ON wi.subject_type='PROGRAM' AND linked_p.tenant_id=wi.tenant_id AND linked_p.id=wi.subject_id WHERE wt.tenant_id=$1::uuid AND COALESCE(linked_m.legal_entity_id,linked_p.legal_entity_id)=$2::uuid AND ((linked_m.id IS NOT NULL AND (NOT (linked_m.scope ? 'access') OR upper(btrim(linked_m.scope->>'access')) IN ('PUBLIC','INTERNAL'))) OR (linked_p.id IS NOT NULL AND (NOT (linked_p.scope ? 'access') OR upper(btrim(linked_p.scope->>'access')) IN ('PUBLIC','INTERNAL'))))),
 		       (SELECT max(vr.observed_at) FROM verification_results vr JOIN matters linked ON linked.tenant_id=vr.tenant_id AND linked.id=vr.matter_id WHERE linked.tenant_id=$1::uuid AND linked.legal_entity_id=$2::uuid AND (NOT (linked.scope ? 'access') OR upper(btrim(linked.scope->>'access')) IN ('PUBLIC','INTERNAL')))
+		       ,(SELECT max(ce.occurred_at) FROM continuity_events ce JOIN matters linked ON linked.tenant_id=ce.tenant_id AND linked.id=ce.aggregate_id WHERE ce.aggregate_type='MATTER' AND linked.tenant_id=$1::uuid AND linked.legal_entity_id=$2::uuid AND (NOT (linked.scope ? 'access') OR upper(btrim(linked.scope->>'access')) IN ('PUBLIC','INTERNAL')))
 		FROM matters m WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid
 		  AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))`, scope.TenantID, scope.LegalEntityID).
-		Scan(&matterHW, &actionHW, &taskHW, &verificationHW); err != nil {
+		Scan(&matterHW, &actionHW, &taskHW, &verificationHW, &eventHW); err != nil {
 		return Snapshot{}, err
 	}
-	for key, watermark := range map[string]*time.Time{"matters": matterHW, "actions": actionHW, "workflow_tasks": taskHW, "verification_results": verificationHW} {
+	for key, watermark := range map[string]*time.Time{"matters": matterHW, "actions": actionHW, "workflow_tasks": taskHW, "verification_results": verificationHW, "continuity_events": eventHW} {
 		if watermark != nil {
 			value.SourceHighWater[key] = watermark.UTC()
 		}
@@ -340,15 +360,4 @@ func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot tim
 		VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8::jsonb,$9,$10,$11,$12::jsonb)
 		ON CONFLICT(tenant_id,legal_entity_id,projection_version,refresh_slot) DO NOTHING`, value.TenantID, value.LegalEntityID, value.PeriodStart, value.PeriodEnd, slot, value.GeneratedAt, value.ProjectionVersion, highWater, value.Coverage.Population, value.Coverage.Excluded, value.Coverage.Unknown, payload)
 	return command.RowsAffected() == 1, err
-}
-
-func estimateConfidence(samples int) string {
-	switch {
-	case samples >= 30:
-		return "HIGH"
-	case samples >= 12:
-		return "MEDIUM"
-	default:
-		return "LOW"
-	}
 }

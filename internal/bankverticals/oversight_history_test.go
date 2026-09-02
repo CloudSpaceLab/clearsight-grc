@@ -70,6 +70,45 @@ func TestInstallSampleCreatesReconstructableOversightHistory(t *testing.T) {
 	}
 }
 
+func TestInstallSampleRejectsShallowReferenceHistoryAndIsIdempotent(t *testing.T) {
+	now := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
+	repository := continuity.NewMemoryRepository()
+	base := continuity.NewServiceWithClock(repository, func() time.Time { return now })
+	service := NewService(base, newReferenceEvidenceService(now, "bank-ng"))
+	configureReferenceTimeline(service, repository)
+	config := normalizeSeedConfig(DemoSeedConfig())
+	config.Now = now
+	ctx := continuity.WithTrustedSystemEntityScope(context.Background(), config.TenantID, config.LegalEntityID)
+
+	if _, err := service.InstallSample(context.Background(), config); err != nil {
+		t.Fatal(err)
+	}
+	versions := map[string]int64{}
+	for _, spec := range referenceOversightHistories(config) {
+		aggregate, err := base.MatterByTriggerKey(ctx, config.TenantID, "reference:oversight:"+spec.Key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if reason := incompleteReferenceHistoryReason(aggregate, spec); reason != "" {
+			t.Fatalf("reference history %s incomplete: %s", spec.Key, reason)
+		}
+		versions[spec.Key] = aggregate.Matter.Version
+	}
+
+	if _, err := service.InstallSample(context.Background(), config); err != nil {
+		t.Fatal(err)
+	}
+	for _, spec := range referenceOversightHistories(config) {
+		aggregate, err := base.MatterByTriggerKey(ctx, config.TenantID, "reference:oversight:"+spec.Key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if aggregate.Matter.Version != versions[spec.Key] {
+			t.Fatalf("reference history %s version changed on repeat install: got %d want %d", spec.Key, aggregate.Matter.Version, versions[spec.Key])
+		}
+	}
+}
+
 func configureReferenceTimeline(service *Service, repository continuity.Repository) {
 	service.ConfigureReferenceTimeline(func(at time.Time) *continuity.Service {
 		return continuity.NewServiceWithClock(repository, func() time.Time { return at })

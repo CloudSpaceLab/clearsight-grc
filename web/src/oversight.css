@@ -8,6 +8,14 @@
 .oversight-freshness.current { border-left: 3px solid var(--success); }
 .oversight-freshness.stale { border-left: 3px solid var(--amber); }
 .oversight-scope-line { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; padding: 10px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: .74rem; }
+.oversight-data-freshness { margin: 0 0 18px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-10); background: var(--surface); }
+.oversight-data-freshness summary { padding: 10px 13px; color: var(--text); font-size: .76rem; font-weight: 700; cursor: pointer; }
+.oversight-data-freshness > div { padding: 0 13px 13px; border-top: 1px solid var(--border); }
+.oversight-data-freshness p { margin: 10px 0; color: var(--muted); font-size: .74rem; }
+.oversight-data-freshness dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 0; }
+.oversight-data-freshness dl > div { display: grid; gap: 2px; padding: 8px; border-radius: var(--cs-primitive-radius-8); background: var(--surface-2); }
+.oversight-data-freshness dt { color: var(--muted); font-size: .68rem; }
+.oversight-data-freshness dd { margin: 0; font-size: .74rem; font-weight: 650; }
 .oversight-counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
 .oversight-metric { display: grid; gap: 5px; min-height: 130px; padding: 17px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-14); background: var(--surface); box-shadow: var(--cs-shadow-raised); }
 .oversight-metric > span { color: var(--muted); font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }

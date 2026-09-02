@@ -25,6 +25,32 @@ func TestMatterAggregateProjectionExcludesRestrictedAndUnknownScopes(t *testing.
 	}
 }
 
+func TestMatterAggregateProjectionDerivesOnlyAvailableHistoryMeasures(t *testing.T) {
+	now := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
+	aggregates := make([]continuity.MatterAggregate, 0, 5)
+	for index, hours := range []int{30, 42, 55, 74, 96} {
+		created := now.Add(-time.Duration(index+10) * 24 * time.Hour)
+		closed := created.Add(time.Duration(hours) * time.Hour)
+		due := created.Add(60 * time.Hour)
+		aggregates = append(aggregates, continuity.MatterAggregate{Matter: continuity.Matter{
+			ID: string(rune('a' + index)), TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterVendorReview,
+			Status: continuity.MatterClosed, Priority: 3, Title: "Vendor review", Scope: json.RawMessage(`{"access":"INTERNAL"}`),
+			OwnerPrincipalID: "owner-1", CreatedAt: created, UpdatedAt: closed, ClosedAt: &closed, DueAt: &due,
+		}})
+	}
+
+	value := FromMatterAggregates("bank", "bank-ng", aggregates, now)
+	if len(value.Estimates) != 1 || value.Estimates[0].Category != string(continuity.MatterVendorReview) || value.Estimates[0].SampleSize != 5 {
+		t.Fatalf("resolution estimates = %#v", value.Estimates)
+	}
+	if len(value.Performance) != 1 || value.Performance[0].Completed != 5 || value.Performance[0].MeasurementSamples != 5 {
+		t.Fatalf("performance = %#v", value.Performance)
+	}
+	if value.Performance[0].Reassigned != nil || value.Performance[0].Returned != nil {
+		t.Fatalf("aggregate-only projection invented event history: %#v", value.Performance[0])
+	}
+}
+
 func oversightMatter(id string, scope json.RawMessage, now time.Time) continuity.Matter {
 	return continuity.Matter{
 		ID: id, TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterControlGap,

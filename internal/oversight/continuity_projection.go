@@ -22,6 +22,13 @@ func FromMatterAggregates(tenantID, legalEntityID string, aggregates []continuit
 		Interventions: []Intervention{}, Pressure: []CategoryPressure{}, Performance: []Performance{}, Estimates: []ResolutionEstimate{},
 	}
 	pressure := map[string]*CategoryPressure{}
+	type ownerHistory struct {
+		current, completed, blocked, reopened int
+		durations                             []float64
+		slaSamples, slaMet                    int
+	}
+	owners := map[string]*ownerHistory{}
+	categoryDurations := map[string][]float64{}
 	ageCounts := []int{0, 0, 0, 0}
 	for _, aggregate := range aggregates {
 		matter := aggregate.Matter
@@ -40,8 +47,51 @@ func FromMatterAggregates(tenantID, legalEntityID string, aggregates []continuit
 		if matter.UpdatedAt.After(value.SourceHighWater["matters"]) {
 			value.SourceHighWater["matters"] = matter.UpdatedAt
 		}
+		for _, action := range aggregate.Actions {
+			if action.UpdatedAt.After(value.SourceHighWater["actions"]) {
+				value.SourceHighWater["actions"] = action.UpdatedAt
+			}
+		}
+		for _, result := range aggregate.VerificationResults {
+			if result.ObservedAt.After(value.SourceHighWater["verification_results"]) {
+				value.SourceHighWater["verification_results"] = result.ObservedAt
+			}
+		}
+		var owner *ownerHistory
+		if matter.OwnerPrincipalID != "" {
+			owner = owners[matter.OwnerPrincipalID]
+			if owner == nil {
+				owner = &ownerHistory{}
+				owners[matter.OwnerPrincipalID] = owner
+			}
+			for _, action := range aggregate.Actions {
+				if action.Status == continuity.ActionBlocked {
+					owner.blocked++
+				}
+			}
+			owner.reopened += matter.ReopenCount
+		}
 		if matter.Status == continuity.MatterClosed || matter.Status == continuity.MatterCancelled {
+			if matter.Status == continuity.MatterClosed && matter.ClosedAt != nil && !matter.ClosedAt.Before(value.PeriodStart) {
+				duration := matter.ClosedAt.Sub(matter.CreatedAt).Hours()
+				if duration >= 0 {
+					categoryDurations[string(matter.Type)] = append(categoryDurations[string(matter.Type)], duration)
+					if owner != nil {
+						owner.completed++
+						owner.durations = append(owner.durations, duration)
+						if matter.DueAt != nil {
+							owner.slaSamples++
+							if !matter.ClosedAt.After(*matter.DueAt) {
+								owner.slaMet++
+							}
+						}
+					}
+				}
+			}
 			continue
+		}
+		if owner != nil {
+			owner.current++
 		}
 		entry := pressure[string(matter.Type)]
 		if entry == nil {
@@ -108,7 +158,53 @@ func FromMatterAggregates(tenantID, legalEntityID string, aggregates []continuit
 		value.Interventions = value.Interventions[:30]
 	}
 	value.Aging = []AgingBucket{{Label: "0–7 days", Count: ageCounts[0]}, {Label: "8–30 days", Count: ageCounts[1]}, {Label: "31–90 days", Count: ageCounts[2]}, {Label: "Over 90 days", Count: ageCounts[3]}}
+	for ownerID, history := range owners {
+		item := Performance{OwnerID: ownerID, OwnerName: ownerID, CurrentLoad: history.current, Completed: history.completed, Blocked: history.blocked, Reopened: history.reopened, MeasurementSamples: len(history.durations)}
+		if len(history.durations) > 0 {
+			median, p75 := percentile(history.durations, .5), percentile(history.durations, .75)
+			item.MedianHours, item.P75Hours = &median, &p75
+		}
+		if history.slaSamples > 0 {
+			rate := float64(history.slaMet) / float64(history.slaSamples)
+			item.SLAAttainment = &rate
+		}
+		value.Performance = append(value.Performance, item)
+	}
+	sort.Slice(value.Performance, func(i, j int) bool {
+		if value.Performance[i].CurrentLoad == value.Performance[j].CurrentLoad {
+			return value.Performance[i].OwnerID < value.Performance[j].OwnerID
+		}
+		return value.Performance[i].CurrentLoad > value.Performance[j].CurrentLoad
+	})
+	for category, durations := range categoryDurations {
+		if len(durations) < 5 {
+			continue
+		}
+		value.Estimates = append(value.Estimates, ResolutionEstimate{Category: category, SampleSize: len(durations), MedianHours: percentile(durations, .5), LowerHours: percentile(durations, .25), UpperHours: percentile(durations, .75), Confidence: estimateConfidence(len(durations)), EstimatedBy: "Closed issues of the same type in this legal entity during the selected period"})
+	}
+	sort.Slice(value.Estimates, func(i, j int) bool {
+		if value.Estimates[i].SampleSize == value.Estimates[j].SampleSize {
+			return value.Estimates[i].Category < value.Estimates[j].Category
+		}
+		return value.Estimates[i].SampleSize > value.Estimates[j].SampleSize
+	})
 	return value
+}
+
+func percentile(values []float64, quantile float64) float64 {
+	ordered := append([]float64(nil), values...)
+	sort.Float64s(ordered)
+	if len(ordered) == 0 {
+		return 0
+	}
+	position := quantile * float64(len(ordered)-1)
+	lower := int(position)
+	upper := lower + 1
+	if upper >= len(ordered) {
+		return ordered[lower]
+	}
+	fraction := position - float64(lower)
+	return ordered[lower] + (ordered[upper]-ordered[lower])*fraction
 }
 
 func oversightScopeState(raw json.RawMessage) string {

@@ -14,7 +14,7 @@ export type OversightSnapshot = {
   interventions: Array<{ target_type: string; target_id: string; title: string; category: string; state: string; priority: number; owner_id?: string; owner_name?: string; due_at?: string; reason: string; next_action: string }>;
   pressure: Array<{ category: string; critical: number; high: number; other: number; overdue: number }>;
   aging: Array<{ label: string; count: number }>;
-  performance: Array<{ owner_id: string; owner_name: string; current_load: number; completed: number; median_hours?: number; p75_hours?: number; sla_attainment?: number; reassigned?: number; blocked: number; reopened: number; measurement_samples: number }>;
+  performance: Array<{ owner_id: string; owner_name: string; current_load: number; completed: number; median_hours?: number; p75_hours?: number; sla_attainment?: number; reassigned?: number; returned?: number; blocked: number; reopened: number; measurement_samples: number }>;
   estimates: Array<{ category: string; sample_size: number; median_hours: number; lower_hours: number; upper_hours: number; confidence: string; estimated_by: string }>;
 };
 

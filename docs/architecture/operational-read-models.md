@@ -52,3 +52,9 @@ Material commands and full aggregate reads remain strongly consistent. Summary l
 ## Failure behavior
 
 A failed summary request displays an unavailable state and retry action. It does not substitute sample data or preserve a prior count without a stale-data label. A failed detail request leaves the list usable and offers a row-level retry.
+
+## Oversight snapshot
+
+The legal-entity oversight snapshot is a bounded 90-day projection over included Matter scope. It records the checked population, excluded and unknown scope counts, generation time, projection version and high-water marks for Matters, actions, workflow tasks, verification results and continuity events. Reassignment and returned-decision counts are derived from append-only events; aggregate-only memory composition leaves those measures unknown.
+
+Resolution ranges require at least five closed Matters of the same type in the selected legal entity and period. The range reports the observed quartiles and median, not a promised completion date. Owner rows show current load, completed/measured work, observed cycle time, SLA attainment, blocked work, reopening, reassignment and returned-decision history. These are operating-context facts and must not be combined into an employee score or rank.

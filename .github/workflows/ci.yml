@@ -96,6 +96,12 @@ jobs:
         # Integration packages share one mutable database; serialize package execution
         # so fixture cleanup in one package cannot race another package's test data.
         run: go test -count=1 -p 1 -tags "postgres postgresintegration" ./internal/...
+      - name: Oversight reference history and projection acceptance
+        env:
+          TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+        run: |
+          go test ./internal/bankverticals -run OversightHistory -count=1
+          go test -count=1 -p 1 -tags "postgres postgresintegration" ./internal/oversight
       - name: Vet
         run: go vet ./...
   web:
