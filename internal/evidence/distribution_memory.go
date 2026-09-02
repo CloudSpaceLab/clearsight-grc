@@ -268,8 +268,12 @@ func materializeDistributionRequest(requestID string, distribution FormDistribut
 		EstimatedMinutes: input.EstimatedMinutes, Deadline: distribution.Deadline, KnownFacts: map[string]string{},
 		Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: cloneScoreProfile(form.ScoreProfile),
 		Sections: cloneSections(form.Sections), Fields: requestFieldsFromContract(form.Fields),
+		SourceBindings: []RequestBindingReference{},
 		FormTemplateID: form.ID, FormTemplateVersion: form.Version, Status: RequestReady,
 		CreatedBy: distribution.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now,
+	}
+	if request.ScoringMode == "" {
+		request.ScoringMode = formcontract.ScoringNone
 	}
 	if input.RequestInput == nil {
 		return request, nil
@@ -287,6 +291,9 @@ func materializeDistributionRequest(requestID string, distribution FormDistribut
 	request.KnownFacts = cloneMap(context.KnownFacts)
 	request.Presentation = context.Presentation
 	request.ScoringMode = context.ScoringMode
+	if request.ScoringMode == "" {
+		request.ScoringMode = formcontract.ScoringNone
+	}
 	request.ScoreProfile = cloneScoreProfile(context.ScoreProfile)
 	request.Sections = cloneSections(context.Sections)
 	request.Fields = cloneFields(context.Fields)
