@@ -140,7 +140,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	oversightService := oversight.NewService(oversightRepo)
 
 	return serviceSet{
-		Mode: "memory", Authority: authorityService, Governance: governance.NewService(governance.NewMemoryRepository()),
+		Mode: "memory", RuntimeContext: configuredRuntimeContext(cfg), Authority: authorityService, Governance: governance.NewService(governance.NewMemoryRepository()),
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		FormPolicies: formPolicies,
