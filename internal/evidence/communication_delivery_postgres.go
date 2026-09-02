@@ -100,12 +100,7 @@ func (repository *PostgresCommunicationDeliveryRepository) RecordCommunicationDe
 	if repository == nil || repository.repo == nil || repository.repo.pool == nil {
 		return ErrCommunicationUnavailable
 	}
-	status := "FAILED"
-	if receipt.Status == InvitationDelivered {
-		status = "DELIVERED"
-	} else if failureCode == "DISTRIBUTION_NOT_DELIVERABLE" || failureCode == "RECIPIENT_NOT_DELIVERABLE" {
-		status = "SKIPPED"
-	}
+	status := communicationDeliveryAttemptStatus(receipt, failureCode)
 	if status != "SKIPPED" && (template.ID == "" || template.Version < 1) {
 		return ErrCommunicationUnavailable
 	}

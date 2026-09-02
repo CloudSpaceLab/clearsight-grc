@@ -123,6 +123,18 @@ func TestCommunicationDeliveryWorkerSkipsSupersededSecureLinkEvent(t *testing.T)
 	}
 }
 
+func TestCommunicationDeliveryAttemptStatusFinalizesSupersededEvent(t *testing.T) {
+	t.Parallel()
+
+	status := communicationDeliveryAttemptStatus(
+		InvitationDeliveryReceipt{Status: InvitationDeliveryFailed},
+		"SUPERSEDED_COMMUNICATION",
+	)
+	if status != "SKIPPED" {
+		t.Fatalf("superseded delivery status = %q, want SKIPPED", status)
+	}
+}
+
 func activeCommunicationServiceForWorker(now time.Time, action CommunicationAction) *CommunicationService {
 	store := NewMemoryCommunicationStore()
 	store.profiles[communicationScopeKey("tenant", "entity")] = []CommunicationProfile{{
