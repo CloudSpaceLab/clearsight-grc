@@ -19,7 +19,7 @@ export function useDemoSessionTools() {
   return useContext(DemoSessionContext);
 }
 
-export function SessionGate({ children }: { children: ReactNode; presentation?: RuntimePresentation }) {
+export function SessionGate({ children, presentation = "enterprise" }: { children: ReactNode; presentation?: RuntimePresentation }) {
   const [state, setState] = useState<GateState>("checking");
   const [accounts, setAccounts] = useState<DemoAccount[]>([]);
   const [demoMode, setDemoMode] = useState(false);
@@ -120,11 +120,11 @@ export function SessionGate({ children }: { children: ReactNode; presentation?: 
     }
   }
 
-  const demoTools = useMemo<DemoSessionTools | null>(() => demoMode ? {
+  const demoTools = useMemo<DemoSessionTools | null>(() => demoMode && presentation !== "live-preview" ? {
     accounts,
     currentAccountLabel,
     switchAccount,
-  } : null, [accounts, currentAccountLabel, demoMode]);
+  } : null, [accounts, currentAccountLabel, demoMode, presentation]);
 
   if (state === "checking") {
     return <main className="demo-login-shell"><section className="demo-login-panel compact" aria-live="polite" aria-busy="true"><span className="eyebrow">ClearSight</span><h1>Opening your workspace…</h1></section></main>;

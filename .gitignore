@@ -32,3 +32,6 @@ Thumbs.db
 /var/
 .worktrees/
 *.log
+
+
+.codex-test-cache/

@@ -48,7 +48,7 @@ function renderSession(presentation: RuntimePresentation = "demo") {
 }
 
 async function openDemoEnvironment() {
-  fireEvent.click(await screen.findByRole("button", { name: /Demo environment/ }));
+  fireEvent.click(await screen.findByRole("button", { name: /Open demo account menu/ }));
 }
 
 it("opens demo role login without probing protected context while signed out", async () => {
@@ -133,13 +133,13 @@ it("returns to the account chooser when the replacement account cannot sign in",
   expect(screen.getByRole("alert").textContent).toContain("Replacement sign-in failed");
 });
 
-it("does not probe protected context when current session discovery is unavailable", async () => {
+it("uses the compatibility context flow when session discovery is unavailable", async () => {
   vi.mocked(loadSessionStatus).mockRejectedValue(new Error("not deployed"));
 
   renderSession();
 
   expect(await screen.findByText("Workspace")).not.toBeNull();
-  expect(loadContext).not.toHaveBeenCalled();
+  expect(loadContext).toHaveBeenCalledTimes(1);
 });
 
 it("returns to demo role login when the session expires before context loads", async () => {
@@ -157,7 +157,7 @@ it("returns to demo role login when the session expires before context loads", a
   expect(screen.queryByText("Workspace")).toBeNull();
 });
 
-it("keeps demo account switching available in the enterprise presentation", async () => {
+it("keeps demo account switching available in the normal enterprise presentation", async () => {
   render(<SessionGate><div>Workspace</div><DemoEnvironmentMenu onOpenReferenceJourneys={vi.fn()}/></SessionGate>);
 
   expect(await screen.findByText("Workspace")).not.toBeNull();
@@ -166,11 +166,11 @@ it("keeps demo account switching available in the enterprise presentation", asyn
   expect(screen.getByRole("button", { name: "Switch to System Administrator" })).toBeTruthy();
 });
 
-it("keeps demo account switching available in live preview", async () => {
+it("keeps demo authentication while hiding account switching in live preview", async () => {
   renderSession("live-preview");
 
   expect(await screen.findByText("Workspace")).not.toBeNull();
-  await openDemoEnvironment();
-  expect(screen.getByText("Viewing as")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Switch to System Administrator" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Demo environment" })).toBeTruthy();
+  expect(screen.queryByText("Viewing as")).toBeNull();
+  expect(screen.queryByRole("button", { name: /Switch to/ })).toBeNull();
 });

@@ -48,6 +48,25 @@ func TestFormLibraryReadIncludesExactAuthorityOperations(t *testing.T) {
 	}
 }
 
+func TestActiveFormLibraryRevisionCanBeRevisedByCurrentOwner(t *testing.T) {
+	resolver := &exactFormAuthority{}
+	api := &API{deps: Dependencies{Authority: resolver}}
+	page := monitoring.FormTemplatePage{Items: []monitoring.FormLibraryItem{{Template: monitoring.FormTemplate{
+		ID: "active-a", TenantID: "bank-a", LegalEntityID: "entity-a", Name: "Encryption attestation",
+		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 3},
+	}}}}
+	actor := identity.Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner-active-a"}
+
+	result := api.formLibraryPageWithOperations(context.Background(), actor, page, time.Date(2026, 9, 2, 8, 0, 0, 0, time.UTC))
+	if len(result.Items) != 1 || len(result.Items[0].Operations) != 2 {
+		t.Fatalf("operation response = %#v", result.Items)
+	}
+	revise := result.Items[0].Operations[0]
+	if revise.Command != "forms.template.revise" || revise.Label != "Create revision" || !revise.CanAct {
+		t.Fatalf("revise operation = %#v", revise)
+	}
+}
+
 func TestFormsRoutesAreRegisteredAndClassified(t *testing.T) {
 	want := map[string]routeClass{
 		"GET /api/v1/forms/templates":                             routeAuthenticatedRead,

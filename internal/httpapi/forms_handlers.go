@@ -169,8 +169,12 @@ func (a *API) formLibraryPageWithOperations(ctx context.Context, actor identity.
 	}
 	for index, item := range page.Items {
 		form := item.Template
-		if form.Status == monitoring.LifecycleDraft {
-			add(index, "forms.template.revise", "Edit draft", authority.ResponsibilityOwner, 2, nil)
+		if form.Status != monitoring.LifecyclePendingApproval {
+			label := "Create revision"
+			if form.Status == monitoring.LifecycleDraft {
+				label = "Edit draft"
+			}
+			add(index, "forms.template.revise", label, authority.ResponsibilityOwner, 2, nil)
 		}
 		targets := monitoringTransitionTargets(form.Status, form.SubmittedBy, actor.PrincipalID)
 		if len(targets) == 0 {
