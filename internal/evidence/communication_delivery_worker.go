@@ -20,6 +20,18 @@ type CommunicationDeliveryAttempt struct {
 	AttemptedAt     time.Time
 }
 
+func communicationDeliveryAttemptStatus(receipt InvitationDeliveryReceipt, failureCode string) string {
+	if receipt.Status == InvitationDelivered {
+		return "DELIVERED"
+	}
+	switch failureCode {
+	case "DISTRIBUTION_NOT_DELIVERABLE", "RECIPIENT_NOT_DELIVERABLE", "SUPERSEDED_COMMUNICATION":
+		return "SKIPPED"
+	default:
+		return "FAILED"
+	}
+}
+
 type communicationDeliveryRecipient struct {
 	DistributionRecipient
 	ProtectedAddress protectedRecipientAddress
