@@ -387,7 +387,7 @@ func (r *MemoryRepository) TransitionCheck(_ context.Context, input LifecycleTra
 	}
 	if next.IsCurrent || current.IsCurrent {
 		for storedKey, stored := range r.checks {
-			if stored.TenantID == input.TenantID && stored.ID == input.ID && stored.IsCurrent {
+			if stored.TenantID == input.TenantID && stored.ProgramID == current.ProgramID && stored.Code == current.Code && stored.IsCurrent {
 				stored.IsCurrent = false
 				stored.Status = LifecycleRetired
 				until := input.At.UTC()

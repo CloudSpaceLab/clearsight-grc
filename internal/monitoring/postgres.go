@@ -441,7 +441,11 @@ func (r *PostgresRepository) TransitionCheck(ctx context.Context, input Lifecycl
 		return MonitoringCheck{}, err
 	}
 	if nextLifecycle.IsCurrent || current.IsCurrent {
-		_, err = tx.Exec(ctx, `UPDATE monitoring_checks SET status='RETIRED',is_current=false,effective_until=$3,updated_at=$3 WHERE tenant_id=$1::uuid AND id=$2::uuid AND is_current`, current.TenantID, current.ID, input.At.UTC())
+		_, err = tx.Exec(ctx, `
+			UPDATE monitoring_checks
+			SET status='RETIRED',is_current=false,effective_until=$4,updated_at=$4
+			WHERE tenant_id=$1::uuid AND program_id=$2::uuid AND code=$3 AND is_current`,
+			current.TenantID, current.ProgramID, current.Code, input.At.UTC())
 		if err != nil {
 			return MonitoringCheck{}, mapPostgresError(err)
 		}
