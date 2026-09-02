@@ -645,7 +645,7 @@ func applyMatterProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 			return ErrNotFound
 		}
 		return nil
-	case EventMatterStateChanged, EventMatterDetailsUpdated, EventMatterContextChanged, EventMatterOwnerChanged:
+	case EventMatterStateChanged, EventMatterDetailsUpdated, EventMatterContextChanged, EventMatterOwnerChanged, EventMatterFormApplied:
 		v, ok, err := matterProjectionMatter(event)
 		if err != nil {
 			return err
@@ -829,6 +829,12 @@ func matterProjectionMatter(event Event) (Matter, bool, error) {
 			return Matter{}, true, err
 		}
 		value = changed.Matter
+	case EventMatterFormApplied:
+		var applied matterFormResponseAppliedEvent
+		if err := json.Unmarshal(event.Payload, &applied); err != nil {
+			return Matter{}, true, err
+		}
+		value = applied.Matter
 	default:
 		return Matter{}, false, nil
 	}

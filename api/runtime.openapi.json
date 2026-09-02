@@ -259,6 +259,12 @@
     "/api/v1/matters/{id}": { "get": { "operationId": "getMatter", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/matters/{id}/history": { "get": { "operationId": "getMatterHistory", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/matters/{id}/operations": { "get": { "operationId": "getMatterOperations", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/matters/{id}/form-remediations": {
+      "get": { "operationId": "listMatterFormRemediations", "x-clearsight-route-class": "AUTHENTICATED_READ" },
+      "post": { "operationId": "createMatterFormRemediation", "x-clearsight-route-class": "MATERIAL_COMMAND" }
+    },
+    "/api/v1/matters/{id}/form-remediations/{binding_id}/send": { "post": { "operationId": "sendMatterFormRemediation", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/matters/{id}/form-remediations/{binding_id}/apply": { "post": { "operationId": "applyMatterFormRemediation", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/matters/{id}/details": { "post": { "operationId": "updateMatterDetails", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/matters/{id}/context-changes": { "post": { "operationId": "changeMatterContext", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/matters/{id}/assignment": { "post": { "operationId": "assignMatter", "x-clearsight-route-class": "MATERIAL_COMMAND" } },

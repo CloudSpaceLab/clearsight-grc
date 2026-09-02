@@ -72,19 +72,20 @@ type Dependencies struct {
 	ThirdPartyAssessmentSetup        interface {
 		Maintain(context.Context, time.Time, int) (int, error)
 	}
-	SourceCatalog    *sourceaccess.CatalogService
-	DocumentImports  *documentimport.Service
-	Coverage         *documentcoverage.Service
-	Continuity       *continuity.Service
-	Today            *today.Service
-	Oversight        *oversight.Service
-	Workflow         *workflow.Service
-	Onboarding       *onboarding.Service
-	Autonomy         *autonomy.Service
-	AIGovernance     *aigovernance.Service
-	BankVerticals    *bankverticals.Service
-	BackgroundJobs   *operations.Service
-	MaxArtifactBytes int64
+	SourceCatalog         *sourceaccess.CatalogService
+	DocumentImports       *documentimport.Service
+	Coverage              *documentcoverage.Service
+	Continuity            *continuity.Service
+	MatterFormRemediation *continuity.MatterFormRemediationService
+	Today                 *today.Service
+	Oversight             *oversight.Service
+	Workflow              *workflow.Service
+	Onboarding            *onboarding.Service
+	Autonomy              *autonomy.Service
+	AIGovernance          *aigovernance.Service
+	BankVerticals         *bankverticals.Service
+	BackgroundJobs        *operations.Service
+	MaxArtifactBytes      int64
 }
 
 type API struct{ deps Dependencies }
