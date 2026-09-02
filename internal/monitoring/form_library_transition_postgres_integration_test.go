@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -56,7 +55,6 @@ func TestPostgresReusableFormCanEnterApprovalWithoutProgramID(t *testing.T) {
 	service := NewService(NewPostgresRepository(pool), nil)
 	service.ConfigureCommandGuard(guard)
 	service.newID = func() (string, error) { return formID, nil }
-	service.now = func() time.Time { return time.Date(2026, 9, 2, 22, 0, 0, 0, time.UTC) }
 	actorCtx := formActorContext(tenantSlug, entityID, principalID)
 
 	draft, err := service.CreateLibraryForm(actorCtx, validLibraryFormInput())
