@@ -181,6 +181,13 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/vendor-assessments/{id}/deficiencies", thirdparty.AssessmentDeficiencyCommand, a.createVendorAssessmentDeficiency, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
 		material("/api/v1/vendor-assessments/{id}/complete", "thirdparty.assessment.complete", a.completeVendorAssessment, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
 		material("/api/v1/vendor-assessments/{id}/cancel", thirdparty.AssessmentCancelCommand, a.cancelVendorAssessment, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
+		withPermission(write(http.MethodPost, "/api/v1/third-party-activation-policies", a.proposeThirdPartyActivationPolicy, nil), identity.PermissionConfigWrite),
+		withPermission(read("/api/v1/third-party-activation-policies/current", a.getCurrentThirdPartyActivationPolicy), identity.PermissionConfigRead),
+		withPermission(write(http.MethodPost, "/api/v1/third-party-activation-policies/{id}/simulate", a.simulateThirdPartyActivationPolicy, nil), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/third-party-activation-policies/{id}/submit", a.submitThirdPartyActivationPolicy, nil), identity.PermissionConfigWrite),
+		withPermission(write(http.MethodPost, "/api/v1/third-party-activation-policies/{id}/approve", a.approveThirdPartyActivationPolicy, nil), identity.PermissionConfigWrite),
+		material("/api/v1/vendors/{id}/activate", thirdparty.RelationshipActivateCommand, a.activateVendorRelationship, commandPolicy{ObjectType: "VENDOR_RELATIONSHIP", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4}),
+		read("/api/v1/vendors/{id}/activation", a.getVendorRelationshipActivation),
 
 		read("/api/v1/form-templates", a.listReusableFormTemplates),
 		read("/api/v1/forms/templates", a.listLibraryForms),

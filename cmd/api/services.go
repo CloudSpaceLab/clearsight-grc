@@ -50,6 +50,7 @@ type serviceSet struct {
 	ThirdPartyWorkRepo             thirdparty.VendorWorkRepository
 	MonitoringRepo                 monitoringFormRepository
 	ThirdPartyAssessmentRepo       thirdparty.AssessmentRepository
+	ThirdPartyActivationRepo       thirdparty.ActivationRepository
 	ThirdPartyAssessmentSetup      *thirdparty.AssessmentProvisioner
 	SourceCatalog                  *sourceaccess.CatalogService
 	DocumentImports                *documentimport.Service

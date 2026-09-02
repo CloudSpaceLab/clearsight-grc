@@ -64,6 +64,7 @@ type Dependencies struct {
 	ThirdPartyRelationshipLinks      *thirdparty.RelationshipLinkService
 	ThirdPartyWork                   *thirdparty.VendorWorkService
 	ThirdPartyAssessments            *thirdparty.AssessmentService
+	ThirdPartyActivation             *thirdparty.ActivationService
 	ThirdPartyAssessmentReviews      *thirdparty.AssessmentReviewService
 	ThirdPartyAssessmentApplications *thirdparty.AssessmentApplicationService
 	ThirdPartyAssessmentRequests     *thirdparty.AssessmentRequestService

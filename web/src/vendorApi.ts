@@ -1,5 +1,5 @@
 import { parseJSON, requestJSON } from "./http";
-import type { CommittedCommandReceipt, CreateVendorRelationshipInput, UpdateVendorIdentityInput, UpdateVendorRelationshipInput, VendorIdentityMutationOutcome, VendorIdentityPresentation, VendorRelationshipAggregate, VendorRelationshipPage } from "./vendorTypes";
+import type { ActivateVendorRelationshipInput, CommittedCommandReceipt, CreateVendorRelationshipInput, UpdateVendorIdentityInput, UpdateVendorRelationshipInput, VendorActivationResult, VendorIdentityMutationOutcome, VendorIdentityPresentation, VendorRelationshipAggregate, VendorRelationshipPage } from "./vendorTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -21,6 +21,14 @@ export function createVendorRelationship(input: CreateVendorRelationshipInput): 
 
 export function updateVendorRelationship(id: string, input: UpdateVendorRelationshipInput): Promise<VendorRelationshipAggregate> {
   return requestJSON<VendorRelationshipAggregate>(apiBase, `/api/v1/vendors/${encodeURIComponent(id)}`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export function loadVendorActivation(id: string): Promise<VendorActivationResult> {
+  return requestJSON<VendorActivationResult>(apiBase, `/api/v1/vendors/${encodeURIComponent(id)}/activation`);
+}
+
+export function activateVendorRelationship(id: string, input: ActivateVendorRelationshipInput): Promise<VendorActivationResult> {
+  return requestJSON<VendorActivationResult>(apiBase, `/api/v1/vendors/${encodeURIComponent(id)}/activate`, { method: "POST", body: JSON.stringify(input) });
 }
 
 export function loadVendorIdentity(vendorID: string): Promise<VendorIdentityPresentation> {

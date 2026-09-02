@@ -55,6 +55,7 @@ func main() {
 	vendorBrandService.ConfigureDiscoveryEnabled(cfg.VendorBrandDiscoveryEnabled)
 	services.ThirdParty.ConfigureVendorBrands(vendorBrandService)
 	assessmentService := thirdparty.NewAssessmentService(services.ThirdPartyAssessmentRepo, guard)
+	activationService := thirdparty.NewActivationService(services.ThirdPartyActivationRepo, guard)
 	assessmentMatterReader := thirdparty.NewCanonicalAssessmentReviewMatterReader(services.ThirdPartyAssessmentRepo, services.Continuity)
 	assessmentReviewService := thirdparty.NewAssessmentReviewService(assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, assessmentMatterReader)
 	assessmentReviewService.ConfigureAuthority(services.Authority)
@@ -102,7 +103,7 @@ func main() {
 		Evidence: services.Evidence, FormDistributions: services.FormDistributions, FormDistributionAccess: services.FormDistributionAccess,
 		FormCommunications: services.FormCommunications, FormCommunicationBrands: services.FormCommunicationBrands, FormCommunicationTestDelivery: services.FormCommunicationTestDelivery,
 		FormPolicies: services.FormPolicies,
-		Monitoring:   services.Monitoring, FormProposals: services.FormProposals, ThirdParty: services.ThirdParty, VendorBrands: vendorBrandService, ThirdPartyRelationshipLinks: services.ThirdPartyRelationshipLinks, ThirdPartyWork: vendorWorkService, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentApplications: assessmentApplicationService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentDeficiencies: assessmentDeficiencyService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
+		Monitoring:   services.Monitoring, FormProposals: services.FormProposals, ThirdParty: services.ThirdParty, VendorBrands: vendorBrandService, ThirdPartyRelationshipLinks: services.ThirdPartyRelationshipLinks, ThirdPartyWork: vendorWorkService, ThirdPartyAssessments: assessmentService, ThirdPartyActivation: activationService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentApplications: assessmentApplicationService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentDeficiencies: assessmentDeficiencyService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
 		Continuity: services.Continuity, Today: services.Today, Oversight: services.Oversight, Workflow: services.Workflow, Onboarding: services.Onboarding,
 		Autonomy: services.Autonomy, AIGovernance: services.AIGovernance, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs,
 		MaxArtifactBytes: cfg.MaxArtifactBytes,

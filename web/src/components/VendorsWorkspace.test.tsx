@@ -8,7 +8,7 @@ import type { FormTemplate } from "../monitoringTypes";
 import { applyVendorAssessmentResponse, completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview, vendorAssessmentDocumentURL } from "../vendorAssessmentApi";
 import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAssessmentTypes";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
-import { createVendorRelationship, loadVendorIdentity, loadVendorRelationship, loadVendorRelationships, removeApprovedVendorLogo, updateVendorIdentity, updateVendorRelationship, uploadApprovedVendorLogo } from "../vendorApi";
+import { createVendorRelationship, loadVendorActivation, loadVendorIdentity, loadVendorRelationship, loadVendorRelationships, removeApprovedVendorLogo, updateVendorIdentity, updateVendorRelationship, uploadApprovedVendorLogo } from "../vendorApi";
 import { VendorsWorkspace } from "./VendorsWorkspace";
 
 vi.mock("../api", async (importOriginal) => ({
@@ -21,6 +21,7 @@ vi.mock("../vendorApi", async (importOriginal) => ({
   createVendorRelationship: vi.fn(),
   loadVendorRelationship: vi.fn(),
   loadVendorRelationships: vi.fn(),
+  loadVendorActivation: vi.fn(),
   loadVendorIdentity: vi.fn(),
   removeApprovedVendorLogo: vi.fn(),
   updateVendorIdentity: vi.fn(),
@@ -110,6 +111,7 @@ beforeEach(() => {
   vi.mocked(loadVendorIdentity).mockResolvedValue({ vendor: record.vendor, brand: { state: "UNAVAILABLE", version: 0, event_version: 0 } });
   vi.mocked(loadFormTemplates).mockResolvedValue([activeVendorForm]);
   vi.mocked(loadCurrentVendorAssessment).mockRejectedValue(new ApiError(404, "Not found"));
+  vi.mocked(loadVendorActivation).mockRejectedValue(new ApiError(409, "No policy"));
   vi.mocked(resolveAuthority).mockResolvedValue({ principal: { id: "owner-current", display_name: "Program Owner", kind: "PERSON", role: "Vendor owner" }, rule_id: "vendor-owner", policy_version: "v1", explanation: "Current vendor owner" });
 });
 
