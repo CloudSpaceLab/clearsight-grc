@@ -104,9 +104,9 @@ func TestDurableDemoContextUsesFriendlyWorkspaceNames(t *testing.T) {
 		t.Fatal(err)
 	}
 	resolver := runtimecontext.IdentityResolver{
-		TenantNames: map[string]string{identity.DurableDemoTenantID: "Clear Bank"},
+		TenantNames:      map[string]string{identity.DurableDemoTenantID: "Clear Bank"},
 		LegalEntityNames: map[string]string{identity.DurableDemoLegalEntityID: "Clear Bank Nigeria"},
-		PrincipalNames: map[string]string{identity.DurableDemoPrincipalCRO: "Chief Risk Officer"},
+		PrincipalNames:   map[string]string{identity.DurableDemoPrincipalCRO: "Chief Risk Officer"},
 	}
 	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: authenticator, RuntimeContext: resolver, DemoMode: true, Mode: "postgres"})
 	login := httptest.NewRecorder()
