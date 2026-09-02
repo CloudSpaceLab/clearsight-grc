@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
 func TestDemoLoginRoutesAreAbsentOutsideDemoMode(t *testing.T) {
@@ -102,7 +103,12 @@ func TestDurableDemoContextUsesFriendlyWorkspaceNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: authenticator, DemoMode: true, Mode: "postgres"})
+	resolver := runtimecontext.IdentityResolver{
+		TenantNames: map[string]string{identity.DurableDemoTenantID: "Clear Bank"},
+		LegalEntityNames: map[string]string{identity.DurableDemoLegalEntityID: "Clear Bank Nigeria"},
+		PrincipalNames: map[string]string{identity.DurableDemoPrincipalCRO: "Chief Risk Officer"},
+	}
+	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: authenticator, RuntimeContext: resolver, DemoMode: true, Mode: "postgres"})
 	login := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/demo/login", strings.NewReader(`{"username":"cro@demo.clearsight.local","password":"demo"}`))
 	request.Header.Set("Content-Type", "application/json")
