@@ -48,6 +48,25 @@ func TestFormLibraryReadIncludesExactAuthorityOperations(t *testing.T) {
 	}
 }
 
+func TestActiveFormLibraryRevisionCanBeRevisedByCurrentOwner(t *testing.T) {
+	resolver := &exactFormAuthority{}
+	api := &API{deps: Dependencies{Authority: resolver}}
+	page := monitoring.FormTemplatePage{Items: []monitoring.FormLibraryItem{{Template: monitoring.FormTemplate{
+		ID: "active-a", TenantID: "bank-a", LegalEntityID: "entity-a", Name: "Encryption attestation",
+		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 3},
+	}}}}
+	actor := identity.Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner-active-a"}
+
+	result := api.formLibraryPageWithOperations(context.Background(), actor, page, time.Date(2026, 9, 2, 8, 0, 0, 0, time.UTC))
+	if len(result.Items) != 1 || len(result.Items[0].Operations) != 2 {
+		t.Fatalf("operation response = %#v", result.Items)
+	}
+	revise := result.Items[0].Operations[0]
+	if revise.Command != "forms.template.revise" || revise.Label != "Create revision" || !revise.CanAct {
+		t.Fatalf("revise operation = %#v", revise)
+	}
+}
+
 func TestFormsRoutesAreRegisteredAndClassified(t *testing.T) {
 	want := map[string]routeClass{
 		"GET /api/v1/forms/templates":                             routeAuthenticatedRead,
@@ -121,6 +140,51 @@ func TestFormsCreateListAndExactRevisionUseSignedScope(t *testing.T) {
 	handler.ServeHTTP(exactResponse, httptest.NewRequest(http.MethodGet, "/api/v1/forms/templates/"+created.ID+"/revisions/1", nil))
 	if exactResponse.Code != http.StatusOK || !bytes.Contains(exactResponse.Body.Bytes(), []byte(`"version":1`)) {
 		t.Fatalf("exact revision returned %d: %s", exactResponse.Code, exactResponse.Body.String())
+	}
+}
+
+func TestFormsCreateAcceptsAdvancedScoreProfile(t *testing.T) {
+	handler := formsTestHandler(t)
+	body := []byte(`{
+		"code":"ENCRYPTION",
+		"name":"Monthly cloud encryption Form",
+		"purpose":"Confirm current encryption controls.",
+		"scoring_mode":"RISK",
+		"score_profile":{
+			"version":"risk-v1",
+			"mode":"RISK",
+			"direction":"HIGH_IS_POOR",
+			"contributions":[{
+				"id":"encryption-disabled",
+				"label":"Encryption not enabled",
+				"weight":100,
+				"predicate":{"field_id":"encrypted","operator":"EQUALS","values":["No"]},
+				"match_points":100,
+				"non_match_points":0,
+				"missing":"INDETERMINATE"
+			}],
+			"bands":[
+				{"band":"LOW","from":0,"through":24},
+				{"band":"MODERATE","from":25,"through":49},
+				{"band":"HIGH","from":50,"through":74},
+				{"band":"CRITICAL","from":75,"through":100}
+			]
+		},
+		"presentation":{"default_mode":"AUTOMATIC"},
+		"sections":[{"id":"encryption","title":"Encryption"}],
+		"fields":[{"id":"encrypted","section_id":"encryption","label":"Is encryption enabled?","type":"yes_no","required":true}]
+	}`)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/forms/templates", bytes.NewReader(body)))
+	if response.Code != http.StatusCreated {
+		t.Fatalf("create returned %d: %s", response.Code, response.Body.String())
+	}
+	var created monitoring.FormTemplate
+	if err := json.Unmarshal(response.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+	if created.ScoreProfile == nil || created.ScoreProfile.Version != "risk-v1" || len(created.ScoreProfile.Contributions) != 1 {
+		t.Fatalf("score profile = %#v", created.ScoreProfile)
 	}
 }
 
