@@ -116,7 +116,7 @@ func submitScoringAcceptanceResponse(
 		Title: title, Purpose: "Persist a governed scored response through the same respondent path used by external evidence collection.",
 		AccessPolicy: evidence.AccessDirectMagicLink, EstimatedMinutes: 2,
 		Deadline: now.Add(30 * 24 * time.Hour), RouteExpiresAt: now.Add(7 * 24 * time.Hour),
-		CreatedBy: seed.ActorID,
+		CreatedBy:  seed.ActorID,
 		Recipients: []evidence.DistributionRecipientInput{{Role: evidence.RecipientTo, Type: evidence.RecipientExternalAudience, Address: fixture.label + "@scoring.demo.invalid", AudienceHint: fixture.label + " scoring respondent", ContactLabel: "Scoring acceptance " + fixture.label}},
 	})
 	if err != nil {
