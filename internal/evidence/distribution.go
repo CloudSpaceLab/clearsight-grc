@@ -109,12 +109,12 @@ type DistributionRecipient struct {
 }
 
 type DistributionRecipientInput struct {
-	Role         RecipientRole
-	Type         RecipientType
-	PrincipalID  string
-	Address      string
-	AudienceHint string
-	ContactLabel string
+	Role         RecipientRole `json:"role"`
+	Type         RecipientType `json:"type"`
+	PrincipalID  string        `json:"principal_id,omitempty"`
+	Address      string        `json:"address,omitempty"`
+	AudienceHint string        `json:"audience_hint,omitempty"`
+	ContactLabel string        `json:"contact_label,omitempty"`
 }
 
 type CreateDistributionInput struct {

@@ -31,6 +31,9 @@ func TestGovernedFormDistributionAcceptsVerifiedScopeBinding(t *testing.T) {
 		if input.LegalEntityID != "entity-1" {
 			t.Fatalf("verified scope was not preserved for the handler: %#v", input)
 		}
+		if len(input.Recipients) != 1 || input.Recipients[0].AudienceHint != "v***@example.com" || input.Recipients[0].ContactLabel != "Vendor security lead" {
+			t.Fatalf("canonical external recipient fields were not decoded: %#v", input.Recipients)
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -45,7 +48,13 @@ func TestGovernedFormDistributionAcceptsVerifiedScopeBinding(t *testing.T) {
 		"estimated_minutes":5,
 		"deadline":"2026-09-03T12:00:00Z",
 		"route_expires_at":"2026-09-03T10:00:00Z",
-		"recipients":[]
+		"recipients":[{
+			"role":"TO",
+			"type":"EXTERNAL_AUDIENCE",
+			"address":"vendor@example.com",
+			"audience_hint":"v***@example.com",
+			"contact_label":"Vendor security lead"
+		}]
 	}`))
 	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
 		TenantID: "bank-1", LegalEntityID: "entity-1", PrincipalID: "owner-1", Kind: "PERSON",
