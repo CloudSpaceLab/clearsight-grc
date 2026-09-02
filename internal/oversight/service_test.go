@@ -26,6 +26,23 @@ func TestServicePreservesUnknownCoverageAndMarksStaleSnapshot(t *testing.T) {
 	}
 }
 
+func TestServiceMarksPriorProjectionVersionStaleEvenWhenRecentlyGenerated(t *testing.T) {
+	now := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
+	repo := NewMemoryRepository([]Snapshot{{
+		TenantID: "bank", LegalEntityID: "bank-ng", GeneratedAt: now, ProjectionVersion: "oversight-v2",
+	}})
+	service := NewService(repo)
+	service.Now = func() time.Time { return now }
+
+	value, err := service.Get(context.Background(), Scope{TenantID: "bank", LegalEntityID: "bank-ng"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if value.Freshness != FreshnessStale {
+		t.Fatalf("freshness=%s", value.Freshness)
+	}
+}
+
 func TestServiceDoesNotSubstituteMetricsWhenProjectionIsMissing(t *testing.T) {
 	service := NewService(NewMemoryRepository(nil))
 	_, err := service.Get(context.Background(), Scope{TenantID: "bank", LegalEntityID: "bank-ng"})

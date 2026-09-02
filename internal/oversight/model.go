@@ -2,7 +2,7 @@ package oversight
 
 import "time"
 
-const ProjectionVersion = "oversight-v2"
+const ProjectionVersion = "oversight-v3"
 
 type Freshness string
 
@@ -90,6 +90,9 @@ type HistoryQuality struct {
 	MissingTerminalEvent    int `json:"missing_terminal_event"`
 	ExcludedFromDurations   int `json:"excluded_from_durations"`
 	ReassignedOwnerExcluded int `json:"reassigned_owner_excluded"`
+	ReturnedOwnerExcluded   int `json:"returned_owner_excluded"`
+	BlockedOwnerExcluded    int `json:"blocked_owner_excluded"`
+	ReopenedOwnerExcluded   int `json:"reopened_owner_excluded"`
 }
 
 type Snapshot struct {

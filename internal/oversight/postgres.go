@@ -84,9 +84,9 @@ func (m *Maintainer) Maintain(ctx context.Context, now time.Time, limit int) (in
 		WHERE le.valid_from<=$1::timestamptz AND (le.valid_until IS NULL OR $1::timestamptz<le.valid_until)
 		  AND NOT EXISTS (
 		    SELECT 1 FROM oversight_snapshots os
-		    WHERE os.tenant_id=le.tenant_id AND os.legal_entity_id=le.id AND os.generated_at>$1::timestamptz-interval '5 minutes'
+		    WHERE os.tenant_id=le.tenant_id AND os.legal_entity_id=le.id AND os.projection_version=$2 AND os.generated_at>$1::timestamptz-interval '5 minutes'
 		  )
-		ORDER BY le.id LIMIT $2`, now, limit)
+		ORDER BY le.id LIMIT $3`, now, ProjectionVersion, limit)
 	if err != nil {
 		return 0, err
 	}
@@ -167,15 +167,21 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		  SELECT m.id,
 		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='MATTER_CREATED') created_ok,
 		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='MATTER_STATE_CHANGED' AND ce.payload->>'status'='CLOSED') terminal_ok,
-		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='MATTER_OWNER_CHANGED') reassigned
+		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='MATTER_OWNER_CHANGED') reassigned,
+		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='DECISION_ADDED' AND ce.payload->>'status'='RETURNED') returned,
+		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='ACTION_STATE_CHANGED' AND ce.payload->>'status'='BLOCKED') blocked,
+		         m.reopen_count>0 reopened
 		  FROM matters m WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.status='CLOSED' AND m.closed_at>=$3
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
 		)
 		SELECT count(*),count(*) FILTER (WHERE created_ok AND terminal_ok),count(*) FILTER (WHERE NOT created_ok),count(*) FILTER (WHERE NOT terminal_ok),
-		       count(*) FILTER (WHERE NOT (created_ok AND terminal_ok)),count(*) FILTER (WHERE created_ok AND terminal_ok AND reassigned)
+		       count(*) FILTER (WHERE NOT (created_ok AND terminal_ok)),count(*) FILTER (WHERE created_ok AND terminal_ok AND reassigned),
+		       count(*) FILTER (WHERE created_ok AND terminal_ok AND returned),count(*) FILTER (WHERE created_ok AND terminal_ok AND blocked),
+		       count(*) FILTER (WHERE created_ok AND terminal_ok AND reopened)
 		FROM closed`, scope.TenantID, scope.LegalEntityID, periodStart).Scan(
 		&value.HistoryQuality.CompletedPopulation, &value.HistoryQuality.CompleteLifecycle, &value.HistoryQuality.MissingCreatedEvent,
 		&value.HistoryQuality.MissingTerminalEvent, &value.HistoryQuality.ExcludedFromDurations, &value.HistoryQuality.ReassignedOwnerExcluded,
+		&value.HistoryQuality.ReturnedOwnerExcluded, &value.HistoryQuality.BlockedOwnerExcluded, &value.HistoryQuality.ReopenedOwnerExcluded,
 	); err != nil {
 		return Snapshot{}, err
 	}
@@ -256,17 +262,20 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		  SELECT m.id,
 		         min(ce.occurred_at) FILTER (WHERE ce.event_type='MATTER_CREATED') started_at,
 		         max(ce.occurred_at) FILTER (WHERE ce.event_type='MATTER_STATE_CHANGED' AND ce.payload->>'status'='CLOSED') finished_at,
-		         count(*) FILTER (WHERE ce.event_type='MATTER_OWNER_CHANGED') owner_changes
+		         count(*) FILTER (WHERE ce.event_type='MATTER_OWNER_CHANGED') owner_changes,
+		         count(*) FILTER (WHERE ce.event_type='DECISION_ADDED' AND ce.payload->>'status'='RETURNED') returns,
+		         count(*) FILTER (WHERE ce.event_type='ACTION_STATE_CHANGED' AND ce.payload->>'status'='BLOCKED') blocks,
+		         max(m.reopen_count) reopen_count
 		  FROM matters m LEFT JOIN continuity_events ce ON ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id
 		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid GROUP BY m.id
 		), owner_work AS (
 		  SELECT m.owner_principal_id,count(*) FILTER (WHERE m.status NOT IN ('CLOSED','CANCELLED')) current_load,
 		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3) completed,
-		         percentile_cont(.5) WITHIN GROUP (ORDER BY extract(epoch FROM (l.finished_at-l.started_at))/3600.0) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0) median_hours,
-		         percentile_cont(.75) WITHIN GROUP (ORDER BY extract(epoch FROM (l.finished_at-l.started_at))/3600.0) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0) p75_hours,
-		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND m.due_at IS NOT NULL AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0) sla_samples,
-		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND m.due_at IS NOT NULL AND l.finished_at<=m.due_at AND l.started_at IS NOT NULL AND l.owner_changes=0) sla_met,
-		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0) measurement_samples,
+		         percentile_cont(.5) WITHIN GROUP (ORDER BY extract(epoch FROM (l.finished_at-l.started_at))/3600.0) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0 AND l.returns=0 AND l.blocks=0 AND l.reopen_count=0) median_hours,
+		         percentile_cont(.75) WITHIN GROUP (ORDER BY extract(epoch FROM (l.finished_at-l.started_at))/3600.0) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0 AND l.returns=0 AND l.blocks=0 AND l.reopen_count=0) p75_hours,
+		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND m.due_at IS NOT NULL AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0 AND l.returns=0 AND l.blocks=0 AND l.reopen_count=0) sla_samples,
+		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND m.due_at IS NOT NULL AND l.finished_at<=m.due_at AND l.started_at IS NOT NULL AND l.owner_changes=0 AND l.returns=0 AND l.blocks=0 AND l.reopen_count=0) sla_met,
+		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0 AND l.returns=0 AND l.blocks=0 AND l.reopen_count=0) measurement_samples,
 		         sum(m.reopen_count) FILTER (WHERE m.updated_at>=$3) reopened
 		  FROM matters m JOIN lifecycle l ON l.id=m.id WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.owner_principal_id IS NOT NULL
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')) GROUP BY m.owner_principal_id
