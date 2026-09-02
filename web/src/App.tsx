@@ -399,7 +399,6 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
           <DisplayPreferencesMenu/>
           <AdministrationMenu enabled={configureEnabled} onOpen={() => navigate("configure")}/>
           {demoAccountMenuEnabled && <DemoEnvironmentMenu onOpenReferenceJourneys={referenceJourneysEnabled ? () => navigate("explore") : undefined}/>}
-          {/* {referenceJourneysEnabled && <DemoEnvironmentMenu onOpenReferenceJourneys={() => navigate("explore")}/>} */}
           <span>{roleName}</span>
           {serverDemoMode ? <mark>{demoMode ? "Stakeholder demo" : "Non-production data"}</mark> : null}
         </div>

@@ -146,7 +146,11 @@ describe("Forms template dashboard", () => {
       ],
     };
     api.loadFormTemplatePage.mockResolvedValue({ items: [activeItem] });
-    render(<FormsWorkspace/>);
+    function Harness() {
+      const [target, setTarget] = useState<string>();
+      return <FormsWorkspace targetID={target} onTarget={setTarget}/>;
+    }
+    render(<Harness/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Open Vendor due diligence" }));
     fireEvent.click(screen.getByRole("button", { name: "Create revision" }));

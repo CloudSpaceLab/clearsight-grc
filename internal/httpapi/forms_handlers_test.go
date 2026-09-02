@@ -143,6 +143,51 @@ func TestFormsCreateListAndExactRevisionUseSignedScope(t *testing.T) {
 	}
 }
 
+func TestFormsCreateAcceptsAdvancedScoreProfile(t *testing.T) {
+	handler := formsTestHandler(t)
+	body := []byte(`{
+		"code":"ENCRYPTION",
+		"name":"Monthly cloud encryption Form",
+		"purpose":"Confirm current encryption controls.",
+		"scoring_mode":"RISK",
+		"score_profile":{
+			"version":"risk-v1",
+			"mode":"RISK",
+			"direction":"HIGH_IS_POOR",
+			"contributions":[{
+				"id":"encryption-disabled",
+				"label":"Encryption not enabled",
+				"weight":100,
+				"predicate":{"field_id":"encrypted","operator":"EQUALS","values":["No"]},
+				"match_points":100,
+				"non_match_points":0,
+				"missing":"INDETERMINATE"
+			}],
+			"bands":[
+				{"band":"LOW","from":0,"through":24},
+				{"band":"MODERATE","from":25,"through":49},
+				{"band":"HIGH","from":50,"through":74},
+				{"band":"CRITICAL","from":75,"through":100}
+			]
+		},
+		"presentation":{"default_mode":"AUTOMATIC"},
+		"sections":[{"id":"encryption","title":"Encryption"}],
+		"fields":[{"id":"encrypted","section_id":"encryption","label":"Is encryption enabled?","type":"yes_no","required":true}]
+	}`)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/forms/templates", bytes.NewReader(body)))
+	if response.Code != http.StatusCreated {
+		t.Fatalf("create returned %d: %s", response.Code, response.Body.String())
+	}
+	var created monitoring.FormTemplate
+	if err := json.Unmarshal(response.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+	if created.ScoreProfile == nil || created.ScoreProfile.Version != "risk-v1" || len(created.ScoreProfile.Contributions) != 1 {
+		t.Fatalf("score profile = %#v", created.ScoreProfile)
+	}
+}
+
 func TestFormsRejectUnknownScopeAndQueryOverrides(t *testing.T) {
 	handler := formsTestHandler(t)
 	for _, request := range []*http.Request{

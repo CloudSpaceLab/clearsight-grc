@@ -31,6 +31,7 @@ type createLibraryFormRequest struct {
 	Industry         string                     `json:"industry,omitempty"`
 	Sensitivity      string                     `json:"sensitivity,omitempty"`
 	ScoringMode      monitoringFormScoringMode  `json:"scoring_mode,omitempty"`
+	ScoreProfile     *formcontract.ScoreProfile `json:"score_profile,omitempty"`
 	NextReviewAt     *monitoringFormTime        `json:"next_review_at,omitempty"`
 	Presentation     monitoringFormPresentation `json:"presentation"`
 	Sections         []monitoringFormSection    `json:"sections"`
@@ -105,7 +106,7 @@ func (request createLibraryFormRequest) input() monitoring.CreateFormInput {
 		ProgramID: request.ProgramID, Code: request.Code, Name: request.Name, Purpose: request.Purpose,
 		OwnerPrincipalID: request.OwnerPrincipalID, ResponsibleTeam: request.ResponsibleTeam,
 		ApprovedUses: request.ApprovedUses, Tags: request.Tags, Jurisdiction: request.Jurisdiction, Industry: request.Industry,
-		Sensitivity: request.Sensitivity, ScoringMode: request.ScoringMode, NextReviewAt: request.NextReviewAt,
+		Sensitivity: request.Sensitivity, ScoringMode: request.ScoringMode, ScoreProfile: request.ScoreProfile, NextReviewAt: request.NextReviewAt,
 		Presentation: request.Presentation, Sections: request.Sections, Fields: request.Fields,
 	}
 }
