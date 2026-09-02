@@ -22,6 +22,9 @@ func (r *MemoryRepository) CreateMatterFormBinding(ctx context.Context, binding 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.remediationMaps()
+	if binding.SubjectType != "MATTER" || binding.SubjectID != binding.MatterID || binding.Status != MatterFormBindingActive || binding.EffectiveFrom.IsZero() || strings.TrimSpace(binding.Purpose) == "" || binding.AudienceClass != "EXTERNAL" || strings.TrimSpace(binding.ResponderClass) == "" {
+		return MatterFormRemediationBinding{}, ErrMatterFormBindingInvalid
+	}
 	aggregate, ok := r.matters[binding.TenantID][binding.MatterID]
 	if !ok || !r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) {
 		return MatterFormRemediationBinding{}, ErrNotFound

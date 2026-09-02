@@ -19,6 +19,7 @@ import (
 
 const (
 	MatterFormRemediationOrigin = "MATTER_FORM_REMEDIATION"
+	MatterFormBindingActive     = "ACTIVE"
 )
 
 var (
@@ -38,6 +39,8 @@ type MatterFormRemediationBinding struct {
 	LegalEntityID          string                   `json:"legal_entity_id"`
 	ProgramID              string                   `json:"program_id"`
 	MatterID               string                   `json:"matter_id"`
+	SubjectType            string                   `json:"subject_type"`
+	SubjectID              string                   `json:"subject_id"`
 	MatterVersionAtBinding int64                    `json:"matter_version_at_binding"`
 	FormTemplateID         string                   `json:"form_template_id"`
 	FormTemplateVersion    int64                    `json:"form_template_version"`
@@ -46,6 +49,11 @@ type MatterFormRemediationBinding struct {
 	VerificationContractID string                   `json:"verification_contract_id"`
 	MinimumScore           *float64                 `json:"minimum_score,omitempty"`
 	MaximumAdverseScore    *float64                 `json:"maximum_adverse_score,omitempty"`
+	Purpose                string                   `json:"purpose"`
+	AudienceClass          string                   `json:"audience_class"`
+	ResponderClass         string                   `json:"responder_class"`
+	Status                 string                   `json:"status"`
+	EffectiveFrom          time.Time                `json:"effective_from"`
 	CreatedBy              string                   `json:"created_by"`
 	CreatedAt              time.Time                `json:"created_at"`
 	Version                int64                    `json:"version"`
@@ -133,7 +141,6 @@ type MatterFormApplicationCommand struct {
 	AppliedAt             time.Time
 	ApplicationID         string
 	EventID               string
-	TimerID               string
 }
 
 type matterFormReader interface {
@@ -143,6 +150,7 @@ type matterFormReader interface {
 type matterFormRequestReader interface {
 	GetRequestByOrigin(context.Context, string, evidence.RequestOrigin) (evidence.Request, error)
 	GetSubmission(context.Context, string, string) (evidence.Submission, error)
+	GetArtifact(context.Context, string, string, string) (evidence.Artifact, error)
 }
 
 type MatterFormRemediationService struct {
@@ -181,11 +189,15 @@ func (s *MatterFormRemediationService) CreateBinding(ctx context.Context, matter
 	if err != nil {
 		return MatterFormRemediationBinding{}, err
 	}
+	now := s.currentTime()
 	binding := MatterFormRemediationBinding{
 		ID: bindingID, TenantID: actor.TenantID, LegalEntityID: matter.Matter.LegalEntityID, ProgramID: strings.TrimSpace(input.ProgramID), MatterID: matter.Matter.ID,
+		SubjectType: "MATTER", SubjectID: matter.Matter.ID,
 		MatterVersionAtBinding: matter.Matter.Version, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
 		Mappings: normalizeMatterFormMappings(input.Mappings), ActionID: strings.TrimSpace(input.ActionID), VerificationContractID: strings.TrimSpace(input.VerificationContractID),
-		MinimumScore: cloneFloat(input.MinimumScore), MaximumAdverseScore: cloneFloat(input.MaximumAdverseScore), CreatedBy: actor.PrincipalID, CreatedAt: s.currentTime(), Version: 1,
+		MinimumScore: cloneFloat(input.MinimumScore), MaximumAdverseScore: cloneFloat(input.MaximumAdverseScore),
+		Purpose: "Supply the mapped information for independent review of this issue.", AudienceClass: "EXTERNAL", ResponderClass: "ISSUE_EVIDENCE_CONTACT",
+		Status: MatterFormBindingActive, EffectiveFrom: now, CreatedBy: actor.PrincipalID, CreatedAt: now, Version: 1,
 	}
 	return s.repo.CreateMatterFormBinding(ctx, binding)
 }
@@ -239,6 +251,9 @@ func (s *MatterFormRemediationService) Send(ctx context.Context, matterID, bindi
 	}
 	if binding.Version != input.BindingVersion {
 		return MatterFormRemediationState{}, ErrVersionConflict
+	}
+	if binding.Status != MatterFormBindingActive || binding.EffectiveFrom.After(s.currentTime()) || binding.SubjectType != "MATTER" || binding.SubjectID != binding.MatterID || binding.AudienceClass != "EXTERNAL" || input.Recipient.Type != evidence.RecipientExternalAudience {
+		return MatterFormRemediationState{}, ErrMatterFormBindingInvalid
 	}
 	matter, form, err := s.currentBindingDependencies(ctx, actor, binding, authority.ResponsibilityOwner, "matter.form-remediation.send", 3)
 	if err != nil {
@@ -351,6 +366,9 @@ func (s *MatterFormRemediationService) Apply(ctx context.Context, matterID, bind
 			return MatterAggregate{}, MatterFormApplication{}, ErrMatterFormResponseRejected
 		}
 	}
+	if err := mappedMatterFormArtifactsAvailable(ctx, s.requests, request, binding, submission.Answers); err != nil {
+		return MatterAggregate{}, MatterFormApplication{}, err
+	}
 	applicationID, err := id.NewUUIDv7()
 	if err != nil {
 		return MatterAggregate{}, MatterFormApplication{}, err
@@ -359,11 +377,7 @@ func (s *MatterFormRemediationService) Apply(ctx context.Context, matterID, bind
 	if err != nil {
 		return MatterAggregate{}, MatterFormApplication{}, err
 	}
-	timerID, err := id.NewUUIDv7()
-	if err != nil {
-		return MatterAggregate{}, MatterFormApplication{}, err
-	}
-	return s.repo.ApplyMatterFormApplication(ctx, MatterFormApplicationCommand{Binding: binding, Aggregate: matter, ExpectedMatterVersion: matter.Matter.Version, DistributionID: summary.DistributionID, ResponseRevisionID: revision.ID, ResponseRevision: revision.Revision, SubmissionID: revision.SubmissionID, Answers: submission.Answers, ActorID: actor.PrincipalID, Rationale: strings.TrimSpace(input.Rationale), AppliedAt: s.currentTime(), ApplicationID: applicationID, EventID: eventID, TimerID: timerID})
+	return s.repo.ApplyMatterFormApplication(ctx, MatterFormApplicationCommand{Binding: binding, Aggregate: matter, ExpectedMatterVersion: matter.Matter.Version, DistributionID: summary.DistributionID, ResponseRevisionID: revision.ID, ResponseRevision: revision.Revision, SubmissionID: revision.SubmissionID, Answers: submission.Answers, ActorID: actor.PrincipalID, Rationale: strings.TrimSpace(input.Rationale), AppliedAt: s.currentTime(), ApplicationID: applicationID, EventID: eventID})
 }
 
 func (s *MatterFormRemediationService) bindingContext(ctx context.Context, matterID string, expected int64, formID string, formVersion int64, responsibility authority.Responsibility, decision string, materiality int) (identity.Actor, MatterAggregate, monitoring.FormTemplate, error) {
@@ -399,7 +413,7 @@ func (s *MatterFormRemediationService) currentBindingDependencies(ctx context.Co
 	if err != nil {
 		return MatterAggregate{}, monitoring.FormTemplate{}, err
 	}
-	if matter.Matter.LegalEntityID != binding.LegalEntityID || matter.Matter.Status == MatterClosed || matter.Matter.Status == MatterCancelled || !matterLinkedToProgram(matter, binding.ProgramID) {
+	if matter.Matter.LegalEntityID != binding.LegalEntityID || matter.Matter.Status == MatterClosed || matter.Matter.Status == MatterCancelled || !matterLinkedToProgram(matter, binding.ProgramID) || binding.Status != MatterFormBindingActive || binding.EffectiveFrom.After(s.currentTime()) || binding.SubjectType != "MATTER" || binding.SubjectID != binding.MatterID {
 		return MatterAggregate{}, monitoring.FormTemplate{}, ErrMatterFormBindingInvalid
 	}
 	if _, err := s.guard.Authorize(ctx, commandauth.Request{TenantID: actor.TenantID, LegalEntityID: binding.LegalEntityID, ObjectType: "MATTER", ObjectID: binding.MatterID, Responsibility: responsibility, DecisionType: decision, Materiality: materiality}); err != nil {
@@ -409,7 +423,7 @@ func (s *MatterFormRemediationService) currentBindingDependencies(ctx context.Co
 	if err != nil {
 		return MatterAggregate{}, monitoring.FormTemplate{}, err
 	}
-	if form.Status != monitoring.LifecycleActive || !form.IsCurrent {
+	if form.Status != monitoring.LifecycleActive {
 		return MatterAggregate{}, monitoring.FormTemplate{}, ErrMatterFormBindingInvalid
 	}
 	return matter, form, nil
@@ -423,7 +437,11 @@ func (s *MatterFormRemediationService) stateForRequest(ctx context.Context, prin
 			page, pageErr := s.distributions.ListCompletedResponses(ctx, evidence.CompletedResponseQuery{TenantID: binding.TenantID, LegalEntityID: binding.LegalEntityID, PrincipalID: principalID, SubjectType: "MATTER", SubjectID: binding.MatterID, FormTemplateID: binding.FormTemplateID, FormTemplateVersion: binding.FormTemplateVersion, CurrentOnly: true, Sort: evidence.ResponseSortNewest, Limit: 1})
 			if pageErr == nil && len(page.Items) > 0 {
 				state.Response = &page.Items[0]
-				state.NextAction = "Review evidence"
+				if scoreAcceptable(binding, page.Items[0].Score) {
+					state.NextAction = "Review evidence"
+				} else {
+					state.NextAction = "Request correction"
+				}
 			}
 		}
 	}
@@ -530,6 +548,23 @@ func scoreAcceptable(binding MatterFormRemediationBinding, score *evidence.Respo
 	}
 	return binding.MaximumAdverseScore == nil || score.AdverseScore != nil && *score.AdverseScore <= *binding.MaximumAdverseScore
 }
+
+func mappedMatterFormArtifactsAvailable(ctx context.Context, requests matterFormRequestReader, request evidence.Request, binding MatterFormRemediationBinding, answers map[string]formcontract.AnswerValue) error {
+	for _, mapping := range binding.Mappings {
+		answer := answers[mapping.FieldID]
+		artifactIDs := append([]string(nil), answer.ArtifactIDs...)
+		if answer.Document != nil && strings.TrimSpace(answer.Document.ArtifactID) != "" {
+			artifactIDs = append(artifactIDs, answer.Document.ArtifactID)
+		}
+		for _, artifactID := range artifactIDs {
+			artifact, err := requests.GetArtifact(ctx, request.TenantID, request.ID, strings.TrimSpace(artifactID))
+			if err != nil || artifact.Status != evidence.ArtifactAvailable {
+				return ErrMatterFormResponseRejected
+			}
+		}
+	}
+	return nil
+}
 func (s *MatterFormRemediationService) currentTime() time.Time {
 	if s.now == nil {
 		return time.Now().UTC()
@@ -549,20 +584,6 @@ func matterRemediationRequestInput(binding MatterFormRemediationBinding, matter 
 		recipientInput.Audience = recipient.Address
 	}
 	return evidence.CreateRequestInput{TenantID: binding.TenantID, LegalEntityID: binding.LegalEntityID, SubjectType: "MATTER", SubjectID: binding.MatterID, Title: form.Name, Purpose: "Provide the information mapped to issue " + matter.Matter.Reference + ".", WhyYou: "Your response supplies the selected missing information for this issue and will be reviewed before any outcome is confirmed.", Sensitivity: form.Sensitivity, AudienceType: audienceType, Recipient: recipientInput, EstimatedMinutes: max(5, len(fields)*2), Deadline: deadline.UTC(), KnownFacts: map[string]string{"Issue reference": matter.Matter.Reference, "Issue title": matter.Matter.Title}, Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile, Sections: form.Sections, Fields: fields, FormTemplateID: form.ID, FormTemplateVersion: form.Version, Origin: evidence.RequestOrigin{Type: MatterFormRemediationOrigin, ID: binding.ID, Version: binding.Version}, CreatedBy: actorID}
-}
-
-func answerFactValue(value formcontract.AnswerValue, responseRevisionID string) json.RawMessage {
-	if text, ok := value.ScalarText(); ok {
-		raw, _ := json.Marshal(text)
-		return raw
-	}
-	if len(value.Values) > 0 {
-		raw, _ := json.Marshal(strings.Join(value.Values, ", "))
-		return raw
-	}
-	label := "Evidence supplied in response " + responseRevisionID
-	raw, _ := json.Marshal(label)
-	return raw
 }
 
 func applyMatterFormAnswers(matter Matter, binding MatterFormRemediationBinding, answers map[string]formcontract.AnswerValue, responseRevisionID string) (Matter, []string, error) {
@@ -588,7 +609,8 @@ func applyMatterFormAnswers(matter Matter, binding MatterFormRemediationBinding,
 		if !found {
 			return Matter{}, nil, ErrMatterFormResponseRejected
 		}
-		facts[mapping.FactKey] = answerFactValue(answer, responseRevisionID)
+		factReference, _ := json.Marshal(map[string]any{"supplied": true, "response_revision_id": responseRevisionID, "field_id": mapping.FieldID})
+		facts[mapping.FactKey] = factReference
 		applied = append(applied, mapping.FieldID)
 	}
 	matter.KnownFacts, _ = json.Marshal(facts)

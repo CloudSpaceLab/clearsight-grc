@@ -10,14 +10,15 @@ export type MatterFormBinding = {
   id: string; legal_entity_id: string; program_id: string; matter_id: string; matter_version_at_binding: number;
   form_template_id: string; form_template_version: number; mappings: MatterFormFieldMapping[];
   action_id?: string; verification_contract_id: string; minimum_score?: number; maximum_adverse_score?: number;
-  created_at: string; version: number;
+  subject_type: "MATTER"; subject_id: string; purpose: string; audience_class: "EXTERNAL"; responder_class: string;
+  status: "ACTIVE"; effective_from: string; created_at: string; version: number;
 };
 export type MatterFormRemediationState = {
   binding: MatterFormBinding;
   request?: { id: string; title: string; status: string; deadline: string };
   response?: { id: string; revision: number; current: boolean; state: string; completed_at: string };
   application?: { id: string; response_revision_id: string; matter_version: number; applied_at: string };
-  next_action: "Send form" | "Open response" | "Review evidence" | "Check outcome";
+  next_action: "Send form" | "Open response" | "Review evidence" | "Request correction" | "Check outcome";
 };
 
 export async function loadMatterFormRemediations(matterID: string): Promise<MatterFormRemediationState[]> {

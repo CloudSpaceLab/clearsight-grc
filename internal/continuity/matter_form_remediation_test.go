@@ -4,6 +4,7 @@ package continuity
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -44,9 +45,10 @@ func TestMatterFormApplicationIsAtomicExactAndIdempotent(t *testing.T) {
 	}
 	binding := MatterFormRemediationBinding{
 		ID: "binding-1", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: program.Program.ID, MatterID: matter.Matter.ID,
+		SubjectType: "MATTER", SubjectID: matter.Matter.ID,
 		MatterVersionAtBinding: matter.Matter.Version, FormTemplateID: "form-1", FormTemplateVersion: 3,
 		Mappings:               []MatterFormFieldMapping{{FieldID: "iso-certificate", MissingItem: "ISO 27001 certificate", FactKey: "iso_27001_certificate"}},
-		VerificationContractID: matter.VerificationContracts[0].ID, CreatedBy: "owner-1", CreatedAt: now, Version: 1,
+		VerificationContractID: matter.VerificationContracts[0].ID, Purpose: "Supply the certificate for review.", AudienceClass: "EXTERNAL", ResponderClass: "ISSUE_EVIDENCE_CONTACT", Status: MatterFormBindingActive, EffectiveFrom: now, CreatedBy: "owner-1", CreatedAt: now, Version: 1,
 	}
 	if _, err := repo.CreateMatterFormBinding(ctx, binding); err != nil {
 		t.Fatal(err)
@@ -56,7 +58,7 @@ func TestMatterFormApplicationIsAtomicExactAndIdempotent(t *testing.T) {
 		DistributionID: "distribution-1", ResponseRevisionID: "revision-1", ResponseRevision: 1, SubmissionID: "submission-1",
 		Answers: map[string]formcontract.AnswerValue{"iso-certificate": formcontract.TextAnswer("Certificate ISO-2026")},
 		ActorID: "reviewer-1", Rationale: "The submitted response supplies the exact certificate requested for this issue.", AppliedAt: now,
-		ApplicationID: "application-1", EventID: "event-1", TimerID: "timer-1",
+		ApplicationID: "application-1", EventID: "event-1",
 	}
 	updated, application, err := repo.ApplyMatterFormApplication(ctx, command)
 	if err != nil {
@@ -65,8 +67,11 @@ func TestMatterFormApplicationIsAtomicExactAndIdempotent(t *testing.T) {
 	if application.MatterVersion != matter.Matter.Version+1 || updated.Matter.Version != matter.Matter.Version+1 {
 		t.Fatalf("application versions = %#v matter=%d", application, updated.Matter.Version)
 	}
-	if string(updated.Matter.MissingFacts) != "[]" || string(updated.Matter.KnownFacts) != `{"iso_27001_certificate":"Certificate ISO-2026","vendor":"Acme"}` {
+	if string(updated.Matter.MissingFacts) != "[]" || string(updated.Matter.KnownFacts) != `{"iso_27001_certificate":{"field_id":"iso-certificate","response_revision_id":"revision-1","supplied":true},"vendor":"Acme"}` {
 		t.Fatalf("matter facts were not updated atomically: known=%s missing=%s", updated.Matter.KnownFacts, updated.Matter.MissingFacts)
+	}
+	if strings.Contains(string(historyPayload(t, repo, matter.Matter.ID)), "Certificate ISO-2026") {
+		t.Fatal("raw response answer was copied into Matter history")
 	}
 
 	replayed, duplicate, err := repo.ApplyMatterFormApplication(ctx, command)
@@ -85,6 +90,15 @@ func TestMatterFormApplicationIsAtomicExactAndIdempotent(t *testing.T) {
 	}
 }
 
+func historyPayload(t *testing.T, repo *MemoryRepository, matterID string) json.RawMessage {
+	t.Helper()
+	history, err := repo.MatterEvents(WithTrustedSystemScope(t.Context()), "bank", matterID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return history[len(history)-1].Payload
+}
+
 func TestMatterFormBindingRejectsOverlappingMissingInformation(t *testing.T) {
 	ctx := WithTrustedSystemScope(t.Context())
 	repo := NewMemoryRepository()
@@ -98,7 +112,7 @@ func TestMatterFormBindingRejectsOverlappingMissingInformation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first := MatterFormRemediationBinding{ID: "binding-a", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: program.Program.ID, MatterID: matter.Matter.ID, MatterVersionAtBinding: matter.Matter.Version, FormTemplateID: "form-a", FormTemplateVersion: 1, Mappings: []MatterFormFieldMapping{{FieldID: "confirm", MissingItem: "Owner confirmation", FactKey: "owner_confirmation"}}, VerificationContractID: "contract-a", CreatedAt: now, Version: 1}
+	first := MatterFormRemediationBinding{ID: "binding-a", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: program.Program.ID, MatterID: matter.Matter.ID, SubjectType: "MATTER", SubjectID: matter.Matter.ID, MatterVersionAtBinding: matter.Matter.Version, FormTemplateID: "form-a", FormTemplateVersion: 1, Mappings: []MatterFormFieldMapping{{FieldID: "confirm", MissingItem: "Owner confirmation", FactKey: "owner_confirmation"}}, VerificationContractID: "contract-a", Purpose: "Supply owner confirmation.", AudienceClass: "EXTERNAL", ResponderClass: "ISSUE_EVIDENCE_CONTACT", Status: MatterFormBindingActive, EffectiveFrom: now, CreatedAt: now, Version: 1}
 	if _, err := repo.CreateMatterFormBinding(ctx, first); err != nil {
 		t.Fatal(err)
 	}

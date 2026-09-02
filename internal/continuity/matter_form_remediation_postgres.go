@@ -14,6 +14,9 @@ import (
 )
 
 func (r *PostgresRepository) CreateMatterFormBinding(ctx context.Context, binding MatterFormRemediationBinding) (MatterFormRemediationBinding, error) {
+	if binding.SubjectType != "MATTER" || binding.SubjectID != binding.MatterID || binding.Status != MatterFormBindingActive || binding.EffectiveFrom.IsZero() || strings.TrimSpace(binding.Purpose) == "" || binding.AudienceClass != "EXTERNAL" || strings.TrimSpace(binding.ResponderClass) == "" {
+		return MatterFormRemediationBinding{}, ErrMatterFormBindingInvalid
+	}
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
 		return MatterFormRemediationBinding{}, err
@@ -50,7 +53,7 @@ func (r *PostgresRepository) CreateMatterFormBinding(ctx context.Context, bindin
 	if formStatus != "ACTIVE" || !formCurrent || !approvedUse {
 		return MatterFormRemediationBinding{}, ErrMatterFormBindingInvalid
 	}
-	rows, err := tx.Query(ctx, `SELECT mappings FROM matter_form_remediation_bindings b JOIN tenants t ON t.id=b.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND b.matter_id=$2::uuid FOR SHARE`, binding.TenantID, binding.MatterID)
+	rows, err := tx.Query(ctx, `SELECT mappings FROM matter_form_remediation_bindings b JOIN tenants t ON t.id=b.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND b.matter_id=$2::uuid AND b.status='ACTIVE' FOR SHARE`, binding.TenantID, binding.MatterID)
 	if err != nil {
 		return MatterFormRemediationBinding{}, err
 	}
@@ -84,11 +87,11 @@ func (r *PostgresRepository) CreateMatterFormBinding(ctx context.Context, bindin
 		return MatterFormRemediationBinding{}, err
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO matter_form_remediation_bindings(
-		id,tenant_id,legal_entity_id,program_id,matter_id,matter_version_at_binding,form_template_id,form_template_version,mappings,action_id,verification_contract_id,minimum_score,maximum_adverse_score,created_by,created_at,version)
-		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5::uuid,$6,$7::uuid,$8,$9,NULLIF($10,'')::uuid,$11::uuid,$12,$13,$14::uuid,$15,$16)`,
-		binding.ID, binding.TenantID, binding.LegalEntityID, binding.ProgramID, binding.MatterID, binding.MatterVersionAtBinding,
+		id,tenant_id,legal_entity_id,program_id,matter_id,subject_type,subject_id,matter_version_at_binding,form_template_id,form_template_version,mappings,action_id,verification_contract_id,minimum_score,maximum_adverse_score,purpose,audience_class,responder_class,status,effective_from,created_by,created_at,version)
+		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5::uuid,$6,$7::uuid,$8,$9::uuid,$10,$11,NULLIF($12,'')::uuid,$13::uuid,$14,$15,$16,$17,$18,$19,$20,$21::uuid,$22,$23)`,
+		binding.ID, binding.TenantID, binding.LegalEntityID, binding.ProgramID, binding.MatterID, binding.SubjectType, binding.SubjectID, binding.MatterVersionAtBinding,
 		binding.FormTemplateID, binding.FormTemplateVersion, mappings, binding.ActionID, binding.VerificationContractID,
-		binding.MinimumScore, binding.MaximumAdverseScore, binding.CreatedBy, binding.CreatedAt, binding.Version)
+		binding.MinimumScore, binding.MaximumAdverseScore, binding.Purpose, binding.AudienceClass, binding.ResponderClass, binding.Status, binding.EffectiveFrom, binding.CreatedBy, binding.CreatedAt, binding.Version)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return MatterFormRemediationBinding{}, ErrDuplicate
@@ -240,7 +243,7 @@ func (r *PostgresRepository) ApplyMatterFormApplication(ctx context.Context, com
 	return decorateMatter(command.Aggregate), application, nil
 }
 
-const matterFormBindingSelect = `SELECT b.id::text,t.slug,b.legal_entity_id::text,b.program_id::text,b.matter_id::text,b.matter_version_at_binding,b.form_template_id::text,b.form_template_version,b.mappings,COALESCE(b.action_id::text,''),b.verification_contract_id::text,b.minimum_score,b.maximum_adverse_score,b.created_by::text,b.created_at,b.version
+const matterFormBindingSelect = `SELECT b.id::text,t.slug,b.legal_entity_id::text,b.program_id::text,b.matter_id::text,b.subject_type,b.subject_id::text,b.matter_version_at_binding,b.form_template_id::text,b.form_template_version,b.mappings,COALESCE(b.action_id::text,''),b.verification_contract_id::text,b.minimum_score,b.maximum_adverse_score,b.purpose,b.audience_class,b.responder_class,b.status,b.effective_from,b.created_by::text,b.created_at,b.version
 	FROM matter_form_remediation_bindings b JOIN tenants t ON t.id=b.tenant_id JOIN matters m ON m.tenant_id=b.tenant_id AND m.id=b.matter_id`
 
 const matterFormBindingVisibilitySQL = `NOT $4 OR ((t.id::text=$5 OR t.slug=$5) AND ($6='*' OR b.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=b.tenant_id AND (le.id::text=$6 OR le.code=$6) ORDER BY le.valid_from DESC,le.id LIMIT 1)))`
@@ -249,7 +252,7 @@ func scanMatterFormBinding(row pgx.Row) (MatterFormRemediationBinding, error) {
 	var value MatterFormRemediationBinding
 	var mappings []byte
 	var minimum, maximum sql.NullFloat64
-	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.ProgramID, &value.MatterID, &value.MatterVersionAtBinding, &value.FormTemplateID, &value.FormTemplateVersion, &mappings, &value.ActionID, &value.VerificationContractID, &minimum, &maximum, &value.CreatedBy, &value.CreatedAt, &value.Version)
+	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.ProgramID, &value.MatterID, &value.SubjectType, &value.SubjectID, &value.MatterVersionAtBinding, &value.FormTemplateID, &value.FormTemplateVersion, &mappings, &value.ActionID, &value.VerificationContractID, &minimum, &maximum, &value.Purpose, &value.AudienceClass, &value.ResponderClass, &value.Status, &value.EffectiveFrom, &value.CreatedBy, &value.CreatedAt, &value.Version)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return MatterFormRemediationBinding{}, ErrNotFound
 	}
