@@ -314,7 +314,7 @@ describe("runtime navigation", () => {
     await screen.findByText("Non-production data");
     await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("off"));
     expect(screen.queryByText("Stakeholder demo")).toBeNull();
-    expect(screen.getByText("Demo environment")).toBeTruthy();
+    expect(screen.queryByText("Demo environment")).toBeNull();
     expect(screen.queryByRole("button", { name: "Reference journeys" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
   });

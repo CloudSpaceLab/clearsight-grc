@@ -133,13 +133,13 @@ it("returns to the account chooser when the replacement account cannot sign in",
   expect(screen.getByRole("alert").textContent).toContain("Replacement sign-in failed");
 });
 
-it("uses the compatibility context flow when session discovery is unavailable", async () => {
+it("does not probe protected context when session discovery is unavailable", async () => {
   vi.mocked(loadSessionStatus).mockRejectedValue(new Error("not deployed"));
 
   renderSession();
 
   expect(await screen.findByText("Workspace")).not.toBeNull();
-  expect(loadContext).toHaveBeenCalledTimes(1);
+  expect(loadContext).not.toHaveBeenCalled();
 });
 
 it("returns to demo role login when the session expires before context loads", async () => {
