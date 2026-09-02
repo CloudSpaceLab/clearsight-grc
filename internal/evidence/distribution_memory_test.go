@@ -97,6 +97,48 @@ func TestMemoryDistributionCreatesTORequestsCCWithoutRequestAndOneWorkspace(t *t
 	}
 }
 
+func TestMemoryDistributionCreatesCanonicalWorkflowRequestFromExactContext(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 9, 2, 8, 0, 0, 0, time.UTC)
+	form := activeDistributionForm()
+	repo := NewMemoryRepository(nil, nil)
+	store := NewMemoryDistributionStore(repo, stubDistributionFormReader{form: form}, stubRecipientProtector{})
+	store.now = func() time.Time { return now }
+	origin := RequestOrigin{Type: "THIRD_PARTY_ASSESSMENT", ID: "assessment-a", Version: 1}
+	requestInput := CreateRequestInput{
+		TenantID: "tenant-a", LegalEntityID: "entity-a", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "00000000-0000-0000-0000-000000000101",
+		Title: "Vendor registration", Purpose: "Collect registration evidence.", WhyYou: "You are the registered vendor contact.",
+		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR", Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "vendor@example.test"},
+		EstimatedMinutes: 12, Deadline: now.Add(48 * time.Hour), KnownFacts: map[string]string{"vendor_legal_name": "Example Vendor Ltd"},
+		Presentation: form.Presentation, Sections: form.Sections,
+		Fields: []Field{{ID: "q1", SectionID: "general", Label: "Control operating?", Type: string(formcontract.TypeYesNo), Required: true,
+			CollectionIntent: formcontract.IntentConfirmOrCorrect, RecordTarget: &formcontract.RecordTarget{Key: "registered_address", RequiredSubjectType: "VENDOR"},
+			BrowserCachePolicy: formcontract.BrowserCacheDenied,
+			RecordBaseline:     &RecordBaseline{RecordID: "vendor-a", DisplayValue: "1 Example Street", RecordVersion: 3, ObservedOrConfirmedAt: now.Add(-time.Hour)}}},
+		FormTemplateID: form.ID, FormTemplateVersion: form.Version, Origin: origin, CreatedBy: "actor-a",
+	}
+	bundle, err := store.CreateDistribution(ctx, CreateDistributionInput{
+		TenantID: "tenant-a", LegalEntityID: "entity-a", FormTemplateID: form.ID, FormTemplateVersion: form.Version,
+		SubjectType: requestInput.SubjectType, SubjectID: requestInput.SubjectID, Title: requestInput.Title, Purpose: requestInput.Purpose,
+		AccessPolicy: AccessDirectMagicLink, EstimatedMinutes: 12, Deadline: requestInput.Deadline, RouteExpiresAt: now.Add(24 * time.Hour),
+		CreatedBy: "actor-a", Recipients: []DistributionRecipientInput{{Role: RecipientTo, Type: RecipientExternalAudience, Address: "vendor@example.test", AudienceHint: "v***@example.test"}},
+		RequestInput: &requestInput,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request, err := repo.GetRequest(ctx, "tenant-a", bundle.Recipients[0].RequestID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if request.Origin != origin || request.WhyYou != requestInput.WhyYou || request.KnownFacts["vendor_legal_name"] != "Example Vendor Ltd" {
+		t.Fatalf("canonical request context = %#v", request)
+	}
+	if len(request.Fields) != 1 || request.Fields[0].RecordBaseline == nil || request.Fields[0].RecordBaseline.RecordVersion != 3 {
+		t.Fatalf("canonical scoped fields = %#v", request.Fields)
+	}
+}
+
 func TestMemoryDistributionPinsExactScoreProfileOnCaptureRequest(t *testing.T) {
 	ctx := context.Background()
 	now := time.Date(2026, 8, 27, 18, 0, 0, 0, time.UTC)

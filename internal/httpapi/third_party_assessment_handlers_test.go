@@ -7,8 +7,10 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"net/url"
 	"strings"
 	"testing"
@@ -26,6 +28,21 @@ import (
 
 type httpAssessmentGuard struct{}
 
+type assessmentDistributionFormReader struct{ repo *monitoring.MemoryRepository }
+
+func (reader assessmentDistributionFormReader) GetDistributionFormRevision(ctx context.Context, tenantID, legalEntityID, formID string, version int64) (evidence.DistributionFormRevision, error) {
+	form, err := reader.repo.ReusableFormRevision(ctx, tenantID, legalEntityID, formID, version)
+	if err != nil {
+		return evidence.DistributionFormRevision{}, err
+	}
+	return evidence.DistributionFormRevision{
+		ID: form.ID, TenantID: form.TenantID, LegalEntityID: form.LegalEntityID, Version: form.Version,
+		Sensitivity: form.Sensitivity, Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile,
+		Sections: append([]formcontract.Section(nil), form.Sections...), Fields: append([]formcontract.Field(nil), form.Fields...),
+		Active: form.Status == monitoring.LifecycleActive && form.IsCurrent,
+	}, nil
+}
+
 func (httpAssessmentGuard) Authorize(ctx context.Context, _ commandauth.Request) (commandauth.Decision, error) {
 	actor, err := identity.Require(ctx)
 	if err != nil {
@@ -35,13 +52,15 @@ func (httpAssessmentGuard) Authorize(ctx context.Context, _ commandauth.Request)
 }
 
 type assessmentHTTPFixture struct {
-	handler    http.Handler
-	repository *thirdparty.MemoryAssessmentRepository
-	service    *thirdparty.AssessmentService
-	evidence   *evidence.Service
-	forms      *monitoring.MemoryRepository
-	vendor     thirdparty.Aggregate
-	assessment thirdparty.Assessment
+	handler       http.Handler
+	repository    *thirdparty.MemoryAssessmentRepository
+	service       *thirdparty.AssessmentService
+	evidence      *evidence.Service
+	access        *evidence.DistributionAccessService
+	distributions *evidence.DistributionService
+	forms         *monitoring.MemoryRepository
+	vendor        thirdparty.Aggregate
+	assessment    thirdparty.Assessment
 }
 
 func newAssessmentHTTPFixture(t *testing.T, ready bool, inlineSetup ...bool) assessmentHTTPFixture {
@@ -59,6 +78,7 @@ func newAssessmentHTTPFixture(t *testing.T, ready bool, inlineSetup ...bool) ass
 	formRepo := monitoring.NewMemoryRepository()
 	form, err := formRepo.CreateFormRevision(context.Background(), monitoring.FormTemplate{
 		ID: "form-1", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Name: "Vendor due diligence", Purpose: "Provide the information required for this vendor review.",
+		Sensitivity:  "CONFIDENTIAL",
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
 		Sections:     []formcontract.Section{{ID: "organisation", Title: "Organisation"}},
 		Fields: []monitoring.TemplateField{
@@ -70,22 +90,42 @@ func newAssessmentHTTPFixture(t *testing.T, ready bool, inlineSetup ...bool) ass
 	if err != nil {
 		t.Fatal(err)
 	}
-	evidenceService := evidence.NewService(newScopedVendorEvidenceRepository("bank", "entity-a", vendor.Relationship.ID), evidence.NewMemoryObjectStore())
-	assessmentService.ConfigureCancellationRevoker(evidenceService)
+	scopedEvidenceRepo := newScopedVendorEvidenceRepository("bank", "entity-a", vendor.Relationship.ID)
+	evidenceService := evidence.NewService(scopedEvidenceRepo, evidence.NewMemoryObjectStore())
 	requestService, err := thirdparty.NewAssessmentRequestService(assessmentService, repo, evidenceService, formRepo, nil, "https://capture.example.test/respond", "production")
 	if err != nil {
 		t.Fatal(err)
 	}
+	var recipientKey [32]byte
+	var accessKey [32]byte
+	for index := range recipientKey {
+		recipientKey[index] = byte(index + 1)
+		accessKey[index] = byte(index + 33)
+	}
+	keyring, err := evidence.NewRecipientKeyring("http-assessment-v1", map[string][32]byte{"http-assessment-v1": recipientKey})
+	if err != nil {
+		t.Fatal(err)
+	}
+	distributionStore := evidence.NewMemoryDistributionStore(scopedEvidenceRepo.MemoryRepository, assessmentDistributionFormReader{repo: formRepo}, keyring)
+	distributionService := evidence.NewDistributionService(distributionStore)
+	distributionAccess, err := evidence.NewDistributionAccessService(evidence.NewMemoryDistributionAccessStore(distributionStore), keyring, nil, accessKey, 20*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dispatcher := evidence.NewWorkflowDistributionDispatcher(distributionService, distributionAccess)
+	requestService.ConfigureDistributionDispatcher(dispatcher)
+	assessmentService.ConfigureCancellationRevoker(dispatcher)
 	var setup *thirdparty.AssessmentProvisioner
 	if len(inlineSetup) > 0 && inlineSetup[0] {
 		setup = thirdparty.NewAssessmentProvisioner(repo, continuity.NewService(continuity.NewMemoryRepository()), "memory-api-test")
 	}
 	handler := New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory",
-		Identity:   identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"),
+		Identity: identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"),
+		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
 		ThirdParty: vendorService, ThirdPartyAssessments: assessmentService, ThirdPartyAssessmentRequests: requestService, ThirdPartyAssessmentSetup: setup,
 	})
-	fixture := assessmentHTTPFixture{handler: handler, repository: repo, service: assessmentService, evidence: evidenceService, forms: formRepo, vendor: vendor}
+	fixture := assessmentHTTPFixture{handler: handler, repository: repo, service: assessmentService, evidence: evidenceService, access: distributionAccess, distributions: distributionService, forms: formRepo, vendor: vendor}
 	if ready {
 		ctx := identity.WithActor(context.Background(), identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "verified-owner", Kind: "PERSON", IssuedAt: time.Now().UTC().Add(-time.Minute), ExpiresAt: time.Now().UTC().Add(time.Hour)})
 		assessment, startErr := assessmentService.StartAssessment(ctx, thirdparty.Actor{}, vendor.Relationship.ID, thirdparty.StartAssessmentInput{
@@ -201,7 +241,7 @@ func TestCancelVendorAssessmentRevokesInvitationAndRedeemedSession(t *testing.T)
 		t.Fatal(err)
 	}
 	token := fragment.Get("form_access")
-	session, err := fixture.evidence.RedeemInvitation(context.Background(), token, "security@vendor.example")
+	session, err := fixture.access.RedeemDirectRoute(context.Background(), token)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,11 +251,55 @@ func TestCancelVendorAssessmentRevokesInvitationAndRedeemedSession(t *testing.T)
 	if response.Code != http.StatusOK {
 		t.Fatalf("cancel expected 200, got %d: %s", response.Code, response.Body.String())
 	}
-	if _, _, err := fixture.evidence.SessionRequest(context.Background(), session.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
+	if _, _, err := fixture.access.SessionRequest(context.Background(), session.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
 		t.Fatalf("cancelled assessment session remained usable: %v", err)
 	}
-	if _, err := fixture.evidence.RedeemInvitation(context.Background(), token, "security@vendor.example"); !errors.Is(err, evidence.ErrInvitationInvalid) {
+	if _, err := fixture.access.RedeemDirectRoute(context.Background(), token); !errors.Is(err, evidence.ErrDistributionAccessUnavailable) {
 		t.Fatalf("cancelled assessment invitation remained usable: %v", err)
+	}
+}
+
+func TestCanonicalVendorAssessmentSessionUploadsRequestedDocument(t *testing.T) {
+	fixture := newAssessmentHTTPFixture(t, true)
+	issued := sendHTTPVendorAssessmentRequest(t, fixture)
+	parsed, err := url.Parse(issued.CaptureURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fragment, err := url.ParseQuery(parsed.Fragment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := fixture.access.RedeemDirectRoute(context.Background(), fragment.Get("form_access"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	_ = writer.WriteField("field_id", "assurance_report")
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", `form-data; name="file"; filename="assurance-report.pdf"`)
+	header.Set("Content-Type", "application/pdf")
+	part, err := writer.CreatePart(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = part.Write([]byte("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"))
+	_ = writer.Close()
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/artifacts", &body)
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	request.Header.Set("Authorization", "Bearer "+session.SessionToken)
+	response := httptest.NewRecorder()
+	fixture.handler.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("canonical session upload expected 201, got %d: %s", response.Code, response.Body.String())
+	}
+	var artifact evidence.Artifact
+	if err := json.NewDecoder(response.Body).Decode(&artifact); err != nil {
+		t.Fatal(err)
+	}
+	if artifact.RequestID != issued.Request.ID || artifact.MediaType != "application/pdf" {
+		t.Fatalf("uploaded artifact was not bound to the assessment request: %#v", artifact)
 	}
 }
 

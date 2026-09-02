@@ -202,7 +202,11 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 			return AssessmentReviewView{}, ErrNotFound
 		}
 		requests[request.ID] = request
-		view.Requests = append(view.Requests, AssessmentReviewRequest{RequestID: request.ID, Purpose: link.Purpose, Sequence: link.Sequence, OriginSequence: link.OriginSequence, Status: request.Status, Deadline: request.Deadline, FormTemplateID: request.FormTemplateID, FormTemplateVersion: request.FormTemplateVersion})
+		requestStatus := request.Status
+		if request.ID == assessment.CurrentRequestID && assessment.SubmissionID != "" {
+			requestStatus = evidence.RequestSubmitted
+		}
+		view.Requests = append(view.Requests, AssessmentReviewRequest{RequestID: request.ID, Purpose: link.Purpose, Sequence: link.Sequence, OriginSequence: link.OriginSequence, Status: requestStatus, Deadline: request.Deadline, FormTemplateID: request.FormTemplateID, FormTemplateVersion: request.FormTemplateVersion})
 		lastSequence = link.Sequence
 	}
 	if assessment.CurrentRequestID == "" && assessment.SubmissionID != "" {

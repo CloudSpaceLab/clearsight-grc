@@ -50,6 +50,26 @@ func (s *PostgresDistributionStore) GetDistribution(ctx context.Context, tenantI
 	return DistributionBundle{Distribution: distribution, Recipients: recipients, Workspace: workspace}, nil
 }
 
+func (s *PostgresDistributionStore) GetDistributionForRequest(ctx context.Context, tenantID, legalEntityID, requestID string) (DistributionBundle, error) {
+	if s == nil || s.repo == nil || s.repo.pool == nil {
+		return DistributionBundle{}, ErrNotFound
+	}
+	var distributionID string
+	err := s.repo.pool.QueryRow(ctx, `
+		SELECT r.distribution_id::text
+		FROM capture_requests r
+		JOIN tenants t ON t.id=r.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND r.legal_entity_id::text=$2 AND r.id::text=$3
+		  AND r.distribution_id IS NOT NULL`, tenantID, legalEntityID, requestID).Scan(&distributionID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return DistributionBundle{}, ErrNotFound
+	}
+	if err != nil {
+		return DistributionBundle{}, err
+	}
+	return s.GetDistribution(ctx, tenantID, legalEntityID, distributionID)
+}
+
 func (s *PostgresDistributionStore) ListDistributions(ctx context.Context, query DistributionListQuery) ([]FormDistribution, error) {
 	if s.repo == nil || s.repo.pool == nil {
 		return nil, fmt.Errorf("postgres distribution repository is required")

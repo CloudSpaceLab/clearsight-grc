@@ -103,6 +103,23 @@ func (service *DistributionService) Get(ctx context.Context, tenantID, legalEnti
 	return bundle, nil
 }
 
+func (service *DistributionService) GetForRequest(ctx context.Context, tenantID, legalEntityID, requestID string) (DistributionBundle, error) {
+	if service == nil || service.store == nil {
+		return DistributionBundle{}, ErrNotFound
+	}
+	resolver, ok := service.store.(interface {
+		GetDistributionForRequest(context.Context, string, string, string) (DistributionBundle, error)
+	})
+	if !ok {
+		return DistributionBundle{}, ErrNotFound
+	}
+	bundle, err := resolver.GetDistributionForRequest(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(legalEntityID), strings.TrimSpace(requestID))
+	if err != nil {
+		return DistributionBundle{}, normalizeDistributionError(err)
+	}
+	return bundle, nil
+}
+
 func (service *DistributionService) List(ctx context.Context, query DistributionListQuery) (DistributionPage, error) {
 	if service == nil || service.store == nil {
 		return DistributionPage{}, ErrDistributionInvalid

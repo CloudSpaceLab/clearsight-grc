@@ -514,8 +514,11 @@ func (r *PostgresRepository) RecordRequestIssued(ctx context.Context, record Rec
 		}
 		var proof bool
 		err = tx.QueryRow(ctx, `
-			SELECT true FROM capture_invitations i
-			WHERE i.tenant_id=$1::uuid AND i.request_id=$2::uuid AND i.id::text=$3`, tenantID, record.RequestID, record.InvitationID).Scan(&proof)
+			SELECT true
+			FROM capture_access_routes ar
+			JOIN capture_distribution_recipients dr
+			  ON dr.id=ar.recipient_id AND dr.tenant_id=ar.tenant_id AND dr.distribution_id=ar.distribution_id
+			WHERE ar.tenant_id=$1::uuid AND dr.request_id=$2::uuid AND ar.id::text=$3 AND ar.revoked_at IS NULL`, tenantID, record.RequestID, record.InvitationID).Scan(&proof)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return AssessmentRequestLink{}, Assessment{}, ErrNotFound
 		}
@@ -644,8 +647,11 @@ func (r *PostgresRepository) FinalizeRequestReissue(ctx context.Context, record 
 	}
 	var proof bool
 	err = tx.QueryRow(ctx, `
-		SELECT true FROM capture_invitations i
-		WHERE i.tenant_id=$1::uuid AND i.request_id=$2::uuid AND i.id::text=$3 AND i.revoked_at IS NULL`,
+		SELECT true
+		FROM capture_access_routes ar
+		JOIN capture_distribution_recipients dr
+		  ON dr.id=ar.recipient_id AND dr.tenant_id=ar.tenant_id AND dr.distribution_id=ar.distribution_id
+		WHERE ar.tenant_id=$1::uuid AND dr.request_id=$2::uuid AND ar.id::text=$3 AND ar.revoked_at IS NULL`,
 		tenantID, record.RequestID, record.InvitationID).Scan(&proof)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return AssessmentRequestLink{}, Assessment{}, ErrNotFound

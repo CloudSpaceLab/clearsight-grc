@@ -86,7 +86,7 @@ func validatePostgresRecipientRevocations(ctx context.Context, tx pgx.Tx, distri
 		SELECT count(*)
 		FROM capture_distribution_recipients
 		WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND role='TO' AND state<>'REVOKED'
-		  AND (cardinality($3::text[])=0 OR NOT (id::text=ANY($3::text[])))`,
+		  AND (COALESCE(cardinality($3::text[]),0)=0 OR NOT (id::text=ANY($3::text[])))`,
 		distribution.TenantID, distribution.ID, revokeIDs).Scan(&remainingTO); err != nil {
 		return 0, err
 	}
@@ -161,7 +161,8 @@ func applyPostgresRecipientAmendment(ctx context.Context, tx pgx.Tx, distributio
 	for index := range prepared {
 		recipient := &prepared[index]
 		if recipient.safe.Role == RecipientTo {
-			if err := insertDistributionRequest(ctx, tx, distribution, recipient, form, estimatedMinutes, now); err != nil {
+			requestInput := CreateDistributionInput{EstimatedMinutes: estimatedMinutes}
+			if err := insertDistributionRequest(ctx, tx, distribution, recipient, form, requestInput, now); err != nil {
 				return err
 			}
 		}

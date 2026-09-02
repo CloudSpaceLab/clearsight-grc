@@ -13,6 +13,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
@@ -36,9 +37,10 @@ func newAssessmentFollowupHTTPFixture(t *testing.T) assessmentFollowupHTTPFixtur
 	if err != nil {
 		t.Fatal(err)
 	}
+	requests.ConfigureDistributionDispatcher(evidence.NewWorkflowDistributionDispatcher(review.base.distributions, review.base.access))
 	matters := continuity.NewService(continuity.NewMemoryRepository())
 	deficiencies := thirdparty.NewAssessmentDeficiencyService(review.base.service, review.base.repository, matters)
-	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "verified-reviewer", "entity-a"), ThirdParty: review.base.serviceRepositoryService(), ThirdPartyAssessments: review.base.service, ThirdPartyAssessmentRequests: requests, ThirdPartyAssessmentDeficiencies: deficiencies, Continuity: matters})
+	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", "verified-reviewer", "entity-a"), Evidence: review.base.evidence, FormDistributions: review.base.distributions, FormDistributionAccess: review.base.access, ThirdParty: review.base.serviceRepositoryService(), ThirdPartyAssessments: review.base.service, ThirdPartyAssessmentRequests: requests, ThirdPartyAssessmentDeficiencies: deficiencies, Continuity: matters})
 	return assessmentFollowupHTTPFixture{handler: handler, base: review.base, assessment: under, matters: matters}
 }
 

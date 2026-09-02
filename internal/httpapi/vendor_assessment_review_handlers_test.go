@@ -42,7 +42,7 @@ func newReviewHTTPFixture(t *testing.T, includeDocument ...bool) reviewHTTPFixtu
 	if invitation == "" {
 		t.Fatalf("send outcome did not contain an immediate fallback invitation: %#v", sent)
 	}
-	redeemed, err := base.evidence.RedeemInvitation(context.Background(), invitation, "security@vendor.example")
+	redeemed, err := base.access.RedeemDirectRoute(context.Background(), invitation)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,8 +50,8 @@ func newReviewHTTPFixture(t *testing.T, includeDocument ...bool) reviewHTTPFixtu
 		"contact_email": formcontract.TextAnswer("vendor-contact-response@example.test"),
 	}
 	if len(includeDocument) > 0 && includeDocument[0] {
-		artifact, storeErr := base.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{
-			TenantID: "bank", RequestID: sent.Request.ID, FileName: "assurance-report.pdf", MediaType: "application/pdf", SessionToken: redeemed.SessionToken,
+		artifact, storeErr := base.evidence.StoreArtifactForDistributionSession(context.Background(), base.access, redeemed.SessionToken, evidence.ArtifactInput{
+			TenantID: "bank", RequestID: sent.Request.ID, FieldID: "assurance_report", FileName: "assurance-report.pdf", MediaType: "application/pdf",
 		}, strings.NewReader("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"))
 		if storeErr != nil {
 			t.Fatal(storeErr)
@@ -60,14 +60,28 @@ func newReviewHTTPFixture(t *testing.T, includeDocument ...bool) reviewHTTPFixtu
 			ArtifactID: artifact.ID, DocumentType: "SOC_2_TYPE_II", Reference: "SOC2-2026", IssuedBy: "Independent auditor", IssuedOn: "2026-06-01", ExpiresOn: "2027-05-31",
 		}}
 	}
-	receipt, err := base.evidence.SubmitSession(context.Background(), redeemed.SessionToken, answers, sent.Request.Version)
+	workspace, err := base.access.GetResponseWorkspace(context.Background(), redeemed.SessionToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	edits := make([]evidence.FieldEdit, 0, len(answers))
+	for fieldID, answer := range answers {
+		edits = append(edits, evidence.FieldEdit{FieldID: fieldID, Value: answer, BaseSequence: workspace.FieldSequences[fieldID]})
+	}
+	workspace, err = base.access.SaveResponseWorkspace(context.Background(), redeemed.SessionToken, evidence.SaveWorkspaceInput{
+		ExpectedVersion: workspace.Workspace.Version, PresentationMode: workspace.PresentationMode, Edits: edits,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := base.access.SubmitResponseWorkspace(context.Background(), redeemed.SessionToken, evidence.SubmitWorkspaceInput{ExpectedVersion: workspace.Workspace.Version})
 	if err != nil {
 		t.Fatal(err)
 	}
 	submitted, err := base.service.RecordAssessmentSubmitted(context.Background(), thirdparty.AssessmentSubmittedInput{
 		Scope: thirdparty.Scope{TenantID: "bank", LegalEntityID: "entity-a"}, AssessmentID: sent.Assessment.ID,
 		ExpectedVersion: sent.Assessment.Version, CausationID: "submission-event-1", EventID: "submission-event-1",
-		RequestID: sent.Request.ID, SubmissionID: receipt.SubmissionID,
+		RequestID: sent.Request.ID, SubmissionID: result.Submission.SubmissionID,
 	})
 	if err != nil {
 		t.Fatal(err)

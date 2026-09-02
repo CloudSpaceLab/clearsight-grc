@@ -55,7 +55,6 @@ func main() {
 	vendorBrandService.ConfigureDiscoveryEnabled(cfg.VendorBrandDiscoveryEnabled)
 	services.ThirdParty.ConfigureVendorBrands(vendorBrandService)
 	assessmentService := thirdparty.NewAssessmentService(services.ThirdPartyAssessmentRepo, guard)
-	assessmentService.ConfigureCancellationRevoker(services.Evidence)
 	assessmentMatterReader := thirdparty.NewCanonicalAssessmentReviewMatterReader(services.ThirdPartyAssessmentRepo, services.Continuity)
 	assessmentReviewService := thirdparty.NewAssessmentReviewService(assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, assessmentMatterReader)
 	assessmentReviewService.ConfigureAuthority(services.Authority)
@@ -71,6 +70,9 @@ func main() {
 		logger.Error("vendor due-diligence initialization failed", "error", err)
 		os.Exit(1)
 	}
+	assessmentDispatcher := evidence.NewWorkflowDistributionDispatcher(services.FormDistributions, services.FormDistributionAccess)
+	assessmentRequestService.ConfigureDistributionDispatcher(assessmentDispatcher)
+	assessmentService.ConfigureCancellationRevoker(assessmentDispatcher)
 	assessmentRequestService.ConfigureRecordTargetResolver(thirdparty.NewRecordTargetResolver(services.ThirdPartyAssessmentRepo))
 	vendorWorkService, err := thirdparty.NewVendorWorkService(
 		services.ThirdPartyWorkRepo, services.ThirdPartyRelationshipLinkRepo, services.Evidence, services.MonitoringRepo,
