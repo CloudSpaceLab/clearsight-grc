@@ -35,8 +35,8 @@ No unreleased compatibility route or alternate address-verification path will be
 | internal staff response | shared internal Evidence Request and capture workspace |
 | relationship activation criteria | effective versioned third-party activation policy |
 | activation authority | current authority route for the relationship and command |
-| certification collection | external vendor work using the shared form, invitation and capture boundary |
-| email delivery | shared protected notification/invitation delivery adapters |
+| certification collection | external vendor work using the shared form-distribution and capture boundary |
+| email delivery | shared protected notification delivery with purpose-bound access routes |
 
 The existing externally addressed `ADDRESS_VERIFICATION` Vendor Work path is unreleased and duplicates internal assignment semantics. It will be removed after the canonical internal Action/Evidence flow is live. `CERTIFICATION_REFRESH` remains vendor-facing Vendor Work.
 
@@ -124,7 +124,7 @@ Certification refresh remains external Vendor Work and uses the active `VENDOR-C
 
 The external request keeps ISO 27001 and PCI DSS applicability separate. Each applicable document must be current, independently reviewable and tied to the exact relationship and request revision. The protected email contains one purpose-bound link and one primary action: **Provide certification evidence**.
 
-Vendor submission moves the work to response received. Bank acceptance is distinct from upload and does not silently change the relationship, Program, Matter or assessment. Expiry, recipient change, revocation and replay retain the existing fail-closed invitation behavior.
+Vendor submission moves the work to response received. Bank acceptance is distinct from upload and does not silently change the relationship, Program, Matter or assessment. Expiry, recipient change, revocation and replay use the canonical distribution route and remain fail closed. The route, protected recipient and exact request are bound before an assessment link is recorded; the browser does not translate or fall back to an older token type.
 
 ## 8. UI and copy
 

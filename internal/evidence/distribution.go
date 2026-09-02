@@ -133,6 +133,10 @@ type CreateDistributionInput struct {
 	ReminderPolicy      map[string]any
 	CreatedBy           string
 	Recipients          []DistributionRecipientInput
+	// RequestInput carries the workflow-owned, exact request contract for each
+	// TO recipient. Distribution scope, form revision, deadline and actor still
+	// come from this command and are checked before persistence.
+	RequestInput *CreateRequestInput
 }
 
 type ResponseWorkspace struct {

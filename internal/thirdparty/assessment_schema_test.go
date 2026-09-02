@@ -53,3 +53,22 @@ func TestAssessmentMigrationOwnsScopedAtomicWorkflowState(t *testing.T) {
 		t.Fatal("assessment request links must support the prepared state before invitation issuance")
 	}
 }
+
+func TestAssessmentLinksReferenceCanonicalCaptureAccessRoutes(t *testing.T) {
+	content, err := os.ReadFile("../../migrations/000068_assessment_canonical_access_routes.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := string(content)
+	for _, required := range []string{
+		"REFERENCES capture_access_routes(id,tenant_id)",
+		"UPDATE third_party_assessment_request_links SET invitation_id=NULL",
+	} {
+		if !strings.Contains(schema, required) {
+			t.Fatalf("canonical assessment access migration missing %q", required)
+		}
+	}
+	if strings.Contains(schema, "REFERENCES capture_invitations(id,tenant_id,request_id)") {
+		t.Fatal("canonical assessment access migration still points assessment links at legacy invitations")
+	}
+}

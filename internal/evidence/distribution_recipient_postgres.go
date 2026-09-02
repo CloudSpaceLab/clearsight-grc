@@ -161,7 +161,8 @@ func applyPostgresRecipientAmendment(ctx context.Context, tx pgx.Tx, distributio
 	for index := range prepared {
 		recipient := &prepared[index]
 		if recipient.safe.Role == RecipientTo {
-			if err := insertDistributionRequest(ctx, tx, distribution, recipient, form, estimatedMinutes, now); err != nil {
+			requestInput := CreateDistributionInput{EstimatedMinutes: estimatedMinutes}
+			if err := insertDistributionRequest(ctx, tx, distribution, recipient, form, requestInput, now); err != nil {
 				return err
 			}
 		}

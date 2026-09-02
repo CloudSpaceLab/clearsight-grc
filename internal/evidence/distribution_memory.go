@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"sort"
 	"strings"
@@ -119,7 +120,11 @@ func (s *MemoryDistributionStore) CreateDistribution(ctx context.Context, input 
 				return DistributionBundle{}, requestErr
 			}
 			stored.safe.RequestID = requestID
-			requests = append(requests, materializeDistributionRequest(requestID, distribution, stored.safe, form, input.EstimatedMinutes, now))
+			request, requestErr := materializeDistributionRequest(requestID, distribution, stored.safe, form, input, now)
+			if requestErr != nil {
+				return DistributionBundle{}, requestErr
+			}
+			requests = append(requests, request)
 		}
 		storedRecipients = append(storedRecipients, stored)
 	}
@@ -161,6 +166,16 @@ func (s *MemoryDistributionStore) GetDistribution(_ context.Context, tenantID, l
 		return DistributionBundle{}, ErrNotFound
 	}
 	return bundleFromMemory(distribution, s.recipients[distributionID], s.workspaces[distributionID]), nil
+}
+
+func (s *MemoryDistributionStore) GetDistributionForRequest(ctx context.Context, tenantID, legalEntityID, requestID string) (DistributionBundle, error) {
+	s.mu.RLock()
+	distributionID := s.requestDistribution[requestID]
+	s.mu.RUnlock()
+	if distributionID == "" {
+		return DistributionBundle{}, ErrNotFound
+	}
+	return s.GetDistribution(ctx, tenantID, legalEntityID, distributionID)
 }
 
 func (s *MemoryDistributionStore) ListDistributions(_ context.Context, query DistributionListQuery) ([]FormDistribution, error) {
@@ -239,23 +254,72 @@ func validateCreateDistributionInput(input CreateDistributionInput) error {
 	return nil
 }
 
-func materializeDistributionRequest(requestID string, distribution FormDistribution, recipient DistributionRecipient, form DistributionFormRevision, estimatedMinutes int, now time.Time) Request {
+func materializeDistributionRequest(requestID string, distribution FormDistribution, recipient DistributionRecipient, form DistributionFormRevision, input CreateDistributionInput, now time.Time) (Request, error) {
 	audienceType := "EXTERNAL"
 	if recipient.Type == RecipientInternalPrincipal {
 		audienceType = "INTERNAL"
 	}
-	return Request{
+	request := Request{
 		ID: requestID, TenantID: distribution.TenantID, LegalEntityID: distribution.LegalEntityID,
 		SubjectType: distribution.SubjectType, SubjectID: distribution.SubjectID, Title: distribution.Title,
 		Purpose: distribution.Purpose, WhyYou: distribution.Purpose, Sensitivity: form.Sensitivity,
 		AudienceType:     audienceType,
 		Recipient:        Recipient{Type: recipient.Type, PrincipalID: recipient.PrincipalID, AudienceHint: recipient.AudienceHint, State: RecipientStateAssigned, Revision: 1},
-		EstimatedMinutes: estimatedMinutes, Deadline: distribution.Deadline, KnownFacts: map[string]string{},
+		EstimatedMinutes: input.EstimatedMinutes, Deadline: distribution.Deadline, KnownFacts: map[string]string{},
 		Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: cloneScoreProfile(form.ScoreProfile),
 		Sections: cloneSections(form.Sections), Fields: requestFieldsFromContract(form.Fields),
 		FormTemplateID: form.ID, FormTemplateVersion: form.Version, Status: RequestReady,
 		CreatedBy: distribution.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now,
 	}
+	if input.RequestInput == nil {
+		return request, nil
+	}
+	context := *input.RequestInput
+	if err := validateDistributionRequestContext(context, input, form, recipient.Type); err != nil {
+		return Request{}, err
+	}
+	request.WhyYou = strings.TrimSpace(context.WhyYou)
+	request.AudienceType = context.AudienceType
+	if recipient.Type == RecipientExternalAudience {
+		digest := sha256.Sum256([]byte(normalizeAudience(context.Recipient.Audience)))
+		request.Recipient.AudienceHash = digest[:]
+	}
+	request.KnownFacts = cloneMap(context.KnownFacts)
+	request.Presentation = context.Presentation
+	request.ScoringMode = context.ScoringMode
+	request.ScoreProfile = cloneScoreProfile(context.ScoreProfile)
+	request.Sections = cloneSections(context.Sections)
+	request.Fields = cloneFields(context.Fields)
+	request.SourceBindings = append([]RequestBindingReference{}, context.SourceBindings...)
+	request.CollectionPeriodStart = cloneTimePointer(context.CollectionPeriodStart)
+	request.CollectionPeriodEnd = cloneTimePointer(context.CollectionPeriodEnd)
+	request.Origin = context.Origin.normalized()
+	return request, nil
+}
+
+func validateDistributionRequestContext(context CreateRequestInput, input CreateDistributionInput, form DistributionFormRevision, recipientType RecipientType) error {
+	if context.TenantID != input.TenantID || context.LegalEntityID != input.LegalEntityID || context.SubjectType != input.SubjectType || context.SubjectID != input.SubjectID ||
+		context.Title != input.Title || context.Purpose != input.Purpose || context.FormTemplateID != input.FormTemplateID || context.FormTemplateVersion != input.FormTemplateVersion ||
+		!context.Deadline.Equal(input.Deadline) || context.EstimatedMinutes != input.EstimatedMinutes || context.CreatedBy != input.CreatedBy {
+		return fmt.Errorf("workflow request context must match distribution scope, form, timing and actor")
+	}
+	if context.Origin.empty() || context.Origin.validate() != nil || len(context.Sections) == 0 || len(context.Fields) == 0 {
+		return fmt.Errorf("workflow request context requires a valid origin and exact scoped form contract")
+	}
+	if context.Recipient.Type != recipientType || context.Sensitivity != form.Sensitivity || context.Presentation.DefaultMode == "" {
+		return fmt.Errorf("workflow request context does not match the selected recipient or form revision")
+	}
+	activeFields := make(map[string]formcontract.Field, len(form.Fields))
+	for _, field := range form.Fields {
+		activeFields[field.ID] = field
+	}
+	for _, field := range context.Fields {
+		active, ok := activeFields[field.ID]
+		if !ok || active.SectionID != field.SectionID || active.Label != field.Label || string(active.Type) != field.Type {
+			return fmt.Errorf("workflow request field %q is not part of the exact active form revision", field.ID)
+		}
+	}
+	return nil
 }
 
 func requestFieldsFromContract(fields []formcontract.Field) []Field {

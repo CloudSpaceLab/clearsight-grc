@@ -3,6 +3,7 @@ package thirdparty
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
@@ -71,20 +72,25 @@ func (s *AssessmentRequestService) ReissueRequest(ctx context.Context, _ Actor, 
 	if preparedLink.InvitationID != "" {
 		return SendRequestOutcome{}, ErrInvalid
 	}
-	if err := s.evidence.RevokeRequestCapabilities(ctx, scope.TenantID, request.ID); err != nil {
+	if s.dispatch == nil || link.InvitationID == "" {
+		return SendRequestOutcome{}, evidence.ErrDistributionAccessUnavailable
+	}
+	if err := s.dispatch.RevokeRequest(ctx, scope.TenantID, scope.LegalEntityID, request.ID, link.InvitationID); err != nil {
 		return SendRequestOutcome{}, err
 	}
 	if s.captureBase == nil {
 		return SendRequestOutcome{Assessment: preparedAssessment, Request: request, State: SendRequestReadyInvitationNotIssued, Recovery: "Set the secure capture address, then issue a replacement invitation."}, nil
 	}
-	issued, err := s.evidence.IssueInvitation(ctx, evidence.IssueInvitationInput{
-		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, RequestID: request.ID, Audience: audience,
-		Purpose: "Complete the vendor due-diligence request.", TTLMinutes: input.InvitationTTLMinutes, CreatedBy: verified.PrincipalID,
-	})
-	if err != nil {
+	routeExpiry := s.assessments.now().UTC().Add(time.Duration(input.InvitationTTLMinutes) * time.Minute)
+	if routeExpiry.After(request.Deadline) {
+		routeExpiry = request.Deadline
+	}
+	dispatched, err := s.dispatch.Resume(ctx, scope.TenantID, scope.LegalEntityID, request.ID, verified.PrincipalID, routeExpiry)
+	if err != nil || dispatched.Route.RouteID == "" {
 		return SendRequestOutcome{Assessment: preparedAssessment, Request: request, State: SendRequestReadyInvitationNotIssued, Recovery: "Retry replacement invitation creation for this request."}, nil
 	}
-	linkURL := captureInvitationURL(s.captureBase, issued.Token)
+	issued := evidence.IssuedInvitation{InvitationID: dispatched.Route.RouteID, Token: dispatched.Route.Selector, AudienceHint: request.Recipient.AudienceHint, ExpiresAt: dispatched.Route.ExpiresAt}
+	linkURL := captureInvitationURL(s.captureBase, dispatched.Route.Selector)
 	issuedOutcome := issued
 	issuedOutcome.Token = ""
 	_, updated, err := s.repo.FinalizeRequestReissue(ctx, FinalizeRequestReissueRecord{
@@ -92,7 +98,7 @@ func (s *AssessmentRequestService) ReissueRequest(ctx context.Context, _ Actor, 
 		RequestID: request.ID, InvitationID: issued.InvitationID, ReissuedAt: s.assessments.now().UTC(),
 	})
 	if err != nil {
-		_ = s.evidence.RevokeInvitation(ctx, scope.TenantID, issued.InvitationID)
+		_ = s.dispatch.Revoke(ctx, scope.TenantID, scope.LegalEntityID, dispatched.Distribution.ID, issued.InvitationID)
 		return SendRequestOutcome{}, err
 	}
 	outcome := SendRequestOutcome{Assessment: updated, Request: request, Invitation: &issuedOutcome}

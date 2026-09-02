@@ -84,7 +84,7 @@ func (s *PostgresDistributionStore) CreateDistribution(ctx context.Context, inpu
 	for index := range prepared {
 		recipient := &prepared[index]
 		if recipient.safe.Role == RecipientTo {
-			if err := insertDistributionRequest(ctx, tx, distribution, recipient, form, input.EstimatedMinutes, now); err != nil {
+			if err := insertDistributionRequest(ctx, tx, distribution, recipient, form, input, now); err != nil {
 				return DistributionBundle{}, err
 			}
 		}

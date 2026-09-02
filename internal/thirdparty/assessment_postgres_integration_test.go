@@ -101,27 +101,40 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 	}
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
 	ctx = evidence.WithRequestOriginAuthority(ctx, origin.Type)
-	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
+	evidenceRepository := evidence.NewPostgresRepository(pool)
 	audience := "review@vendor.example"
-	request, err := evidenceService.CreateRequest(ctx, evidence.CreateRequestInput{
+	requestInput := evidence.CreateRequestInput{
 		TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationship.Relationship.ID,
 		Title: "Vendor due diligence", Purpose: "Collect the vendor response.", WhyYou: "Provide the information required for the bank's review.",
-		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
+		Sensitivity: "INTERNAL", AudienceType: "VENDOR",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience},
 		EstimatedMinutes: 10, Deadline: now.Add(24 * time.Hour), Origin: origin,
 		Presentation:   evidenceAssessmentPresentation(),
 		Sections:       []formcontract.Section{{ID: "company", Title: "Company details"}},
 		Fields:         []evidence.Field{{ID: "confirmed", SectionID: "company", Label: "Confirm the supplied details", Type: string(formcontract.TypeYesNo), Required: true}},
 		FormTemplateID: assessmentTemplateID, FormTemplateVersion: 3, CreatedBy: thirdPartyPrincipal,
-	})
+	}
+	var recipientKey, accessKey [32]byte
+	for index := range recipientKey {
+		recipientKey[index], accessKey[index] = byte(index+1), byte(index+33)
+	}
+	keyring, err := evidence.NewRecipientKeyring("assessment-integration-v1", map[string][32]byte{"assessment-integration-v1": recipientKey})
 	if err != nil {
 		t.Fatal(err)
 	}
-	initial, err := evidenceService.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA, RequestID: request.ID, Audience: audience, Purpose: "Complete the request.", TTLMinutes: 60, CreatedBy: thirdPartyPrincipal})
+	distributionStore := evidence.NewPostgresDistributionStore(evidenceRepository, keyring)
+	distributions := evidence.NewDistributionService(distributionStore)
+	access, err := evidence.NewDistributionAccessService(distributionStore, keyring, nil, accessKey, 20*time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}
-	priorSession, err := evidenceService.RedeemInvitation(ctx, initial.Token, audience)
+	dispatcher := evidence.NewWorkflowDistributionDispatcher(distributions, access)
+	initial, err := dispatcher.Dispatch(ctx, evidence.WorkflowDistributionDispatchInput{Request: requestInput, AccessPolicy: evidence.AccessDirectMagicLink, RouteExpiresAt: now.Add(time.Hour)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := initial.Request
+	priorSession, err := access.RedeemDirectRoute(ctx, initial.Route.Selector)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,12 +144,12 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 		INSERT INTO third_party_assessment_request_links(
 			tenant_id,legal_entity_id,assessment_id,request_id,purpose,sequence,origin_type,origin_id,origin_sequence,invitation_id,is_current,created_at
 		) VALUES($1::uuid,$5::uuid,$2::uuid,$3::uuid,'INITIAL',1,$6,$2::uuid,1,$7::uuid,true,$4)`,
-		pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, assessment.ID, request.ID, now, thirdPartyEntityA, AssessmentRequestOrigin, initial.InvitationID); err != nil {
+		pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, assessment.ID, request.ID, now, thirdPartyEntityA, AssessmentRequestOrigin, initial.Route.RouteID); err != nil {
 		t.Fatal(err)
 	}
 	preparedLink, preparedAssessment, err := repository.PrepareRequestReissue(ctx, PrepareRequestReissueRecord{
 		Scope: Scope{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA}, AssessmentID: assessment.ID, ExpectedVersion: 4,
-		ActorPrincipalID: thirdPartyPrincipal, RequestID: request.ID, ExpectedInvitationID: initial.InvitationID, PreparedAt: now.Add(time.Minute),
+		ActorPrincipalID: thirdPartyPrincipal, RequestID: request.ID, ExpectedInvitationID: initial.Route.RouteID, PreparedAt: now.Add(time.Minute),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -144,25 +157,29 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 	if preparedAssessment.Status != AssessmentCollecting || preparedAssessment.Version != 5 || preparedLink.InvitationID != "" {
 		t.Fatalf("replacement preparation changed lifecycle or retained invitation: assessment=%#v link=%#v", preparedAssessment, preparedLink)
 	}
-	replacement, err := evidenceService.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA, RequestID: request.ID, Audience: audience, Purpose: "Complete the request.", TTLMinutes: 60, CreatedBy: thirdPartyPrincipal})
+	if err := dispatcher.RevokeRequest(ctx, request.TenantID, request.LegalEntityID, request.ID, initial.Route.RouteID); err != nil {
+		t.Fatal(err)
+	}
+	replacementExpiry := now.Add(2 * time.Hour)
+	replacement, err := dispatcher.Resume(ctx, request.TenantID, request.LegalEntityID, request.ID, thirdPartyPrincipal, replacementExpiry)
 	if err != nil {
 		t.Fatal(err)
 	}
 	link, updated, err := repository.FinalizeRequestReissue(ctx, FinalizeRequestReissueRecord{
 		Scope: Scope{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA}, AssessmentID: assessment.ID, ExpectedVersion: preparedAssessment.Version,
 		ActorPrincipalID: thirdPartyPrincipal, RequestID: request.ID,
-		InvitationID: replacement.InvitationID, ReissuedAt: now.Add(time.Minute),
+		InvitationID: replacement.Route.RouteID, ReissuedAt: now.Add(time.Minute),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.Status != AssessmentCollecting || updated.Version != 6 || link.InvitationID != replacement.InvitationID {
+	if updated.Status != AssessmentCollecting || updated.Version != 6 || link.InvitationID != replacement.Route.RouteID || !replacement.Route.ExpiresAt.Equal(replacementExpiry) {
 		t.Fatalf("replacement changed lifecycle or failed to update link: assessment=%#v link=%#v", updated, link)
 	}
-	if _, _, err := evidenceService.SessionRequest(ctx, priorSession.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
+	if _, _, err := access.SessionRequest(ctx, priorSession.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
 		t.Fatalf("prior session remained usable: %v", err)
 	}
-	if _, err := evidenceService.RedeemInvitation(ctx, replacement.Token, audience); err != nil {
+	if _, err := access.RedeemDirectRoute(ctx, replacement.Route.Selector); err != nil {
 		t.Fatalf("replacement invitation was not redeemable: %v", err)
 	}
 	var actorID, eventPayload, outboxPayload string
@@ -185,7 +202,7 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 	if preparedActorID != thirdPartyPrincipal {
 		t.Fatalf("prepared audit actor = %q", preparedActorID)
 	}
-	for _, protected := range []string{audience, initial.Token, replacement.Token} {
+	for _, protected := range []string{audience, initial.Route.Selector, replacement.Route.Selector} {
 		if strings.Contains(eventPayload, protected) || strings.Contains(outboxPayload, protected) || strings.Contains(preparedEventPayload, protected) || strings.Contains(preparedOutboxPayload, protected) {
 			t.Fatalf("protected value leaked into audit persistence: prepared_event=%s prepared_outbox=%s event=%s outbox=%s", preparedEventPayload, preparedOutboxPayload, eventPayload, outboxPayload)
 		}
@@ -402,8 +419,8 @@ func assessmentPostgresPool(t *testing.T) *pgxpool.Pool {
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES
 			($2::uuid,$1::uuid,'ENTITY-A','Entity A','Nigeria'),($3::uuid,$1::uuid,'ENTITY-B','Entity B','Nigeria');
 		INSERT INTO principals(id,tenant_id,kind,display_name,status) VALUES($4::uuid,$1::uuid,'PERSON','Vendor Owner','ACTIVE');
-		INSERT INTO monitoring_form_templates(id,tenant_id,code,name,purpose,presentation,sections,fields,status,is_current,effective_from,version,created_by)
-		VALUES($5::uuid,$1::uuid,'VENDOR-DD','Vendor due diligence','Collect current vendor control information.',
+		INSERT INTO monitoring_form_templates(id,tenant_id,legal_entity_id,code,name,purpose,presentation,sections,fields,status,is_current,effective_from,version,created_by)
+		VALUES($5::uuid,$1::uuid,$2::uuid,'VENDOR-DD','Vendor due diligence','Collect current vendor control information.',
 			'{"default_mode":"WIZARD","allow_mode_switch":true}'::jsonb,
 			'[{"id":"company","title":"Company details"}]'::jsonb,
 			'[{"id":"confirmed","section_id":"company","label":"Confirm the supplied details","type":"yes_no","required":true}]'::jsonb,
