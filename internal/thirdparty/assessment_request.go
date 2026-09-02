@@ -42,12 +42,14 @@ type SendRequestOutcome struct {
 }
 
 type assessmentRequestEvidence interface {
-	CreateRequest(context.Context, evidence.CreateRequestInput) (evidence.Request, error)
 	GetRequestByOrigin(context.Context, string, evidence.RequestOrigin) (evidence.Request, error)
-	ReassignRecipient(context.Context, evidence.ReassignRecipientInput) (evidence.Request, error)
-	IssueInvitation(context.Context, evidence.IssueInvitationInput) (evidence.IssuedInvitation, error)
-	RevokeRequestCapabilities(context.Context, string, string) error
-	RevokeInvitation(context.Context, string, string) error
+}
+
+type assessmentRequestDispatcher interface {
+	Dispatch(context.Context, evidence.WorkflowDistributionDispatchInput) (evidence.WorkflowDistributionDispatch, error)
+	Resume(context.Context, string, string, string, string, time.Time) (evidence.WorkflowDistributionDispatch, error)
+	Revoke(context.Context, string, string, string, string) error
+	RevokeRequest(context.Context, string, string, string, string) error
 }
 
 type assessmentFormReader interface {
@@ -62,11 +64,18 @@ type AssessmentRequestService struct {
 	delivery    *evidence.InvitationDeliveryService
 	captureBase *url.URL
 	targets     RecordTargetResolver
+	dispatch    assessmentRequestDispatcher
 }
 
 func (s *AssessmentRequestService) ConfigureRecordTargetResolver(resolver RecordTargetResolver) {
 	if s != nil {
 		s.targets = resolver
+	}
+}
+
+func (s *AssessmentRequestService) ConfigureDistributionDispatcher(dispatcher assessmentRequestDispatcher) {
+	if s != nil {
+		s.dispatch = dispatcher
 	}
 }
 
@@ -78,7 +87,11 @@ func NewAssessmentRequestService(assessments *AssessmentService, repo Assessment
 	if err != nil {
 		return nil, err
 	}
-	return &AssessmentRequestService{assessments: assessments, repo: repo, evidence: evidenceService, forms: forms, delivery: delivery, captureBase: base}, nil
+	service := &AssessmentRequestService{assessments: assessments, repo: repo, evidence: evidenceService, forms: forms, delivery: delivery, captureBase: base}
+	if dispatcher, ok := evidenceService.(assessmentRequestDispatcher); ok {
+		service.dispatch = dispatcher
+	}
+	return service, nil
 }
 
 func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, assessmentID string, input SendAssessmentRequestInput) (SendRequestOutcome, error) {
@@ -123,29 +136,33 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 	}
 
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
+	routeExpiry := s.assessments.now().UTC().Add(time.Duration(input.InvitationTTLMinutes) * time.Minute)
+	if routeExpiry.After(deadline) {
+		routeExpiry = deadline
+	}
 	request, err := s.evidence.GetRequestByOrigin(ctx, scope.TenantID, origin)
+	var dispatched evidence.WorkflowDistributionDispatch
 	if errors.Is(err, evidence.ErrNotFound) {
 		requestInput, composeErr := s.composeAssessmentEvidenceRequest(ctx, verified, assessment, relationship, form, origin, audience, deadline)
 		if composeErr != nil {
 			return SendRequestOutcome{}, composeErr
 		}
-		request, err = s.evidence.CreateRequest(evidence.WithRequestOriginAuthority(ctx, AssessmentRequestOrigin), requestInput)
+		if s.dispatch == nil {
+			return SendRequestOutcome{}, evidence.ErrDistributionAccessUnavailable
+		}
+		dispatched, err = s.dispatch.Dispatch(evidence.WithRequestOriginAuthority(ctx, AssessmentRequestOrigin), evidence.WorkflowDistributionDispatchInput{
+			Request: requestInput, AccessPolicy: evidence.AccessDirectMagicLink, RouteExpiresAt: routeExpiry,
+		})
+		request = dispatched.Request
 	}
-	if err != nil {
+	if err != nil && request.ID == "" {
 		return SendRequestOutcome{}, err
 	}
 	if request.Origin != origin || request.SubjectType != "VENDOR_RELATIONSHIP" || request.SubjectID != assessment.RelationshipID || request.FormTemplateID != assessment.FormTemplateID || request.FormTemplateVersion != assessment.FormTemplateVersion {
 		return SendRequestOutcome{}, ErrInvalid
 	}
 	if !evidence.ExternalAudienceMatches(request, audience) {
-		request, err = s.evidence.ReassignRecipient(ctx, evidence.ReassignRecipientInput{
-			TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, RequestID: request.ID, ActorPrincipalID: verified.PrincipalID,
-			Recipient: evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience},
-			Reason:    "Vendor request recipient corrected before collection.", ExpectedVersion: request.Version,
-		})
-		if err != nil {
-			return SendRequestOutcome{}, err
-		}
+		return SendRequestOutcome{}, ErrVersionConflict
 	}
 
 	preparedLink, preparedAssessment, err := s.repo.PrepareAssessmentRequest(ctx, PrepareAssessmentRequestRecord{
@@ -162,14 +179,17 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 	if s.captureBase == nil {
 		return preparedOutcome(preparedAssessment, request, "Set the secure capture address, then issue the invitation."), nil
 	}
-	issued, err := s.evidence.IssueInvitation(ctx, evidence.IssueInvitationInput{
-		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, RequestID: request.ID, Audience: audience,
-		Purpose: "Complete the vendor due-diligence request.", TTLMinutes: input.InvitationTTLMinutes, CreatedBy: verified.PrincipalID,
-	})
-	if err != nil {
+	if dispatched.Route.RouteID == "" && err == nil {
+		if s.dispatch == nil {
+			return preparedOutcome(preparedAssessment, request, "Retry invitation creation for this request."), nil
+		}
+		dispatched, err = s.dispatch.Resume(ctx, scope.TenantID, scope.LegalEntityID, request.ID, verified.PrincipalID, routeExpiry)
+	}
+	if dispatched.Route.RouteID == "" || dispatched.Route.Selector == "" {
 		return preparedOutcome(preparedAssessment, request, "Retry invitation creation for this request."), nil
 	}
-	linkURL := captureInvitationURL(s.captureBase, issued.Token)
+	issued := evidence.IssuedInvitation{InvitationID: dispatched.Route.RouteID, Token: dispatched.Route.Selector, AudienceHint: request.Recipient.AudienceHint, ExpiresAt: dispatched.Route.ExpiresAt}
+	linkURL := captureInvitationURL(s.captureBase, dispatched.Route.Selector)
 	issuedOutcome := issued
 	issuedOutcome.Token = ""
 	finalized, err := s.assessments.RecordRequestIssued(ctx, verified, assessment.ID, RecordRequestIssuedInput{
@@ -177,7 +197,7 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 		OriginType: AssessmentRequestOrigin, OriginID: assessment.ID, OriginSequence: 1, InvitationID: issued.InvitationID,
 	})
 	if err != nil {
-		if revokeErr := s.evidence.RevokeInvitation(ctx, scope.TenantID, issued.InvitationID); revokeErr != nil {
+		if revokeErr := s.dispatch.Revoke(ctx, scope.TenantID, scope.LegalEntityID, dispatched.Distribution.ID, dispatched.Route.RouteID); revokeErr != nil {
 			return preparedOutcome(preparedAssessment, request, "Retry invitation creation. Any prior secure access will be revoked before a replacement is issued."), nil
 		}
 		return preparedOutcome(preparedAssessment, request, "Retry invitation creation for this request."), nil
@@ -272,7 +292,7 @@ func assessmentEvidenceRequestInput(actor Actor, assessment Assessment, aggregat
 	return evidence.CreateRequestInput{
 		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: assessment.RelationshipID,
 		Title: form.Name, Purpose: form.Purpose, WhyYou: "Provide the information required for the bank's review of this service.",
-		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
+		Sensitivity: form.Sensitivity, AudienceType: "VENDOR",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience},
 		EstimatedMinutes: estimateAssessmentMinutes(len(fields)), Deadline: deadline, KnownFacts: facts,
 		Presentation: form.Presentation, Sections: form.Sections, Fields: fields,

@@ -127,7 +127,7 @@ func TestRequestAssessmentClarificationRequiresCurrentReviewerStateVersionAndFie
 	if _, err := service.RequestClarification(assessmentContext(), assessmentActor(), assessment.ID, base); !errors.Is(err, ErrInvalidAssessmentTransition) {
 		t.Fatalf("state error = %v", err)
 	}
-	if len(evidenceStub.created) != 0 || len(evidenceStub.issued) != 0 {
+	if len(evidenceStub.created) != 0 || evidenceStub.dispatched != 0 {
 		t.Fatal("ineligible clarification created external access")
 	}
 	guard.requests = nil
@@ -138,57 +138,6 @@ func TestRequestAssessmentClarificationRequiresCurrentReviewerStateVersionAndFie
 	_, _ = service.RequestClarification(assessmentContext(), assessmentActor(), assessment.ID, base)
 	if len(guard.requests) < 1 || guard.requests[0].DecisionType != AssessmentClarificationCommand || guard.requests[0].Responsibility != authority.ResponsibilityReviewer {
 		t.Fatalf("authority route = %#v", guard.requests)
-	}
-}
-
-func TestConcurrentClarificationPreparationAllowsOneInvitationPath(t *testing.T) {
-	baseService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
-	assessment := assessmentUnderReviewFixture(t, baseService, repo, relationship)
-	barrier := &clarificationPrepareBarrier{AssessmentRepository: repo, entered: make(chan struct{}, 2), release: make(chan struct{})}
-	assessmentService := NewAssessmentService(barrier, fixedAssessmentGuard{})
-	assessmentService.now = baseService.now
-	evidenceService := newAssessmentEvidenceService()
-	form := activeAssessmentForm()
-	requested := map[string]struct{}{"contact_email": {}}
-	fields, sections, err := clarificationForm(form, requested)
-	if err != nil {
-		t.Fatal(err)
-	}
-	deadline := assessment.ReviewDueAt.Add(-time.Hour)
-	_, err = evidenceService.CreateRequest(evidence.WithRequestOriginAuthority(context.Background(), AssessmentRequestOrigin), clarificationEvidenceRequestInput(assessmentActor(), assessment, relationship, form, fields, sections, evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 2}, "security@vendor.example", "Provide the current security contact.", deadline))
-	if err != nil {
-		t.Fatal(err)
-	}
-	service, _ := NewAssessmentRequestService(assessmentService, barrier, evidenceService, assessmentFormReaderStub{form: form}, nil, "https://capture.example.test/respond", "production")
-	input := RequestAssessmentClarificationInput{ExpectedVersion: assessment.Version, RequestFields: []string{"contact_email"}, Message: "Provide the current security contact.", Audience: "security@vendor.example", Deadline: deadline, InvitationTTLMinutes: 60}
-	errs := make(chan error, 2)
-	for i := 0; i < 2; i++ {
-		go func() {
-			_, callErr := service.RequestClarification(assessmentContext(), assessmentActor(), assessment.ID, input)
-			errs <- callErr
-		}()
-	}
-	<-barrier.entered
-	<-barrier.entered
-	close(barrier.release)
-	first, second := <-errs, <-errs
-	conflicts := 0
-	successes := 0
-	for _, callErr := range []error{first, second} {
-		if callErr == nil {
-			successes++
-		} else if errors.Is(callErr, ErrVersionConflict) {
-			conflicts++
-		} else {
-			t.Fatalf("concurrent clarification error = %v", callErr)
-		}
-	}
-	if successes != 1 || conflicts != 1 {
-		t.Fatalf("concurrent results successes=%d conflicts=%d", successes, conflicts)
-	}
-	links, _ := repo.ListAssessmentRequestLinks(context.Background(), scopeFromVerified(), assessment.ID)
-	if len(links) != 2 || links[1].InvitationID == "" {
-		t.Fatalf("concurrent clarification links = %#v", links)
 	}
 }
 

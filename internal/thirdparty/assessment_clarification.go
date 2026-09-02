@@ -104,11 +104,23 @@ func (s *AssessmentRequestService) RequestClarification(ctx context.Context, _ A
 		sequence = last.Sequence
 	}
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: int64(sequence)}
-	request, err := s.evidence.GetRequestByOrigin(ctx, scope.TenantID, origin)
-	if errors.Is(err, evidence.ErrNotFound) && !recoverPrepared {
-		request, err = s.evidence.CreateRequest(evidence.WithRequestOriginAuthority(ctx, AssessmentRequestOrigin), clarificationEvidenceRequestInput(verified, assessment, relationship, form, fields, sections, origin, audience, input.Message, deadline))
+	routeExpiry := now.Add(time.Duration(input.InvitationTTLMinutes) * time.Minute)
+	if routeExpiry.After(deadline) {
+		routeExpiry = deadline
 	}
-	if err != nil {
+	request, err := s.evidence.GetRequestByOrigin(ctx, scope.TenantID, origin)
+	var dispatched evidence.WorkflowDistributionDispatch
+	if errors.Is(err, evidence.ErrNotFound) && !recoverPrepared {
+		if s.dispatch == nil {
+			return AssessmentClarificationOutcome{}, evidence.ErrDistributionAccessUnavailable
+		}
+		dispatched, err = s.dispatch.Dispatch(evidence.WithRequestOriginAuthority(ctx, AssessmentRequestOrigin), evidence.WorkflowDistributionDispatchInput{
+			Request:      clarificationEvidenceRequestInput(verified, assessment, relationship, form, fields, sections, origin, audience, input.Message, deadline),
+			AccessPolicy: evidence.AccessDirectMagicLink, RouteExpiresAt: routeExpiry,
+		})
+		request = dispatched.Request
+	}
+	if err != nil && request.ID == "" {
 		return AssessmentClarificationOutcome{}, err
 	}
 	if !sameClarificationRequest(request, assessment, origin, audience, input.Message, deadline, fields) {
@@ -127,16 +139,19 @@ func (s *AssessmentRequestService) RequestClarification(ctx context.Context, _ A
 	if s.captureBase == nil {
 		return clarificationPreparedOutcome(preparedAssessment, "Set the secure capture address, then issue the clarification invitation."), nil
 	}
-	issued, err := s.evidence.IssueInvitation(ctx, evidence.IssueInvitationInput{TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, RequestID: request.ID, Audience: audience, Purpose: "Complete the requested vendor clarification.", TTLMinutes: input.InvitationTTLMinutes, CreatedBy: verified.PrincipalID})
-	if err != nil {
+	if dispatched.Route.RouteID == "" && err == nil {
+		dispatched, err = s.dispatch.Resume(ctx, scope.TenantID, scope.LegalEntityID, request.ID, verified.PrincipalID, routeExpiry)
+	}
+	if err != nil || dispatched.Route.RouteID == "" || dispatched.Route.Selector == "" {
 		return clarificationPreparedOutcome(preparedAssessment, "Retry invitation creation for this clarification request."), nil
 	}
-	linkURL := captureInvitationURL(s.captureBase, issued.Token)
+	issued := evidence.IssuedInvitation{InvitationID: dispatched.Route.RouteID, Token: dispatched.Route.Selector, AudienceHint: request.Recipient.AudienceHint, ExpiresAt: dispatched.Route.ExpiresAt}
+	linkURL := captureInvitationURL(s.captureBase, dispatched.Route.Selector)
 	publicInvitation := issued
 	publicInvitation.Token = ""
 	finalized, err := s.assessments.RecordRequestIssued(ctx, verified, assessment.ID, RecordRequestIssuedInput{ExpectedVersion: preparedAssessment.Version, RequestID: request.ID, Purpose: AssessmentRequestClarification, OriginType: origin.Type, OriginID: origin.ID, OriginSequence: sequence, InvitationID: issued.InvitationID})
 	if err != nil {
-		_ = s.evidence.RevokeInvitation(ctx, scope.TenantID, issued.InvitationID)
+		_ = s.dispatch.Revoke(ctx, scope.TenantID, scope.LegalEntityID, dispatched.Distribution.ID, issued.InvitationID)
 		return clarificationPreparedOutcome(preparedAssessment, "Retry invitation creation for this clarification request."), nil
 	}
 	outcome := AssessmentClarificationOutcome{Assessment: finalized.Assessment, Invitation: &publicInvitation}

@@ -72,29 +72,40 @@ func insertFormDistribution(ctx context.Context, tx pgx.Tx, distribution FormDis
 	return nil
 }
 
-func insertDistributionRequest(ctx context.Context, tx pgx.Tx, distribution FormDistribution, recipient *postgresPreparedRecipient, form DistributionFormRevision, estimatedMinutes int, now time.Time) error {
-	presentationJSON, err := json.Marshal(form.Presentation)
+func insertDistributionRequest(ctx context.Context, tx pgx.Tx, distribution FormDistribution, recipient *postgresPreparedRecipient, form DistributionFormRevision, input CreateDistributionInput, now time.Time) error {
+	request, err := materializeDistributionRequest(recipient.safe.RequestID, distribution, recipient.safe, form, input, now)
 	if err != nil {
 		return err
 	}
-	sectionsJSON, err := json.Marshal(form.Sections)
+	presentationJSON, err := json.Marshal(request.Presentation)
 	if err != nil {
 		return err
 	}
-	fieldsJSON, err := json.Marshal(form.Fields)
+	sectionsJSON, err := json.Marshal(request.Sections)
 	if err != nil {
 		return err
 	}
-	scoreProfileJSON, err := marshalScoreProfile(form.ScoreProfile)
+	fieldsJSON, err := json.Marshal(request.Fields)
 	if err != nil {
 		return err
 	}
-	audienceType := "EXTERNAL"
+	knownFactsJSON, err := json.Marshal(request.KnownFacts)
+	if err != nil {
+		return err
+	}
+	sourceBindingsJSON, err := json.Marshal(request.SourceBindings)
+	if err != nil {
+		return err
+	}
+	scoreProfileJSON, err := marshalScoreProfile(request.ScoreProfile)
+	if err != nil {
+		return err
+	}
+	audienceType := request.AudienceType
 	principalID := ""
 	var audienceHash any
 	hint := recipient.safe.AudienceHint
 	if recipient.safe.Type == RecipientInternalPrincipal {
-		audienceType = "INTERNAL"
 		principalID = recipient.safe.PrincipalID
 		hint = ""
 	} else {
@@ -108,15 +119,16 @@ func insertDistributionRequest(ctx context.Context, tx pgx.Tx, distribution Form
 			id,tenant_id,legal_entity_id,distribution_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
 			recipient_type,recipient_principal_id,recipient_audience_hash,recipient_hint,recipient_state,recipient_revision,recipient_issue_reason,
 			estimated_minutes,deadline,known_facts,presentation,scoring_mode,score_profile,sections,fields,source_bindings,form_template_id,form_template_version,
-			status,created_by,version,created_at,updated_at
+			collection_period_start,collection_period_end,origin_type,origin_id,origin_version,status,created_by,version,created_at,updated_at
 		) VALUES(
-			$1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8,$8,$9,$10,
-			$11,NULLIF($12,'')::uuid,$13,$14,'ASSIGNED',1,'',$15,$16,'{}'::jsonb,$17::jsonb,$18,$19::jsonb,$20::jsonb,$21::jsonb,'[]'::jsonb,$22::uuid,$23,
-			'READY',$24::uuid,1,$25,$25
+			$1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8,$9,$10,$11,
+			$12,NULLIF($13,'')::uuid,$14,$15,'ASSIGNED',1,'',$16,$17,$18::jsonb,$19::jsonb,$20,$21::jsonb,$22::jsonb,$23::jsonb,$24::jsonb,$25::uuid,$26,
+			$27,$28,NULLIF($29,''),NULLIF($30,''),NULLIF($31,0),'READY',$32::uuid,1,$33,$33
 		)`, recipient.safe.RequestID, distribution.TenantID, distribution.LegalEntityID, distribution.ID,
-		distribution.SubjectType, distribution.SubjectID, distribution.Title, distribution.Purpose, form.Sensitivity,
-		audienceType, recipient.safe.Type, principalID, audienceHash, hint, estimatedMinutes, distribution.Deadline,
-		string(presentationJSON), form.ScoringMode, scoreProfileJSON, string(sectionsJSON), string(fieldsJSON), form.ID, form.Version, distribution.CreatedBy, now)
+		request.SubjectType, request.SubjectID, request.Title, request.Purpose, request.WhyYou, request.Sensitivity,
+		audienceType, recipient.safe.Type, principalID, audienceHash, hint, request.EstimatedMinutes, request.Deadline,
+		string(knownFactsJSON), string(presentationJSON), request.ScoringMode, scoreProfileJSON, string(sectionsJSON), string(fieldsJSON), string(sourceBindingsJSON), form.ID, form.Version,
+		request.CollectionPeriodStart, request.CollectionPeriodEnd, request.Origin.Type, request.Origin.ID, request.Origin.Version, distribution.CreatedBy, now)
 	if err != nil {
 		return fmt.Errorf("insert TO capture request: %w", err)
 	}

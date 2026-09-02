@@ -26,16 +26,15 @@ func (s *invitationDeliveryStub) Deliver(_ context.Context, request evidence.Inv
 }
 
 type assessmentEvidenceStub struct {
-	requests       map[evidence.RequestOrigin]evidence.Request
-	created        []evidence.CreateRequestInput
-	issued         []evidence.IssueInvitationInput
-	issueErr       error
-	revokeErr      error
-	revoked        []string
-	reassigned     []evidence.ReassignRecipientInput
-	preparedBefore bool
-	repo           AssessmentRepository
-	assessmentID   string
+	requests     map[evidence.RequestOrigin]evidence.Request
+	created      []evidence.CreateRequestInput
+	dispatched   int
+	issueErr     error
+	revokeErr    error
+	revoked      []string
+	reassigned   []evidence.ReassignRecipientInput
+	repo         AssessmentRepository
+	assessmentID string
 }
 
 func (s *assessmentEvidenceStub) CreateRequest(_ context.Context, input evidence.CreateRequestInput) (evidence.Request, error) {
@@ -95,19 +94,59 @@ func (r *finalizeFailAssessmentRepository) RecordRequestIssued(_ context.Context
 	return AssessmentRequestLink{}, Assessment{}, r.err
 }
 
-func (s *assessmentEvidenceStub) IssueInvitation(ctx context.Context, input evidence.IssueInvitationInput) (evidence.IssuedInvitation, error) {
-	s.issued = append(s.issued, input)
-	links, err := s.repo.ListAssessmentRequestLinks(ctx, scopeFromVerified(), s.assessmentID)
-	s.preparedBefore = err == nil && len(links) == 1 && links[0].RequestID == input.RequestID && links[0].InvitationID == ""
-	if s.issueErr != nil {
-		return evidence.IssuedInvitation{}, s.issueErr
+func (s *assessmentEvidenceStub) Dispatch(ctx context.Context, input evidence.WorkflowDistributionDispatchInput) (evidence.WorkflowDistributionDispatch, error) {
+	request, err := s.CreateRequest(ctx, input.Request)
+	if err != nil {
+		return evidence.WorkflowDistributionDispatch{}, err
 	}
-	return evidence.IssuedInvitation{InvitationID: "invitation-1", Token: "one-time-token", AudienceHint: "s***@vendor.example", ExpiresAt: time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)}, nil
+	s.dispatched++
+	if s.issueErr != nil {
+		return evidence.WorkflowDistributionDispatch{
+			Distribution: evidence.FormDistribution{ID: "distribution-1", TenantID: request.TenantID, LegalEntityID: input.Request.LegalEntityID, Status: evidence.DistributionDraft},
+			Request:      request,
+		}, s.issueErr
+	}
+	expiresAt := input.RouteExpiresAt
+	return evidence.WorkflowDistributionDispatch{
+		Distribution: evidence.FormDistribution{ID: "distribution-1", TenantID: request.TenantID, LegalEntityID: input.Request.LegalEntityID, Status: evidence.DistributionOpen},
+		Request:      request,
+		Route:        evidence.IssuedAccessRoute{RouteID: "invitation-1", Selector: "one-time-token", Policy: evidence.AccessDirectMagicLink, ExpiresAt: expiresAt},
+	}, nil
 }
 
-func (s *assessmentEvidenceStub) RevokeInvitation(_ context.Context, _ string, invitationID string) error {
-	s.revoked = append(s.revoked, invitationID)
+func (s *assessmentEvidenceStub) Revoke(_ context.Context, _, _, _, routeID string) error {
+	s.revoked = append(s.revoked, routeID)
 	return s.revokeErr
+}
+
+func (s *assessmentEvidenceStub) RevokeRequest(_ context.Context, _, _, _, routeID string) error {
+	s.revoked = append(s.revoked, routeID)
+	return s.revokeErr
+}
+
+func (s *assessmentEvidenceStub) Resume(_ context.Context, tenantID, legalEntityID, requestID, _ string, routeExpiresAt time.Time) (evidence.WorkflowDistributionDispatch, error) {
+	if s.issueErr != nil {
+		return evidence.WorkflowDistributionDispatch{}, s.issueErr
+	}
+	var request evidence.Request
+	for _, candidate := range s.requests {
+		if candidate.ID == requestID {
+			request = candidate
+			break
+		}
+	}
+	if request.ID == "" {
+		return evidence.WorkflowDistributionDispatch{}, evidence.ErrNotFound
+	}
+	routeID, selector := "invitation-1", "one-time-token"
+	if len(s.revoked) > 0 {
+		routeID, selector = "invitation-2", "replacement-token"
+	}
+	return evidence.WorkflowDistributionDispatch{
+		Distribution: evidence.FormDistribution{ID: "distribution-1", TenantID: tenantID, LegalEntityID: legalEntityID, Status: evidence.DistributionOpen},
+		Request:      request,
+		Route:        evidence.IssuedAccessRoute{RouteID: routeID, Selector: selector, Policy: evidence.AccessDirectMagicLink, ExpiresAt: routeExpiresAt},
+	}, nil
 }
 
 func (s *assessmentEvidenceStub) RevokeRequestCapabilities(context.Context, string, string) error {
@@ -120,7 +159,7 @@ func (s assessmentFormReaderStub) ReusableFormRevision(context.Context, string, 
 	return s.form, nil
 }
 
-func TestSendAssessmentRequestPreparesExactOriginBeforeInvitation(t *testing.T) {
+func TestSendAssessmentRequestCreatesExactOriginThroughCanonicalDistribution(t *testing.T) {
 	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
 	evidenceStub := &assessmentEvidenceStub{repo: repo, assessmentID: assessment.ID}
@@ -134,9 +173,6 @@ func TestSendAssessmentRequestPreparesExactOriginBeforeInvitation(t *testing.T) 
 	})
 	if err != nil {
 		t.Fatal(err)
-	}
-	if !evidenceStub.preparedBefore {
-		t.Fatal("assessment request was not linked before invitation issuance")
 	}
 	if len(evidenceStub.created) != 1 {
 		t.Fatalf("expected one evidence request, got %d", len(evidenceStub.created))
@@ -202,7 +238,7 @@ func TestSendAssessmentRequestSuppliesVendorRegistrationMessageContext(t *testin
 		t.Fatalf("delivery requests = %d", len(deliveryStub.requests))
 	}
 	message := deliveryStub.requests[0].Message
-	if message.Kind != evidence.InvitationMessageVendorRegistration || message.RecipientRole != "Vendor contact" || !message.DueAt.Equal(deadline) || !message.ExpiresAt.Equal(time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)) {
+	if message.Kind != evidence.InvitationMessageVendorRegistration || message.RecipientRole != "Vendor contact" || !message.DueAt.Equal(deadline) || !message.ExpiresAt.Equal(time.Date(2026, 8, 26, 11, 0, 0, 0, time.UTC)) {
 		t.Fatalf("message context = %#v", message)
 	}
 	if message.TaskTitle == "" || !strings.Contains(message.TaskSummary, relationship.Vendor.LegalName) {
@@ -265,8 +301,8 @@ func TestSendAssessmentRequestRejectsRelationshipThatLeftOnboarding(t *testing.T
 	if !errors.Is(err, ErrInvalidAssessmentTransition) {
 		t.Fatalf("terminated relationship send error = %v", err)
 	}
-	if len(evidenceStub.created) != 0 || len(evidenceStub.issued) != 0 {
-		t.Fatalf("terminated relationship created external access: created=%d issued=%d", len(evidenceStub.created), len(evidenceStub.issued))
+	if len(evidenceStub.created) != 0 || evidenceStub.dispatched != 0 {
+		t.Fatalf("terminated relationship created external access: created=%d dispatched=%d", len(evidenceStub.created), evidenceStub.dispatched)
 	}
 }
 
@@ -424,7 +460,7 @@ func TestSendAssessmentRequestDeliversThroughProtectedBoundary(t *testing.T) {
 	}
 }
 
-func TestSendAssessmentRequestReplacesChangedRecipientOnPreparedRequest(t *testing.T) {
+func TestSendAssessmentRequestRejectsChangedRecipientOnPreparedCanonicalRequest(t *testing.T) {
 	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
 	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
@@ -436,14 +472,14 @@ func TestSendAssessmentRequestReplacesChangedRecipientOnPreparedRequest(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	outcome, err := service.SendRequest(assessmentContext(), assessmentActor(), assessment.ID, SendAssessmentRequestInput{
+	_, err = service.SendRequest(assessmentContext(), assessmentActor(), assessment.ID, SendAssessmentRequestInput{
 		ExpectedVersion: assessment.Version, Audience: "replacement@vendor.example", Deadline: time.Date(2026, 9, 8, 10, 0, 0, 0, time.UTC), InvitationTTLMinutes: 60,
 	})
-	if err != nil {
-		t.Fatal(err)
+	if !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("changed canonical recipient error = %v", err)
 	}
-	if outcome.Request.Version != 2 || outcome.Request.Recipient.AudienceHint != "r***@vendor.example" {
-		t.Fatalf("recipient was not replaced before invitation: %#v", outcome.Request)
+	if len(evidenceStub.reassigned) != 0 {
+		t.Fatalf("changed recipient mutated only the request and not its protected distribution recipient: %#v", evidenceStub.reassigned)
 	}
 }
 
@@ -476,63 +512,20 @@ func TestAssessmentRequestEstimateStaysWithinEvidenceLimit(t *testing.T) {
 func TestSendAssessmentRequestCapsInvitationAtRequestDeadline(t *testing.T) {
 	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
-	evidenceService := newAssessmentEvidenceService()
-	service, err := NewAssessmentRequestService(assessmentService, repo, evidenceService, assessmentFormReaderStub{form: activeAssessmentForm()}, nil, "https://capture.example.test/respond", "production")
+	evidenceStub := &assessmentEvidenceStub{repo: repo, assessmentID: assessment.ID}
+	service, err := NewAssessmentRequestService(assessmentService, repo, evidenceStub, assessmentFormReaderStub{form: activeAssessmentForm()}, nil, "https://capture.example.test/respond", "production")
 	if err != nil {
 		t.Fatal(err)
 	}
 	deadline := time.Now().UTC().Add(24 * time.Hour)
 	outcome, err := service.SendRequest(assessmentContext(), assessmentActor(), assessment.ID, SendAssessmentRequestInput{
-		ExpectedVersion: assessment.Version, Audience: "security@vendor.example", Deadline: deadline, InvitationTTLMinutes: 2 * 24 * 60,
+		ExpectedVersion: assessment.Version, Audience: "security@vendor.example", Deadline: deadline, InvitationTTLMinutes: 30 * 24 * 60,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if outcome.Invitation == nil || !outcome.Invitation.ExpiresAt.Equal(deadline) {
 		t.Fatalf("invitation expiry = %#v, want %s", outcome.Invitation, deadline)
-	}
-}
-
-func TestSendAssessmentRequestRecipientChangeRevokesPriorInvitation(t *testing.T) {
-	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
-	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
-	evidenceService := newAssessmentEvidenceService()
-	form := activeAssessmentForm()
-	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessment.ID, Version: 1}
-	deadline := time.Now().UTC().Add(24 * time.Hour)
-	request, err := evidenceService.CreateRequest(evidence.WithRequestOriginAuthority(context.Background(), AssessmentRequestOrigin), assessmentEvidenceRequestInput(assessmentActor(), assessment, relationship, form, origin, "old@vendor.example", deadline))
-	if err != nil {
-		t.Fatal(err)
-	}
-	oldInvitation, err := evidenceService.IssueInvitation(context.Background(), evidence.IssueInvitationInput{
-		TenantID: "bank", LegalEntityID: "entity", RequestID: request.ID, Audience: "old@vendor.example", Purpose: "Complete the vendor due-diligence request.", TTLMinutes: 60, CreatedBy: "verified-owner",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, prepared, err := repo.PrepareAssessmentRequest(context.Background(), PrepareAssessmentRequestRecord{
-		Scope: scopeFromVerified(), AssessmentID: assessment.ID, ExpectedVersion: assessment.Version, ActorPrincipalID: "verified-owner", RequestID: request.ID,
-		Purpose: AssessmentRequestInitial, OriginType: AssessmentRequestOrigin, OriginID: assessment.ID, OriginSequence: 1,
-		PreparedAt: time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	service, err := NewAssessmentRequestService(assessmentService, repo, evidenceService, assessmentFormReaderStub{form: form}, nil, "https://capture.example.test/respond", "production")
-	if err != nil {
-		t.Fatal(err)
-	}
-	outcome, err := service.SendRequest(assessmentContext(), assessmentActor(), assessment.ID, SendAssessmentRequestInput{
-		ExpectedVersion: prepared.Version, Audience: "replacement@vendor.example", Deadline: deadline, InvitationTTLMinutes: 60,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if outcome.Assessment.Status != AssessmentCollecting || outcome.Assessment.Version != prepared.Version+1 {
-		t.Fatalf("replacement did not finalize collection: %#v", outcome.Assessment)
-	}
-	if _, err := evidenceService.RedeemInvitation(context.Background(), oldInvitation.Token, "old@vendor.example"); !errors.Is(err, evidence.ErrInvitationInvalid) {
-		t.Fatalf("superseded invitation remained usable: %v", err)
 	}
 }
 

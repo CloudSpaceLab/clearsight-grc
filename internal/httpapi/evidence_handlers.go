@@ -377,6 +377,7 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 	requestID := strings.TrimSpace(r.FormValue("request_id"))
 	createdBy := strings.TrimSpace(r.FormValue("created_by"))
 	sessionToken := ""
+	canonicalSession := false
 	if actor, authenticated := identity.FromContext(r.Context()); authenticated {
 		if tenant != "" && tenant != actor.TenantID {
 			httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
@@ -390,19 +391,35 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 			httpx.WriteError(w, http.StatusUnauthorized, "session_required", "A capture session is required.")
 			return
 		}
-		session, request, sessionErr := service.SessionRequest(r.Context(), token)
-		if sessionErr != nil {
-			httpx.WriteError(w, http.StatusUnauthorized, "session_unavailable", "This capture session is unavailable.")
-			return
+		if access := a.deps.FormDistributionAccess; access != nil {
+			session, request, sessionErr := access.SessionRequest(r.Context(), token)
+			if sessionErr == nil {
+				tenant, requestID, createdBy, sessionToken = session.TenantID, request.ID, "", token
+				canonicalSession = true
+			}
 		}
-		tenant, requestID, createdBy, sessionToken = session.TenantID, request.ID, "", token
+		if !canonicalSession {
+			session, request, sessionErr := service.SessionRequest(r.Context(), token)
+			if sessionErr != nil {
+				httpx.WriteError(w, http.StatusUnauthorized, "session_unavailable", "This capture session is unavailable.")
+				return
+			}
+			tenant, requestID, createdBy, sessionToken = session.TenantID, request.ID, "", token
+		}
 	}
 	if tenant == "" || requestID == "" {
 		httpx.WriteError(w, http.StatusBadRequest, "artifact_scope_required", "tenant_id and request_id are required.")
 		return
 	}
 	mediaType := multipartMediaType(header)
-	artifact, err := service.StoreArtifact(r.Context(), evidence.ArtifactInput{TenantID: tenant, RequestID: requestID, FieldID: strings.TrimSpace(r.FormValue("field_id")), SubmissionID: strings.TrimSpace(r.FormValue("submission_id")), FileName: header.Filename, MediaType: mediaType, CreatedBy: createdBy, SessionToken: sessionToken}, file)
+	artifactInput := evidence.ArtifactInput{TenantID: tenant, RequestID: requestID, FieldID: strings.TrimSpace(r.FormValue("field_id")), SubmissionID: strings.TrimSpace(r.FormValue("submission_id")), FileName: header.Filename, MediaType: mediaType, CreatedBy: createdBy}
+	var artifact evidence.Artifact
+	if canonicalSession {
+		artifact, err = service.StoreArtifactForDistributionSession(r.Context(), a.deps.FormDistributionAccess, sessionToken, artifactInput, file)
+	} else {
+		artifactInput.SessionToken = sessionToken
+		artifact, err = service.StoreArtifact(r.Context(), artifactInput, file)
+	}
 	switch {
 	case errors.Is(err, evidence.ErrNotFound), errors.Is(err, evidence.ErrRecipientMismatch):
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")

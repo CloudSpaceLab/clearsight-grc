@@ -464,6 +464,31 @@ func (s *Service) RevokeSession(ctx context.Context, tenant, id string) error {
 }
 
 func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader io.Reader) (Artifact, error) {
+	return s.storeArtifact(ctx, input, reader, false)
+}
+
+// StoreArtifactForDistributionSession binds an external upload to the
+// canonical distribution session before any object or artifact row is written.
+func (s *Service) StoreArtifactForDistributionSession(ctx context.Context, access *DistributionAccessService, sessionToken string, input ArtifactInput, reader io.Reader) (Artifact, error) {
+	if access == nil || strings.TrimSpace(sessionToken) == "" || strings.TrimSpace(input.CreatedBy) != "" || strings.TrimSpace(input.SessionToken) != "" {
+		return Artifact{}, ErrSessionInvalid
+	}
+	session, request, err := access.SessionRequest(ctx, sessionToken)
+	if err != nil || request.TenantID != session.TenantID || request.ID != session.RequestID {
+		return Artifact{}, ErrSessionInvalid
+	}
+	if strings.TrimSpace(input.TenantID) != "" && input.TenantID != session.TenantID {
+		return Artifact{}, ErrSessionInvalid
+	}
+	if strings.TrimSpace(input.RequestID) != "" && input.RequestID != session.RequestID {
+		return Artifact{}, ErrSessionInvalid
+	}
+	input.TenantID = session.TenantID
+	input.RequestID = session.RequestID
+	return s.storeArtifact(ctx, input, reader, true)
+}
+
+func (s *Service) storeArtifact(ctx context.Context, input ArtifactInput, reader io.Reader, canonicalExternalSession bool) (Artifact, error) {
 	if s.store == nil {
 		return Artifact{}, fmt.Errorf("object store is unavailable")
 	}
@@ -475,8 +500,12 @@ func (s *Service) StoreArtifact(ctx context.Context, input ArtifactInput, reader
 	if !requestOpenAt(request, now) {
 		return Artifact{}, ErrRequestClosed
 	}
-	if err := s.authorizeArtifactUpload(ctx, request, input); err != nil {
-		return Artifact{}, err
+	if !canonicalExternalSession {
+		if err := s.authorizeArtifactUpload(ctx, request, input); err != nil {
+			return Artifact{}, err
+		}
+	} else if request.Recipient.Type != RecipientExternalAudience {
+		return Artifact{}, ErrRecipientMismatch
 	}
 	fileName := strings.TrimSpace(input.FileName)
 	maximum := s.maxArtifactBytes
