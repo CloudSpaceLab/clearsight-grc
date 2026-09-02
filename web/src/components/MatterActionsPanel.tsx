@@ -152,6 +152,6 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
         <div className="cs-sheet-actions"><Button type="button" variant="quiet" isDisabled={saving} onPress={() => setActive(null)}>Cancel</Button><Button type="submit" variant="primary" isDisabled={!owner || !rationale.trim()} isLoading={saving}>Assign action owner</Button></div>
       </form>
     </FocusedSheet>}
-    {notice && <p className="inline-success" role="status">{notice}</p>}
+    {notice && <Notice tone="success">{notice}</Notice>}
   </article>;
 }

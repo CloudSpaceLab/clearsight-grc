@@ -10,6 +10,7 @@ import { MatterSetupWorkspace } from "./MatterSetupWorkspace";
 import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { readWorkspaceFilters, replaceWorkspaceHash, workspaceHash } from "../workspaceFilters";
+import { Notice } from "./ui";
 
 type LoadState = "loading" | "live" | "unavailable";
 type Props = { targetID?: string; openFirst?: boolean; onBack?: () => void; onOpenRequest?: (requestID: string) => void };
@@ -261,7 +262,7 @@ function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "
       <div className="workspace-brief-side"><div className="workspace-brief-facts" aria-label="Loaded work summary"><span><strong>{summary.decisions}</strong> decisions</span><span><strong>{summary.overdue}</strong> overdue</span><span><strong>{summary.checking}</strong> outcome checks</span></div>{!setupOpen && <button className="primary-button" type="button" onClick={() => { setCreationNotice(""); setSetupOpen(true); }}>New issue or change</button>}</div>
     </section>
     {setupOpen && <MatterSetupWorkspace onCreated={applyCreatedMatter} onClose={() => setSetupOpen(false)}/>}
-    {creationNotice && <p className="inline-success" role="status">{creationNotice}</p>}
+    {creationNotice && <Notice tone="success">{creationNotice}</Notice>}
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
       <label className="workspace-search-field"><span>Search issues and changes</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Reference, title, summary or type"/></label>
       <label><span>Status</span><select value={statusDraft} onChange={(event) => setStatusDraft(event.target.value)}><option value="OPEN">Open</option><option value="DECISION_REQUIRED">Decision needed</option><option value="ACTION_IN_PROGRESS">Work in progress</option><option value="VERIFICATION">Confirming outcome</option><option value="CLOSED">Closed</option><option value="">All statuses</option></select></label>

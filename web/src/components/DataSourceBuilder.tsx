@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { createRESTBinding, prepareRESTSource } from "../sourceConfigApi";
 import type { PreparedRESTSource, SourceBinding } from "../sourceConfigApi";
+import { Notice } from "./ui";
 
 type RuleConfig = { code: string; name: string; claim: string; field: string; expected: string };
 type Props = { onSaved: (binding: SourceBinding, config: RuleConfig) => void; onCancel: () => void };
@@ -55,7 +56,7 @@ export function DataSourceBuilder({ onSaved, onCancel }: Props) {
       <label><span>Maximum age (minutes)</span><input name="freshness" type="number" min="1" max="525600" defaultValue="60" required/></label>
       <div className="monitoring-form-actions full"><button className="text-button" type="button" onClick={onCancel}>Cancel</button><button className="primary-button" type="submit" disabled={busy}>{busy ? "Testing…" : "Test endpoint"}</button></div>
     </form> : <div className="source-field-step">
-      <p className="inline-success" role="status">Endpoint reached. {prepared.view.native_schema.length} field{prepared.view.native_schema.length === 1 ? "" : "s"} found.</p>
+      <Notice tone="success">Endpoint reached. {prepared.view.native_schema.length} field{prepared.view.native_schema.length === 1 ? "" : "s"} found.</Notice>
       <div className="monitoring-form-grid">
         <label className="full"><span>Monitoring statement</span><input aria-label="Monitoring statement" value={claim} onChange={(event) => setClaim(event.target.value)} required/></label>
         <label><span>Status field</span><select aria-label="Status field" value={field} onChange={(event) => setField(event.target.value)}>{prepared.view.native_schema.map((item) => <option value={item.name} key={item.name}>{item.name}</option>)}</select></label>

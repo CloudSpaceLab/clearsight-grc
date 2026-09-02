@@ -89,6 +89,8 @@ The static-only UI component gallery renders every family from production export
 
 Migration is explicit rather than inferred from visual similarity. A file is migrated only when it appears in `web/ui-contract-migrations.json`, imports public contracts through `components/ui`, has no prohibited raw interactive controls, and is represented by a gallery or full-host state fixture. The workspace-by-family record in [`docs/design/ui-component-adoption.md`](docs/design/ui-component-adoption.md) is the human review view of that boundary. Using one shared component in an otherwise legacy workspace does not make the whole workspace migrated.
 
+Success receipts use `Notice` rather than feature-owned pale-green text. The message remains the primary state cue; semantic success colour is limited to the notice border/surface treatment while readable copy uses the theme's primary text token. Compact status labels that use the success foreground must meet WCAG AA against their resolved tinted surface in both themes.
+
 ## Structural patterns
 
 - **Intervention Summary:** actor-scoped read projection for one human review, decision, authorization, evidence exception, escalation or outcome check. It is not new authoritative state.
