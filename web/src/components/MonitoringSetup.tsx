@@ -7,6 +7,7 @@ import { DataSourceBuilder } from "./DataSourceBuilder";
 import type { SourceBinding } from "../sourceConfigApi";
 import type { ProgramOperation } from "../programOperationsApi";
 import { Notice } from "./ui";
+import { apiErrorKind } from "../http";
 
 const FormBuilder = lazy(() => import("./FormBuilder").then((module) => ({ default: module.FormBuilder })));
 
@@ -138,10 +139,23 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     if (!operation?.can_act || !operation.allowed_targets?.includes(to)) return;
     setBusy(check.id); setError("");
     try {
-      const updated = await transitionMonitoringCheck(check.id, check.version, to);
+      const revisions = await loadMonitoringChecks(aggregate.program.id);
+      const latest = latestByID(revisions).find((candidate) => candidate.id === check.id);
+      if (!latest) throw new Error("This monitoring check could not be found. Reload the Program and try again.");
+      setChecks((current) => latestByID([...current, latest]));
+      if (latest.status !== check.status) {
+        setError("This monitoring check changed after you opened it. The latest revision has been loaded. Review the current status before taking another action.");
+        return;
+      }
+      const updated = await transitionMonitoringCheck(latest.id, latest.version, to);
       setChecks((current) => latestByID([...current, updated]));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The monitoring check status could not be changed.");
+      if (apiErrorKind(caught) === "conflict") {
+        await reload();
+        setError("This monitoring check changed after you opened it. The latest revision has been loaded. Review it, then approve again.");
+      } else {
+        setError(caught instanceof Error ? caught.message : "The monitoring check status could not be changed.");
+      }
     } finally { setBusy(""); }
   }
 
