@@ -69,7 +69,11 @@ func main() {
 	fatalIf(err)
 	scoring, err := seedScoringAcceptanceResponses(ctx, cfg, pool, seed, journeys, monitoringRepo, evidenceRepo)
 	fatalIf(err)
-	policy, err := seedFormPolicyAcceptance(ctx, cfg, pool, seed, monitoringRepo, evidenceRepo, scoring)
+	fatalIf(ensureAcceptanceExecutionAuthority(ctx, pool, seed))
+	policySeed := seed
+	policySeed.ActorID = seed.ContributorPrincipalID
+	policySeed.SignatoryPrincipalID = seed.ActorID
+	policy, err := seedFormPolicyAcceptance(ctx, cfg, pool, policySeed, monitoringRepo, evidenceRepo, scoring)
 	fatalIf(err)
 	fatalIf(json.NewEncoder(os.Stdout).Encode(map[string]any{
 		"installed_at":           time.Now().UTC(),
