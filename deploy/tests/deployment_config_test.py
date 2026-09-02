@@ -130,8 +130,10 @@ class DeploymentConfigTest(unittest.TestCase):
             "recipient_protection_configured=true", "capture_origin_secure=true",
             "api_revision_matches=true", "worker_revision_matches=true",
             'org.opencontainers.image.revision',
+            "'{{ index .Config.Labels \"org.opencontainers.image.revision\" }}'",
         ):
             self.assertIn(value, script)
+        self.assertNotIn(r'\\"org.opencontainers.image.revision\\"', script)
         for forbidden in ("env |", "printenv", "set -x", "echo $", "printf '%s' \"$"):
             self.assertNotIn(forbidden, script)
         hosted = self.read("deploy/scripts/verify-hosted-release.sh")

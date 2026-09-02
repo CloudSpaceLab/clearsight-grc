@@ -47,7 +47,7 @@ python3 -c 'import json,sys; value=json.load(sys.stdin); assert value == {"mode"
 worker_id="$(docker ps -q --filter label=com.cloudspacelab.clearsight=true --filter ancestor="clearsight-worker:$expected_sha")"
 [[ -n "$worker_id" ]]
 [[ "$(docker inspect -f '{{.State.Status}}' "$worker_id")" == "running" ]]
-[[ "$(docker inspect -f '{{ index .Config.Labels \"org.opencontainers.image.revision\" }}' "$worker_id")" == "$expected_sha" ]]
+[[ "$(docker inspect -f '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$worker_id")" == "$expected_sha" ]]
 
 printf '%s\n' \
   'smtp_configured=true' \
