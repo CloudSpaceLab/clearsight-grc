@@ -13,9 +13,9 @@ func TestIdentityResolverUsesVerifiedActorAndExplicitLabels(t *testing.T) {
 		DepartmentGrants: []identity.DepartmentGrant{{Path: []string{"RISK"}, RoleCodes: []string{"CRO"}}},
 	}
 	resolver := IdentityResolver{
-		TenantNames: map[string]string{"tenant-live": "Live Bank"},
+		TenantNames:      map[string]string{"tenant-live": "Live Bank"},
 		LegalEntityNames: map[string]string{"entity-live": "Live Bank Nigeria"},
-		PrincipalNames: map[string]string{"person-live": "Ada Example"},
+		PrincipalNames:   map[string]string{"person-live": "Ada Example"},
 	}
 	got, err := resolver.Resolve(t.Context(), actor)
 	if err != nil {
