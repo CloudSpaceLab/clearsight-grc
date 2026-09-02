@@ -158,6 +158,12 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 
 	requirements, ambiguities := continuity.CompileMatterWork(aggregate, now)
 	for _, requirement := range requirements {
+		// The base Matter transition is already represented above with the same
+		// command authority and allowed targets. CompileMatterWork also exposes it
+		// to Workflow/Today, but operation discovery must not duplicate the control.
+		if requirement.CommandName == "matter.transition" {
+			continue
+		}
 		add(recordOperationSpec{
 			Command: requirement.CommandName, SubresourceID: requirement.SubresourceID,
 			ObjectType: matterOperationObjectType(requirement.CommandName, requirement.SubresourceType), ObjectID: requirement.SubresourceID,

@@ -35,6 +35,7 @@ func TestMatterLifecycleProjectorConvergesCurrentAuthorityAndVisibility(t *testi
 		matterID    = "9f777777-7777-7777-8777-777777777775"
 		responseID  = "9f777777-7777-7777-8777-777777777776"
 		emptyMatter = "9f777777-7777-7777-8777-777777777777"
+		ownerMatter = "9f777777-7777-7777-8777-777777777778"
 	)
 	now := time.Date(2026, 8, 7, 22, 45, 0, 0, time.UTC)
 	oldEventTime := now.Add(-2 * time.Hour)
@@ -56,7 +57,11 @@ func TestMatterLifecycleProjectorConvergesCurrentAuthorityAndVisibility(t *testi
 		INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,known_facts,missing_facts,contradictions,created_at,updated_at)
 		VALUES
 		($1::uuid,$3::uuid,$4::uuid,'MAT-WORK-2','AUTHORITY_REQUEST','RESPONSE_PREPARATION',4,'Respond to authority','Await acknowledgement','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$5,$5),
-		($2::uuid,$3::uuid,$4::uuid,'MAT-WORK-EMPTY','CONTROL_GAP','DRAFT',2,'No lifecycle work','No current work','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$5,$5)`, matterID, emptyMatter, tenantID, entityID, oldEventTime); err != nil {
+		($2::uuid,$3::uuid,$4::uuid,'MAT-WORK-EMPTY','CONTROL_GAP','DRAFT',2,'No lifecycle work','No current work','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$5,$5),
+		($6::uuid,$3::uuid,$4::uuid,'MAT-WORK-OWNER','CONTROL_GAP','TRIAGE',4,'Restore an unavailable source','Confirm scope and owner','{"access":"INTERNAL"}'::jsonb,'{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$5,$5)`, matterID, emptyMatter, tenantID, entityID, oldEventTime, ownerMatter); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE matters SET owner_principal_id=$2::uuid WHERE id=$1::uuid`, ownerMatter, secondID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
@@ -67,8 +72,9 @@ func TestMatterLifecycleProjectorConvergesCurrentAuthorityAndVisibility(t *testi
 
 	if _, err := pool.Exec(ctx, `INSERT INTO responsibility_assignments(tenant_id,legal_entity_id,principal_id,responsibility,object_type,object_id,priority,valid_from,valid_until,policy_version,decision_type) VALUES
 		($1::uuid,$2::uuid,$3::uuid,'ACKNOWLEDGEMENT_RECORDER','MATTER',$5::uuid,100,$6,$7,'assignment:old','matter.response.transition'),
-		($1::uuid,$2::uuid,$4::uuid,'ACKNOWLEDGEMENT_RECORDER','MATTER',$5::uuid,100,$7,NULL,'assignment:current','matter.response.transition')`,
-		tenantID, entityID, firstID, secondID, matterID, oldEventTime.Add(-time.Hour), now.Add(-time.Hour)); err != nil {
+		($1::uuid,$2::uuid,$4::uuid,'ACKNOWLEDGEMENT_RECORDER','MATTER',$5::uuid,100,$7,NULL,'assignment:current','matter.response.transition'),
+		($1::uuid,$2::uuid,$4::uuid,'ACCOUNTABLE_OWNER','MATTER',$8::uuid,100,$7,NULL,'assignment:owner','matter.transition')`,
+		tenantID, entityID, firstID, secondID, matterID, oldEventTime.Add(-time.Hour), now.Add(-time.Hour), ownerMatter); err != nil {
 		t.Fatal(err)
 	}
 
@@ -137,6 +143,24 @@ func TestMatterLifecycleProjectorConvergesCurrentAuthorityAndVisibility(t *testi
 	}
 	if emptyCount != 0 {
 		t.Fatalf("empty Matter created lifecycle Workflow bloat: %d", emptyCount)
+	}
+
+	if _, err := projector.Maintain(ctx, now, 50); err != nil {
+		t.Fatal(err)
+	}
+	ownerTasks, err := service.List(ctx, ListFilter{TenantID: "matter-work-test", PrincipalID: secondID, ActiveOnly: true, VisibleMatterWorkOnly: true, Limit: 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ownerTask *Task
+	for index := range ownerTasks {
+		if ownerTasks[index].MatterID == ownerMatter {
+			ownerTask = &ownerTasks[index]
+			break
+		}
+	}
+	if ownerTask == nil || ownerTask.StepKey != "matter:"+ownerMatter+":ASSESSMENT" || ownerTask.Context["primary_action"] != "Confirm scope and owner" || ownerTask.Context["target_status"] != "ASSESSMENT" {
+		t.Fatalf("assigned owner initial-review handoff was not projected: %#v", ownerTasks)
 	}
 
 	restricted, _ := json.Marshal(map[string]any{"access": "RESTRICTED", "allowed_principal_ids": []string{firstID}})
