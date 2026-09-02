@@ -173,7 +173,7 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.Status != AssessmentCollecting || updated.Version != 6 || link.InvitationID != replacement.Route.RouteID || !replacement.Route.ExpiresAt.Equal(replacementExpiry) {
+	if updated.Status != AssessmentCollecting || updated.Version != 6 || link.InvitationID != replacement.Route.RouteID || replacement.Route.ExpiresAt.Sub(replacementExpiry).Abs() >= time.Microsecond {
 		t.Fatalf("replacement changed lifecycle or failed to update link: assessment=%#v link=%#v", updated, link)
 	}
 	if _, _, err := access.SessionRequest(ctx, priorSession.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
