@@ -67,7 +67,7 @@ func testHandler() http.Handler {
 			{ID: "attention-1"},
 			{ID: "attention-2"},
 			{ID: "attention-3"},
-		}), Workflow: workflow.NewService(workflow.NewMemoryRepository(workflow.DemoTasks())),
+		}), Workflow: workflow.NewService(workflow.NewMemoryRepository(nil)),
 		Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()), Autonomy: auto, MaxArtifactBytes: 1 << 20,
 	})
 }
@@ -127,7 +127,7 @@ func TestWorkflowListUsesVerifiedTenant(t *testing.T) {
 
 func TestWorkflowTaskMutationRouteIsNotExposed(t *testing.T) {
 	payload := []byte(`{"tenant_id":"bank-demo","status":"IN_PROGRESS","expected_version":1}`)
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/workflow/tasks/task_review_cbn/transition", bytes.NewReader(payload))
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/workflow/tasks/unreleased-static-task/transition", bytes.NewReader(payload))
 	response := httptest.NewRecorder()
 	testHandler().ServeHTTP(response, request)
 	if response.Code != http.StatusNotFound {

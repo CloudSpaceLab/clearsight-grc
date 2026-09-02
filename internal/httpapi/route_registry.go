@@ -229,6 +229,7 @@ func (a *API) routes() []routeSpec {
 		withPermission(materialService("/api/v1/operations/projections/reconcile", "projection.reconcile", a.reconcileProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}), identity.PermissionPlatformOperationsWrite),
 		withPermission(material("/api/v1/operations/projections/rebuild", "projection.rebuild", a.rebuildProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: noActorField}), identity.PermissionPlatformOperationsWrite),
 		withPermission(read("/api/v1/operations/background-jobs", a.backgroundJobs), identity.PermissionPlatformJobsRead),
+		withPermission(material("/api/v1/operations/background-jobs/{job_id}/retry", "background_job.retry", a.retryBackgroundJob, commandPolicy{ObjectType: "BACKGROUND_JOB", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: noActorField}), identity.PermissionPlatformOperationsWrite),
 
 		withPermission(read("/api/v1/config/sources/{source_id}/connections", a.listSourceConnections), identity.PermissionConfigRead),
 		withPermission(read("/api/v1/config/sources/{source_id}/health", a.sourceScopeHealth), identity.PermissionConfigRead),

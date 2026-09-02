@@ -19,3 +19,7 @@ export type ReconcileResult = {
   already_queued: number;
   current: number;
 };
+
+export type BackgroundJob = { id: string; queue: string; kind: string; state: string; attempts: number; failure_code?: string; terminal_at?: string };
+export type BackgroundJobSnapshot = { queues: Array<{ queue: string; pending: number; running: number; terminal: number; highest_attempts: number; oldest_pending?: string }>; jobs: BackgroundJob[] };
+export type JobRecoveryReceipt = { job_id: string; queue: string; previous_attempts: number; state: string; retried_at: string };
