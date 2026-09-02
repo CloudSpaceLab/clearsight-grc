@@ -12,10 +12,12 @@ import (
 
 func TestInstallSampleCreatesGovernedVendorFormsIdempotently(t *testing.T) {
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
-	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
+	repository := continuity.NewMemoryRepository()
+	continuityService := continuity.NewServiceWithClock(repository, func() time.Time { return now })
 	evidenceService := newReferenceEvidenceService(now, "bank-ng")
 	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), evidenceService)
 	service := NewService(continuityService, evidenceService)
+	configureReferenceTimeline(service, repository)
 	service.ConfigureMonitoring(monitoringService)
 	config := normalizeSeedConfig(DemoSeedConfig())
 	config.Now = now
@@ -78,10 +80,12 @@ func TestInstallSampleCreatesGovernedVendorFormsIdempotently(t *testing.T) {
 
 func TestInstallSampleRejectsSameVendorFormMakerAndChecker(t *testing.T) {
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
-	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
+	repository := continuity.NewMemoryRepository()
+	continuityService := continuity.NewServiceWithClock(repository, func() time.Time { return now })
 	evidenceService := newReferenceEvidenceService(now, "bank-ng")
 	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), evidenceService)
 	service := NewService(continuityService, evidenceService)
+	configureReferenceTimeline(service, repository)
 	config := normalizeSeedConfig(DemoSeedConfig())
 	config.Now = now
 	sourceIDs, err := service.seedSources(continuity.WithTrustedSystemScope(context.Background()), config)
@@ -104,9 +108,11 @@ func TestInstallSampleRejectsSameVendorFormMakerAndChecker(t *testing.T) {
 func TestInstallSampleRecoversPartialProgram(t *testing.T) {
 	ctx := continuity.WithTrustedSystemScope(context.Background())
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
-	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
+	repository := continuity.NewMemoryRepository()
+	continuityService := continuity.NewServiceWithClock(repository, func() time.Time { return now })
 	evidenceService := newReferenceEvidenceService(now, "bank-ng")
 	service := NewService(continuityService, evidenceService)
+	configureReferenceTimeline(service, repository)
 	config := DemoSeedConfig()
 	config.Now = now
 	config = normalizeSeedConfig(config)
@@ -148,17 +154,19 @@ func TestInstallSampleRecoversPartialProgram(t *testing.T) {
 		t.Fatalf("partial program was not reconciled: requirements=%d checks=%d status=%s", len(program.Requirements), len(program.EvidenceContracts), program.Program.Status)
 	}
 	matters, err := continuityService.ListMatters(ctx, config.TenantID, "", 20)
-	if err != nil || len(matters) != 3 {
-		t.Fatalf("remaining journeys were not installed: matters=%d err=%v", len(matters), err)
+	if err != nil || len(matters) != 10 {
+		t.Fatalf("remaining journeys and oversight histories were not installed: matters=%d err=%v", len(matters), err)
 	}
 }
 
 func TestInstallSampleResumesPartiallyTransitionedMatter(t *testing.T) {
 	ctx := continuity.WithTrustedSystemScope(context.Background())
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
-	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
+	repository := continuity.NewMemoryRepository()
+	continuityService := continuity.NewServiceWithClock(repository, func() time.Time { return now })
 	evidenceService := newReferenceEvidenceService(now, "bank-ng")
 	service := NewService(continuityService, evidenceService)
+	configureReferenceTimeline(service, repository)
 	config := DemoSeedConfig()
 	config.Now = now
 	config = normalizeSeedConfig(config)
@@ -218,9 +226,11 @@ func TestInstallSampleResumesPartiallyTransitionedMatter(t *testing.T) {
 func TestInstallSampleSeedsEvidenceCollectionWorkForASeparateContributor(t *testing.T) {
 	ctx := continuity.WithTrustedSystemScope(context.Background())
 	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
-	continuityService := continuity.NewServiceWithClock(continuity.NewMemoryRepository(), func() time.Time { return now })
+	repo := continuity.NewMemoryRepository()
+	continuityService := continuity.NewServiceWithClock(repo, func() time.Time { return now })
 	evidenceService := newReferenceEvidenceService(now, "bank-ng")
 	service := NewService(continuityService, evidenceService)
+	configureReferenceTimeline(service, repo)
 	config := normalizeSeedConfig(DemoSeedConfig())
 	config.Now = now
 
@@ -279,6 +289,7 @@ func TestInstallSampleUsesEntityBoundedProgramLookup(t *testing.T) {
 	continuityService := continuity.NewServiceWithClock(repo, func() time.Time { return now })
 	evidenceService := newReferenceEvidenceService(now, "bank-ng")
 	service := NewService(continuityService, evidenceService)
+	configureReferenceTimeline(service, repo)
 	config := normalizeSeedConfig(DemoSeedConfig())
 	config.Now = now
 	other := continuity.WithTrustedSystemEntityScope(context.Background(), config.TenantID, "entity-other")
@@ -309,6 +320,7 @@ func TestInstallSampleCanonicalizesConfiguredEntityCodeInMemory(t *testing.T) {
 	continuityService := continuity.NewServiceWithClock(repo, func() time.Time { return now })
 	evidenceService := newReferenceEvidenceService(now, targetID)
 	service := NewService(continuityService, evidenceService)
+	configureReferenceTimeline(service, repo)
 	config := normalizeSeedConfig(DemoSeedConfig())
 	config.Now = now
 	other := continuity.WithTrustedSystemEntityScope(context.Background(), config.TenantID, "other-ng")

@@ -972,7 +972,7 @@ func (s *Service) TransitionMatter(ctx context.Context, input TransitionInput) (
 		}
 	}
 	if input.To == MatterClosed {
-		closure := assessClosure(aggregate)
+		closure := assessClosureAt(aggregate, s.now().UTC())
 		if !closure.Ready {
 			return MatterAggregate{}, fmt.Errorf("%w: %s", ErrClosureBlocked, strings.Join(closure.Reasons, " "))
 		}

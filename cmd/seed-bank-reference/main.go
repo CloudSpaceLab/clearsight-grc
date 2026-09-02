@@ -47,11 +47,17 @@ func main() {
 	defer pool.Close()
 
 	continuityRepo := continuity.NewPostgresRepository(pool)
-	continuityService := continuity.NewService(continuityRepo)
+	seed.Now = time.Now().UTC()
+	continuityService := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return seed.Now })
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
 	monitoringService := monitoring.NewService(monitoring.NewPostgresRepository(pool), evidenceService)
 	installer := bankverticals.NewService(continuityService, evidenceService)
 	installer.ConfigureMonitoring(monitoringService)
+	installer.ConfigureReferenceTimeline(func(at time.Time) *continuity.Service {
+		service := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return at.UTC() })
+		service.ConfigureEvidenceSourceValidator(evidenceService)
+		return service
+	})
 	journeys, err := installer.InstallSample(ctx, seed)
 	fatalIf(err)
 

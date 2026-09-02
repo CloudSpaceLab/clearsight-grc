@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
@@ -48,11 +49,15 @@ func (r *apiReferenceEvidenceRepository) ResolveSubjectScope(_ context.Context, 
 }
 
 func TestConfigureReferenceVerticalsInstallsActiveVendorForms(t *testing.T) {
-	continuityService := continuity.NewService(continuity.NewMemoryRepository())
+	repository := continuity.NewMemoryRepository()
+	continuityService := continuity.NewService(repository)
 	evidenceService := evidence.NewService(&apiReferenceEvidenceRepository{MemoryRepository: evidence.NewMemoryRepository(nil, nil)}, evidence.NewMemoryObjectStore())
 	monitoringService := monitoring.NewService(monitoring.NewMemoryRepository(), evidenceService)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	configureReferenceVerticals(verticals, monitoringService)
+	verticals.ConfigureReferenceTimeline(func(at time.Time) *continuity.Service {
+		return continuity.NewServiceWithClock(repository, func() time.Time { return at })
+	})
 
 	if _, err := verticals.InstallSample(context.Background(), bankverticals.DemoSeedConfig()); err != nil {
 		t.Fatal(err)
