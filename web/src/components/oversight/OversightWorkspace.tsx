@@ -36,7 +36,7 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
     <div className="oversight-scope-line"><span>{coverage}</span><span>{formatDate(snapshot.period_start)} – {formatDate(snapshot.period_end)}</span><span>{snapshot.projection_version}</span></div>
     <details className="oversight-data-freshness">
       <summary>Data freshness</summary>
-      <div><p>This snapshot was generated {formatDateTime(snapshot.generated_at)} from projection {snapshot.projection_version}.</p><dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl></div>
+      <div><p>This snapshot was generated {formatDateTime(snapshot.generated_at)} from projection {snapshot.projection_version}.</p><p>{historyQualityLabel(snapshot)}</p><dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl></div>
     </details>
 
     <div className="oversight-counts" aria-label="Issues requiring oversight">
@@ -86,6 +86,11 @@ function OperatingPerformance({ snapshot }: { snapshot: OversightSnapshot }) {
 }
 
 function EmptyMeasure() { return <EmptyState population="Open issues in this legal entity" title="No open issues in this measure" description="The current snapshot contains no rows for this breakdown."/>; }
+
+function historyQualityLabel(snapshot: OversightSnapshot) {
+  const quality = snapshot.history_quality;
+  return `${quality.complete_lifecycle} of ${quality.completed_population} completed issues have complete lifecycle events · ${quality.excluded_from_durations} excluded from duration measures · ${quality.reassigned_owner_excluded} reassigned issues excluded from owner cycle time`;
+}
 
 const detailViews = [
   { id: "pressure", label: "Risk pressure" },

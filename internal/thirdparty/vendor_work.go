@@ -23,6 +23,7 @@ var (
 	ErrVendorWorkAuthorityUnavailable = errors.New("vendor work authority is unavailable")
 	ErrVendorWorkIdentityMismatch     = errors.New("vendor work authority identity does not match the request identity")
 	ErrVendorWorkAcceptanceBlocked    = errors.New("vendor work response contains an unavailable document")
+	ErrRelationshipNotActive          = errors.New("vendor relationship is not active")
 )
 
 type VendorWorkState string
@@ -345,6 +346,18 @@ func (s *VendorWorkService) Prepare(ctx context.Context, actor Actor, input Prep
 	if err := s.authorize(ctx, actor, input.RelationshipID, authority.ResponsibilityOwner, "thirdparty.work.prepare"); err != nil {
 		return VendorWorkRequest{}, err
 	}
+	if input.RequestKind == VendorWorkCertificationRefresh {
+		if s.relationships == nil {
+			return VendorWorkRequest{}, ErrRelationshipNotActive
+		}
+		relationship, readErr := s.relationships.GetRelationship(ctx, scope, input.RelationshipID)
+		if readErr != nil {
+			return VendorWorkRequest{}, readErr
+		}
+		if relationship.Relationship.Status != RelationshipActive {
+			return VendorWorkRequest{}, ErrRelationshipNotActive
+		}
+	}
 	s.coordinator.Lock()
 	coordinatorLocked := true
 	defer func() {
@@ -607,7 +620,7 @@ func normalizeVendorWorkRequestKind(kind VendorWorkRequestKind) (VendorWorkReque
 		kind = VendorWorkGeneral
 	}
 	switch kind {
-	case VendorWorkGeneral, VendorWorkAddressVerification, VendorWorkCertificationRefresh:
+	case VendorWorkGeneral, VendorWorkCertificationRefresh:
 		return kind, nil
 	default:
 		return "", ErrInvalid

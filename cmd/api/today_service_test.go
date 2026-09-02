@@ -38,6 +38,7 @@ func TestActorTodayServiceReturnsOnlyCurrentStoredActorWork(t *testing.T) {
 	tasks := []workflow.Task{
 		{
 			ID: "assigned", TenantID: "bank", WorkflowID: "request-workflow", StepKey: "provide-evidence",
+			LegalEntityID:  "entity",
 			Responsibility: "PERFORMER", PrincipalID: "staff-1", Title: "Provide vendor evidence", Status: workflow.StatusReady,
 			DueAt: &due, Context: map[string]string{"action_target_type": "EVIDENCE_REQUEST", "action_target_id": "request-1"},
 			WorkflowKind: workflow.EvidenceRequestWorkflowKind, EvidenceRequestID: "request-1", EvidenceRecipientID: "staff-1", EvidenceSubjectVisible: true,
@@ -45,12 +46,14 @@ func TestActorTodayServiceReturnsOnlyCurrentStoredActorWork(t *testing.T) {
 		},
 		{
 			ID: "other-person", TenantID: "bank", WorkflowID: "other-workflow", StepKey: "provide-evidence",
+			LegalEntityID:  "entity",
 			Responsibility: "PERFORMER", PrincipalID: "staff-2", Title: "Other person's task", Status: workflow.StatusReady,
 			WorkflowKind: workflow.EvidenceRequestWorkflowKind, EvidenceRequestID: "request-2", EvidenceRecipientID: "staff-2", EvidenceSubjectVisible: true,
 			Version: 1, CreatedAt: now, UpdatedAt: now,
 		},
 		{
 			ID: "completed", TenantID: "bank", WorkflowID: "completed-workflow", StepKey: "provide-evidence",
+			LegalEntityID:  "entity",
 			Responsibility: "PERFORMER", PrincipalID: "staff-1", Title: "Completed task", Status: workflow.StatusCompleted,
 			WorkflowKind: workflow.EvidenceRequestWorkflowKind, EvidenceRequestID: "request-3", EvidenceRecipientID: "staff-1", EvidenceSubjectVisible: true,
 			Version: 1, CreatedAt: now, UpdatedAt: now,
@@ -73,7 +76,8 @@ func TestActorTodayServiceProjectsEveryAssignedOperationalResponsibility(t *test
 	for _, responsibility := range responsibilities {
 		tasks = append(tasks, workflow.Task{
 			ID: "task-" + responsibility, TenantID: "bank", WorkflowID: "workflow-" + responsibility,
-			WorkflowKind: workflow.MatterLifecycleWorkflowKind, MatterID: "matter-" + responsibility,
+			LegalEntityID: "entity",
+			WorkflowKind:  workflow.MatterLifecycleWorkflowKind, MatterID: "matter-" + responsibility,
 			MatterScope: json.RawMessage(`{"access":"INTERNAL"}`), MatterPriority: 4,
 			StepKey: "step-" + responsibility, Responsibility: responsibility, PrincipalID: "actor-1",
 			Title: "Complete " + responsibility + " work", Status: workflow.StatusReady,

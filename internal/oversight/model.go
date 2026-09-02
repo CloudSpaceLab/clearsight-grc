@@ -83,6 +83,15 @@ type ResolutionEstimate struct {
 	EstimatedBy string  `json:"estimated_by"`
 }
 
+type HistoryQuality struct {
+	CompletedPopulation     int `json:"completed_population"`
+	CompleteLifecycle       int `json:"complete_lifecycle"`
+	MissingCreatedEvent     int `json:"missing_created_event"`
+	MissingTerminalEvent    int `json:"missing_terminal_event"`
+	ExcludedFromDurations   int `json:"excluded_from_durations"`
+	ReassignedOwnerExcluded int `json:"reassigned_owner_excluded"`
+}
+
 type Snapshot struct {
 	TenantID          string               `json:"-"`
 	LegalEntityID     string               `json:"-"`
@@ -99,6 +108,7 @@ type Snapshot struct {
 	Aging             []AgingBucket        `json:"aging"`
 	Performance       []Performance        `json:"performance"`
 	Estimates         []ResolutionEstimate `json:"estimates"`
+	HistoryQuality    HistoryQuality       `json:"history_quality"`
 }
 
 func estimateConfidence(samples int) string {

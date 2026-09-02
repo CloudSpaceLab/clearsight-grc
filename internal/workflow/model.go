@@ -40,6 +40,7 @@ type Task struct {
 	// reads enforce canonical source-domain visibility without leaking access
 	// policy or duplicating source-domain state into the Task API contract.
 	WorkflowKind            string          `json:"-"`
+	LegalEntityID           string          `json:"-"`
 	MatterID                string          `json:"-"`
 	MatterPriority          int             `json:"-"`
 	MatterScope             json.RawMessage `json:"-"`

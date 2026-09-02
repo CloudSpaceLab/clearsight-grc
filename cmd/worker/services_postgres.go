@@ -16,6 +16,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
@@ -98,10 +99,12 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	assessmentRepository := thirdparty.NewPostgresRepository(pool)
 	assessmentSubmission := newAssessmentSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
 	assessmentCancellation := newAssessmentCancellationConsumer(evidenceService)
+	addressVerificationSetup := thirdparty.NewAddressVerificationProvisioner(runtimeRepository, evidenceService, assessmentRepository, continuityService, evidenceService, monitoring.NewPostgresRepository(pool))
+	addressVerificationSubmission := thirdparty.NewAddressVerificationSubmissionConsumer(runtimeRepository, evidenceService, continuityService)
 	vendorWorkSubmission := newVendorWorkSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
 	publisher := workflowruntime.NewCompositePublisher(
 		sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork, staffNotifications,
-		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, vendorWorkSubmission,
+		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, addressVerificationSetup, addressVerificationSubmission, vendorWorkSubmission,
 		formProposalGeneration, formCommunicationWorker, formpolicy.ScoredResponsePublisher{Handler: formPolicyExecutor},
 		workflowruntime.LogPublisher{Logger: logger},
 	)

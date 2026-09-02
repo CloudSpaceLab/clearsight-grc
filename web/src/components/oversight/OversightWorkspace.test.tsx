@@ -20,6 +20,7 @@ beforeEach(() => {
     aging: [{ label: "0–7 days", count: 3 }, { label: "8–30 days", count: 6 }],
     performance: [{ owner_id: "person-1", owner_name: "Ada Okafor", current_load: 5, completed: 8, median_hours: 30, p75_hours: 52, sla_attainment: .875, reassigned: 2, returned: 1, blocked: 1, reopened: 1, measurement_samples: 8 }],
     estimates: [{ category: "VENDOR_DEFICIENCY", sample_size: 12, median_hours: 48, lower_hours: 30, upper_hours: 72, confidence: "MEDIUM", estimated_by: "Closed issues of the same type in this legal entity during the selected period" }],
+    history_quality: { completed_population: 14, complete_lifecycle: 12, missing_created_event: 1, missing_terminal_event: 1, excluded_from_durations: 2, reassigned_owner_excluded: 3 },
   });
 });
 
@@ -33,6 +34,7 @@ it("leads with exact interventions and provides table alternatives for oversight
   expect(screen.getByText("oversight-v2")).toBeTruthy();
   fireEvent.click(screen.getByText("Data freshness"));
   expect(screen.getByText("Continuity Events")).toBeTruthy();
+  expect(screen.getByText("12 of 14 completed issues have complete lifecycle events · 2 excluded from duration measures · 3 reassigned issues excluded from owner cycle time")).toBeTruthy();
   expect(screen.getByRole("table", { name: "Risk pressure by issue type" })).toBeTruthy();
   expect(screen.queryByText(/employee score/i)).toBeNull();
 

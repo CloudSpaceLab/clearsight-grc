@@ -89,6 +89,47 @@ func newVendorWorkFixture(t *testing.T) vendorWorkFixture {
 	return vendorWorkFixture{service: service, repository: repository, links: links, forms: forms, evidence: evidenceService, link: link, actor: actor, audience: "security@vendor.example", now: now}
 }
 
+func TestVendorWorkRejectsDuplicateExternalAddressVerificationPath(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	addVendorWorkForm(t, fixture, "address-form", "VENDOR-ADDRESS-VERIFICATION", []monitoring.TemplateField{{
+		ID: "address", SectionID: "evidence", Label: "Registered address", Type: formcontract.TypeLongText, Required: true,
+	}})
+
+	_, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID,
+		RequestKind: VendorWorkAddressVerification, Purpose: "Verify the registered address.",
+		Instructions:   "Record the observed address and supporting evidence.",
+		FormTemplateID: "address-form", FormTemplateVersion: 1, VendorAudience: fixture.audience,
+		DueAt: fixture.now.Add(24 * time.Hour),
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("address verification prepare error = %v, want ErrInvalid", err)
+	}
+}
+
+func TestCertificationRefreshRequiresActiveRelationship(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	addVendorWorkForm(t, fixture, "certification-form", "VENDOR-CERTIFICATION-REFRESH", []monitoring.TemplateField{{
+		ID: "certificate", SectionID: "evidence", Label: "Certification evidence", Type: formcontract.TypeVendorDocument, Required: true,
+	}})
+	fixture.service.relationships.(*MemoryRepository).mu.Lock()
+	relationship := fixture.service.relationships.(*MemoryRepository).relationships["relationship-1"]
+	relationship.Status = RelationshipProposed
+	fixture.service.relationships.(*MemoryRepository).relationships[relationship.ID] = relationship
+	fixture.service.relationships.(*MemoryRepository).mu.Unlock()
+
+	_, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID,
+		RequestKind: VendorWorkCertificationRefresh, Purpose: "Collect current certification evidence.",
+		Instructions:   "Provide the current ISO 27001 and PCI DSS evidence that applies.",
+		FormTemplateID: "certification-form", FormTemplateVersion: 1, VendorAudience: fixture.audience,
+		DueAt: fixture.now.Add(24 * time.Hour),
+	})
+	if !errors.Is(err, ErrRelationshipNotActive) {
+		t.Fatalf("certification prepare error = %v, want ErrRelationshipNotActive", err)
+	}
+}
+
 func addVendorWorkForm(t *testing.T, fixture vendorWorkFixture, id, code string, fields []monitoring.TemplateField, customSections ...[]formcontract.Section) {
 	t.Helper()
 	sections := []formcontract.Section{{ID: "evidence", Title: "Evidence"}}
@@ -261,62 +302,6 @@ func TestVendorWorkRejectsSpecialGovernedFormForGeneralRequest(t *testing.T) {
 	}
 	if len(fixture.repository.work) != 0 {
 		t.Fatal("special governed form reached general request persistence")
-	}
-}
-
-func TestAddressVerificationVendorWorkSendsPurposeBoundStaffMessage(t *testing.T) {
-	fixture := newVendorWorkFixture(t)
-	addVendorWorkForm(t, fixture, "address-form", "VENDOR-ADDRESS-VERIFICATION", []monitoring.TemplateField{
-		{ID: "address_result", SectionID: "evidence", Label: "Address result", Type: formcontract.TypeYesNo, Required: true},
-		{ID: "address_proof", SectionID: "evidence", Label: "Address verification evidence", Type: formcontract.TypeVendorDocument, Required: true, AcceptedFormats: []string{"application/pdf"}},
-	})
-	delivery := &invitationDeliveryStub{}
-	fixture.service.delivery = evidence.NewInvitationDeliveryService(delivery)
-	dueAt := fixture.now.Add(24 * time.Hour)
-	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
-		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, RequestKind: VendorWorkAddressVerification,
-		Purpose: "Verify Northstar Hosting Limited's registered address.", Instructions: "Confirm the address and provide the source used.",
-		FormTemplateID: "address-form", FormTemplateVersion: 1, VendorAudience: "address-check@example.test", DueAt: dueAt,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if prepared.RequestKind != VendorWorkAddressVerification {
-		t.Fatalf("request kind = %q", prepared.RequestKind)
-	}
-	request, err := fixture.evidence.GetRequest(context.Background(), "bank", prepared.CurrentRequestID)
-	if err != nil || request.AudienceType != "EXTERNAL" {
-		t.Fatalf("address request audience = %q, err = %v", request.AudienceType, err)
-	}
-	outcome, err := fixture.service.Send(context.Background(), fixture.actor, prepared.ID, SendVendorWorkInput{ExpectedVersion: prepared.Version, VendorAudience: "address-check@example.test", InvitationTTLMinutes: 60})
-	if err != nil || outcome.State != VendorWorkDeliveryDelivered || len(delivery.requests) != 1 {
-		t.Fatalf("send = (%#v, %v), deliveries = %d", outcome, err, len(delivery.requests))
-	}
-	message := delivery.requests[0].Message
-	if message.Kind != evidence.InvitationMessageAddressVerification || message.RecipientRole != "Address verification staff contact" || !message.DueAt.Equal(dueAt) || message.ExpiresAt.IsZero() {
-		t.Fatalf("message context = %#v", message)
-	}
-	session, err := fixture.evidence.RedeemInvitation(context.Background(), vendorWorkCaptureToken(t, delivery.requests[0].InvitationLink), "address-check@example.test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: "bank", RequestID: prepared.CurrentRequestID, FieldID: "address_proof", FileName: "address-proof.pdf", MediaType: "application/pdf", SessionToken: session.SessionToken}, bytes.NewBufferString(testVendorWorkPDF))
-	if err != nil {
-		t.Fatal(err)
-	}
-	receipt, err := fixture.evidence.SubmitSession(context.Background(), session.SessionToken, map[string]formcontract.AnswerValue{
-		"address_result": formcontract.TextAnswer("Yes"),
-		"address_proof":  {Document: &formcontract.DocumentAnswer{ArtifactID: artifact.ID, DocumentType: "ADDRESS_VERIFICATION"}},
-	}, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: "bank", WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: receipt.SubmissionID, CausationID: "address-submission"}); err != nil {
-		t.Fatal(err)
-	}
-	view, err := fixture.service.Response(context.Background(), fixture.actor, prepared.ID)
-	if err != nil || len(view.Documents) != 1 || view.Documents[0].EvidenceClass != AssessmentEvidenceStaffSupplied {
-		t.Fatalf("address review = %#v, err = %v", view, err)
 	}
 }
 

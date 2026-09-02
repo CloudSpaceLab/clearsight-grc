@@ -16,6 +16,7 @@ export type OversightSnapshot = {
   aging: Array<{ label: string; count: number }>;
   performance: Array<{ owner_id: string; owner_name: string; current_load: number; completed: number; median_hours?: number; p75_hours?: number; sla_attainment?: number; reassigned?: number; returned?: number; blocked: number; reopened: number; measurement_samples: number }>;
   estimates: Array<{ category: string; sample_size: number; median_hours: number; lower_hours: number; upper_hours: number; confidence: string; estimated_by: string }>;
+  history_quality: { completed_population: number; complete_lifecycle: number; missing_created_event: number; missing_terminal_event: number; excluded_from_durations: number; reassigned_owner_excluded: number };
 };
 
 export function loadOversight() {

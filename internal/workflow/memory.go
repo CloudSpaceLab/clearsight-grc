@@ -4,7 +4,6 @@ import (
 	"context"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
@@ -28,6 +27,9 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 	values := []Task{}
 	for _, task := range r.tasks {
 		if task.TenantID != filter.TenantID {
+			continue
+		}
+		if filter.LegalEntityID != "" && task.LegalEntityID != filter.LegalEntityID {
 			continue
 		}
 		if filter.PrincipalID != "" && task.PrincipalID != filter.PrincipalID {
@@ -84,14 +86,4 @@ func clone(input map[string]string) map[string]string {
 		out[key] = value
 	}
 	return out
-}
-
-func DemoTasks() []Task {
-	now := time.Now().UTC()
-	reviewDue := now.Add(3 * 24 * time.Hour)
-	evidenceDue := now.Add(36 * time.Hour)
-	return []Task{
-		{ID: "task_review_cbn", TenantID: "bank-demo", WorkflowID: "wf_cbn_change", StepKey: "applicability-review", Responsibility: "REVIEWER", PrincipalID: "team-control-assurance", Title: "Review seven proposed obligations", Status: StatusReady, DueAt: &reviewDue, Context: map[string]string{"program": "CBN Digital Channels", "scope": "Bank NG"}, Version: 1, CreatedAt: now, UpdatedAt: now},
-		{ID: "task_access_evidence", TenantID: "bank-demo", WorkflowID: "wf_access_review", StepKey: "focused-evidence", Responsibility: "PERFORMER", PrincipalID: "queue-risk-owners", Title: "Confirm four account owners", Status: StatusInProgress, DueAt: &evidenceDue, Context: map[string]string{"population": "4 of 1,250", "scope": "Treasury Operations"}, Version: 1, CreatedAt: now, UpdatedAt: now},
-	}
 }

@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
@@ -43,7 +44,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		autonomy.SeedDemo(ctx, auto)
 	}
 	store := evidence.NewMemoryObjectStore()
-	evidenceRepo := evidence.NewMemoryRepository(nil, nil)
+	evidenceRepo := &memoryEvidenceRepository{MemoryRepository: evidence.NewMemoryRepository(nil, nil)}
 	evidenceService := evidence.NewService(evidenceRepo, store)
 	evidenceService.Configure(cfg.CaptureSessionTTL, cfg.MaxArtifactBytes)
 	sourceScopes := []sourceaccess.SourceScope{}
@@ -74,9 +75,9 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	}
 	var distributionStore *evidence.MemoryDistributionStore
 	if hasKeyring {
-		distributionStore = evidence.NewMemoryDistributionStore(evidenceRepo, formDistributionReader{repo: monitoringRepo}, keyring)
+		distributionStore = evidence.NewMemoryDistributionStore(evidenceRepo.MemoryRepository, formDistributionReader{repo: monitoringRepo}, keyring)
 	} else {
-		distributionStore = evidence.NewMemoryDistributionStore(evidenceRepo, formDistributionReader{repo: monitoringRepo}, nil)
+		distributionStore = evidence.NewMemoryDistributionStore(evidenceRepo.MemoryRepository, formDistributionReader{repo: monitoringRepo}, nil)
 	}
 	distributionAccessStore := evidence.NewMemoryDistributionAccessStore(distributionStore)
 	distributionAccess, err := configuredDistributionAccessService(distributionAccessStore, keyring, hasKeyring, cfg)
@@ -100,6 +101,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	thirdPartyWorkRepo := thirdparty.NewMemoryVendorWorkRepository()
 	continuityRepo := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepo)
+	evidenceRepo.continuity = continuityService
 	continuityService.ConfigureEvidenceSourceValidator(evidenceService)
 	assessmentSetup := thirdparty.NewAssessmentProvisioner(thirdPartyRepo, continuityService, "memory-api")
 	aiGovernanceRepo := aigovernance.NewMemoryRepository()
@@ -131,20 +133,21 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		}
 	}
 
-	tasks := workflow.DemoTasks()
-	if !cfg.DemoMode {
-		tasks = nil
+	var seededMatters []continuity.MatterAggregate
+	if cfg.DemoMode {
+		var listErr error
+		seededMatters, listErr = continuityService.ListMatters(continuity.WithTrustedSystemScope(ctx), cfg.DemoTenantID, "", 200)
+		if listErr != nil {
+			return serviceSet{}, listErr
+		}
 	}
+	tasks := workflow.TasksFromMatterAggregates(seededMatters)
 	workflowService := workflow.NewService(workflow.NewMemoryRepository(tasks))
 	backgroundJobs := operations.NewService(continuityRepo, runtimeRepo)
 	todayService := actorTodayService(workflowService, nil, backgroundJobs)
 	oversightRepo := oversight.NewMemoryRepository(nil)
 	if cfg.DemoMode {
-		matters, listErr := continuityService.ListMatters(continuity.WithTrustedSystemScope(ctx), cfg.DemoTenantID, "", 200)
-		if listErr != nil {
-			return serviceSet{}, listErr
-		}
-		oversightRepo.Put(oversight.FromMatterAggregates(cfg.DemoTenantID, cfg.DemoLegalEntityID, matters, time.Now().UTC()))
+		oversightRepo.Put(oversight.FromMatterAggregates(cfg.DemoTenantID, cfg.DemoLegalEntityID, seededMatters, time.Now().UTC()))
 	}
 	oversightService := oversight.NewService(oversightRepo)
 
@@ -162,4 +165,48 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 
 func configureReferenceVerticals(verticals *bankverticals.Service, monitoringService *monitoring.Service) {
 	verticals.ConfigureMonitoring(monitoringService)
+}
+
+type memoryEvidenceRepository struct {
+	*evidence.MemoryRepository
+	continuity *continuity.Service
+}
+
+func (r *memoryEvidenceRepository) ResolveSubjectScope(ctx context.Context, tenant, subjectType, subjectID string) (evidence.SubjectScope, error) {
+	if r == nil || r.continuity == nil {
+		return evidence.SubjectScope{}, evidence.ErrSubjectUnsupported
+	}
+	subjectType = strings.ToUpper(strings.TrimSpace(subjectType))
+	system := continuity.WithTrustedSystemScope(ctx)
+	switch subjectType {
+	case "PROGRAM":
+		value, err := r.continuity.GetProgram(system, tenant, subjectID)
+		if err != nil {
+			return evidence.SubjectScope{}, evidence.ErrSubjectUnsupported
+		}
+		return evidence.SubjectScope{TenantID: tenant, LegalEntityID: value.Program.LegalEntityID, SubjectType: subjectType, SubjectID: subjectID}, nil
+	case "MATTER":
+		value, err := r.continuity.GetMatter(system, tenant, subjectID)
+		if err != nil {
+			return evidence.SubjectScope{}, evidence.ErrSubjectUnsupported
+		}
+		return evidence.SubjectScope{TenantID: tenant, LegalEntityID: value.Matter.LegalEntityID, SubjectType: subjectType, SubjectID: subjectID}, nil
+	default:
+		return evidence.SubjectScope{}, evidence.ErrSubjectUnsupported
+	}
+}
+
+func (r *memoryEvidenceRepository) CanReadSubject(ctx context.Context, tenant, principalID, subjectType, subjectID string) (bool, error) {
+	if strings.TrimSpace(principalID) == "" {
+		return false, nil
+	}
+	scope, err := r.ResolveSubjectScope(ctx, tenant, subjectType, subjectID)
+	if err != nil {
+		return false, err
+	}
+	if scope.SubjectType == "MATTER" {
+		value, readErr := r.continuity.GetMatter(continuity.WithTrustedSystemScope(ctx), tenant, subjectID)
+		return readErr == nil && continuity.MatterVisibleTo(value.Matter, principalID), readErr
+	}
+	return true, nil
 }

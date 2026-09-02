@@ -27,6 +27,7 @@ const snapshot: OversightSnapshot = {
     { owner_id: "chidi", owner_name: "Chidi Eze", current_load: 7, completed: 11, median_hours: 42, p75_hours: 68, sla_attainment: .818, reassigned: 0, returned: 0, blocked: 2, reopened: 0, measurement_samples: 11 },
   ],
   estimates: [{ category: "VENDOR_DEFICIENCY", sample_size: 12, median_hours: 48, lower_hours: 30, upper_hours: 72, confidence: "MEDIUM", estimated_by: "Closed issues of the same type in this legal entity during the selected period" }],
+  history_quality: { completed_population: 14, complete_lifecycle: 12, missing_created_event: 1, missing_terminal_event: 1, excluded_from_durations: 2, reassigned_owner_excluded: 3 },
 };
 
 export function OversightEvidencePage() {
