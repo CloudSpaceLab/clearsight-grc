@@ -6,6 +6,7 @@ import type { ProgramAggregate } from "../types";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { loadProgramOperations } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
+import { Notice } from "./ui";
 
 type Props = { actorPrincipalID: string; canConfigureSources: boolean; onCreated: (aggregate: ProgramAggregate) => void; onClose: () => void };
 
@@ -81,7 +82,7 @@ export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, o
     <div className="setup-heading"><div><span className="eyebrow">Program setup</span><h2 id="program-setup-title">{aggregate ? aggregate.program.name : "New Program"}</h2><p>{aggregate ? "Add requirements and the checks that will monitor them." : "Define the activity, channel or obligation that needs ongoing oversight."}</p></div><button className="text-button" type="button" onClick={onClose}>Close</button></div>
     <ol className="setup-progress" aria-label="Program setup progress"><li className="current"><span>1</span>Program</li><li className={aggregate ? "current" : ""}><span>2</span>Requirements</li><li className={aggregate ? "current" : ""}><span>3</span>Monitoring</li></ol>
     {error && <p className="inline-form-error" role="alert">{error}</p>}
-    {notice && <p className="inline-success" role="status">{notice}</p>}
+    {notice && <Notice tone="success">{notice}</Notice>}
     {!aggregate && candidateState === "loading" && <p className="inline-notice" role="status">Checking current Program ownership and approval responsibilities.</p>}
     {!aggregate && candidateState === "unavailable" && <p className="inline-form-error" role="alert">Current Program responsibilities could not be confirmed. Program creation is disabled. <button className="text-button" type="button" onClick={() => void loadCandidates()}>Retry responsibilities</button></p>}
     {!aggregate ? <form className="setup-form" onSubmit={saveProgram}>

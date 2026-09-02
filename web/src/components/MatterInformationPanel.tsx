@@ -5,6 +5,7 @@ import { changeMatterContext } from "../matterOperationsApi";
 import type { MatterContextChangeKind, MatterOperation } from "../matterOperationsApi";
 import type { MatterAggregate } from "../types";
 import { matterOperationControlID } from "./matterHandoff";
+import { Notice } from "./ui";
 
 type Props = {
   aggregate: MatterAggregate;
@@ -125,7 +126,7 @@ export function MatterInformationPanel({ aggregate, operations, linkedMissingIte
         <button className="text-button" type="button" onClick={() => setActive(null)}>Cancel</button>
       </div>
     </form>}
-    {notice && <p className="inline-success" role="status">{notice}</p>}
+    {notice && <Notice tone="success">{notice}</Notice>}
     {!operation?.can_act && operation?.reason && <p className="matter-operation-reason">{operation.reason}</p>}
   </article>;
 }

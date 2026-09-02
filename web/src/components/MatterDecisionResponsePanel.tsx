@@ -178,6 +178,6 @@ export function MatterDecisionResponsePanel({ aggregate, operations, onUpdated, 
         <div className="cs-sheet-actions"><Button type="button" variant="quiet" isDisabled={saving} onPress={() => setActive(null)}>Cancel</Button><Button type="submit" variant="primary" isDisabled={!target || !rationale.trim()} isLoading={saving}>{responsePresentation.submit}</Button></div>
       </form>
     </FocusedSheet>}
-    {notice && <p className="inline-success" role="status">{notice}</p>}
+    {notice && <Notice tone="success">{notice}</Notice>}
   </article>;
 }

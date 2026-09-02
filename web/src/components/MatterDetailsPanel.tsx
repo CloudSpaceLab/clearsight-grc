@@ -184,7 +184,7 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
       {error && <div className="matter-form-error wide" role="alert"><span>{error}</span>{conflict && <button className="secondary-button" type="button" onClick={onReload}>Reload current issue</button>}</div>}
       <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving || !retirementReason.trim()}>{saving ? "Removing…" : "Remove link"}</button><button className="text-button" type="button" onClick={() => { setRetiringLinkID(""); setRetirementReason(""); }}>Cancel</button></div>
     </form>}
-    {notice && <p className="inline-success" role="status">{notice}</p>}
+    {notice && <Notice tone="success">{notice}</Notice>}
     {!detailsOperation?.can_act && detailsOperation?.reason && <p className="matter-operation-reason">{detailsOperation.reason}</p>}
   </article>;
 }
