@@ -91,6 +91,38 @@ func TestCommunicationDeliveryWorkerStopsAfterDeadline(t *testing.T) {
 	}
 }
 
+func TestCommunicationDeliveryWorkerSkipsSupersededSecureLinkEvent(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 9, 2, 19, 0, 0, 0, time.UTC)
+	repository := &communicationDeliveryRepositoryStub{
+		bundle: communicationDeliveryBundle{
+			Distribution: FormDistribution{ID: "distribution", TenantID: "tenant", LegalEntityID: "entity", Version: 2, Status: DistributionOpen, Deadline: now.Add(24 * time.Hour), RouteExpiresAt: now.Add(12 * time.Hour)},
+			Recipients:   []communicationDeliveryRecipient{{DistributionRecipient: DistributionRecipient{ID: "recipient", Role: RecipientTo, Type: RecipientExternalAudience, State: DistributionRecipientDelivered}}},
+		},
+	}
+	deliveryCalls := 0
+	delivery := NewInvitationDeliveryService(invitationDeliveryFunc(func(context.Context, InvitationDeliveryRequest) (InvitationDeliveryReceipt, error) {
+		deliveryCalls++
+		return InvitationDeliveryReceipt{}, nil
+	}))
+	worker, err := NewCommunicationDeliveryWorker(repository, NewCommunicationService(NewMemoryCommunicationStore()), &DistributionAccessService{}, delivery, "https://capture.example")
+	if err != nil {
+		t.Fatalf("new worker: %v", err)
+	}
+	worker.now = func() time.Time { return now }
+	event := workflowruntime.OutboxEvent{
+		ID: "event", TenantID: "tenant", AggregateType: "FORM_DISTRIBUTION", AggregateID: "distribution",
+		EventType: "FORM_DISTRIBUTION_OPEN", Payload: []byte(`{"version":1,"status":"OPEN"}`),
+	}
+	if err := worker.Publish(context.Background(), event); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+	if deliveryCalls != 0 || repository.records != 1 || repository.lastFailure != "SUPERSEDED_COMMUNICATION" {
+		t.Fatalf("superseded event was not skipped: deliveries=%d records=%d failure=%q", deliveryCalls, repository.records, repository.lastFailure)
+	}
+}
+
 func activeCommunicationServiceForWorker(now time.Time, action CommunicationAction) *CommunicationService {
 	store := NewMemoryCommunicationStore()
 	store.profiles[communicationScopeKey("tenant", "entity")] = []CommunicationProfile{{
