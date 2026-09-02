@@ -152,9 +152,9 @@ func developmentPermissions(roles []string) []string {
 	for _, role := range NormalizeRoleCodes(roles) {
 		switch role {
 		case "CRO", "CCO", "CISO", "EXECUTIVE":
-			permissions = append(permissions, PermissionConfigRead)
+			permissions = append(permissions, PermissionConfigRead, PermissionOversightRead)
 		case "GRC_ADMIN":
-			permissions = append(permissions, PermissionConfigRead, PermissionConfigWrite, PermissionPlatformOperationsRead, PermissionPlatformOperationsWrite)
+			permissions = append(permissions, PermissionConfigRead, PermissionConfigWrite, PermissionPlatformOperationsRead, PermissionPlatformOperationsWrite, PermissionOversightRead)
 		case "SYSTEM_ADMIN", "SUPER_ADMIN":
 			permissions = append(permissions,
 				PermissionConfigRead,

@@ -1,3 +1,4 @@
+import type { FormScorePredicate, FormScoreProfile } from "../../monitoringTypes";
 import { approvedFormats, fileType, isSelectionType, numericType, textType, type AuthoringField, type AuthoringSection, type FormQualityIssue } from "./formAuthoring";
 
 type Block = (id: string, message: string, extra?: Partial<FormQualityIssue>) => void;
@@ -39,6 +40,61 @@ export function validateFieldContractBounds(field: AuthoringField, index: number
 
   validateConstraints(field, label, options.length, block);
   validateScoring(field, label, options, block);
+}
+
+export function validateAdvancedScoreProfile(profile: FormScoreProfile | undefined, fields: AuthoringField[], block: Block) {
+  if (!profile) return;
+  if (!profile.version.trim() || profile.version.length > 128) block("score-profile-version", "Add a score profile version of at most 128 characters.");
+  if (profile.contributions.length < 1 || profile.contributions.length > 100 || (profile.rules?.length ?? 0) > 100) block("score-profile-size", "Advanced scoring requires 1–100 contributions and no more than 100 cross-field rules.");
+  const fieldByID = new Map(fields.map((field) => [field.id, field]));
+  const ids = new Set<string>();
+  for (const contribution of profile.contributions) {
+    if (!contribution.id.trim() || ids.has(contribution.id)) block(`score-contribution-id:${contribution.id}`, "Every score contribution requires a unique key.");
+    ids.add(contribution.id);
+    if (!contribution.label.trim() || contribution.weight < 1 || contribution.weight > 100 || contribution.match_points < 0 || contribution.match_points > 100 || contribution.non_match_points < 0 || contribution.non_match_points > 100) block(`score-contribution:${contribution.id}`, `${contribution.label || "Score contribution"} requires bounded weights and points from 0–100.`);
+    validatePredicate(contribution.predicate, fieldByID, contribution.id, block);
+  }
+  let floor = -1, cap = 101;
+  for (const rule of profile.rules ?? []) {
+    if (!rule.id.trim() || ids.has(rule.id)) block(`score-rule-id:${rule.id}`, "Every advanced score rule requires a unique key.");
+    ids.add(rule.id); validatePredicate(rule.predicate, fieldByID, rule.id, block);
+    if (rule.effect.kind !== "DISQUALIFY" && (rule.effect.value === undefined || rule.effect.value < 0 || rule.effect.value > 100)) block(`score-rule-effect:${rule.id}`, `${rule.label || "Advanced rule"} requires an effect value from 0–100.`);
+    if (rule.effect.kind === "CONTRIBUTION" && (rule.effect.weight === undefined || rule.effect.weight < 1 || rule.effect.weight > 100)) block(`score-rule-weight:${rule.id}`, `${rule.label || "Advanced rule"} requires an effect weight from 1–100.`);
+    if (rule.effect.kind === "FLOOR") floor = Math.max(floor, rule.effect.value ?? -1);
+    if (rule.effect.kind === "CAP") cap = Math.min(cap, rule.effect.value ?? 101);
+  }
+  if (floor > cap) block("score-profile-floor-cap", "The score floor cannot be higher than the score cap.");
+  const coverage = new Set<number>();
+  for (const band of profile.bands) for (let score = band.from; score <= band.through; score += 1) { if (score < 0 || score > 100 || coverage.has(score)) { block("score-profile-bands", "Concern bands must cover 0–100 once without gaps or overlap."); return; } coverage.add(score); }
+  if (profile.bands.length !== 4 || coverage.size !== 101) block("score-profile-bands", "Concern bands must cover 0–100 once without gaps or overlap.");
+}
+
+function validatePredicate(predicate: FormScorePredicate, fields: Map<string, AuthoringField>, id: string, block: Block, depth = 1) {
+  if (depth > 8 || (predicate.children?.length ?? 0) > 20 || (predicate.values?.length ?? 0) > 20) { block(`score-predicate-bounds:${id}`, "Score conditions exceed the supported nesting or value limit."); return; }
+  if (["AND", "OR"].includes(predicate.operator)) {
+    if ((predicate.children?.length ?? 0) < 2) block(`score-predicate-group:${id}`, "Combined score conditions require at least two conditions.");
+  } else if (predicate.operator === "NOT") {
+    if (predicate.children?.length !== 1) block(`score-predicate-not:${id}`, "A negated score condition requires one condition.");
+  } else {
+    const field = predicate.field_id ? fields.get(predicate.field_id) : undefined;
+    if (!field) block(`score-predicate-field:${id}`, "Choose a response field for every score condition.");
+    else {
+      const values = predicate.values ?? [];
+      const oneValue = ["EQUALS", "NOT_EQUALS", "CONTAINS", "GREATER_THAN", "GREATER_OR_EQUAL", "LESS_THAN", "LESS_OR_EQUAL", "DATE_BEFORE", "DATE_ON_OR_AFTER"].includes(predicate.operator);
+      const manyValues = ["IN", "NOT_IN", "CONTAINS_ANY", "CONTAINS_ALL"].includes(predicate.operator);
+      const twoValues = predicate.operator === "NUMBER_BETWEEN" || predicate.operator === "DATE_BETWEEN";
+      if (oneValue && values.length !== 1 || manyValues && values.length < 1 || twoValues && values.length !== 2 || values.some((value) => !value.trim())) block(`score-predicate-values:${id}`, "Every score condition requires the comparison values shown in the editor.");
+      const numericOperator = ["GREATER_THAN", "GREATER_OR_EQUAL", "LESS_THAN", "LESS_OR_EQUAL", "NUMBER_BETWEEN"].includes(predicate.operator);
+      const dateOperator = ["DATE_BEFORE", "DATE_ON_OR_AFTER", "DATE_BETWEEN"].includes(predicate.operator);
+      const containsOperator = ["CONTAINS", "CONTAINS_ANY", "CONTAINS_ALL"].includes(predicate.operator);
+      if (numericOperator && !numericType(field.type)) block(`score-predicate-type:${id}`, `${field.label || "This response"} requires a numeric score condition.`);
+      if (dateOperator && field.type !== "date") block(`score-predicate-type:${id}`, `${field.label || "This response"} requires a date score condition.`);
+      if (containsOperator && field.type !== "multi_select") block(`score-predicate-type:${id}`, `${field.label || "This response"} requires a multi-select score condition.`);
+      if (numericOperator && values.some((value) => !Number.isFinite(Number(value)))) block(`score-predicate-number:${id}`, "Numeric score conditions require valid numbers.");
+      if (dateOperator && values.some((value) => !/^\d{4}-\d{2}-\d{2}$/.test(value))) block(`score-predicate-date:${id}`, "Date score conditions require dates in YYYY-MM-DD format.");
+    }
+  }
+  for (const child of predicate.children ?? []) validatePredicate(child, fields, id, block, depth + 1);
 }
 
 function validateFileFormats(field: AuthoringField, label: string, block: Block) {

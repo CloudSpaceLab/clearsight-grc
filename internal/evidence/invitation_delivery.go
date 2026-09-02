@@ -153,14 +153,18 @@ func renderDefaultInvitationMessage(request InvitationDeliveryRequest) (Invitati
 		taskTitle = "Secure form request"
 	}
 	heading, subject, action, preheader := taskTitle, "Action needed: "+taskTitle, "Open secure form", strings.TrimSpace(message.TaskSummary)
+	journeyPlain := ""
+	journeyHTML := ""
 	switch message.Kind {
 	case InvitationMessageGeneric:
 	case InvitationMessageVendorRegistration:
 		heading, subject, action = "Complete your vendor registration", "Complete your vendor registration for "+bankName, "Complete registration"
 	case InvitationMessageAddressVerification:
-		heading, subject, action = "Verify the vendor's registered address", "Verify the vendor's registered address", "Verify address"
+		heading, subject, action = "Provide vendor address verification", "Verify the vendor address for "+bankName, "Provide address verification"
 	case InvitationMessageCertificationRefresh:
-		heading, subject, action = "Submit current certification evidence", "Submit current certification evidence", "Submit certification evidence"
+		heading, subject, action = "Provide current vendor certifications", "Provide current vendor certifications for "+bankName, "Provide certification evidence"
+		journeyPlain = "Confirm whether each certification applies. Provide the current ISO 27001 and PCI DSS evidence separately."
+		journeyHTML = `<p style="margin:0 0 16px;">Confirm whether each certification applies. Provide the current <strong>ISO 27001</strong> and <strong>PCI DSS</strong> evidence separately.</p>`
 	default:
 		return InvitationDeliveryRequest{}, ErrInvitationDeliveryRequestInvalid
 	}
@@ -181,10 +185,17 @@ func renderDefaultInvitationMessage(request InvitationDeliveryRequest) (Invitati
 	if intro == "" {
 		intro = "Use the secure link below to complete this request. Verify the invited email address when prompted."
 	}
+	bodyPlain := "Request: " + taskTitle
+	bodyHTML := `<p style="margin:0 0 16px;">Request: <strong>` + html.EscapeString(taskTitle) + `</strong></p>`
+	if journeyPlain != "" {
+		bodyPlain += "\n\n" + journeyPlain
+		bodyHTML += journeyHTML
+	}
+	bodyHTML += `<p style="margin:0 0 16px;">Do not forward this message. Access is limited to this request and the invited email address.</p>`
 	presentation, err := renderEmailPresentation(emailPresentationInput{
 		BrandName: bankName, Preheader: preheader, Heading: heading, Intro: intro,
-		BodyPlain:   "Request: " + taskTitle,
-		BodyHTML:    `<p style="margin:0 0 16px;">Request: <strong>` + html.EscapeString(taskTitle) + `</strong></p><p style="margin:0 0 16px;">Do not forward this message. Access is limited to this request and the invited email address.</p>`,
+		BodyPlain:   bodyPlain,
+		BodyHTML:    bodyHTML,
 		ActionLabel: action, ActionURL: request.InvitationLink, Facts: facts, SupportContact: strings.TrimSpace(message.SupportContact),
 	})
 	if err != nil || len(subject) > 200 || strings.ContainsAny(subject, "\r\n") {

@@ -3,6 +3,7 @@ import type { View } from "../appRouting";
 export function NavigationIcon({ view }: { view: View }) {
   const common = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
   if (view === "today") return <svg {...common}><path d="M4 5h16v14H4z"/><path d="M8 3v4M16 3v4M7 11h4M7 15h7"/></svg>;
+  if (view === "oversight") return <svg {...common}><path d="M4 19V9M10 19V5M16 19v-7M3 19h18"/><path d="m4 7 6-4 6 6 4-3"/></svg>;
   if (view === "programs") return <svg {...common}><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>;
   if (view === "forms") return <svg {...common}><path d="M6 3h9l3 3v15H6z"/><path d="M14 3v4h4M9 11h6M9 15h6M9 19h4"/></svg>;
   if (view === "vendors") return <svg {...common}><path d="M4 20V7l8-4 8 4v13"/><path d="M8 10h2M14 10h2M8 14h2M14 14h2M10 20v-3h4v3"/></svg>;

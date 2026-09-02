@@ -40,6 +40,10 @@ Tests must prove:
 
 Fixtures MUST NOT inject desired conclusions, mappings, owners, authority, materiality, verification outcomes, or pre-completed workflow context.
 
+Reference oversight acceptance is the narrow exception for explicitly labelled non-production sample data, and it must still use canonical commands. The installer creates five closed `VENDOR_REVIEW` histories plus a closed control gap and audit finding, with varied 30–96 hour cycles, due dates, owners, independent outcome reviewers, one reassignment, one returned decision and one reopening. Every record carries `sample=true`, `reference_data=true` and journey code `OVERSIGHT_HISTORY`; no snapshot metrics or pre-closed rows are inserted.
+
+The acceptance gate requires repeat installation to leave the completed cohort unchanged, a minimum-five category before any resolution range appears, sparse categories to remain suppressed, and source high-water marks for Matters, actions, workflow tasks when present, verification results and continuity events. These records demonstrate reconstructable product behavior only; they are not evidence that a connected bank is compliant or that its employees achieved the sample results.
+
 ---
 
 # 2. Required test dimensions
@@ -146,6 +150,10 @@ Every golden journey requires:
 
 - template creation, revision, maker-checker activation, retirement and rollback;
 - percentage-weight validation and deterministic compliance scoring against the exact form revision;
+- risk/compliance direction, raw/adverse scores, advanced typed predicates, floors, caps, disqualification, exhaustive bands and immutable profile checksums;
+- cross-distribution response filtering and keyset sorting by adverse concern, raw score, form, subject, completion time and score state;
+- response-policy simulation, maker-checker approval, effective dating, shadow-before-enforce, blast suppression, suspension and rollback;
+- scored-response replay, one Matter per open adverse episode, linked receipt recovery and a new episode only after verified closure;
 - DOCX, XLS/XLSX and PDF proposal provenance, limitations and selective acceptance;
 - AI proposal review, partial acceptance, rejection, outage and non-AI authoring fallback;
 - multiple internal/external To and CC recipients without protected-address disclosure;
@@ -631,7 +639,42 @@ The readiness precondition requires recipient encryption and HMAC keys, an HTTPS
 
 ---
 
-# 18. AI usefulness release gate
+# 18. Golden Journey O — Poor form response creates one governed issue
+
+## Setup
+
+- an approved vendor-certification form has a stored compliance score profile and exact active revision;
+- one registered vendor relationship is in the verified legal-entity scope;
+- a maker has configured a response policy for full-coverage High or Critical results;
+- a distinct checker has reviewed a fresh population simulation and activated the policy after shadow history;
+- Matter owner, reviewer, escalation and automation-service routes are current.
+
+## Required path
+
+1. the vendor completes the certification form and confirms one required certification is not current;
+2. the response commits with raw score, adverse score, Critical band, full coverage, profile checksum and rule explanation;
+3. the Responses workspace can place it first under **Needs attention first** and filter it by form and Critical concern;
+4. the policy receipt records the exact response/policy revisions and creates one linked vendor-deficiency Matter;
+5. replaying the scored event returns the existing receipt and a second poor revision in the same episode reuses the Matter;
+6. an authorized owner records remediation, an independent reviewer records the outcome check and authorized closure ends the episode;
+7. a later poor response creates a new episode and a new Matter.
+
+## Assertions
+
+- [ ] score calculation is server-owned, deterministic and reconstructable from the stored form revision;
+- [ ] the response, score and scored-response outbox event commit together;
+- [ ] policy execution receipt, episode, Matter, Matter event, outbox and maintenance work commit together;
+- [ ] actor, maker, checker, approver and automation-service identities cannot be supplied by browser command fields;
+- [ ] restricted responses are filtered before counts, pagination and simulation;
+- [ ] the policy cannot activate without fresh simulation, current authority, exact form scope and prior shadow history for enforcement;
+- [ ] replay, concurrency and later same-episode responses do not create duplicate Matters;
+- [ ] response completion and policy application do not approve evidence, verify remediation or close the Matter;
+- [ ] suspension and rollback preserve receipts and material records;
+- [ ] reference data is explicitly labelled and stored through ordinary repositories, never a hard-coded API branch or browser metric.
+
+---
+
+# 19. AI usefulness release gate
 
 An AI capability may not ship solely because its outputs appear plausible.
 
@@ -650,7 +693,7 @@ A capability that adds review burden without proportional correctness benefit mu
 
 ---
 
-# 19. Visual regression and golden screens
+# 20. Visual regression and golden screens
 
 Maintain light/dark and relevant breakpoint references for:
 
@@ -685,7 +728,7 @@ Reject uncontrolled density, decorative effects, control walls, module hopping, 
 
 ---
 
-# 20. Final release standard
+# 21. Final release standard
 
 ClearSight passes only when it can:
 

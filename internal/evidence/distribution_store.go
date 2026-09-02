@@ -38,6 +38,8 @@ type DistributionFormRevision struct {
 	Version       int64
 	Sensitivity   string
 	Presentation  formcontract.Presentation
+	ScoringMode   formcontract.ScoringMode
+	ScoreProfile  *formcontract.ScoreProfile
 	Sections      []formcontract.Section
 	Fields        []formcontract.Field
 	Active        bool
@@ -63,6 +65,7 @@ type distributionEvent struct {
 	EventType      string
 	ActorID        string
 	OccurredAt     time.Time
+	Payload        map[string]any
 }
 
 // DistributionStore owns atomic creation and recovery of governed form

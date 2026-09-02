@@ -25,6 +25,11 @@ class DeploymentConfigTest(unittest.TestCase):
         self.assertIn("try_files $uri $uri/ /index.html", nginx)
         self.assertIn("location = /healthz", nginx)
 
+    def test_ui_review_builds_customer_and_evidence_bundles(self) -> None:
+        workflow = self.read(".github/workflows/ui-evidence.yml")
+        self.assertIn("npm run build\n", workflow)
+        self.assertIn("npm run build:evidence -- --base=/", workflow)
+
     def test_migrations_are_forward_only_and_checksum_guarded(self) -> None:
         script = self.read("deploy/scripts/migrate.sh")
         for value in ("ON_ERROR_STOP", "clearsight_schema_migrations", "sha256sum", "checksum mismatch",
@@ -33,9 +38,12 @@ class DeploymentConfigTest(unittest.TestCase):
         self.assertIn(r"^[0-9]{6}_[a-z0-9_]+\.up\.sql$", script)
         self.assertNotIn(".down.sql", script)
 
-    def test_source_catalog_migration_normalizes_legacy_timestamps(self) -> None:
-        migration = self.read("migrations/000030_source_access_catalog.up.sql")
-        self.assertIn("GREATEST(updated_at,created_at)", migration)
+    def test_ci_validates_only_the_current_forward_schema(self) -> None:
+        workflow = self.read(".github/workflows/ci.yml")
+        self.assertNotIn("rollback and reapply", workflow.lower())
+        self.assertNotIn(".down.sql", workflow)
+        self.assertIn("Verify deployment migration ledger", workflow)
+        self.assertIn('go test -count=1 -p 1 -tags "postgres postgresintegration" ./internal/...', workflow)
 
     def test_forced_command_accepts_only_sha_deployments(self) -> None:
         script = self.read("deploy/scripts/ci-entrypoint.sh")
@@ -111,19 +119,26 @@ class DeploymentConfigTest(unittest.TestCase):
     def test_email_readiness_requires_encryption_starttls_and_redacts_values(self) -> None:
         script = self.read("deploy/scripts/verify-email-readiness.sh")
         for value in (
+            'expected_sha="${1:?expected sha is required}"',
             "CLEARSIGHT_RECIPIENT_KEYRING", "CLEARSIGHT_RECIPIENT_ACTIVE_KEY_ID",
             "CLEARSIGHT_DISTRIBUTION_ACCESS_HMAC_KEY", "CLEARSIGHT_SMTP_HOST",
             "CLEARSIGHT_SMTP_PORT", "CLEARSIGHT_SMTP_USERNAME", "CLEARSIGHT_SMTP_PASSWORD",
             "CLEARSIGHT_SMTP_FROM", "CLEARSIGHT_SMTP_TLS_MODE", "STARTTLS",
             "/dev/tcp/", "openssl s_client", "-starttls smtp", "-verify_hostname",
             '"$CLEARSIGHT_SMTP_HOST"', "-verify_return_error",
+            "smtp_configured=true", "starttls_required=true",
+            "recipient_protection_configured=true", "capture_origin_secure=true",
+            "api_revision_matches=true", "worker_revision_matches=true",
+            'org.opencontainers.image.revision',
+            "'{{ index .Config.Labels \"org.opencontainers.image.revision\" }}'",
         ):
             self.assertIn(value, script)
+        self.assertNotIn(r'\\"org.opencontainers.image.revision\\"', script)
         for forbidden in ("env |", "printenv", "set -x", "echo $", "printf '%s' \"$"):
             self.assertNotIn(forbidden, script)
         hosted = self.read("deploy/scripts/verify-hosted-release.sh")
         self.assertIn('if [[ "${VERIFY_EMAIL_READINESS:-false}" == "true" ]]', hosted)
-        self.assertIn('"$script_dir/verify-email-readiness.sh"', hosted)
+        self.assertIn('"$script_dir/verify-email-readiness.sh" "$expected_sha"', hosted)
         workflow = self.read(".github/workflows/deploy-demo.yml")
         self.assertIn('install -m 0755 deploy/scripts/verify-email-readiness.sh "$release/scripts/verify-email-readiness.sh"', workflow)
 
@@ -169,6 +184,9 @@ class DeploymentConfigTest(unittest.TestCase):
                       "actual.scope IS DISTINCT FROM expected.scope",
                       "actual.priority <> expected.priority"):
             self.assertIn(value, foundation)
+        self.assertGreaterEqual(foundation.count("ON CONFLICT (id) DO UPDATE"), 7)
+        self.assertNotIn("AND name IN ('ClearSight Demonstration Bank'", foundation)
+        self.assertNotIn("AND name IN ('Demonstration Bank Nigeria'", foundation)
         self.assertNotIn("opatachibueze+staff", foundation)
         self.assertNotIn("demo_staff_email}'", foundation)
         self.assertIn('install -m 0700 "$stage/scripts/seed-demo-foundation.sh"', release)

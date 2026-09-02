@@ -71,3 +71,24 @@ func TestGuardRejectsDifferentLegalEntity(t *testing.T) {
 		t.Fatalf("expected legal-entity rejection: %#v err=%v", decision, err)
 	}
 }
+
+func TestGuardDistinguishesMissingRouteFromAuthorityServiceFailure(t *testing.T) {
+	for name, cause := range map[string]struct {
+		cause    error
+		expected error
+	}{
+		"missing route":   {cause: authority.ErrNoRoute, expected: ErrNotAuthorized},
+		"service failure": {cause: errors.New("database unavailable"), expected: ErrGuardUnavailable},
+	} {
+		t.Run(name, func(t *testing.T) {
+			guard, err := New(authorityStub{err: cause.cause}, ModeEnforce, slog.Default())
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = guard.Authorize(actorContext(), Request{TenantID: "bank-demo", LegalEntityID: "bank-ng", ObjectType: "FORM_RESPONSE_POLICY", ObjectID: "policy-1", Responsibility: authority.ResponsibilityAuthorizer})
+			if !errors.Is(err, cause.expected) {
+				t.Fatalf("err = %v, want %v", err, cause.expected)
+			}
+		})
+	}
+}

@@ -17,6 +17,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
@@ -61,8 +62,12 @@ func testHandler() http.Handler {
 	return New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), AllowedOrigin: "http://localhost:5173", Mode: "test-memory",
 		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "role-cro", "bank-ng"), Authority: authority.NewResolver(version, rules),
-		Evidence: evidenceService,
-		Today:    today.NewService(today.DemoItems()), Workflow: workflow.NewService(workflow.NewMemoryRepository(workflow.DemoTasks())),
+		Evidence: evidenceService, RuntimeContext: runtimecontext.IdentifierResolver{},
+		Today: today.NewService([]today.AttentionItem{
+			{ID: "attention-1"},
+			{ID: "attention-2"},
+			{ID: "attention-3"},
+		}), Workflow: workflow.NewService(workflow.NewMemoryRepository(workflow.DemoTasks())),
 		Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()), Autonomy: auto, MaxArtifactBytes: 1 << 20,
 	})
 }

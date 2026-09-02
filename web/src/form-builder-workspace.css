@@ -132,14 +132,19 @@
 }
 
 .form-builder-outline-shell {
+  position: sticky;
+  top: 60px;
+  max-height: calc(100vh - 172px);
+  align-self: start;
+  overflow: auto;
   border-right: 1px solid var(--builder-border);
 }
 
-.form-builder-outline,
 .form-builder-inspector {
   position: sticky;
   top: 60px;
   max-height: calc(100vh - 172px);
+  align-self: start;
   overflow: auto;
 }
 

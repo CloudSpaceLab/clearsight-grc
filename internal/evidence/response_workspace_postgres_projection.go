@@ -4,7 +4,6 @@ package evidence
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -114,30 +113,9 @@ func loadPostgresWorkspaceState(ctx context.Context, tx pgx.Tx, session Distribu
 }
 
 func loadCurrentPostgresResponseRevision(ctx context.Context, tx pgx.Tx, tenantID, workspaceID string) (ResponseRevision, error) {
-	var value ResponseRevision
-	var signoffJSON, criticalJSON []byte
-	var score sql.NullFloat64
-	err := tx.QueryRow(ctx, `
-		SELECT id::text,tenant_id::text,legal_entity_id::text,distribution_id::text,workspace_id::text,submission_id::text,
-		       revision,COALESCE(supersedes_revision_id::text,''),achieved_assurance,signoff_summary,compliance_score,
-		       scored_weight_coverage,state,critical_field_results,scoring_policy_version,is_current,created_at
-		FROM capture_response_revisions
-		WHERE tenant_id=$1::uuid AND workspace_id=$2::uuid AND is_current`, tenantID, workspaceID).Scan(
-		&value.ID, &value.TenantID, &value.LegalEntityID, &value.DistributionID, &value.WorkspaceID, &value.SubmissionID,
-		&value.Revision, &value.SupersedesRevisionID, &value.AchievedAssurance, &signoffJSON, &score,
-		&value.ScoredWeightCoverage, &value.State, &criticalJSON, &value.ScoringPolicyVersion, &value.Current, &value.CreatedAt,
-	)
-	if err != nil {
-		return ResponseRevision{}, err
-	}
-	if err := json.Unmarshal(signoffJSON, &value.SignoffSummary); err != nil {
-		return ResponseRevision{}, err
-	}
-	if err := json.Unmarshal(criticalJSON, &value.CriticalFieldResults); err != nil {
-		return ResponseRevision{}, err
-	}
-	if score.Valid {
-		value.ComplianceScore = &score.Float64
-	}
-	return value, nil
+	value, err := scanPostgresResponseRevision(tx.QueryRow(ctx, `
+		SELECT `+responseRevisionProjection+`
+		FROM capture_response_revisions r
+		WHERE r.tenant_id=$1::uuid AND r.workspace_id=$2::uuid AND r.is_current`, tenantID, workspaceID))
+	return value, err
 }

@@ -707,6 +707,10 @@ describe("static stakeholder demo transport", () => {
     window.history.replaceState(null, "", "/?fixture=forms-response-history");
     const responses = await staticDemoRequest<{ items: Array<{ revision: number; current: boolean }> }>("/api/v1/forms/distributions/distribution-vendor-review/responses");
     expect(responses.items).toMatchObject([{ revision: 1, current: false }, { revision: 2, current: true }]);
+    const completed = await staticDemoRequest<{ items: Array<{ id: string; revision: number; current: boolean }> }>("/api/v1/forms/responses?current_only=true");
+    expect(completed.items).toMatchObject([{ id: "response-revision-acme-2", revision: 2, current: true }]);
+    const completedDetail = await staticDemoRequest<{ response: { id: string }; revision: { revision: number } }>("/api/v1/forms/responses/response-revision-acme-2");
+    expect(completedDetail).toMatchObject({ response: { id: "response-revision-acme-2" }, revision: { revision: 2 } });
 
     window.history.replaceState(null, "", "/?fixture=forms-communication-compose");
     expect((await staticDemoRequest<{ items: unknown[] }>("/api/v1/forms/communications/profiles")).items).toHaveLength(1);

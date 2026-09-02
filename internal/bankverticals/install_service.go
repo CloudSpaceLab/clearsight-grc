@@ -51,6 +51,9 @@ func (s *Service) InstallSample(ctx context.Context, config SeedConfig) ([]Journ
 	if err := s.ensureLegacyFinding(ctx, config, program, sourceIDs["INTERNAL-AUDIT-2024"]); err != nil {
 		return nil, err
 	}
+	if err := s.ensureOversightHistory(ctx, config); err != nil {
+		return nil, err
+	}
 	return s.List(ctx, config.TenantID)
 }
 

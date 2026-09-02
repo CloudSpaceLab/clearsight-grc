@@ -7,7 +7,7 @@ import { SentFormsView } from "./SentFormsView";
 
 const formApi = vi.hoisted(() => ({ loadReusableFormTemplateRefs: vi.fn() }));
 const distributionApi = vi.hoisted(() => ({
-  amendDistribution: vi.fn(), createDistribution: vi.fn(), loadRecipientCandidates: vi.fn(), loadDistributionPage: vi.fn(), loadDistribution: vi.fn(), previewDistributionSupersession: vi.fn(), supersedeDistribution: vi.fn(), transitionDistribution: vi.fn(), loadResponseRevisions: vi.fn(),
+  amendDistribution: vi.fn(), createDistribution: vi.fn(), loadRecipientCandidates: vi.fn(), loadDistributionPage: vi.fn(), loadDistribution: vi.fn(), previewDistributionSupersession: vi.fn(), supersedeDistribution: vi.fn(), transitionDistribution: vi.fn(), loadResponseRevisions: vi.fn(), loadCompletedResponses: vi.fn(), loadCompletedResponse: vi.fn(),
 }));
 vi.mock("../../formsApi", () => formApi);
 vi.mock("../../formsDistributionApi", () => distributionApi);
@@ -31,6 +31,12 @@ const responseRevision = {
   signoff_summary: { attested: true }, compliance_score: 92, scored_weight_coverage: 100, state: "FINAL",
   critical_field_results: [], scoring_policy_version: "policy-1", current: true, created_at: "2026-08-28T12:00:00Z",
 } as const;
+const completedResponse = {
+  id: "revision-2", distribution_id: "dist-a", form_template_id: "form-a", form_template_version: 4,
+  title: "Quarterly control review", subject_type: "CONTROL", subject_id: "control-a", revision: 2,
+  current: true, state: "FINAL", completed_at: "2026-08-28T12:00:00Z",
+  score: { mode: "COMPLIANCE", direction: "LOW_IS_POOR", raw_score: 92, adverse_score: 8, band: "LOW", coverage: 1, final: true, state: "FINAL", profile_version: "policy-1", profile_checksum: "checksum", evaluator_version: "formcontract-v1", calculated_at: "2026-08-28T12:00:00Z" },
+} as const;
 
 beforeEach(() => {
   window.history.replaceState(null, "", "/?safe=1#forms");
@@ -42,6 +48,8 @@ beforeEach(() => {
   distributionApi.loadDistributionPage.mockResolvedValue({ items: [distribution] });
   distributionApi.loadDistribution.mockResolvedValue(detail);
   distributionApi.loadResponseRevisions.mockResolvedValue({ items: [] });
+  distributionApi.loadCompletedResponses.mockResolvedValue({ items: [completedResponse] });
+  distributionApi.loadCompletedResponse.mockResolvedValue({ response: completedResponse, revision: { ...responseRevision, score: completedResponse.score } });
   distributionApi.amendDistribution.mockResolvedValue({ detail: { ...detail, distribution: { ...distribution, deadline: "2027-09-02T12:00:00Z", version: 3 } }, impact: { deadline_changed: true, recipients_added: 1 } });
   distributionApi.previewDistributionSupersession.mockResolvedValue({ distribution_id: "dist-a", expected_version: 2, expected_workspace_version: 3, target_form_template_id: "form-a", target_form_version: 5, compatible_fields: [{ field_id: "legal-name" }], excluded_fields: [{ field_id: "certificate", reason: "Field type changed" }] });
   distributionApi.supersedeDistribution.mockResolvedValue({ previous: { ...detail, distribution: { ...distribution, status: "SUPERSEDED", version: 3 } }, replacement: { ...detail, distribution: { ...distribution, id: "dist-b", form_template_version: 5, version: 2 } }, carried_field_ids: ["legal-name"] });
@@ -93,16 +101,14 @@ describe("Task 11 governed form views", () => {
     await waitFor(() => expect(distributionApi.supersedeDistribution).toHaveBeenCalledWith("dist-a", expect.objectContaining({ expected_version: 2, expected_workspace_version: 3, target_form_version: 5, carry_forward: true, confirmed_field_ids: ["legal-name"] })));
   });
 
-  it("shows immutable response revision state without mutation controls", async () => {
-    distributionApi.loadResponseRevisions.mockResolvedValue({ items: [responseRevision] });
+  it("shows score-aware immutable response state without mutation controls", async () => {
     render(<ResponsesView/>);
-    expect(await screen.findByText("Revision 2 · Current")).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Response distributions" })).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Version history" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Revision 2.*Current/ }).getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByText("Email Verified")).toBeTruthy();
-    expect(screen.getByText("92%")).toBeTruthy();
-    expect(screen.getByText(/Submitted versions cannot be changed/)).toBeTruthy();
+    expect(await screen.findByText("Quarterly control review")).toBeTruthy();
+    expect(screen.getByRole("table", { name: "Completed form responses" })).toBeTruthy();
+    expect(screen.getByText("92% compliance")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Review Quarterly control review response" }));
+    expect(await screen.findByText("Email verified")).toBeTruthy();
+    expect(screen.getByText(/submitted version cannot be changed/i)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Edit response" })).toBeNull();
   });
 
@@ -114,9 +120,8 @@ describe("Task 11 governed form views", () => {
     expect(sentResults.violations.map((violation) => violation.id)).toEqual([]);
     sent.unmount();
 
-    distributionApi.loadResponseRevisions.mockResolvedValue({ items: [responseRevision] });
     const responses = render(<ResponsesView/>);
-    expect(await screen.findByText("Revision 2 · Current")).toBeTruthy();
+    expect(await screen.findByText("Quarterly control review")).toBeTruthy();
     const responseResults = await axe.run(responses.container, { rules: { "color-contrast": { enabled: false } } });
     expect(responseResults.violations.map((violation) => violation.id)).toEqual([]);
   });

@@ -93,6 +93,7 @@ Migration is explicit rather than inferred from visual similarity. A file is mig
 
 - **Intervention Summary:** actor-scoped read projection for one human review, decision, authorization, evidence exception, escalation or outcome check. It is not new authoritative state.
 - **Today:** intervention queue first; quiet status-check context follows the work rather than preceding it with a KPI wall.
+- **Oversight:** freshness and coverage first, including projection version and source high-water detail, then ranked intervention records. Risk pressure, minimum-five historical resolution ranges and owner workload/history remain supporting analysis rather than personal assignments, employee scores or rankings. Unknown event-history measures display as unknown rather than zero.
 - **Programs:** ongoing responsibilities, current status and reasons. The portfolio remains a bounded searchable list; an exact Program opens a dedicated operating record. Show calculated-state freshness, reasons, named owner and one dominant actor action before details, requirements, safeguards, evidence, monitoring and linked issues.
 - **Issues and changes:** bounded items needing review, decision, action, response or outcome confirmation. Show the current handoff before history.
 - **Work:** review queues and focused evidence. Complete source inventories are secondary context.
@@ -180,6 +181,10 @@ Internal review shows only the exact scoped response, answer provenance, coverag
 ### Governed Forms workspace
 
 Forms is a direct primary navigation surface. Its default view is a bounded searchable template library, not a creation wizard. The library distinguishes the latest stored revision from the active reusable revision, supports saved views and keeps filters available for banks with hundreds of Programs, Matters and vendor relationships. Template detail, editor, sender, response history, import handoff and communications remain tabs within the same visual system.
+
+Advanced scoring remains inside the form inspector rather than opening a raw rules console. Contributions, typed comparisons, bounded rule groups, effects and band ranges use shared field, select, button and notice contracts. The inspector scrolls independently; narrow rule rows stack in source order. Score preview is one dominant action and is available only for an exact saved revision. Its result names raw score, adverse concern, coverage, band and rule effects without implying evidence acceptance or compliance.
+
+Forms Policies is a peer workspace backed only by stored policy rows. Its lifecycle presents one dominant action for the selected state: simulate, submit, approve, activate, suspend or roll back. Draft creation captures the exact form revision, subject population, automation-policy revision, blast radius, effective window, Matter handling and outcome check in a focused dialog. Shared fixed-overlay selects must not resize the workspace, shift sticky columns or scroll the document. Empty, sign-in, unavailable, retained-data and command-failure states name the legal-entity policy population and the valid recovery action.
 
 The sender has one dominant **Create and dispatch** action after an exact active revision, subject, purpose, future deadline, access expiry and at least one To recipient are valid. Internal directory search and external email entry share the same recipient list with explicit To/CC roles. Sent-form detail exposes real lifecycle actions. Amendment uses native date-time inputs, adds or revokes recipients and explains retained response history. Form replacement first shows compatible and excluded answers; it never carries answers without explicit confirmation.
 

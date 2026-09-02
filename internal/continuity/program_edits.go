@@ -26,12 +26,14 @@ type UpdateProgramDetailsInput struct {
 }
 
 type AssignProgramInput struct {
-	TenantID         string `json:"tenant_id"`
-	ProgramID        string `json:"program_id"`
-	ExpectedVersion  int64  `json:"expected_version"`
-	OwnerPrincipalID string `json:"owner_principal_id"`
-	ActorID          string `json:"actor_id,omitempty"`
-	Rationale        string `json:"rationale"`
+	TenantID                    string `json:"tenant_id"`
+	ProgramID                   string `json:"program_id"`
+	ExpectedVersion             int64  `json:"expected_version"`
+	OwnerPrincipalID            string `json:"owner_principal_id"`
+	ActorID                     string `json:"actor_id,omitempty"`
+	Rationale                   string `json:"rationale"`
+	ReassignmentBasis           string `json:"reassignment_basis,omitempty"`
+	OrganizationPositionVersion int64  `json:"organization_position_version,omitempty"`
 }
 
 type AssignProgramApprovalAuthorityInput struct {
@@ -69,10 +71,12 @@ type programDetailsUpdatedEvent struct {
 }
 
 type programOwnerChangedEvent struct {
-	Program          Program `json:"program"`
-	PreviousOwnerID  string  `json:"previous_owner_principal_id,omitempty"`
-	OwnerPrincipalID string  `json:"owner_principal_id"`
-	Rationale        string  `json:"rationale"`
+	Program                     Program `json:"program"`
+	PreviousOwnerID             string  `json:"previous_owner_principal_id,omitempty"`
+	OwnerPrincipalID            string  `json:"owner_principal_id"`
+	Rationale                   string  `json:"rationale"`
+	ReassignmentBasis           string  `json:"reassignment_basis,omitempty"`
+	OrganizationPositionVersion int64   `json:"organization_position_version,omitempty"`
 }
 
 type programApprovalAuthorityChangedEvent struct {
@@ -144,7 +148,7 @@ func (s *Service) AssignProgram(ctx context.Context, input AssignProgramInput) (
 	program := aggregate.Program
 	program.OwnerPrincipalID = ownerID
 	program.UpdatedAt = s.now().UTC()
-	event := programOwnerChangedEvent{Program: program, PreviousOwnerID: aggregate.Program.OwnerPrincipalID, OwnerPrincipalID: ownerID, Rationale: strings.TrimSpace(input.Rationale)}
+	event := programOwnerChangedEvent{Program: program, PreviousOwnerID: aggregate.Program.OwnerPrincipalID, OwnerPrincipalID: ownerID, Rationale: strings.TrimSpace(input.Rationale), ReassignmentBasis: strings.TrimSpace(input.ReassignmentBasis), OrganizationPositionVersion: input.OrganizationPositionVersion}
 	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID, input.ExpectedVersion, EventProgramOwnerChanged, event, input.ActorID, input.ProgramID)
 }
 

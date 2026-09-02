@@ -15,21 +15,20 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentcoverage"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
-
-const todayItemLimit = 50
 
 func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serviceSet, error) {
 	version, rules := authority.DemoPolicySet()
@@ -37,6 +36,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		version = "no-demo-policy"
 		rules = nil
 	}
+	authorityService := authority.NewResolver(version, rules)
 	autonomyRepo := autonomy.NewMemoryRepository()
 	auto := autonomy.NewService(autonomyRepo)
 	if cfg.DemoMode {
@@ -84,6 +84,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		return serviceSet{}, err
 	}
 	distributionService := evidence.NewDistributionService(distributionStore)
+	formPolicies := formpolicy.NewService(formpolicy.NewMemoryRepository(), formDistributionReader{repo: monitoringRepo}, distributionService)
+	formPolicies.ConfigureActivationAuthority(formPolicyActivationAuthority{Automation: auto, Authority: authorityService, Subjects: evidence.CanonicalSubjectTypeRegistry{}})
 	communicationService := evidence.NewCommunicationService(evidence.NewMemoryCommunicationStore())
 	communicationBrands := evidence.NewCommunicationBrandService(evidence.NewMemoryCommunicationBrandStore(), store)
 	communicationDelivery, err := configuredCommunicationDelivery(cfg)
@@ -106,7 +108,15 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	configureReferenceVerticals(verticals, monitoringService)
 	if cfg.DemoMode {
-		if _, err := verticals.InstallSample(ctx, bankverticals.DemoSeedConfig()); err != nil {
+		referenceNow := time.Now().UTC()
+		verticals.ConfigureReferenceTimeline(func(at time.Time) *continuity.Service {
+			service := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return at.UTC() })
+			service.ConfigureEvidenceSourceValidator(evidenceService)
+			return service
+		})
+		seed := bankverticals.DemoSeedConfig()
+		seed.Now = referenceNow
+		if _, err := verticals.InstallSample(ctx, seed); err != nil {
 			return serviceSet{}, err
 		}
 		maintainer := &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepo, WorkerID: "memory-bank-journeys"}
@@ -126,38 +136,27 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		tasks = nil
 	}
 	workflowService := workflow.NewService(workflow.NewMemoryRepository(tasks))
-	todayService := today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {
-		if cfg.DemoMode {
-			journeys, err := verticals.List(loadCtx, actor.TenantID)
-			if err != nil {
-				return nil, err
-			}
-			visible := make([]bankverticals.Journey, 0, len(journeys))
-			for _, journey := range journeys {
-				if journey.VisibleTo(actor.PrincipalID) {
-					visible = append(visible, journey)
-				}
-			}
-			return bankverticals.TodayItems(visible, time.Now().UTC()), nil
+	backgroundJobs := operations.NewService(continuityRepo, runtimeRepo)
+	todayService := actorTodayService(workflowService, nil, backgroundJobs)
+	oversightRepo := oversight.NewMemoryRepository(nil)
+	if cfg.DemoMode {
+		matters, listErr := continuityService.ListMatters(continuity.WithTrustedSystemScope(ctx), cfg.DemoTenantID, "", 200)
+		if listErr != nil {
+			return serviceSet{}, listErr
 		}
-
-		assigned, err := workflowService.List(loadCtx, workflow.ListFilter{
-			TenantID: actor.TenantID, PrincipalID: actor.PrincipalID,
-			ActiveOnly: true, VisibleMatterWorkOnly: true, Limit: todayItemLimit,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return today.FromWorkflowTasksForActor(assigned, actor.PrincipalID), nil
-	})
+		oversightRepo.Put(oversight.FromMatterAggregates(cfg.DemoTenantID, cfg.DemoLegalEntityID, matters, time.Now().UTC()))
+	}
+	oversightService := oversight.NewService(oversightRepo)
 
 	return serviceSet{
-		Mode: "memory", Authority: authority.NewResolver(version, rules), Governance: governance.NewService(governance.NewMemoryRepository()),
+		Mode: "memory", Authority: authorityService, Governance: governance.NewService(governance.NewMemoryRepository()),
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
-		ObjectStore: store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService,
+		FormPolicies: formPolicies,
+		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService, Oversight: oversightService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
-		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: operations.NewService(continuityRepo, runtimeRepo), Close: func() {},
+		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Close: func() {},
+		RuntimeContext: runtimecontext.IdentifierResolver{},
 	}, nil
 }
 

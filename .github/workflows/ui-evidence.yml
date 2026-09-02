@@ -34,16 +34,15 @@ jobs:
       - name: Validate component contracts
         run: |
           npm run typecheck
+          npm run check:runtime-truth
           npm test
-      - name: Build deterministic stakeholder application
-        env:
-          VITE_STATIC_DEMO: "true"
-          VITE_UI_EVIDENCE: "true"
-          VITE_API_BASE_URL: ""
-        run: npm run build -- --base=/
+      - name: Build customer and deterministic evidence applications
+        run: |
+          npm run build
+          npm run build:evidence -- --base=/
       - name: Start local preview
         run: |
-          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/clearsight-ui-preview.log 2>&1 &
+          npm run preview:evidence -- --host 127.0.0.1 --port 4173 > /tmp/clearsight-ui-preview.log 2>&1 &
           echo $! > /tmp/clearsight-ui-preview.pid
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then

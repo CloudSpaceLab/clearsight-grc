@@ -1,4 +1,5 @@
 import type { FormScoringMode, ReusableFormTemplateRef } from "../../formsTypes";
+import type { FormScoreProfile } from "../../monitoringTypes";
 import type {
   CreateFormTemplateInput,
   FormFieldType,
@@ -16,6 +17,7 @@ export type FormDraft = {
   name: string;
   purpose: string;
   scoringMode: FormScoringMode;
+  scoreProfile?: FormScoreProfile;
   presentation: CapturePresentationMode;
   allowModeSwitch: boolean;
   sections: AuthoringSection[];
@@ -73,7 +75,8 @@ export function draftFromTemplate(template?: MonitoringFormTemplate): FormDraft 
     code: template.code,
     name: template.name,
     purpose: template.purpose,
-    scoringMode: template.scoring_mode ?? inferScoringMode(template.fields),
+    scoringMode: template.scoring_mode ?? inferScoringMode(template.fields, template.score_profile),
+    scoreProfile: cloneScoreProfile(template.score_profile),
     presentation: template.presentation?.default_mode ?? "AUTOMATIC",
     allowModeSwitch: template.presentation?.allow_mode_switch ?? false,
     sections: (template.sections?.length ? template.sections : [{ id: "section_1", title: "Questions" }]).map(cloneSection),
@@ -283,6 +286,7 @@ export function buildCreateInput(draft: FormDraft): CreateFormTemplateInput {
     name: draft.name.trim(),
     purpose: draft.purpose.trim(),
     scoring_mode: draft.scoringMode,
+    ...(draft.scoreProfile && draft.scoringMode !== "NONE" ? { score_profile: cloneScoreProfile(draft.scoreProfile) } : {}),
     presentation: { default_mode: draft.presentation, allow_mode_switch: draft.allowModeSwitch },
     sections: draft.sections.map((section) => ({
       id: section.id.trim(),
@@ -390,8 +394,22 @@ function cloneCondition(condition?: CaptureVisibilityCondition) {
   return condition ? { ...condition, values: condition.values ? [...condition.values] : undefined } : undefined;
 }
 
-function inferScoringMode(fields: FormTemplateField[]): FormScoringMode {
-  return fields.some((field) => field.scoring) ? "RISK" : "NONE";
+function inferScoringMode(fields: FormTemplateField[], profile?: FormScoreProfile): FormScoringMode {
+  return profile?.mode ?? (fields.some((field) => field.scoring) ? "RISK" : "NONE");
+}
+
+function cloneScoreProfile(profile?: FormScoreProfile): FormScoreProfile | undefined {
+  if (!profile) return undefined;
+  return {
+    ...profile,
+    contributions: profile.contributions.map((contribution) => ({ ...contribution, predicate: cloneScorePredicate(contribution.predicate) })),
+    rules: profile.rules?.map((rule) => ({ ...rule, predicate: cloneScorePredicate(rule.predicate), effect: { ...rule.effect } })),
+    bands: profile.bands.map((band) => ({ ...band })),
+  };
+}
+
+function cloneScorePredicate<T extends { values?: string[]; children?: T[] }>(predicate: T): T {
+  return { ...predicate, values: predicate.values ? [...predicate.values] : undefined, children: predicate.children?.map(cloneScorePredicate) };
 }
 
 function normalizedCode(value: string) {

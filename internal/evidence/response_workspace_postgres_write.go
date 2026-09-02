@@ -142,17 +142,50 @@ func insertPostgresResponseRevision(ctx context.Context, tx pgx.Tx, revision Res
 	if revision.ComplianceScore != nil {
 		score = *revision.ComplianceScore
 	}
+	var scoreMode, scoreDirection, rawScore, adverseScore, concernBand, scoreResult, scoreCalculatedAt any
+	scoreState := ResponseScoreNotConfigured
+	scoreChecksum := ""
+	if revision.Score != nil {
+		scoreState = revision.Score.State
+		scoreChecksum = revision.Score.ProfileChecksum
+		if revision.Score.Mode != "" {
+			scoreMode = revision.Score.Mode
+		}
+		if revision.Score.Direction != "" {
+			scoreDirection = revision.Score.Direction
+		}
+		if revision.Score.RawScore != nil {
+			rawScore = *revision.Score.RawScore
+		}
+		if revision.Score.AdverseScore != nil {
+			adverseScore = *revision.Score.AdverseScore
+		}
+		if revision.Score.Band != "" {
+			concernBand = revision.Score.Band
+		}
+		encoded, encodeErr := json.Marshal(revision.Score)
+		if encodeErr != nil {
+			return ErrWorkspaceUnavailable
+		}
+		scoreResult = string(encoded)
+		if !revision.Score.CalculatedAt.IsZero() {
+			scoreCalculatedAt = revision.Score.CalculatedAt.UTC()
+		}
+	}
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO capture_response_revisions(
 			id,tenant_id,legal_entity_id,distribution_id,workspace_id,submission_id,revision,supersedes_revision_id,
 			achieved_assurance,signoff_summary,compliance_score,scored_weight_coverage,state,critical_field_results,
-			scoring_policy_version,is_current,created_at
+			scoring_policy_version,is_current,created_at,score_mode,score_direction,raw_score,adverse_score,concern_band,
+			score_state,score_result,score_profile_checksum,score_calculated_at
 		) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,$7,NULLIF($8,'')::uuid,
-			$9,$10::jsonb,$11,$12,$13,$14::jsonb,$15,true,$16)`,
+			$9,$10::jsonb,$11,$12,$13,$14::jsonb,$15,true,$16,NULLIF($17,''),NULLIF($18,''),$19,$20,NULLIF($21,''),
+			$22,$23::jsonb,$24,$25)`,
 		revision.ID, revision.TenantID, revision.LegalEntityID, revision.DistributionID, revision.WorkspaceID,
 		revision.SubmissionID, revision.Revision, revision.SupersedesRevisionID, revision.AchievedAssurance,
 		string(signoffJSON), score, revision.ScoredWeightCoverage, revision.State, string(criticalJSON),
-		revision.ScoringPolicyVersion, revision.CreatedAt.UTC()); err != nil {
+		revision.ScoringPolicyVersion, revision.CreatedAt.UTC(), scoreMode, scoreDirection, rawScore, adverseScore, concernBand,
+		scoreState, scoreResult, scoreChecksum, scoreCalculatedAt); err != nil {
 		return ErrWorkspaceUnavailable
 	}
 	return nil
@@ -188,6 +221,39 @@ func appendPostgresWorkspaceEvent(ctx context.Context, tx pgx.Tx, session Distri
 			tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at
 		) VALUES($1::uuid,'FORM_DISTRIBUTION',$2::uuid,$3,$4::jsonb,$5,$5,$5)`,
 		session.TenantID, session.DistributionID, baseEventType, string(payloadJSON), now.UTC()); err != nil {
+		return ErrWorkspaceUnavailable
+	}
+	return nil
+}
+
+func appendPostgresScoredResponseEvent(ctx context.Context, tx pgx.Tx, session DistributionAccessSession, distributionVersion int64, request Request, revision ResponseRevision, now time.Time) error {
+	scoreState := ResponseScoreNotConfigured
+	if revision.Score != nil {
+		scoreState = revision.Score.State
+	}
+	eventType := fmt.Sprintf("FORM_RESPONSE_SCORED_%d", revision.Revision)
+	payload := map[string]any{
+		"version": revision.Revision, "response_revision_id": revision.ID,
+		"form_template_id": request.FormTemplateID, "form_template_version": request.FormTemplateVersion,
+		"score_state": string(scoreState),
+	}
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return ErrWorkspaceUnavailable
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO capture_distribution_events(
+			tenant_id,legal_entity_id,distribution_id,distribution_version,event_type,payload,actor_id,occurred_at
+		) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6::jsonb,NULL,$7)`,
+		session.TenantID, session.LegalEntityID, session.DistributionID, distributionVersion,
+		eventType, string(payloadJSON), now.UTC()); err != nil {
+		return ErrWorkspaceUnavailable
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO outbox_events(
+			tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at
+		) VALUES($1::uuid,'FORM_DISTRIBUTION',$2::uuid,'FORM_RESPONSE_SCORED',$3::jsonb,$4,$4,$4)`,
+		session.TenantID, session.DistributionID, string(payloadJSON), now.UTC()); err != nil {
 		return ErrWorkspaceUnavailable
 	}
 	return nil

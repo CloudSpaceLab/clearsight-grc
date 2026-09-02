@@ -7,9 +7,9 @@ export function DemoEnvironmentMenu({ onOpenReferenceJourneys }: { onOpenReferen
   const summaryLabel = session ? `${summaryText}. Open demo account menu` : summaryText;
 
   return <details className="demo-environment-menu">
-    <summary role="button" aria-label={summaryLabel}>{summaryText}</summary>
+    <summary role="button" aria-label={summaryLabel}>{session ? `Viewing as ${session.currentAccountLabel}` : "Demo environment"}</summary>
     <div className="shell-popover" role="group" aria-label="Demo environment tools">
-      <div><strong>{onOpenReferenceJourneys ? "Non-production sample data" : "Demo account"}</strong><span>{onOpenReferenceJourneys ? "Use the same enterprise workspace with reference records and optional scenario guidance." : "Change the signed-in demo account to review this workspace with different responsibilities and access."}</span></div>
+      <div><strong>Non-production sample data</strong><span>This workspace contains seeded reference records for role-based testing.</span></div>
       {session && <div className="demo-environment-account" aria-live="polite">
         <span>Viewing as</span>
         <strong>{session.currentAccountLabel}</strong>

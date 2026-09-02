@@ -19,7 +19,7 @@ Add light/dark, 200% zoom, reduced motion, translated copy and assistive-technol
 
 ## CI capture is the default proof path
 
-For frontend changes, `.github/workflows/ui-evidence.yml` is the default rendered-evidence path. It builds the deterministic static stakeholder application, launches it locally, and executes `web/scripts/capture-ui-evidence.mjs` with a pinned Playwright runtime.
+For frontend changes, `.github/workflows/ui-evidence.yml` is the default rendered-evidence path. It builds the deterministic evidence application from its isolated entry, launches `dist-evidence` locally, and executes `web/scripts/capture-ui-evidence.mjs` with a pinned Playwright runtime. The deployable customer entry never imports the static request interceptor or fixture pages; `npm run check:runtime-truth` enforces that import-graph boundary before either bundle is accepted.
 
 The workflow is also triggered by backend read-contract changes that can alter what the UI may truthfully render, including Today projection, authority resolution, actor context/identity capabilities and the executable runtime API contract. This prevents a visually stable fixture from silently drifting behind server semantics.
 
@@ -118,6 +118,16 @@ The lossless dark-theme cover at `docs/presentation-assets/clearsight-premium-fi
 Mechanical checks fail CI for conditions such as unexpected horizontal overflow, browser runtime errors, loss of the first Today action from the unobstructed first viewport, focus escaping a focused-work sheet, authority-detail leakage in a forbidden state, terminal requests exposing submission actions, degraded views hiding still-available context, external capture asking for a known address again, or a required field-agent happy path depending on free-text explanation.
 
 The suite deliberately uses production-shaped readiness and import fixtures rather than inventing stronger product truth. Static fixture schemas for authority, projection health, evidence capture and reconciliation are test-locked to the browser contracts they exercise.
+
+## Accepted builder containment and owner-action evidence
+
+On 1 September 2026 the full managed UI review passed 128/128 rendered flow records, 72/72 governed Forms capabilities, all nine executable runners, all eight accessibility/touch states and the interaction bundle budgets after the Form Builder containment correction.
+
+The inspected `116-forms-builder-large-performance-light-1440x900.png` state contains ten sections and 120 questions. The scenario selects question 100, independently scrolls the complete outline pane to its end, expands **Reuse approved section**, and verifies that the pane owns overflow and that fully visible outline controls do not overlap. The retained render shows section 10, questions 109–120, add actions and the expanded reusable-template control in one contained rail while the canvas and inspector retain their own positions.
+
+Matter workspace tests additionally render a scope-and-owner handoff with `matter.assign` as the dominant operation and require exactly one visible **Change issue owner** control. Invoking that single control opens the governed reassignment sheet directly; no second detail-panel control remains visible in the same state.
+
+The automated pane geometry assertion complements rather than replaces visual inspection. Native browser zoom and representative assistive-technology acceptance remain part of final release acceptance.
 
 ## Input and upload review
 

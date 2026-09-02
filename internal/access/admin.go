@@ -74,6 +74,24 @@ type GroupRoleBindingSummary struct {
 	ValidUntil     *time.Time `json:"valid_until,omitempty"`
 }
 
+type PositionSummary struct {
+	ID                  string     `json:"id"`
+	Code                string     `json:"code"`
+	Title               string     `json:"title"`
+	FunctionName        string     `json:"function_name,omitempty"`
+	DepartmentPath      []string   `json:"department_path"`
+	ParentPositionID    string     `json:"parent_position_id,omitempty"`
+	ParentPositionCode  string     `json:"parent_position_code,omitempty"`
+	ParentPositionTitle string     `json:"parent_position_title,omitempty"`
+	OccupantPrincipalID string     `json:"occupant_principal_id,omitempty"`
+	OccupantName        string     `json:"occupant_name,omitempty"`
+	OccupantStatus      string     `json:"occupant_status,omitempty"`
+	RoleCodes           []string   `json:"role_codes"`
+	ValidFrom           time.Time  `json:"valid_from"`
+	ValidUntil          *time.Time `json:"valid_until,omitempty"`
+	Version             int64      `json:"version"`
+}
+
 type EscalationRuntimeStatus struct {
 	PendingTimers  int `json:"pending_timers"`
 	EscalatedTasks int `json:"escalated_tasks"`
@@ -88,7 +106,17 @@ type AdminOverview struct {
 	Roles         []RoleTemplateSummary     `json:"roles"`
 	LegalEntities []LegalEntitySummary      `json:"legal_entities"`
 	Bindings      []GroupRoleBindingSummary `json:"bindings"`
+	Positions     []PositionSummary         `json:"positions"`
 	Escalation    EscalationRuntimeStatus   `json:"escalation"`
+}
+
+// OperationalStatus is the bounded exception projection used by actor-facing
+// administration queues. It deliberately excludes people, group membership,
+// role bindings and other configuration detail that is not needed to decide
+// whether an administrator must act.
+type OperationalStatus struct {
+	SourceExceptions []SCIMSourceSummary     `json:"source_exceptions"`
+	Escalation       EscalationRuntimeStatus `json:"escalation"`
 }
 
 type CreateSCIMSourceInput struct {

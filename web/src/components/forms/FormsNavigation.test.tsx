@@ -11,7 +11,7 @@ describe("FormsNavigation", () => {
       return <FormsNavigation activeTab={active} onChange={(tab) => { changed(tab); setActive(tab); }}><p>{active} workspace</p></FormsNavigation>;
     }
     render(<Harness/>);
-    expect(screen.getAllByRole("tab")).toHaveLength(5);
+    expect(screen.getAllByRole("tab")).toHaveLength(6);
     const templates = screen.getByRole("tab", { name: "Templates" });
     templates.focus();
     fireEvent.keyDown(templates, { key: "ArrowRight" });

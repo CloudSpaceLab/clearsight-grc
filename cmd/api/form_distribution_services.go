@@ -18,7 +18,7 @@ func (reader formDistributionReader) GetDistributionFormRevision(ctx context.Con
 	}
 	return evidence.DistributionFormRevision{
 		ID: form.ID, TenantID: form.TenantID, LegalEntityID: form.LegalEntityID, Version: form.Version,
-		Sensitivity: form.Sensitivity, Presentation: form.Presentation,
+		Sensitivity: form.Sensitivity, Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile,
 		Sections: append([]formcontract.Section(nil), form.Sections...),
 		Fields:   append([]formcontract.Field(nil), form.Fields...),
 		Active:   form.Status == monitoring.LifecycleActive && form.IsCurrent,

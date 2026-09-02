@@ -29,19 +29,6 @@ func (a *API) ready(w http.ResponseWriter, _ *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ready", "mode": a.deps.Mode, "revision": revision})
 }
 
-func (a *API) context(w http.ResponseWriter, _ *http.Request) {
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{
-		"tenant":       map[string]string{"id": "bank-demo", "name": "Clear Bank"},
-		"legal_entity": map[string]string{"id": "bank-ng", "name": "Clear Bank Nigeria"},
-		"actor":        map[string]string{"id": "user-demo", "name": "Amaka Okafor", "role": "Control Assurance Lead"},
-		"mode":         a.deps.Mode,
-	})
-}
-
-func (a *API) today(w http.ResponseWriter, _ *http.Request) {
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": a.deps.Today.List(), "generated_at": time.Now().UTC()})
-}
-
 func (a *API) resolveAuthority(w http.ResponseWriter, r *http.Request) {
 	var input authority.ResolveInput
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {

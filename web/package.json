@@ -9,11 +9,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:evidence": "tsc -b && vite build --config vite.evidence.config.ts",
     "typecheck": "tsc -b --pretty false",
+    "check:runtime-truth": "node --test scripts/runtime-fixture-boundary.nodecheck.mjs",
     "check:ui-contracts": "node --test scripts/ui-contract.nodecheck.mjs",
     "test": "vitest run",
     "review:ui": "node scripts/run-ui-ux-review.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:evidence": "vite preview --config vite.evidence.config.ts"
   },
   "dependencies": {
     "@lexical/history": "0.49.0",

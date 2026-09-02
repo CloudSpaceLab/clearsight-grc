@@ -3,6 +3,16 @@ import type { CaptureFieldConstraints, CapturePresentation, CaptureSection, Capt
 export type LifecycleStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "REJECTED" | "PAUSED" | "RETIRED";
 export type RiskBand = "LOW" | "MODERATE" | "HIGH" | "CRITICAL" | "NOT_ASSESSED";
 export type FormScoringMode = "NONE" | "RISK" | "COMPLIANCE";
+export type FormScoreDirection = "HIGH_IS_POOR" | "LOW_IS_POOR";
+export type FormConcernBand = "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
+export type FormScoreMissing = "INDETERMINATE" | "EXCLUDE" | "ZERO";
+export type FormScorePredicateOperator = "EQUALS" | "NOT_EQUALS" | "IN" | "NOT_IN" | "CONTAINS" | "CONTAINS_ANY" | "CONTAINS_ALL" | "GREATER_THAN" | "GREATER_OR_EQUAL" | "LESS_THAN" | "LESS_OR_EQUAL" | "NUMBER_BETWEEN" | "DATE_BEFORE" | "DATE_ON_OR_AFTER" | "DATE_BETWEEN" | "ANSWERED" | "UNANSWERED" | "AND" | "OR" | "NOT";
+export type FormScorePredicate = { field_id?: string; operator: FormScorePredicateOperator; values?: string[]; children?: FormScorePredicate[] };
+export type FormScoreContribution = { id: string; label: string; weight: number; predicate: FormScorePredicate; match_points: number; non_match_points: number; missing: FormScoreMissing; required?: boolean };
+export type FormScoreRuleEffect = { kind: "CONTRIBUTION" | "FLOOR" | "CAP" | "DISQUALIFY"; value?: number; weight?: number };
+export type FormScoreRule = { id: string; label: string; predicate: FormScorePredicate; effect: FormScoreRuleEffect };
+export type FormScoreBandRange = { band: FormConcernBand; from: number; through: number };
+export type FormScoreProfile = { version: string; mode: Exclude<FormScoringMode, "NONE">; direction: FormScoreDirection; contributions: FormScoreContribution[]; rules?: FormScoreRule[]; bands: FormScoreBandRange[] };
 export type FormCollectionIntent = "CAPTURE" | "CONFIRM_OR_CORRECT" | "REPLACE_HELD_DOCUMENT";
 export type FormBrowserCachePolicy = "ALLOWED" | "NO_BROWSER_CACHE";
 export type FormRecordTarget = { key: string; required_subject_type: string };
@@ -49,6 +59,7 @@ export type CreateFormTemplateInput = {
   name: string;
   purpose: string;
   scoring_mode?: FormScoringMode;
+  score_profile?: FormScoreProfile;
   presentation: CapturePresentation;
   sections: FormTemplateSection[];
   fields: FormTemplateField[];
@@ -77,6 +88,7 @@ export type FormTemplate = Lifecycle & {
   name: string;
   purpose: string;
   scoring_mode?: FormScoringMode;
+  score_profile?: FormScoreProfile;
   presentation?: CapturePresentation;
   sections?: FormTemplateSection[];
   fields: FormTemplateField[];

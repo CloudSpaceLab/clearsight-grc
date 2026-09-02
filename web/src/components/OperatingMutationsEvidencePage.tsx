@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "../program-record.css";
 import type { MatterAggregate, ProgramAggregate, WorkflowTask } from "../types";
 import { MatterWorkCommand } from "./MatterWorkCommandPanel";
 import { ProgramLifecycleControls } from "./ProgramLifecycleControls";

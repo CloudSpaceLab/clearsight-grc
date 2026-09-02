@@ -8,12 +8,9 @@ psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 \
 BEGIN;
 INSERT INTO tenants(id, slug, name)
 VALUES ('00000000-0000-4000-8000-000000000001', 'clearsight-demo', 'Clear Bank')
-ON CONFLICT (id) DO NOTHING;
-
-UPDATE tenants
-SET name = 'Clear Bank'
-WHERE id = '00000000-0000-4000-8000-000000000001'
-  AND name IN ('ClearSight Demonstration Bank', 'Demo Bank', 'Clear Bank');
+ON CONFLICT (id) DO UPDATE
+SET slug = EXCLUDED.slug,
+    name = EXCLUDED.name;
 
 INSERT INTO legal_entities(id, tenant_id, code, name, jurisdiction)
 VALUES (
@@ -21,12 +18,11 @@ VALUES (
   '00000000-0000-4000-8000-000000000001',
   'BANK-NG', 'Clear Bank Nigeria', 'Nigeria'
 )
-ON CONFLICT (id) DO NOTHING;
-
-UPDATE legal_entities
-SET name = 'Clear Bank Nigeria'
-WHERE id = '00000000-0000-4000-8000-000000000002'
-  AND name IN ('Demonstration Bank Nigeria', 'Demo Bank Nigeria', 'Clear Bank Nigeria');
+ON CONFLICT (id) DO UPDATE
+SET tenant_id = EXCLUDED.tenant_id,
+    code = EXCLUDED.code,
+    name = EXCLUDED.name,
+    jurisdiction = EXCLUDED.jurisdiction;
 
 INSERT INTO principals(id, tenant_id, kind, external_ref, display_name)
 VALUES
@@ -38,7 +34,11 @@ VALUES
   ('00000000-0000-4000-8000-000000000106', '00000000-0000-4000-8000-000000000001', 'PERSON', 'demo-auditor', 'Internal Auditor'),
   ('00000000-0000-4000-8000-000000000107', '00000000-0000-4000-8000-000000000001', 'PERSON', 'demo-program-owner', 'Program Owner'),
   ('00000000-0000-4000-8000-000000000108', '00000000-0000-4000-8000-000000000001', 'PERSON', 'demo-evidence-respondent', 'Evidence Respondent')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+SET tenant_id = EXCLUDED.tenant_id,
+    kind = EXCLUDED.kind,
+    external_ref = EXCLUDED.external_ref,
+    display_name = EXCLUDED.display_name;
 
 INSERT INTO role_templates(id, tenant_id, code, name, description, responsibilities, capabilities, valid_from)
 VALUES
@@ -50,7 +50,15 @@ VALUES
   ('00000000-0000-4000-8000-000000000406', '00000000-0000-4000-8000-000000000001', 'INTERNAL_AUDITOR', 'Internal Auditor', 'Independent review and challenge.', ARRAY['REVIEWER','INDEPENDENT_CHALLENGER'], ARRAY['read:all','review:evidence'], '2020-01-01T00:00:00Z'),
   ('00000000-0000-4000-8000-000000000407', '00000000-0000-4000-8000-000000000001', 'PROGRAM_OWNER', 'Program Owner', 'Accountable ownership and assigned implementation work.', ARRAY['ACCOUNTABLE_OWNER','PERFORMER'], ARRAY['manage:program','manage:matter'], '2020-01-01T00:00:00Z'),
   ('00000000-0000-4000-8000-000000000408', '00000000-0000-4000-8000-000000000001', 'EVIDENCE_RESPONDENT', 'Evidence Respondent', 'Assigned evidence collection work.', ARRAY['PERFORMER'], ARRAY['respond:evidence'], '2020-01-01T00:00:00Z')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+SET tenant_id = EXCLUDED.tenant_id,
+    code = EXCLUDED.code,
+    name = EXCLUDED.name,
+    description = EXCLUDED.description,
+    responsibilities = EXCLUDED.responsibilities,
+    capabilities = EXCLUDED.capabilities,
+    valid_from = EXCLUDED.valid_from,
+    valid_until = NULL;
 
 INSERT INTO org_positions(id, tenant_id, legal_entity_id, code, title, function_name, occupant_principal_id, valid_from, department_path)
 VALUES
@@ -62,7 +70,16 @@ VALUES
   ('00000000-0000-4000-8000-000000000306', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 'INTERNAL-AUDITOR', 'Internal Auditor', 'Internal Audit', '00000000-0000-4000-8000-000000000106', '2020-01-01T00:00:00Z', ARRAY['Internal Audit']),
   ('00000000-0000-4000-8000-000000000307', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 'PROGRAM-OWNER', 'Program Owner', 'Risk', '00000000-0000-4000-8000-000000000107', '2020-01-01T00:00:00Z', ARRAY['Risk','Programs']),
   ('00000000-0000-4000-8000-000000000308', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 'EVIDENCE-RESPONDENT', 'Evidence Respondent', 'Operations', '00000000-0000-4000-8000-000000000108', '2020-01-01T00:00:00Z', ARRAY['Operations'])
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+SET tenant_id = EXCLUDED.tenant_id,
+    legal_entity_id = EXCLUDED.legal_entity_id,
+    code = EXCLUDED.code,
+    title = EXCLUDED.title,
+    function_name = EXCLUDED.function_name,
+    occupant_principal_id = EXCLUDED.occupant_principal_id,
+    valid_from = EXCLUDED.valid_from,
+    valid_until = NULL,
+    department_path = EXCLUDED.department_path;
 
 INSERT INTO position_role_bindings(id, tenant_id, position_id, role_template_id, scope, priority, valid_from)
 VALUES
@@ -75,7 +92,14 @@ VALUES
   ('00000000-0000-4000-8000-000000000507', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000307', '00000000-0000-4000-8000-000000000407', '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}', 100, '2020-01-01T00:00:00Z'),
   ('00000000-0000-4000-8000-000000000508', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000308', '00000000-0000-4000-8000-000000000408', '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}', 100, '2020-01-01T00:00:00Z'),
   ('00000000-0000-4000-8000-000000000509', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000307', '00000000-0000-4000-8000-000000000408', '{"legal_entity_id":"00000000-0000-4000-8000-000000000002"}', 90, '2020-01-01T00:00:00Z')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+SET tenant_id = EXCLUDED.tenant_id,
+    position_id = EXCLUDED.position_id,
+    role_template_id = EXCLUDED.role_template_id,
+    scope = EXCLUDED.scope,
+    priority = EXCLUDED.priority,
+    valid_from = EXCLUDED.valid_from,
+    valid_until = NULL;
 
 DO $identity_fixture$
 BEGIN

@@ -1,10 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+// @ts-ignore Vitest executes this CSS source regression in Node.
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createFormTemplate } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
 import { FormBuilder } from "./FormBuilder";
 
 vi.mock("../monitoringApi", () => ({ createFormTemplate: vi.fn() }));
+
+const builderWorkspaceCSS = readFileSync("src/form-builder-workspace.css", "utf8");
 
 const savedForm: FormTemplate = {
   id: "form-1",
@@ -59,6 +63,11 @@ beforeEach(() => {
 });
 
 describe("FormBuilder", () => {
+  it("keeps the complete outline in one sticky scroll pane", () => {
+    expect(builderWorkspaceCSS).toMatch(/\.form-builder-outline-shell\s*\{[^}]*position:\s*sticky;[^}]*overflow:\s*auto;/s);
+    expect(builderWorkspaceCSS).not.toMatch(/\.form-builder-outline,\s*\.form-builder-inspector\s*\{[^}]*position:\s*sticky;/s);
+  });
+
   it("offers every approved response type without exposing internal field codes", () => {
     render(<FormBuilder programID="program-1" onSaved={vi.fn()} onCancel={vi.fn()}/>);
     const responseType = selectedResponseType();

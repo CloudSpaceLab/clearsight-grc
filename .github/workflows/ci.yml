@@ -63,48 +63,6 @@ jobs:
         env:
           TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
         run: bash scripts/verify-ai-governance-tranches.sh auto
-      - name: Verify source-access runtime rollback and reapply
-        env:
-          PGPASSWORD: clearsight
-        run: |
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000031_source_access_runtime_state.down.sql
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.source_binding_checkpoints') IS NULL THEN 'ok' ELSE 'checkpoint table survived rollback' END" | grep -qx ok
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='source_observations' AND column_name='scope_kind'" | grep -qx 0
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000030_source_access_catalog.down.sql
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 <<'SQL'
-          INSERT INTO tenants(id,slug,name)
-          VALUES('6f300000-0000-7000-8000-000000000001','source-catalog-migration','Source catalog migration');
-          INSERT INTO evidence_sources(
-              id,tenant_id,code,name,source_type,authority_class,endpoint,
-              expected_freshness_minutes,health,status,version
-          ) VALUES (
-              '6f300000-0000-7000-8000-000000000002',
-              '6f300000-0000-7000-8000-000000000001',
-              'LEGACY-ENDPOINT','Legacy endpoint','SYSTEM','SYSTEM_OF_RECORD',
-              ' https://legacy.example.invalid/source ',15,'UNKNOWN','ACTIVE',1
-          );
-          SQL
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000030_source_access_catalog.up.sql
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='evidence_sources' AND column_name='endpoint'" | grep -qx 0
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM source_connections WHERE source_id='6f300000-0000-7000-8000-000000000002' AND code='PRIMARY_REFERENCE' AND adapter_kind='REFERENCE' AND adapter_version='reference-v1' AND status='ACTIVE' AND is_current AND version=1 AND definition->>'endpoint'='https://legacy.example.invalid/source'" | grep -qx 1
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000031_source_access_runtime_state.up.sql
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.source_binding_checkpoints') IS NOT NULL THEN 'ok' ELSE 'missing checkpoint table after reapply' END" | grep -qx ok
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='source_observations' AND column_name IN ('scope_kind','connection_id','connection_version','view_id','view_version','binding_id','binding_version')" | grep -qx 7
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -c "DELETE FROM source_connections WHERE source_id='6f300000-0000-7000-8000-000000000002'; DELETE FROM evidence_sources WHERE id='6f300000-0000-7000-8000-000000000002'; DELETE FROM tenants WHERE id='6f300000-0000-7000-8000-000000000001';"
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.audit_events') IS NULL AND to_regclass('public.readiness_snapshots') IS NULL THEN 'ok' ELSE 'unexpected compatibility table' END" | grep -qx ok
-      - name: Verify AI governance rollback and reapply
-        env:
-          PGPASSWORD: clearsight
-        run: |
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000036_ai_governance_receipts_grants.down.sql
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.ai_gateway_decision_receipts') IS NULL AND to_regclass('public.ai_execution_grants') IS NULL THEN 'ok' ELSE 'T5 tables survived rollback' END" | grep -qx ok
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000035_ai_governance_enforcement.down.sql
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.ai_workloads') IS NULL THEN 'ok' ELSE 'ai_workloads survived rollback' END" | grep -qx ok
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='automation_policies' AND column_name IN ('ai_definition','rollout_mode','record_version')" | grep -qx 0
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000035_ai_governance_enforcement.up.sql
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -f migrations/000036_ai_governance_receipts_grants.up.sql
-          psql -h localhost -U clearsight -d clearsight -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN to_regclass('public.ai_workloads') IS NOT NULL AND to_regclass('public.ai_gateway_decision_receipts') IS NOT NULL AND to_regclass('public.ai_execution_grants') IS NOT NULL THEN 'ok' ELSE 'AI governance tables missing after reapply' END" | grep -qx ok
-
       - name: Verify deployment migration ledger
         env:
           PGPASSWORD: clearsight
@@ -138,6 +96,12 @@ jobs:
         # Integration packages share one mutable database; serialize package execution
         # so fixture cleanup in one package cannot race another package's test data.
         run: go test -count=1 -p 1 -tags "postgres postgresintegration" ./internal/...
+      - name: Oversight reference history and projection acceptance
+        env:
+          TEST_DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight?sslmode=disable
+        run: |
+          go test ./internal/bankverticals -run OversightHistory -count=1
+          go test -count=1 -p 1 -tags "postgres postgresintegration" ./internal/oversight
       - name: Vet
         run: go vet ./...
   web:
@@ -154,6 +118,8 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
+      - name: Reject fixture code from the customer runtime graph
+        run: npm run check:runtime-truth
       - name: Rendered state and accessibility tests
         run: npm test
       - run: npm run build

@@ -11,14 +11,14 @@ import { initials } from "./components/Monogram";
 export { CapturePanel } from "./components/CapturePanel";
 
 type LoadState = "loading" | "live" | "unavailable";
-type ConnectionState = "loading" | "live" | "sample" | "unavailable";
+type ConnectionState = "loading" | "live" | "unavailable";
 export type RoutingLoadState = "loading" | "live" | "unavailable" | "forbidden" | "not-found";
 
 export function TodayView({ organizationName, items, connection, generatedAt, readiness, readinessState, onCapture, onOpenItem, onInspectAuthority }: { organizationName: string; items: AttentionItem[]; connection: ConnectionState; generatedAt?: string; readiness: Readiness | null; readinessState: LoadState; onCapture?: () => void; onOpenItem: (item: AttentionItem) => void; onInspectAuthority: (item: AttentionItem) => void }) {
-  const connectionLabel = connection === "live" ? generatedAt ? `Updated ${formatShortTime(generatedAt)}` : "Connected data" : connection === "sample" ? "Reference data" : connection === "unavailable" ? "Data unavailable" : "Connecting";
+  const connectionLabel = connection === "live" ? generatedAt ? `Updated ${formatShortTime(generatedAt)}` : "Connected data" : connection === "unavailable" ? "Data unavailable" : "Connecting";
   return <>
     <header className="topbar today-topbar">
-      <div><span className="eyebrow">{organizationName}</span><h1>Today</h1><p>Reviews, approvals, evidence responses and outcome checks that need you today.</p></div>
+      <div><span className="eyebrow">{organizationName}</span><h1>Today</h1><p>Assigned decisions, evidence, outcome checks and operational exceptions that need your action.</p></div>
       <div className="topbar-actions"><span className={`connection ${connection}`}>{connectionLabel}</span>{onCapture && <><div className="today-desktop-actions"><button className="secondary-button" onClick={onCapture}>Respond to evidence request</button></div><details className="today-mobile-actions"><summary>More actions</summary><div><button className="secondary-button" onClick={onCapture}>Respond to evidence request</button></div></details></>}</div>
     </header>
     <TodayInterventions items={items} connection={connection} readiness={readiness} readinessState={readinessState} onOpenItem={onOpenItem} onInspectAuthority={onInspectAuthority}/>

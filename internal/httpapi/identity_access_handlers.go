@@ -75,6 +75,7 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 		"roles":                    overview.Roles,
 		"legal_entities":           overview.LegalEntities,
 		"bindings":                 overview.Bindings,
+		"positions":                overview.Positions,
 		"escalation":               overview.Escalation,
 		"escalation_policies":      policies,
 	})
