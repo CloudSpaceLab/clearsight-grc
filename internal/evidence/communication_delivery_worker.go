@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -68,6 +69,9 @@ func (worker *CommunicationDeliveryWorker) Publish(ctx context.Context, event wo
 		return err
 	}
 	now := worker.currentTime()
+	if communicationSecureLinkEventSuperseded(event, bundle.Distribution, action) {
+		return worker.skipRecipients(ctx, event, bundle, action, "SUPERSEDED_COMMUNICATION", now)
+	}
 	if !communicationActionDeliverable(bundle.Distribution, action, now) {
 		return worker.skipRecipients(ctx, event, bundle, action, "DISTRIBUTION_NOT_DELIVERABLE", now)
 	}
@@ -166,6 +170,19 @@ func (worker *CommunicationDeliveryWorker) Publish(ctx context.Context, event wo
 		return errors.Join(retryErrors...)
 	}
 	return nil
+}
+
+func communicationSecureLinkEventSuperseded(event workflowruntime.OutboxEvent, distribution FormDistribution, action CommunicationAction) bool {
+	if !communicationRequiresSecureLink(action) || distribution.Version < 2 {
+		return false
+	}
+	var payload struct {
+		Version int64 `json:"version"`
+	}
+	if json.Unmarshal(event.Payload, &payload) != nil || payload.Version < 1 {
+		return false
+	}
+	return payload.Version < distribution.Version
 }
 
 func (worker *CommunicationDeliveryWorker) deliveryRoute(ctx context.Context, bundle communicationDeliveryBundle, recipient communicationDeliveryRecipient, shared **IssuedAccessRoute) (IssuedAccessRoute, error) {
