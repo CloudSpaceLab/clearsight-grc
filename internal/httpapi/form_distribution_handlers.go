@@ -13,6 +13,7 @@ import (
 )
 
 type createFormDistributionRequest struct {
+	TenantID            string                                `json:"tenant_id,omitempty"`
 	LegalEntityID       string                                `json:"legal_entity_id,omitempty"`
 	FormTemplateID      string                                `json:"form_template_id"`
 	FormTemplateVersion int64                                 `json:"form_template_version"`
