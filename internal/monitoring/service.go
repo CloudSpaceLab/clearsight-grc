@@ -301,9 +301,16 @@ func (s *Service) TransitionLibraryForm(ctx context.Context, formID string, inpu
 			return FormTemplate{}, err
 		}
 	}
-	return s.TransitionForm(ctx, Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}, TransitionInput{
-		ID: current.ID, ProgramID: current.ProgramID, LegalEntityID: current.LegalEntityID,
-		ExpectedVersion: input.ExpectedVersion, To: input.To,
+	if input.To == LifecycleActive && current.Status == LifecyclePendingApproval && current.SubmittedBy == actor.PrincipalID {
+		return FormTemplate{}, ErrMakerChecker
+	}
+	// A reusable library form may intentionally have no Program binding. Transition the exact
+	// entity-scoped revision already resolved above instead of re-reading it
+	// through the Program form path, whose Program identifier is required.
+	return s.repo.TransitionForm(ctx, LifecycleTransition{
+		TenantID: actor.TenantID, LegalEntityID: current.LegalEntityID, ProgramID: current.ProgramID,
+		ID: current.ID, ExpectedVersion: input.ExpectedVersion, To: input.To,
+		ActorID: actor.PrincipalID, At: s.now().UTC(),
 	})
 }
 
