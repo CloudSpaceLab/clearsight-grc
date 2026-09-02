@@ -194,6 +194,20 @@ func (a *API) submitEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 	if input.Channel == "" {
 		input.Channel = "INTERNAL"
 	}
+	if strings.EqualFold(strings.TrimSpace(input.Channel), "INTERNAL") {
+		actor, identityErr := identity.Require(r.Context())
+		if identityErr != nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required to submit assigned evidence.")
+			return
+		}
+		request, requestErr := service.GetRequestForEntity(r.Context(), actor.TenantID, actor.LegalEntityID, input.RequestID)
+		if requestErr != nil || !a.canReadEvidenceRequest(r.Context(), request) || !evidence.RequestAssignedTo(request, actor.PrincipalID) {
+			httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
+			return
+		}
+		input.TenantID = actor.TenantID
+		input.SubmittedBy = actor.PrincipalID
+	}
 	receipt, err := service.Submit(r.Context(), input)
 	if err == nil && a.deps.Monitoring != nil {
 		results, evaluateErr := a.deps.Monitoring.EvaluateSubmission(r.Context(), input.TenantID, receipt.SubmissionID)

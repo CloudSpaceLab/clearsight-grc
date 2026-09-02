@@ -10,7 +10,7 @@ beforeEach(() => {
     generated_at: "2026-09-01T07:55:00Z",
     period_start: "2026-06-03T08:00:00Z",
     period_end: "2026-09-01T08:00:00Z",
-    projection_version: "oversight-v3",
+    projection_version: "oversight-v4",
     freshness: "CURRENT",
     source_high_water: { matters: "2026-09-01T07:54:00Z", actions: "2026-09-01T07:53:00Z", workflow_tasks: "2026-09-01T07:52:00Z", verification_results: "2026-09-01T07:51:00Z", continuity_events: "2026-09-01T07:54:30Z" },
     coverage: { population: 42, excluded: 1, unknown: 2 },
@@ -31,10 +31,10 @@ it("leads with exact interventions and provides table alternatives for oversight
   await screen.findByRole("heading", { name: "Risk and delivery oversight" });
   expect(screen.getByText("7")).toBeTruthy();
   expect(screen.getByText("42 issues checked · 1 excluded · 2 unknown")).toBeTruthy();
-  expect(screen.getByText("oversight-v3")).toBeTruthy();
+  expect(screen.getByText("oversight-v4")).toBeTruthy();
   fireEvent.click(screen.getByText("Data freshness"));
   expect(screen.getByText("Continuity Events")).toBeTruthy();
-  expect(screen.getByText("12 of 14 completed issues have complete lifecycle events · 2 excluded from all duration measures · owner cycle time excludes 3 reassigned, 2 returned, 1 blocked and 1 reopened issues")).toBeTruthy();
+  expect(screen.getByText("12 of 14 completed issues have complete lifecycle events · 2 excluded because an opened or closed event is missing · employee handling time follows each recorded owner assignment; reassignment, return, blocked and reopen counts remain visible separately")).toBeTruthy();
   expect(screen.getByRole("table", { name: "Risk pressure by issue type" })).toBeTruthy();
   expect(screen.queryByText(/employee score/i)).toBeNull();
 

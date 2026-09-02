@@ -89,7 +89,7 @@ function EmptyMeasure() { return <EmptyState population="Open issues in this leg
 
 function historyQualityLabel(snapshot: OversightSnapshot) {
   const quality = snapshot.history_quality;
-  return `${quality.complete_lifecycle} of ${quality.completed_population} completed issues have complete lifecycle events · ${quality.excluded_from_durations} excluded from all duration measures · owner cycle time excludes ${quality.reassigned_owner_excluded} reassigned, ${quality.returned_owner_excluded ?? 0} returned, ${quality.blocked_owner_excluded ?? 0} blocked and ${quality.reopened_owner_excluded ?? 0} reopened issues`;
+  return `${quality.complete_lifecycle} of ${quality.completed_population} completed issues have complete lifecycle events · ${quality.excluded_from_durations} excluded because an opened or closed event is missing · employee handling time follows each recorded owner assignment; reassignment, return, blocked and reopen counts remain visible separately`;
 }
 
 const detailViews = [

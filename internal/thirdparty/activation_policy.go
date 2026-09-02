@@ -22,16 +22,19 @@ const (
 	ActivationPolicyActive          ActivationPolicyStatus = "ACTIVE"
 	ActivationPolicyRetired         ActivationPolicyStatus = "RETIRED"
 
-	ActivationPolicyProposeCommand = "thirdparty.activation_policy.propose"
-	ActivationPolicySubmitCommand  = "thirdparty.activation_policy.submit"
-	ActivationPolicyApproveCommand = "thirdparty.activation_policy.approve"
-	RelationshipActivateCommand    = "thirdparty.relationship.activate"
+	ActivationPolicyProposeCommand  = "thirdparty.activation_policy.propose"
+	ActivationPolicySimulateCommand = "thirdparty.activation_policy.simulate"
+	ActivationPolicySubmitCommand   = "thirdparty.activation_policy.submit"
+	ActivationPolicyApproveCommand  = "thirdparty.activation_policy.approve"
+	ActivationPolicyRollbackCommand = "thirdparty.activation_policy.rollback"
+	RelationshipActivateCommand     = "thirdparty.relationship.activate"
 )
 
 var (
-	ErrActivationPolicyUnavailable = errors.New("third-party activation policy is unavailable")
-	ErrActivationMakerChecker      = errors.New("activation policy requires an independent checker")
-	ErrActivationIneligible        = errors.New("vendor relationship is not eligible for activation")
+	ErrActivationPolicyUnavailable  = errors.New("third-party activation policy is unavailable")
+	ErrActivationMakerChecker       = errors.New("activation policy requires an independent checker")
+	ErrActivationSimulationRequired = errors.New("a current complete activation policy simulation is required")
+	ErrActivationIneligible         = errors.New("vendor relationship is not eligible for activation")
 )
 
 type ActivationPolicy struct {
@@ -47,6 +50,7 @@ type ActivationPolicy struct {
 	ConditionalConclusionNeedsTerms bool                   `json:"conditional_conclusion_needs_terms"`
 	EffectiveFrom                   time.Time              `json:"effective_from"`
 	EffectiveUntil                  *time.Time             `json:"effective_until,omitempty"`
+	RollbackOfPolicyID              string                 `json:"rollback_of_policy_id,omitempty"`
 	Status                          ActivationPolicyStatus `json:"status"`
 	ProposedBy                      string                 `json:"proposed_by"`
 	ApprovedBy                      string                 `json:"approved_by,omitempty"`
@@ -69,7 +73,13 @@ type ProposeActivationPolicyInput struct {
 	Rationale                       string                 `json:"rationale"`
 }
 
+type RollbackActivationPolicyInput struct {
+	EffectiveFrom time.Time `json:"effective_from"`
+	Rationale     string    `json:"rationale"`
+}
+
 type ActivationSimulation struct {
+	ID                   string         `json:"id"`
 	PolicyID             string         `json:"policy_id"`
 	PolicyVersion        int64          `json:"policy_version"`
 	CandidateCount       int            `json:"candidate_count"`
@@ -77,6 +87,8 @@ type ActivationSimulation struct {
 	MissingGateCounts    map[string]int `json:"missing_gate_counts"`
 	EvaluatedAt          time.Time      `json:"evaluated_at"`
 	PopulationIsComplete bool           `json:"population_is_complete"`
+	EvaluatedBy          string         `json:"evaluated_by"`
+	ExpiresAt            time.Time      `json:"expires_at"`
 }
 
 type ActivationFacts struct {
@@ -88,12 +100,21 @@ type ActivationFacts struct {
 	ConditionsRecorded         bool
 	SatisfiedDecisionTypes     []string
 	DecisionIDs                []string
+	DecisionDependencies       []ActivationDecisionDependency
+	DecisionAuthoritiesCurrent bool
 	AddressMatterID            string
 	AddressMatterClosed        bool
 	VerificationResultID       string
 	VerificationPassed         bool
 	HasBlockingMatter          bool
 	HasUnresolvedContradiction bool
+}
+
+type ActivationDecisionDependency struct {
+	ID                   string
+	MatterID             string
+	DecisionType         string
+	AuthorityPrincipalID string
 }
 
 type ActivationGate struct {
@@ -149,6 +170,8 @@ type ActivationCommit struct {
 type ActivationRepository interface {
 	ProposeActivationPolicy(context.Context, ActivationPolicy) (ActivationPolicy, error)
 	TransitionActivationPolicy(context.Context, Scope, string, int64, ActivationPolicyStatus, string, string, time.Time) (ActivationPolicy, error)
+	StoreActivationSimulation(context.Context, Scope, ActivationSimulation) (ActivationSimulation, error)
+	GetActivationSimulation(context.Context, Scope, string) (ActivationSimulation, error)
 	GetActivationPolicy(context.Context, Scope, string) (ActivationPolicy, error)
 	CurrentActivationPolicy(context.Context, Scope, time.Time) (ActivationPolicy, error)
 	ListActivationCandidates(context.Context, Scope, int) ([]Relationship, error)
@@ -205,7 +228,34 @@ func (s *ActivationService) SubmitPolicy(ctx context.Context, policyID string, e
 	return s.repo.TransitionActivationPolicy(ctx, scope, policy.ID, expectedVersion, ActivationPolicyPendingApproval, actor.PrincipalID, strings.TrimSpace(rationale), s.currentTime())
 }
 
-func (s *ActivationService) ApprovePolicy(ctx context.Context, policyID string, expectedVersion int64, rationale string) (ActivationPolicy, error) {
+// PrepareRollback restores an exact approved configuration as a new draft.
+// It cannot affect the current policy until the normal simulation,
+// maker-checker approval and effective-dating gates complete.
+func (s *ActivationService) PrepareRollback(ctx context.Context, sourcePolicyID string, input RollbackActivationPolicyInput) (ActivationPolicy, error) {
+	actor, scope, source, err := s.authorizePolicy(ctx, sourcePolicyID, ActivationPolicyRollbackCommand, authority.ResponsibilityOwner)
+	if err != nil {
+		return ActivationPolicy{}, err
+	}
+	rationale := strings.TrimSpace(input.Rationale)
+	if source.ApprovedBy == "" || input.EffectiveFrom.IsZero() || input.EffectiveFrom.Before(s.currentTime()) || len(rationale) < 20 {
+		return ActivationPolicy{}, ErrInvalid
+	}
+	policyID, err := s.newID()
+	if err != nil {
+		return ActivationPolicy{}, err
+	}
+	now := s.currentTime()
+	rollback := cloneActivationPolicy(source)
+	rollback.ID, rollback.PolicyNumber, rollback.Status = policyID, 0, ActivationPolicyDraft
+	rollback.EffectiveFrom, rollback.EffectiveUntil = input.EffectiveFrom.UTC(), nil
+	rollback.RollbackOfPolicyID, rollback.ProposedBy, rollback.ApprovedBy = source.ID, actor.PrincipalID, ""
+	rollback.ProposalRationale, rollback.ApprovalRationale = rationale, ""
+	rollback.CreatedAt, rollback.UpdatedAt, rollback.Version = now, now, 1
+	rollback.TenantID, rollback.LegalEntityID = scope.TenantID, scope.LegalEntityID
+	return s.repo.ProposeActivationPolicy(ctx, rollback)
+}
+
+func (s *ActivationService) ApprovePolicy(ctx context.Context, policyID string, expectedVersion int64, simulationID, rationale string) (ActivationPolicy, error) {
 	actor, scope, policy, err := s.authorizePolicy(ctx, policyID, ActivationPolicyApproveCommand, authority.ResponsibilityAuthorizer)
 	if err != nil {
 		return ActivationPolicy{}, err
@@ -215,6 +265,10 @@ func (s *ActivationService) ApprovePolicy(ctx context.Context, policyID string, 
 	}
 	if policy.ProposedBy == actor.PrincipalID {
 		return ActivationPolicy{}, ErrActivationMakerChecker
+	}
+	simulation, err := s.repo.GetActivationSimulation(ctx, scope, strings.TrimSpace(simulationID))
+	if err != nil || simulation.PolicyID != policy.ID || simulation.PolicyVersion != policy.Version || !simulation.PopulationIsComplete || !simulation.ExpiresAt.After(s.currentTime()) {
+		return ActivationPolicy{}, ErrActivationSimulationRequired
 	}
 	return s.repo.TransitionActivationPolicy(ctx, scope, policy.ID, expectedVersion, ActivationPolicyActive, actor.PrincipalID, strings.TrimSpace(rationale), s.currentTime())
 }
@@ -231,7 +285,7 @@ func (s *ActivationService) CurrentPolicy(ctx context.Context, legalEntityID str
 }
 
 func (s *ActivationService) SimulatePolicy(ctx context.Context, policyID string) (ActivationSimulation, error) {
-	_, scope, policy, err := s.authorizePolicy(ctx, policyID, ActivationPolicySubmitCommand, authority.ResponsibilityOwner)
+	actor, scope, policy, err := s.authorizePolicy(ctx, policyID, ActivationPolicySimulateCommand, authority.ResponsibilityOwner)
 	if err != nil {
 		return ActivationSimulation{}, err
 	}
@@ -239,12 +293,18 @@ func (s *ActivationService) SimulatePolicy(ctx context.Context, policyID string)
 	if err != nil {
 		return ActivationSimulation{}, err
 	}
-	result := ActivationSimulation{PolicyID: policy.ID, PolicyVersion: policy.Version, CandidateCount: len(candidates), MissingGateCounts: map[string]int{}, EvaluatedAt: s.currentTime(), PopulationIsComplete: len(candidates) < 500}
+	simulationID, err := s.newID()
+	if err != nil {
+		return ActivationSimulation{}, err
+	}
+	evaluatedAt := s.currentTime()
+	result := ActivationSimulation{ID: simulationID, PolicyID: policy.ID, PolicyVersion: policy.Version, CandidateCount: len(candidates), MissingGateCounts: map[string]int{}, EvaluatedAt: evaluatedAt, PopulationIsComplete: len(candidates) < 500, EvaluatedBy: actor.PrincipalID, ExpiresAt: evaluatedAt.Add(24 * time.Hour)}
 	for _, candidate := range candidates {
 		_, facts, readErr := s.repo.ReadActivationFacts(ctx, scope, candidate.ID, policy)
 		if readErr != nil {
 			return ActivationSimulation{}, readErr
 		}
+		facts.DecisionAuthoritiesCurrent = s.decisionAuthoritiesCurrent(ctx, scope, facts)
 		gates := activationGates(candidate, facts, policy, policy.EffectiveFrom)
 		eligible := true
 		for _, gate := range gates {
@@ -257,7 +317,7 @@ func (s *ActivationService) SimulatePolicy(ctx context.Context, policyID string)
 			result.EligibleCount++
 		}
 	}
-	return result, nil
+	return s.repo.StoreActivationSimulation(ctx, scope, result)
 }
 
 func (s *ActivationService) ActivateRelationship(ctx context.Context, relationshipID string, input ActivateRelationshipInput) (ActivationResult, error) {
@@ -284,6 +344,7 @@ func (s *ActivationService) ActivateRelationship(ctx context.Context, relationsh
 	if relationship.Version != input.ExpectedVersion {
 		return ActivationResult{}, ErrVersionConflict
 	}
+	facts.DecisionAuthoritiesCurrent = s.decisionAuthoritiesCurrent(ctx, scope, facts)
 	gates := activationGates(relationship, facts, policy, at)
 	result := ActivationResult{Policy: policy, Gates: gates, Relationship: relationship, Eligible: gatesSatisfied(gates)}
 	if !result.Eligible {
@@ -321,6 +382,7 @@ func (s *ActivationService) RelationshipEligibility(ctx context.Context, relatio
 	if err != nil {
 		return ActivationResult{}, err
 	}
+	facts.DecisionAuthoritiesCurrent = s.decisionAuthoritiesCurrent(ctx, scope, facts)
 	gates := activationGates(relationship, facts, policy, at.UTC())
 	return ActivationResult{Eligible: gatesSatisfied(gates), Policy: policy, Gates: gates, Relationship: relationship}, nil
 }
@@ -330,6 +392,7 @@ func activationGates(relationship Relationship, facts ActivationFacts, policy Ac
 	assessmentCurrent := facts.AssessmentStatus == AssessmentCompleted && !facts.AssessmentCompletedAt.IsZero() && !facts.AssessmentCompletedAt.After(at) && facts.AssessmentCompletedAt.AddDate(0, 0, policy.MaximumAssessmentAgeDays).After(at)
 	allowedConclusion := containsConclusion(policy.AllowedConclusions, facts.AssessmentConclusion)
 	decisions := allCodesSatisfied(policy.RequiredDecisionTypes, facts.SatisfiedDecisionTypes)
+	decisionAuthority := len(policy.RequiredDecisionTypes) == 0 || facts.DecisionAuthoritiesCurrent
 	address := !policy.AddressVerificationRequired || (facts.AddressMatterID != "" && facts.AddressMatterClosed && facts.VerificationResultID != "" && facts.VerificationPassed)
 	conditions := !policy.ConditionalConclusionNeedsTerms || facts.AssessmentConclusion != AssessmentSatisfactoryWithConditions || facts.ConditionsRecorded
 	return []ActivationGate{
@@ -337,11 +400,32 @@ func activationGates(relationship Relationship, facts ActivationFacts, policy Ac
 		{Code: "CURRENT_ASSESSMENT", Satisfied: assessmentCurrent, Explanation: gateExplanation(assessmentCurrent, "The completed onboarding assessment is current.", "A current completed onboarding assessment is required.")},
 		{Code: "ASSESSMENT_CONCLUSION", Satisfied: allowedConclusion, Explanation: gateExplanation(allowedConclusion, "The assessment conclusion is permitted by the current policy.", "The assessment conclusion is not permitted by the current policy.")},
 		{Code: "REQUIRED_DECISIONS", Satisfied: decisions, Explanation: gateExplanation(decisions, "Every required decision is current and approved.", "One or more required approval decisions are missing or no longer current.")},
+		{Code: "DECISION_AUTHORITY", Satisfied: decisionAuthority, Explanation: gateExplanation(decisionAuthority, "The recorded decision makers remain in the current authority route.", "A required decision was made under authority that is no longer current and must be reviewed again.")},
 		{Code: "ADDRESS_OUTCOME", Satisfied: address, Explanation: gateExplanation(address, "The address issue is closed with a passing independent outcome check.", "Address verification must be independently confirmed and closed.")},
 		{Code: "CONDITIONS", Satisfied: conditions, Explanation: gateExplanation(conditions, "Any conditional conclusion has recorded terms.", "The assessment conditions must be recorded before activation.")},
 		{Code: "BLOCKING_ISSUES", Satisfied: !facts.HasBlockingMatter, Explanation: gateExplanation(!facts.HasBlockingMatter, "No policy-defined blocking issue remains open.", "A policy-defined blocking issue remains open.")},
 		{Code: "CONTRADICTIONS", Satisfied: !facts.HasUnresolvedContradiction, Explanation: gateExplanation(!facts.HasUnresolvedContradiction, "No unresolved evidence contradiction blocks activation.", "An unresolved evidence contradiction blocks activation.")},
 	}
+}
+
+func (s *ActivationService) decisionAuthoritiesCurrent(ctx context.Context, scope Scope, facts ActivationFacts) bool {
+	for _, dependency := range facts.DecisionDependencies {
+		if strings.TrimSpace(dependency.AuthorityPrincipalID) == "" || strings.TrimSpace(dependency.MatterID) == "" {
+			return false
+		}
+		base, ok := identity.FromContext(ctx)
+		if !ok {
+			return false
+		}
+		base.PrincipalID = dependency.AuthorityPrincipalID
+		if _, err := s.guard.Authorize(identity.WithActor(ctx, base), commandauth.Request{
+			TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, ObjectType: "MATTER", ObjectID: dependency.MatterID,
+			Responsibility: authority.ResponsibilityAuthorizer, DecisionType: "matter.decision.record", Materiality: 4,
+		}); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *ActivationService) authorizePolicy(ctx context.Context, policyID, decisionType string, responsibility authority.Responsibility) (identity.Actor, Scope, ActivationPolicy, error) {

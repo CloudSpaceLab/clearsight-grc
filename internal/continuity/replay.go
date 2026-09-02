@@ -37,6 +37,7 @@ const (
 	EventMatterContextChanged           = "MATTER_CONTEXT_CHANGED"
 	EventMatterOwnerChanged             = "MATTER_OWNER_CHANGED"
 	EventMatterFormApplied              = "MATTER_FORM_RESPONSE_APPLIED"
+	EventMatterFormVerificationDue      = "MATTER_FORM_VERIFICATION_DUE"
 	EventDecisionAdded                  = "DECISION_ADDED"
 	EventActionAdded                    = "ACTION_ADDED"
 	EventActionStateChanged             = "ACTION_STATE_CHANGED"

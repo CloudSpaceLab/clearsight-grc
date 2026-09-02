@@ -331,6 +331,101 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 	}
 	rows.Close()
 
+	// Replace whole-lifecycle/final-owner timing with exact assignment
+	// intervals reconstructed from immutable owner-change events. This keeps
+	// reassignment outside an employee's measured cycle once responsibility has
+	// moved, while current load and completion counts remain separate measures.
+	rows, err = r.pool.Query(ctx, `
+		WITH lifecycle AS (
+		  SELECT m.id,m.owner_principal_id,m.due_at,
+		         min(e.occurred_at) FILTER (WHERE e.event_type='MATTER_CREATED') started_at,
+		         max(e.occurred_at) FILTER (WHERE e.event_type='MATTER_STATE_CHANGED' AND e.payload->>'status'='CLOSED') finished_at
+		  FROM matters m LEFT JOIN continuity_events e ON e.tenant_id=m.tenant_id AND e.aggregate_type='MATTER' AND e.aggregate_id=m.id
+		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.status='CLOSED' AND m.closed_at>=$3
+		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
+		  GROUP BY m.id
+		), changes AS (
+		  SELECT e.aggregate_id matter_id,e.occurred_at,
+		         NULLIF(e.payload->>'previous_owner_principal_id','')::uuid previous_owner_id,
+		         NULLIF(e.payload->>'owner_principal_id','')::uuid owner_id,
+		         lead(e.occurred_at) OVER (PARTITION BY e.aggregate_id ORDER BY e.occurred_at,e.id) next_change,
+		         row_number() OVER (PARTITION BY e.aggregate_id ORDER BY e.occurred_at,e.id) sequence
+		  FROM continuity_events e JOIN lifecycle l ON l.id=e.aggregate_id
+		  WHERE e.tenant_id=$1::uuid AND e.aggregate_type='MATTER' AND e.event_type='MATTER_OWNER_CHANGED'
+		), segments AS (
+		  SELECT l.id matter_id,l.owner_principal_id owner_id,l.started_at segment_start,l.finished_at segment_end,l.finished_at,l.due_at
+		  FROM lifecycle l WHERE NOT EXISTS (SELECT 1 FROM changes c WHERE c.matter_id=l.id)
+		  UNION ALL
+		  SELECT l.id,c.previous_owner_id,l.started_at,c.occurred_at,l.finished_at,l.due_at
+		  FROM lifecycle l JOIN changes c ON c.matter_id=l.id AND c.sequence=1
+		  UNION ALL
+		  SELECT l.id,c.owner_id,c.occurred_at,COALESCE(c.next_change,l.finished_at),l.finished_at,l.due_at
+		  FROM lifecycle l JOIN changes c ON c.matter_id=l.id
+		), valid AS (
+		  SELECT s.*,
+		         (s.segment_end<s.finished_at)::int reassigned,
+		         (SELECT count(*) FROM continuity_events e WHERE e.tenant_id=$1::uuid AND e.aggregate_type='MATTER' AND e.aggregate_id=s.matter_id
+		            AND e.occurred_at>=s.segment_start AND e.occurred_at<s.segment_end
+		            AND e.event_type='DECISION_ADDED' AND e.payload->>'status'='RETURNED') returned,
+		         (SELECT count(*) FROM continuity_events e WHERE e.tenant_id=$1::uuid AND e.aggregate_type='MATTER' AND e.aggregate_id=s.matter_id
+		            AND e.occurred_at>=s.segment_start AND e.occurred_at<s.segment_end
+		            AND e.event_type='ACTION_STATE_CHANGED' AND e.payload->>'status'='BLOCKED') blocked,
+		         (SELECT count(*) FROM continuity_events e WHERE e.tenant_id=$1::uuid AND e.aggregate_type='MATTER' AND e.aggregate_id=s.matter_id
+		            AND e.occurred_at>=s.segment_start AND e.occurred_at<s.segment_end
+		            AND e.event_type='MATTER_STATE_CHANGED' AND e.payload->>'status'='ASSESSMENT'
+		            AND COALESCE((e.payload->>'reopen_count')::int,0)>0) reopened
+		  FROM segments s WHERE s.owner_id IS NOT NULL AND s.segment_start IS NOT NULL AND s.segment_end IS NOT NULL AND s.segment_end>s.segment_start
+		)
+		SELECT v.owner_id::text,p.display_name,
+		       percentile_cont(.5) WITHIN GROUP (ORDER BY extract(epoch FROM (segment_end-segment_start))/3600.0),
+		       percentile_cont(.75) WITHIN GROUP (ORDER BY extract(epoch FROM (segment_end-segment_start))/3600.0),
+		       count(*),
+		       count(*) FILTER (WHERE segment_end=finished_at AND due_at IS NOT NULL),
+		       count(*) FILTER (WHERE segment_end=finished_at AND due_at IS NOT NULL AND finished_at<=due_at),
+		       sum(reassigned),sum(returned),sum(blocked),sum(reopened)
+		FROM valid v JOIN principals p ON p.tenant_id=$1::uuid AND p.id=v.owner_id
+		GROUP BY v.owner_id,p.display_name`, scope.TenantID, scope.LegalEntityID, periodStart)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	performanceByOwner := make(map[string]int, len(value.Performance))
+	for index := range value.Performance {
+		performanceByOwner[value.Performance[index].OwnerID] = index
+	}
+	for rows.Next() {
+		var ownerID, ownerName string
+		var median, p75 float64
+		var samples, slaSamples, slaMet, reassigned, returned, blocked, reopened int
+		if err := rows.Scan(&ownerID, &ownerName, &median, &p75, &samples, &slaSamples, &slaMet, &reassigned, &returned, &blocked, &reopened); err != nil {
+			rows.Close()
+			return Snapshot{}, err
+		}
+		index, ok := performanceByOwner[ownerID]
+		if !ok {
+			value.Performance = append(value.Performance, Performance{OwnerID: ownerID, OwnerName: ownerName})
+			index = len(value.Performance) - 1
+			performanceByOwner[ownerID] = index
+		}
+		item := &value.Performance[index]
+		item.MedianHours, item.P75Hours, item.MeasurementSamples = &median, &p75, samples
+		item.Reassigned, item.Returned = &reassigned, &returned
+		item.Blocked, item.Reopened = blocked, reopened
+		item.SLAAttainment = nil
+		if slaSamples > 0 {
+			rate := float64(slaMet) / float64(slaSamples)
+			item.SLAAttainment = &rate
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return Snapshot{}, err
+	}
+	rows.Close()
+	value.HistoryQuality.ReassignedOwnerExcluded = 0
+	value.HistoryQuality.ReturnedOwnerExcluded = 0
+	value.HistoryQuality.BlockedOwnerExcluded = 0
+	value.HistoryQuality.ReopenedOwnerExcluded = 0
+
 	rows, err = r.pool.Query(ctx, `
 		WITH lifecycle AS (
 		  SELECT m.id,m.matter_type,m.scope,m.closed_at,

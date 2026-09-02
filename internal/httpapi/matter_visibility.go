@@ -57,7 +57,21 @@ func (a *API) canReadEvidenceRequest(ctx context.Context, request evidence.Reque
 		return false
 	}
 	matter, err := a.deps.Continuity.GetMatter(ctx, request.TenantID, request.SubjectID)
-	return err == nil && canReadMatterAggregate(ctx, matter)
+	if err != nil || !canReadMatterAggregate(ctx, matter) {
+		return false
+	}
+	if request.Origin.Type != "THIRD_PARTY_ADDRESS_VERIFICATION" || request.CreatedBy == actor.PrincipalID {
+		return true
+	}
+	// Action assignment is the security boundary for internal address
+	// verification. Even before the durable reassignment worker has rotated the
+	// request recipient and sessions, the superseded assignee must lose access.
+	for _, action := range matter.Actions {
+		if action.ID == request.Origin.ID {
+			return action.OwnerPrincipalID == actor.PrincipalID && action.Version == request.Origin.Version
+		}
+	}
+	return false
 }
 
 func (a *API) filterEvidenceRequests(ctx context.Context, values []evidence.Request) []evidence.Request {

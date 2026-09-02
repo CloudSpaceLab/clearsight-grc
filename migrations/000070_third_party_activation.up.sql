@@ -13,6 +13,7 @@ CREATE TABLE third_party_activation_policies (
     conditional_conclusion_needs_terms boolean NOT NULL,
     effective_from timestamptz NOT NULL,
     effective_until timestamptz,
+    rollback_of_policy_id uuid,
     status text NOT NULL CHECK (status IN ('DRAFT','PENDING_APPROVAL','ACTIVE','RETIRED')),
     proposed_by uuid NOT NULL,
     approved_by uuid,
@@ -26,6 +27,7 @@ CREATE TABLE third_party_activation_policies (
     CONSTRAINT third_party_activation_policy_entity_fk FOREIGN KEY (legal_entity_id,tenant_id) REFERENCES legal_entities(id,tenant_id),
     CONSTRAINT third_party_activation_policy_maker_fk FOREIGN KEY (proposed_by,tenant_id) REFERENCES principals(id,tenant_id),
     CONSTRAINT third_party_activation_policy_checker_fk FOREIGN KEY (approved_by,tenant_id) REFERENCES principals(id,tenant_id),
+    CONSTRAINT third_party_activation_policy_rollback_fk FOREIGN KEY (rollback_of_policy_id,tenant_id,legal_entity_id) REFERENCES third_party_activation_policies(id,tenant_id,legal_entity_id),
     CHECK (effective_until IS NULL OR effective_until > effective_from),
     CHECK ((status IN ('ACTIVE','RETIRED') AND approved_by IS NOT NULL AND approval_rationale <> '') OR (status IN ('DRAFT','PENDING_APPROVAL') AND approved_by IS NULL AND approval_rationale = '')),
     CHECK (approved_by IS NULL OR approved_by <> proposed_by)
@@ -39,7 +41,7 @@ CREATE TABLE third_party_activation_policy_events (
     legal_entity_id uuid NOT NULL,
     policy_id uuid NOT NULL,
     policy_version bigint NOT NULL CHECK (policy_version > 0),
-    event_type text NOT NULL CHECK (event_type IN ('PROPOSED','SUBMITTED','APPROVED','RETIRED')),
+    event_type text NOT NULL CHECK (event_type IN ('PROPOSED','SUBMITTED','APPROVED','REPLACED')),
     actor_principal_id uuid NOT NULL,
     rationale text NOT NULL CHECK (char_length(rationale) BETWEEN 1 AND 2000),
     payload jsonb NOT NULL CHECK (jsonb_typeof(payload)='object'),
@@ -50,6 +52,25 @@ CREATE TABLE third_party_activation_policy_events (
 );
 CREATE INDEX third_party_activation_policy_events_history_idx
     ON third_party_activation_policy_events(tenant_id,legal_entity_id,policy_id,policy_version,id);
+
+CREATE TABLE third_party_activation_policy_simulations (
+    id uuid PRIMARY KEY DEFAULT uuidv7(),
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    legal_entity_id uuid NOT NULL,
+    policy_id uuid NOT NULL,
+    policy_version bigint NOT NULL CHECK (policy_version > 0),
+    candidate_count integer NOT NULL CHECK (candidate_count >= 0),
+    eligible_count integer NOT NULL CHECK (eligible_count >= 0 AND eligible_count <= candidate_count),
+    missing_gate_counts jsonb NOT NULL CHECK (jsonb_typeof(missing_gate_counts)='object'),
+    population_is_complete boolean NOT NULL,
+    evaluated_by uuid NOT NULL,
+    evaluated_at timestamptz NOT NULL,
+    expires_at timestamptz NOT NULL CHECK (expires_at > evaluated_at),
+    CONSTRAINT third_party_activation_policy_simulation_scope_fk FOREIGN KEY (policy_id,tenant_id,legal_entity_id) REFERENCES third_party_activation_policies(id,tenant_id,legal_entity_id),
+    CONSTRAINT third_party_activation_policy_simulation_actor_fk FOREIGN KEY (evaluated_by,tenant_id) REFERENCES principals(id,tenant_id)
+);
+CREATE INDEX third_party_activation_policy_simulations_policy_idx
+    ON third_party_activation_policy_simulations(tenant_id,legal_entity_id,policy_id,evaluated_at DESC,id DESC);
 
 CREATE TABLE third_party_activation_receipts (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
@@ -78,9 +99,11 @@ CREATE TABLE third_party_activation_receipts (
 
 ALTER TABLE third_party_events DROP CONSTRAINT third_party_events_event_type_check;
 ALTER TABLE third_party_events ADD CONSTRAINT third_party_events_event_type_check CHECK (event_type IN (
-    'VendorRelationshipCreated','VendorRelationshipUpdated','VendorRelationshipActivated',
-    'AssessmentStarted','AssessmentSetupCompleted','AssessmentRequestPrepared','AssessmentRequestIssued','AssessmentRequestReissuePrepared','AssessmentRequestReissued',
-    'AssessmentSubmitted','AssessmentReviewStarted','AssessmentCompleted','AssessmentCancelled'
+    'VendorIdentityCreated','VendorIdentityUpdated','VendorBrandDiscovered','VendorBrandApproved','VendorBrandRemoved',
+    'VendorRelationshipCreated','VendorRelationshipUpdated','VendorRelationshipActivated','AssessmentStarted','AssessmentSetupCompleted',
+    'AssessmentSetupRetryQueued','AssessmentRequestPrepared','AssessmentRequestIssued','AssessmentRequestReissuePrepared',
+    'AssessmentRequestReissued','AssessmentSubmitted','AssessmentReviewStarted','AssessmentDeficiencyLinked',
+    'AssessmentDocumentValidated','AssessmentDocumentRejected','AssessmentDocumentExpired','AssessmentCompleted','AssessmentCancelled'
 ));
 
 COMMIT;

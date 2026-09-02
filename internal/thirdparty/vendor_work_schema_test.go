@@ -79,10 +79,16 @@ func TestCurrentVendorWorkRequestKindsExcludeInternalAddressVerification(t *test
 		t.Fatal(err)
 	}
 	schema := string(up)
-	if !strings.Contains(schema, "request_kind IN ('GENERAL','CERTIFICATION_REFRESH')") {
-		t.Fatal("current vendor-work request kinds are not constrained to vendor-facing journeys")
+	for _, required := range []string{
+		"CREATE TRIGGER reject_retired_vendor_address_work_request_write",
+		"BEFORE INSERT OR UPDATE ON third_party_work_requests",
+		"IF NEW.request_kind = 'ADDRESS_VERIFICATION'",
+	} {
+		if !strings.Contains(schema, required) {
+			t.Fatalf("retired address-verification write guard missing %q", required)
+		}
 	}
-	if strings.Contains(schema, "ADDRESS_VERIFICATION") {
-		t.Fatal("current vendor-work schema still accepts the internal address-verification journey")
+	if strings.Contains(schema, "UPDATE third_party_work_requests") || strings.Contains(schema, "DELETE FROM third_party_work_requests") {
+		t.Fatal("retiring the runtime path must not rewrite or delete historical work records")
 	}
 }

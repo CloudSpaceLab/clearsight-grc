@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
@@ -25,7 +28,7 @@ type todayJobStatus interface {
 // actorTodayService uses the same stored Workflow projection in every runtime
 // mode. Demo data must be seeded through the normal repositories; it must not
 // switch Today to a separate sample journey or static item source.
-func actorTodayService(workflowService *workflow.Service, identityStatus todayIdentityStatus, jobStatus todayJobStatus) *today.Service {
+func actorTodayService(workflowService *workflow.Service, matters *continuity.Service, authorityService authority.Service, identityStatus todayIdentityStatus, jobStatus todayJobStatus) *today.Service {
 	return today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {
 		assigned, err := workflowService.List(loadCtx, workflow.ListFilter{
 			TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
@@ -35,6 +38,13 @@ func actorTodayService(workflowService *workflow.Service, identityStatus todayId
 			return nil, err
 		}
 		items := today.FromWorkflowTasksForActor(assigned, actor.PrincipalID)
+		if matters != nil && authorityService != nil && identity.HasPermission(actor, identity.PermissionOversightRead) {
+			recovery, recoveryErr := unassignedMatterRecoveryItems(loadCtx, matters, authorityService, actor)
+			if recoveryErr != nil {
+				return nil, recoveryErr
+			}
+			items = append(items, recovery...)
+		}
 
 		if identityStatus != nil && identity.HasPermission(actor, identity.PermissionIdentityRead) {
 			overview, overviewErr := identityStatus.OperationalStatus(loadCtx, actor.TenantID, todayItemLimit)
@@ -52,6 +62,43 @@ func actorTodayService(workflowService *workflow.Service, identityStatus todayId
 		}
 		return items, nil
 	})
+}
+
+func unassignedMatterRecoveryItems(ctx context.Context, matters *continuity.Service, authorityService authority.Service, actor identity.Actor) ([]today.AttentionItem, error) {
+	page, err := matters.ListMatterSummaries(identity.WithActor(ctx, actor), actor.TenantID, continuity.SummaryQuery{Status: "OPEN", Limit: todayItemLimit})
+	if err != nil {
+		return nil, err
+	}
+	items := make([]today.AttentionItem, 0)
+	for _, summary := range page.Items {
+		matter := summary.Matter
+		if strings.TrimSpace(matter.OwnerPrincipalID) != "" {
+			continue
+		}
+		resolution, resolveErr := authorityService.Resolve(identity.WithActor(ctx, actor), authority.ResolveInput{
+			TenantID: actor.TenantID, LegalEntityID: matter.LegalEntityID, ObjectType: "MATTER", ObjectID: matter.ID,
+			Responsibility: authority.ResponsibilityAuthorizer, DecisionType: "matter.assign", Materiality: max(3, matter.Priority),
+		})
+		if resolveErr != nil || !resolution.AllowsPrincipal(actor.PrincipalID) {
+			continue
+		}
+		items = append(items, today.AttentionItem{
+			ID: "matter-unassigned-" + matter.ID, Type: "UNASSIGNED_MATTER", Title: "Assign an owner to " + matter.Title,
+			WhyNow: "This open issue has no accountable owner. You hold the current recovery authority and can assign an eligible owner.",
+			Scope:  summary.TypeLabel, State: "Owner not assigned", Evidence: "Current stored issue ownership and authority route",
+			Owner: "Eligible recovery queue", DueAt: timeOrZero(matter.DueAt), PrimaryAction: "Assign issue owner",
+			ActionTargetType: "MATTER", ActionTargetID: matter.ID, InterventionClass: today.InterventionEscalation,
+			Authority: &today.AuthorityContext{Responsibility: string(authority.ResponsibilityAuthorizer), DecisionType: "matter.assign", Materiality: max(3, matter.Priority)},
+		})
+	}
+	return items, nil
+}
+
+func timeOrZero(value *time.Time) time.Time {
+	if value == nil {
+		return time.Time{}
+	}
+	return value.UTC()
 }
 
 func identityAdministrationItems(overview access.OperationalStatus) []today.AttentionItem {

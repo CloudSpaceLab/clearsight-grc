@@ -144,7 +144,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	tasks := workflow.TasksFromMatterAggregates(seededMatters)
 	workflowService := workflow.NewService(workflow.NewMemoryRepository(tasks))
 	backgroundJobs := operations.NewService(continuityRepo, runtimeRepo)
-	todayService := actorTodayService(workflowService, nil, backgroundJobs)
+	todayService := actorTodayService(workflowService, continuityService, authorityService, nil, backgroundJobs)
 	oversightRepo := oversight.NewMemoryRepository(nil)
 	if cfg.DemoMode {
 		oversightRepo.Put(oversight.FromMatterAggregates(cfg.DemoTenantID, cfg.DemoLegalEntityID, seededMatters, time.Now().UTC()))

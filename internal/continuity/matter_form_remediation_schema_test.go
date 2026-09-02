@@ -26,3 +26,24 @@ func TestMatterFormRemediationSchemaBindsExactActiveExternalSubject(t *testing.T
 		}
 	}
 }
+
+func TestMatterFormApplicationSchedulesExactOutcomeReconciliationInMaterialTransaction(t *testing.T) {
+	raw, err := os.ReadFile("matter_form_remediation_postgres.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(raw)
+	for _, required := range []string{
+		"EventMatterFormVerificationDue", "verification_contract_id", "vc.observation_period_minutes",
+		"GREATEST($7,COALESCE(ma.implemented_at,vc.created_at)", "ON CONFLICT DO NOTHING",
+	} {
+		if !strings.Contains(source, required) {
+			t.Fatalf("outcome reconciliation schedule missing %q", required)
+		}
+	}
+	commit := strings.LastIndex(source, "r.commitContinuityEvents")
+	schedule := strings.Index(source, "EventMatterFormVerificationDue")
+	if schedule < 0 || commit < 0 || schedule > commit {
+		t.Fatal("outcome reconciliation was not queued before the material transaction commit")
+	}
+}

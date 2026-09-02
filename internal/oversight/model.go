@@ -2,7 +2,7 @@ package oversight
 
 import "time"
 
-const ProjectionVersion = "oversight-v3"
+const ProjectionVersion = "oversight-v4"
 
 type Freshness string
 

@@ -232,6 +232,23 @@ func (r *PostgresRepository) ApplyMatterFormApplication(ctx context.Context, com
 	if err := insertOutbox(ctx, tx, event); err != nil {
 		return MatterAggregate{}, MatterFormApplication{}, err
 	}
+	// The linked form supplies evidence; it does not prove the outcome. Queue
+	// an exact, due-dated Matter reconciliation in this same transaction so the
+	// configured verification contract becomes current-authority work after its
+	// observation period. Action implementation events also reconcile the same
+	// contract, making delayed worker delivery idempotent.
+	if _, err := tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at)
+		SELECT b.tenant_id,'MATTER',b.matter_id,$4,
+		       jsonb_build_object('version',$5::bigint,'binding_id',b.id::text,'application_id',$6::text,'verification_contract_id',vc.id::text),
+		       $7,GREATEST($7,COALESCE(ma.implemented_at,vc.created_at)+make_interval(mins=>vc.observation_period_minutes)),
+		       GREATEST($7,COALESCE(ma.implemented_at,vc.created_at)+make_interval(mins=>vc.observation_period_minutes))
+		FROM matter_form_remediation_bindings b
+		JOIN verification_contracts vc ON vc.tenant_id=b.tenant_id AND vc.matter_id=b.matter_id AND vc.id=b.verification_contract_id AND vc.status='ACTIVE'
+		LEFT JOIN matter_actions ma ON ma.tenant_id=vc.tenant_id AND ma.matter_id=vc.matter_id AND ma.id=vc.action_id
+		WHERE (b.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)) AND b.id=$2::uuid AND b.matter_id=$3::uuid
+		ON CONFLICT DO NOTHING`, application.TenantID, application.BindingID, application.MatterID, EventMatterFormVerificationDue, application.MatterVersion, application.ID, application.AppliedAt); err != nil {
+		return MatterAggregate{}, MatterFormApplication{}, err
+	}
 	if _, err := queueProgramStateTx(ctx, tx, application.TenantID, command.Binding.ProgramID, 0, event.Type, application.MatterID, application.AppliedBy, application.AppliedAt); err != nil {
 		return MatterAggregate{}, MatterFormApplication{}, err
 	}

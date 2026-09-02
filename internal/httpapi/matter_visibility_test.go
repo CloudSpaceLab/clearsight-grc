@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
@@ -29,6 +30,45 @@ func TestRestrictedMatterVisibility(t *testing.T) {
 	wrongTenant := identity.WithActor(context.Background(), identity.Actor{TenantID: "bank-b", PrincipalID: "person-1", LegalEntityID: "bank-ng"})
 	if canReadMatter(wrongTenant, matter) {
 		t.Fatal("matter was visible across tenants")
+	}
+}
+
+func TestAddressVerificationAssignmentImmediatelyRevokesSupersededAssigneeRead(t *testing.T) {
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	matter, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
+		TenantID: "bank-a", LegalEntityID: "bank-ng", Type: continuity.MatterVendorReview, Priority: 4,
+		Title: "Verify the registered address", Summary: "A staff member must verify the vendor address.", Scope: json.RawMessage(`{"access":"INTERNAL"}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matter, err = service.AddAction(continuity.WithTrustedSystemScope(t.Context()), continuity.AddActionInput{
+		TenantID: "bank-a", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
+		Title: "Verify address", Description: "Visit the address and provide evidence.", OwnerPrincipalID: "staff-old", ActorID: "owner", OriginKey: "thirdparty-address-verification",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	action := matter.Actions[0]
+	matter, err = service.AssignAction(continuity.WithTrustedSystemScope(t.Context()), continuity.AssignActionInput{
+		TenantID: "bank-a", MatterID: matter.Matter.ID, ActionID: action.ID, ExpectedVersion: matter.Matter.Version,
+		OwnerPrincipalID: "staff-new", ActorID: "owner", Rationale: "Reassign the visit to the available verifier.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	api := &API{deps: Dependencies{Continuity: service}}
+	oldRequest := evidence.Request{TenantID: "bank-a", LegalEntityID: "bank-ng", SubjectType: "MATTER", SubjectID: matter.Matter.ID, CreatedBy: "owner", Recipient: evidence.Recipient{Type: evidence.RecipientInternalPrincipal, PrincipalID: "staff-old", State: evidence.RecipientStateAssigned}, Origin: evidence.RequestOrigin{Type: "THIRD_PARTY_ADDRESS_VERIFICATION", ID: action.ID, Version: action.Version}}
+	oldActor := identity.WithActor(t.Context(), identity.Actor{TenantID: "bank-a", LegalEntityID: "bank-ng", PrincipalID: "staff-old"})
+	if api.canReadEvidenceRequest(oldActor, oldRequest) {
+		t.Fatal("superseded address verifier retained access after Action reassignment")
+	}
+	currentRequest := oldRequest
+	currentRequest.Recipient.PrincipalID = "staff-new"
+	currentRequest.Origin.Version = matter.Actions[0].Version
+	newActor := identity.WithActor(t.Context(), identity.Actor{TenantID: "bank-a", LegalEntityID: "bank-ng", PrincipalID: "staff-new"})
+	if !api.canReadEvidenceRequest(newActor, currentRequest) {
+		t.Fatal("current address verifier could not read the exact Action-version request")
 	}
 }
 

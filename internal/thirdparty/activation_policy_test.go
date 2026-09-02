@@ -15,6 +15,16 @@ type activationGuard struct {
 	actor identity.Actor
 }
 
+type revokedDecisionAuthorityGuard struct{}
+
+func (revokedDecisionAuthorityGuard) Authorize(ctx context.Context, request commandauth.Request) (commandauth.Decision, error) {
+	actor, _ := identity.FromContext(ctx)
+	if request.DecisionType == "matter.decision.record" && actor.PrincipalID == "former-authorizer" {
+		return commandauth.Decision{}, commandauth.ErrNotAuthorized
+	}
+	return commandauth.Decision{Allowed: true, Enforced: true, Actor: actor}, nil
+}
+
 func (g activationGuard) Authorize(_ context.Context, request commandauth.Request) (commandauth.Decision, error) {
 	if request.TenantID != g.actor.TenantID || request.LegalEntityID != g.actor.LegalEntityID {
 		return commandauth.Decision{}, commandauth.ErrTenantMismatch
@@ -47,13 +57,17 @@ func TestActivationPolicyRequiresIndependentApprovalAndEffectiveDating(t *testin
 	if err != nil || policy.Status != ActivationPolicyPendingApproval || policy.Version != 2 {
 		t.Fatalf("submit policy: %+v %v", policy, err)
 	}
-	if _, err := service.ApprovePolicy(activationContext(maker), policy.ID, policy.Version, "Approve the reviewed policy for the intended effective time."); !errors.Is(err, ErrActivationMakerChecker) {
+	if _, err := service.ApprovePolicy(activationContext(maker), policy.ID, policy.Version, "", "Approve the reviewed policy for the intended effective time."); !errors.Is(err, ErrActivationMakerChecker) {
 		t.Fatalf("maker approved own policy: %v", err)
+	}
+	simulation, err := service.SimulatePolicy(activationContext(maker), policy.ID)
+	if err != nil || simulation.PolicyVersion != policy.Version || simulation.ID == "" {
+		t.Fatalf("simulate policy: %+v %v", simulation, err)
 	}
 
 	checker := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "checker", Kind: "HUMAN"}
 	service.guard = activationGuard{actor: checker}
-	policy, err = service.ApprovePolicy(activationContext(checker), policy.ID, policy.Version, "The current gates and effective date are approved.")
+	policy, err = service.ApprovePolicy(activationContext(checker), policy.ID, policy.Version, simulation.ID, "The current gates and effective date are approved.")
 	if err != nil || policy.Status != ActivationPolicyActive || policy.ApprovedBy != checker.PrincipalID || policy.Version != 3 {
 		t.Fatalf("approve policy: %+v %v", policy, err)
 	}
@@ -63,6 +77,84 @@ func TestActivationPolicyRequiresIndependentApprovalAndEffectiveDating(t *testin
 	current, err := service.CurrentPolicy(activationContext(checker), "entity", now.Add(2*time.Hour))
 	if err != nil || current.ID != policy.ID {
 		t.Fatalf("effective policy unavailable: %+v %v", current, err)
+	}
+}
+
+func TestFutureActivationPolicyKeepsIncumbentEffectiveUntilReplacementStarts(t *testing.T) {
+	now := time.Date(2026, 9, 2, 10, 0, 0, 0, time.UTC)
+	repo := NewMemoryActivationRepository()
+	repo.PutPolicyForTest(ActivationPolicy{
+		ID: "incumbent", TenantID: "bank", LegalEntityID: "entity", PolicyNumber: 1,
+		AllowedConclusions: []AssessmentConclusion{AssessmentSatisfactory}, MaximumAssessmentAgeDays: 90,
+		Status: ActivationPolicyActive, EffectiveFrom: now.Add(-24 * time.Hour), ProposedBy: "prior-maker", ApprovedBy: "prior-checker",
+		ProposalRationale: "Keep the current independently approved activation gates in force.", ApprovalRationale: "Approved for current vendor activation decisions.",
+		CreatedAt: now.Add(-48 * time.Hour), UpdatedAt: now.Add(-24 * time.Hour), Version: 3,
+	})
+	maker := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "maker", Kind: "HUMAN"}
+	service := NewActivationService(repo, activationGuard{actor: maker})
+	service.now = func() time.Time { return now }
+	service.newID = func() (string, error) { return "replacement", nil }
+	replacement, err := service.ProposePolicy(activationContext(maker), ProposeActivationPolicyInput{
+		LegalEntityID: "entity", AllowedConclusions: []AssessmentConclusion{AssessmentSatisfactory}, MaximumAssessmentAgeDays: 30,
+		EffectiveFrom: now.Add(24 * time.Hour), Rationale: "Tighten the evidence age after an independently reviewed future boundary.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	replacement, err = service.SubmitPolicy(activationContext(maker), replacement.ID, replacement.Version, "Submit the future replacement for independent approval.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	simulation, err := service.SimulatePolicy(activationContext(maker), replacement.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checker := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "checker", Kind: "HUMAN"}
+	service.guard = activationGuard{actor: checker}
+	if _, err = service.ApprovePolicy(activationContext(checker), replacement.ID, replacement.Version, simulation.ID, "Approve the future replacement after reviewing its gates and boundary."); err != nil {
+		t.Fatal(err)
+	}
+	current, err := service.CurrentPolicy(activationContext(checker), "entity", now)
+	if err != nil || current.ID != "incumbent" {
+		t.Fatalf("incumbent unavailable before replacement: %+v %v", current, err)
+	}
+	current, err = service.CurrentPolicy(activationContext(checker), "entity", now.Add(25*time.Hour))
+	if err != nil || current.ID != "replacement" {
+		t.Fatalf("replacement unavailable after boundary: %+v %v", current, err)
+	}
+}
+
+func TestActivationPolicyRollbackCreatesGovernedDraftWithoutChangingCurrentPolicy(t *testing.T) {
+	now := time.Date(2026, 9, 2, 10, 0, 0, 0, time.UTC)
+	repo := NewMemoryActivationRepository()
+	source := ActivationPolicy{
+		ID: "prior-policy", TenantID: "bank", LegalEntityID: "entity", PolicyNumber: 1,
+		AllowedConclusions: []AssessmentConclusion{AssessmentSatisfactory}, MaximumAssessmentAgeDays: 60,
+		RequiredDecisionTypes: []string{"VENDOR_APPROVAL"}, AddressVerificationRequired: true,
+		Status: ActivationPolicyRetired, EffectiveFrom: now.Add(-30 * 24 * time.Hour), ProposedBy: "prior-maker", ApprovedBy: "prior-checker",
+		ProposalRationale: "Use the reviewed vendor activation gates.", ApprovalRationale: "The gates were independently approved.",
+		CreatedAt: now.Add(-40 * 24 * time.Hour), UpdatedAt: now.Add(-10 * 24 * time.Hour), Version: 4,
+	}
+	current := source
+	current.ID, current.PolicyNumber, current.Status, current.EffectiveFrom, current.EffectiveUntil, current.Version = "current-policy", 2, ActivationPolicyActive, now.Add(-10*24*time.Hour), nil, 3
+	repo.PutPolicyForTest(source)
+	repo.PutPolicyForTest(current)
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "maker", Kind: "HUMAN"}
+	service := NewActivationService(repo, activationGuard{actor: actor})
+	service.now = func() time.Time { return now }
+	service.newID = func() (string, error) { return "rollback-draft", nil }
+	draft, err := service.PrepareRollback(activationContext(actor), source.ID, RollbackActivationPolicyInput{
+		EffectiveFrom: now.Add(24 * time.Hour), Rationale: "Restore the prior approved gates through the normal simulation and approval route.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if draft.Status != ActivationPolicyDraft || draft.RollbackOfPolicyID != source.ID || draft.ID != "rollback-draft" || draft.ApprovedBy != "" || draft.PolicyNumber != 3 {
+		t.Fatalf("rollback draft = %+v", draft)
+	}
+	stillCurrent, err := service.CurrentPolicy(activationContext(actor), "entity", now)
+	if err != nil || stillCurrent.ID != current.ID {
+		t.Fatalf("rollback draft changed current policy: %+v %v", stillCurrent, err)
 	}
 }
 
@@ -104,6 +196,39 @@ func TestActivationFailsClosedUntilEveryStoredGatePasses(t *testing.T) {
 	}
 	if result.Receipt.PolicyID != "policy" || result.Receipt.AssessmentID != "assessment" || result.Receipt.VerificationResultID != "result" {
 		t.Fatalf("activation receipt lacks exact dependencies: %+v", result.Receipt)
+	}
+}
+
+func TestActivationRejectsApprovedDecisionWhoseAuthorityWasRevoked(t *testing.T) {
+	now := time.Date(2026, 9, 2, 10, 0, 0, 0, time.UTC)
+	repo := NewMemoryActivationRepository()
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "current-authorizer", Kind: "HUMAN"}
+	service := NewActivationService(repo, revokedDecisionAuthorityGuard{})
+	service.now = func() time.Time { return now }
+	repo.PutPolicyForTest(ActivationPolicy{
+		ID: "policy", TenantID: "bank", LegalEntityID: "entity", PolicyNumber: 1,
+		AllowedConclusions: []AssessmentConclusion{AssessmentSatisfactory}, MaximumAssessmentAgeDays: 90,
+		RequiredDecisionTypes: []string{"VENDOR_APPROVAL"}, Status: ActivationPolicyActive, EffectiveFrom: now.Add(-time.Hour),
+		ProposedBy: "maker", ApprovedBy: "checker", CreatedAt: now.Add(-2 * time.Hour), UpdatedAt: now.Add(-time.Hour), Version: 3,
+	})
+	repo.PutRelationshipForTest(Relationship{ID: "relationship", TenantID: "bank", LegalEntityID: "entity", Status: RelationshipUnderReview, Version: 1})
+	repo.PutActivationFactsForTest("relationship", ActivationFacts{
+		AssessmentID: "assessment", AssessmentVersion: 3, AssessmentStatus: AssessmentCompleted, AssessmentConclusion: AssessmentSatisfactory, AssessmentCompletedAt: now.Add(-time.Hour),
+		SatisfiedDecisionTypes: []string{"VENDOR_APPROVAL"}, DecisionIDs: []string{"decision"},
+		DecisionDependencies: []ActivationDecisionDependency{{ID: "decision", MatterID: "review-matter", DecisionType: "VENDOR_APPROVAL", AuthorityPrincipalID: "former-authorizer"}},
+	})
+	result, err := service.ActivateRelationship(activationContext(actor), "relationship", ActivateRelationshipInput{ExpectedVersion: 1, IntendedEffectiveAt: now, Rationale: "Activate only after every current authority and evidence gate passes."})
+	if !errors.Is(err, ErrActivationIneligible) || result.Eligible {
+		t.Fatalf("revoked decision authority permitted activation: %+v %v", result, err)
+	}
+	found := false
+	for _, gate := range result.Gates {
+		if gate.Code == "DECISION_AUTHORITY" && !gate.Satisfied {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("decision authority gate missing: %+v", result.Gates)
 	}
 }
 

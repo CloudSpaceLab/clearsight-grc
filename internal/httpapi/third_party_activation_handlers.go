@@ -13,6 +13,7 @@ import (
 
 type activationPolicyTransitionRequest struct {
 	ExpectedVersion int64  `json:"expected_version"`
+	SimulationID    string `json:"simulation_id,omitempty"`
 	Rationale       string `json:"rationale"`
 }
 
@@ -94,8 +95,22 @@ func (a *API) approveThirdPartyActivationPolicy(w http.ResponseWriter, r *http.R
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	value, err := service.ApprovePolicy(r.Context(), r.PathValue("id"), input.ExpectedVersion, input.Rationale)
+	value, err := service.ApprovePolicy(r.Context(), r.PathValue("id"), input.ExpectedVersion, input.SimulationID, input.Rationale)
 	writeThirdPartyActivationResult(w, value, err, http.StatusOK)
+}
+
+func (a *API) rollbackThirdPartyActivationPolicy(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.activationService(w)
+	if !ok {
+		return
+	}
+	var input thirdparty.RollbackActivationPolicyInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	value, err := service.PrepareRollback(r.Context(), r.PathValue("id"), input)
+	writeThirdPartyActivationResult(w, value, err, http.StatusCreated)
 }
 
 func (a *API) activateVendorRelationship(w http.ResponseWriter, r *http.Request) {
@@ -137,6 +152,8 @@ func writeThirdPartyActivationError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusConflict, "activation_policy_unavailable", "No single approved activation policy applies at the requested time.")
 	case errors.Is(err, thirdparty.ErrActivationMakerChecker), errors.Is(err, commandauth.ErrNotAuthorized):
 		httpx.WriteError(w, http.StatusForbidden, "activation_not_authorized", "The current authority route does not permit this activation decision.")
+	case errors.Is(err, thirdparty.ErrActivationSimulationRequired):
+		httpx.WriteError(w, http.StatusConflict, "activation_simulation_required", "Run a complete activation impact simulation for this policy revision before approving it.")
 	case errors.Is(err, thirdparty.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "version_conflict", "This vendor activation record changed. Reload before continuing.")
 	case errors.Is(err, thirdparty.ErrNotFound):

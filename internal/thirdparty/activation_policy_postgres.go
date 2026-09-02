@@ -4,6 +4,7 @@ package thirdparty
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,6 +12,39 @@ import (
 
 	"github.com/jackc/pgx/v5"
 )
+
+func (r *PostgresRepository) StoreActivationSimulation(ctx context.Context, scope Scope, value ActivationSimulation) (ActivationSimulation, error) {
+	missing, err := json.Marshal(value.MissingGateCounts)
+	if err != nil {
+		return ActivationSimulation{}, err
+	}
+	_, err = r.pool.Exec(ctx, `INSERT INTO third_party_activation_policy_simulations(id,tenant_id,legal_entity_id,policy_id,policy_version,candidate_count,eligible_count,missing_gate_counts,population_is_complete,evaluated_by,evaluated_at,expires_at)
+		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5,$6,$7,$8,$9,$10::uuid,$11,$12)`,
+		value.ID, scope.TenantID, scope.LegalEntityID, value.PolicyID, value.PolicyVersion, value.CandidateCount, value.EligibleCount, missing, value.PopulationIsComplete, value.EvaluatedBy, value.EvaluatedAt, value.ExpiresAt)
+	if err != nil {
+		return ActivationSimulation{}, fmt.Errorf("store activation policy simulation: %w", err)
+	}
+	return value, nil
+}
+
+func (r *PostgresRepository) GetActivationSimulation(ctx context.Context, scope Scope, simulationID string) (ActivationSimulation, error) {
+	var value ActivationSimulation
+	var missing []byte
+	err := r.pool.QueryRow(ctx, `SELECT s.id::text,s.policy_id::text,s.policy_version,s.candidate_count,s.eligible_count,s.missing_gate_counts,s.population_is_complete,s.evaluated_by::text,s.evaluated_at,s.expires_at
+		FROM third_party_activation_policy_simulations s JOIN tenants t ON t.id=s.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND s.legal_entity_id::text=$2 AND s.id::text=$3`, scope.TenantID, scope.LegalEntityID, simulationID).
+		Scan(&value.ID, &value.PolicyID, &value.PolicyVersion, &value.CandidateCount, &value.EligibleCount, &missing, &value.PopulationIsComplete, &value.EvaluatedBy, &value.EvaluatedAt, &value.ExpiresAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ActivationSimulation{}, ErrActivationSimulationRequired
+	}
+	if err != nil {
+		return ActivationSimulation{}, err
+	}
+	if err = json.Unmarshal(missing, &value.MissingGateCounts); err != nil {
+		return ActivationSimulation{}, err
+	}
+	return value, nil
+}
 
 func (r *PostgresRepository) ProposeActivationPolicy(ctx context.Context, policy ActivationPolicy) (ActivationPolicy, error) {
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
@@ -32,12 +66,12 @@ func (r *PostgresRepository) ProposeActivationPolicy(ctx context.Context, policy
 	_, err = tx.Exec(ctx, `
 		INSERT INTO third_party_activation_policies(
 			id,tenant_id,legal_entity_id,policy_number,allowed_conclusions,maximum_assessment_age_days,required_decision_types,
-			address_verification_required,blocking_matter_types,conditional_conclusion_needs_terms,effective_from,status,
+			address_verification_required,blocking_matter_types,conditional_conclusion_needs_terms,effective_from,rollback_of_policy_id,status,
 			proposed_by,proposal_rationale,created_at,updated_at,version)
-		VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7,$8,$9,$10,$11,'DRAFT',$12::uuid,$13,$14,$14,1)`,
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7,$8,$9,$10,$11,NULLIF($12,'')::uuid,'DRAFT',$13::uuid,$14,$15,$15,1)`,
 		policy.ID, tenantID, policy.LegalEntityID, policy.PolicyNumber, allowed, policy.MaximumAssessmentAgeDays, policy.RequiredDecisionTypes,
 		policy.AddressVerificationRequired, policy.BlockingMatterTypes, policy.ConditionalConclusionNeedsTerms, policy.EffectiveFrom,
-		policy.ProposedBy, policy.ProposalRationale, policy.CreatedAt)
+		policy.RollbackOfPolicyID, policy.ProposedBy, policy.ProposalRationale, policy.CreatedAt)
 	if err != nil {
 		return ActivationPolicy{}, fmt.Errorf("store activation policy proposal: %w", err)
 	}
@@ -106,11 +140,13 @@ func (r *PostgresRepository) TransitionActivationPolicy(ctx context.Context, sco
 		rows.Close()
 		for _, prior := range priors {
 			priorEnd := policy.EffectiveFrom
-			prior.Status, prior.EffectiveUntil, prior.UpdatedAt, prior.Version = ActivationPolicyRetired, &priorEnd, at.UTC(), prior.Version+1
-			if _, err = tx.Exec(ctx, `UPDATE third_party_activation_policies SET status='RETIRED',effective_until=$4,updated_at=$5,version=$6 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$7`, tenantID, scope.LegalEntityID, prior.ID, priorEnd, at.UTC(), prior.Version, prior.Version-1); err != nil {
+			// Keep the incumbent active until the exact replacement boundary. A
+			// future-dated approval must not create an activation-policy outage.
+			prior.EffectiveUntil, prior.UpdatedAt, prior.Version = &priorEnd, at.UTC(), prior.Version+1
+			if _, err = tx.Exec(ctx, `UPDATE third_party_activation_policies SET effective_until=$4,updated_at=$5,version=$6 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$7`, tenantID, scope.LegalEntityID, prior.ID, priorEnd, at.UTC(), prior.Version, prior.Version-1); err != nil {
 				return ActivationPolicy{}, err
 			}
-			if err = appendActivationPolicyEvent(ctx, tx, tenantID, prior, "RETIRED", actorID, "Replaced by independently approved policy "+policy.ID+"."); err != nil {
+			if err = appendActivationPolicyEvent(ctx, tx, tenantID, prior, "REPLACED", actorID, "Effective interval ends when independently approved policy "+policy.ID+" begins."); err != nil {
 				return ActivationPolicy{}, err
 			}
 		}
@@ -208,7 +244,8 @@ func (r *PostgresRepository) CommitRelationshipActivation(ctx context.Context, c
 	if err != nil {
 		return Relationship{}, ActivationReceipt{}, err
 	}
-	if !gatesSatisfied(activationGates(relationship, facts, policy, commit.EffectiveAt)) || facts.AssessmentID != commit.Facts.AssessmentID || facts.AssessmentVersion != commit.Facts.AssessmentVersion || facts.VerificationResultID != commit.Facts.VerificationResultID {
+	facts.DecisionAuthoritiesCurrent = commit.Facts.DecisionAuthoritiesCurrent
+	if !gatesSatisfied(activationGates(relationship, facts, policy, commit.EffectiveAt)) || facts.AssessmentID != commit.Facts.AssessmentID || facts.AssessmentVersion != commit.Facts.AssessmentVersion || facts.VerificationResultID != commit.Facts.VerificationResultID || strings.Join(facts.DecisionIDs, ",") != strings.Join(commit.Facts.DecisionIDs, ",") {
 		return Relationship{}, ActivationReceipt{}, ErrActivationIneligible
 	}
 	if _, err = tx.Exec(ctx, `UPDATE third_party_relationships SET status='ACTIVE',effective_from=$4,updated_at=$4,version=version+1 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$5`, tenantID, commit.LegalEntityID, commit.RelationshipID, commit.EffectiveAt, commit.ExpectedVersion); err != nil {
@@ -265,15 +302,15 @@ func readActivationFacts(ctx context.Context, q activationQuerier, tenant, entit
 		facts.AssessmentCompletedAt = completedAt.UTC()
 	}
 	if reviewMatterID != "" {
-		rows, queryErr := q.Query(ctx, `SELECT id::text,decision_type,conditions FROM matter_decisions d JOIN tenants t ON t.id=d.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND d.matter_id::text=$2 AND d.status IN ('APPROVED','CONDITIONALLY_APPROVED') AND (d.expires_at IS NULL OR d.expires_at>clock_timestamp()) ORDER BY d.created_at DESC,d.id DESC`, tenant, reviewMatterID)
+		rows, queryErr := q.Query(ctx, `SELECT id::text,decision_type,conditions,COALESCE(authority_principal_id::text,'') FROM matter_decisions d JOIN tenants t ON t.id=d.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND d.matter_id::text=$2 AND d.status IN ('APPROVED','CONDITIONALLY_APPROVED') AND (d.expires_at IS NULL OR d.expires_at>clock_timestamp()) ORDER BY d.created_at DESC,d.id DESC`, tenant, reviewMatterID)
 		if queryErr != nil {
 			return Relationship{}, ActivationFacts{}, queryErr
 		}
 		seen := map[string]bool{}
 		for rows.Next() {
-			var decisionID, decisionType string
+			var decisionID, decisionType, decisionAuthorityID string
 			var conditions []byte
-			if scanErr := rows.Scan(&decisionID, &decisionType, &conditions); scanErr != nil {
+			if scanErr := rows.Scan(&decisionID, &decisionType, &conditions, &decisionAuthorityID); scanErr != nil {
 				rows.Close()
 				return Relationship{}, ActivationFacts{}, scanErr
 			}
@@ -282,6 +319,7 @@ func readActivationFacts(ctx context.Context, q activationQuerier, tenant, entit
 				seen[decisionType] = true
 				facts.SatisfiedDecisionTypes = append(facts.SatisfiedDecisionTypes, decisionType)
 				facts.DecisionIDs = append(facts.DecisionIDs, decisionID)
+				facts.DecisionDependencies = append(facts.DecisionDependencies, ActivationDecisionDependency{ID: decisionID, MatterID: reviewMatterID, DecisionType: decisionType, AuthorityPrincipalID: decisionAuthorityID})
 			}
 			if string(conditions) != "[]" && string(conditions) != "{}" && string(conditions) != "null" {
 				facts.ConditionsRecorded = true
@@ -321,12 +359,12 @@ func readActivationFacts(ctx context.Context, q activationQuerier, tenant, entit
 	return aggregate.Relationship, facts, nil
 }
 
-const activationPolicySelect = `SELECT p.id::text,t.slug,p.legal_entity_id::text,p.policy_number,p.allowed_conclusions,p.maximum_assessment_age_days,p.required_decision_types,p.address_verification_required,p.blocking_matter_types,p.conditional_conclusion_needs_terms,p.effective_from,p.effective_until,p.status,p.proposed_by::text,COALESCE(p.approved_by::text,''),p.proposal_rationale,p.approval_rationale,p.created_at,p.updated_at,p.version FROM third_party_activation_policies p JOIN tenants t ON t.id=p.tenant_id`
+const activationPolicySelect = `SELECT p.id::text,t.slug,p.legal_entity_id::text,p.policy_number,p.allowed_conclusions,p.maximum_assessment_age_days,p.required_decision_types,p.address_verification_required,p.blocking_matter_types,p.conditional_conclusion_needs_terms,p.effective_from,p.effective_until,COALESCE(p.rollback_of_policy_id::text,''),p.status,p.proposed_by::text,COALESCE(p.approved_by::text,''),p.proposal_rationale,p.approval_rationale,p.created_at,p.updated_at,p.version FROM third_party_activation_policies p JOIN tenants t ON t.id=p.tenant_id`
 
 func scanActivationPolicy(row rowScanner) (ActivationPolicy, error) {
 	var value ActivationPolicy
 	var conclusions []string
-	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.PolicyNumber, &conclusions, &value.MaximumAssessmentAgeDays, &value.RequiredDecisionTypes, &value.AddressVerificationRequired, &value.BlockingMatterTypes, &value.ConditionalConclusionNeedsTerms, &value.EffectiveFrom, &value.EffectiveUntil, &value.Status, &value.ProposedBy, &value.ApprovedBy, &value.ProposalRationale, &value.ApprovalRationale, &value.CreatedAt, &value.UpdatedAt, &value.Version)
+	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.PolicyNumber, &conclusions, &value.MaximumAssessmentAgeDays, &value.RequiredDecisionTypes, &value.AddressVerificationRequired, &value.BlockingMatterTypes, &value.ConditionalConclusionNeedsTerms, &value.EffectiveFrom, &value.EffectiveUntil, &value.RollbackOfPolicyID, &value.Status, &value.ProposedBy, &value.ApprovedBy, &value.ProposalRationale, &value.ApprovalRationale, &value.CreatedAt, &value.UpdatedAt, &value.Version)
 	for _, conclusion := range conclusions {
 		value.AllowedConclusions = append(value.AllowedConclusions, AssessmentConclusion(conclusion))
 	}

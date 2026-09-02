@@ -13,6 +13,7 @@ type MemoryActivationRepository struct {
 	relationships map[string]Relationship
 	facts         map[string]ActivationFacts
 	receipts      map[string]ActivationReceipt
+	simulations   map[string]ActivationSimulation
 	source        *MemoryAssessmentRepository
 }
 
@@ -21,7 +22,31 @@ func NewMemoryActivationRepository(sources ...*MemoryAssessmentRepository) *Memo
 	if len(sources) > 0 {
 		source = sources[0]
 	}
-	return &MemoryActivationRepository{policies: map[string]ActivationPolicy{}, relationships: map[string]Relationship{}, facts: map[string]ActivationFacts{}, receipts: map[string]ActivationReceipt{}, source: source}
+	return &MemoryActivationRepository{policies: map[string]ActivationPolicy{}, relationships: map[string]Relationship{}, facts: map[string]ActivationFacts{}, receipts: map[string]ActivationReceipt{}, simulations: map[string]ActivationSimulation{}, source: source}
+}
+
+func (r *MemoryActivationRepository) StoreActivationSimulation(_ context.Context, scope Scope, value ActivationSimulation) (ActivationSimulation, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	policy, ok := r.policies[value.PolicyID]
+	if !ok || policy.TenantID != scope.TenantID || policy.LegalEntityID != scope.LegalEntityID || policy.Version != value.PolicyVersion {
+		return ActivationSimulation{}, ErrActivationPolicyUnavailable
+	}
+	value.MissingGateCounts = cloneGateCounts(value.MissingGateCounts)
+	r.simulations[value.ID] = value
+	return value, nil
+}
+
+func (r *MemoryActivationRepository) GetActivationSimulation(_ context.Context, scope Scope, simulationID string) (ActivationSimulation, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	value, ok := r.simulations[simulationID]
+	policy, policyOK := r.policies[value.PolicyID]
+	if !ok || !policyOK || policy.TenantID != scope.TenantID || policy.LegalEntityID != scope.LegalEntityID {
+		return ActivationSimulation{}, ErrActivationSimulationRequired
+	}
+	value.MissingGateCounts = cloneGateCounts(value.MissingGateCounts)
+	return value, nil
 }
 
 func (r *MemoryActivationRepository) ProposeActivationPolicy(_ context.Context, policy ActivationPolicy) (ActivationPolicy, error) {
@@ -60,7 +85,7 @@ func (r *MemoryActivationRepository) TransitionActivationPolicy(_ context.Contex
 			}
 			if prior.EffectiveUntil == nil || prior.EffectiveUntil.After(policy.EffectiveFrom) {
 				end := policy.EffectiveFrom
-				prior.EffectiveUntil, prior.Status, prior.UpdatedAt, prior.Version = &end, ActivationPolicyRetired, at, prior.Version+1
+				prior.EffectiveUntil, prior.UpdatedAt, prior.Version = &end, at, prior.Version+1
 				r.policies[id] = prior
 			}
 		}
@@ -250,7 +275,16 @@ func cloneActivationPolicy(value ActivationPolicy) ActivationPolicy {
 func cloneActivationFacts(value ActivationFacts) ActivationFacts {
 	value.SatisfiedDecisionTypes = append([]string(nil), value.SatisfiedDecisionTypes...)
 	value.DecisionIDs = append([]string(nil), value.DecisionIDs...)
+	value.DecisionDependencies = append([]ActivationDecisionDependency(nil), value.DecisionDependencies...)
 	return value
+}
+
+func cloneGateCounts(value map[string]int) map[string]int {
+	cloned := make(map[string]int, len(value))
+	for key, count := range value {
+		cloned[key] = count
+	}
+	return cloned
 }
 
 var _ ActivationRepository = (*MemoryActivationRepository)(nil)
