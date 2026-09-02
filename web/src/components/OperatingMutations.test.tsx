@@ -7,6 +7,7 @@ import {
   canCurrentActorTransitionProgram,
   loadActorMatterWork,
   recordMatterDecision,
+  transitionMatter,
   transitionMatterAction,
   transitionProgram,
 } from "../continuityCommands";
@@ -16,6 +17,7 @@ vi.mock("../continuityCommands", () => ({
   loadActorMatterWork: vi.fn(),
   recordMatterDecision: vi.fn(),
   recordVerificationResult: vi.fn(),
+  transitionMatter: vi.fn(),
   transitionMatterAction: vi.fn(),
   transitionResponsePackage: vi.fn(),
   transitionProgram: vi.fn(),
@@ -51,6 +53,15 @@ const actionTask: WorkflowTask = {
   context: {
     type: "MATTER_ACTION", matter_id: "matter-1", action_id: "action-1", command_name: "matter.action.transition", subresource_type: "ACTION", subresource_id: "action-1",
     allowed_targets: "IN_PROGRESS,BLOCKED,CANCELLED", target_status: "", primary_action: "Update action", why_now: "This accountable issue action requires your attention.",
+  },
+};
+
+const matterOwnerTask: WorkflowTask = {
+  id: "task-owner-review", tenant_id: "bank-1", workflow_id: "workflow-owner-review", step_key: "matter:matter-1:ASSESSMENT", responsibility: "ACCOUNTABLE_OWNER",
+  principal_id: "actor-1", title: "Resolve material finding", status: "READY", version: 1,
+  context: {
+    type: "MATTER_WORK", matter_id: "matter-1", command_name: "matter.transition",
+    allowed_targets: "ASSESSMENT", target_status: "ASSESSMENT", primary_action: "Confirm scope and owner", why_now: "This open issue is assigned to you and its current review step is ready.",
   },
 };
 
@@ -113,6 +124,24 @@ describe("governed operating mutations", () => {
 
     await waitFor(() => expect(transitionMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 7, "IN_PROGRESS", ""));
     expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ matter: expect.objectContaining({ version: 8 }) }));
+  });
+
+  it("executes the assigned Matter owner handoff from its exact projected target", async () => {
+    vi.mocked(loadActorMatterWork).mockResolvedValue([matterOwnerTask]);
+    vi.mocked(transitionMatter).mockResolvedValue({
+      ...matter,
+      matter: { ...matter.matter, status: "ASSESSMENT", version: 8 },
+    });
+    const onUpdated = vi.fn();
+
+    render(<MatterWorkCommandPanel aggregate={matter} onUpdated={onUpdated}/>);
+    expect(await screen.findByRole("heading", { name: "Confirm scope and owner" })).toBeTruthy();
+    expect(screen.getByText("Reviewing impact")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Review basis"), { target: { value: "Scope and accountable owner confirmed." } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm scope and owner" }));
+
+    await waitFor(() => expect(transitionMatter).toHaveBeenCalledWith("matter-1", 7, "ASSESSMENT", "Scope and accountable owner confirmed."));
+    expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ matter: expect.objectContaining({ status: "ASSESSMENT", version: 8 }) }));
   });
 
   it("does not invent Matter action controls when no current actor packet exists", async () => {

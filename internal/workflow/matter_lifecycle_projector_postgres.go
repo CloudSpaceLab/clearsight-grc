@@ -55,8 +55,9 @@ func (p *MatterLifecycleProjector) Publish(ctx context.Context, event workflowru
 
 // Maintain reconciles Matters that can currently yield lifecycle work, plus
 // Matters with an existing lifecycle projection that may need reassignment or
-// cleanup. Decision/Response candidates are included so routing-policy changes
-// converge even when the Matter itself did not emit a new event.
+// cleanup. Assigned Draft/initial-review Matters and Decision/Response
+// candidates are included so deployment, routing-policy changes and missed
+// deliveries converge even when the Matter did not emit a new event.
 func (p *MatterLifecycleProjector) Maintain(ctx context.Context, now time.Time, limit int) (int, error) {
 	if p == nil || p.Repo == nil || p.Continuity == nil || p.Authority == nil {
 		return 0, nil
@@ -81,6 +82,8 @@ func (p *MatterLifecycleProjector) Maintain(ctx context.Context, now time.Time, 
 		WHERE ($1='' OR (t.slug,m.id::text) > ($1,$2))
 		  AND m.status NOT IN ('CLOSED','CANCELLED')
 		  AND (
+		    (m.owner_principal_id IS NOT NULL AND m.status IN ('DRAFT','TRIAGE'))
+		    OR
 		    EXISTS (
 		      SELECT 1 FROM workflow_instances wi
 		      WHERE wi.tenant_id=m.tenant_id AND wi.kind=$4

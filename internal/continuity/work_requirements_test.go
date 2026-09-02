@@ -30,6 +30,45 @@ func TestCompileMatterWorkProjectsOnlyUnambiguousResponseTransitions(t *testing.
 	}
 }
 
+func TestCompileMatterWorkDoesNotCompeteWithResponsePreparationHandoff(t *testing.T) {
+	now := time.Date(2026, 8, 7, 22, 30, 0, 0, time.UTC)
+	aggregate := MatterAggregate{
+		Matter: Matter{ID: "matter-1", TenantID: "bank", Status: MatterResponsePreparation, Priority: 4, OwnerPrincipalID: "matter-owner"},
+		ResponsePackages: []ResponsePackage{{
+			ID: "response-transmitted", Purpose: "NDPC response", Audience: "NDPC", Status: ResponseTransmitted, UpdatedAt: now.Add(-time.Minute),
+		}},
+	}
+
+	requirements, _ := CompileMatterWork(aggregate, now)
+	if len(requirements) != 1 || requirements[0].CommandName != "matter.response.transition" {
+		t.Fatalf("response handoff must remain dominant during response preparation: %#v", requirements)
+	}
+}
+
+func TestCompileMatterWorkProjectsAssignedOwnerInitialReviewHandoff(t *testing.T) {
+	now := time.Date(2026, 9, 2, 20, 30, 0, 0, time.UTC)
+	due := now.Add(48 * time.Hour)
+	aggregate := MatterAggregate{Matter: Matter{
+		ID: "matter-1", TenantID: "bank", Status: MatterInitialReview, Priority: 4,
+		Title: "Restore an unavailable source", OwnerPrincipalID: "program-owner", DueAt: &due,
+	}}
+
+	requirements, ambiguities := CompileMatterWork(aggregate, now)
+	if len(ambiguities) != 0 {
+		t.Fatalf("initial-review owner handoff must be unambiguous: %#v", ambiguities)
+	}
+	if len(requirements) != 1 {
+		t.Fatalf("expected one current owner handoff, got %#v", requirements)
+	}
+	got := requirements[0]
+	if got.CommandName != "matter.transition" || got.TargetStatus != string(MatterAssessment) || got.Responsibility != "ACCOUNTABLE_OWNER" || got.RequiredPrincipalID != "program-owner" {
+		t.Fatalf("unexpected initial-review owner handoff: %#v", got)
+	}
+	if got.PrimaryAction != "Confirm scope and owner" || got.Title != aggregate.Matter.Title || got.DueAt != &due {
+		t.Fatalf("owner handoff copy or deadline = %#v", got)
+	}
+}
+
 func TestCompileMatterWorkDoesNotInventDecisionAssignee(t *testing.T) {
 	now := time.Date(2026, 8, 7, 22, 30, 0, 0, time.UTC)
 	aggregate := MatterAggregate{

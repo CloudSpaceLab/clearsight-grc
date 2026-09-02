@@ -6,6 +6,22 @@ const generatedAt = "2026-08-07T22:45:00Z";
 
 const items: AttentionItem[] = [
   {
+    id: "lifecycle-owner-review",
+    type: "MATTER_WORK",
+    title: "Restore an unavailable source",
+    why_now: "This open issue is assigned to you and its current review step is ready.",
+    scope: "Data protection Program · Control gap",
+    state: "Ready",
+    evidence: "Current issue ownership and source-health record",
+    owner: "Program owner",
+    due_at: "2026-08-08T08:30:00Z",
+    primary_action: "Confirm scope and owner",
+    action_target_type: "MATTER",
+    action_target_id: "matter-source-recovery",
+    intervention_class: "REVIEW",
+    authority: { responsibility: "ACCOUNTABLE_OWNER", decision_type: "matter.transition", materiality: 4 },
+  },
+  {
     id: "lifecycle-verification",
     type: "MATTER_WORK",
     title: "Confirm restored ATM availability",

@@ -19,10 +19,28 @@
 }
 
 .governed-command-form label:has(textarea),
+.governed-command-form .governed-command-target,
 .governed-command-form .inline-error,
 .governed-command-form .inline-notice,
 .governed-command-form .primary-button {
   grid-column: 1 / -1;
+}
+
+.governed-command-target {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.governed-command-target span {
+  color: var(--muted);
 }
 
 .governed-command-form input,
@@ -104,6 +122,7 @@
 
   .governed-command-form label,
   .governed-command-form label:has(textarea),
+  .governed-command-form .governed-command-target,
   .governed-command-form .inline-error,
   .governed-command-form .inline-notice,
   .governed-command-form .primary-button {
