@@ -9,6 +9,8 @@ import (
 )
 
 type governedDistributionAmendRequest struct {
+	TenantID           string                                `json:"tenant_id,omitempty"`
+	LegalEntityID      string                                `json:"legal_entity_id,omitempty"`
 	ExpectedVersion    int64                                 `json:"expected_version"`
 	Deadline           *time.Time                            `json:"deadline,omitempty"`
 	RouteExpiresAt     *time.Time                            `json:"route_expires_at,omitempty"`

@@ -68,3 +68,38 @@ func TestGovernedFormDistributionAcceptsVerifiedScopeBinding(t *testing.T) {
 		t.Fatalf("governed distribution body was rejected after scope binding: %d %s", response.Code, response.Body.String())
 	}
 }
+
+func TestGovernedFormDistributionMutationAcceptsVerifiedScopeBinding(t *testing.T) {
+	api := &API{}
+	policy := commandPolicy{
+		ObjectType:     "FORM_DISTRIBUTION",
+		Responsibility: authority.ResponsibilityOwner,
+		Materiality:    3,
+		ActorField:     noActorField,
+	}
+
+	handler := api.command("forms.distribution.revoke", policy, func(w http.ResponseWriter, r *http.Request) {
+		var input distributionVersionRequest
+		if err := httpx.DecodeJSON(w, r, &input); err != nil {
+			httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "A current distribution version is required.")
+			return
+		}
+		if input.TenantID != "bank-1" || input.ExpectedVersion != 4 {
+			t.Fatalf("verified scope or command version was not preserved: %#v", input)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/forms/distributions/distribution-1/revoke", strings.NewReader(`{"expected_version":4}`))
+	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
+		TenantID: "bank-1", LegalEntityID: "entity-1", PrincipalID: "owner-1", Kind: "PERSON",
+		ExpiresAt: time.Now().UTC().Add(time.Hour),
+	}))
+	response := httptest.NewRecorder()
+
+	handler(response, request)
+
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("governed distribution mutation body was rejected after scope binding: %d %s", response.Code, response.Body.String())
+	}
+}

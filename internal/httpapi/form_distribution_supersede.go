@@ -9,6 +9,8 @@ import (
 )
 
 type supersedeFormDistributionRequest struct {
+	TenantID                 string   `json:"tenant_id,omitempty"`
+	LegalEntityID            string   `json:"legal_entity_id,omitempty"`
 	ExpectedVersion          int64    `json:"expected_version"`
 	TargetFormVersion        int64    `json:"target_form_version"`
 	Confirm                  bool     `json:"confirm"`
