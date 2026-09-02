@@ -373,7 +373,7 @@ describe("monitoring setup", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Approve check" }));
 
     await waitFor(() => expect(transitionMonitoringCheck).toHaveBeenCalledWith(pending.id, 10, "ACTIVE"));
-    expect(await screen.findByText("Active")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Pending check" }).nextElementSibling?.textContent).toContain("Active");
   });
 
   it("reloads the latest monitoring-check revision after a concurrent update", async () => {
