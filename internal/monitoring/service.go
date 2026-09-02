@@ -304,7 +304,7 @@ func (s *Service) TransitionLibraryForm(ctx context.Context, formID string, inpu
 	if input.To == LifecycleActive && current.Status == LifecyclePendingApproval && current.SubmittedBy == actor.PrincipalID {
 		return FormTemplate{}, ErrMakerChecker
 	}
-	// A library form is intentionally not Program-bound. Transition the exact
+	// A reusable library form may intentionally have no Program binding. Transition the exact
 	// entity-scoped revision already resolved above instead of re-reading it
 	// through the Program form path, whose Program identifier is required.
 	return s.repo.TransitionForm(ctx, LifecycleTransition{

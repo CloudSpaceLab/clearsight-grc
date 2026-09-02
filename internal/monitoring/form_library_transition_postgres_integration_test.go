@@ -4,6 +4,7 @@ package monitoring
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
@@ -31,6 +32,7 @@ func TestPostgresReusableFormCanEnterApprovalWithoutProgramID(t *testing.T) {
 		entityID    = "9d222222-2222-7222-8222-222222222222"
 		principalID = "9d222222-2222-7222-8222-222222222223"
 		formID      = "9d222222-2222-7222-8222-222222222224"
+		reviewerID  = "9d222222-2222-7222-8222-222222222225"
 		tenantSlug  = "reusable-form-transition-test"
 	)
 	cleanupReusableFormTransition(ctx, pool, tenantID)
@@ -42,6 +44,9 @@ func TestPostgresReusableFormCanEnterApprovalWithoutProgramID(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($1::uuid,$2::uuid,'PERSON','Form Maker')`, principalID, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($1::uuid,$2::uuid,'PERSON','Form Reviewer')`, reviewerID, tenantID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -69,6 +74,17 @@ func TestPostgresReusableFormCanEnterApprovalWithoutProgramID(t *testing.T) {
 	}
 	if pending.Status != LifecyclePendingApproval || pending.SubmittedBy != principalID || pending.Version != draft.Version+1 {
 		t.Fatalf("pending reusable form = %#v", pending)
+	}
+	if _, err := service.TransitionLibraryForm(actorCtx, draft.ID, TransitionInput{ExpectedVersion: pending.Version, To: LifecycleActive}); !errors.Is(err, ErrMakerChecker) {
+		t.Fatalf("maker activation error = %v, want maker-checker rejection", err)
+	}
+	reviewerCtx := formActorContext(tenantSlug, entityID, reviewerID)
+	active, err := service.TransitionLibraryForm(reviewerCtx, draft.ID, TransitionInput{ExpectedVersion: pending.Version, To: LifecycleActive})
+	if err != nil {
+		t.Fatalf("independent reviewer could not activate reusable form: %v", err)
+	}
+	if active.Status != LifecycleActive || !active.IsCurrent || active.ApprovedBy != reviewerID || active.Version != pending.Version+1 {
+		t.Fatalf("active reusable form = %#v", active)
 	}
 }
 
