@@ -114,7 +114,9 @@ func (a *API) activateVendorRelationship(w http.ResponseWriter, r *http.Request)
 
 func (a *API) getVendorRelationshipActivation(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.activationService(w)
-	if !ok { return }
+	if !ok {
+		return
+	}
 	value, err := service.RelationshipEligibility(r.Context(), r.PathValue("id"), time.Now().UTC())
 	writeThirdPartyActivationResult(w, value, err, http.StatusOK)
 }
