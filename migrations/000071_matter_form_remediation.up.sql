@@ -1,3 +1,5 @@
+BEGIN;
+
 CREATE TABLE matter_form_remediation_bindings (
     id uuid PRIMARY KEY,
     tenant_id uuid NOT NULL REFERENCES tenants(id),
@@ -85,3 +87,5 @@ CREATE TABLE matter_form_remediation_applications (
 
 CREATE INDEX matter_form_remediation_applications_binding_idx
     ON matter_form_remediation_applications(tenant_id, binding_id, applied_at DESC, id DESC);
+
+COMMIT;
