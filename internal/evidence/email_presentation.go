@@ -75,6 +75,7 @@ func renderEmailPresentation(input emailPresentationInput) (renderedEmailPresent
 	}
 	if input.ActionURL != "" {
 		plain = append(plain, input.ActionLabel+": "+input.ActionURL)
+		plain = append(plain, "If this link does not work, request a new email from the bank contact who sent this request.")
 	}
 	if input.SupportContact != "" {
 		plain = append(plain, "Support: "+input.SupportContact)
@@ -106,7 +107,7 @@ func renderEmailPresentation(input emailPresentationInput) (renderedEmailPresent
 	}
 	if input.ActionURL != "" {
 		body.WriteString(`<p style="margin:22px 0 14px;"><a data-primary-action="true" href="` + html.EscapeString(input.ActionURL) + `" style="display:inline-block;padding:13px 20px;background:#145c4a;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;border-radius:8px;">` + html.EscapeString(input.ActionLabel) + `</a></p>`)
-		body.WriteString(`<p style="margin:0 0 18px;font-size:12px;line-height:1.5;color:#637282;">If the button does not open, copy this secure link into your browser:<br><span style="word-break:break-all;">` + html.EscapeString(input.ActionURL) + `</span></p>`)
+		body.WriteString(`<p style="margin:0 0 18px;font-size:12px;line-height:1.5;color:#637282;">If this link does not work, request a new email from the bank contact who sent this request.</p>`)
 	}
 	if input.SupportContact != "" {
 		body.WriteString(`<p style="margin:18px 0 0;padding-top:16px;border-top:1px solid #e4e9ee;font-size:13px;line-height:1.5;color:#637282;">Need help? Contact ` + html.EscapeString(input.SupportContact) + `.</p>`)

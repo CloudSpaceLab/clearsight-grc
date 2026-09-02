@@ -122,6 +122,69 @@ func TestInvitationDeliveryBuildsDefaultVendorRegistrationMessage(t *testing.T) 
 	assertInvitationDeliveryValueRedacted(t, request, "security@vendor.example", "opaque-token")
 }
 
+func TestInvitationDeliveryBuildsPurposeBoundVendorJourneyMessages(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name, wantSubject, wantAction string
+		kind                          InvitationMessageKind
+	}{
+		{"registration", "Complete your vendor registration for Example Bank", "Complete registration", InvitationMessageVendorRegistration},
+		{"address", "Verify the vendor address for Example Bank", "Provide address verification", InvitationMessageAddressVerification},
+		{"certifications", "Provide current vendor certifications for Example Bank", "Provide certification evidence", InvitationMessageCertificationRefresh},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var delivered InvitationDeliveryRequest
+			deliveredAt := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+			adapter := invitationDeliveryFunc(func(_ context.Context, request InvitationDeliveryRequest) (InvitationDeliveryReceipt, error) {
+				delivered = request
+				return InvitationDeliveryReceipt{Status: InvitationDelivered, DeliveredAt: &deliveredAt}, nil
+			})
+			request := InvitationDeliveryRequest{
+				RecipientAddress: "vendor@example.test",
+				InvitationLink:   "https://capture.example/respond#form_access=protected-value",
+				Message: InvitationMessageContext{
+					Kind: test.kind, BankName: "Example Bank", TaskTitle: "Northstar Payments request",
+					TaskSummary: "Complete the requested information for Example Bank.", RecipientRole: "Vendor contact",
+					DueAt: time.Date(2026, 9, 5, 16, 0, 0, 0, time.UTC), ExpiresAt: time.Date(2026, 9, 3, 16, 0, 0, 0, time.UTC),
+					SupportContact: "support@example.test",
+				},
+			}
+			if _, err := NewInvitationDeliveryService(adapter).Deliver(context.Background(), request); err != nil {
+				t.Fatal(err)
+			}
+			if delivered.Subject != test.wantSubject {
+				t.Fatalf("subject = %q", delivered.Subject)
+			}
+			if strings.Count(delivered.HTML, `data-primary-action="true"`) != 1 || !strings.Contains(delivered.HTML, test.wantAction) || !strings.Contains(delivered.PlainText, test.wantAction) {
+				t.Fatalf("message lost its single primary action: plain=%q html=%q", delivered.PlainText, delivered.HTML)
+			}
+			if strings.Count(delivered.PlainText, request.InvitationLink) != 1 || strings.Count(delivered.HTML, request.InvitationLink) != 1 {
+				t.Fatalf("secure link count plain=%d html=%d", strings.Count(delivered.PlainText, request.InvitationLink), strings.Count(delivered.HTML, request.InvitationLink))
+			}
+			for _, required := range []string{"Northstar Payments request", "Vendor contact", "5 Sep 2026", "3 Sep 2026", "If this link does not work, request a new email"} {
+				if !strings.Contains(delivered.PlainText, required) || !strings.Contains(delivered.HTML, required) {
+					t.Fatalf("message alternatives missing %q", required)
+				}
+			}
+			lowerHTML := strings.ToLower(delivered.HTML)
+			for _, forbidden := range []string{"<img", "<script", "tracking", "pixel", "password", "credential", "one-time code", "otp"} {
+				if strings.Contains(lowerHTML, forbidden) {
+					t.Fatalf("HTML contains forbidden content %q", forbidden)
+				}
+			}
+			if test.kind == InvitationMessageCertificationRefresh {
+				for _, required := range []string{"ISO 27001", "PCI DSS", "Confirm whether each certification applies"} {
+					if !strings.Contains(delivered.PlainText, required) || !strings.Contains(delivered.HTML, required) {
+						t.Fatalf("certification message alternatives missing %q", required)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestInvitationDeliveryReturnsBoundedFailureReceipt(t *testing.T) {
 	t.Parallel()
 

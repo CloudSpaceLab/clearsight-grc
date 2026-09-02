@@ -23,7 +23,7 @@ func TestRenderEmailPresentationUsesOneSafePrimaryAction(t *testing.T) {
 	if strings.Count(message.HTML, `data-primary-action="true"`) != 1 {
 		t.Fatalf("primary action count = %d", strings.Count(message.HTML, `data-primary-action="true"`))
 	}
-	for _, required := range []string{"&lt;Holdings&gt;", "display:none", "Verify address", "Link expires", "word-break:break-all"} {
+	for _, required := range []string{"&lt;Holdings&gt;", "display:none", "Verify address", "Link expires", "If this link does not work, request a new email"} {
 		if !strings.Contains(message.HTML, required) {
 			t.Fatalf("HTML missing %q: %s", required, message.HTML)
 		}
