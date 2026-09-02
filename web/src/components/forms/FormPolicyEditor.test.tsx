@@ -8,14 +8,15 @@ const forms = [
 ];
 
 describe("FormPolicyEditor", () => {
-  it("captures the selected approved form revision, blast radius and outcome check without actor fields", () => {
+  it("captures the selected approved form revision, blast radius and outcome check without actor fields", async () => {
     const save = vi.fn();
     render(<FormPolicyEditor forms={forms} onCancel={() => undefined} onCreate={save}/>);
 
     fireEvent.change(screen.getByLabelText("Policy name"), { target: { value: "Review poor vendor scores" } });
     fireEvent.change(screen.getByLabelText("Policy code"), { target: { value: "poor-vendor-score" } });
     fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Create a review issue for an adverse completed vendor response." } });
-    fireEvent.change(screen.getByLabelText("Approved form revision"), { target: { value: "form-2:2" } });
+    fireEvent.click(screen.getByRole("button", { name: /Approved form revision/ }));
+    fireEvent.click(await screen.findByRole("option", { name: "Control assurance · CONTROL-ASSURANCE · revision 2" }));
     fireEvent.change(screen.getByLabelText("Automation policy ID"), { target: { value: "automation-1" } });
     fireEvent.change(screen.getByLabelText("Automation policy revision"), { target: { value: "2" } });
     fireEvent.change(screen.getByLabelText("Effective from"), { target: { value: "2026-09-02T08:00" } });
