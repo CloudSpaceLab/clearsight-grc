@@ -135,6 +135,30 @@ describe("Forms template dashboard", () => {
     expect(screen.getByText("Assigned to the current form owner.")).toBeTruthy();
   });
 
+  it("opens a new draft revision from an active reusable form", async () => {
+    const activeItem: FormLibraryItem = {
+      ...item,
+      template: { ...item.template, status: "ACTIVE", is_current: true, version: 3 },
+      active_version: 3,
+      operations: [
+        { command: "forms.template.revise", label: "Create revision", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You can create a new revision." },
+        { command: "forms.template.transition", label: "Change form status", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You can change this active revision.", allowed_targets: ["PAUSED", "RETIRED"] },
+      ],
+    };
+    api.loadFormTemplatePage.mockResolvedValue({ items: [activeItem] });
+    function Harness() {
+      const [target, setTarget] = useState<string>();
+      return <FormsWorkspace targetID={target} onTarget={setTarget}/>;
+    }
+    render(<Harness/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open Vendor due diligence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create revision" }));
+
+    expect(await screen.findByText("Vendor due diligence", { selector: "strong" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Save draft" })).toBeTruthy();
+  });
+
   it("fails closed when the authority read is unavailable even if stale operations were present", async () => {
     api.loadFormTemplatePage.mockResolvedValue({ items: [{ ...item, authority_available: false }] });
     function Harness() {

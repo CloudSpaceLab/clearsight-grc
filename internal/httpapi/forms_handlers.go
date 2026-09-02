@@ -31,6 +31,7 @@ type createLibraryFormRequest struct {
 	Industry         string                     `json:"industry,omitempty"`
 	Sensitivity      string                     `json:"sensitivity,omitempty"`
 	ScoringMode      monitoringFormScoringMode  `json:"scoring_mode,omitempty"`
+	ScoreProfile     *formcontract.ScoreProfile `json:"score_profile,omitempty"`
 	NextReviewAt     *monitoringFormTime        `json:"next_review_at,omitempty"`
 	Presentation     monitoringFormPresentation `json:"presentation"`
 	Sections         []monitoringFormSection    `json:"sections"`
@@ -105,7 +106,7 @@ func (request createLibraryFormRequest) input() monitoring.CreateFormInput {
 		ProgramID: request.ProgramID, Code: request.Code, Name: request.Name, Purpose: request.Purpose,
 		OwnerPrincipalID: request.OwnerPrincipalID, ResponsibleTeam: request.ResponsibleTeam,
 		ApprovedUses: request.ApprovedUses, Tags: request.Tags, Jurisdiction: request.Jurisdiction, Industry: request.Industry,
-		Sensitivity: request.Sensitivity, ScoringMode: request.ScoringMode, NextReviewAt: request.NextReviewAt,
+		Sensitivity: request.Sensitivity, ScoringMode: request.ScoringMode, ScoreProfile: request.ScoreProfile, NextReviewAt: request.NextReviewAt,
 		Presentation: request.Presentation, Sections: request.Sections, Fields: request.Fields,
 	}
 }
@@ -169,8 +170,12 @@ func (a *API) formLibraryPageWithOperations(ctx context.Context, actor identity.
 	}
 	for index, item := range page.Items {
 		form := item.Template
-		if form.Status == monitoring.LifecycleDraft {
-			add(index, "forms.template.revise", "Edit draft", authority.ResponsibilityOwner, 2, nil)
+		if form.Status != monitoring.LifecyclePendingApproval {
+			label := "Create revision"
+			if form.Status == monitoring.LifecycleDraft {
+				label = "Edit draft"
+			}
+			add(index, "forms.template.revise", label, authority.ResponsibilityOwner, 2, nil)
 		}
 		targets := monitoringTransitionTargets(form.Status, form.SubmittedBy, actor.PrincipalID)
 		if len(targets) == 0 {

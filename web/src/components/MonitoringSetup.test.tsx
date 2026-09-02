@@ -103,7 +103,8 @@ describe("monitoring setup", () => {
 
   it("does not collect a form until its exact Program check is active", async () => {
     vi.mocked(loadFormTemplates).mockResolvedValue([{
-      id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards", fields: [],
+      id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards",
+      fields: [{ id: "identity", label: "Was identity verified?", type: "yes_no", required: true, options: ["Yes", "No"], scoring: { id: "identity", required: true, weight: 100, answer_scores: { Yes: 0, No: 100 } } }],
       status: "ACTIVE", is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
     }]);
 
@@ -111,6 +112,19 @@ describe("monitoring setup", () => {
 
     expect(await screen.findByRole("button", { name: "Create monitoring check" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Collect responses" })).toBeNull();
+  });
+
+  it("explains why an unscored active form cannot become a monitoring check", async () => {
+    vi.mocked(loadFormTemplates).mockResolvedValue([{
+      id: "form-1", tenant_id: "bank-1", code: "ENCRYPTION", name: "Monthly cloud encryption Form", purpose: "Confirm encryption controls.",
+      fields: [{ id: "encrypted", label: "Is encryption enabled?", type: "yes_no", required: true, options: ["Yes", "No"] }],
+      scoring_mode: "NONE", status: "ACTIVE", is_current: true, version: 3, created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-02T00:00:00Z",
+    }]);
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={ownerOperations}/>);
+
+    expect(await screen.findByText(/This active revision has no scored questions/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Create monitoring check" })).toBeNull();
   });
 
   it("shows the latest risk and coverage for each monitoring check", async () => {

@@ -44,6 +44,10 @@ function eligibleForLinkedIssue(check: MonitoringCheck, result?: MonitoringResul
   return (result.evaluation.rule_results ?? []).some((rule) => rule.critical && rule.outcome !== "PASS");
 }
 
+function hasScoredQuestions(form: FormTemplate) {
+  return form.fields.some((field) => Boolean(field.scoring && Object.keys(field.scoring.answer_scores ?? {}).length));
+}
+
 export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSources, operations, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; } }: Props) {
   const [forms, setForms] = useState<FormTemplate[]>([]);
   const [checks, setChecks] = useState<MonitoringCheck[]>([]);
@@ -219,9 +223,10 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
           {formTransitionOperation(form.id)?.can_act && formTransitionOperation(form.id)?.allowed_targets?.includes("PENDING_APPROVAL") && form.status === "DRAFT" && <button className="secondary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "PENDING_APPROVAL")}>Send for approval</button>}
           {formTransitionOperation(form.id)?.can_act && formTransitionOperation(form.id)?.allowed_targets?.includes("ACTIVE") && form.status === "PENDING_APPROVAL" && form.submitted_by !== actorPrincipalID && <button className="primary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "ACTIVE")}>Approve form</button>}
           {form.status === "PENDING_APPROVAL" && form.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this form.</span>}
-          {canDefineCheck && form.status === "ACTIVE" && !linkedFormVersions.has(`${form.id}:${form.version}`) && <button className="secondary-button" disabled={busy === form.id} onClick={() => void addCheck(form)}>Create monitoring check</button>}
+          {canDefineCheck && form.status === "ACTIVE" && hasScoredQuestions(form) && !linkedFormVersions.has(`${form.id}:${form.version}`) && <button className="secondary-button" disabled={busy === form.id} onClick={() => void addCheck(form)}>Create monitoring check</button>}
           {collectionOperation(form.id)?.can_act && form.status === "ACTIVE" && activeFormVersions.has(`${form.id}:${form.version}`) && <button className="primary-button" disabled={busy === form.id} onClick={() => setCollecting(form)}>Collect responses</button>}
         </div>
+        {canDefineCheck && form.status === "ACTIVE" && !hasScoredQuestions(form) && <p className="program-operation-reason">This active revision has no scored questions. Create and approve a scored revision in Forms before adding a monitoring check.</p>}
         {collecting?.id === form.id && <form className="collection-schedule" onSubmit={collect}>
           <label><span>Period starts</span><input name="period_start" type="date" defaultValue={periodStart} required/></label>
           <label><span>Period ends</span><input name="period_end" type="date" defaultValue={periodEnd} required/></label>

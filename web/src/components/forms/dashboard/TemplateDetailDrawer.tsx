@@ -49,6 +49,7 @@ function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibrar
   const transition = item.operations?.find((operation) => operation.command === "forms.template.transition");
   const authorityReady = item.authority_available === true;
   const canRevise = Boolean(authorityReady && revise?.can_act);
+  const reviseLabel = form.status === "DRAFT" ? "Edit draft" : "Create revision";
   const canTransition = (to: LifecycleStatus) => Boolean(authorityReady && transition?.can_act && transition.allowed_targets?.includes(to));
   const unavailable = !authorityReady;
   const unavailableReason = unavailable
@@ -84,8 +85,9 @@ function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibrar
     {form.tags?.length ? <div className="forms-tags">{form.tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
 
     <div className="forms-detail-actions">
+      {form.status !== "DRAFT" && canRevise && <Button onPress={onEdit}>{reviseLabel}</Button>}
       {form.status === "DRAFT" && <>
-        {canRevise && <Button onPress={onEdit}>Edit draft</Button>}
+        {canRevise && <Button onPress={onEdit}>{reviseLabel}</Button>}
         {canTransition("PENDING_APPROVAL") && <Button variant="primary" isDisabled={busy !== null || !approvalReady} onPress={() => onTransition("PENDING_APPROVAL")}>Send for approval</Button>}
       </>}
       {form.status === "DRAFT" && canTransition("PENDING_APPROVAL") && !approvalReady && <small className="forms-muted">Open the editor to resolve approval-quality checks before submission.</small>}
