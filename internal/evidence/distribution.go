@@ -140,14 +140,14 @@ type CreateDistributionInput struct {
 }
 
 type ResponseWorkspace struct {
-	ID             string
-	TenantID       string
-	LegalEntityID  string
-	DistributionID string
-	Status         ResponseWorkspaceStatus
-	Version        int64
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID             string                  `json:"id"`
+	TenantID       string                  `json:"tenant_id"`
+	LegalEntityID  string                  `json:"legal_entity_id"`
+	DistributionID string                  `json:"distribution_id"`
+	Status         ResponseWorkspaceStatus `json:"status"`
+	Version        int64                   `json:"version"`
+	CreatedAt      time.Time               `json:"created_at"`
+	UpdatedAt      time.Time               `json:"updated_at"`
 }
 
 type ResponseRevision struct {
