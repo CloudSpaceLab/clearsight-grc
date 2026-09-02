@@ -97,7 +97,7 @@ func TestPostgresProjectionAttributesHistoryToExactOwnerIntervals(t *testing.T) 
 	mustOversightExec(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'oversight-owner-interval-test','Oversight owner interval test')`, tenantID)
 	mustOversightExec(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'INTERVAL-NG','Interval Bank Nigeria','NG',$3)`, entityID, tenantID, openedAt)
 	mustOversightExec(t, ctx, pool, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($1::uuid,$3::uuid,'PERSON','First owner','ACTIVE',$4),($2::uuid,$3::uuid,'PERSON','Second owner','ACTIVE',$4)`, firstID, secondID, tenantID, openedAt)
-	mustOversightExec(t, ctx, pool, `INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,owner_principal_id,due_at,closed_at,closure_reason,reopen_count,created_at,updated_at,version) VALUES($1::uuid,$2::uuid,$3::uuid,'INTERVAL-1','CONTROL_GAP','CLOSED',4,'Restore source access','Owner interval projection test','{"access":"INTERNAL"}'::jsonb,$4::uuid,$5,$6,'Verified after reassignment',1,$7,$6,6)`, matterID, tenantID, entityID, secondID, now, closedAt, openedAt)
+	mustOversightExec(t, ctx, pool, `INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,owner_principal_id,due_at,closed_at,closure_reason,reopen_count,created_at,updated_at,version) VALUES($1::uuid,$2::uuid,$3::uuid,'INTERVAL-1','CONTROL_GAP','CLOSED',4,'Restore source access','Owner interval projection test','{"access":"INTERNAL"}'::jsonb,$4::uuid,$5,$6,'Verified after reassignment',1,$7,$6,7)`, matterID, tenantID, entityID, secondID, now, closedAt, openedAt)
 	for _, event := range []struct {
 		version int
 		type_   string
@@ -107,9 +107,10 @@ func TestPostgresProjectionAttributesHistoryToExactOwnerIntervals(t *testing.T) 
 		{1, "MATTER_CREATED", `{}`, openedAt},
 		{2, "MATTER_OWNER_CHANGED", `{"previous_owner_principal_id":"` + firstID + `","owner_principal_id":"` + secondID + `"}`, reassignedAt},
 		{3, "DECISION_ADDED", `{"status":"RETURNED"}`, returnedAt},
-		{4, "ACTION_STATE_CHANGED", `{"status":"BLOCKED"}`, blockedAt},
+		{4, "ACTION_STATE_CHANGED", `{"id":"8a656565-6565-7565-8565-656565656506","status":"BLOCKED"}`, blockedAt},
 		{5, "MATTER_STATE_CHANGED", `{"status":"ASSESSMENT","reopen_count":1}`, reopenedAt},
-		{6, "MATTER_STATE_CHANGED", `{"status":"CLOSED","reopen_count":1}`, closedAt},
+		{6, "ACTION_STATE_CHANGED", `{"id":"8a656565-6565-7565-8565-656565656506","status":"IMPLEMENTED"}`, now.Add(-20 * time.Hour)},
+		{7, "MATTER_STATE_CHANGED", `{"status":"CLOSED","reopen_count":1}`, closedAt},
 	} {
 		mustOversightExec(t, ctx, pool, `INSERT INTO continuity_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,event_type,payload,actor_type,actor_id,occurred_at) VALUES($1::uuid,'MATTER',$2::uuid,$3,$4,$5::jsonb,'PERSON',$6::uuid,$7)`, tenantID, matterID, event.version, event.type_, event.payload, secondID, event.at)
 	}
@@ -127,7 +128,7 @@ func TestPostgresProjectionAttributesHistoryToExactOwnerIntervals(t *testing.T) 
 		t.Fatalf("first owner interval=%#v present=%t", first, ok)
 	}
 	second, ok := performance[secondID]
-	if !ok || second.MeasurementSamples != 1 || second.MedianHours == nil || *second.MedianHours != 50 || second.Returned == nil || *second.Returned != 1 || second.Blocked != 1 || second.Reopened != 1 {
+	if !ok || second.MeasurementSamples != 1 || second.MedianHours == nil || *second.MedianHours != 30 || second.Returned == nil || *second.Returned != 1 || second.Blocked != 1 || second.BlockedHours != 20 || second.Reopened != 1 {
 		t.Fatalf("second owner interval=%#v present=%t", second, ok)
 	}
 }

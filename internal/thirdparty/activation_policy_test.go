@@ -3,6 +3,7 @@ package thirdparty
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,6 +11,43 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
+
+func TestActivationSimulationEvaluatesEveryCandidateAcrossPages(t *testing.T) {
+	now := time.Date(2026, 9, 2, 10, 0, 0, 0, time.UTC)
+	repo := NewMemoryActivationRepository()
+	policy := ActivationPolicy{
+		ID: "policy", TenantID: "bank", LegalEntityID: "entity", Status: ActivationPolicyPendingApproval,
+		AllowedConclusions: []AssessmentConclusion{AssessmentSatisfactory}, MaximumAssessmentAgeDays: 90,
+		EffectiveFrom: now.Add(time.Hour), ProposedBy: "maker", ProposalRationale: "Review every candidate before approval.",
+		CreatedAt: now.Add(-time.Hour), UpdatedAt: now, Version: 2,
+	}
+	repo.PutPolicyForTest(policy)
+	for index := 0; index < 501; index++ {
+		repo.PutRelationshipForTest(Relationship{
+			ID: fmt.Sprintf("relationship-%03d", index), TenantID: "bank", LegalEntityID: "entity",
+			Status: RelationshipProposed, UpdatedAt: now.Add(-time.Duration(index) * time.Minute), Version: 1,
+		})
+	}
+	maker := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "maker", Kind: "HUMAN"}
+	service := NewActivationService(repo, activationGuard{actor: maker})
+	service.now = func() time.Time { return now }
+	service.newID = func() (string, error) { return "simulation", nil }
+
+	simulation, err := service.SimulatePolicy(activationContext(maker), policy.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if simulation.CandidateCount != 501 || !simulation.PopulationIsComplete {
+		t.Fatalf("simulation did not evaluate the complete population: %+v", simulation)
+	}
+
+	checker := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "checker", Kind: "HUMAN"}
+	service.guard = activationGuard{actor: checker}
+	approved, err := service.ApprovePolicy(activationContext(checker), policy.ID, policy.Version, simulation.ID, "Approve after reviewing the complete simulated population.")
+	if err != nil || approved.Status != ActivationPolicyActive {
+		t.Fatalf("approve complete simulation: %+v %v", approved, err)
+	}
+}
 
 type activationGuard struct {
 	actor identity.Actor

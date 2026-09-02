@@ -91,4 +91,7 @@ func TestCurrentVendorWorkRequestKindsExcludeInternalAddressVerification(t *test
 	if strings.Contains(schema, "UPDATE third_party_work_requests") || strings.Contains(schema, "DELETE FROM third_party_work_requests") {
 		t.Fatal("retiring the runtime path must not rewrite or delete historical work records")
 	}
+	if !strings.Contains(schema, "NEW.state = 'CANCELLED'") || !strings.Contains(schema, "OLD.request_kind = 'ADDRESS_VERIFICATION'") {
+		t.Fatal("historical address work must allow only its governed terminal cancellation")
+	}
 }

@@ -10,6 +10,12 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     IF NEW.request_kind = 'ADDRESS_VERIFICATION' THEN
+        IF TG_OP = 'UPDATE'
+           AND OLD.request_kind = 'ADDRESS_VERIFICATION'
+           AND OLD.state NOT IN ('ACCEPTED','CANCELLED')
+           AND NEW.state = 'CANCELLED' THEN
+            RETURN NEW;
+        END IF;
         RAISE EXCEPTION 'ADDRESS_VERIFICATION vendor work requests are retired; use the canonical Matter evidence request journey'
             USING ERRCODE = 'check_violation';
     END IF;

@@ -135,6 +135,9 @@ func (r *MemoryRepository) ListMatterSummaries(ctx context.Context, tenant strin
 		if query.AssignedToMe && aggregate.Matter.OwnerPrincipalID != query.principalID {
 			continue
 		}
+		if query.Unassigned && strings.TrimSpace(aggregate.Matter.OwnerPrincipalID) != "" {
+			continue
+		}
 		if !matterMatchesDueCondition(aggregate.Matter, query.DueCondition, query.asOf) {
 			continue
 		}

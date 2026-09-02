@@ -65,7 +65,7 @@ func actorTodayService(workflowService *workflow.Service, matters *continuity.Se
 }
 
 func unassignedMatterRecoveryItems(ctx context.Context, matters *continuity.Service, authorityService authority.Service, actor identity.Actor) ([]today.AttentionItem, error) {
-	page, err := matters.ListMatterSummaries(identity.WithActor(ctx, actor), actor.TenantID, continuity.SummaryQuery{Status: "OPEN", Limit: todayItemLimit})
+	page, err := matters.ListMatterSummaries(identity.WithActor(ctx, actor), actor.TenantID, continuity.SummaryQuery{Status: "OPEN", Unassigned: true, Limit: todayItemLimit})
 	if err != nil {
 		return nil, err
 	}

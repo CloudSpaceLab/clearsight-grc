@@ -392,6 +392,7 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 	createdBy := strings.TrimSpace(r.FormValue("created_by"))
 	sessionToken := ""
 	canonicalSession := false
+	var authenticatedActor *identity.Actor
 	if actor, authenticated := identity.FromContext(r.Context()); authenticated {
 		if tenant != "" && tenant != actor.TenantID {
 			httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
@@ -399,6 +400,7 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 		}
 		tenant = actor.TenantID
 		createdBy = actor.PrincipalID
+		authenticatedActor = &actor
 	} else {
 		token := optionalBearerToken(r)
 		if token == "" {
@@ -424,6 +426,13 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 	if tenant == "" || requestID == "" {
 		httpx.WriteError(w, http.StatusBadRequest, "artifact_scope_required", "tenant_id and request_id are required.")
 		return
+	}
+	if authenticatedActor != nil {
+		request, requestErr := service.GetRequestForEntity(r.Context(), authenticatedActor.TenantID, authenticatedActor.LegalEntityID, requestID)
+		if requestErr != nil || !a.canReadEvidenceRequest(r.Context(), request) {
+			httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
+			return
+		}
 	}
 	mediaType := multipartMediaType(header)
 	artifactInput := evidence.ArtifactInput{TenantID: tenant, RequestID: requestID, FieldID: strings.TrimSpace(r.FormValue("field_id")), SubmissionID: strings.TrimSpace(r.FormValue("submission_id")), FileName: header.Filename, MediaType: mediaType, CreatedBy: createdBy}

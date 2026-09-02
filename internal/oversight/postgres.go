@@ -361,8 +361,29 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		  UNION ALL
 		  SELECT l.id,c.owner_id,c.occurred_at,COALESCE(c.next_change,l.finished_at),l.finished_at,l.due_at
 		  FROM lifecycle l JOIN changes c ON c.matter_id=l.id
+		), action_states AS (
+		  SELECT e.aggregate_id matter_id,e.payload->>'id' action_id,e.occurred_at,e.payload->>'status' status,
+		         lead(e.occurred_at) OVER (PARTITION BY e.aggregate_id,e.payload->>'id' ORDER BY e.occurred_at,e.id) next_state_at
+		  FROM continuity_events e JOIN lifecycle l ON l.id=e.aggregate_id
+		  WHERE e.tenant_id=$1::uuid AND e.aggregate_type='MATTER' AND e.event_type='ACTION_STATE_CHANGED' AND NULLIF(e.payload->>'id','') IS NOT NULL
+		), blocked_raw AS (
+		  SELECT matter_id,occurred_at blocked_at,next_state_at unblocked_at
+		  FROM action_states WHERE status='BLOCKED' AND next_state_at IS NOT NULL AND next_state_at>occurred_at
+		), blocked_marked AS (
+		  SELECT b.*,
+		         CASE WHEN blocked_at>COALESCE(max(unblocked_at) OVER (PARTITION BY matter_id ORDER BY blocked_at,unblocked_at ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),blocked_at)
+		              THEN 1 ELSE 0 END starts_group
+		  FROM blocked_raw b
+		), blocked_grouped AS (
+		  SELECT b.*,sum(starts_group) OVER (PARTITION BY matter_id ORDER BY blocked_at,unblocked_at) blocked_group
+		  FROM blocked_marked b
+		), blocked_intervals AS (
+		  SELECT matter_id,min(blocked_at) blocked_at,max(unblocked_at) unblocked_at
+		  FROM blocked_grouped GROUP BY matter_id,blocked_group
 		), valid AS (
 		  SELECT s.*,
+		         COALESCE((SELECT sum(extract(epoch FROM (least(s.segment_end,b.unblocked_at)-greatest(s.segment_start,b.blocked_at)))/3600.0)
+		                   FROM blocked_intervals b WHERE b.matter_id=s.matter_id AND b.blocked_at<s.segment_end AND b.unblocked_at>s.segment_start),0) blocked_hours,
 		         (s.segment_end<s.finished_at)::int reassigned,
 		         (SELECT count(*) FROM continuity_events e WHERE e.tenant_id=$1::uuid AND e.aggregate_type='MATTER' AND e.aggregate_id=s.matter_id
 		            AND e.occurred_at>=s.segment_start AND e.occurred_at<s.segment_end
@@ -377,12 +398,12 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		  FROM segments s WHERE s.owner_id IS NOT NULL AND s.segment_start IS NOT NULL AND s.segment_end IS NOT NULL AND s.segment_end>s.segment_start
 		)
 		SELECT v.owner_id::text,p.display_name,
-		       percentile_cont(.5) WITHIN GROUP (ORDER BY extract(epoch FROM (segment_end-segment_start))/3600.0),
-		       percentile_cont(.75) WITHIN GROUP (ORDER BY extract(epoch FROM (segment_end-segment_start))/3600.0),
+		       percentile_cont(.5) WITHIN GROUP (ORDER BY greatest(0,extract(epoch FROM (segment_end-segment_start))/3600.0-blocked_hours)),
+		       percentile_cont(.75) WITHIN GROUP (ORDER BY greatest(0,extract(epoch FROM (segment_end-segment_start))/3600.0-blocked_hours)),
 		       count(*),
 		       count(*) FILTER (WHERE segment_end=finished_at AND due_at IS NOT NULL),
 		       count(*) FILTER (WHERE segment_end=finished_at AND due_at IS NOT NULL AND finished_at<=due_at),
-		       sum(reassigned),sum(returned),sum(blocked),sum(reopened)
+		       sum(reassigned),sum(returned),sum(blocked),sum(blocked_hours),sum(reopened)
 		FROM valid v JOIN principals p ON p.tenant_id=$1::uuid AND p.id=v.owner_id
 		GROUP BY v.owner_id,p.display_name`, scope.TenantID, scope.LegalEntityID, periodStart)
 	if err != nil {
@@ -394,9 +415,9 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 	}
 	for rows.Next() {
 		var ownerID, ownerName string
-		var median, p75 float64
+		var median, p75, blockedHours float64
 		var samples, slaSamples, slaMet, reassigned, returned, blocked, reopened int
-		if err := rows.Scan(&ownerID, &ownerName, &median, &p75, &samples, &slaSamples, &slaMet, &reassigned, &returned, &blocked, &reopened); err != nil {
+		if err := rows.Scan(&ownerID, &ownerName, &median, &p75, &samples, &slaSamples, &slaMet, &reassigned, &returned, &blocked, &blockedHours, &reopened); err != nil {
 			rows.Close()
 			return Snapshot{}, err
 		}
@@ -409,7 +430,7 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		item := &value.Performance[index]
 		item.MedianHours, item.P75Hours, item.MeasurementSamples = &median, &p75, samples
 		item.Reassigned, item.Returned = &reassigned, &returned
-		item.Blocked, item.Reopened = blocked, reopened
+		item.Blocked, item.BlockedHours, item.Reopened = blocked, blockedHours, reopened
 		item.SLAAttainment = nil
 		if slaSamples > 0 {
 			rate := float64(slaMet) / float64(slaSamples)

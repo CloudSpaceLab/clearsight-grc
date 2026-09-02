@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -171,6 +172,16 @@ func TestActorTodayServiceAddsOnlyAuthorityEligibleUnassignedMatterRecovery(t *t
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	for index := 0; index < todayItemLimit+5; index++ {
+		_, err = matters.CreateMatter(continuity.WithTrustedSystemEntityScope(context.Background(), "bank", "entity"), continuity.CreateMatterInput{
+			TenantID: "bank", LegalEntityID: "entity", Type: continuity.MatterControlGap, Priority: 4,
+			Title: fmt.Sprintf("Assigned issue %02d", index), Summary: "This issue already has an accountable owner.",
+			OwnerPrincipalID: "program-owner", Scope: json.RawMessage(`{"access":"INTERNAL"}`),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	workflowService := workflow.NewService(workflow.NewMemoryRepository(nil))
 	cro := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "cro", PermissionCodes: []string{identity.PermissionOversightRead}}

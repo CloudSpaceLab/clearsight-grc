@@ -121,17 +121,27 @@ func (r *MemoryActivationRepository) CurrentActivationPolicy(_ context.Context, 
 	return cloneActivationPolicy(current[0]), nil
 }
 
-func (r *MemoryActivationRepository) ListActivationCandidates(_ context.Context, scope Scope, limit int) ([]Relationship, error) {
+func (r *MemoryActivationRepository) ListActivationCandidates(ctx context.Context, scope Scope, cursor string, limit int) (ActivationCandidatePage, error) {
 	if r.source != nil {
-		page, err := r.source.ListRelationships(context.Background(), ListFilter{Scope: scope, Limit: limit})
-		if err != nil {
-			return nil, err
-		}
-		result := make([]Relationship, 0, len(page.Items))
-		for _, item := range page.Items {
-			if item.Relationship.Status == RelationshipProposed || item.Relationship.Status == RelationshipUnderReview {
-				result = append(result, item.Relationship)
+		result := ActivationCandidatePage{Items: []Relationship{}}
+		for scanCursor := cursor; len(result.Items) < limit; {
+			page, err := r.source.ListRelationships(ctx, ListFilter{Scope: scope, Cursor: scanCursor, Limit: 1})
+			if err != nil {
+				return ActivationCandidatePage{}, err
 			}
+			if len(page.Items) == 0 {
+				return result, nil
+			}
+			item := page.Items[0].Relationship
+			next := page.NextCursor
+			if item.Status == RelationshipProposed || item.Status == RelationshipUnderReview {
+				result.Items = append(result.Items, item)
+			}
+			if next == "" {
+				return result, nil
+			}
+			scanCursor = next
+			result.NextCursor = next
 		}
 		return result, nil
 	}
@@ -143,11 +153,30 @@ func (r *MemoryActivationRepository) ListActivationCandidates(_ context.Context,
 			result = append(result, value)
 		}
 	}
-	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
-	if len(result) > limit {
-		result = result[:limit]
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].UpdatedAt.Equal(result[j].UpdatedAt) {
+			return result[i].ID > result[j].ID
+		}
+		return result[i].UpdatedAt.After(result[j].UpdatedAt)
+	})
+	if cursor != "" {
+		cursorTime, cursorID, err := decodeCursor(cursor)
+		if err != nil {
+			return ActivationCandidatePage{}, ErrInvalid
+		}
+		start := 0
+		for start < len(result) && !result[start].UpdatedAt.Before(cursorTime) && !(result[start].UpdatedAt.Equal(cursorTime) && result[start].ID < cursorID) {
+			start++
+		}
+		result = result[start:]
 	}
-	return result, nil
+	page := ActivationCandidatePage{Items: result}
+	if len(result) > limit {
+		page.Items = result[:limit]
+		last := page.Items[len(page.Items)-1]
+		page.NextCursor = encodeCursor(last.UpdatedAt, last.ID)
+	}
+	return page, nil
 }
 
 func (r *MemoryActivationRepository) ReadActivationFacts(ctx context.Context, scope Scope, relationshipID string, _ ActivationPolicy) (Relationship, ActivationFacts, error) {

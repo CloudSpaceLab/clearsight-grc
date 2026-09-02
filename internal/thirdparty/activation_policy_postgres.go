@@ -195,21 +195,42 @@ func (r *PostgresRepository) CurrentActivationPolicy(ctx context.Context, scope 
 	return values[0], nil
 }
 
-func (r *PostgresRepository) ListActivationCandidates(ctx context.Context, scope Scope, limit int) ([]Relationship, error) {
-	rows, err := r.pool.Query(ctx, relationshipSelect+` WHERE (t.id::text=$1 OR t.slug=$1) AND r.legal_entity_id::text=$2 AND r.status IN ('PROPOSED','UNDER_REVIEW') ORDER BY r.updated_at DESC,r.id DESC LIMIT $3`, scope.TenantID, scope.LegalEntityID, limit)
+func (r *PostgresRepository) ListActivationCandidates(ctx context.Context, scope Scope, cursor string, limit int) (ActivationCandidatePage, error) {
+	args := []any{scope.TenantID, scope.LegalEntityID}
+	whereCursor := ""
+	if cursor != "" {
+		cursorTime, cursorID, err := decodeCursor(cursor)
+		if err != nil {
+			return ActivationCandidatePage{}, ErrInvalid
+		}
+		args = append(args, cursorTime, cursorID)
+		whereCursor = " AND (r.updated_at,r.id) < ($3,$4::uuid)"
+	}
+	args = append(args, limit+1)
+	query := relationshipSelect + ` WHERE (t.id::text=$1 OR t.slug=$1) AND r.legal_entity_id::text=$2 AND r.status IN ('PROPOSED','UNDER_REVIEW')` + whereCursor + ` ORDER BY r.updated_at DESC,r.id DESC LIMIT $` + fmt.Sprint(len(args))
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return ActivationCandidatePage{}, err
 	}
 	defer rows.Close()
-	result := []Relationship{}
+	items := make([]Relationship, 0, limit+1)
 	for rows.Next() {
 		value, scanErr := scanAggregate(rows)
 		if scanErr != nil {
-			return nil, scanErr
+			return ActivationCandidatePage{}, scanErr
 		}
-		result = append(result, value.Relationship)
+		items = append(items, value.Relationship)
 	}
-	return result, rows.Err()
+	if err = rows.Err(); err != nil {
+		return ActivationCandidatePage{}, err
+	}
+	page := ActivationCandidatePage{Items: items}
+	if len(items) > limit {
+		page.Items = items[:limit]
+		last := page.Items[len(page.Items)-1]
+		page.NextCursor = encodeCursor(last.UpdatedAt, last.ID)
+	}
+	return page, nil
 }
 
 func (r *PostgresRepository) ReadActivationFacts(ctx context.Context, scope Scope, relationshipID string, policy ActivationPolicy) (Relationship, ActivationFacts, error) {

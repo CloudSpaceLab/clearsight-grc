@@ -167,6 +167,11 @@ type ActivationCommit struct {
 	ReceiptID       string
 }
 
+type ActivationCandidatePage struct {
+	Items      []Relationship
+	NextCursor string
+}
+
 type ActivationRepository interface {
 	ProposeActivationPolicy(context.Context, ActivationPolicy) (ActivationPolicy, error)
 	TransitionActivationPolicy(context.Context, Scope, string, int64, ActivationPolicyStatus, string, string, time.Time) (ActivationPolicy, error)
@@ -174,7 +179,7 @@ type ActivationRepository interface {
 	GetActivationSimulation(context.Context, Scope, string) (ActivationSimulation, error)
 	GetActivationPolicy(context.Context, Scope, string) (ActivationPolicy, error)
 	CurrentActivationPolicy(context.Context, Scope, time.Time) (ActivationPolicy, error)
-	ListActivationCandidates(context.Context, Scope, int) ([]Relationship, error)
+	ListActivationCandidates(context.Context, Scope, string, int) (ActivationCandidatePage, error)
 	ReadActivationFacts(context.Context, Scope, string, ActivationPolicy) (Relationship, ActivationFacts, error)
 	CommitRelationshipActivation(context.Context, ActivationCommit) (Relationship, ActivationReceipt, error)
 }
@@ -289,33 +294,41 @@ func (s *ActivationService) SimulatePolicy(ctx context.Context, policyID string)
 	if err != nil {
 		return ActivationSimulation{}, err
 	}
-	candidates, err := s.repo.ListActivationCandidates(ctx, scope, 500)
-	if err != nil {
-		return ActivationSimulation{}, err
-	}
 	simulationID, err := s.newID()
 	if err != nil {
 		return ActivationSimulation{}, err
 	}
 	evaluatedAt := s.currentTime()
-	result := ActivationSimulation{ID: simulationID, PolicyID: policy.ID, PolicyVersion: policy.Version, CandidateCount: len(candidates), MissingGateCounts: map[string]int{}, EvaluatedAt: evaluatedAt, PopulationIsComplete: len(candidates) < 500, EvaluatedBy: actor.PrincipalID, ExpiresAt: evaluatedAt.Add(24 * time.Hour)}
-	for _, candidate := range candidates {
-		_, facts, readErr := s.repo.ReadActivationFacts(ctx, scope, candidate.ID, policy)
-		if readErr != nil {
-			return ActivationSimulation{}, readErr
+	result := ActivationSimulation{ID: simulationID, PolicyID: policy.ID, PolicyVersion: policy.Version, MissingGateCounts: map[string]int{}, EvaluatedAt: evaluatedAt, EvaluatedBy: actor.PrincipalID, ExpiresAt: evaluatedAt.Add(24 * time.Hour)}
+	for cursor := ""; ; {
+		page, listErr := s.repo.ListActivationCandidates(ctx, scope, cursor, 500)
+		if listErr != nil {
+			return ActivationSimulation{}, listErr
 		}
-		facts.DecisionAuthoritiesCurrent = s.decisionAuthoritiesCurrent(ctx, scope, facts)
-		gates := activationGates(candidate, facts, policy, policy.EffectiveFrom)
-		eligible := true
-		for _, gate := range gates {
-			if !gate.Satisfied {
-				eligible = false
-				result.MissingGateCounts[gate.Code]++
+		result.CandidateCount += len(page.Items)
+		for _, candidate := range page.Items {
+			_, facts, readErr := s.repo.ReadActivationFacts(ctx, scope, candidate.ID, policy)
+			if readErr != nil {
+				return ActivationSimulation{}, readErr
+			}
+			facts.DecisionAuthoritiesCurrent = s.decisionAuthoritiesCurrent(ctx, scope, facts)
+			gates := activationGates(candidate, facts, policy, policy.EffectiveFrom)
+			eligible := true
+			for _, gate := range gates {
+				if !gate.Satisfied {
+					eligible = false
+					result.MissingGateCounts[gate.Code]++
+				}
+			}
+			if eligible {
+				result.EligibleCount++
 			}
 		}
-		if eligible {
-			result.EligibleCount++
+		if page.NextCursor == "" {
+			result.PopulationIsComplete = true
+			break
 		}
+		cursor = page.NextCursor
 	}
 	return s.repo.StoreActivationSimulation(ctx, scope, result)
 }

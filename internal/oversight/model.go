@@ -69,6 +69,7 @@ type Performance struct {
 	Reassigned         *int     `json:"reassigned,omitempty"`
 	Returned           *int     `json:"returned,omitempty"`
 	Blocked            int      `json:"blocked"`
+	BlockedHours       float64  `json:"blocked_hours"`
 	Reopened           int      `json:"reopened"`
 	MeasurementSamples int      `json:"measurement_samples"`
 }

@@ -18,7 +18,7 @@ beforeEach(() => {
     interventions: [{ target_type: "MATTER", target_id: "matter-1", title: "Verify vendor address", category: "VENDOR_DEFICIENCY", state: "VERIFICATION", priority: 5, owner_name: "Ada Okafor", due_at: "2026-08-31T08:00:00Z", reason: "The issue is overdue and remains open.", next_action: "Review the issue and confirm the current recovery plan" }],
     pressure: [{ category: "VENDOR_DEFICIENCY", critical: 2, high: 3, other: 1, overdue: 2 }],
     aging: [{ label: "0–7 days", count: 3 }, { label: "8–30 days", count: 6 }],
-    performance: [{ owner_id: "person-1", owner_name: "Ada Okafor", current_load: 5, completed: 8, median_hours: 30, p75_hours: 52, sla_attainment: .875, reassigned: 2, returned: 1, blocked: 1, reopened: 1, measurement_samples: 8 }],
+    performance: [{ owner_id: "person-1", owner_name: "Ada Okafor", current_load: 5, completed: 8, median_hours: 30, p75_hours: 52, sla_attainment: .875, reassigned: 2, returned: 1, blocked: 1, blocked_hours: 12, reopened: 1, measurement_samples: 8 }],
     estimates: [{ category: "VENDOR_DEFICIENCY", sample_size: 12, median_hours: 48, lower_hours: 30, upper_hours: 72, confidence: "MEDIUM", estimated_by: "Closed issues of the same type in this legal entity during the selected period" }],
     history_quality: { completed_population: 14, complete_lifecycle: 12, missing_created_event: 1, missing_terminal_event: 1, excluded_from_durations: 2, reassigned_owner_excluded: 3, returned_owner_excluded: 2, blocked_owner_excluded: 1, reopened_owner_excluded: 1 },
   });
@@ -44,6 +44,7 @@ it("leads with exact interventions and provides table alternatives for oversight
   fireEvent.click(screen.getByRole("tab", { name: "Operating performance" }));
   expect(screen.getByText("87.5%")).toBeTruthy();
   expect(screen.getByText("8 completed · 8 measured")).toBeTruthy();
+  expect(screen.getByText("2.2d p75 · 12h blocked")).toBeTruthy();
   expect(screen.getByRole("columnheader", { name: "Workflow history" })).toBeTruthy();
   expect(screen.getByText("1 blocked · 1 reopened · 2 reassigned · 1 returned")).toBeTruthy();
 });

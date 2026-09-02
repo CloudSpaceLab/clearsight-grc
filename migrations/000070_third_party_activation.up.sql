@@ -103,7 +103,7 @@ ALTER TABLE third_party_events ADD CONSTRAINT third_party_events_event_type_chec
     'VendorRelationshipCreated','VendorRelationshipUpdated','VendorRelationshipActivated','AssessmentStarted','AssessmentSetupCompleted',
     'AssessmentSetupRetryQueued','AssessmentRequestPrepared','AssessmentRequestIssued','AssessmentRequestReissuePrepared',
     'AssessmentRequestReissued','AssessmentSubmitted','AssessmentReviewStarted','AssessmentDeficiencyLinked',
-    'AssessmentDocumentValidated','AssessmentDocumentRejected','AssessmentDocumentExpired','AssessmentCompleted','AssessmentCancelled'
+    'AssessmentDocumentValidated','AssessmentDocumentRejected','AssessmentDocumentExpired','AssessmentResponseApplied','AssessmentCompleted','AssessmentCancelled'
 ));
 
 COMMIT;

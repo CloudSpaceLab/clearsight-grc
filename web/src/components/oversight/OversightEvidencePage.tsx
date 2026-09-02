@@ -23,8 +23,8 @@ const snapshot: OversightSnapshot = {
   ],
   aging: [{ label: "0–7 days", count: 5 }, { label: "8–30 days", count: 9 }, { label: "31–90 days", count: 4 }, { label: "Over 90 days", count: 2 }],
   performance: [
-    { owner_id: "ada", owner_name: "Ada Okafor", current_load: 5, completed: 8, median_hours: 30, p75_hours: 52, sla_attainment: .875, reassigned: 2, returned: 1, blocked: 1, reopened: 1, measurement_samples: 8 },
-    { owner_id: "chidi", owner_name: "Chidi Eze", current_load: 7, completed: 11, median_hours: 42, p75_hours: 68, sla_attainment: .818, reassigned: 0, returned: 0, blocked: 2, reopened: 0, measurement_samples: 11 },
+    { owner_id: "ada", owner_name: "Ada Okafor", current_load: 5, completed: 8, median_hours: 30, p75_hours: 52, sla_attainment: .875, reassigned: 2, returned: 1, blocked: 1, blocked_hours: 6, reopened: 1, measurement_samples: 8 },
+    { owner_id: "chidi", owner_name: "Chidi Eze", current_load: 7, completed: 11, median_hours: 42, p75_hours: 68, sla_attainment: .818, reassigned: 0, returned: 0, blocked: 2, blocked_hours: 14, reopened: 0, measurement_samples: 11 },
   ],
   estimates: [{ category: "VENDOR_DEFICIENCY", sample_size: 12, median_hours: 48, lower_hours: 30, upper_hours: 72, confidence: "MEDIUM", estimated_by: "Closed issues of the same type in this legal entity during the selected period" }],
   history_quality: { completed_population: 14, complete_lifecycle: 12, missing_created_event: 1, missing_terminal_event: 1, excluded_from_durations: 2, reassigned_owner_excluded: 3 },

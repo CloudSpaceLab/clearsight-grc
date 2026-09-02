@@ -25,7 +25,7 @@ func TestActivationPolicySchemaPersistsSimulationRollbackAndHistory(t *testing.T
 			t.Fatalf("activation policy schema missing %q", required)
 		}
 	}
-	for _, existingEvent := range []string{"'VendorIdentityCreated'", "'VendorBrandApproved'", "'AssessmentSetupRetryQueued'", "'AssessmentDocumentExpired'"} {
+	for _, existingEvent := range []string{"'VendorIdentityCreated'", "'VendorBrandApproved'", "'AssessmentSetupRetryQueued'", "'AssessmentDocumentExpired'", "'AssessmentResponseApplied'"} {
 		if !strings.Contains(schema, existingEvent) {
 			t.Fatalf("activation migration removed supported event %s", existingEvent)
 		}
