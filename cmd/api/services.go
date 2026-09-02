@@ -20,6 +20,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/scimapi"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
@@ -63,6 +64,7 @@ type serviceSet struct {
 	BankVerticals                  *bankverticals.Service
 	BackgroundJobs                 *operations.Service
 	Access                         access.Resolver
+	RuntimeContext                 runtimecontext.Resolver
 	AccessAdmin                    access.Administrator
 	SessionStore                   scs.Store
 	SCIM                           *scimapi.Service

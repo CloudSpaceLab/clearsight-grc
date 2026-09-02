@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"net/http"
@@ -9,7 +10,19 @@ import (
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
+
+type runtimeContextStub struct {
+	value runtimecontext.DisplayContext
+	err   error
+	scope runtimecontext.Scope
+}
+
+func (s *runtimeContextStub) Resolve(_ context.Context, scope runtimecontext.Scope) (runtimecontext.DisplayContext, error) {
+	s.scope = scope
+	return s.value, s.err
+}
 
 func TestDemoLoginRoutesAreAbsentOutsideDemoMode(t *testing.T) {
 	authenticator, err := identity.NewDemoAuthenticator("bank-demo", "role-cro", "bank-ng")
@@ -34,10 +47,10 @@ func TestDemoLoginCreatesRoleSessionAndLogoutClearsIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	handler := New(Dependencies{
-		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Identity: authenticator,
-		DemoMode: true,
-		Mode:     "memory",
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: authenticator, DemoMode: true, Mode: "memory",
+		RuntimeContext: &runtimeContextStub{value: runtimecontext.DisplayContext{
+			TenantName: "Demo tenant", LegalEntityName: "Demo legal entity", PrincipalName: "System administrator",
+		}},
 	})
 
 	accounts := httptest.NewRecorder()
@@ -97,12 +110,15 @@ func TestDemoLoginCreatesRoleSessionAndLogoutClearsIt(t *testing.T) {
 	}
 }
 
-func TestDurableDemoContextUsesFriendlyWorkspaceNames(t *testing.T) {
+func TestActorContextUsesStoredWorkspaceNamesForVerifiedScope(t *testing.T) {
 	authenticator, err := identity.NewDemoAuthenticator(identity.DurableDemoTenantID, identity.DurableDemoPrincipalCRO, identity.DurableDemoLegalEntityID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: authenticator, DemoMode: true, Mode: "postgres"})
+	resolver := &runtimeContextStub{value: runtimecontext.DisplayContext{
+		TenantName: "Stored Bank", LegalEntityName: "Stored Bank Nigeria", PrincipalName: "Stored Risk Officer",
+	}}
+	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: authenticator, DemoMode: true, Mode: "postgres", RuntimeContext: resolver})
 	login := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/demo/login", strings.NewReader(`{"username":"cro@demo.clearsight.local","password":"demo"}`))
 	request.Header.Set("Content-Type", "application/json")
@@ -115,9 +131,30 @@ func TestDurableDemoContextUsesFriendlyWorkspaceNames(t *testing.T) {
 	contextRequest := httptest.NewRequest(http.MethodGet, "/api/v1/context", nil)
 	contextRequest.AddCookie(login.Result().Cookies()[0])
 	handler.ServeHTTP(response, contextRequest)
-	for _, expected := range []string{"Clear Bank", "Clear Bank Nigeria", "Chief Risk Officer"} {
+	for _, expected := range []string{"Stored Bank", "Stored Bank Nigeria", "Stored Risk Officer"} {
 		if !strings.Contains(response.Body.String(), expected) {
-			t.Fatalf("durable demo context missing %q: %s", expected, response.Body.String())
+			t.Fatalf("stored context missing %q: %s", expected, response.Body.String())
+		}
+	}
+	if resolver.scope != (runtimecontext.Scope{TenantID: identity.DurableDemoTenantID, LegalEntityID: identity.DurableDemoLegalEntityID, PrincipalID: identity.DurableDemoPrincipalCRO}) {
+		t.Fatalf("resolver scope = %#v", resolver.scope)
+	}
+}
+
+func TestActorContextDoesNotInventLabelsWhenDirectoryScopeIsMissing(t *testing.T) {
+	handler := New(Dependencies{
+		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity:       identity.NewDevelopmentAuthenticator("tenant-a", "principal-a", "entity-a"),
+		RuntimeContext: &runtimeContextStub{err: runtimecontext.ErrNotFound},
+	})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/context", nil))
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d body=%s", response.Code, response.Body.String())
+	}
+	for _, invented := range []string{"Clear Bank", "Chief Risk Officer", "Amaka Okafor"} {
+		if strings.Contains(response.Body.String(), invented) {
+			t.Fatalf("response invented %q: %s", invented, response.Body.String())
 		}
 	}
 }

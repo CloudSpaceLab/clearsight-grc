@@ -5,24 +5,22 @@ import (
 	"time"
 )
 
-func TestDemoItemsExposeStructuredInterventions(t *testing.T) {
-	items := DemoItems()
-	if len(items) == 0 {
-		t.Fatal("expected demo interventions")
+func TestServicePreservesStructuredInterventions(t *testing.T) {
+	want := AttentionItem{
+		ID:                 "matter-1",
+		InterventionClass:  InterventionEvidenceException,
+		MaterialConclusion: "The current evidence is incomplete.",
+		Recommendation: &GovernedRecommendation{
+			ProposedAction: "Request current evidence",
+			Rationale:      "The recorded conclusion depends on evidence that is no longer current.",
+		},
 	}
-	for _, item := range items {
-		if item.InterventionClass == "" {
-			t.Fatalf("%s is missing intervention class", item.ID)
-		}
-		if item.MaterialConclusion == "" {
-			t.Fatalf("%s is missing material conclusion", item.ID)
-		}
-		if item.Recommendation == nil || item.Recommendation.ProposedAction == "" {
-			t.Fatalf("%s is missing governed recommendation", item.ID)
-		}
-		if item.PreparedWork != nil {
-			t.Fatalf("%s must not claim prepared automation without a substantiated receipt", item.ID)
-		}
+	items := NewService([]AttentionItem{want}).List()
+	if len(items) != 1 || items[0].ID != want.ID || items[0].Recommendation == nil {
+		t.Fatalf("structured intervention = %#v, want %#v", items, want)
+	}
+	if items[0].PreparedWork != nil {
+		t.Fatalf("%s must not claim prepared automation without a substantiated receipt", items[0].ID)
 	}
 }
 

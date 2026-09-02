@@ -4,6 +4,8 @@ package main
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -11,10 +13,30 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
 type apiReferenceEvidenceRepository struct {
 	*evidence.MemoryRepository
+}
+
+func TestMemoryServicesExposeOnlyVerifiedRuntimeIdentifiers(t *testing.T) {
+	services, err := buildServices(t.Context(), config.Config{Environment: "development"}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer services.Close()
+	if services.RuntimeContext == nil {
+		t.Fatal("runtime context resolver is absent")
+	}
+	value, err := services.RuntimeContext.Resolve(t.Context(), runtimecontext.Scope{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "principal-a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if value.TenantName != "tenant-a" || value.LegalEntityName != "entity-a" || value.PrincipalName != "principal-a" {
+		t.Fatalf("memory runtime context = %#v", value)
+	}
 }
 
 func (r *apiReferenceEvidenceRepository) ResolveSubjectScope(_ context.Context, tenant, subjectType, subjectID string) (evidence.SubjectScope, error) {
