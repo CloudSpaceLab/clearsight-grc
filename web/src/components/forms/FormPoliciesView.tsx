@@ -5,6 +5,8 @@ import {
   rollbackFormResponsePolicy, simulateFormResponsePolicy, submitFormResponsePolicy, suspendFormResponsePolicy,
   type CreateFormResponsePolicyInput, type FormPolicySimulation, type FormResponsePolicy,
 } from "../../formPoliciesApi";
+import { loadReusableFormTemplateRefs } from "../../formsApi";
+import type { ReusableFormTemplateRef } from "../../formsTypes";
 import { Button, EmptyState, FocusedDialog, Notice, SelectableRecord, StatusBadge, Surface } from "../ui";
 import { FormPolicyEditor } from "./FormPolicyEditor";
 import "./form-policies.css";
@@ -13,6 +15,7 @@ type LoadState = "loading" | "live" | "sign-in-required" | "error";
 
 export function FormPoliciesView() {
   const [items, setItems] = useState<FormResponsePolicy[]>([]);
+  const [forms, setForms] = useState<ReusableFormTemplateRef[]>([]);
   const [selectedID, setSelectedID] = useState<string>();
   const [state, setState] = useState<LoadState>("loading");
   const [error, setError] = useState("");
@@ -26,8 +29,8 @@ export function FormPoliciesView() {
   async function refresh() {
     setState("loading"); setError("");
     try {
-      const values = await listFormResponsePolicies();
-      setItems(values); setSelectedID((current) => values.some((item) => item.id === current) ? current : values[0]?.id); setState("live");
+      const [values, reusableForms] = await Promise.all([listFormResponsePolicies(), loadReusableFormTemplateRefs()]);
+      setItems(values); setForms(reusableForms); setSelectedID((current) => values.some((item) => item.id === current) ? current : values[0]?.id); setState("live");
     } catch (cause) {
       setError(message(cause, "Response policies cannot be checked right now."));
       setState(apiErrorKind(cause) === "unauthorized" ? "sign-in-required" : items.length ? "live" : "error");
@@ -80,7 +83,7 @@ export function FormPoliciesView() {
         <PolicyDetail policy={selected} simulation={simulations[selected.id]} rollbackTarget={rollbackTarget} busy={busy === selected.id} onAction={() => void act(selected, rollbackTarget?.id)}/>
       )}
     </div>}
-    {creating && <FocusedDialog label="Create response policy" size="wide" onClose={() => setCreating(false)}><FormPolicyEditor onCancel={() => setCreating(false)} onCreate={create} busy={busy === "create"}/></FocusedDialog>}
+    {creating && <FocusedDialog label="Create response policy" size="wide" onClose={() => setCreating(false)}><FormPolicyEditor forms={forms} onCancel={() => setCreating(false)} onCreate={create} busy={busy === "create"}/></FocusedDialog>}
   </section>;
 }
 
