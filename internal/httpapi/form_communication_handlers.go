@@ -13,6 +13,7 @@ import (
 )
 
 type createCommunicationProfileRequest struct {
+	TenantID       string     `json:"tenant_id,omitempty"`
 	LegalEntityID  string     `json:"legal_entity_id,omitempty"`
 	DefaultLocale  string     `json:"default_locale"`
 	BankName       string     `json:"bank_name"`
@@ -23,6 +24,7 @@ type createCommunicationProfileRequest struct {
 }
 
 type createCommunicationTemplateRequest struct {
+	TenantID        string                       `json:"tenant_id,omitempty"`
 	LegalEntityID   string                       `json:"legal_entity_id,omitempty"`
 	Action          evidence.CommunicationAction `json:"action"`
 	Locale          string                       `json:"locale"`
@@ -33,6 +35,8 @@ type createCommunicationTemplateRequest struct {
 }
 
 type communicationTransitionRequest struct {
+	TenantID        string                       `json:"tenant_id,omitempty"`
+	LegalEntityID   string                       `json:"legal_entity_id,omitempty"`
 	ExpectedVersion int64                        `json:"expected_version"`
 	To              evidence.CommunicationStatus `json:"to"`
 	EffectiveFrom   *time.Time                   `json:"effective_from,omitempty"`
@@ -40,7 +44,9 @@ type communicationTransitionRequest struct {
 }
 
 type communicationTestSendRequest struct {
-	Address string `json:"address"`
+	TenantID      string `json:"tenant_id,omitempty"`
+	LegalEntityID string `json:"legal_entity_id,omitempty"`
+	Address       string `json:"address"`
 }
 
 func (a *API) formCommunicationService(w http.ResponseWriter) (*evidence.CommunicationService, bool) {
