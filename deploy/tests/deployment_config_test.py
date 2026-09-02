@@ -25,6 +25,11 @@ class DeploymentConfigTest(unittest.TestCase):
         self.assertIn("try_files $uri $uri/ /index.html", nginx)
         self.assertIn("location = /healthz", nginx)
 
+    def test_ui_review_builds_customer_and_evidence_bundles(self) -> None:
+        workflow = self.read(".github/workflows/ui-evidence.yml")
+        self.assertIn("npm run build\n", workflow)
+        self.assertIn("npm run build:evidence -- --base=/", workflow)
+
     def test_migrations_are_forward_only_and_checksum_guarded(self) -> None:
         script = self.read("deploy/scripts/migrate.sh")
         for value in ("ON_ERROR_STOP", "clearsight_schema_migrations", "sha256sum", "checksum mismatch",

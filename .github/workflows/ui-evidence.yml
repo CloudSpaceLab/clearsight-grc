@@ -36,8 +36,10 @@ jobs:
           npm run typecheck
           npm run check:runtime-truth
           npm test
-      - name: Build deterministic stakeholder application
-        run: npm run build:evidence -- --base=/
+      - name: Build customer and deterministic evidence applications
+        run: |
+          npm run build
+          npm run build:evidence -- --base=/
       - name: Start local preview
         run: |
           npm run preview:evidence -- --host 127.0.0.1 --port 4173 > /tmp/clearsight-ui-preview.log 2>&1 &
