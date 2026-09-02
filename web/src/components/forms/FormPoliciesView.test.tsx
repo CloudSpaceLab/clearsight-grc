@@ -7,7 +7,9 @@ const api = vi.hoisted(() => ({
   submitFormResponsePolicy: vi.fn(), approveFormResponsePolicy: vi.fn(), activateFormResponsePolicy: vi.fn(),
   suspendFormResponsePolicy: vi.fn(), rollbackFormResponsePolicy: vi.fn(),
 }));
+const formsApi = vi.hoisted(() => ({ loadReusableFormTemplateRefs: vi.fn() }));
 vi.mock("../../formPoliciesApi", () => api);
+vi.mock("../../formsApi", () => formsApi);
 
 const policy = {
   id: "policy-1", code: "POOR-VENDOR-CERT", name: "Review poor vendor certification scores", purpose: "Create a review issue when certification evidence scores below the approved level.",
@@ -20,7 +22,9 @@ const policy = {
 
 beforeEach(() => {
   for (const value of Object.values(api)) value.mockReset();
+  formsApi.loadReusableFormTemplateRefs.mockReset();
   api.listFormResponsePolicies.mockResolvedValue([policy]);
+  formsApi.loadReusableFormTemplateRefs.mockResolvedValue([{ id: "form-1", name: "Vendor certification", code: "VENDOR-CERTIFICATION", version: 4 }]);
   api.simulateFormResponsePolicy.mockResolvedValue({ id: "simulation-1", policy_id: "policy-1", policy_version: 1, population_count: 42, eligible_count: 5, would_create_count: 3, would_reuse_count: 1, blast_suppressed_count: 1, restricted_excluded_count: 2, observed_at: "2026-09-01T10:00:00Z", expires_at: "2026-09-01T11:00:00Z" });
 });
 
@@ -30,6 +34,7 @@ describe("FormPoliciesView", () => {
     expect((await screen.findAllByText("Review poor vendor certification scores")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Draft").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: "Simulate impact" })).toHaveLength(1);
+    expect(formsApi.loadReusableFormTemplateRefs).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Simulate impact" }));
     await waitFor(() => expect(api.simulateFormResponsePolicy).toHaveBeenCalledWith("policy-1", 3));
