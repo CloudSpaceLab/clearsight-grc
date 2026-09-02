@@ -6,11 +6,13 @@ export function reviewRunnerEnvironment(environment, pageURL) {
   return { ...environment, PAGE_URL: pageURL };
 }
 
-export async function startManagedPreview({ cwd, environment = process.env }) {
+export async function startManagedPreview({ cwd, environment = process.env, config }) {
   const port = await availablePort();
   const url = `http://127.0.0.1:${port}`;
   const vite = path.join(cwd, "node_modules", "vite", "bin", "vite.js");
-  const child = spawn(process.execPath, [vite, "preview", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
+  const args = [vite, "preview", "--host", "127.0.0.1", "--port", String(port), "--strictPort"];
+  if (config) args.push("--config", config);
+  const child = spawn(process.execPath, args, {
     cwd,
     env: environment,
     stdio: ["ignore", "pipe", "pipe"],

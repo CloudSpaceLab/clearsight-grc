@@ -1,7 +1,13 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-08-31
-**Current execution:** Release integration and deployment verification for governed Forms, vendor refresh and operational workflows
+**Status date:** 2026-09-02
+**Current execution:** Stored runtime truth, oversight history completeness and hosted vendor email acceptance
+
+## Stored runtime truth — implemented, integration verification in progress
+
+Actor display context now resolves the exact verified tenant, legal entity and principal through an injected runtime directory resolver. Missing directory scope returns an unavailable response; the API does not invent a bank, person or role label. The Today package no longer exposes a callable hardcoded work list, and dead hardcoded context handlers have been removed. An architecture regression scans non-test runtime packages for these fallback paths.
+
+Deterministic browser evidence now has its own HTML/TypeScript entry and `dist-evidence` build. The customer `main.tsx` import graph cannot reach fixture pages, the static HTTP interceptor or evidence-only build switches, and both CI workflows enforce that boundary. Seeded non-production environments must therefore exercise ordinary repositories and routes; static request interception is retained only for isolated rendered-evidence generation.
 
 ## Governed work handoffs — implementation verification
 

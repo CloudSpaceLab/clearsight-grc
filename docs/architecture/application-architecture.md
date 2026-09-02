@@ -48,6 +48,8 @@ Workers use leases, bounded batches, retry policy, dead-letter review, idempoten
 
 Renders deterministic context immediately, then progressively adds recommendations and long-running results. It includes surface-aware Today and Vendors guidance, premium illustration primitives, empty states, Today, Vendors, Configure, readiness, authority explanation and focused capture. Guidance is optional and non-blocking. It is never the authorization boundary.
 
+The customer entry at `web/src/main.tsx` imports only production runtime modules. Deterministic screenshots and interaction fixtures compile from the separate `web/evidence/index.html` and `web/src/evidenceMain.tsx` entry into `dist-evidence`; their static HTTP interceptor and fixture records cannot be enabled through a customer-build environment flag. CI walks the complete relative import graph from the customer entry and fails if an evidence page, fixture interceptor or evidence-build switch becomes reachable.
+
 ## Modules
 
 ```text

@@ -112,6 +112,8 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
+      - name: Reject fixture code from the customer runtime graph
+        run: npm run check:runtime-truth
       - name: Rendered state and accessibility tests
         run: npm test
       - run: npm run build
