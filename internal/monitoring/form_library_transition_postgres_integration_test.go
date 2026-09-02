@@ -35,11 +35,13 @@ func TestPostgresReusableFormCanEnterApprovalWithoutProgramID(t *testing.T) {
 	)
 	cleanupReusableFormTransition(ctx, pool, tenantID)
 	defer cleanupReusableFormTransition(context.Background(), pool, tenantID)
-	if _, err := pool.Exec(ctx, `
-		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,'Reusable Form Transition Test');
-		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($3::uuid,$1::uuid,'FORM-REVIEW','Form Review Entity','NG');
-		INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($4::uuid,$1::uuid,'PERSON','Form Maker')`,
-		tenantID, tenantSlug, entityID, principalID); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,'Reusable Form Transition Test')`, tenantID, tenantSlug); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1::uuid,$2::uuid,'FORM-REVIEW','Form Review Entity','NG')`, entityID, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($1::uuid,$2::uuid,'PERSON','Form Maker')`, principalID, tenantID); err != nil {
 		t.Fatal(err)
 	}
 
