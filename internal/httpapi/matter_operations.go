@@ -80,11 +80,17 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 		return response
 	}
 	ownerID := aggregate.Matter.OwnerPrincipalID
+	assignmentResponsibility := authority.ResponsibilityOwner
+	assignmentLabel := "Change issue owner"
+	if strings.TrimSpace(ownerID) == "" {
+		assignmentResponsibility = authority.ResponsibilityAuthorizer
+		assignmentLabel = "Assign issue owner"
+	}
 	matterTargets := continuity.AllowedMatterTargets(aggregate.Matter.Status)
 	for _, spec := range []recordOperationSpec{
 		{Command: "matter.details.update", Label: "Edit issue details", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
 		{Command: "matter.context.change", Label: "Update facts and missing information", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
-		{Command: "matter.assign", Label: "Change issue owner", Responsibility: authority.ResponsibilityOwner, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, ReassignmentPrincipalID: ownerID, IncludeCandidates: true},
+		{Command: "matter.assign", Label: assignmentLabel, Responsibility: assignmentResponsibility, CandidateResponsibility: authority.ResponsibilityOwner, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, ReassignmentPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "matter.action.add", Label: "Add an action", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "matter.link", Label: "Link this issue", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
 		{Command: "matter.outcome.define", Label: "Define an outcome check", Responsibility: authority.ResponsibilityReviewer, Materiality: max(3, aggregate.Matter.Priority), IncludeCandidates: true},

@@ -234,7 +234,12 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		storedOwner := strings.TrimSpace(aggregate.Matter.OwnerPrincipalID)
 		var err error
 		if name == "matter.assign" && storedOwner == "" {
-			err = a.validateCurrentResponsibilityRouteActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityOwner)
+			policy.Responsibility = authority.ResponsibilityAuthorizer
+			err = a.validateCurrentResponsibilityRouteActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityAuthorizer)
+			if err == nil {
+				policy.SpecializedAuthorization = true
+				payload["reassignment_basis"] = "UNASSIGNED_RECOVERY"
+			}
 		} else if name == "matter.assign" {
 			policy.SpecializedAuthorization, err = a.validateReassignmentActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityOwner, storedOwner, payload)
 		} else {
