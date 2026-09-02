@@ -4,7 +4,7 @@ import type { VendorAssessmentDocument, VendorAssessmentReviewAnswer } from "./v
 
 export type VendorWorkState = "PREPARING" | "AWAITING_VENDOR" | "RESPONSE_RECEIVED" | "UNDER_REVIEW" | "CHANGES_REQUESTED" | "ACCEPTED" | "CANCELLED";
 export type VendorWorkDeliveryState = "NOT_SENT" | "LINK_CREATED_EMAIL_NOT_SENT" | "DELIVERED" | "RETRY_REQUIRED";
-export type VendorWorkRequestKind = "GENERAL" | "ADDRESS_VERIFICATION" | "CERTIFICATION_REFRESH";
+export type VendorWorkRequestKind = "GENERAL" | "CERTIFICATION_REFRESH";
 
 export type VendorWorkRequest = {
   id: string;

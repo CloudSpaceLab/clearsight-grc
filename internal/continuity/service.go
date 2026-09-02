@@ -1041,8 +1041,8 @@ func (s *Service) AddAction(ctx context.Context, input AddActionInput) (MatterAg
 	}
 	ownerID := strings.TrimSpace(input.OwnerPrincipalID)
 	originKey := strings.TrimSpace(input.OriginKey)
-	if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" || ownerID == "" {
-		return MatterAggregate{}, fmt.Errorf("title, description and owner_principal_id are required")
+	if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" {
+		return MatterAggregate{}, fmt.Errorf("title and description are required")
 	}
 	if len(originKey) > 160 {
 		return MatterAggregate{}, fmt.Errorf("origin_key must not exceed 160 characters")

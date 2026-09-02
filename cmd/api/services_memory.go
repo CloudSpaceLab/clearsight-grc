@@ -206,7 +206,7 @@ func (r *memoryEvidenceRepository) CanReadSubject(ctx context.Context, tenant, p
 	}
 	if scope.SubjectType == "MATTER" {
 		value, readErr := r.continuity.GetMatter(continuity.WithTrustedSystemScope(ctx), tenant, subjectID)
-		return readErr == nil && continuity.MatterVisibleTo(value.Matter, principalID), readErr
+		return readErr == nil && continuity.MatterAggregateVisibleTo(value, principalID), readErr
 	}
 	return true, nil
 }

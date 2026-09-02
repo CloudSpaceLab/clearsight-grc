@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -12,12 +13,14 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
 const (
 	AddressVerificationRequestOrigin = "THIRD_PARTY_ADDRESS_VERIFICATION"
 	addressVerificationConsumerName  = "third-party-address-verification-setup"
 	addressSubmissionConsumerName    = "third-party-address-verification-submission"
+	addressAssignmentConsumerName    = "third-party-address-verification-assignment"
 	addressVerificationFormCode      = "VENDOR-ADDRESS-VERIFICATION"
 	addressVerificationActionOrigin  = "thirdparty-address-verification"
 )
@@ -114,7 +117,7 @@ func (p *AddressVerificationProvisioner) Publish(ctx context.Context, event work
 		matter, err = p.matters.AddAction(matterContext, continuity.AddActionInput{
 			TenantID: scope.TenantID, MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 			Title: "Verify the vendor registered address", Description: "Confirm the observed address and provide the source and evidence used.",
-			OwnerPrincipalID: relationship.Relationship.BusinessOwnerPrincipalID, DueAt: &assessment.ReviewDueAt,
+			OwnerPrincipalID: "", DueAt: &assessment.ReviewDueAt,
 			ActorID: relationship.Relationship.BusinessOwnerPrincipalID, OriginKey: addressVerificationActionOrigin,
 		})
 		if err != nil {
@@ -124,16 +127,6 @@ func (p *AddressVerificationProvisioner) Publish(ctx context.Context, event work
 	}
 	if !found {
 		return errors.New("address verification action is unavailable")
-	}
-	if action.Status == continuity.ActionPlanned {
-		matter, err = p.matters.TransitionAction(matterContext, continuity.TransitionActionInput{
-			TenantID: scope.TenantID, MatterID: matter.Matter.ID, ActionID: action.ID, ExpectedVersion: matter.Matter.Version,
-			To: continuity.ActionInProgress, ActorID: action.OwnerPrincipalID,
-		})
-		if err != nil {
-			return fmt.Errorf("start address verification action: %w", err)
-		}
-		action, _ = addressVerificationAction(matter.Actions)
 	}
 	if !addressVerificationContractExists(matter.VerificationContracts, action.ID) {
 		matter, err = p.matters.AddVerificationContract(matterContext, continuity.AddVerificationContractInput{
@@ -149,41 +142,8 @@ func (p *AddressVerificationProvisioner) Publish(ctx context.Context, event work
 		}
 		action, _ = addressVerificationAction(matter.Actions)
 	}
-	form, err := p.activeAddressVerificationForm(ctx, scope)
-	if err != nil {
-		return err
-	}
-	requestOrigin := evidence.RequestOrigin{Type: AddressVerificationRequestOrigin, ID: action.ID, Version: action.Version}
-	_, requestErr := p.evidence.GetRequestByOrigin(ctx, scope.TenantID, requestOrigin)
-	if errors.Is(requestErr, evidence.ErrNotFound) {
-		_, requestErr = p.evidence.CreateRequest(evidence.WithRequestOriginAuthority(ctx, AddressVerificationRequestOrigin), addressVerificationRequestInput(assessment, relationship, matter, action, form, requestOrigin))
-	}
-	if requestErr != nil {
-		return fmt.Errorf("create address verification request: %w", requestErr)
-	}
 	_, err = p.inbox.RecordInbox(ctx, event.TenantID, addressVerificationConsumerName, event.ID, event.OccurredAt.UTC())
 	return err
-}
-
-func (p *AddressVerificationProvisioner) activeAddressVerificationForm(ctx context.Context, scope Scope) (monitoring.FormTemplate, error) {
-	forms, err := p.forms.ListReusableFormRevisions(ctx, scope.TenantID, scope.LegalEntityID, 200)
-	if err != nil {
-		return monitoring.FormTemplate{}, err
-	}
-	var selected monitoring.FormTemplate
-	for _, form := range forms {
-		if form.Code != addressVerificationFormCode || form.Status != monitoring.LifecycleActive || !form.IsCurrent {
-			continue
-		}
-		if selected.ID != "" {
-			return monitoring.FormTemplate{}, errors.New("more than one current address verification form is active")
-		}
-		selected = form
-	}
-	if selected.ID == "" {
-		return monitoring.FormTemplate{}, errors.New("the current address verification form is unavailable")
-	}
-	return selected, nil
 }
 
 func addressVerificationMatterInput(assessment Assessment, relationship Aggregate, triggerKey string) continuity.CreateMatterInput {
@@ -243,6 +203,150 @@ func addressVerificationContractExists(contracts []continuity.VerificationContra
 	return false
 }
 
+type addressVerificationAssignmentEvidence interface {
+	addressVerificationEvidence
+	ReassignRecipient(context.Context, evidence.ReassignRecipientInput) (evidence.Request, error)
+}
+
+type AddressVerificationAssignmentConsumer struct {
+	inbox       AssessmentSubmissionInbox
+	assessments AssessmentRepository
+	matters     addressVerificationMatterService
+	evidence    addressVerificationAssignmentEvidence
+	forms       addressVerificationFormReader
+}
+
+type AddressVerificationAssignmentTargetResolver struct {
+	requests interface {
+		GetRequestByOrigin(context.Context, string, evidence.RequestOrigin) (evidence.Request, error)
+	}
+}
+
+func NewAddressVerificationAssignmentTargetResolver(requests interface {
+	GetRequestByOrigin(context.Context, string, evidence.RequestOrigin) (evidence.Request, error)
+}) *AddressVerificationAssignmentTargetResolver {
+	return &AddressVerificationAssignmentTargetResolver{requests: requests}
+}
+
+func (r *AddressVerificationAssignmentTargetResolver) ResolveAssignmentNotificationTarget(ctx context.Context, target workflow.AssignmentNotificationTarget) (string, error) {
+	if r == nil || r.requests == nil || strings.TrimSpace(target.TenantID) == "" || strings.TrimSpace(target.MatterID) == "" || strings.TrimSpace(target.ActionID) == "" || target.ActionVersion < 1 || strings.TrimSpace(target.PrincipalID) == "" {
+		return "", nil
+	}
+	for version := target.ActionVersion; version > 0; version-- {
+		request, err := r.requests.GetRequestByOrigin(ctx, target.TenantID, evidence.RequestOrigin{Type: AddressVerificationRequestOrigin, ID: target.ActionID, Version: version})
+		if errors.Is(err, evidence.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return "", err
+		}
+		if request.SubjectType != "MATTER" || request.SubjectID != target.MatterID || request.Recipient.Type != evidence.RecipientInternalPrincipal || request.Recipient.PrincipalID != target.PrincipalID {
+			return "", errors.New("assigned address verification request does not match the current performer")
+		}
+		return "/#work/evidence/" + url.PathEscape(request.ID), nil
+	}
+	return "", nil
+}
+
+func NewAddressVerificationAssignmentConsumer(inbox AssessmentSubmissionInbox, assessments AssessmentRepository, matters addressVerificationMatterService, evidenceService addressVerificationAssignmentEvidence, forms addressVerificationFormReader) *AddressVerificationAssignmentConsumer {
+	return &AddressVerificationAssignmentConsumer{inbox: inbox, assessments: assessments, matters: matters, evidence: evidenceService, forms: forms}
+}
+
+func (c *AddressVerificationAssignmentConsumer) Publish(ctx context.Context, event workflowruntime.OutboxEvent) error {
+	if event.AggregateType != "MATTER" || event.EventType != continuity.EventActionAssigned {
+		return nil
+	}
+	if c == nil || c.inbox == nil || c.assessments == nil || c.matters == nil || c.evidence == nil || c.forms == nil {
+		return errors.New("address verification assignment handling is not configured")
+	}
+	processed, err := c.inbox.InboxProcessed(ctx, event.TenantID, addressAssignmentConsumerName, event.ID)
+	if err != nil || processed {
+		return err
+	}
+	var assigned struct {
+		Action    continuity.Action `json:"action"`
+		Rationale string            `json:"rationale"`
+	}
+	if err := json.Unmarshal(event.Payload, &assigned); err != nil {
+		return err
+	}
+	if assigned.Action.OriginKey != addressVerificationActionOrigin {
+		return nil
+	}
+	if assigned.Action.MatterID != event.AggregateID || strings.TrimSpace(assigned.Action.OwnerPrincipalID) == "" {
+		return errors.New("address verification assignment is incomplete")
+	}
+	matterContext := continuity.WithTrustedSystemScope(ctx)
+	matter, err := c.matters.GetMatter(matterContext, event.TenantID, event.AggregateID)
+	if err != nil {
+		return err
+	}
+	if matter.Matter.SourceType != "THIRD_PARTY_ASSESSMENT" || matter.Matter.SourceID == "" {
+		return errors.New("address verification assessment lineage is unavailable")
+	}
+	scope := Scope{TenantID: event.TenantID, LegalEntityID: matter.Matter.LegalEntityID}
+	assessment, err := c.assessments.GetAssessment(ctx, scope, matter.Matter.SourceID)
+	if err != nil {
+		return err
+	}
+	relationship, err := c.assessments.GetRelationship(ctx, scope, assessment.RelationshipID)
+	if err != nil {
+		return err
+	}
+	forms, err := c.forms.ListReusableFormRevisions(ctx, scope.TenantID, scope.LegalEntityID, 200)
+	if err != nil {
+		return err
+	}
+	var form monitoring.FormTemplate
+	for _, candidate := range forms {
+		if candidate.Code == addressVerificationFormCode && candidate.Status == monitoring.LifecycleActive && candidate.IsCurrent {
+			if form.ID != "" {
+				return errors.New("more than one current address verification form is active")
+			}
+			form = candidate
+		}
+	}
+	if form.ID == "" {
+		return errors.New("the current address verification form is unavailable")
+	}
+	currentOrigin := evidence.RequestOrigin{Type: AddressVerificationRequestOrigin, ID: assigned.Action.ID, Version: assigned.Action.Version}
+	request, requestErr := c.evidence.GetRequestByOrigin(ctx, event.TenantID, currentOrigin)
+	if errors.Is(requestErr, evidence.ErrNotFound) && assigned.Action.Version > 1 {
+		for version := assigned.Action.Version - 1; version > 0; version-- {
+			previousOrigin := evidence.RequestOrigin{Type: AddressVerificationRequestOrigin, ID: assigned.Action.ID, Version: version}
+			previous, previousErr := c.evidence.GetRequestByOrigin(ctx, event.TenantID, previousOrigin)
+			if errors.Is(previousErr, evidence.ErrNotFound) {
+				continue
+			}
+			if previousErr != nil {
+				return previousErr
+			}
+			request, requestErr = c.evidence.ReassignRecipient(ctx, evidence.ReassignRecipientInput{
+				TenantID: event.TenantID, LegalEntityID: scope.LegalEntityID, RequestID: previous.ID,
+				ActorPrincipalID: previous.CreatedBy, Recipient: evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: assigned.Action.OwnerPrincipalID},
+				Reason: "The address verification Action was reassigned through the current responsibility route.", ExpectedVersion: previous.Version,
+			})
+			break
+		}
+	}
+	if errors.Is(requestErr, evidence.ErrNotFound) {
+		request, requestErr = c.evidence.CreateRequest(evidence.WithRequestOriginAuthority(ctx, AddressVerificationRequestOrigin), addressVerificationRequestInput(assessment, relationship, matter, assigned.Action, form, currentOrigin))
+	}
+	if requestErr != nil {
+		return fmt.Errorf("prepare assigned address verification request: %w", requestErr)
+	}
+	if request.Recipient.PrincipalID != assigned.Action.OwnerPrincipalID {
+		return errors.New("address verification request recipient does not match the assigned performer")
+	}
+	if assigned.Action.Status == continuity.ActionPlanned {
+		if _, err := c.matters.TransitionAction(matterContext, continuity.TransitionActionInput{TenantID: event.TenantID, MatterID: matter.Matter.ID, ActionID: assigned.Action.ID, ExpectedVersion: matter.Matter.Version, To: continuity.ActionInProgress, ActorID: assigned.Action.OwnerPrincipalID}); err != nil {
+			return err
+		}
+	}
+	_, err = c.inbox.RecordInbox(ctx, event.TenantID, addressAssignmentConsumerName, event.ID, event.OccurredAt.UTC())
+	return err
+}
+
 type AddressVerificationSubmissionConsumer struct {
 	inbox    AssessmentSubmissionInbox
 	requests AssessmentSubmissionRequestReader
@@ -289,8 +393,11 @@ func (c *AddressVerificationSubmissionConsumer) Publish(ctx context.Context, eve
 	if action == nil || action.OriginKey != addressVerificationActionOrigin {
 		return errors.New("address verification action is unavailable")
 	}
+	if action.OwnerPrincipalID == "" || request.Recipient.PrincipalID != action.OwnerPrincipalID {
+		return errors.New("address verification submission is not from the current assigned performer")
+	}
 	if action.Status != continuity.ActionImplemented {
-		if action.Status != continuity.ActionInProgress || action.Version != request.Origin.Version {
+		if action.Status != continuity.ActionInProgress {
 			return continuity.ErrVersionConflict
 		}
 		matter, err = c.matters.TransitionAction(matterContext, continuity.TransitionActionInput{
@@ -306,4 +413,6 @@ func (c *AddressVerificationSubmissionConsumer) Publish(ctx context.Context, eve
 }
 
 var _ workflowruntime.Publisher = (*AddressVerificationProvisioner)(nil)
+var _ workflowruntime.Publisher = (*AddressVerificationAssignmentConsumer)(nil)
 var _ workflowruntime.Publisher = (*AddressVerificationSubmissionConsumer)(nil)
+var _ workflow.AssignmentNotificationTargetResolver = (*AddressVerificationAssignmentTargetResolver)(nil)

@@ -186,7 +186,7 @@ WITH selected AS MATERIALIZED (
     AND (NOT $7 OR ((requested_t.id::text=$8 OR requested_t.slug=$8) AND m.legal_entity_id IS NOT NULL AND ($9='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$9 OR le.code=$9) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
     AND (
       NOT $3 OR
-      CASE
+      (CASE
         WHEN NOT (m.scope ? 'access') THEN true
         WHEN jsonb_typeof(m.scope->'access')<>'string' THEN false
         WHEN upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL') THEN true
@@ -199,7 +199,9 @@ WITH selected AS MATERIALIZED (
               AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(m.scope->'allowed_principal_ids') allowed(value) WHERE btrim(allowed.value)=$4)
           END
         ELSE false
-      END
+      END)
+      OR COALESCE(m.owner_principal_id::text,'')=$4
+      OR EXISTS (SELECT 1 FROM matter_actions assigned_action WHERE assigned_action.tenant_id=m.tenant_id AND assigned_action.matter_id=m.id AND assigned_action.owner_principal_id::text=$4)
     )
   ORDER BY m.priority DESC,m.due_at NULLS LAST,m.updated_at DESC,m.id
   LIMIT $6

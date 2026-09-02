@@ -63,12 +63,26 @@ func TestVendorWorkRequestKindMigrationIsBoundedAndReversible(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, required := range []string{"request_kind text NOT NULL DEFAULT 'GENERAL'", "'ADDRESS_VERIFICATION'", "'CERTIFICATION_REFRESH'"} {
+	for _, required := range []string{"request_kind text NOT NULL DEFAULT 'GENERAL'", "'CERTIFICATION_REFRESH'"} {
 		if !strings.Contains(string(up), required) {
 			t.Fatalf("request-kind migration missing %q", required)
 		}
 	}
 	if !strings.Contains(string(down), "DROP COLUMN IF EXISTS request_kind") || strings.Contains(string(down), "DELETE FROM") {
 		t.Fatal("request-kind rollback must remove only the added column")
+	}
+}
+
+func TestCurrentVendorWorkRequestKindsExcludeInternalAddressVerification(t *testing.T) {
+	up, err := os.ReadFile("../../migrations/000072_remove_vendor_work_address_compatibility.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := string(up)
+	if !strings.Contains(schema, "request_kind IN ('GENERAL','CERTIFICATION_REFRESH')") {
+		t.Fatal("current vendor-work request kinds are not constrained to vendor-facing journeys")
+	}
+	if strings.Contains(schema, "ADDRESS_VERIFICATION") {
+		t.Fatal("current vendor-work schema still accepts the internal address-verification journey")
 	}
 }

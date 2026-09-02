@@ -13,7 +13,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
-func buildStaffNotificationWorker(cfg config.Config, repository *workflow.PostgresRepository) (workflowruntime.Publisher, error) {
+func buildStaffNotificationWorker(cfg config.Config, repository *workflow.PostgresRepository, targets workflow.AssignmentNotificationTargetResolver) (workflowruntime.Publisher, error) {
 	smtpConfig, err := config.LoadSMTPConfig(cfg.Environment)
 	if err != nil {
 		return nil, err
@@ -37,5 +37,5 @@ func buildStaffNotificationWorker(cfg config.Config, repository *workflow.Postgr
 	if err != nil {
 		return nil, err
 	}
-	return workflow.NewAssignmentNotificationConsumer(repository, evidence.NewInvitationDeliveryService(adapter), applicationURL)
+	return workflow.NewAssignmentNotificationConsumer(repository, evidence.NewInvitationDeliveryService(adapter), applicationURL, targets)
 }

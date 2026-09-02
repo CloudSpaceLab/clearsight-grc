@@ -202,7 +202,7 @@ func (s *MatterFormRemediationService) List(ctx context.Context, matterID string
 	if err != nil {
 		return nil, err
 	}
-	if matter.Matter.LegalEntityID != actor.LegalEntityID || !MatterVisibleTo(matter.Matter, actor.PrincipalID) {
+	if matter.Matter.LegalEntityID != actor.LegalEntityID || !MatterAggregateVisibleTo(matter, actor.PrincipalID) {
 		return nil, ErrNotFound
 	}
 	bindings, err := s.repo.ListMatterFormBindings(ctx, actor.TenantID, matter.Matter.ID, limit)
@@ -381,7 +381,7 @@ func (s *MatterFormRemediationService) bindingContext(ctx context.Context, matte
 	if matter.Matter.Version != expected {
 		return identity.Actor{}, MatterAggregate{}, monitoring.FormTemplate{}, ErrVersionConflict
 	}
-	if actor.LegalEntityID != matter.Matter.LegalEntityID || !MatterVisibleTo(matter.Matter, actor.PrincipalID) {
+	if actor.LegalEntityID != matter.Matter.LegalEntityID || !MatterAggregateVisibleTo(matter, actor.PrincipalID) {
 		return identity.Actor{}, MatterAggregate{}, monitoring.FormTemplate{}, ErrNotFound
 	}
 	if _, err = s.guard.Authorize(ctx, commandauth.Request{TenantID: actor.TenantID, LegalEntityID: matter.Matter.LegalEntityID, ObjectType: "MATTER", ObjectID: matter.Matter.ID, Responsibility: responsibility, DecisionType: decision, Materiality: materiality}); err != nil {

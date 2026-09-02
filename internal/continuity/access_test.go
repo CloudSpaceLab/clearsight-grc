@@ -54,3 +54,18 @@ func TestRestrictedMatterRequiresExplicitPrincipal(t *testing.T) {
 		t.Fatal("restricted matter was visible without an explicit grant")
 	}
 }
+
+func TestRestrictedMatterAggregateIncludesCurrentRecordedResponsibility(t *testing.T) {
+	aggregate := MatterAggregate{
+		Matter:  Matter{OwnerPrincipalID: "matter-owner", Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["oversight-reader"]}`)},
+		Actions: []Action{{ID: "action-1", OwnerPrincipalID: "current-performer", Status: ActionInProgress}},
+	}
+	for _, principalID := range []string{"oversight-reader", "matter-owner", "current-performer"} {
+		if !MatterAggregateVisibleTo(aggregate, principalID) {
+			t.Fatalf("recorded responsibility %q could not read restricted issue", principalID)
+		}
+	}
+	if MatterAggregateVisibleTo(aggregate, "previous-performer") || MatterAggregateVisibleTo(aggregate, "") {
+		t.Fatal("restricted issue was visible without a current recorded responsibility")
+	}
+}

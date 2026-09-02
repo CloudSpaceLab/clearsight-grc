@@ -60,6 +60,19 @@ type assignmentDeliveryStub struct {
 	request evidence.InvitationDeliveryRequest
 }
 
+type assignmentTargetResolverStub struct {
+	target string
+	err    error
+	calls  int
+	input  AssignmentNotificationTarget
+}
+
+func (stub *assignmentTargetResolverStub) ResolveAssignmentNotificationTarget(_ context.Context, input AssignmentNotificationTarget) (string, error) {
+	stub.calls++
+	stub.input = input
+	return stub.target, stub.err
+}
+
 func (stub *assignmentDeliveryStub) DeliverGoverned(_ context.Context, request evidence.InvitationDeliveryRequest) (evidence.InvitationDeliveryReceipt, error) {
 	stub.calls++
 	stub.request = request
@@ -95,6 +108,7 @@ func actionPerformerAssignmentEvent(t *testing.T) workflowruntime.OutboxEvent {
 			"id":                 "00000000-0000-4000-8000-000000000706",
 			"matter_id":          "00000000-0000-4000-8000-000000000701",
 			"owner_principal_id": "00000000-0000-4000-8000-000000000703",
+			"version":            4,
 		},
 		"previous_owner_principal_id": "00000000-0000-4000-8000-000000000704",
 		"owner_principal_id":          "00000000-0000-4000-8000-000000000703",
@@ -158,6 +172,28 @@ func TestAssignmentNotificationDeliversExactActionPerformerWork(t *testing.T) {
 	}
 	if delivery.calls != 1 || !strings.Contains(delivery.request.PlainText, "Assigned performer") || !strings.Contains(delivery.request.PlainText, notificationContext.WorkTitle) {
 		t.Fatalf("action assignment request = %#v", delivery.request)
+	}
+}
+
+func TestAssignmentNotificationUsesResolvedExactInternalRequestLink(t *testing.T) {
+	notificationContext := deliverableAssignmentContext()
+	notificationContext.WorkTitle = "Confirm the registered address"
+	repo := &assignmentNotificationRepositoryStub{context: notificationContext}
+	delivery := &assignmentDeliveryStub{receipt: evidence.InvitationDeliveryReceipt{Status: evidence.InvitationDelivered}}
+	resolver := &assignmentTargetResolverStub{target: "/#work/evidence/00000000-0000-4000-8000-000000000708"}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/", resolver)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := consumer.Publish(t.Context(), actionPerformerAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if resolver.calls != 1 || resolver.input.ActionVersion != 4 || resolver.input.PrincipalID != "00000000-0000-4000-8000-000000000703" {
+		t.Fatalf("resolver calls=%d input=%#v", resolver.calls, resolver.input)
+	}
+	if !strings.Contains(delivery.request.PlainText, "https://clearsight.example.test/#work/evidence/00000000-0000-4000-8000-000000000708") {
+		t.Fatalf("exact request link missing from assignment email: %s", delivery.request.PlainText)
 	}
 }
 

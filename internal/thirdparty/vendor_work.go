@@ -51,7 +51,6 @@ type VendorWorkRequestKind string
 
 const (
 	VendorWorkGeneral              VendorWorkRequestKind = "GENERAL"
-	VendorWorkAddressVerification  VendorWorkRequestKind = "ADDRESS_VERIFICATION"
 	VendorWorkCertificationRefresh VendorWorkRequestKind = "CERTIFICATION_REFRESH"
 )
 
@@ -495,13 +494,9 @@ func (s *VendorWorkService) ensureCaptureRequest(ctx context.Context, actor Acto
 				knownFacts["Service"] = serviceName
 			}
 		}
-		audienceType := "VENDOR"
-		if work.RequestKind == VendorWorkAddressVerification {
-			audienceType = "EXTERNAL"
-		}
 		request, err = s.evidence.CreateRequest(evidence.WithRequestOriginAuthority(ctx, VendorWorkOrigin), evidence.CreateRequestInput{
 			TenantID: work.TenantID, LegalEntityID: work.LegalEntityID, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: work.RelationshipID,
-			Title: form.Name, Purpose: work.Purpose, WhyYou: instructions, Sensitivity: "CONFIDENTIAL", AudienceType: audienceType,
+			Title: form.Name, Purpose: work.Purpose, WhyYou: instructions, Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR",
 			Recipient: evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience}, EstimatedMinutes: estimateAssessmentMinutes(len(fields)), Deadline: dueAt,
 			KnownFacts: knownFacts, Presentation: presentation, Sections: form.Sections, Fields: fields,
 			FormTemplateID: form.ID, FormTemplateVersion: form.Version, Origin: origin, CreatedBy: actor.PrincipalID,
@@ -630,8 +625,6 @@ func normalizeVendorWorkRequestKind(kind VendorWorkRequestKind) (VendorWorkReque
 func vendorWorkFormMatchesRequestKind(code string, kind VendorWorkRequestKind) bool {
 	code = strings.TrimSpace(code)
 	switch kind {
-	case VendorWorkAddressVerification:
-		return code == "VENDOR-ADDRESS-VERIFICATION"
 	case VendorWorkCertificationRefresh:
 		return code == "VENDOR-CERTIFICATION-REFRESH"
 	default:
@@ -642,8 +635,6 @@ func vendorWorkFormMatchesRequestKind(code string, kind VendorWorkRequestKind) b
 func vendorWorkInvitationMessage(work VendorWorkRequest, issued evidence.IssuedInvitation) evidence.InvitationMessageContext {
 	kind, role := evidence.InvitationMessageGeneric, "Vendor contact"
 	switch work.RequestKind {
-	case VendorWorkAddressVerification:
-		kind, role = evidence.InvitationMessageAddressVerification, "Address verification staff contact"
 	case VendorWorkCertificationRefresh:
 		kind = evidence.InvitationMessageCertificationRefresh
 	}
@@ -1008,11 +999,7 @@ func (s *VendorWorkService) Response(ctx context.Context, actor Actor, id string
 			if readErr != nil || artifact.SubmissionID != source.submissionID {
 				return VendorWorkReviewView{}, ErrNotFound
 			}
-			evidenceClass := AssessmentEvidenceVendorSupplied
-			if work.RequestKind == VendorWorkAddressVerification {
-				evidenceClass = AssessmentEvidenceStaffSupplied
-			}
-			document := AssessmentReviewDocument{FieldID: field.ID, RequestID: source.requestID, ArtifactID: artifact.ID, FileName: artifact.FileName, MediaType: artifact.MediaType, SizeBytes: artifact.SizeBytes, ArtifactStatus: artifact.Status, Status: "SUBMITTED", EvidenceClass: evidenceClass}
+			document := AssessmentReviewDocument{FieldID: field.ID, RequestID: source.requestID, ArtifactID: artifact.ID, FileName: artifact.FileName, MediaType: artifact.MediaType, SizeBytes: artifact.SizeBytes, ArtifactStatus: artifact.Status, Status: "SUBMITTED", EvidenceClass: AssessmentEvidenceVendorSupplied}
 			if answer.Value.Document != nil {
 				document.DocumentType = answer.Value.Document.DocumentType
 				document.Reference = answer.Value.Document.Reference

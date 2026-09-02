@@ -90,37 +90,16 @@ describe("VendorWorkPanel", () => {
     vi.mocked(retryVendorWorkDelivery).mockReset();
   });
 
-  it("prepares an address check for a staff evidence contact without changing Matter authority", async () => {
-    vi.mocked(loadFormTemplates).mockResolvedValue([form, addressForm, certificationForm]);
-    vi.mocked(prepareVendorWork).mockResolvedValue({ ...work, request_kind: "ADDRESS_VERIFICATION" } as VendorWorkRequest);
-    vi.mocked(sendVendorWork).mockResolvedValue({ work: { ...work, request_kind: "ADDRESS_VERIFICATION", state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 3 } as VendorWorkRequest, state: "DELIVERED" });
-    render(<VendorWorkPanel targetType="MATTER" targetID="matter-1"/>);
-
-    await screen.findByText("No vendor requests have been recorded for this issue or change.");
-    fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
-    expect(screen.getByRole("dialog", { name: "Request vendor work" })).toBeTruthy();
-    await chooseRequestOption("Request type", "Registered address verification");
-
-    expect(screen.getByLabelText(/Address verification staff email/)).toBeTruthy();
-    expect(screen.getByText(/can access only this evidence request/i)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Send address check" })).toBeTruthy();
-    fireEvent.click(within(screen.getByRole("dialog", { name: "Request vendor work" })).getByRole("button", { name: /Collection form/i }));
-    expect(await screen.findByRole("option", { name: "Verify vendor address · version 1" })).toBeTruthy();
-    expect(screen.queryByRole("option", { name: "Submit current vendor certifications · version 1" })).toBeNull();
-  });
-
   it("presents certification collection and acceptance as separate steps", async () => {
     vi.mocked(loadFormTemplates).mockResolvedValue([form, addressForm, certificationForm]);
     vi.mocked(loadVendorWork).mockResolvedValue({ items: [
       { ...work, id: "cert-pending", request_kind: "CERTIFICATION_REFRESH", state: "AWAITING_VENDOR", delivery_state: "DELIVERED" } as VendorWorkRequest,
       { ...work, id: "cert-response", request_kind: "CERTIFICATION_REFRESH", state: "RESPONSE_RECEIVED", delivery_state: "DELIVERED", version: 4 } as VendorWorkRequest,
-      { ...work, id: "address-response", request_kind: "ADDRESS_VERIFICATION", state: "RESPONSE_RECEIVED", delivery_state: "DELIVERED", version: 4 } as VendorWorkRequest,
-      { ...work, id: "accepted", request_kind: "ADDRESS_VERIFICATION", state: "ACCEPTED", delivery_state: "DELIVERED", review_rationale: "The address evidence matches the registered record." } as VendorWorkRequest,
+      { ...work, id: "accepted", request_kind: "CERTIFICATION_REFRESH", state: "ACCEPTED", delivery_state: "DELIVERED", review_rationale: "The certification evidence is current and complete." } as VendorWorkRequest,
     ] });
     render(<VendorWorkPanel targetType="MATTER" targetID="matter-1"/>);
 
     expect(await screen.findByText("Certification evidence received")).toBeTruthy();
-    expect(screen.getByText("Staff confirmation received")).toBeTruthy();
     expect(screen.getByText("Evidence accepted")).toBeTruthy();
     expect(screen.queryByText("Matter resolved")).toBeNull();
 
@@ -130,24 +109,6 @@ describe("VendorWorkPanel", () => {
     expect(screen.getByText(/submission does not mean the bank accepted it/i)).toBeTruthy();
     expect(screen.getByLabelText(/Vendor contact email/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Send certification request" })).toBeTruthy();
-  });
-
-  it("uses assigned-staff language throughout address verification review", async () => {
-    const addressWork = { ...work, request_kind: "ADDRESS_VERIFICATION" as const, state: "UNDER_REVIEW" as const, delivery_state: "DELIVERED" as const, version: 5 };
-    vi.mocked(loadVendorWork).mockResolvedValue({ items: [addressWork] });
-    vi.mocked(loadVendorWorkResponse).mockResolvedValue({ ...response, work: addressWork, documents: [{ ...response.documents[0]!, request_id: "request-address", evidence_class: "STAFF_SUPPLIED" }] });
-    render(<VendorWorkPanel targetType="MATTER" targetID="matter-1"/>);
-
-    const card = await screen.findByTestId("vendor-work-work-1");
-    fireEvent.click(within(card).getByRole("button", { name: "Review response" }));
-
-    expect(await within(card).findByRole("region", { name: "Staff confirmation" })).toBeTruthy();
-    expect(within(card).getByText("Staff response: Yes")).toBeTruthy();
-    expect(within(card).getByText("Entered by the assigned staff member")).toBeTruthy();
-    expect(within(card).getByText(/Assigned staff supplied/)).toBeTruthy();
-    fireEvent.click(within(card).getByRole("button", { name: "Request changes" }));
-    expect(within(card).getByLabelText("What the assigned staff member must change")).toBeTruthy();
-    expect(within(card).getByLabelText("Address verification staff email")).toBeTruthy();
   });
 
   it("prepares and sends vendor work with typed inputs and a real rendering choice", async () => {

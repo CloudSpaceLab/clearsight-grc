@@ -83,14 +83,19 @@ func (r *PostgresRepository) CanReadSubject(ctx context.Context, tenant, princip
 
 func subjectVisibilitySQL(table, alias string) string {
 	// table and alias are selected only from the closed switch above.
-	return `SELECT CASE
+	responsibilityAccess := "false"
+	if table == "matters" {
+		responsibilityAccess = `COALESCE(` + alias + `.owner_principal_id::text,'')=$2
+			OR EXISTS (SELECT 1 FROM matter_actions assigned_action WHERE assigned_action.tenant_id=` + alias + `.tenant_id AND assigned_action.matter_id=` + alias + `.id AND assigned_action.owner_principal_id::text=$2)`
+	}
+	return `SELECT (CASE
 		WHEN NOT (` + alias + `.scope ? 'access') THEN true
 		WHEN upper(btrim(COALESCE(` + alias + `.scope->>'access',''))) IN ('PUBLIC','INTERNAL') THEN true
 		WHEN upper(btrim(COALESCE(` + alias + `.scope->>'access','')))='RESTRICTED' THEN
 			jsonb_typeof(` + alias + `.scope->'allowed_principal_ids')='array'
 			AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(` + alias + `.scope->'allowed_principal_ids') e(value) WHERE jsonb_typeof(e.value)<>'string')
 			AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(` + alias + `.scope->'allowed_principal_ids') a(value) WHERE btrim(a.value)=$2)
-		ELSE false END
+		ELSE false END) OR ` + responsibilityAccess + `
 		FROM ` + table + ` ` + alias + ` JOIN tenants t ON t.id=` + alias + `.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND ` + alias + `.id::text=$3`
 }

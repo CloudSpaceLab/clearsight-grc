@@ -89,24 +89,6 @@ func newVendorWorkFixture(t *testing.T) vendorWorkFixture {
 	return vendorWorkFixture{service: service, repository: repository, links: links, forms: forms, evidence: evidenceService, link: link, actor: actor, audience: "security@vendor.example", now: now}
 }
 
-func TestVendorWorkRejectsDuplicateExternalAddressVerificationPath(t *testing.T) {
-	fixture := newVendorWorkFixture(t)
-	addVendorWorkForm(t, fixture, "address-form", "VENDOR-ADDRESS-VERIFICATION", []monitoring.TemplateField{{
-		ID: "address", SectionID: "evidence", Label: "Registered address", Type: formcontract.TypeLongText, Required: true,
-	}})
-
-	_, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
-		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID,
-		RequestKind: VendorWorkAddressVerification, Purpose: "Verify the registered address.",
-		Instructions:   "Record the observed address and supporting evidence.",
-		FormTemplateID: "address-form", FormTemplateVersion: 1, VendorAudience: fixture.audience,
-		DueAt: fixture.now.Add(24 * time.Hour),
-	})
-	if !errors.Is(err, ErrInvalid) {
-		t.Fatalf("address verification prepare error = %v, want ErrInvalid", err)
-	}
-}
-
 func TestCertificationRefreshRequiresActiveRelationship(t *testing.T) {
 	fixture := newVendorWorkFixture(t)
 	addVendorWorkForm(t, fixture, "certification-form", "VENDOR-CERTIFICATION-REFRESH", []monitoring.TemplateField{{
@@ -271,21 +253,6 @@ func TestVendorWorkRejectsUnknownRequestKindBeforePersistence(t *testing.T) {
 	}
 	if len(fixture.repository.work) != 0 {
 		t.Fatal("invalid request kind reached persistence")
-	}
-}
-
-func TestVendorWorkRejectsRequestKindAndGovernedFormMismatch(t *testing.T) {
-	fixture := newVendorWorkFixture(t)
-	_, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
-		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, RequestKind: VendorWorkAddressVerification,
-		Purpose: "Confirm the registered address.", Instructions: "Check the address and provide evidence.",
-		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
-	})
-	if !errors.Is(err, ErrInvalid) {
-		t.Fatalf("mismatched address request error = %v", err)
-	}
-	if len(fixture.repository.work) != 0 {
-		t.Fatal("mismatched governed form reached persistence")
 	}
 }
 

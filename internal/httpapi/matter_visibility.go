@@ -17,10 +17,18 @@ func canReadMatter(ctx context.Context, matter continuity.Matter) bool {
 	return continuity.MatterVisibleTo(matter, actor.PrincipalID)
 }
 
+func canReadMatterAggregate(ctx context.Context, aggregate continuity.MatterAggregate) bool {
+	actor, ok := identity.FromContext(ctx)
+	if !ok || strings.TrimSpace(actor.TenantID) == "" || aggregate.Matter.TenantID != actor.TenantID {
+		return false
+	}
+	return continuity.MatterAggregateVisibleTo(aggregate, actor.PrincipalID)
+}
+
 func filterMatterAggregates(ctx context.Context, values []continuity.MatterAggregate) []continuity.MatterAggregate {
 	visible := make([]continuity.MatterAggregate, 0, len(values))
 	for _, value := range values {
-		if canReadMatter(ctx, value.Matter) {
+		if canReadMatterAggregate(ctx, value) {
 			visible = append(visible, value)
 		}
 	}
@@ -49,7 +57,7 @@ func (a *API) canReadEvidenceRequest(ctx context.Context, request evidence.Reque
 		return false
 	}
 	matter, err := a.deps.Continuity.GetMatter(ctx, request.TenantID, request.SubjectID)
-	return err == nil && canReadMatter(ctx, matter.Matter)
+	return err == nil && canReadMatterAggregate(ctx, matter)
 }
 
 func (a *API) filterEvidenceRequests(ctx context.Context, values []evidence.Request) []evidence.Request {

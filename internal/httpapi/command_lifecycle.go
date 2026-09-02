@@ -168,7 +168,7 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			return policy, loadErr
 		}
 		actor, actorOK := identity.FromContext(ctx)
-		if !actorOK || !continuity.MatterVisibleTo(current.Matter, actor.PrincipalID) {
+		if !actorOK || !continuity.MatterAggregateVisibleTo(current, actor.PrincipalID) {
 			return policy, continuity.ErrNotFound
 		}
 		aggregate = &current
@@ -1022,7 +1022,8 @@ func (a *API) validateMatterAssignmentCandidateForRoute(ctx context.Context, ten
 	if candidateID == "" {
 		return fmt.Errorf("%w: owner_principal_id is required", continuity.ErrInvalidState)
 	}
-	if !continuity.MatterVisibleTo(aggregate.Matter, candidateID) {
+	assignmentGrantsAccess := commandName == "matter.assign" || commandName == "matter.action.assign"
+	if !assignmentGrantsAccess && !continuity.MatterVisibleTo(aggregate.Matter, candidateID) {
 		return fmt.Errorf("%w: assigned person is not permitted to view this issue", continuity.ErrInvalidState)
 	}
 	if a.deps.Authority == nil {

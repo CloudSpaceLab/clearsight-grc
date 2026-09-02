@@ -296,7 +296,7 @@ func TestCurrentAuthorizerCanRecoverUnassignedMatterWithoutBecomingOwner(t *test
 	service := continuity.NewService(continuity.NewMemoryRepository())
 	stored, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
 		TenantID: matter.Matter.TenantID, LegalEntityID: matter.Matter.LegalEntityID, Type: matter.Matter.Type, Priority: matter.Matter.Priority,
-		Title: matter.Matter.Title, Summary: "A source is unavailable.", ActorID: "system",
+		Title: matter.Matter.Title, Summary: "A source is unavailable.", Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["cro-1"]}`), ActorID: "system",
 	})
 	if err != nil {
 		t.Fatal(err)

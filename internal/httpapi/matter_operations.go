@@ -30,7 +30,7 @@ func (a *API) getMatterOperations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	aggregate, err := service.GetMatter(r.Context(), tenant, r.PathValue("id"))
-	if err != nil || !canReadMatter(r.Context(), aggregate.Matter) {
+	if err != nil || !canReadMatterAggregate(r.Context(), aggregate) {
 		writeContinuityError(w, continuity.ErrNotFound)
 		return
 	}
@@ -90,7 +90,7 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 	for _, spec := range []recordOperationSpec{
 		{Command: "matter.details.update", Label: "Edit issue details", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
 		{Command: "matter.context.change", Label: "Update facts and missing information", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
-		{Command: "matter.assign", Label: assignmentLabel, Responsibility: assignmentResponsibility, CandidateResponsibility: authority.ResponsibilityOwner, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, ReassignmentPrincipalID: ownerID, IncludeCandidates: true},
+		{Command: "matter.assign", Label: assignmentLabel, Responsibility: assignmentResponsibility, CandidateResponsibility: authority.ResponsibilityOwner, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, ReassignmentPrincipalID: ownerID, IncludeCandidates: true, AssignmentGrantsAccess: true},
 		{Command: "matter.action.add", Label: "Add an action", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "matter.link", Label: "Link this issue", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID},
 		{Command: "matter.outcome.define", Label: "Define an outcome check", Responsibility: authority.ResponsibilityReviewer, Materiality: max(3, aggregate.Matter.Priority), IncludeCandidates: true},
@@ -131,7 +131,7 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 		}
 		actionResponsibility := authority.Responsibility(continuity.ActionResponsibility(action))
 		add(recordOperationSpec{Command: "matter.action.update", SubresourceID: action.ID, ObjectType: "ACTION", ObjectID: action.ID, Label: "Edit action", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID})
-		add(recordOperationSpec{Command: "matter.action.assign", SubresourceID: action.ID, ObjectType: "ACTION", ObjectID: action.ID, Label: "Change action owner", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, ReassignmentPrincipalID: action.OwnerPrincipalID, IncludeCandidates: true})
+		add(recordOperationSpec{Command: "matter.action.assign", SubresourceID: action.ID, ObjectType: "ACTION", ObjectID: action.ID, Label: "Change action owner", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, ReassignmentPrincipalID: action.OwnerPrincipalID, IncludeCandidates: true, AssignmentGrantsAccess: true})
 		targets := continuity.AllowedActionTargets(action.Status)
 		allowed := make([]string, len(targets))
 		for index := range targets {
@@ -216,6 +216,7 @@ type recordOperationSpec struct {
 	RequiredPrincipalID     string
 	ReassignmentPrincipalID string
 	IncludeCandidates       bool
+	AssignmentGrantsAccess  bool
 	AllowedTargets          []string
 }
 
@@ -346,7 +347,11 @@ func (a *API) resolveMatterOperation(ctx context.Context, actor identity.Actor, 
 				return operation, !errors.Is(err, authority.ErrNoRoute)
 			}
 		}
-		operation.Candidates = visibleCandidates(candidateResolution, matter)
+		if spec.AssignmentGrantsAccess {
+			operation.Candidates = resolvedCandidates(candidateResolution)
+		} else {
+			operation.Candidates = visibleCandidates(candidateResolution, matter)
+		}
 	}
 	allowed := resolution.AllowsPrincipal(actor.PrincipalID)
 	if required := strings.TrimSpace(spec.RequiredPrincipalID); required != "" {
@@ -489,11 +494,22 @@ func (a *API) storedResponsibleParty(ctx context.Context, actor identity.Actor, 
 }
 
 func visibleCandidates(resolution authority.Resolution, matter continuity.Matter) []authority.Principal {
+	values := resolvedCandidates(resolution)
+	result := make([]authority.Principal, 0, len(values))
+	for _, candidate := range values {
+		if continuity.MatterVisibleTo(matter, candidate.ID) {
+			result = append(result, candidate)
+		}
+	}
+	return result
+}
+
+func resolvedCandidates(resolution authority.Resolution) []authority.Principal {
 	values := append([]authority.Principal{resolution.Principal}, resolution.CandidatePrincipals...)
 	result := make([]authority.Principal, 0, len(values))
 	seen := map[string]bool{}
 	for _, candidate := range values {
-		if candidate.ID == "" || seen[candidate.ID] || !continuity.MatterVisibleTo(matter, candidate.ID) {
+		if candidate.ID == "" || seen[candidate.ID] {
 			continue
 		}
 		seen[candidate.ID] = true

@@ -37,6 +37,19 @@ type assignmentNotificationEvent struct {
 	PrincipalID      string
 	PreviousOwnerID  string
 	ActionID         string
+	ActionVersion    int64
+}
+
+type AssignmentNotificationTarget struct {
+	TenantID      string
+	MatterID      string
+	ActionID      string
+	ActionVersion int64
+	PrincipalID   string
+}
+
+type AssignmentNotificationTargetResolver interface {
+	ResolveAssignmentNotificationTarget(context.Context, AssignmentNotificationTarget) (string, error)
 }
 
 type assignmentNotificationContext struct {
@@ -75,16 +88,21 @@ type AssignmentNotificationConsumer struct {
 	repository assignmentNotificationRepository
 	delivery   assignmentNotificationDelivery
 	baseURL    string
+	targets    AssignmentNotificationTargetResolver
 	now        func() time.Time
 }
 
-func NewAssignmentNotificationConsumer(repository assignmentNotificationRepository, delivery assignmentNotificationDelivery, applicationBaseURL string) (*AssignmentNotificationConsumer, error) {
+func NewAssignmentNotificationConsumer(repository assignmentNotificationRepository, delivery assignmentNotificationDelivery, applicationBaseURL string, targetResolvers ...AssignmentNotificationTargetResolver) (*AssignmentNotificationConsumer, error) {
 	applicationBaseURL = strings.TrimSpace(applicationBaseURL)
 	parsed, err := url.Parse(applicationBaseURL)
-	if repository == nil || delivery == nil || err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || strings.ContainsAny(applicationBaseURL, "\r\n") {
+	if repository == nil || delivery == nil || err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || strings.ContainsAny(applicationBaseURL, "\r\n") || len(targetResolvers) > 1 || (len(targetResolvers) == 1 && targetResolvers[0] == nil) {
 		return nil, fmt.Errorf("invalid staff assignment notification configuration")
 	}
-	return &AssignmentNotificationConsumer{repository: repository, delivery: delivery, baseURL: strings.TrimRight(applicationBaseURL, "/"), now: time.Now}, nil
+	consumer := &AssignmentNotificationConsumer{repository: repository, delivery: delivery, baseURL: strings.TrimRight(applicationBaseURL, "/"), now: time.Now}
+	if len(targetResolvers) == 1 {
+		consumer.targets = targetResolvers[0]
+	}
+	return consumer, nil
 }
 
 func (consumer *AssignmentNotificationConsumer) Publish(ctx context.Context, event workflowruntime.OutboxEvent) error {
@@ -116,14 +134,31 @@ func (consumer *AssignmentNotificationConsumer) Publish(ctx context.Context, eve
 	}
 
 	responsibility := "ACCOUNTABLE_OWNER"
+	issueURL := consumer.baseURL + "/#work/matters/" + url.PathEscape(notificationContext.MatterID)
 	if assignment.NotificationKind == actionPerformerNotificationKind {
 		responsibility = "PERFORMER"
+		if consumer.targets != nil {
+			target, targetErr := consumer.targets.ResolveAssignmentNotificationTarget(ctx, AssignmentNotificationTarget{
+				TenantID: event.TenantID, MatterID: notificationContext.MatterID, ActionID: assignment.ActionID,
+				ActionVersion: assignment.ActionVersion, PrincipalID: assignment.PrincipalID,
+			})
+			if targetErr != nil {
+				return fmt.Errorf("resolve assigned work link: %w", targetErr)
+			}
+			if strings.TrimSpace(target) != "" {
+				parsedTarget, parseErr := url.Parse(target)
+				if parseErr != nil || parsedTarget.IsAbs() || parsedTarget.Host != "" || parsedTarget.User != nil || !strings.HasPrefix(target, "/") || strings.ContainsAny(target, "\r\n") {
+					return fmt.Errorf("resolved assigned work link is invalid")
+				}
+				issueURL = consumer.baseURL + target
+			}
+		}
 	}
 	request, err := evidence.BuildOperationalNotificationRequest(address, evidence.OperationalNotificationContext{
 		BankName: notificationContext.BankName, RecipientName: notificationContext.RecipientName,
 		MatterTitle: notificationContext.MatterTitle, WorkTitle: notificationContext.WorkTitle,
 		Responsibility: responsibility, DueAt: notificationContext.DueAt,
-		IssueURL: consumer.baseURL + "/#work/matters/" + url.PathEscape(notificationContext.MatterID),
+		IssueURL: issueURL,
 	})
 	if err != nil {
 		return fmt.Errorf("build staff assignment notification: %w", err)
@@ -171,6 +206,7 @@ func decodeAssignmentNotificationEvent(event workflowruntime.OutboxEvent) (assig
 		Action struct {
 			ID       string `json:"id"`
 			MatterID string `json:"matter_id"`
+			Version  int64  `json:"version"`
 		} `json:"action"`
 		PreviousOwnerID  string `json:"previous_owner_principal_id"`
 		OwnerPrincipalID string `json:"owner_principal_id"`
@@ -187,7 +223,8 @@ func decodeAssignmentNotificationEvent(event workflowruntime.OutboxEvent) (assig
 	} else {
 		assignment.NotificationKind = actionPerformerNotificationKind
 		assignment.ActionID = strings.TrimSpace(envelope.Action.ID)
-		if strings.TrimSpace(envelope.Action.MatterID) != strings.TrimSpace(event.AggregateID) || assignment.ActionID == "" {
+		assignment.ActionVersion = envelope.Action.Version
+		if strings.TrimSpace(envelope.Action.MatterID) != strings.TrimSpace(event.AggregateID) || assignment.ActionID == "" || assignment.ActionVersion < 1 {
 			return assignmentNotificationEvent{}, true, fmt.Errorf("staff assignment event Action does not match aggregate")
 		}
 	}

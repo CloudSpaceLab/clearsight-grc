@@ -62,11 +62,6 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 		Signals: autonomyService, Programs: continuityService,
 	}
 	workflowRepository := workflow.NewPostgresRepository(pool)
-	staffNotifications, err := buildStaffNotificationWorker(cfg, workflowRepository)
-	if err != nil {
-		pool.Close()
-		return workerSet{}, err
-	}
 	actionWork := &workflow.MatterActionProjector{Repo: workflowRepository}
 	lifecycleWork := &workflow.MatterLifecycleProjector{
 		Repo: workflowRepository, Continuity: continuityService, Authority: authorityService, Sequence: governanceService,
@@ -100,11 +95,17 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	assessmentSubmission := newAssessmentSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
 	assessmentCancellation := newAssessmentCancellationConsumer(evidenceService)
 	addressVerificationSetup := thirdparty.NewAddressVerificationProvisioner(runtimeRepository, evidenceService, assessmentRepository, continuityService, evidenceService, monitoring.NewPostgresRepository(pool))
+	addressVerificationAssignment := thirdparty.NewAddressVerificationAssignmentConsumer(runtimeRepository, assessmentRepository, continuityService, evidenceService, monitoring.NewPostgresRepository(pool))
+	staffNotifications, err := buildStaffNotificationWorker(cfg, workflowRepository, thirdparty.NewAddressVerificationAssignmentTargetResolver(evidenceService))
+	if err != nil {
+		pool.Close()
+		return workerSet{}, err
+	}
 	addressVerificationSubmission := thirdparty.NewAddressVerificationSubmissionConsumer(runtimeRepository, evidenceService, continuityService)
 	vendorWorkSubmission := newVendorWorkSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
 	publisher := workflowruntime.NewCompositePublisher(
-		sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork, staffNotifications,
-		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, addressVerificationSetup, addressVerificationSubmission, vendorWorkSubmission,
+		sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork,
+		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, addressVerificationSetup, addressVerificationAssignment, staffNotifications, addressVerificationSubmission, vendorWorkSubmission,
 		formProposalGeneration, formCommunicationWorker, formpolicy.ScoredResponsePublisher{Handler: formPolicyExecutor},
 		workflowruntime.LogPublisher{Logger: logger},
 	)

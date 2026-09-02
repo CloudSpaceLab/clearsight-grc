@@ -231,14 +231,13 @@ export function VendorWorkPanel(props: Props) {
     {creating && <FocusedSheet label="Request vendor work" closeLabel={saving ? "Vendor request is being sent" : "Close vendor request"} size="wide" panelClassName="vendor-work-request-sheet" isDismissable={!saving} onClose={() => { if (saving) return; setCreating(false); resetDraft(); }}>
       <div className="cs-sheet-heading"><span className="eyebrow">Vendor request</span><h2>Request vendor work</h2><p>Confirm the vendor, approved collection form, recipient and deadline for this {targetName}.</p></div>
       <form className="vendor-work-form" onSubmit={(event) => void prepareAndSend(event)}>
-        <SelectField label="Request type" value={requestKind} placeholder="Choose the work requested" allowsEmpty={false} options={[{ id: "GENERAL", label: "Vendor information or evidence" }, { id: "ADDRESS_VERIFICATION", label: "Registered address verification" }, { id: "CERTIFICATION_REFRESH", label: "ISO 27001 and PCI DSS evidence" }]} onChange={(value) => { if (value) { setRequestKind(value); setFormKey(""); } }}/>
-        {requestKind === "ADDRESS_VERIFICATION" && <Notice tone="info">The recipient can access only this evidence request. Issue ownership, review and sign-off remain with the assigned bank roles.</Notice>}
+        <SelectField label="Request type" value={requestKind} placeholder="Choose the work requested" allowsEmpty={false} options={[{ id: "GENERAL", label: "Vendor information or evidence" }, { id: "CERTIFICATION_REFRESH", label: "ISO 27001 and PCI DSS evidence" }]} onChange={(value) => { if (value) { setRequestKind(value); setFormKey(""); } }}/>
         {requestKind === "CERTIFICATION_REFRESH" && <Notice tone="info">The vendor is being asked for current ISO 27001 and PCI DSS evidence. Submission does not mean the bank accepted it; the assigned reviewer must check and accept the evidence.</Notice>}
         <SelectField label={relationshipID ? "Related Program or issue" : "Vendor relationship"} value={selectedLinkID || undefined} placeholder={relationshipID ? "Choose related work" : "Choose a linked vendor"} isRequired options={relationships.filter((item) => item.relationship).map(({ link, relationship }) => ({ id: link.id, label: relationship ? relationshipID ? `${link.target_type === "PROGRAM" ? "Program" : "Issue or change"} · ${link.purpose_label}` : `${relationship.vendor.legal_name} — ${relationship.relationship.service_name}` : "Vendor details unavailable" }))} onChange={(value) => setSelectedLinkID(value ?? "")}/>
         {linkNextCursor && <Button type="button" variant="secondary" isLoading={loadingMoreLinks} onPress={() => void loadMoreLinks()}>{relationshipID ? "Load more related work" : "Load more linked vendors"}</Button>}
         {linkLoadError && <Notice tone="error">More related records could not be loaded. The current choices remain available.</Notice>}
         <TextField label="Request purpose" value={purpose} onChange={setPurpose} maxLength={500} isRequired placeholder="Confirm annual service controls"/>
-        <TextArea label={requestKind === "ADDRESS_VERIFICATION" ? "Instructions for the assigned staff member" : "Instructions for the vendor"} value={instructions} onChange={setInstructions} maxLength={2000} rows={4} isRequired placeholder="State what must be completed or provided."/>
+        <TextArea label="Instructions for the vendor" value={instructions} onChange={setInstructions} maxLength={2000} rows={4} isRequired placeholder="State what must be completed or provided."/>
         <div className="vendor-work-form-grid"><SelectField label="Collection form" value={formKey || undefined} placeholder="Choose an approved form" isRequired options={eligibleForms.map((item) => ({ id: `${item.id}:${item.version}`, label: `${item.name} · version ${item.version}` }))} onChange={(value) => setFormKey(value ?? "")}/><SelectField label="Form layout" value={presentation} placeholder="Choose a layout" allowsEmpty={false} options={[{ id: "AUTOMATIC", label: "Automatic" }, { id: "CLASSIC", label: "Classic" }, { id: "WIZARD", label: "Wizard" }]} onChange={(value) => { if (value) setPresentation(value); }}/></div>
         {selectedForm && <FormSummary form={selectedForm}/>}
         <div className="vendor-work-form-grid"><TextField label={requestRecipientLabel(requestKind)} type="email" autoComplete="email" value={audience} onChange={setAudience} maxLength={320} isRequired isInvalid={Boolean(audience) && !validEmail(audience)} errorMessage="Enter the mailbox that should receive this request." placeholder="contact@example.com"/><TextField label="Due date" type="date" min={minimumDueDate()} value={dueDate} onChange={setDueDate} isRequired description="The request remains open through the end of this date."/></div>
@@ -366,24 +365,23 @@ function VendorWorkCard({ work, form, relationship, captureURL, onOpenRequest, o
 }
 
 function VendorWorkResponseReview({ view }: { view: VendorWorkResponseView }) {
-  const addressVerification = view.work.request_kind === "ADDRESS_VERIFICATION";
-  const responseLabel = addressVerification ? "Staff confirmation" : "Vendor response";
+  const responseLabel = "Vendor response";
   return <section className="vendor-work-response" aria-label={responseLabel}>
     <div className="vendor-work-response-heading"><div><h5>{responseLabel}</h5><p>Submitted {formatDateTime(view.response.submitted_at)} · Form version {view.request.form_template_version}</p></div><span>{view.answers.filter((answer) => answer.visibility === "VISIBLE" && answer.value).length} of {view.answers.filter((answer) => answer.visibility === "VISIBLE").length} visible fields answered</span></div>
-    <div className="vendor-work-response-group"><h6>Submitted answers</h6>{view.answers.length ? <dl className="vendor-work-answer-list">{view.answers.map((answer) => <VendorWorkAnswer key={answer.field_id} answer={answer} addressVerification={addressVerification}/>)}</dl> : <p>No answer fields were included in this submitted response.</p>}</div>
+    <div className="vendor-work-response-group"><h6>Submitted answers</h6>{view.answers.length ? <dl className="vendor-work-answer-list">{view.answers.map((answer) => <VendorWorkAnswer key={answer.field_id} answer={answer}/>)}</dl> : <p>No answer fields were included in this submitted response.</p>}</div>
     <div className="vendor-work-response-group"><h6>Supporting documents</h6>{view.documents.length ? <div className="vendor-work-documents">{view.documents.map((document) => <VendorWorkDocument key={document.artifact_id} view={view} document={document}/>)}</div> : <p>No supporting documents were submitted with this response.</p>}</div>
   </section>;
 }
 
-function VendorWorkAnswer({ answer, addressVerification }: { answer: VendorWorkResponseView["answers"][number]; addressVerification: boolean }) {
+function VendorWorkAnswer({ answer }: { answer: VendorWorkResponseView["answers"][number] }) {
   const conditional = answer.visibility === "CONDITIONALLY_OMITTED";
   const missing = answer.required && !answer.value;
   const sourceValue = answer.provenance?.source_value?.text;
   return <div role="group" aria-label={`Response: ${answer.label}`}>
     <dt>{answer.label}{answer.required ? " · Required" : ""}</dt>
-    <dd className={conditional || missing ? "vendor-work-answer-limitation" : undefined}>{conditional ? "Not requested because its condition was not met" : missing ? "Required response missing" : `${addressVerification ? "Staff response" : "Vendor response"}: ${formatResponseAnswer(answer.value)}`}</dd>
+    <dd className={conditional || missing ? "vendor-work-answer-limitation" : undefined}>{conditional ? "Not requested because its condition was not met" : missing ? "Required response missing" : `Vendor response: ${formatResponseAnswer(answer.value)}`}</dd>
     {sourceValue && <dd>Source value: {sourceValue}</dd>}
-    {answer.provenance && <dd className="vendor-work-provenance">{responseProvenanceLabel(answer.provenance, addressVerification)}</dd>}
+    {answer.provenance && <dd className="vendor-work-provenance">{responseProvenanceLabel(answer.provenance)}</dd>}
     {answer.provenance?.validations?.map((validation, index) => <dd className="vendor-work-validation" key={`${answer.field_id}-validation-${index}`}>{responseValidationLabel(validation)}</dd>)}
   </div>;
 }
@@ -413,7 +411,7 @@ function formatDate(value: string) { const date = new Date(value); return Number
 function formatDateTime(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "at an unavailable time" : date.toLocaleString(); }
 function formatBytes(value: number) { if (!Number.isFinite(value) || value < 0) return "Size unavailable"; if (value < 1024) return `${value} bytes`; if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`; return `${(value / (1024 * 1024)).toFixed(1)} MB`; }
 function formatResponseAnswer(value?: VendorWorkResponseView["answers"][number]["value"]) { if (!value) return "No answer submitted"; if (value.text?.trim()) return value.text; if (value.values?.length) return value.values.join(", "); if (value.document) return value.document.reference || documentTypeLabel(value.document.document_type); if (value.artifact_ids?.length) return `${value.artifact_ids.length} ${value.artifact_ids.length === 1 ? "file" : "files"} submitted`; return "No answer submitted"; }
-function responseProvenanceLabel(provenance: NonNullable<VendorWorkResponseView["answers"][number]["provenance"]>, addressVerification: boolean) { const observed = provenance.source_receipt?.observed_at ? formatDate(provenance.source_receipt.observed_at) : ""; if (provenance.origin === "SOURCE_PREFILLED") return `Prefilled from ${provenance.source_receipt?.source_id || provenance.source || "a connected source"}${observed ? ` · Observed ${observed}` : ""}`; if (provenance.origin === "RESPONDENT_CORRECTED") return `Updated by ${addressVerification ? "the assigned staff member" : "the vendor"}${observed ? ` · Source value observed ${observed}` : ""}`; if (provenance.origin === "RESPONDENT_ENTERED") return `Entered by ${addressVerification ? "the assigned staff member" : "the vendor"}`; return observed ? `Answer source recorded · Observed ${observed}` : "Answer source recorded"; }
+function responseProvenanceLabel(provenance: NonNullable<VendorWorkResponseView["answers"][number]["provenance"]>) { const observed = provenance.source_receipt?.observed_at ? formatDate(provenance.source_receipt.observed_at) : ""; if (provenance.origin === "SOURCE_PREFILLED") return `Prefilled from ${provenance.source_receipt?.source_id || provenance.source || "a connected source"}${observed ? ` · Observed ${observed}` : ""}`; if (provenance.origin === "RESPONDENT_CORRECTED") return `Updated by the vendor${observed ? ` · Source value observed ${observed}` : ""}`; if (provenance.origin === "RESPONDENT_ENTERED") return "Entered by the vendor"; return observed ? `Answer source recorded · Observed ${observed}` : "Answer source recorded"; }
 function responseValidationLabel(validation: NonNullable<NonNullable<VendorWorkResponseView["answers"][number]["provenance"]>["validations"]>[number]) { const state = validation.state ?? "UNKNOWN"; const label = state === "CURRENT" ? "Validation current" : state === "STALE" ? "Validation out of date" : state === "UNAVAILABLE" ? "Validation source unavailable" : state === "NOT_FOUND" ? "Source did not confirm this value" : `Validation result: ${documentTypeLabel(state)}`; return [label, validation.binding_name || validation.source_id, validation.receipt?.observed_at ? `Checked ${formatDate(validation.receipt.observed_at)}` : ""].filter(Boolean).join(" · "); }
 function documentTypeLabel(value: string) { return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
 function artifactStateLabel(value: string) { if (value === "AVAILABLE") return "Available"; if (value === "QUARANTINED") return "Quarantined"; if (value === "STORED_UNSCANNED") return "Security scan pending"; if (value === "DELETED") return "Unavailable"; return documentTypeLabel(value); }
@@ -421,21 +419,15 @@ function evidenceClassLabel(value: string) { if (value === "VENDOR_SUPPLIED") re
 function artifactRecovery(value: string) { if (value === "QUARANTINED") return "This document is quarantined. Request a clean replacement before review."; if (value === "STORED_UNSCANNED") return "The security scan is pending. Open will be available after the document passes inspection."; if (value === "DELETED") return "This document is unavailable. Request a replacement before continuing."; return "This document is not available to open. Reload the response or request a replacement."; }
 function presentationLabel(value: CapturePresentationMode) { if (value === "WIZARD") return "Wizard"; if (value === "CLASSIC") return "Classic"; return "Automatic"; }
 function formMatchesRequestKind(form: FormTemplate, kind: VendorWorkRequestKind) {
-  if (kind === "ADDRESS_VERIFICATION") return form.code === "VENDOR-ADDRESS-VERIFICATION";
   if (kind === "CERTIFICATION_REFRESH") return form.code === "VENDOR-CERTIFICATION-REFRESH";
   return form.code !== "VENDOR-ADDRESS-VERIFICATION" && form.code !== "VENDOR-CERTIFICATION-REFRESH";
 }
-function requestRecipientLabel(kind: VendorWorkRequestKind | undefined) { return kind === "ADDRESS_VERIFICATION" ? "Address verification staff email" : kind === "CERTIFICATION_REFRESH" ? "Vendor contact email" : "Vendor contact"; }
-function changeInstructionLabel(kind: VendorWorkRequestKind | undefined) { return kind === "ADDRESS_VERIFICATION" ? "What the assigned staff member must change" : "What the vendor must change"; }
-function requestSendLabel(kind: VendorWorkRequestKind | undefined) { return kind === "ADDRESS_VERIFICATION" ? "Send address check" : kind === "CERTIFICATION_REFRESH" ? "Send certification request" : "Prepare and send request"; }
+function requestRecipientLabel(kind: VendorWorkRequestKind | undefined) { return kind === "CERTIFICATION_REFRESH" ? "Vendor contact email" : "Vendor contact"; }
+function changeInstructionLabel(_kind: VendorWorkRequestKind | undefined) { return "What the vendor must change"; }
+function requestSendLabel(kind: VendorWorkRequestKind | undefined) { return kind === "CERTIFICATION_REFRESH" ? "Send certification request" : "Prepare and send request"; }
 function workStateLabel(work: VendorWorkRequest) {
   if (work.state === "CHANGES_REQUESTED") return "Changes requested";
   if (work.state === "ACCEPTED" && work.request_kind !== "GENERAL") return "Evidence accepted";
-  if (work.request_kind === "ADDRESS_VERIFICATION") {
-    if (work.state === "AWAITING_VENDOR") return "Address verification pending";
-    if (work.state === "RESPONSE_RECEIVED") return "Staff confirmation received";
-    if (work.state === "UNDER_REVIEW") return "Address evidence under review";
-  }
   if (work.request_kind === "CERTIFICATION_REFRESH") {
     if (work.state === "AWAITING_VENDOR") return "Certification evidence pending";
     if (work.state === "RESPONSE_RECEIVED") return "Certification evidence received";
