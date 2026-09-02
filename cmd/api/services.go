@@ -20,6 +20,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/scimapi"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
@@ -30,6 +31,7 @@ import (
 
 type serviceSet struct {
 	Mode                           string
+	RuntimeContext                 runtimecontext.Resolver
 	Authority                      authority.Service
 	Governance                     *governance.Service
 	Evidence                       *evidence.Service
