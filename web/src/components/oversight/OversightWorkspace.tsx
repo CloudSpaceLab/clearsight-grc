@@ -34,6 +34,10 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
     </header>
 
     <div className="oversight-scope-line"><span>{coverage}</span><span>{formatDate(snapshot.period_start)} – {formatDate(snapshot.period_end)}</span><span>{snapshot.projection_version}</span></div>
+    <details className="oversight-data-freshness">
+      <summary>Data freshness</summary>
+      <div><p>This snapshot was generated {formatDateTime(snapshot.generated_at)} from projection {snapshot.projection_version}.</p><dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl></div>
+    </details>
 
     <div className="oversight-counts" aria-label="Issues requiring oversight">
       <Metric label="Critical and high" value={snapshot.counts.critical_high} tone="critical" detail="Open priority 4–5 issues"/>
@@ -103,8 +107,17 @@ const performanceColumns = [
   { id: "completed", header: "Completed", kind: "number" as const, render: (item: OversightSnapshot["performance"][number]) => <>{item.completed}<span>{item.completed} completed · {item.measurement_samples} measured</span></>, accessibleText: (item: OversightSnapshot["performance"][number]) => `${item.completed} completed; ${item.measurement_samples} measured` },
   { id: "cycle", header: "Cycle time", render: (item: OversightSnapshot["performance"][number]) => <>{item.median_hours == null ? "Unknown" : `${formatDuration(item.median_hours)} median`}<span>{item.p75_hours == null ? "p75 unknown" : `${formatDuration(item.p75_hours)} p75`}</span></>, accessibleText: (item: OversightSnapshot["performance"][number]) => item.median_hours == null ? "Unknown" : `${formatDuration(item.median_hours)} median; ${item.p75_hours == null ? "p75 unknown" : `${formatDuration(item.p75_hours)} p75`}` },
   { id: "sla", header: "SLA met", render: (item: OversightSnapshot["performance"][number]) => item.sla_attainment == null ? "Unknown" : formatPercent(item.sla_attainment), accessibleText: (item: OversightSnapshot["performance"][number]) => item.sla_attainment == null ? "Unknown" : formatPercent(item.sla_attainment) },
-  { id: "blocked", header: "Blocked / reopened", render: (item: OversightSnapshot["performance"][number]) => `${item.blocked} / ${item.reopened}`, accessibleText: (item: OversightSnapshot["performance"][number]) => `${item.blocked} blocked; ${item.reopened} reopened` },
+  { id: "history", header: "Workflow history", render: (item: OversightSnapshot["performance"][number]) => <>{workflowHistory(item)}</>, accessibleText: (item: OversightSnapshot["performance"][number]) => workflowHistory(item).replaceAll(" · ", "; ") },
 ];
+function orderedHighWater(values: Record<string, string>) {
+  const order = ["matters", "actions", "workflow_tasks", "verification_results", "continuity_events"];
+  return Object.entries(values).sort(([left], [right]) => {
+    const leftIndex = order.indexOf(left); const rightIndex = order.indexOf(right);
+    return (leftIndex < 0 ? order.length : leftIndex) - (rightIndex < 0 ? order.length : rightIndex) || left.localeCompare(right);
+  });
+}
+function workflowHistory(item: OversightSnapshot["performance"][number]) { return `${item.blocked} blocked · ${item.reopened} reopened · ${formatOptional(item.reassigned)} reassigned · ${formatOptional(item.returned)} returned`; }
+function formatOptional(value?: number) { return value == null ? "Unknown" : value.toLocaleString(); }
 function formatKnown(value?: number) { return value == null ? "unknown" : value.toLocaleString(); }
 function formatPercent(value: number) { return `${(value * 100).toFixed(1)}%`; }
 function formatDate(value: string) { return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(new Date(value)); }

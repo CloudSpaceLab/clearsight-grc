@@ -2,7 +2,7 @@ package oversight
 
 import "time"
 
-const ProjectionVersion = "oversight-v1"
+const ProjectionVersion = "oversight-v2"
 
 type Freshness string
 
@@ -67,6 +67,7 @@ type Performance struct {
 	P75Hours           *float64 `json:"p75_hours,omitempty"`
 	SLAAttainment      *float64 `json:"sla_attainment,omitempty"`
 	Reassigned         *int     `json:"reassigned,omitempty"`
+	Returned           *int     `json:"returned,omitempty"`
 	Blocked            int      `json:"blocked"`
 	Reopened           int      `json:"reopened"`
 	MeasurementSamples int      `json:"measurement_samples"`
@@ -98,4 +99,15 @@ type Snapshot struct {
 	Aging             []AgingBucket        `json:"aging"`
 	Performance       []Performance        `json:"performance"`
 	Estimates         []ResolutionEstimate `json:"estimates"`
+}
+
+func estimateConfidence(samples int) string {
+	switch {
+	case samples >= 30:
+		return "HIGH"
+	case samples >= 12:
+		return "MEDIUM"
+	default:
+		return "LOW"
+	}
 }

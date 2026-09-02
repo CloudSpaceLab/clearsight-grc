@@ -40,6 +40,10 @@ Tests must prove:
 
 Fixtures MUST NOT inject desired conclusions, mappings, owners, authority, materiality, verification outcomes, or pre-completed workflow context.
 
+Reference oversight acceptance is the narrow exception for explicitly labelled non-production sample data, and it must still use canonical commands. The installer creates five closed `VENDOR_REVIEW` histories plus a closed control gap and audit finding, with varied 30–96 hour cycles, due dates, owners, independent outcome reviewers, one reassignment, one returned decision and one reopening. Every record carries `sample=true`, `reference_data=true` and journey code `OVERSIGHT_HISTORY`; no snapshot metrics or pre-closed rows are inserted.
+
+The acceptance gate requires repeat installation to leave the completed cohort unchanged, a minimum-five category before any resolution range appears, sparse categories to remain suppressed, and source high-water marks for Matters, actions, workflow tasks when present, verification results and continuity events. These records demonstrate reconstructable product behavior only; they are not evidence that a connected bank is compliant or that its employees achieved the sample results.
+
 ---
 
 # 2. Required test dimensions

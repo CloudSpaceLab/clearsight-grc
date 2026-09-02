@@ -38,6 +38,8 @@ const captures = [
   { name: "87-vendor-link-sheet-light-1440x900", route: "#programs/program-ndpa", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-link-focused-sheet", openVendorLink: true },
   { name: "88-vendor-link-sheet-dark-mobile-390x844", route: "#programs/program-ndpa", title: "Programs", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "vendor-link-focused-sheet-mobile", openVendorLink: true },
   { name: "89-matter-action-reassignment-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-action-reassignment", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "matter-action-reassignment", openActionReassignment: true },
+  { name: "129-oversight-completeness-light-1440x900", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "oversight-completeness" },
+  { name: "130-oversight-completeness-dark-mobile-390x844", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "oversight-completeness-mobile" },
 ];
 
 try {

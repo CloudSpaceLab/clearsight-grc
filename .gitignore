@@ -13,6 +13,7 @@ coverage.out
 # Web
 web/node_modules/
 web/dist/
+web/dist-evidence/
 web/.vite/
 web/ui-evidence/
 

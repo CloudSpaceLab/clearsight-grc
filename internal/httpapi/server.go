@@ -26,6 +26,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
@@ -41,6 +42,7 @@ type Dependencies struct {
 	IdentityMode                     string
 	OIDCIssuer                       string
 	Identity                         identity.Authenticator
+	RuntimeContext                   runtimecontext.Resolver
 	Federation                       *federation.Service
 	SCIM                             http.Handler
 	Access                           access.Resolver

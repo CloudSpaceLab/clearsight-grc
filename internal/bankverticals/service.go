@@ -32,10 +32,13 @@ var (
 )
 
 type Service struct {
-	continuity *continuity.Service
-	evidence   *evidence.Service
-	monitoring *monitoring.Service
+	continuity        *continuity.Service
+	evidence          *evidence.Service
+	monitoring        *monitoring.Service
+	referenceTimeline ReferenceTimelineFactory
 }
+
+type ReferenceTimelineFactory func(time.Time) *continuity.Service
 
 func NewService(continuityService *continuity.Service, evidenceService *evidence.Service) *Service {
 	if continuityService != nil && evidenceService != nil {
@@ -51,6 +54,15 @@ func NewService(continuityService *continuity.Service, evidenceService *evidence
 func (s *Service) ConfigureMonitoring(service *monitoring.Service) {
 	if s != nil {
 		s.monitoring = service
+	}
+}
+
+// ConfigureReferenceTimeline supplies clocked continuity services over the
+// same repository for the explicitly requested non-production reference-data
+// installer. It is not exposed through the HTTP runtime.
+func (s *Service) ConfigureReferenceTimeline(factory ReferenceTimelineFactory) {
+	if s != nil {
+		s.referenceTimeline = factory
 	}
 }
 

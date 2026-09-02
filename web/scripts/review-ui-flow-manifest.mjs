@@ -95,6 +95,8 @@ const expectedNames = [
   "87-vendor-link-sheet-light-1440x900",
   "88-vendor-link-sheet-dark-mobile-390x844",
   "89-matter-action-reassignment-light-1440x900",
+  "129-oversight-completeness-light-1440x900",
+  "130-oversight-completeness-dark-mobile-390x844",
   ...formsEvidenceScenarios.map((scenario) => scenario.name),
 ];
 const requiredStates = [

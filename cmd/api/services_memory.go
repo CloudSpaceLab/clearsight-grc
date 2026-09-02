@@ -23,6 +23,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
@@ -107,7 +108,15 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	configureReferenceVerticals(verticals, monitoringService)
 	if cfg.DemoMode {
-		if _, err := verticals.InstallSample(ctx, bankverticals.DemoSeedConfig()); err != nil {
+		referenceNow := time.Now().UTC()
+		verticals.ConfigureReferenceTimeline(func(at time.Time) *continuity.Service {
+			service := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return at.UTC() })
+			service.ConfigureEvidenceSourceValidator(evidenceService)
+			return service
+		})
+		seed := bankverticals.DemoSeedConfig()
+		seed.Now = referenceNow
+		if _, err := verticals.InstallSample(ctx, seed); err != nil {
 			return serviceSet{}, err
 		}
 		maintainer := &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepo, WorkerID: "memory-bank-journeys"}
@@ -147,6 +156,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Today: todayService, Oversight: oversightService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Close: func() {},
+		RuntimeContext: runtimecontext.IdentifierResolver{},
 	}, nil
 }
 

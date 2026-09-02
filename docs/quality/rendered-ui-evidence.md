@@ -19,7 +19,7 @@ Add light/dark, 200% zoom, reduced motion, translated copy and assistive-technol
 
 ## CI capture is the default proof path
 
-For frontend changes, `.github/workflows/ui-evidence.yml` is the default rendered-evidence path. It builds the deterministic static stakeholder application, launches it locally, and executes `web/scripts/capture-ui-evidence.mjs` with a pinned Playwright runtime.
+For frontend changes, `.github/workflows/ui-evidence.yml` is the default rendered-evidence path. It builds the deterministic evidence application from its isolated entry, launches `dist-evidence` locally, and executes `web/scripts/capture-ui-evidence.mjs` with a pinned Playwright runtime. The deployable customer entry never imports the static request interceptor or fixture pages; `npm run check:runtime-truth` enforces that import-graph boundary before either bundle is accepted.
 
 The workflow is also triggered by backend read-contract changes that can alter what the UI may truthfully render, including Today projection, authority resolution, actor context/identity capabilities and the executable runtime API contract. This prevents a visually stable fixture from silently drifting behind server semantics.
 

@@ -15,6 +15,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
 )
@@ -47,28 +48,51 @@ func main() {
 	defer pool.Close()
 
 	continuityRepo := continuity.NewPostgresRepository(pool)
-	continuityService := continuity.NewService(continuityRepo)
+	seed.Now = time.Now().UTC()
+	continuityService := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return seed.Now })
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
 	monitoringService := monitoring.NewService(monitoring.NewPostgresRepository(pool), evidenceService)
 	installer := bankverticals.NewService(continuityService, evidenceService)
 	installer.ConfigureMonitoring(monitoringService)
+	installer.ConfigureReferenceTimeline(func(at time.Time) *continuity.Service {
+		service := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return at.UTC() })
+		service.ConfigureEvidenceSourceValidator(evidenceService)
+		return service
+	})
 	journeys, err := installer.InstallSample(ctx, seed)
 	fatalIf(err)
 
 	maintainer := &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepo, WorkerID: "reference-installer"}
 	for {
-		completed, maintainErr := maintainer.Maintain(ctx, time.Now().UTC().Add(time.Hour), 100)
+		completed, maintainErr := maintainer.Maintain(ctx, seed.Now.Add(time.Hour), 100)
 		fatalIf(maintainErr)
 		if completed == 0 {
 			break
 		}
 	}
+	oversightRepository := oversight.NewPostgresRepository(pool)
+	oversightMaintainer := &oversight.Maintainer{Repository: oversightRepository}
+	_, err = oversightMaintainer.Maintain(ctx, seed.Now.Add(5*time.Minute), 100)
+	fatalIf(err)
+	oversightSnapshot, err := oversight.NewService(oversightRepository).Get(ctx, oversight.Scope{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID})
+	fatalIf(err)
+	if len(oversightSnapshot.Estimates) == 0 || oversightSnapshot.Estimates[0].SampleSize < 5 {
+		fatalIf(fmt.Errorf("oversight reference cohort did not produce a minimum-five resolution range"))
+	}
+	if oversightSnapshot.SourceHighWater["matters"].IsZero() || oversightSnapshot.SourceHighWater["continuity_events"].IsZero() {
+		fatalIf(fmt.Errorf("oversight snapshot is missing authoritative Matter or event high-water marks"))
+	}
 	journeys, err = installer.List(ctx, seed.TenantID)
 	fatalIf(err)
 	fatalIf(json.NewEncoder(os.Stdout).Encode(map[string]any{
-		"installed_at": time.Now().UTC(),
-		"tenant_id":    seed.TenantID,
-		"journeys":     journeys,
+		"installed_at":                seed.Now,
+		"tenant_id":                   seed.TenantID,
+		"journeys":                    journeys,
+		"oversight_projection":        oversightSnapshot.ProjectionVersion,
+		"oversight_generated_at":      oversightSnapshot.GeneratedAt,
+		"oversight_population":        oversightSnapshot.Coverage.Population,
+		"oversight_resolution_ranges": len(oversightSnapshot.Estimates),
+		"oversight_source_high_water": oversightSnapshot.SourceHighWater,
 	}))
 }
 

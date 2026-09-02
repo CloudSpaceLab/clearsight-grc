@@ -6,9 +6,9 @@ const snapshot: OversightSnapshot = {
   generated_at: generatedAt,
   period_start: "2026-06-03T08:00:00Z",
   period_end: "2026-09-01T08:00:00Z",
-  projection_version: "oversight-v1",
+  projection_version: "oversight-v2",
   freshness: "CURRENT",
-  source_high_water: { matters: generatedAt, actions: generatedAt },
+  source_high_water: { matters: generatedAt, actions: generatedAt, workflow_tasks: generatedAt, verification_results: generatedAt, continuity_events: generatedAt },
   coverage: { population: 42, excluded: 1, unknown: 2 },
   counts: { critical_high: 7, overdue: 4, due_soon: 3, routing_failures: 1, unassigned: 2, outcome_failures: 1 },
   interventions: [
@@ -23,8 +23,8 @@ const snapshot: OversightSnapshot = {
   ],
   aging: [{ label: "0–7 days", count: 5 }, { label: "8–30 days", count: 9 }, { label: "31–90 days", count: 4 }, { label: "Over 90 days", count: 2 }],
   performance: [
-    { owner_id: "ada", owner_name: "Ada Okafor", current_load: 5, completed: 8, median_hours: 30, p75_hours: 52, sla_attainment: .875, blocked: 1, reopened: 1, measurement_samples: 8 },
-    { owner_id: "chidi", owner_name: "Chidi Eze", current_load: 7, completed: 11, median_hours: 42, p75_hours: 68, sla_attainment: .818, blocked: 2, reopened: 0, measurement_samples: 11 },
+    { owner_id: "ada", owner_name: "Ada Okafor", current_load: 5, completed: 8, median_hours: 30, p75_hours: 52, sla_attainment: .875, reassigned: 2, returned: 1, blocked: 1, reopened: 1, measurement_samples: 8 },
+    { owner_id: "chidi", owner_name: "Chidi Eze", current_load: 7, completed: 11, median_hours: 42, p75_hours: 68, sla_attainment: .818, reassigned: 0, returned: 0, blocked: 2, reopened: 0, measurement_samples: 11 },
   ],
   estimates: [{ category: "VENDOR_DEFICIENCY", sample_size: 12, median_hours: 48, lower_hours: 30, upper_hours: 72, confidence: "MEDIUM", estimated_by: "Closed issues of the same type in this legal entity during the selected period" }],
 };

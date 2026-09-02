@@ -20,8 +20,8 @@ const scripts = [
 await rm(outputDir, { recursive: true, force: true });
 await mkdir(logDir, { recursive: true });
 
-const buildEnvironment = { ...process.env, VITE_STATIC_DEMO: "true", VITE_UI_EVIDENCE: "true" };
-const build = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "build", "--", "--base=/"], {
+const buildEnvironment = { ...process.env };
+const build = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "build:evidence", "--", "--base=/"], {
   cwd: process.cwd(),
   env: buildEnvironment,
   encoding: "utf8",
@@ -34,7 +34,7 @@ if (build.status !== 0) {
   process.exit(1);
 }
 
-const preview = await startManagedPreview({ cwd: process.cwd(), environment: buildEnvironment });
+const preview = await startManagedPreview({ cwd: process.cwd(), environment: buildEnvironment, config: "vite.evidence.config.ts" });
 const runnerEnvironment = reviewRunnerEnvironment(process.env, preview.url);
 
 const runs = [];
