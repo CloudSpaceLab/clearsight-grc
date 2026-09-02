@@ -69,7 +69,7 @@ func TestFromWorkflowTasksRejectsUnknownActionTargets(t *testing.T) {
 	}
 }
 
-func TestFromWorkflowTasksForActorUsesCanonicalMatterMetadataAndVisibility(t *testing.T) {
+func TestFromWorkflowTasksForActorUsesCanonicalMatterMetadataAndAssignmentVisibility(t *testing.T) {
 	allowedScope := json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["actor-1"]}`)
 	blockedScope := json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["someone-else"]}`)
 	tasks := []workflow.Task{
@@ -80,9 +80,9 @@ func TestFromWorkflowTasksForActorUsesCanonicalMatterMetadataAndVisibility(t *te
 			Context: map[string]string{"matter_id": "matter-stale", "action_target_type": "MATTER", "action_target_id": "matter-spoofed", "materiality": "1"},
 		},
 		{
-			ID: "blocked", TenantID: "bank", WorkflowKind: workflow.MatterActionWorkflowKind,
+			ID: "assigned-restricted", TenantID: "bank", WorkflowKind: workflow.MatterActionWorkflowKind,
 			MatterID: "matter-hidden", MatterPriority: 4, MatterScope: blockedScope,
-			Responsibility: "ACCOUNTABLE_OWNER", PrincipalID: "actor-1", Title: "Hidden issue", Status: workflow.StatusReady,
+			Responsibility: "ACCOUNTABLE_OWNER", PrincipalID: "actor-1", Title: "Assigned restricted issue", Status: workflow.StatusReady,
 		},
 		{
 			ID: "legacy", TenantID: "bank", WorkflowKind: "REVIEW", MatterID: "matter-canonical", MatterPriority: 5, MatterScope: allowedScope,
@@ -90,8 +90,8 @@ func TestFromWorkflowTasksForActorUsesCanonicalMatterMetadataAndVisibility(t *te
 		},
 	}
 	items := FromWorkflowTasksForActor(tasks, "actor-1")
-	if len(items) != 1 {
-		t.Fatalf("expected only one visible supported Matter Action, got %#v", items)
+	if len(items) != 2 {
+		t.Fatalf("expected both canonical assignments and no unsupported work, got %#v", items)
 	}
 	item := items[0]
 	if item.ActionTargetType != "MATTER" || item.ActionTargetID != "matter-canonical" {
@@ -99,6 +99,9 @@ func TestFromWorkflowTasksForActorUsesCanonicalMatterMetadataAndVisibility(t *te
 	}
 	if item.Authority == nil || item.Authority.Materiality != 5 {
 		t.Fatalf("canonical Matter priority was not used for authority inspection: %#v", item.Authority)
+	}
+	if items[1].ActionTargetID != "matter-hidden" {
+		t.Fatalf("assigned restricted Matter was not available to its current assignee: %#v", items[1])
 	}
 }
 

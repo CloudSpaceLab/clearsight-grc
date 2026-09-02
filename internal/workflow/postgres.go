@@ -76,6 +76,11 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		  AND ($3='' OR wt.status=$3)
 		  AND ($4='' OR wi.kind=$4)
 		  AND (NOT $5::boolean OR wt.status NOT IN ('COMPLETED','CANCELLED'))
+		  AND ($8='' OR $8='*' OR COALESCE(m.legal_entity_id,cr.legal_entity_id)=(
+		    SELECT le.id FROM legal_entities le
+		    WHERE le.tenant_id=t.id AND (le.id::text=$8 OR le.code=$8)
+		    ORDER BY le.valid_from DESC,le.id LIMIT 1
+		  ))
 		  AND (
 		    NOT $6::boolean OR
 		    (CASE
@@ -174,9 +179,9 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		  CASE WHEN $5::boolean THEN wt.due_at END ASC NULLS LAST,
 		  wt.updated_at DESC,
 		  wt.id ASC
-		LIMIT $8`,
+		LIMIT $9`,
 		filter.TenantID, filter.PrincipalID, string(filter.Status), filter.WorkflowKind,
-		filter.ActiveOnly, filter.VisibleMatterWorkOnly, filter.VisibleActorWorkOnly, filter.Limit,
+		filter.ActiveOnly, filter.VisibleMatterWorkOnly, filter.VisibleActorWorkOnly, filter.LegalEntityID, filter.Limit,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list workflow tasks: %w", err)
