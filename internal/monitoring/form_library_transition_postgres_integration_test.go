@@ -5,7 +5,6 @@ package monitoring
 import (
 	"context"
 	"errors"
-	"io"
 	"log/slog"
 	"os"
 	"testing"
@@ -50,8 +49,7 @@ func TestPostgresReusableFormCanEnterApprovalWithoutProgramID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	guard, err := commandauth.New(nil, commandauth.ModeOff, logger)
+	guard, err := commandauth.New(formAuthorityStub{principal: principalID}, commandauth.ModeEnforce, slog.Default())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,6 +76,11 @@ func TestPostgresReusableFormCanEnterApprovalWithoutProgramID(t *testing.T) {
 	if _, err := service.TransitionLibraryForm(actorCtx, draft.ID, TransitionInput{ExpectedVersion: pending.Version, To: LifecycleActive}); !errors.Is(err, ErrMakerChecker) {
 		t.Fatalf("maker activation error = %v, want maker-checker rejection", err)
 	}
+	reviewerGuard, err := commandauth.New(formAuthorityStub{principal: reviewerID}, commandauth.ModeEnforce, slog.Default())
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.ConfigureCommandGuard(reviewerGuard)
 	reviewerCtx := formActorContext(tenantSlug, entityID, reviewerID)
 	active, err := service.TransitionLibraryForm(reviewerCtx, draft.ID, TransitionInput{ExpectedVersion: pending.Version, To: LifecycleActive})
 	if err != nil {
