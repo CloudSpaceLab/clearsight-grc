@@ -29,7 +29,7 @@ func (repository *PostgresCommunicationDeliveryRepository) LoadCommunicationDeli
 		       d.subject_type,d.subject_id::text,d.title,d.purpose,d.access_policy,d.status,d.deadline,d.route_expires_at,
 		       d.reminder_policy,d.created_by::text,d.version,d.created_at,d.updated_at
 		FROM capture_form_distributions d
-		WHERE d.tenant_id=$1::uuid AND d.id=$2::uuid`, tenantID, distributionID).Scan(
+		WHERE d.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND d.id=$2::uuid`, tenantID, distributionID).Scan(
 		&bundle.Distribution.ID, &bundle.Distribution.TenantID, &bundle.Distribution.LegalEntityID,
 		&bundle.Distribution.FormTemplateID, &bundle.Distribution.FormTemplateVersion,
 		&bundle.Distribution.SubjectType, &bundle.Distribution.SubjectID, &bundle.Distribution.Title,
@@ -49,7 +49,7 @@ func (repository *PostgresCommunicationDeliveryRepository) LoadCommunicationDeli
 		       COALESCE(principal_id::text,''),COALESCE(request_id::text,''),audience_hint,contact_label,state,version,created_at,updated_at,
 		       address_hash,address_ciphertext,address_key_id
 		FROM capture_distribution_recipients
-		WHERE tenant_id=$1::uuid AND distribution_id=$2::uuid AND recipient_type='EXTERNAL_AUDIENCE'
+		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND distribution_id=$2::uuid AND recipient_type='EXTERNAL_AUDIENCE'
 		ORDER BY created_at,id`, tenantID, distributionID)
 	if err != nil {
 		return communicationDeliveryBundle{}, err

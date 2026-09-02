@@ -35,7 +35,7 @@ func (s *Service) Get(ctx context.Context, scope Scope) (Snapshot, error) {
 		return Snapshot{}, err
 	}
 	value.Freshness = FreshnessCurrent
-	if value.GeneratedAt.IsZero() || s.Now().UTC().Sub(value.GeneratedAt) > s.StaleAfter {
+	if value.GeneratedAt.IsZero() || s.Now().UTC().Sub(value.GeneratedAt) > s.StaleAfter || value.ProjectionVersion != ProjectionVersion {
 		value.Freshness = FreshnessStale
 	}
 	return value, nil

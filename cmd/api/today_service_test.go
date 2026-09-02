@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
@@ -27,6 +30,21 @@ type todayJobsStub struct {
 	calls    int
 }
 
+type todayAuthorityStub struct{ allowed string }
+
+func (s todayAuthorityStub) Resolve(_ context.Context, input authority.ResolveInput) (authority.Resolution, error) {
+	return authority.Resolution{Principal: authority.Principal{ID: s.allowed}}, nil
+}
+func (todayAuthorityStub) Simulate(context.Context, authority.ResolveInput) (authority.Simulation, error) {
+	return authority.Simulation{}, nil
+}
+func (todayAuthorityStub) Integrity(context.Context, string) ([]authority.IntegrityFinding, error) {
+	return nil, nil
+}
+func (todayAuthorityStub) Policies(context.Context, string) ([]authority.PolicySummary, error) {
+	return nil, nil
+}
+
 func (s *todayJobsStub) Snapshot(context.Context, string, int) (operations.Snapshot, error) {
 	s.calls++
 	return s.snapshot, nil
@@ -38,6 +56,7 @@ func TestActorTodayServiceReturnsOnlyCurrentStoredActorWork(t *testing.T) {
 	tasks := []workflow.Task{
 		{
 			ID: "assigned", TenantID: "bank", WorkflowID: "request-workflow", StepKey: "provide-evidence",
+			LegalEntityID:  "entity",
 			Responsibility: "PERFORMER", PrincipalID: "staff-1", Title: "Provide vendor evidence", Status: workflow.StatusReady,
 			DueAt: &due, Context: map[string]string{"action_target_type": "EVIDENCE_REQUEST", "action_target_id": "request-1"},
 			WorkflowKind: workflow.EvidenceRequestWorkflowKind, EvidenceRequestID: "request-1", EvidenceRecipientID: "staff-1", EvidenceSubjectVisible: true,
@@ -45,18 +64,20 @@ func TestActorTodayServiceReturnsOnlyCurrentStoredActorWork(t *testing.T) {
 		},
 		{
 			ID: "other-person", TenantID: "bank", WorkflowID: "other-workflow", StepKey: "provide-evidence",
+			LegalEntityID:  "entity",
 			Responsibility: "PERFORMER", PrincipalID: "staff-2", Title: "Other person's task", Status: workflow.StatusReady,
 			WorkflowKind: workflow.EvidenceRequestWorkflowKind, EvidenceRequestID: "request-2", EvidenceRecipientID: "staff-2", EvidenceSubjectVisible: true,
 			Version: 1, CreatedAt: now, UpdatedAt: now,
 		},
 		{
 			ID: "completed", TenantID: "bank", WorkflowID: "completed-workflow", StepKey: "provide-evidence",
+			LegalEntityID:  "entity",
 			Responsibility: "PERFORMER", PrincipalID: "staff-1", Title: "Completed task", Status: workflow.StatusCompleted,
 			WorkflowKind: workflow.EvidenceRequestWorkflowKind, EvidenceRequestID: "request-3", EvidenceRecipientID: "staff-1", EvidenceSubjectVisible: true,
 			Version: 1, CreatedAt: now, UpdatedAt: now,
 		},
 	}
-	service := actorTodayService(workflow.NewService(workflow.NewMemoryRepository(tasks)), nil, nil)
+	service := actorTodayService(workflow.NewService(workflow.NewMemoryRepository(tasks)), nil, nil, nil, nil)
 	items, err := service.ListFor(context.Background(), identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "staff-1"})
 	if err != nil {
 		t.Fatalf("list Today work: %v", err)
@@ -73,7 +94,8 @@ func TestActorTodayServiceProjectsEveryAssignedOperationalResponsibility(t *test
 	for _, responsibility := range responsibilities {
 		tasks = append(tasks, workflow.Task{
 			ID: "task-" + responsibility, TenantID: "bank", WorkflowID: "workflow-" + responsibility,
-			WorkflowKind: workflow.MatterLifecycleWorkflowKind, MatterID: "matter-" + responsibility,
+			LegalEntityID: "entity",
+			WorkflowKind:  workflow.MatterLifecycleWorkflowKind, MatterID: "matter-" + responsibility,
 			MatterScope: json.RawMessage(`{"access":"INTERNAL"}`), MatterPriority: 4,
 			StepKey: "step-" + responsibility, Responsibility: responsibility, PrincipalID: "actor-1",
 			Title: "Complete " + responsibility + " work", Status: workflow.StatusReady,
@@ -81,7 +103,7 @@ func TestActorTodayServiceProjectsEveryAssignedOperationalResponsibility(t *test
 		})
 	}
 
-	items, err := actorTodayService(workflow.NewService(workflow.NewMemoryRepository(tasks)), nil, nil).ListFor(context.Background(), identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "actor-1"})
+	items, err := actorTodayService(workflow.NewService(workflow.NewMemoryRepository(tasks)), nil, nil, nil, nil).ListFor(context.Background(), identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "actor-1"})
 	if err != nil {
 		t.Fatalf("list operational work: %v", err)
 	}
@@ -114,7 +136,7 @@ func TestActorTodayServiceAddsOnlyCapabilityScopedAdministratorExceptions(t *tes
 		PermissionCodes: []string{identity.PermissionIdentityRead, identity.PermissionPlatformOperationsRead},
 	}
 
-	items, err := actorTodayService(workflowService, admin, jobs).ListFor(context.Background(), actor)
+	items, err := actorTodayService(workflowService, nil, nil, admin, jobs).ListFor(context.Background(), actor)
 	if err != nil {
 		t.Fatalf("list administrator Today work: %v", err)
 	}
@@ -132,11 +154,50 @@ func TestActorTodayServiceAddsOnlyCapabilityScopedAdministratorExceptions(t *tes
 
 	admin.calls, jobs.calls = 0, 0
 	ordinary := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "employee", PermissionCodes: []string{identity.PermissionOversightRead}}
-	items, err = actorTodayService(workflowService, admin, jobs).ListFor(context.Background(), ordinary)
+	items, err = actorTodayService(workflowService, nil, nil, admin, jobs).ListFor(context.Background(), ordinary)
 	if err != nil {
 		t.Fatalf("list ordinary Today work: %v", err)
 	}
 	if len(items) != 0 || admin.calls != 0 || jobs.calls != 0 {
 		t.Fatalf("ordinary actor received administrator work: items=%#v admin_calls=%d job_calls=%d", items, admin.calls, jobs.calls)
+	}
+}
+
+func TestActorTodayServiceAddsOnlyAuthorityEligibleUnassignedMatterRecovery(t *testing.T) {
+	repo := continuity.NewMemoryRepository()
+	matters := continuity.NewService(repo)
+	created, err := matters.CreateMatter(continuity.WithTrustedSystemEntityScope(context.Background(), "bank", "entity"), continuity.CreateMatterInput{
+		TenantID: "bank", LegalEntityID: "entity", Type: continuity.MatterControlGap, Priority: 4,
+		Title: "Restore the unavailable source", Summary: "The source required by this Program is unavailable.", Scope: json.RawMessage(`{"access":"INTERNAL"}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for index := 0; index < todayItemLimit+5; index++ {
+		_, err = matters.CreateMatter(continuity.WithTrustedSystemEntityScope(context.Background(), "bank", "entity"), continuity.CreateMatterInput{
+			TenantID: "bank", LegalEntityID: "entity", Type: continuity.MatterControlGap, Priority: 4,
+			Title: fmt.Sprintf("Assigned issue %02d", index), Summary: "This issue already has an accountable owner.",
+			OwnerPrincipalID: "program-owner", Scope: json.RawMessage(`{"access":"INTERNAL"}`),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	workflowService := workflow.NewService(workflow.NewMemoryRepository(nil))
+	cro := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "cro", PermissionCodes: []string{identity.PermissionOversightRead}}
+	items, err := actorTodayService(workflowService, matters, todayAuthorityStub{allowed: "cro"}, nil, nil).ListFor(context.Background(), cro)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 || items[0].ActionTargetID != created.Matter.ID || items[0].PrimaryAction != "Assign issue owner" || items[0].Authority == nil || items[0].Authority.Responsibility != "AUTHORIZER" {
+		t.Fatalf("eligible unassigned recovery item = %#v", items)
+	}
+	notEligible := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "grc", PermissionCodes: []string{identity.PermissionOversightRead}}
+	items, err = actorTodayService(workflowService, matters, todayAuthorityStub{allowed: "cro"}, nil, nil).ListFor(context.Background(), notEligible)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("ineligible actor received recovery item: %#v", items)
 	}
 }

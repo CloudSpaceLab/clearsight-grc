@@ -1,7 +1,7 @@
 import { requestJSON, requestVoid } from "./http";
 import type { AIGovernancePolicy, AIGovernanceWorkload, AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, ResponseHistoryPage, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
-import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
+import type { BackgroundJobSnapshot, JobRecoveryReceipt, ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
 import { normalizeProgramAggregate } from "./programAggregate";
 
@@ -204,6 +204,15 @@ export async function loadProjectionHealth(): Promise<ProjectionHealth[]> {
 export async function reconcileProgramState(): Promise<ReconcileResult> {
   const context = await loadContext();
   return request<ReconcileResult>("/api/v1/operations/projections/reconcile", { method: "POST", body: JSON.stringify({ tenant_id: context.tenant.id, limit: 250 }) });
+}
+
+export function loadBackgroundJobs(): Promise<BackgroundJobSnapshot> {
+  return scopedRequest<BackgroundJobSnapshot>("/api/v1/operations/background-jobs", { limit: 100 });
+}
+
+export async function retryBackgroundJob(jobID: string, queue: string, expectedAttempts: number, rationale: string): Promise<JobRecoveryReceipt> {
+  const context = await loadContext();
+  return request<JobRecoveryReceipt>(`/api/v1/operations/background-jobs/${encodeURIComponent(jobID)}/retry`, { method: "POST", body: JSON.stringify({ tenant_id: context.tenant.id, queue, expected_attempts: expectedAttempts, rationale }) });
 }
 
 export function loadProgramSummaries(query: SummaryQuery = {}): Promise<SummaryPage<ProgramSummary>> {

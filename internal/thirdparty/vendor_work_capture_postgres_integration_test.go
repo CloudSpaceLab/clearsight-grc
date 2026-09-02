@@ -27,7 +27,7 @@ func TestPostgresAttachVendorWorkCapturePersistsIntegerSequenceAndBigintOriginVe
 		INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,jurisdiction,effective_from)
 		VALUES($1::uuid,$2::uuid,$3::uuid,'VENDOR-CAPTURE','Vendor capture','COMPLIANCE','ACTIVE','Third-party risk','NG',$4);
 		INSERT INTO third_party_relationship_program_links(id,tenant_id,legal_entity_id,relationship_id,program_id,purpose_code,purpose_label,state,created_by_principal_id,version,created_at,updated_at)
-		VALUES($5::uuid,$2::uuid,$3::uuid,$6::uuid,$1::uuid,'ADDRESS_VERIFICATION','Address verification','ACTIVE',$7::uuid,1,$4,$4)`,
+		VALUES($5::uuid,$2::uuid,$3::uuid,$6::uuid,$1::uuid,'EVIDENCE_REFRESH','Evidence refresh','ACTIVE',$7::uuid,1,$4,$4)`,
 		pgx.QueryExecModeSimpleProtocol, programID, thirdPartyTenantID, thirdPartyEntityA, now, linkID, relationship.Relationship.ID, thirdPartyPrincipal); err != nil {
 		t.Fatal(err)
 	}
@@ -36,8 +36,8 @@ func TestPostgresAttachVendorWorkCapturePersistsIntegerSequenceAndBigintOriginVe
 	created, err := repository.CreateVendorWork(ctx, VendorWorkRequest{
 		ID: workID, TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA,
 		RelationshipID: relationship.Relationship.ID, RelationshipLinkID: linkID,
-		TargetType: LinkTargetProgram, TargetID: programID, RequestKind: VendorWorkAddressVerification,
-		Purpose: "Verify the vendor address.", Instructions: "Provide confirmation and supporting evidence.",
+		TargetType: LinkTargetProgram, TargetID: programID, RequestKind: VendorWorkGeneral,
+		Purpose: "Refresh vendor evidence.", Instructions: "Provide the requested current evidence.",
 		OwnerPrincipalID: thirdPartyPrincipal, FormTemplateID: assessmentTemplateID, FormTemplateVersion: 3,
 		Presentation: formcontract.PresentationWizard, State: VendorWorkPreparing, DeliveryState: VendorWorkDeliveryNotSent,
 		DueAt: now.Add(24 * time.Hour), Version: 1, CreatedAt: now, UpdatedAt: now,

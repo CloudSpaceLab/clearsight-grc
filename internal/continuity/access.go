@@ -90,3 +90,19 @@ func MatterVisibleTo(matter Matter, principalID string) bool {
 	}
 	return false
 }
+
+func MatterAggregateVisibleTo(aggregate MatterAggregate, principalID string) bool {
+	principalID = strings.TrimSpace(principalID)
+	if principalID == "" {
+		return false
+	}
+	if MatterVisibleTo(aggregate.Matter, principalID) || strings.TrimSpace(aggregate.Matter.OwnerPrincipalID) == principalID {
+		return true
+	}
+	for _, action := range aggregate.Actions {
+		if strings.TrimSpace(action.OwnerPrincipalID) == principalID {
+			return true
+		}
+	}
+	return false
+}

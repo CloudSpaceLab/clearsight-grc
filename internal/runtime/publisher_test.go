@@ -13,6 +13,12 @@ type orderedPublisher struct {
 	err   error
 }
 
+type optionalPublisher struct{}
+
+func (*optionalPublisher) Publish(context.Context, OutboxEvent) error {
+	return errors.New("typed nil publisher was called")
+}
+
 func (p orderedPublisher) Publish(context.Context, OutboxEvent) error {
 	*p.calls = append(*p.calls, p.name)
 	return p.err
@@ -30,6 +36,19 @@ func TestCompositePublisherStopsBeforeMarkingLaterSinksDelivered(t *testing.T) {
 	}
 	if len(calls) != 2 || calls[0] != "internal" || calls[1] != "external" {
 		t.Fatalf("unexpected publisher order: %#v", calls)
+	}
+}
+
+func TestCompositePublisherSkipsTypedNilOptionalSink(t *testing.T) {
+	var optional *optionalPublisher
+	calls := []string{}
+	publisher := NewCompositePublisher(optional, orderedPublisher{name: "stored", calls: &calls})
+
+	if err := publisher.Publish(context.Background(), OutboxEvent{ID: "event-1"}); err != nil {
+		t.Fatalf("publish with disabled optional sink: %v", err)
+	}
+	if len(calls) != 1 || calls[0] != "stored" {
+		t.Fatalf("calls = %#v", calls)
 	}
 }
 

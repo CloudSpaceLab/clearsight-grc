@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -13,6 +14,31 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
+
+type unassignedRecoveryAuthority struct{}
+
+func (unassignedRecoveryAuthority) Resolve(_ context.Context, input authority.ResolveInput) (authority.Resolution, error) {
+	if input.Responsibility == authority.ResponsibilityAuthorizer {
+		return authority.Resolution{Principal: authority.Principal{ID: "cro-1", DisplayName: "Chief Risk Officer"}, EffectiveOrigins: []authority.EffectiveOrigin{{PrincipalID: "cro-1", OriginPrincipalID: "cro-1"}}}, nil
+	}
+	return authority.Resolution{Principal: authority.Principal{ID: "owner-1", DisplayName: "Program Owner"}, CandidatePrincipals: []authority.Principal{{ID: "owner-1", DisplayName: "Program Owner"}}, EffectiveOrigins: []authority.EffectiveOrigin{{PrincipalID: "owner-1", OriginPrincipalID: "owner-1"}}}, nil
+}
+func (r unassignedRecoveryAuthority) ResolveMany(ctx context.Context, inputs []authority.ResolveInput) ([]authority.ResolveOutcome, error) {
+	result := make([]authority.ResolveOutcome, len(inputs))
+	for index, input := range inputs {
+		result[index].Resolution, result[index].Err = r.Resolve(ctx, input)
+	}
+	return result, nil
+}
+func (unassignedRecoveryAuthority) Simulate(context.Context, authority.ResolveInput) (authority.Simulation, error) {
+	return authority.Simulation{}, nil
+}
+func (unassignedRecoveryAuthority) Integrity(context.Context, string) ([]authority.IntegrityFinding, error) {
+	return nil, nil
+}
+func (unassignedRecoveryAuthority) Policies(context.Context, string) ([]authority.PolicySummary, error) {
+	return nil, nil
+}
 
 func TestStoredProgramOwnerOrDelegateRequiredForOwnerCommands(t *testing.T) {
 	service := continuity.NewService(continuity.NewMemoryRepository())
@@ -258,6 +284,46 @@ func TestBlankOwnerOperationsExposeOnlyAssignmentRepair(t *testing.T) {
 	}
 	if transition := find(matterOperations, "matter.action.transition", "action-legacy"); transition.CanAct || transition.AssignedTo != nil {
 		t.Fatalf("blank Action owner allowed a lifecycle change: %#v", transition)
+	}
+}
+
+func TestCurrentAuthorizerCanRecoverUnassignedMatterWithoutBecomingOwner(t *testing.T) {
+	now := time.Now().UTC()
+	matter := continuity.MatterAggregate{Matter: continuity.Matter{
+		ID: "matter-unassigned", TenantID: "bank", LegalEntityID: "entity-a", Type: continuity.MatterControlGap,
+		Status: continuity.MatterAssessment, Priority: 3, Title: "Restore unavailable source", Version: 2, CreatedAt: now, UpdatedAt: now,
+	}}
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	stored, err := service.CreateMatter(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateMatterInput{
+		TenantID: matter.Matter.TenantID, LegalEntityID: matter.Matter.LegalEntityID, Type: matter.Matter.Type, Priority: matter.Matter.Priority,
+		Title: matter.Matter.Title, Summary: "A source is unavailable.", Scope: json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["cro-1"]}`), ActorID: "system",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	api := &API{deps: Dependencies{Continuity: service, Authority: unassignedRecoveryAuthority{}}}
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "cro-1"}
+	operations := api.buildMatterOperations(identity.WithActor(t.Context(), actor), actor, stored, now).Operations
+	var assignment RecordOperation
+	for _, operation := range operations {
+		if operation.Command == "matter.assign" {
+			assignment = operation
+			break
+		}
+	}
+	if !assignment.CanAct || assignment.Responsibility != string(authority.ResponsibilityAuthorizer) || len(assignment.Candidates) != 1 || assignment.Candidates[0].ID != "owner-1" {
+		t.Fatalf("unassigned recovery operation = %#v", assignment)
+	}
+	request := httptest.NewRequest("POST", "/api/v1/matters/"+stored.Matter.ID+"/assignment", nil)
+	request.SetPathValue("id", stored.Matter.ID)
+	request = request.WithContext(identity.WithActor(request.Context(), actor))
+	payload := map[string]any{"owner_principal_id": "owner-1"}
+	policy, err := api.lifecycleCommandPolicy(request.Context(), request, "bank", "matter.assign", payload, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3})
+	if err != nil {
+		t.Fatalf("authorizer could not recover assignment: %v", err)
+	}
+	if !policy.SpecializedAuthorization || policy.Responsibility != authority.ResponsibilityAuthorizer || payload["reassignment_basis"] != "UNASSIGNED_RECOVERY" {
+		t.Fatalf("unassigned recovery was not independently bound: policy=%#v payload=%#v", policy, payload)
 	}
 }
 

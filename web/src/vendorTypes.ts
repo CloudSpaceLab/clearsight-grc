@@ -91,3 +91,22 @@ export type UpdateVendorIdentityInput = {
   website_domain?: string;
   registered_address?: string;
 };
+
+export type VendorActivationPolicy = {
+  id: string;
+  policy_number: number;
+  version: number;
+  effective_from: string;
+  effective_until?: string;
+  status: "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "RETIRED";
+};
+
+export type VendorActivationGate = { code: string; satisfied: boolean; explanation: string };
+export type VendorActivationResult = {
+  eligible: boolean;
+  policy: VendorActivationPolicy;
+  gates: VendorActivationGate[];
+  relationship: VendorRelationship;
+  receipt?: { id: string; relationship_version: number; activated_at: string };
+};
+export type ActivateVendorRelationshipInput = { expected_version: number; intended_effective_at: string; rationale: string };

@@ -63,12 +63,35 @@ func TestVendorWorkRequestKindMigrationIsBoundedAndReversible(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, required := range []string{"request_kind text NOT NULL DEFAULT 'GENERAL'", "'ADDRESS_VERIFICATION'", "'CERTIFICATION_REFRESH'"} {
+	for _, required := range []string{"request_kind text NOT NULL DEFAULT 'GENERAL'", "'CERTIFICATION_REFRESH'"} {
 		if !strings.Contains(string(up), required) {
 			t.Fatalf("request-kind migration missing %q", required)
 		}
 	}
 	if !strings.Contains(string(down), "DROP COLUMN IF EXISTS request_kind") || strings.Contains(string(down), "DELETE FROM") {
 		t.Fatal("request-kind rollback must remove only the added column")
+	}
+}
+
+func TestCurrentVendorWorkRequestKindsExcludeInternalAddressVerification(t *testing.T) {
+	up, err := os.ReadFile("../../migrations/000072_remove_vendor_work_address_compatibility.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := string(up)
+	for _, required := range []string{
+		"CREATE TRIGGER reject_retired_vendor_address_work_request_write",
+		"BEFORE INSERT OR UPDATE ON third_party_work_requests",
+		"IF NEW.request_kind = 'ADDRESS_VERIFICATION'",
+	} {
+		if !strings.Contains(schema, required) {
+			t.Fatalf("retired address-verification write guard missing %q", required)
+		}
+	}
+	if strings.Contains(schema, "UPDATE third_party_work_requests") || strings.Contains(schema, "DELETE FROM third_party_work_requests") {
+		t.Fatal("retiring the runtime path must not rewrite or delete historical work records")
+	}
+	if !strings.Contains(schema, "NEW.state = 'CANCELLED'") || !strings.Contains(schema, "OLD.request_kind = 'ADDRESS_VERIFICATION'") {
+		t.Fatal("historical address work must allow only its governed terminal cancellation")
 	}
 }

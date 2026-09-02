@@ -8,8 +8,9 @@ import (
 type requestOriginAuthorityKey struct{}
 
 var reservedRequestOrigins = map[string]struct{}{
-	"THIRD_PARTY_ASSESSMENT": {},
-	"THIRD_PARTY_WORK":       {},
+	"THIRD_PARTY_ASSESSMENT":           {},
+	"THIRD_PARTY_WORK":                 {},
+	"THIRD_PARTY_ADDRESS_VERIFICATION": {},
 }
 
 // WithRequestOriginAuthority is for the domain orchestrator that owns a

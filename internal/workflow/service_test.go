@@ -7,21 +7,25 @@ import (
 )
 
 func TestListRequiresTenant(t *testing.T) {
-	service := NewService(NewMemoryRepository(DemoTasks()))
+	service := NewService(NewMemoryRepository(testTasks()))
 	if _, err := service.List(context.Background(), ListFilter{}); err == nil {
 		t.Fatal("expected tenant_id requirement")
 	}
 }
 
 func TestListScopesTasksAndBoundsLimit(t *testing.T) {
-	service := NewService(NewMemoryRepository(DemoTasks()))
+	service := NewService(NewMemoryRepository(testTasks()))
 	values, err := service.List(context.Background(), ListFilter{TenantID: "bank-demo", PrincipalID: "team-control-assurance", Limit: 500})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(values) != 1 || values[0].ID != "task_review_cbn" {
+	if len(values) != 1 || values[0].ID != "task-review" {
 		t.Fatalf("unexpected scoped tasks: %#v", values)
 	}
+}
+
+func testTasks() []Task {
+	return []Task{{ID: "task-review", TenantID: "bank-demo", PrincipalID: "team-control-assurance", Title: "Review stored obligations", Status: StatusReady, Version: 1}}
 }
 
 func TestListActiveOnlyFiltersBeforeLimitAndOrdersUrgentWork(t *testing.T) {

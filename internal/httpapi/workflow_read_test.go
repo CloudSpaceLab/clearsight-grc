@@ -11,7 +11,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
-func TestWorkflowTaskReadRejectsCrossPrincipalScopeAndRestrictedLeak(t *testing.T) {
+func TestWorkflowTaskReadRejectsCrossPrincipalAndUnsupportedWorkButKeepsExactAssignments(t *testing.T) {
 	allowed := json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["actor-1"]}`)
 	blocked := json.RawMessage(`{"access":"RESTRICTED","allowed_principal_ids":["actor-2"]}`)
 	now := time.Date(2026, 8, 7, 20, 0, 0, 0, time.UTC)
@@ -44,9 +44,8 @@ func TestWorkflowTaskReadRejectsCrossPrincipalScopeAndRestrictedLeak(t *testing.
 		t.Fatalf("expected cross-principal read to be forbidden, got %d: %s", crossRecorder.Code, crossRecorder.Body.String())
 	}
 
-	// The blocked and legacy rows are newer than the visible row. A one-row
-	// limit must still return the visible supported Task, proving filtering
-	// happens before the limit rather than afterward.
+	// Both Matter rows are exact current assignments, including the restricted
+	// Matter. The unsupported row is newer and must be filtered before LIMIT.
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/workflow/tasks?tenant_id=bank&limit=1", nil)
 	request = request.WithContext(identity.WithActor(request.Context(), actor))
 	recorder := httptest.NewRecorder()
@@ -60,7 +59,7 @@ func TestWorkflowTaskReadRejectsCrossPrincipalScopeAndRestrictedLeak(t *testing.
 	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if len(body.Items) != 1 || body.Items[0].ID != "visible" {
-		t.Fatalf("expected only visible supported actor work, got %#v", body.Items)
+	if len(body.Items) != 1 || body.Items[0].ID != "blocked" {
+		t.Fatalf("expected the newest exact supported assignment, got %#v", body.Items)
 	}
 }

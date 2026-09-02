@@ -35,6 +35,7 @@ func (r *PostgresRepository) BackgroundJobs(ctx context.Context, tenant string, 
 			return operations.Snapshot{}, err
 		}
 		job.Queue = "workflow-timers"
+		job.FailureCode = operations.SafeFailureCode(job.LastError)
 		job.AvailableAt = &due
 		jobs = append(jobs, job)
 	}
@@ -56,6 +57,7 @@ func (r *PostgresRepository) BackgroundJobs(ctx context.Context, tenant string, 
 			return operations.Snapshot{}, err
 		}
 		job.Queue = "outbox-delivery"
+		job.FailureCode = operations.SafeFailureCode(job.LastError)
 		job.AvailableAt = &available
 		job.CreatedAt = &created
 		jobs = append(jobs, job)

@@ -41,7 +41,7 @@ func MatterWorkVisibleTo(task Task, principalID string) bool {
 	if !supportedMatterWorkflowKind(task.WorkflowKind) || strings.TrimSpace(task.MatterID) == "" || strings.TrimSpace(principalID) == "" || len(task.MatterScope) == 0 {
 		return false
 	}
-	return continuity.MatterVisibleTo(continuity.Matter{TenantID: task.TenantID, ID: task.MatterID, Scope: task.MatterScope}, principalID)
+	return task.PrincipalID == principalID || continuity.MatterVisibleTo(continuity.Matter{TenantID: task.TenantID, ID: task.MatterID, Scope: task.MatterScope}, principalID)
 }
 
 // MatterActionVisibleTo is retained as the narrow semantic helper used by

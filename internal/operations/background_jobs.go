@@ -19,10 +19,27 @@ type Job struct {
 	AvailableAt *time.Time `json:"available_at,omitempty"`
 	LeaseUntil  *time.Time `json:"lease_until,omitempty"`
 	LockedBy    string     `json:"locked_by,omitempty"`
-	LastError   string     `json:"last_error,omitempty"`
+	LastError   string     `json:"-"`
+	FailureCode string     `json:"failure_code,omitempty"`
 	TerminalAt  *time.Time `json:"terminal_at,omitempty"`
 	CreatedAt   *time.Time `json:"created_at,omitempty"`
 	UpdatedAt   *time.Time `json:"updated_at,omitempty"`
+}
+
+func SafeFailureCode(message string) string {
+	value := strings.ToLower(strings.TrimSpace(message))
+	switch {
+	case strings.Contains(value, "invalid input syntax for type uuid"):
+		return "INVALID_TENANT_IDENTIFIER"
+	case strings.Contains(value, "communication is unavailable"):
+		return "COMMUNICATION_CONFIGURATION_UNAVAILABLE"
+	case strings.Contains(value, "timeout") || strings.Contains(value, "deadline exceeded"):
+		return "DEPENDENCY_TIMEOUT"
+	case value == "":
+		return "FAILURE_DETAIL_UNAVAILABLE"
+	default:
+		return "PROCESSING_FAILED"
+	}
 }
 
 type QueueSummary struct {

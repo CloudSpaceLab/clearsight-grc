@@ -2,7 +2,7 @@ package oversight
 
 import "time"
 
-const ProjectionVersion = "oversight-v2"
+const ProjectionVersion = "oversight-v4"
 
 type Freshness string
 
@@ -69,6 +69,7 @@ type Performance struct {
 	Reassigned         *int     `json:"reassigned,omitempty"`
 	Returned           *int     `json:"returned,omitempty"`
 	Blocked            int      `json:"blocked"`
+	BlockedHours       float64  `json:"blocked_hours"`
 	Reopened           int      `json:"reopened"`
 	MeasurementSamples int      `json:"measurement_samples"`
 }
@@ -81,6 +82,18 @@ type ResolutionEstimate struct {
 	UpperHours  float64 `json:"upper_hours"`
 	Confidence  string  `json:"confidence"`
 	EstimatedBy string  `json:"estimated_by"`
+}
+
+type HistoryQuality struct {
+	CompletedPopulation     int `json:"completed_population"`
+	CompleteLifecycle       int `json:"complete_lifecycle"`
+	MissingCreatedEvent     int `json:"missing_created_event"`
+	MissingTerminalEvent    int `json:"missing_terminal_event"`
+	ExcludedFromDurations   int `json:"excluded_from_durations"`
+	ReassignedOwnerExcluded int `json:"reassigned_owner_excluded"`
+	ReturnedOwnerExcluded   int `json:"returned_owner_excluded"`
+	BlockedOwnerExcluded    int `json:"blocked_owner_excluded"`
+	ReopenedOwnerExcluded   int `json:"reopened_owner_excluded"`
 }
 
 type Snapshot struct {
@@ -99,6 +112,7 @@ type Snapshot struct {
 	Aging             []AgingBucket        `json:"aging"`
 	Performance       []Performance        `json:"performance"`
 	Estimates         []ResolutionEstimate `json:"estimates"`
+	HistoryQuality    HistoryQuality       `json:"history_quality"`
 }
 
 func estimateConfidence(samples int) string {

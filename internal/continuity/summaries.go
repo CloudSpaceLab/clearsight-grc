@@ -25,6 +25,7 @@ type SummaryQuery struct {
 	Cursor       string
 	Priority     int
 	AssignedToMe bool
+	Unassigned   bool
 	asOf         time.Time
 	principalID  string
 	Limit        int

@@ -247,6 +247,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 		  AND ($16='' OR m.matter_type=$16)
 		  AND ($17=0 OR m.priority=$17)
 		  AND (NOT $20 OR COALESCE(m.owner_principal_id::text,'')=$21)
+		  AND (NOT $22 OR m.owner_principal_id IS NULL)
 		  AND (
 			$18='' OR
 			($18='NO_DUE_DATE' AND m.due_at IS NULL) OR
@@ -289,7 +290,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 			(m.priority = $8 AND (m.updated_at < $9 OR (m.updated_at = $9 AND m.id < NULLIF($10,'')::uuid)))
 		  )
 		ORDER BY m.priority DESC,m.updated_at DESC,m.id DESC
-		LIMIT $11`, tenant, query.Status, query.Search, enforceVisibility, principalID, actorTenant, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1, query.ProgramID, enforceEntity, actorEntityTenant, actorEntity, query.MatterType, query.Priority, query.DueCondition, query.asOf, query.AssignedToMe, query.principalID)
+		LIMIT $11`, tenant, query.Status, query.Search, enforceVisibility, principalID, actorTenant, hasCursor, cursor.Priority, cursor.UpdatedAt, cursor.ID, limit+1, query.ProgramID, enforceEntity, actorEntityTenant, actorEntity, query.MatterType, query.Priority, query.DueCondition, query.asOf, query.AssignedToMe, query.principalID, query.Unassigned)
 	if err != nil {
 		return MatterSummaryPage{}, err
 	}

@@ -49,18 +49,20 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 		return Snapshot{}, fmt.Errorf("decode oversight high-water marks: %w", err)
 	}
 	metadata := struct {
-		Counts        Counts               `json:"counts"`
-		Interventions []Intervention       `json:"interventions"`
-		Pressure      []CategoryPressure   `json:"pressure"`
-		Aging         []AgingBucket        `json:"aging"`
-		Performance   []Performance        `json:"performance"`
-		Estimates     []ResolutionEstimate `json:"estimates"`
+		Counts         Counts               `json:"counts"`
+		Interventions  []Intervention       `json:"interventions"`
+		Pressure       []CategoryPressure   `json:"pressure"`
+		Aging          []AgingBucket        `json:"aging"`
+		Performance    []Performance        `json:"performance"`
+		Estimates      []ResolutionEstimate `json:"estimates"`
+		HistoryQuality HistoryQuality       `json:"history_quality"`
 	}{Counts: value.Counts}
 	if err := json.Unmarshal(payload, &metadata); err != nil {
 		return Snapshot{}, fmt.Errorf("decode oversight snapshot: %w", err)
 	}
 	value.Counts, value.Interventions, value.Pressure = metadata.Counts, metadata.Interventions, metadata.Pressure
 	value.Aging, value.Performance, value.Estimates = metadata.Aging, metadata.Performance, metadata.Estimates
+	value.HistoryQuality = metadata.HistoryQuality
 	return value, nil
 }
 
@@ -82,9 +84,9 @@ func (m *Maintainer) Maintain(ctx context.Context, now time.Time, limit int) (in
 		WHERE le.valid_from<=$1::timestamptz AND (le.valid_until IS NULL OR $1::timestamptz<le.valid_until)
 		  AND NOT EXISTS (
 		    SELECT 1 FROM oversight_snapshots os
-		    WHERE os.tenant_id=le.tenant_id AND os.legal_entity_id=le.id AND os.generated_at>$1::timestamptz-interval '5 minutes'
+		    WHERE os.tenant_id=le.tenant_id AND os.legal_entity_id=le.id AND os.projection_version=$2 AND os.generated_at>$1::timestamptz-interval '5 minutes'
 		  )
-		ORDER BY le.id LIMIT $2`, now, limit)
+		ORDER BY le.id LIMIT $3`, now, ProjectionVersion, limit)
 	if err != nil {
 		return 0, err
 	}
@@ -161,6 +163,29 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 	}
 	value.Coverage.Excluded, value.Coverage.Unknown = &excluded, &unknown
 	if err := r.pool.QueryRow(ctx, `
+		WITH closed AS (
+		  SELECT m.id,
+		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='MATTER_CREATED') created_ok,
+		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='MATTER_STATE_CHANGED' AND ce.payload->>'status'='CLOSED') terminal_ok,
+		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='MATTER_OWNER_CHANGED') reassigned,
+		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='DECISION_ADDED' AND ce.payload->>'status'='RETURNED') returned,
+		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='ACTION_STATE_CHANGED' AND ce.payload->>'status'='BLOCKED') blocked,
+		         m.reopen_count>0 reopened
+		  FROM matters m WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.status='CLOSED' AND m.closed_at>=$3
+		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
+		)
+		SELECT count(*),count(*) FILTER (WHERE created_ok AND terminal_ok),count(*) FILTER (WHERE NOT created_ok),count(*) FILTER (WHERE NOT terminal_ok),
+		       count(*) FILTER (WHERE NOT (created_ok AND terminal_ok)),count(*) FILTER (WHERE created_ok AND terminal_ok AND reassigned),
+		       count(*) FILTER (WHERE created_ok AND terminal_ok AND returned),count(*) FILTER (WHERE created_ok AND terminal_ok AND blocked),
+		       count(*) FILTER (WHERE created_ok AND terminal_ok AND reopened)
+		FROM closed`, scope.TenantID, scope.LegalEntityID, periodStart).Scan(
+		&value.HistoryQuality.CompletedPopulation, &value.HistoryQuality.CompleteLifecycle, &value.HistoryQuality.MissingCreatedEvent,
+		&value.HistoryQuality.MissingTerminalEvent, &value.HistoryQuality.ExcludedFromDurations, &value.HistoryQuality.ReassignedOwnerExcluded,
+		&value.HistoryQuality.ReturnedOwnerExcluded, &value.HistoryQuality.BlockedOwnerExcluded, &value.HistoryQuality.ReopenedOwnerExcluded,
+	); err != nil {
+		return Snapshot{}, err
+	}
+	if err := r.pool.QueryRow(ctx, `
 		SELECT count(*) FROM workflow_tasks wt JOIN workflow_instances wi ON wi.tenant_id=wt.tenant_id AND wi.id=wt.workflow_id
 		LEFT JOIN matters m ON wi.subject_type='MATTER' AND m.tenant_id=wi.tenant_id AND m.id=wi.subject_id
 		LEFT JOIN programs p ON wi.subject_type='PROGRAM' AND p.tenant_id=wi.tenant_id AND p.id=wi.subject_id
@@ -233,26 +258,38 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 	value.Aging = []AgingBucket{{Label: "0–7 days", Count: age0}, {Label: "8–30 days", Count: age8}, {Label: "31–90 days", Count: age31}, {Label: "Over 90 days", Count: age91}}
 
 	rows, err = r.pool.Query(ctx, `
-		WITH owner_work AS (
+		WITH lifecycle AS (
+		  SELECT m.id,
+		         min(ce.occurred_at) FILTER (WHERE ce.event_type='MATTER_CREATED') started_at,
+		         max(ce.occurred_at) FILTER (WHERE ce.event_type='MATTER_STATE_CHANGED' AND ce.payload->>'status'='CLOSED') finished_at,
+		         count(*) FILTER (WHERE ce.event_type='MATTER_OWNER_CHANGED') owner_changes,
+		         count(*) FILTER (WHERE ce.event_type='DECISION_ADDED' AND ce.payload->>'status'='RETURNED') returns,
+		         count(*) FILTER (WHERE ce.event_type='ACTION_STATE_CHANGED' AND ce.payload->>'status'='BLOCKED') blocks,
+		         max(m.reopen_count) reopen_count
+		  FROM matters m LEFT JOIN continuity_events ce ON ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id
+		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid GROUP BY m.id
+		), owner_work AS (
 		  SELECT m.owner_principal_id,count(*) FILTER (WHERE m.status NOT IN ('CLOSED','CANCELLED')) current_load,
 		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3) completed,
-		         percentile_cont(.5) WITHIN GROUP (ORDER BY extract(epoch FROM (m.closed_at-m.created_at))/3600.0) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3) median_hours,
-		         percentile_cont(.75) WITHIN GROUP (ORDER BY extract(epoch FROM (m.closed_at-m.created_at))/3600.0) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3) p75_hours,
-		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND m.due_at IS NOT NULL) sla_samples,
-		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND m.due_at IS NOT NULL AND m.closed_at<=m.due_at) sla_met,
+		         percentile_cont(.5) WITHIN GROUP (ORDER BY extract(epoch FROM (l.finished_at-l.started_at))/3600.0) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0 AND l.returns=0 AND l.blocks=0 AND l.reopen_count=0) median_hours,
+		         percentile_cont(.75) WITHIN GROUP (ORDER BY extract(epoch FROM (l.finished_at-l.started_at))/3600.0) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0 AND l.returns=0 AND l.blocks=0 AND l.reopen_count=0) p75_hours,
+		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND m.due_at IS NOT NULL AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0 AND l.returns=0 AND l.blocks=0 AND l.reopen_count=0) sla_samples,
+		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND m.due_at IS NOT NULL AND l.finished_at<=m.due_at AND l.started_at IS NOT NULL AND l.owner_changes=0 AND l.returns=0 AND l.blocks=0 AND l.reopen_count=0) sla_met,
+		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0 AND l.returns=0 AND l.blocks=0 AND l.reopen_count=0) measurement_samples,
 		         sum(m.reopen_count) FILTER (WHERE m.updated_at>=$3) reopened
-		  FROM matters m WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.owner_principal_id IS NOT NULL
+		  FROM matters m JOIN lifecycle l ON l.id=m.id WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.owner_principal_id IS NOT NULL
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')) GROUP BY m.owner_principal_id
 		), blocked AS (
 		  SELECT ma.owner_principal_id,count(*) blocked FROM matter_actions ma JOIN matters m ON m.tenant_id=ma.tenant_id AND m.id=ma.matter_id
 		  WHERE ma.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND ma.status='BLOCKED'
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')) GROUP BY ma.owner_principal_id
 		), reassignments AS (
-		  SELECT m.owner_principal_id,count(*) reassigned
+		  SELECT (e.payload->>'previous_owner_principal_id')::uuid owner_principal_id,count(*) reassigned
 		  FROM matters m JOIN continuity_events e ON e.tenant_id=m.tenant_id AND e.aggregate_type='MATTER' AND e.aggregate_id=m.id
 		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND e.event_type='MATTER_OWNER_CHANGED' AND e.occurred_at>=$3
+		    AND NULLIF(e.payload->>'previous_owner_principal_id','') IS NOT NULL
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
-		  GROUP BY m.owner_principal_id
+		  GROUP BY (e.payload->>'previous_owner_principal_id')::uuid
 		), returned_decisions AS (
 		  SELECT m.owner_principal_id,count(*) returned
 		  FROM matters m JOIN continuity_events e ON e.tenant_id=m.tenant_id AND e.aggregate_type='MATTER' AND e.aggregate_id=m.id
@@ -261,7 +298,7 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
 		  GROUP BY m.owner_principal_id
 		)
-		SELECT ow.owner_principal_id::text,p.display_name,ow.current_load,ow.completed,ow.median_hours,ow.p75_hours,ow.sla_samples,ow.sla_met,
+		SELECT ow.owner_principal_id::text,p.display_name,ow.current_load,ow.completed,ow.median_hours,ow.p75_hours,ow.sla_samples,ow.sla_met,ow.measurement_samples,
 		       COALESCE(b.blocked,0),COALESCE(ow.reopened,0),COALESCE(r.reassigned,0),COALESCE(rd.returned,0)
 		FROM owner_work ow
 		JOIN principals p ON p.tenant_id=$1::uuid AND p.id=ow.owner_principal_id
@@ -276,11 +313,11 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		var item Performance
 		var median, p75 *float64
 		var slaSamples, slaMet, reassigned, returned int
-		if err := rows.Scan(&item.OwnerID, &item.OwnerName, &item.CurrentLoad, &item.Completed, &median, &p75, &slaSamples, &slaMet, &item.Blocked, &item.Reopened, &reassigned, &returned); err != nil {
+		if err := rows.Scan(&item.OwnerID, &item.OwnerName, &item.CurrentLoad, &item.Completed, &median, &p75, &slaSamples, &slaMet, &item.MeasurementSamples, &item.Blocked, &item.Reopened, &reassigned, &returned); err != nil {
 			rows.Close()
 			return Snapshot{}, err
 		}
-		item.MedianHours, item.P75Hours, item.MeasurementSamples = median, p75, item.Completed
+		item.MedianHours, item.P75Hours = median, p75
 		item.Reassigned, item.Returned = &reassigned, &returned
 		if slaSamples > 0 {
 			rate := float64(slaMet) / float64(slaSamples)
@@ -294,11 +331,134 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 	}
 	rows.Close()
 
+	// Replace whole-lifecycle/final-owner timing with exact assignment
+	// intervals reconstructed from immutable owner-change events. This keeps
+	// reassignment outside an employee's measured cycle once responsibility has
+	// moved, while current load and completion counts remain separate measures.
 	rows, err = r.pool.Query(ctx, `
-		SELECT matter_type,count(*),percentile_cont(.5) WITHIN GROUP (ORDER BY extract(epoch FROM (closed_at-created_at))/3600.0),
-		       percentile_cont(.25) WITHIN GROUP (ORDER BY extract(epoch FROM (closed_at-created_at))/3600.0),
-		       percentile_cont(.75) WITHIN GROUP (ORDER BY extract(epoch FROM (closed_at-created_at))/3600.0)
-		FROM matters WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND status='CLOSED' AND closed_at>=$3
+		WITH lifecycle AS (
+		  SELECT m.id,m.owner_principal_id,m.due_at,
+		         min(e.occurred_at) FILTER (WHERE e.event_type='MATTER_CREATED') started_at,
+		         max(e.occurred_at) FILTER (WHERE e.event_type='MATTER_STATE_CHANGED' AND e.payload->>'status'='CLOSED') finished_at
+		  FROM matters m LEFT JOIN continuity_events e ON e.tenant_id=m.tenant_id AND e.aggregate_type='MATTER' AND e.aggregate_id=m.id
+		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.status='CLOSED' AND m.closed_at>=$3
+		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
+		  GROUP BY m.id
+		), changes AS (
+		  SELECT e.aggregate_id matter_id,e.occurred_at,
+		         NULLIF(e.payload->>'previous_owner_principal_id','')::uuid previous_owner_id,
+		         NULLIF(e.payload->>'owner_principal_id','')::uuid owner_id,
+		         lead(e.occurred_at) OVER (PARTITION BY e.aggregate_id ORDER BY e.occurred_at,e.id) next_change,
+		         row_number() OVER (PARTITION BY e.aggregate_id ORDER BY e.occurred_at,e.id) sequence
+		  FROM continuity_events e JOIN lifecycle l ON l.id=e.aggregate_id
+		  WHERE e.tenant_id=$1::uuid AND e.aggregate_type='MATTER' AND e.event_type='MATTER_OWNER_CHANGED'
+		), segments AS (
+		  SELECT l.id matter_id,l.owner_principal_id owner_id,l.started_at segment_start,l.finished_at segment_end,l.finished_at,l.due_at
+		  FROM lifecycle l WHERE NOT EXISTS (SELECT 1 FROM changes c WHERE c.matter_id=l.id)
+		  UNION ALL
+		  SELECT l.id,c.previous_owner_id,l.started_at,c.occurred_at,l.finished_at,l.due_at
+		  FROM lifecycle l JOIN changes c ON c.matter_id=l.id AND c.sequence=1
+		  UNION ALL
+		  SELECT l.id,c.owner_id,c.occurred_at,COALESCE(c.next_change,l.finished_at),l.finished_at,l.due_at
+		  FROM lifecycle l JOIN changes c ON c.matter_id=l.id
+		), action_states AS (
+		  SELECT e.aggregate_id matter_id,e.payload->>'id' action_id,e.occurred_at,e.payload->>'status' status,
+		         lead(e.occurred_at) OVER (PARTITION BY e.aggregate_id,e.payload->>'id' ORDER BY e.occurred_at,e.id) next_state_at
+		  FROM continuity_events e JOIN lifecycle l ON l.id=e.aggregate_id
+		  WHERE e.tenant_id=$1::uuid AND e.aggregate_type='MATTER' AND e.event_type='ACTION_STATE_CHANGED' AND NULLIF(e.payload->>'id','') IS NOT NULL
+		), blocked_raw AS (
+		  SELECT matter_id,occurred_at blocked_at,next_state_at unblocked_at
+		  FROM action_states WHERE status='BLOCKED' AND next_state_at IS NOT NULL AND next_state_at>occurred_at
+		), blocked_marked AS (
+		  SELECT b.*,
+		         CASE WHEN blocked_at>COALESCE(max(unblocked_at) OVER (PARTITION BY matter_id ORDER BY blocked_at,unblocked_at ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),blocked_at)
+		              THEN 1 ELSE 0 END starts_group
+		  FROM blocked_raw b
+		), blocked_grouped AS (
+		  SELECT b.*,sum(starts_group) OVER (PARTITION BY matter_id ORDER BY blocked_at,unblocked_at) blocked_group
+		  FROM blocked_marked b
+		), blocked_intervals AS (
+		  SELECT matter_id,min(blocked_at) blocked_at,max(unblocked_at) unblocked_at
+		  FROM blocked_grouped GROUP BY matter_id,blocked_group
+		), valid AS (
+		  SELECT s.*,
+		         COALESCE((SELECT sum(extract(epoch FROM (least(s.segment_end,b.unblocked_at)-greatest(s.segment_start,b.blocked_at)))/3600.0)
+		                   FROM blocked_intervals b WHERE b.matter_id=s.matter_id AND b.blocked_at<s.segment_end AND b.unblocked_at>s.segment_start),0) blocked_hours,
+		         (s.segment_end<s.finished_at)::int reassigned,
+		         (SELECT count(*) FROM continuity_events e WHERE e.tenant_id=$1::uuid AND e.aggregate_type='MATTER' AND e.aggregate_id=s.matter_id
+		            AND e.occurred_at>=s.segment_start AND e.occurred_at<s.segment_end
+		            AND e.event_type='DECISION_ADDED' AND e.payload->>'status'='RETURNED') returned,
+		         (SELECT count(*) FROM continuity_events e WHERE e.tenant_id=$1::uuid AND e.aggregate_type='MATTER' AND e.aggregate_id=s.matter_id
+		            AND e.occurred_at>=s.segment_start AND e.occurred_at<s.segment_end
+		            AND e.event_type='ACTION_STATE_CHANGED' AND e.payload->>'status'='BLOCKED') blocked,
+		         (SELECT count(*) FROM continuity_events e WHERE e.tenant_id=$1::uuid AND e.aggregate_type='MATTER' AND e.aggregate_id=s.matter_id
+		            AND e.occurred_at>=s.segment_start AND e.occurred_at<s.segment_end
+		            AND e.event_type='MATTER_STATE_CHANGED' AND e.payload->>'status'='ASSESSMENT'
+		            AND COALESCE((e.payload->>'reopen_count')::int,0)>0) reopened
+		  FROM segments s WHERE s.owner_id IS NOT NULL AND s.segment_start IS NOT NULL AND s.segment_end IS NOT NULL AND s.segment_end>s.segment_start
+		)
+		SELECT v.owner_id::text,p.display_name,
+		       percentile_cont(.5) WITHIN GROUP (ORDER BY greatest(0,extract(epoch FROM (segment_end-segment_start))/3600.0-blocked_hours)),
+		       percentile_cont(.75) WITHIN GROUP (ORDER BY greatest(0,extract(epoch FROM (segment_end-segment_start))/3600.0-blocked_hours)),
+		       count(*),
+		       count(*) FILTER (WHERE segment_end=finished_at AND due_at IS NOT NULL),
+		       count(*) FILTER (WHERE segment_end=finished_at AND due_at IS NOT NULL AND finished_at<=due_at),
+		       sum(reassigned),sum(returned),sum(blocked),sum(blocked_hours),sum(reopened)
+		FROM valid v JOIN principals p ON p.tenant_id=$1::uuid AND p.id=v.owner_id
+		GROUP BY v.owner_id,p.display_name`, scope.TenantID, scope.LegalEntityID, periodStart)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	performanceByOwner := make(map[string]int, len(value.Performance))
+	for index := range value.Performance {
+		performanceByOwner[value.Performance[index].OwnerID] = index
+	}
+	for rows.Next() {
+		var ownerID, ownerName string
+		var median, p75, blockedHours float64
+		var samples, slaSamples, slaMet, reassigned, returned, blocked, reopened int
+		if err := rows.Scan(&ownerID, &ownerName, &median, &p75, &samples, &slaSamples, &slaMet, &reassigned, &returned, &blocked, &blockedHours, &reopened); err != nil {
+			rows.Close()
+			return Snapshot{}, err
+		}
+		index, ok := performanceByOwner[ownerID]
+		if !ok {
+			value.Performance = append(value.Performance, Performance{OwnerID: ownerID, OwnerName: ownerName})
+			index = len(value.Performance) - 1
+			performanceByOwner[ownerID] = index
+		}
+		item := &value.Performance[index]
+		item.MedianHours, item.P75Hours, item.MeasurementSamples = &median, &p75, samples
+		item.Reassigned, item.Returned = &reassigned, &returned
+		item.Blocked, item.BlockedHours, item.Reopened = blocked, blockedHours, reopened
+		item.SLAAttainment = nil
+		if slaSamples > 0 {
+			rate := float64(slaMet) / float64(slaSamples)
+			item.SLAAttainment = &rate
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return Snapshot{}, err
+	}
+	rows.Close()
+	value.HistoryQuality.ReassignedOwnerExcluded = 0
+	value.HistoryQuality.ReturnedOwnerExcluded = 0
+	value.HistoryQuality.BlockedOwnerExcluded = 0
+	value.HistoryQuality.ReopenedOwnerExcluded = 0
+
+	rows, err = r.pool.Query(ctx, `
+		WITH lifecycle AS (
+		  SELECT m.id,m.matter_type,m.scope,m.closed_at,
+		         min(ce.occurred_at) FILTER (WHERE ce.event_type='MATTER_CREATED') started_at,
+		         max(ce.occurred_at) FILTER (WHERE ce.event_type='MATTER_STATE_CHANGED' AND ce.payload->>'status'='CLOSED') finished_at
+		  FROM matters m LEFT JOIN continuity_events ce ON ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id
+		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.status='CLOSED' AND m.closed_at>=$3 GROUP BY m.id
+		)
+		SELECT matter_type,count(*),percentile_cont(.5) WITHIN GROUP (ORDER BY extract(epoch FROM (finished_at-started_at))/3600.0),
+		       percentile_cont(.25) WITHIN GROUP (ORDER BY extract(epoch FROM (finished_at-started_at))/3600.0),
+		       percentile_cont(.75) WITHIN GROUP (ORDER BY extract(epoch FROM (finished_at-started_at))/3600.0)
+		FROM lifecycle WHERE started_at IS NOT NULL AND finished_at IS NOT NULL
 		  AND (NOT (scope ? 'access') OR upper(btrim(scope->>'access')) IN ('PUBLIC','INTERNAL'))
 		GROUP BY matter_type HAVING count(*)>=5 ORDER BY count(*) DESC,matter_type LIMIT 30`, scope.TenantID, scope.LegalEntityID, periodStart)
 	if err != nil {
@@ -341,13 +501,14 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 
 func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot time.Time) (bool, error) {
 	payload, err := json.Marshal(struct {
-		Counts        Counts               `json:"counts"`
-		Interventions []Intervention       `json:"interventions"`
-		Pressure      []CategoryPressure   `json:"pressure"`
-		Aging         []AgingBucket        `json:"aging"`
-		Performance   []Performance        `json:"performance"`
-		Estimates     []ResolutionEstimate `json:"estimates"`
-	}{value.Counts, value.Interventions, value.Pressure, value.Aging, value.Performance, value.Estimates})
+		Counts         Counts               `json:"counts"`
+		Interventions  []Intervention       `json:"interventions"`
+		Pressure       []CategoryPressure   `json:"pressure"`
+		Aging          []AgingBucket        `json:"aging"`
+		Performance    []Performance        `json:"performance"`
+		Estimates      []ResolutionEstimate `json:"estimates"`
+		HistoryQuality HistoryQuality       `json:"history_quality"`
+	}{value.Counts, value.Interventions, value.Pressure, value.Aging, value.Performance, value.Estimates, value.HistoryQuality})
 	if err != nil {
 		return false, err
 	}

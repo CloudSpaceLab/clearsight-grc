@@ -28,7 +28,11 @@ func (r *PostgresRepository) ListDocumentProposalActorWork(ctx context.Context, 
 		) current_handoff ON true
 		WHERE (t.slug=$1 OR t.id::text=$1)
 		  AND wt.principal_id::text=$2
-		  AND ($3='*' OR ($3<>'' AND current_handoff.legal_entity_id=$3))
+		  AND ($3='*' OR ($3<>'' AND current_handoff.legal_entity_id=(
+		    SELECT le.id::text FROM legal_entities le
+		    WHERE le.tenant_id=t.id AND (le.id::text=$3 OR le.code=$3)
+		    ORDER BY le.valid_from DESC,le.id LIMIT 1
+		  )))
 		  AND ($4='' OR wt.status=$4)
 		  AND wi.kind=$5
 		  AND wi.subject_type='DOCUMENT_PROPOSAL'

@@ -4,6 +4,9 @@ import { matterOperationalCoverage, programOperationalCoverage } from "./operati
 
 const operationCommands = {
   createMatter: "matter.create",
+  createMatterFormRemediation: "matter.form-remediation.create",
+  sendMatterFormRemediation: "matter.form-remediation.send",
+  applyMatterFormRemediation: "matter.form-remediation.apply",
   updateMatterDetails: "matter.details.update",
   changeMatterContext: "matter.context.change",
   assignMatter: "matter.assign",

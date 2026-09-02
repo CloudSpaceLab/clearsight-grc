@@ -168,7 +168,7 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			return policy, loadErr
 		}
 		actor, actorOK := identity.FromContext(ctx)
-		if !actorOK || !continuity.MatterVisibleTo(current.Matter, actor.PrincipalID) {
+		if !actorOK || !continuity.MatterAggregateVisibleTo(current, actor.PrincipalID) {
 			return policy, continuity.ErrNotFound
 		}
 		aggregate = &current
@@ -234,7 +234,12 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		storedOwner := strings.TrimSpace(aggregate.Matter.OwnerPrincipalID)
 		var err error
 		if name == "matter.assign" && storedOwner == "" {
-			err = a.validateCurrentResponsibilityRouteActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityOwner)
+			policy.Responsibility = authority.ResponsibilityAuthorizer
+			err = a.validateCurrentResponsibilityRouteActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityAuthorizer)
+			if err == nil {
+				policy.SpecializedAuthorization = true
+				payload["reassignment_basis"] = "UNASSIGNED_RECOVERY"
+			}
 		} else if name == "matter.assign" {
 			policy.SpecializedAuthorization, err = a.validateReassignmentActor(ctx, tenant, aggregate.Matter.LegalEntityID, "MATTER", aggregate.Matter.ID, name, max(policy.Materiality, matterPriority), authority.ResponsibilityOwner, storedOwner, payload)
 		} else {
@@ -1017,7 +1022,8 @@ func (a *API) validateMatterAssignmentCandidateForRoute(ctx context.Context, ten
 	if candidateID == "" {
 		return fmt.Errorf("%w: owner_principal_id is required", continuity.ErrInvalidState)
 	}
-	if !continuity.MatterVisibleTo(aggregate.Matter, candidateID) {
+	assignmentGrantsAccess := commandName == "matter.assign" || commandName == "matter.action.assign"
+	if !assignmentGrantsAccess && !continuity.MatterVisibleTo(aggregate.Matter, candidateID) {
 		return fmt.Errorf("%w: assigned person is not permitted to view this issue", continuity.ErrInvalidState)
 	}
 	if a.deps.Authority == nil {

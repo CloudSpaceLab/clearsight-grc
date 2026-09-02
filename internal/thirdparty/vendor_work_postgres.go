@@ -86,7 +86,7 @@ func (r *PostgresRepository) GetVendorWork(ctx context.Context, scope Scope, id 
 }
 
 func (r *PostgresRepository) FindActiveVendorWork(ctx context.Context, scope Scope, linkID string) (VendorWorkRequest, error) {
-	value, err := scanVendorWork(r.pool.QueryRow(ctx, vendorWorkSelect+` WHERE (t.id::text=$1 OR t.slug=$1) AND w.legal_entity_id::text=$2 AND COALESCE(w.program_link_id,w.matter_link_id)::text=$3 AND w.state NOT IN ('ACCEPTED','CANCELLED')`, scope.TenantID, scope.LegalEntityID, linkID))
+	value, err := scanVendorWork(r.pool.QueryRow(ctx, vendorWorkSelect+` WHERE (t.id::text=$1 OR t.slug=$1) AND w.legal_entity_id::text=$2 AND COALESCE(w.program_link_id,w.matter_link_id)::text=$3 AND w.request_kind<>'ADDRESS_VERIFICATION' AND w.state NOT IN ('ACCEPTED','CANCELLED')`, scope.TenantID, scope.LegalEntityID, linkID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return VendorWorkRequest{}, ErrNotFound
 	}
@@ -505,6 +505,7 @@ func postgresVendorWorkListQuery(scope Scope, input VendorWorkListInput, actorID
 	query := vendorWorkSelect + ` JOIN third_party_relationships relationship
 		ON relationship.id=w.relationship_id AND relationship.tenant_id=w.tenant_id AND relationship.legal_entity_id=w.legal_entity_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND w.legal_entity_id::text=$2
+		  AND w.request_kind<>'ADDRESS_VERIFICATION'
 		  AND ($3='' OR w.relationship_id::text=$3) AND ($4='' OR w.target_type=$4) AND ($5='' OR w.target_id::text=$5)
 		  AND (w.target_type<>'MATTER' OR EXISTS (SELECT 1 FROM matters m WHERE m.tenant_id=w.tenant_id AND m.id=w.target_id AND ` + matterVisibilitySQL("m", actorParam) + `))
 		  AND (` + fmt.Sprintf("w.owner_principal_id=$%d::uuid OR w.reviewer_principal_id=$%d::uuid OR relationship.business_owner_principal_id=$%d::uuid OR ", actorParam, actorParam, actorParam) + visibility + `)` + cursorClause + `
@@ -662,7 +663,7 @@ func (r *PostgresRepository) ListVendorWorkCaptures(ctx context.Context, scope S
 
 func (r *PostgresRepository) HasActiveVendorWork(ctx context.Context, scope Scope, linkID string) (bool, error) {
 	var exists bool
-	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM third_party_work_requests w JOIN tenants t ON t.id=w.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND w.legal_entity_id::text=$2 AND COALESCE(w.program_link_id,w.matter_link_id)::text=$3 AND w.state NOT IN ('ACCEPTED','CANCELLED'))`, scope.TenantID, scope.LegalEntityID, linkID).Scan(&exists)
+	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM third_party_work_requests w JOIN tenants t ON t.id=w.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND w.legal_entity_id::text=$2 AND COALESCE(w.program_link_id,w.matter_link_id)::text=$3 AND w.request_kind<>'ADDRESS_VERIFICATION' AND w.state NOT IN ('ACCEPTED','CANCELLED'))`, scope.TenantID, scope.LegalEntityID, linkID).Scan(&exists)
 	return exists, err
 }
 

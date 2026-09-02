@@ -8,6 +8,7 @@ import { EmptyState } from "./EmptyState";
 import { MatterCurrentHandoff } from "./MatterCurrentHandoff";
 import { MatterDetailsPanel } from "./MatterDetailsPanel";
 import { MatterInformationPanel } from "./MatterInformationPanel";
+import { MatterFormRemediationPanel } from "./MatterFormRemediationPanel";
 import { MatterActionsPanel } from "./MatterActionsPanel";
 import { MatterOutcomePanel } from "./MatterOutcomePanel";
 import { MatterDecisionResponsePanel } from "./MatterDecisionResponsePanel";
@@ -38,6 +39,7 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props
   const [aggregate, setAggregate] = useState<MatterAggregate | null>(null);
   const [operations, setOperations] = useState<MatterOperations | null>(null);
   const [assignmentIntent, setAssignmentIntent] = useState(0);
+  const [linkedMissingItems, setLinkedMissingItems] = useState<string[]>([]);
   const loadIDs = useRef({ aggregate: 0, operations: 0 });
   const activeTarget = useRef({ id: matterID, generation: 0 });
   const startedTargetID = useRef<string | null>(null);
@@ -157,7 +159,8 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props
       />
       <section className="matter-record-grid">
         <MatterDetailsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} assignmentIntent={assignmentIntent} suppressAssignmentAction={assignmentIsDominant} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
-        <MatterInformationPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+        <MatterFormRemediationPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onOpenRequest={onOpenRequest} onMappingsChange={setLinkedMissingItems}/>
+        <MatterInformationPanel aggregate={aggregate} operations={currentOperations} linkedMissingItems={linkedMissingItems} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterActionsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterDecisionResponsePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
         <MatterOutcomePanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>

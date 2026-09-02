@@ -194,6 +194,20 @@ func (a *API) submitEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 	if input.Channel == "" {
 		input.Channel = "INTERNAL"
 	}
+	if strings.EqualFold(strings.TrimSpace(input.Channel), "INTERNAL") {
+		actor, identityErr := identity.Require(r.Context())
+		if identityErr != nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required to submit assigned evidence.")
+			return
+		}
+		request, requestErr := service.GetRequestForEntity(r.Context(), actor.TenantID, actor.LegalEntityID, input.RequestID)
+		if requestErr != nil || !a.canReadEvidenceRequest(r.Context(), request) || !evidence.RequestAssignedTo(request, actor.PrincipalID) {
+			httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
+			return
+		}
+		input.TenantID = actor.TenantID
+		input.SubmittedBy = actor.PrincipalID
+	}
 	receipt, err := service.Submit(r.Context(), input)
 	if err == nil && a.deps.Monitoring != nil {
 		results, evaluateErr := a.deps.Monitoring.EvaluateSubmission(r.Context(), input.TenantID, receipt.SubmissionID)
@@ -378,6 +392,7 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 	createdBy := strings.TrimSpace(r.FormValue("created_by"))
 	sessionToken := ""
 	canonicalSession := false
+	var authenticatedActor *identity.Actor
 	if actor, authenticated := identity.FromContext(r.Context()); authenticated {
 		if tenant != "" && tenant != actor.TenantID {
 			httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
@@ -385,6 +400,7 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 		}
 		tenant = actor.TenantID
 		createdBy = actor.PrincipalID
+		authenticatedActor = &actor
 	} else {
 		token := optionalBearerToken(r)
 		if token == "" {
@@ -410,6 +426,13 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 	if tenant == "" || requestID == "" {
 		httpx.WriteError(w, http.StatusBadRequest, "artifact_scope_required", "tenant_id and request_id are required.")
 		return
+	}
+	if authenticatedActor != nil {
+		request, requestErr := service.GetRequestForEntity(r.Context(), authenticatedActor.TenantID, authenticatedActor.LegalEntityID, requestID)
+		if requestErr != nil || !a.canReadEvidenceRequest(r.Context(), request) {
+			httpx.WriteError(w, http.StatusNotFound, "not_found", "Evidence request not found.")
+			return
+		}
 	}
 	mediaType := multipartMediaType(header)
 	artifactInput := evidence.ArtifactInput{TenantID: tenant, RequestID: requestID, FieldID: strings.TrimSpace(r.FormValue("field_id")), SubmissionID: strings.TrimSpace(r.FormValue("submission_id")), FileName: header.Filename, MediaType: mediaType, CreatedBy: createdBy}

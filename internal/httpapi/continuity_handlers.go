@@ -586,7 +586,7 @@ func (a *API) getMatter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	value, err := service.GetMatter(r.Context(), tenant, r.PathValue("id"))
-	if err == nil && !canReadMatter(r.Context(), value.Matter) {
+	if err == nil && !canReadMatterAggregate(r.Context(), value) {
 		err = continuity.ErrNotFound
 	}
 	writeContinuityResult(w, value, err, http.StatusOK)
@@ -606,7 +606,7 @@ func (a *API) getMatterHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	value, err := service.MatterAt(r.Context(), tenant, r.PathValue("id"), at)
-	if err == nil && !canReadMatter(r.Context(), value.Matter) {
+	if err == nil && !canReadMatterAggregate(r.Context(), value) {
 		err = continuity.ErrNotFound
 	}
 	writeContinuityResult(w, value, err, http.StatusOK)

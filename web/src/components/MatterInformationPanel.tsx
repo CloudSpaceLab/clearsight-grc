@@ -9,6 +9,7 @@ import { matterOperationControlID } from "./matterHandoff";
 type Props = {
   aggregate: MatterAggregate;
   operations: MatterOperation[];
+  linkedMissingItems?: string[];
   onUpdated: (value: MatterAggregate) => void | Promise<void>;
   onReload: () => void;
 };
@@ -45,7 +46,7 @@ function scalar(value: string, current?: unknown) {
   return value.trim();
 }
 
-export function MatterInformationPanel({ aggregate, operations, onUpdated, onReload }: Props) {
+export function MatterInformationPanel({ aggregate, operations, linkedMissingItems = [], onUpdated, onReload }: Props) {
   const operation = operations.find((candidate) => candidate.command === "matter.context.change");
   const [active, setActive] = useState<ActiveChange>(null);
   const [label, setLabel] = useState("");
@@ -100,13 +101,14 @@ export function MatterInformationPanel({ aggregate, operations, onUpdated, onRel
   }
 
   const facts = Object.entries(aggregate.matter.known_facts);
+  const linkedItems = new Set(linkedMissingItems.map((item) => item.trim().toLowerCase()));
   return <article className="matter-record-panel matter-information-panel" id="matter-operation-matter.context.change">
     <div className="matter-record-section-heading">
       <div><span className="eyebrow">Evidence and facts</span><h2>Recorded information</h2></div>
       {operation?.can_act && !active && <div className="matter-panel-actions"><button id={aggregate.matter.missing_facts.length === 0 ? matterOperationControlID(operation) : undefined} className="secondary-button" type="button" onClick={() => start({ type: "add-fact" })}>Add recorded fact</button><button className="secondary-button" type="button" onClick={() => start({ type: "add-missing" })}>Add missing information</button></div>}
     </div>
     {facts.length ? <dl className="matter-record-facts">{facts.map(([factKey, factValue]) => { const factLabel = humanize(factKey); return <div key={factKey}><dt>{factLabel}</dt><dd><span>{display(factValue)}</span>{operation?.can_act && <button className="text-button" type="button" aria-label={`Edit ${factLabel}`} onClick={() => start({ type: "fact", key: factKey, label: factLabel, current: factValue })}>Edit</button>}</dd></div>; })}</dl> : <p>No facts have been recorded for this issue.</p>}
-    {aggregate.matter.missing_facts.length > 0 && <section className="matter-record-attention" aria-labelledby="missing-information-heading"><strong id="missing-information-heading">Information still needed</strong><ul className="matter-information-list">{aggregate.matter.missing_facts.map((item, index) => { const itemLabel = display(item); return <li key={`${index}-${itemLabel}`}><span>{itemLabel}</span>{operation?.can_act && <button id={index === 0 ? matterOperationControlID(operation) : undefined} className="secondary-button" type="button" aria-label={`Add information for ${itemLabel}`} onClick={() => start({ type: "missing", label: itemLabel })}>Add information</button>}</li>; })}</ul></section>}
+    {aggregate.matter.missing_facts.length > 0 && <section className="matter-record-attention" aria-labelledby="missing-information-heading"><strong id="missing-information-heading">Information still needed</strong><ul className="matter-information-list">{aggregate.matter.missing_facts.map((item, index) => { const itemLabel = display(item); const linked = linkedItems.has(itemLabel.trim().toLowerCase()); return <li key={`${index}-${itemLabel}`}><span>{itemLabel}</span>{linked ? <span className="status-pill">Collected through linked form</span> : operation?.can_act && <button id={index === 0 ? matterOperationControlID(operation) : undefined} className="secondary-button" type="button" aria-label={`Add information for ${itemLabel}`} onClick={() => start({ type: "missing", label: itemLabel })}>Add information</button>}</li>; })}</ul></section>}
     {aggregate.matter.contradictions.length > 0 && <section className="matter-record-attention"><strong>Contradictions to resolve</strong><ul className="matter-information-list">{aggregate.matter.contradictions.map((item, index) => { const itemLabel = display(item); return <li key={`${index}-${itemLabel}`}><span>{itemLabel}</span>{operation?.can_act && <button className="secondary-button" type="button" aria-label={`Resolve contradiction: ${itemLabel}`} onClick={() => start({ type: "contradiction", label: itemLabel })}>Resolve</button>}</li>; })}</ul></section>}
     {operation?.can_act && !active && <button className="text-button matter-add-contradiction" type="button" onClick={() => start({ type: "add-contradiction" })}>Record a contradiction</button>}
     {active && <form className="matter-operation-form" onSubmit={(event) => void submit(event)}>

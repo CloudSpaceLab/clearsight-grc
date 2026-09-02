@@ -168,3 +168,14 @@
   .matter-governance-row { display: grid; }
   .matter-governance-row button { width: 100%; min-height: 44px; }
 }
+.matter-form-remediation-panel { grid-column: 1 / -1; }
+.matter-form-remediation-list { display: grid; gap: var(--space-3); margin: var(--space-4) 0 0; padding: 0; list-style: none; }
+.matter-form-remediation-list > li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--surface-subtle); }
+.matter-form-remediation-list > li > div:first-child { display: grid; gap: var(--space-1); }
+.matter-form-remediation-list > li span { color: var(--text-muted); }
+.matter-form-review-action { min-width: min(32rem, 100%); display: grid; gap: var(--space-2); }
+.matter-form-remediation-delivery { display: grid; grid-template-columns: minmax(0, 2fr) minmax(12rem, 1fr); gap: var(--space-4); }
+@media (max-width: 720px) {
+  .matter-form-remediation-list > li { align-items: stretch; flex-direction: column; }
+  .matter-form-remediation-delivery { grid-template-columns: 1fr; }
+}

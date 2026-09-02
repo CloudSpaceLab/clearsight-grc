@@ -12,6 +12,7 @@ import type { CreateVendorRelationshipInput, VendorCriticality, VendorIdentityPr
 import { VendorDueDiligence } from "./VendorDueDiligence";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { VendorBrandIcon, vendorBrandLabel } from "./VendorBrandIcon";
+import { VendorActivationPanel } from "./VendorActivationPanel";
 import { VendorIdentityEditor } from "./VendorIdentityEditor";
 import { VendorFormReadiness } from "./VendorFormReadiness";
 
@@ -625,6 +626,11 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           onOpenRequest={onOpenRequest}
           onOpenMatter={onOpenMatter}
           accountableOwnerLabel={accountableOwnerLabel}
+          onActivated={(relationship) => {
+            const updated = { ...selected, relationship };
+            setSelected(updated);
+            setRecords((current) => current.map((item) => item.relationship.id === relationship.id ? updated : item));
+          }}
         /> : records.length > 0 ? <div className="vendor-selection"><h2>Select a vendor</h2><p>Choose a relationship to review its service, accountable owner, source and current record version.</p></div> : null}
       </section>
     </div>}
@@ -639,7 +645,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   </div>;
 }
 
-function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter, accountableOwnerLabel }: {
+function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter, accountableOwnerLabel, onActivated }: {
   record: VendorRelationshipAggregate;
   assessment: VendorAssessment | null;
   assessmentSetup?: CurrentVendorAssessment["setup"];
@@ -673,6 +679,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   onOpenRequest?: (requestID: string) => void;
   onOpenMatter?: (matterID: string) => void;
   accountableOwnerLabel: string;
+  onActivated: (relationship: VendorRelationshipAggregate["relationship"]) => void;
 }) {
   const { vendor, relationship } = record;
   const effectiveAssessmentState = assessmentState === "live" && !assessment && formState === "loading" ? "loading" : assessmentState;
@@ -723,6 +730,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     onOpenRequest={onOpenRequest}
     onOpenMatter={onOpenMatter}
   />}
+  <VendorActivationPanel relationship={relationship} onActivated={onActivated}/>
   <VendorWorkPanel relationshipID={relationship.id} onOpenRequest={onOpenRequest}/>
   </>;
 }

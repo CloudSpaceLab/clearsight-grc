@@ -20,6 +20,7 @@ func (r *MemoryRepository) BackgroundJobs(_ context.Context, tenant string, limi
 			continue
 		}
 		job := operations.Job{ID: timer.ID, Queue: "workflow-timers", Kind: timer.Type, State: string(timer.State), Attempts: timer.Attempts, AvailableAt: timePtr(timer.DueAt), LeaseUntil: timer.LeaseUntil, LockedBy: timer.LockedBy, LastError: timer.LastError, TerminalAt: timer.FailedAt}
+		job.FailureCode = operations.SafeFailureCode(job.LastError)
 		jobs = append(jobs, job)
 		if timer.Attempts > timerSummary.HighestAttempts {
 			timerSummary.HighestAttempts = timer.Attempts
@@ -51,7 +52,9 @@ func (r *MemoryRepository) BackgroundJobs(_ context.Context, tenant string, limi
 		if available == nil {
 			available = timePtr(event.OccurredAt)
 		}
-		jobs = append(jobs, operations.Job{ID: event.ID, Queue: "outbox-delivery", Kind: event.EventType, State: state, Attempts: event.Attempts, AvailableAt: available, LeaseUntil: event.LeaseUntil, LockedBy: event.LockedBy, LastError: event.LastError, TerminalAt: terminal, CreatedAt: timePtr(event.OccurredAt)})
+		job := operations.Job{ID: event.ID, Queue: "outbox-delivery", Kind: event.EventType, State: state, Attempts: event.Attempts, AvailableAt: available, LeaseUntil: event.LeaseUntil, LockedBy: event.LockedBy, LastError: event.LastError, TerminalAt: terminal, CreatedAt: timePtr(event.OccurredAt)}
+		job.FailureCode = operations.SafeFailureCode(job.LastError)
+		jobs = append(jobs, job)
 		if event.Attempts > outboxSummary.HighestAttempts {
 			outboxSummary.HighestAttempts = event.Attempts
 		}

@@ -4,11 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"strings"
 	"testing"
 )
 
-func TestAddActionRequiresAssignedOwner(t *testing.T) {
+func TestAddActionCanRemainPlannedUntilAnEligibleOwnerIsAssigned(t *testing.T) {
 	service := NewService(NewMemoryRepository())
 	matter, err := service.CreateMatter(WithTrustedSystemScope(t.Context()), CreateMatterInput{
 		TenantID:      "bank",
@@ -23,7 +22,7 @@ func TestAddActionRequiresAssignedOwner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = service.AddAction(WithTrustedSystemScope(t.Context()), AddActionInput{
+	updated, err := service.AddAction(WithTrustedSystemScope(t.Context()), AddActionInput{
 		TenantID:         "bank",
 		MatterID:         matter.Matter.ID,
 		ExpectedVersion:  matter.Matter.Version,
@@ -31,16 +30,11 @@ func TestAddActionRequiresAssignedOwner(t *testing.T) {
 		Description:      "Obtain current ownership confirmation for every unresolved account.",
 		OwnerPrincipalID: "   ",
 	})
-	if err == nil || !strings.Contains(err.Error(), "owner_principal_id") {
-		t.Fatalf("expected assigned-owner validation error, got %v", err)
-	}
-
-	current, err := service.GetMatter(WithTrustedSystemScope(t.Context()), "bank", matter.Matter.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(current.Actions) != 0 {
-		t.Fatalf("invalid action was persisted: %#v", current.Actions)
+	if len(updated.Actions) != 1 || updated.Actions[0].OwnerPrincipalID != "" || updated.Actions[0].Status != ActionPlanned {
+		t.Fatalf("unassigned planned action = %#v", updated.Actions)
 	}
 }
 

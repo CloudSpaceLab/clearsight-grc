@@ -13,23 +13,27 @@ import (
 )
 
 type MemoryRepository struct {
-	mu            sync.RWMutex
-	programs      map[string]map[string]ProgramAggregate
-	matters       map[string]map[string]MatterAggregate
-	programEvents map[string]map[string][]Event
-	matterEvents  map[string]map[string][]Event
-	triggers      map[string]map[string]Trigger
-	legalEntities map[string]map[string]string
+	mu                     sync.RWMutex
+	programs               map[string]map[string]ProgramAggregate
+	matters                map[string]map[string]MatterAggregate
+	programEvents          map[string]map[string][]Event
+	matterEvents           map[string]map[string][]Event
+	triggers               map[string]map[string]Trigger
+	legalEntities          map[string]map[string]string
+	matterFormBindings     map[string]MatterFormRemediationBinding
+	matterFormApplications map[string]MatterFormApplication
 }
 
 func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
-		programs:      map[string]map[string]ProgramAggregate{},
-		matters:       map[string]map[string]MatterAggregate{},
-		programEvents: map[string]map[string][]Event{},
-		matterEvents:  map[string]map[string][]Event{},
-		triggers:      map[string]map[string]Trigger{},
-		legalEntities: map[string]map[string]string{},
+		programs:               map[string]map[string]ProgramAggregate{},
+		matters:                map[string]map[string]MatterAggregate{},
+		programEvents:          map[string]map[string][]Event{},
+		matterEvents:           map[string]map[string][]Event{},
+		triggers:               map[string]map[string]Trigger{},
+		legalEntities:          map[string]map[string]string{},
+		matterFormBindings:     map[string]MatterFormRemediationBinding{},
+		matterFormApplications: map[string]MatterFormApplication{},
 	}
 }
 
@@ -580,6 +584,12 @@ func applyMatterEventToAggregate(aggregate *MatterAggregate, event Event) error 
 		aggregate.Matter = value.Matter
 	case EventMatterOwnerChanged:
 		var value matterOwnerChangedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Matter = value.Matter
+	case EventMatterFormApplied:
+		var value matterFormResponseAppliedEvent
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
 			return err
 		}

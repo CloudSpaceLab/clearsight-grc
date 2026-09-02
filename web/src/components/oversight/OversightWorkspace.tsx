@@ -36,7 +36,7 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
     <div className="oversight-scope-line"><span>{coverage}</span><span>{formatDate(snapshot.period_start)} – {formatDate(snapshot.period_end)}</span><span>{snapshot.projection_version}</span></div>
     <details className="oversight-data-freshness">
       <summary>Data freshness</summary>
-      <div><p>This snapshot was generated {formatDateTime(snapshot.generated_at)} from projection {snapshot.projection_version}.</p><dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl></div>
+      <div><p>This snapshot was generated {formatDateTime(snapshot.generated_at)} from projection {snapshot.projection_version}.</p><p>{historyQualityLabel(snapshot)}</p><dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl></div>
     </details>
 
     <div className="oversight-counts" aria-label="Issues requiring oversight">
@@ -87,6 +87,11 @@ function OperatingPerformance({ snapshot }: { snapshot: OversightSnapshot }) {
 
 function EmptyMeasure() { return <EmptyState population="Open issues in this legal entity" title="No open issues in this measure" description="The current snapshot contains no rows for this breakdown."/>; }
 
+function historyQualityLabel(snapshot: OversightSnapshot) {
+  const quality = snapshot.history_quality;
+  return `${quality.complete_lifecycle} of ${quality.completed_population} completed issues have complete lifecycle events · ${quality.excluded_from_durations} excluded because an opened or closed event is missing · employee handling time follows each recorded owner assignment; reassignment, return, blocked and reopen counts remain visible separately`;
+}
+
 const detailViews = [
   { id: "pressure", label: "Risk pressure" },
   { id: "outlook", label: "Resolution outlook" },
@@ -105,7 +110,7 @@ const performanceColumns = [
   { id: "owner", header: "Person", render: (item: OversightSnapshot["performance"][number]) => <strong>{item.owner_name}</strong>, accessibleText: (item: OversightSnapshot["performance"][number]) => item.owner_name },
   { id: "load", header: "Current load", kind: "number" as const, render: (item: OversightSnapshot["performance"][number]) => item.current_load, accessibleText: (item: OversightSnapshot["performance"][number]) => String(item.current_load) },
   { id: "completed", header: "Completed", kind: "number" as const, render: (item: OversightSnapshot["performance"][number]) => <>{item.completed}<span>{item.completed} completed · {item.measurement_samples} measured</span></>, accessibleText: (item: OversightSnapshot["performance"][number]) => `${item.completed} completed; ${item.measurement_samples} measured` },
-  { id: "cycle", header: "Cycle time", render: (item: OversightSnapshot["performance"][number]) => <>{item.median_hours == null ? "Unknown" : `${formatDuration(item.median_hours)} median`}<span>{item.p75_hours == null ? "p75 unknown" : `${formatDuration(item.p75_hours)} p75`}</span></>, accessibleText: (item: OversightSnapshot["performance"][number]) => item.median_hours == null ? "Unknown" : `${formatDuration(item.median_hours)} median; ${item.p75_hours == null ? "p75 unknown" : `${formatDuration(item.p75_hours)} p75`}` },
+  { id: "cycle", header: "Active handling time", render: (item: OversightSnapshot["performance"][number]) => <>{item.median_hours == null ? "Unknown" : `${formatDuration(item.median_hours)} median`}<span>{item.p75_hours == null ? "p75 unknown" : `${formatDuration(item.p75_hours)} p75`} · {formatDuration(item.blocked_hours)} blocked</span></>, accessibleText: (item: OversightSnapshot["performance"][number]) => item.median_hours == null ? "Unknown" : `${formatDuration(item.median_hours)} median; ${item.p75_hours == null ? "p75 unknown" : `${formatDuration(item.p75_hours)} p75`}; ${formatDuration(item.blocked_hours)} blocked` },
   { id: "sla", header: "SLA met", render: (item: OversightSnapshot["performance"][number]) => item.sla_attainment == null ? "Unknown" : formatPercent(item.sla_attainment), accessibleText: (item: OversightSnapshot["performance"][number]) => item.sla_attainment == null ? "Unknown" : formatPercent(item.sla_attainment) },
   { id: "history", header: "Workflow history", render: (item: OversightSnapshot["performance"][number]) => <>{workflowHistory(item)}</>, accessibleText: (item: OversightSnapshot["performance"][number]) => workflowHistory(item).replaceAll(" · ", "; ") },
 ];

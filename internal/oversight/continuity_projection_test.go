@@ -25,7 +25,7 @@ func TestMatterAggregateProjectionExcludesRestrictedAndUnknownScopes(t *testing.
 	}
 }
 
-func TestMatterAggregateProjectionDerivesOnlyAvailableHistoryMeasures(t *testing.T) {
+func TestMatterAggregateProjectionDoesNotInventLifecycleHistoryMeasures(t *testing.T) {
 	now := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
 	aggregates := make([]continuity.MatterAggregate, 0, 5)
 	for index, hours := range []int{30, 42, 55, 74, 96} {
@@ -40,11 +40,14 @@ func TestMatterAggregateProjectionDerivesOnlyAvailableHistoryMeasures(t *testing
 	}
 
 	value := FromMatterAggregates("bank", "bank-ng", aggregates, now)
-	if len(value.Estimates) != 1 || value.Estimates[0].Category != string(continuity.MatterVendorReview) || value.Estimates[0].SampleSize != 5 {
-		t.Fatalf("resolution estimates = %#v", value.Estimates)
+	if len(value.Estimates) != 0 {
+		t.Fatalf("aggregate-only projection invented resolution estimates = %#v", value.Estimates)
 	}
-	if len(value.Performance) != 1 || value.Performance[0].Completed != 5 || value.Performance[0].MeasurementSamples != 5 {
+	if len(value.Performance) != 1 || value.Performance[0].Completed != 5 || value.Performance[0].MeasurementSamples != 0 || value.Performance[0].MedianHours != nil {
 		t.Fatalf("performance = %#v", value.Performance)
+	}
+	if value.HistoryQuality.CompletedPopulation != 5 || value.HistoryQuality.ExcludedFromDurations != 5 {
+		t.Fatalf("history quality = %#v", value.HistoryQuality)
 	}
 	if value.Performance[0].Reassigned != nil || value.Performance[0].Returned != nil {
 		t.Fatalf("aggregate-only projection invented event history: %#v", value.Performance[0])
