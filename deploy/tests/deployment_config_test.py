@@ -114,19 +114,24 @@ class DeploymentConfigTest(unittest.TestCase):
     def test_email_readiness_requires_encryption_starttls_and_redacts_values(self) -> None:
         script = self.read("deploy/scripts/verify-email-readiness.sh")
         for value in (
+            'expected_sha="${1:?expected sha is required}"',
             "CLEARSIGHT_RECIPIENT_KEYRING", "CLEARSIGHT_RECIPIENT_ACTIVE_KEY_ID",
             "CLEARSIGHT_DISTRIBUTION_ACCESS_HMAC_KEY", "CLEARSIGHT_SMTP_HOST",
             "CLEARSIGHT_SMTP_PORT", "CLEARSIGHT_SMTP_USERNAME", "CLEARSIGHT_SMTP_PASSWORD",
             "CLEARSIGHT_SMTP_FROM", "CLEARSIGHT_SMTP_TLS_MODE", "STARTTLS",
             "/dev/tcp/", "openssl s_client", "-starttls smtp", "-verify_hostname",
             '"$CLEARSIGHT_SMTP_HOST"', "-verify_return_error",
+            "smtp_configured=true", "starttls_required=true",
+            "recipient_protection_configured=true", "capture_origin_secure=true",
+            "api_revision_matches=true", "worker_revision_matches=true",
+            'org.opencontainers.image.revision',
         ):
             self.assertIn(value, script)
         for forbidden in ("env |", "printenv", "set -x", "echo $", "printf '%s' \"$"):
             self.assertNotIn(forbidden, script)
         hosted = self.read("deploy/scripts/verify-hosted-release.sh")
         self.assertIn('if [[ "${VERIFY_EMAIL_READINESS:-false}" == "true" ]]', hosted)
-        self.assertIn('"$script_dir/verify-email-readiness.sh"', hosted)
+        self.assertIn('"$script_dir/verify-email-readiness.sh" "$expected_sha"', hosted)
         workflow = self.read(".github/workflows/deploy-demo.yml")
         self.assertIn('install -m 0755 deploy/scripts/verify-email-readiness.sh "$release/scripts/verify-email-readiness.sh"', workflow)
 
