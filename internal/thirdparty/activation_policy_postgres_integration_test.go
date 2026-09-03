@@ -68,15 +68,16 @@ func TestPostgresActivationServiceSimulatesIncompleteProposedRelationships(t *te
 	repository := NewPostgresRepository(pool)
 	for index, status := range []AssessmentStatus{AssessmentCollecting, AssessmentReadyToSend, AssessmentSetupPending} {
 		relationship := seedAssessmentRelationship(t, pool, "Hosted activation candidate "+string(rune('A'+index)))
+		candidateTime := now.Add(time.Duration(index) * time.Minute)
 		assessmentID := []string{
 			"33333333-3333-7333-8333-333333333361",
 			"33333333-3333-7333-8333-333333333362",
 			"33333333-3333-7333-8333-333333333363",
 		}[index]
-		if _, err := repository.CreateAssessment(ctx, postgresAssessmentRecord(assessmentID, relationship, now.Add(time.Duration(index)*time.Minute))); err != nil {
+		if _, err := repository.CreateAssessment(ctx, postgresAssessmentRecord(assessmentID, relationship, candidateTime)); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := pool.Exec(ctx, `UPDATE third_party_assessments SET status=$3,version=2,updated_at=$4 WHERE tenant_id=$1::uuid AND id=$2::uuid`, pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, assessmentID, status, now); err != nil {
+		if _, err := pool.Exec(ctx, `UPDATE third_party_assessments SET status=$3,version=2,updated_at=$4 WHERE tenant_id=$1::uuid AND id=$2::uuid`, pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, assessmentID, status, candidateTime); err != nil {
 			t.Fatal(err)
 		}
 	}
