@@ -171,7 +171,7 @@ func (p *RuntimeProvider) RecordReceipt(ctx context.Context, record aigateway.Re
 		PolicyVersion: record.Decision.PolicyVersion, Decision: record.Decision.Action, ProposedAction: record.Decision.ProposedAction,
 		ReasonCodes: uniqueSorted(record.Decision.ReasonCodes), Obligations: uniqueSorted(obligations), ModelAlias: record.ModelAlias,
 		RouteID: record.RouteID, Outcome: record.Outcome, ErrorCode: record.ErrorCode, ObservedAt: record.ObservedAt,
-		ExpiresAt: record.ObservedAt.Add(90 * 24 * time.Hour),
+		ExpiresAt:        record.ObservedAt.Add(90 * 24 * time.Hour),
 		BaselinePolicyID: record.Decision.BaselinePolicyID, BaselinePolicyCode: record.Decision.BaselinePolicyCode,
 		BaselinePolicyVersion: record.Decision.BaselinePolicyVersion, BaselineRolloutMode: record.Decision.BaselineRolloutMode,
 		BaselineDecision: record.Decision.BaselineAction, BaselineProposedAction: record.Decision.BaselineProposedAction,
