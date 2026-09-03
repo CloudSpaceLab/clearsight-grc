@@ -11,6 +11,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/activity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
 func TestSystemActivityUsesVerifiedTenantAndPlatformPermission(t *testing.T) {
@@ -21,9 +22,10 @@ func TestSystemActivityUsesVerifiedTenantAndPlatformPermission(t *testing.T) {
 	))
 
 	withoutPermission := New(Dependencies{
-		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "user", "bank-ng"),
-		Activity: service,
+		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity:       identity.NewDevelopmentAuthenticator("bank-demo", "user", "bank-ng"),
+		RuntimeContext: runtimecontext.IdentifierResolver{},
+		Activity:       service,
 	})
 	response := httptest.NewRecorder()
 	withoutPermission.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/system-activity", nil))
@@ -32,9 +34,10 @@ func TestSystemActivityUsesVerifiedTenantAndPlatformPermission(t *testing.T) {
 	}
 
 	admin := New(Dependencies{
-		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "admin", "bank-ng", "SYSTEM_ADMIN"),
-		Activity: service,
+		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity:       identity.NewDevelopmentAuthenticator("bank-demo", "admin", "bank-ng", "SYSTEM_ADMIN"),
+		RuntimeContext: runtimecontext.IdentifierResolver{},
+		Activity:       service,
 	})
 	response = httptest.NewRecorder()
 	admin.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/system-activity?tenant_id=other-bank&limit=20", nil))
@@ -53,9 +56,10 @@ func TestSystemActivityUsesVerifiedTenantAndPlatformPermission(t *testing.T) {
 func TestSystemActivityRejectsInvalidDateRange(t *testing.T) {
 	service := activity.NewService(activity.NewMemoryRepository())
 	handler := New(Dependencies{
-		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "admin", "bank-ng", "SYSTEM_ADMIN"),
-		Activity: service,
+		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity:       identity.NewDevelopmentAuthenticator("bank-demo", "admin", "bank-ng", "SYSTEM_ADMIN"),
+		RuntimeContext: runtimecontext.IdentifierResolver{},
+		Activity:       service,
 	})
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/system-activity?from=2026-09-04&to=2026-09-03", nil))
