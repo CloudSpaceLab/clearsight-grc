@@ -27,6 +27,12 @@ func (r *PostgresResolver) CanReassign(ctx context.Context, request Reassignment
 		return ReassignmentDecision{}, ErrPrincipalUnavailable
 	}
 	if request.ActorPrincipalID == request.CurrentOwnerPrincipalID {
+		if _, err := r.ResolvePrincipal(ctx, request.TenantID, request.ActorPrincipalID, request.LegalEntityID); err != nil {
+			if errors.Is(err, ErrPrincipalUnavailable) {
+				return ReassignmentDecision{}, nil
+			}
+			return ReassignmentDecision{}, err
+		}
 		return ReassignmentDecision{Allowed: true, Basis: "CURRENT_ASSIGNEE"}, nil
 	}
 
@@ -70,7 +76,17 @@ func (r *PostgresResolver) CanReassign(ctx context.Context, request Reassignment
 		SELECT COALESCE(bool_or(a.depth>0 AND p.occupant_principal_id=actor.id),false),COALESCE(max(a.version),0)
 		FROM ancestors a
 		JOIN org_positions p ON p.id=a.id
-		CROSS JOIN active_actor actor`, request.TenantID, request.LegalEntityID, request.ActorPrincipalID, request.CurrentOwnerPrincipalID).
+		CROSS JOIN active_actor actor
+		-- Every owner-position chain must reach an effective in-scope root.
+		-- A cycle, invalid parent or depth cutoff is not a completed chain,
+		-- even when a matching manager was visited before the failure.
+		WHERE NOT EXISTS (
+			SELECT 1 FROM owner_positions owner_position
+			WHERE NOT EXISTS (
+				SELECT 1 FROM ancestors root
+				WHERE root.visited[1]=owner_position.id AND root.parent_position_id IS NULL
+			)
+		)`, request.TenantID, request.LegalEntityID, request.ActorPrincipalID, request.CurrentOwnerPrincipalID).
 		Scan(&allowed, &hierarchyVersion)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ReassignmentDecision{Allowed: false}, nil
@@ -78,11 +94,10 @@ func (r *PostgresResolver) CanReassign(ctx context.Context, request Reassignment
 	if err != nil {
 		return ReassignmentDecision{}, fmt.Errorf("resolve reporting-line reassignment: %w", err)
 	}
-	decision := ReassignmentDecision{Allowed: allowed, HierarchyVersion: hierarchyVersion}
-	if allowed {
-		decision.Basis = "REPORTING_ANCESTOR"
+	if !allowed {
+		return ReassignmentDecision{}, nil
 	}
-	return decision, nil
+	return ReassignmentDecision{Allowed: true, Basis: "REPORTING_ANCESTOR", HierarchyVersion: hierarchyVersion}, nil
 }
 
 func (r *PostgresResolver) ResolveOIDC(ctx context.Context, tenantID, legalEntityID, issuer, subject string) (Resolution, error) {

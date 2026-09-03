@@ -365,6 +365,11 @@ func (a *API) resolveMatterOperation(ctx context.Context, actor identity.Actor, 
 	} else if requiresStoredPrincipal && spec.Command != "matter.assign" {
 		allowed = false
 	}
+	// Action handoff permits the current performer's route as well as the
+	// Matter owner's route, matching the material command's ordered checks.
+	if !allowed && spec.Command == "matter.action.assign" && resolved.candidate != nil && resolved.candidate.Err == nil {
+		allowed = resolved.candidate.Resolution.AllowsPrincipalFor(actor.PrincipalID, strings.TrimSpace(spec.ReassignmentPrincipalID))
+	}
 	operation.CanAct = allowed
 	if !operation.CanAct && strings.TrimSpace(spec.ReassignmentPrincipalID) != "" {
 		if decision, checked := a.canReassignStoredResponsibility(ctx, actor, matter.LegalEntityID, spec.ReassignmentPrincipalID); checked && decision.Allowed {
@@ -395,8 +400,10 @@ func (a *API) canReassignStoredResponsibility(ctx context.Context, actor identit
 	if currentOwnerID == "" {
 		return access.ReassignmentDecision{}, false
 	}
-	if actor.PrincipalID == currentOwnerID {
-		return access.ReassignmentDecision{Allowed: true, Basis: "CURRENT_ASSIGNEE"}, true
+	// The current responsibility route has already denied this operation.
+	// ID equality cannot restore owner authority through manager fallback.
+	if strings.TrimSpace(actor.PrincipalID) == currentOwnerID {
+		return access.ReassignmentDecision{}, true
 	}
 	resolver, ok := a.deps.Access.(access.ReassignmentResolver)
 	if !ok {
