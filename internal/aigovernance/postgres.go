@@ -182,7 +182,28 @@ func (r *PostgresRepository) UpdateWorkload(ctx context.Context, v Workload, exp
 func (r *PostgresRepository) IngestReceipt(ctx context.Context, v DecisionReceipt) (bool, error) {
 	reasons, _ := json.Marshal(v.ReasonCodes)
 	obligations, _ := json.Marshal(v.Obligations)
-	tag, err := r.pool.Exec(ctx, `INSERT INTO ai_gateway_decision_receipts(id,tenant_id,receipt_id,request_id,workload_id,policy_id,policy_code,policy_version,decision_action,proposed_action,reason_codes,obligations,model_alias,route_id,outcome,error_code,observed_at,expires_at,fingerprint) VALUES(uuidv7(),(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3,$4,NULLIF($5,'')::uuid,$6,$7,$8,$9,$10::jsonb,$11::jsonb,$12,$13,$14,$15,$16,$17,$18) ON CONFLICT(tenant_id,receipt_id) DO NOTHING`, v.TenantID, v.ReceiptID, v.RequestID, v.WorkloadID, v.PolicyID, v.PolicyCode, v.PolicyVersion, v.Decision, v.ProposedAction, string(reasons), string(obligations), v.ModelAlias, v.RouteID, v.Outcome, v.ErrorCode, v.ObservedAt, v.ExpiresAt, v.Fingerprint)
+	baselineReasons, _ := json.Marshal(v.BaselineReasonCodes)
+	var baselineVersion any
+	if v.BaselinePolicyID != "" {
+		baselineVersion = v.BaselinePolicyVersion
+	}
+	tag, err := r.pool.Exec(ctx, `INSERT INTO ai_gateway_decision_receipts(
+    id,tenant_id,receipt_id,request_id,workload_id,policy_id,policy_code,policy_version,
+    decision_action,proposed_action,reason_codes,obligations,
+    baseline_policy_id,baseline_policy_code,baseline_policy_version,baseline_rollout_mode,
+    baseline_decision_action,baseline_proposed_action,baseline_reason_codes,
+    model_alias,route_id,outcome,error_code,observed_at,expires_at,fingerprint)
+VALUES(
+    uuidv7(),(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3,$4,NULLIF($5,'')::uuid,$6,$7,
+    $8,$9,$10::jsonb,$11::jsonb,
+    NULLIF($12,'')::uuid,$13,$14,$15,$16,$17,$18::jsonb,
+    $19,$20,$21,$22,$23,$24,$25)
+ON CONFLICT(tenant_id,receipt_id) DO NOTHING`,
+		v.TenantID, v.ReceiptID, v.RequestID, v.WorkloadID, v.PolicyID, v.PolicyCode, v.PolicyVersion,
+		v.Decision, v.ProposedAction, string(reasons), string(obligations),
+		v.BaselinePolicyID, v.BaselinePolicyCode, baselineVersion, v.BaselineRolloutMode,
+		v.BaselineDecision, v.BaselineProposedAction, string(baselineReasons),
+		v.ModelAlias, v.RouteID, v.Outcome, v.ErrorCode, v.ObservedAt, v.ExpiresAt, v.Fingerprint)
 	if err != nil {
 		return false, err
 	}
