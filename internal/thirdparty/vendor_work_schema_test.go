@@ -113,12 +113,14 @@ func TestVendorWorkCanonicalAccessRouteMigrationRemovesLegacyInvitationProof(t *
 		"access_route_id uuid",
 		"validate_vendor_work_access_route_proof",
 		"REFERENCES third_party_work_invitation_reservations(access_route_id,tenant_id,request_id)",
-		"UPDATE third_party_work_requests SET current_invitation_id=NULL",
-		"UPDATE third_party_work_capture_links SET invitation_id=NULL",
+		"NOT VALID",
 	} {
 		if !strings.Contains(schema, required) {
 			t.Fatalf("canonical vendor-work route migration missing %q", required)
 		}
+	}
+	if strings.Contains(schema, "UPDATE third_party_work_requests") || strings.Contains(schema, "UPDATE third_party_work_capture_links") {
+		t.Fatal("canonical route migration must not rewrite historical vendor-work associations")
 	}
 	if strings.Contains(string(down), "UPDATE third_party_work_requests SET current_invitation_id=NULL") || strings.Contains(string(down), "UPDATE third_party_work_capture_links SET invitation_id=NULL") {
 		t.Fatal("canonical route rollback must not erase vendor-work audit associations")

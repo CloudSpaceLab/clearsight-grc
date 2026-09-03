@@ -2,8 +2,21 @@ BEGIN;
 
 DO $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM third_party_work_requests WHERE current_invitation_id IS NOT NULL)
-       OR EXISTS (SELECT 1 FROM third_party_work_capture_links WHERE invitation_id IS NOT NULL) THEN
+    IF EXISTS (
+        SELECT 1
+        FROM third_party_work_requests work
+        JOIN third_party_work_invitation_reservations reservation
+          ON reservation.access_route_id=work.current_invitation_id
+         AND reservation.tenant_id=work.tenant_id
+         AND reservation.request_id=work.current_request_id
+    ) OR EXISTS (
+        SELECT 1
+        FROM third_party_work_capture_links link
+        JOIN third_party_work_invitation_reservations reservation
+          ON reservation.access_route_id=link.invitation_id
+         AND reservation.tenant_id=link.tenant_id
+         AND reservation.request_id=link.request_id
+    ) THEN
         RAISE EXCEPTION 'cannot roll back canonical vendor-work access routes while audit associations exist';
     END IF;
 END $$;
