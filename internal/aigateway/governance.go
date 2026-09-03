@@ -11,15 +11,15 @@ import (
 )
 
 const (
-	GatewayBaselinePolicyCode          = "ORG_AI_BASELINE"
-	GatewayBaselineActionClass         = "AI_GATEWAY_BASELINE"
-	ObligationOrganizationInstruction  = "ORG_INSTRUCTION"
-	FactPromptInjectionRisk            = "gateway.prompt_injection_risk"
-	FactInstructionExfiltration        = "gateway.instruction_exfiltration_attempt"
-	FactUntrustedContent               = "gateway.untrusted_content_present"
-	maxOrganizationInstructions        = 8
-	maxOrganizationInstructionBytes    = 4096
-	maxOrganizationInstructionTotal    = 16384
+	GatewayBaselinePolicyCode         = "ORG_AI_BASELINE"
+	GatewayBaselineActionClass        = "AI_GATEWAY_BASELINE"
+	ObligationOrganizationInstruction = "ORG_INSTRUCTION"
+	FactPromptInjectionRisk           = "gateway.prompt_injection_risk"
+	FactInstructionExfiltration       = "gateway.instruction_exfiltration_attempt"
+	FactUntrustedContent              = "gateway.untrusted_content_present"
+	maxOrganizationInstructions       = 8
+	maxOrganizationInstructionBytes   = 4096
+	maxOrganizationInstructionTotal   = 16384
 )
 
 type DecisionAction string
