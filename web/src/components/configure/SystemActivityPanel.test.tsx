@@ -99,7 +99,9 @@ it("exports only the applied audit filters through the governed download path", 
   fireEvent.click(screen.getByRole("button", { name: "Create export" }));
 
   await waitFor(() => expect(activityApi.createAuditExport).toHaveBeenCalledWith("CSV", expect.objectContaining({ actor: "Acme" })));
-  expect(activityApi.createAuditExport.mock.calls[0][1].actor).not.toBe("Unapplied draft");
+  const exportCall = activityApi.createAuditExport.mock.calls.at(-1);
+  if (!exportCall) throw new Error("expected governed audit export call");
+  expect(exportCall[1].actor).not.toBe("Unapplied draft");
   await waitFor(() => expect(activityApi.downloadAuditExport).toHaveBeenCalledWith("auditexp-1"));
   expect(URL.createObjectURL).toHaveBeenCalled();
 });
