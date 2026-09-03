@@ -83,6 +83,14 @@ test("feature CSS rejects raw visual values and component-internal reach-through
   assert.match(diagnostics, /z-index token/);
 });
 
+test("document import surfaces reject local dark palette values", async () => {
+  const source = await read("src/document-import.css");
+  const diagnostics = validateCssSource({ file: "src/document-import.css", source });
+  assert.deepEqual(diagnostics, [], diagnostics.join("\n"));
+  assert.doesNotMatch(source, /rgba?\(/i);
+  assert.match(source, /\.document-import-form\s*\{[^}]*background:\s*var\(--surface-2\)/is);
+});
+
 test("the current migration manifest satisfies the executable contract", async () => {
   const diagnostics = await validateProject(new URL("..", import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, (match) => match.slice(1)));
   assert.deepEqual(diagnostics, [], diagnostics.join("\n"));

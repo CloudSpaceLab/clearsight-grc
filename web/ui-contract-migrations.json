@@ -59,6 +59,7 @@
     "src/forms-filter-advanced.css",
     "src/forms-filter-bar.css",
     "src/components/forms/form-policies.css",
+    "src/document-import.css",
     "src/oversight.css"
   ],
   "nativeControlExceptions": [
