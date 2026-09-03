@@ -15,12 +15,13 @@
 ## Verification
 
 - implementation commits: `caa57afe`, `7170f5b7`, `ad7a8044`, `d0a2fab2`, `04af8996`;
+- current-main reconciliation commit: `32780681`; the resolution preserves the sectioned Program workspace and its History reconstruction control while retaining the assignment loading and recovery copy from this issue;
 - focused deadline and Matter record tests: 45 passed;
 - linked-form and customer-copy tests: 9 passed;
 - Forms component tests: 98 passed;
 - Document Import tests: 21 passed, including upload recovery and semantic intake state;
 - static review transport tests: 35 passed, including the linked-form population used by the Matter render;
-- complete web suite: 140 files and 912 tests passed;
+- complete web suite on the reconciled tree: 145 files and 940 tests passed;
 - customer-runtime fixture boundary: passed;
 - UI contract: 11 checks passed, including enforced semantic Imports CSS;
 - typecheck and production build: passed;
