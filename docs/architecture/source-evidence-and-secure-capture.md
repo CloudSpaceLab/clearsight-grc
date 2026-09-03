@@ -15,7 +15,7 @@ It does not decide that evidence is sufficient, that a control operated effectiv
 - **Source Observation** — a timestamped success, degradation or unavailability result.
 - **Evidence Request** — a purpose-bound set of unresolved fields for a named subject and audience type.
 - **Submission** — immutable answers received through an internal, magic-link or API channel.
-- **Invitation** — an opaque, short-lived exchange credential stored only as a hash.
+- **Access Route** — an opaque, short-lived request selector stored only as a hash and bound to one distribution, purpose and recipient policy.
 - **Capture Session** — a bounded server-side session created after invitation exchange.
 - **Artifact Manifest** — file metadata, storage key, byte count, SHA-256 and inspection state.
 
@@ -67,23 +67,23 @@ Known facts + unresolved fields
 
 A Submission is not evidence sufficiency. A stored file is not approved evidence. A completed request is not a verified control outcome.
 
-## Invitation security
+## External access security
 
-Invitation and session tokens contain at least 256 bits of random entropy. Only SHA-256 hashes are stored.
+Access-route selectors and session tokens contain at least 256 bits of random entropy. Only SHA-256 hashes are stored.
 
-An invitation is:
+An access route is:
 
-- tenant and request scoped;
+- tenant, legal-entity, distribution and request scoped;
 - purpose labelled;
 - audience-hinted without displaying a clear address;
 - time limited;
-- one-time by default;
 - revocable;
-- invalid when the request is no longer open.
+- invalid when the distribution or request is no longer open; and
+- protected by the distribution's direct-link or email-OTP access policy.
 
-Redemption occurs in one transaction: lock the invitation, re-check revocation, expiry, redemption count and request state, increment the redemption count, then create a bounded session. Failed session creation rolls the transaction back.
+The route's recorded expiry is the authoritative time limit. Opening an unexpired, unrevoked route creates a new short-lived server-side session; it does not consume the route or shorten the displayed expiry. Route rotation, recipient change, cancellation, supersession and explicit revocation still invalidate the route and its sessions. OTP challenges remain single-use and attempt-limited.
 
-The current external-capture path is possession-bound. Verified recipient identity, OTP or step-up authentication and enterprise identity federation are not implemented in this flow and must not be implied by the interface.
+Direct magic-link access proves link possession only. Direct and shared email-OTP policies prove control of the configured recipient mailbox before creating an email-verified session. Enterprise identity federation is not implemented in this flow and must not be implied by the interface.
 
 ## Artifact path
 
@@ -107,7 +107,7 @@ Strong consistency is required for:
 
 - Evidence Source creation and initial Reference Connection creation;
 - request submission and version change;
-- invitation redemption;
+- access-route session creation;
 - revocation;
 - artifact manifest creation after object completion;
 - source-health state change and outbox event.
@@ -120,7 +120,7 @@ Initial objectives:
 | --- | ---: |
 | source list | p95 ≤ 500 ms for 200 rows |
 | request list | p95 ≤ 750 ms for 200 rows |
-| invitation redemption | p95 ≤ 500 ms |
+| access-route session creation | p95 ≤ 500 ms |
 | request submission | p95 ≤ 750 ms |
 | artifact manifest acknowledgement | p95 ≤ 750 ms after object write |
 | source maintenance batch | 50 sources per transaction |
@@ -133,7 +133,8 @@ External source reads use adapter-specific sessions rather than ClearSight's app
 
 ## Failure behavior
 
-- A duplicate invitation redemption returns the same generic unavailable response as an unknown, expired or revoked token.
+- An expired, revoked, unknown or policy-mismatched route returns the same generic unavailable response.
+- A repeated open before the recorded expiry creates a new bounded session. Reusing an OTP challenge or invalidated session fails without metadata leakage.
 - If artifact metadata persistence fails, the newly written object is deleted on a best-effort basis.
 - A failed source-health transaction creates neither the state change nor its event.
 - A stale request version rejects submission without modifying answers or request state.
@@ -148,5 +149,5 @@ External source reads use adapter-specific sessions rather than ClearSight's app
 - Connection-, View- and Binding-level health reconciliation is not implemented.
 - REST/JSON, tabular-file, event and non-PostgreSQL database adapters are not implemented.
 - Production object storage, malware inspection, legal hold and retention orchestration are not implemented.
-- OTP or step-up authentication and verified external identity are not implemented.
+- Federation and stronger external identity assurance beyond configured email OTP are not implemented.
 - Evidence contracts, sufficiency evaluation and reusable evidence matching remain separate work.

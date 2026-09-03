@@ -188,13 +188,9 @@ func testOTPService(now time.Time, key [32]byte, codes ...string) *OTPService {
 }
 
 func otpRoute(policy AccessPolicy, recipientID string, expiresAt time.Time) AccessRoute {
-	maxRedemptions := 1
-	if policy == AccessSharedEmailOTP {
-		maxRedemptions = sharedRouteRedemptions
-	}
 	return AccessRoute{
 		ID: "route-a", TenantID: "tenant-a", LegalEntityID: "entity-a", DistributionID: "distribution-a",
-		RecipientID: recipientID, Policy: policy, ExpiresAt: expiresAt, MaxRedemptions: maxRedemptions,
+		RecipientID: recipientID, Policy: policy, ExpiresAt: expiresAt,
 		CreatedBy: "actor-a", CreatedAt: expiresAt.Add(-time.Hour),
 	}
 }

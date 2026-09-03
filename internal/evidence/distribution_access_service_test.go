@@ -45,8 +45,12 @@ func TestDistributionAccessDirectMagicLinkSessionAndRotation(t *testing.T) {
 	if err != nil || session.DistributionID != fixture.distribution.ID || request.ID != redeemed.RequestID {
 		t.Fatalf("session request failed: %+v %+v %v", session, request, err)
 	}
-	if _, err := fixture.access.RedeemDirectRoute(context.Background(), issued[0].Selector); !errors.Is(err, ErrDistributionAccessUnavailable) {
-		t.Fatalf("one-time direct selector redeemed twice: %v", err)
+	second, err := fixture.access.RedeemDirectRoute(context.Background(), issued[0].Selector)
+	if err != nil {
+		t.Fatalf("unexpired direct selector could not be reopened: %v", err)
+	}
+	if second.SessionID == redeemed.SessionID || second.SessionToken == redeemed.SessionToken {
+		t.Fatalf("reopening reused a prior session: first=%s second=%s", redeemed.SessionID, second.SessionID)
 	}
 
 	replacement, err := fixture.access.RotateDistributionAccessRoute(context.Background(), "tenant-a", "entity-a", fixture.distribution.ID, issued[0].RouteID, "actor-a")

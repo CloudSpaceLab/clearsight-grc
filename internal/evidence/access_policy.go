@@ -10,7 +10,6 @@ import (
 
 const (
 	accessRouteSelectorBytes = 32
-	sharedRouteRedemptions   = 20
 )
 
 var (
@@ -30,8 +29,6 @@ type AccessRoute struct {
 	SelectorHash   []byte       `json:"-"`
 	AudienceHint   string       `json:"audience_hint,omitempty"`
 	ExpiresAt      time.Time    `json:"expires_at"`
-	MaxRedemptions int          `json:"max_redemptions"`
-	Redemptions    int          `json:"redemptions"`
 	RevokedAt      *time.Time   `json:"revoked_at,omitempty"`
 	CreatedBy      string       `json:"created_by"`
 	CreatedAt      time.Time    `json:"created_at"`
@@ -46,7 +43,6 @@ type AccessRouteInput struct {
 	AudienceHint   string
 	RouteExpiresAt time.Time
 	Deadline       time.Time
-	MaxRedemptions int
 	CreatedBy      string
 }
 

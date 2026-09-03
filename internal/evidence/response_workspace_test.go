@@ -172,6 +172,100 @@ func TestResponseWorkspaceCreatesImmutableAmendmentWithoutClosingDistribution(t 
 	}
 }
 
+func TestResponseWorkspaceSubmitAcceptsOnlyOwnInterveningAutosaves(t *testing.T) {
+	fixture, tokens := newTwoRecipientWorkspaceFixture(t)
+	ctx := context.Background()
+
+	initial, err := fixture.access.GetResponseWorkspace(ctx, tokens[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, err := fixture.access.SaveResponseWorkspace(ctx, tokens[0], SaveWorkspaceInput{
+		ExpectedVersion: initial.Workspace.Version,
+		Edits: []FieldEdit{{
+			FieldID: "q1", Value: formcontract.TextAnswer("Yes"), BaseSequence: initial.FieldSequences["q1"],
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if saved.Workspace.Version == initial.Workspace.Version {
+		t.Fatal("autosave did not advance the workspace version")
+	}
+
+	if _, err := fixture.access.SubmitResponseWorkspace(ctx, tokens[0], SubmitWorkspaceInput{ExpectedVersion: initial.Workspace.Version}); err != nil {
+		t.Fatalf("the verified session could not submit after its own autosave: %v", err)
+	}
+	_, err = fixture.access.SubmitResponseWorkspace(ctx, tokens[0], SubmitWorkspaceInput{ExpectedVersion: saved.Workspace.Version})
+	var postSubmissionConflict WorkspaceConflict
+	if !errors.As(err, &postSubmissionConflict) {
+		t.Fatalf("a prior submission version was mistaken for an autosave: %v", err)
+	}
+
+	otherFixture, otherTokens := newTwoRecipientWorkspaceFixture(t)
+	otherInitial, err := otherFixture.access.GetResponseWorkspace(ctx, otherTokens[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstView, err := otherFixture.access.GetResponseWorkspace(ctx, otherTokens[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := otherFixture.access.SaveResponseWorkspace(ctx, otherTokens[0], SaveWorkspaceInput{
+		ExpectedVersion: firstView.Workspace.Version,
+		Edits: []FieldEdit{{
+			FieldID: "q1", Value: formcontract.TextAnswer("Yes"), BaseSequence: firstView.FieldSequences["q1"],
+		}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	_, err = otherFixture.access.SubmitResponseWorkspace(ctx, otherTokens[1], SubmitWorkspaceInput{ExpectedVersion: otherInitial.Workspace.Version})
+	var conflict WorkspaceConflict
+	if !errors.As(err, &conflict) {
+		t.Fatalf("another recipient's edit did not block stale submission: %v", err)
+	}
+}
+
+func TestResponseWorkspaceTreatsFreshSessionsForOneRecipientAsConcurrent(t *testing.T) {
+	fixture := newMemoryAccessFixture(t, AccessDirectMagicLink, []DistributionRecipientInput{{
+		Role: RecipientTo, Type: RecipientExternalAudience, Address: "owner@example.test", AudienceHint: "o***@example.test", ContactLabel: "Owner",
+	}})
+	ctx := context.Background()
+	routes, err := fixture.access.IssueDistributionAccessRoutes(ctx, "tenant-a", "entity-a", fixture.distribution.ID, "actor-a")
+	if err != nil || len(routes) != 1 {
+		t.Fatalf("issue direct route: %+v %v", routes, err)
+	}
+	first, err := fixture.access.RedeemDirectRoute(ctx, routes[0].Selector)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := fixture.access.RedeemDirectRoute(ctx, routes[0].Selector)
+	if err != nil {
+		t.Fatal(err)
+	}
+	initialFirst, err := fixture.access.GetResponseWorkspace(ctx, first.SessionToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	initialSecond, err := fixture.access.GetResponseWorkspace(ctx, second.SessionToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.access.SaveResponseWorkspace(ctx, first.SessionToken, SaveWorkspaceInput{
+		ExpectedVersion: initialFirst.Workspace.Version,
+		Edits: []FieldEdit{{
+			FieldID: "q1", Value: formcontract.TextAnswer("Yes"), BaseSequence: initialFirst.FieldSequences["q1"],
+		}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	_, err = fixture.access.SubmitResponseWorkspace(ctx, second.SessionToken, SubmitWorkspaceInput{ExpectedVersion: initialSecond.Workspace.Version})
+	var conflict WorkspaceConflict
+	if !errors.As(err, &conflict) {
+		t.Fatalf("a fresh session for the same recipient absorbed another session's autosave: %v", err)
+	}
+}
+
 func TestResponseWorkspaceBlocksLockRevocationAndDeadline(t *testing.T) {
 	t.Run("distribution lock", func(t *testing.T) {
 		fixture, tokens := newTwoRecipientWorkspaceFixture(t)

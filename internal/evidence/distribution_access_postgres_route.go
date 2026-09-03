@@ -37,11 +37,11 @@ func (store *PostgresDistributionStore) CreateAccessRoutes(ctx context.Context, 
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO capture_access_routes(
 				id,tenant_id,legal_entity_id,distribution_id,recipient_id,access_policy,selector_hash,
-				audience_hint,expires_at,max_redemptions,redemptions,created_by,created_at
-			) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,NULLIF($5,'')::uuid,$6,$7,$8,$9,$10,$11,$12::uuid,$13)`,
+				audience_hint,expires_at,created_by,created_at
+			) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,NULLIF($5,'')::uuid,$6,$7,$8,$9,$10::uuid,$11)`,
 			route.ID, route.TenantID, route.LegalEntityID, route.DistributionID, route.RecipientID,
-			route.Policy, route.SelectorHash, route.AudienceHint, route.ExpiresAt, route.MaxRedemptions,
-			route.Redemptions, route.CreatedBy, route.CreatedAt); err != nil {
+			route.Policy, route.SelectorHash, route.AudienceHint, route.ExpiresAt,
+			route.CreatedBy, route.CreatedAt); err != nil {
 			return ErrDistributionAccessUnavailable
 		}
 	}
@@ -126,7 +126,7 @@ func (store *PostgresDistributionStore) ProtectedRecipientForAccess(ctx context.
 }
 
 func validPersistedPostgresAccessRoute(route AccessRoute) bool {
-	return route.ID != "" && len(route.SelectorHash) == 32 && route.Redemptions == 0 && accessRouteOpen(route, route.CreatedAt)
+	return route.ID != "" && len(route.SelectorHash) == 32 && accessRouteOpen(route, route.CreatedAt)
 }
 
 var _ DistributionAccessStore = (*PostgresDistributionStore)(nil)

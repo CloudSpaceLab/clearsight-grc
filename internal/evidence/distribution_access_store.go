@@ -82,14 +82,13 @@ type otpChallengeSnapshot struct {
 }
 
 type accessSessionCommit struct {
-	Route               AccessRoute
-	Recipient           DistributionRecipient
-	Session             DistributionAccessSession
-	Challenge           *OTPChallenge
-	ExpectedAttempts    int
-	ExpectedResends     int
-	ExpectedDigest      []byte
-	ExpectedRedemptions int
+	Route            AccessRoute
+	Recipient        DistributionRecipient
+	Session          DistributionAccessSession
+	Challenge        *OTPChallenge
+	ExpectedAttempts int
+	ExpectedResends  int
+	ExpectedDigest   []byte
 }
 
 // DistributionAccessStore owns the durable, concurrency-sensitive pieces of

@@ -94,7 +94,15 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
         );
         return;
       }
-      await activateWorkspace(sessionToken, payload);
+      const controller = syncRef.current;
+      if (controller && request?.id === payload.request.id && workspace?.workspace.id === payload.workspace.workspace.id) {
+        await controller.reload(payload.workspace);
+        setRequest(payload.request);
+        setWorkspace(controller.currentWorkspace());
+        setSyncSnapshot(controller.snapshot());
+      } else {
+        await activateWorkspace(sessionToken, payload);
+      }
       setAudienceHint(payload.session.audience_hint);
       setAssurance(payload.session.assurance);
       setState("live");
@@ -246,7 +254,7 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
                 <div className="external-session-hint">Opened for {audienceHint || "invited respondent"}{assurance === "EMAIL_VERIFIED" ? " · Email verified" : ""}</div>
                 <WorkspaceConflictPanel fields={request.fields} conflicts={syncSnapshot?.conflicts ?? []} onResolve={(fieldID, choice) => void resolveWorkspaceConflict(fieldID, choice)}/>
                 <CaptureWorkspaceRecoveryProvider value={recoveryUI}>
-                  <CapturePanel key={`${request.id}:${workspace.workspace.id}:${panelGeneration}`} request={request} external workspacePersistence={persistence} onSubmit={(_, answers) => submit(answers)} onUploadArtifact={(_, file, fieldID) => upload(file, fieldID)}/>
+                  <CapturePanel key={`${request.id}:${workspace.workspace.id}:${panelGeneration}`} request={request} external workspacePersistence={persistence} onReload={() => void retrySession()} onSubmit={(_, answers) => submit(answers)} onUploadArtifact={(_, file, fieldID) => upload(file, fieldID)}/>
                 </CaptureWorkspaceRecoveryProvider>
               </section> : null}
   </main>;

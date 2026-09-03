@@ -187,11 +187,11 @@ func (store *MemoryDistributionAccessStore) CommitAccessSession(_ context.Contex
 	defer store.mu.Unlock()
 	current, ok := store.routes[commit.Route.ID]
 	now := commit.Session.CreatedAt
-	if !ok || current.RevokedAt != nil || current.Redemptions != commit.ExpectedRedemptions || !current.ExpiresAt.After(now) ||
+	if !ok || current.RevokedAt != nil || !current.ExpiresAt.After(now) ||
 		current.TenantID != commit.Session.TenantID || current.LegalEntityID != commit.Session.LegalEntityID || current.DistributionID != commit.Session.DistributionID ||
 		commit.Recipient.ID != commit.Session.RecipientID || commit.Recipient.RequestID != commit.Session.RequestID ||
 		len(eligibleAccessRecipients(current, []DistributionRecipient{commit.Recipient})) != 1 || !commit.Session.ExpiresAt.After(now) || commit.Session.ExpiresAt.After(current.ExpiresAt) ||
-		!accessGrantAssuranceMatches(current.Policy, commit.Session.Assurance) || current.Redemptions >= current.MaxRedemptions {
+		!accessGrantAssuranceMatches(current.Policy, commit.Session.Assurance) {
 		return ErrAccessVerificationFailed
 	}
 	if commit.Challenge != nil {
@@ -208,8 +208,6 @@ func (store *MemoryDistributionAccessStore) CommitAccessSession(_ context.Contex
 	if key == "" || store.sessions[key].ID != "" {
 		return ErrAccessVerificationFailed
 	}
-	current.Redemptions++
-	store.routes[current.ID] = current
 	store.sessions[key] = cloneDistributionAccessSession(commit.Session)
 	return nil
 }
@@ -292,7 +290,7 @@ func (store *MemoryDistributionAccessStore) activeRouteConflictIgnoring(candidat
 }
 
 func validPersistedAccessRoute(route AccessRoute) bool {
-	return route.ID != "" && len(route.SelectorHash) == 32 && accessRouteOpen(route, route.CreatedAt) && route.Redemptions == 0
+	return route.ID != "" && len(route.SelectorHash) == 32 && accessRouteOpen(route, route.CreatedAt)
 }
 
 func cloneAccessRoute(route AccessRoute) AccessRoute {

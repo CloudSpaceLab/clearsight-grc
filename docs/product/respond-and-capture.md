@@ -159,7 +159,7 @@ Invitation tokens must be:
 - cryptographically random and opaque;
 - short-lived and revocable;
 - audience- and request-bound;
-- single-use for session exchange or explicitly bounded for safe resume;
+- explicitly bounded for safe resume: canonical form routes may mint fresh short-lived sessions until their recorded expiry, revocation, cancellation or supersession;
 - stored hashed or using equivalent one-way protection;
 - rotated when reissued;
 - invalidated on request cancellation, supersession, recipient change, or security event.
@@ -192,7 +192,7 @@ Step-up authentication is required before sensitive evidence, personal data, ext
 
 ### Unsafe invitation states
 
-A forwarded, wrong-recipient, expired, revoked, replayed, or already-consumed invitation must fail without revealing subject, customer, Program, Matter, or request details.
+A wrong-recipient, expired or revoked route, a replayed OTP challenge, or an invalidated session must fail without revealing subject, customer, Program, Matter, or request details. A still-valid canonical route may be opened again and must show the same recorded expiry rather than fail because of a hidden use count.
 
 The failure screen should offer a safe contact or “report wrong recipient” route using the invitation identifier only.
 

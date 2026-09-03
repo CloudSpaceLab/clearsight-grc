@@ -247,6 +247,43 @@ describe("ExternalCaptureApp", () => {
     expect(Object.keys(sessionStorage)).toEqual([]);
   });
 
+  it("reloads the current workspace after a genuine submission conflict", async () => {
+    vi.mocked(startFormAccess).mockResolvedValue({ policy: "DIRECT_MAGIC_LINK", expires_at: request.deadline });
+    vi.mocked(redeemFormAccess).mockResolvedValue(directSession);
+    vi.mocked(saveFormResponseWorkspace).mockResolvedValue({
+      ...workspace,
+      answers: { present: { text: "Yes" } },
+      field_sequences: { present: 1 },
+      workspace: { ...workspace.workspace, version: 1 },
+    });
+    vi.mocked(submitFormResponseWorkspace).mockRejectedValue(
+      new ApiError(409, "The response workspace changed.", "workspace_conflict"),
+    );
+    vi.mocked(loadFormResponseWorkspace)
+      .mockResolvedValueOnce(workspacePayload())
+      .mockResolvedValueOnce(workspacePayload(directSession, {
+        ...workspace,
+        answers: { present: { text: "No" } },
+        field_sequences: { present: 2 },
+        workspace: { ...workspace.workspace, version: 2 },
+      }));
+
+    render(<ExternalCaptureApp invitationToken="route-secret"/>);
+
+    fireEvent.click(await screen.findByRole("radio", { name: "Yes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Submit evidence" }));
+
+    const reload = await screen.findByRole("button", { name: "Reload request" });
+    fireEvent.click(reload);
+
+    await waitFor(() => expect(loadFormResponseWorkspace).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("heading", { name: request.title })).toBeTruthy();
+    expect(screen.getAllByText("Resolve changed answers").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Use ClearSight answer for Is the ATM present?" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Keep my answer for Is the ATM present?" })).toBeTruthy();
+  });
+
   it("fails closed with generic copy when the route cannot be started", async () => {
     vi.mocked(startFormAccess).mockRejectedValue(new Error("unknown route"));
 

@@ -43,21 +43,13 @@ func TestAccessPolicyRejectsUnconfiguredHMACKey(t *testing.T) {
 	}
 }
 
-func TestAccessPolicyRejectsDirectMultiUseAndMalformedDurableRoutes(t *testing.T) {
+func TestAccessPolicyRejectsMalformedDurableRoutes(t *testing.T) {
 	now := time.Date(2026, 8, 28, 7, 0, 0, 0, time.UTC)
-	engine := testAccessPolicyEngine(now, bytes.Repeat([]byte{0x66}, 64))
-	if _, _, err := engine.IssueRoute(AccessRouteInput{
-		TenantID: "tenant-a", LegalEntityID: "entity-a", DistributionID: "distribution-a", RecipientID: "recipient-a",
-		Policy: AccessDirectMagicLink, RouteExpiresAt: now.Add(time.Hour), Deadline: now.Add(time.Hour),
-		MaxRedemptions: 2, CreatedBy: "actor-a",
-	}); !errors.Is(err, ErrDistributionAccessUnavailable) {
-		t.Fatalf("direct route accepted multiple redemptions: %v", err)
-	}
 
 	invalidRoutes := []AccessRoute{
-		{ID: "route-a", TenantID: "tenant-a", LegalEntityID: "entity-a", DistributionID: "distribution-a", RecipientID: "recipient-a", Policy: AccessSharedEmailOTP, SelectorHash: make([]byte, 32), MaxRedemptions: 2, CreatedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour)},
-		{ID: "route-a", TenantID: "tenant-a", LegalEntityID: "entity-a", DistributionID: "distribution-a", Policy: AccessDirectEmailOTP, SelectorHash: make([]byte, 32), MaxRedemptions: 1, CreatedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour)},
-		{ID: "route-a", TenantID: "tenant-a", LegalEntityID: "entity-a", DistributionID: "distribution-a", RecipientID: "recipient-a", Policy: AccessDirectMagicLink, SelectorHash: make([]byte, 32), MaxRedemptions: 1, CreatedAt: now.Add(time.Minute), ExpiresAt: now.Add(time.Hour)},
+		{ID: "route-a", TenantID: "tenant-a", LegalEntityID: "entity-a", DistributionID: "distribution-a", RecipientID: "recipient-a", Policy: AccessSharedEmailOTP, SelectorHash: make([]byte, 32), CreatedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour)},
+		{ID: "route-a", TenantID: "tenant-a", LegalEntityID: "entity-a", DistributionID: "distribution-a", Policy: AccessDirectEmailOTP, SelectorHash: make([]byte, 32), CreatedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour)},
+		{ID: "route-a", TenantID: "tenant-a", LegalEntityID: "entity-a", DistributionID: "distribution-a", RecipientID: "recipient-a", Policy: AccessDirectMagicLink, SelectorHash: make([]byte, 32), CreatedAt: now.Add(time.Minute), ExpiresAt: now.Add(time.Hour)},
 	}
 	for index, route := range invalidRoutes {
 		if accessRouteOpen(route, now) {

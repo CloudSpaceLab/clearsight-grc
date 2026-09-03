@@ -50,8 +50,12 @@ func TestAccessPolicyDirectMagicLinkRedeemsLinkPossessionAndClampsDeadline(t *te
 	if AccessGrantUsable(route, wrongAssurance, now.Add(time.Minute)) {
 		t.Fatal("direct magic-link session accepted email-verified assurance")
 	}
-	if _, err := engine.RedeemDirectRoute(&route, issued.Selector, recipients, now.Add(time.Hour), now); !errors.Is(err, ErrDistributionAccessUnavailable) {
-		t.Fatalf("one-time route allowed a second redemption: %v", err)
+	second, err := engine.RedeemDirectRoute(&route, issued.Selector, recipients, now.Add(time.Hour), now.Add(time.Minute))
+	if err != nil {
+		t.Fatalf("unexpired direct route could not be reopened: %v", err)
+	}
+	if !second.ExpiresAt.Equal(now.Add(time.Hour)) {
+		t.Fatalf("second session expiry = %v, want requested expiry", second.ExpiresAt)
 	}
 	if err := RevokeAccessRoute(&route, now.Add(5*time.Minute)); err != nil {
 		t.Fatal(err)
