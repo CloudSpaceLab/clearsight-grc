@@ -45,6 +45,58 @@ function reviewAnswer(value?: CaptureAnswerValue) {
   return "No answer provided";
 }
 
+function hasReviewAnswer(value?: CaptureAnswerValue) {
+  return Boolean(value && (
+    value.text?.trim()
+    || value.values?.length
+    || value.document
+    || value.artifact_ids?.length
+  ));
+}
+
+function reviewChannel(value: string) {
+  return value === "INTERNAL" ? "Internal response" : value === "EXTERNAL" ? "External response" : label(value);
+}
+
+function EvidenceResponseReview({ request, submission }: { request: EvidenceRequest; submission: EvidenceReviewSubmission }) {
+  const answeredCount = request.fields.filter((field) => hasReviewAnswer(submission.answers[field.id])).length;
+
+  return <section className="evidence-response-review" aria-label={`Submitted response for ${request.title}`}>
+    <header className="evidence-response-review-header">
+      <div>
+        <span className="eyebrow">Response received</span>
+        <h3>Submitted response</h3>
+        <p>Review the recorded answers below. This submission is read-only; evidence quality is assessed separately.</p>
+      </div>
+      <span className="evidence-response-review-state">Read only</span>
+    </header>
+    <dl className="evidence-response-review-facts" aria-label="Submission details">
+      <div><dt>Received</dt><dd>{formatOperationalDateTime(submission.submitted_at)}</dd></div>
+      <div><dt>Response route</dt><dd>{reviewChannel(submission.channel)}</dd></div>
+      <div><dt>Completion</dt><dd>{answeredCount} of {request.fields.length} answered</dd></div>
+    </dl>
+    <div className="evidence-response-answer-list">
+      {request.fields.map((field, index) => {
+        const answer = reviewAnswer(submission.answers[field.id]);
+        const missing = !hasReviewAnswer(submission.answers[field.id]);
+        const attestation = field.type === "attestation" || field.type === "checkbox";
+        return <article className="evidence-response-answer" key={field.id}>
+          <div className="evidence-response-answer-number" aria-hidden="true">{index + 1}</div>
+          <div>
+            <div className="evidence-response-question">
+              <h4>{field.label}</h4>
+              {field.required && <span>Required</span>}
+            </div>
+            <p className={missing ? "evidence-response-answer-value missing" : "evidence-response-answer-value"}>
+              {attestation && answer === "true" ? "Confirmed" : answer}
+            </p>
+          </div>
+        </article>;
+      })}
+    </div>
+  </section>;
+}
+
 function usesInvitationWorkflow(request: EvidenceRequest) {
   return request.audience_type !== "INTERNAL" || request.recipient?.type === "EXTERNAL_AUDIENCE";
 }
@@ -173,7 +225,7 @@ export function EvidenceWorkspace({ sources, requests, sourceState, requestState
           ? request.recipient?.audience_hint || "External recipient address unavailable"
           : request.recipient?.type === "INTERNAL_PRINCIPAL" ? request.recipient.display_name || "Assigned person label unavailable" : undefined;
         const responseUnavailable = isOpen && recipientState === "ASSIGNED" && !isAssignedActor;
-        return <details className={targetID === request.id ? "request-row targeted" : "request-row"} id={`evidence-request-${request.id}`} key={request.id} open={openID === request.id} onToggle={(event) => { if (event.currentTarget.open) setOpenID(request.id); else if (openID === request.id) setOpenID(undefined); }}><summary><div><strong>{request.title}</strong><span>{label(request.audience_type)} · about {request.estimated_minutes} min</span></div><div><mark>{label(recipientState === "REASSIGNMENT_REQUIRED" ? recipientState : request.status)}</mark><span>Due {formatOperationalDateTime(request.deadline)}</span></div><span className="request-disclosure">View details</span></summary><div className="request-detail"><p>{request.purpose}</p><dl>{Object.entries(request.known_facts).map(([factLabel, value]) => <div key={factLabel}><dt>{label(factLabel)}</dt><dd>{value}</dd></div>)}</dl><p><strong>Why this person:</strong> {request.why_you}</p>{recipientLabel && <p><strong>Current recipient:</strong> {recipientLabel}</p>}{recipientState === "REASSIGNMENT_REQUIRED" && <div className="inline-notice" role="status"><strong>Recipient correction required.</strong> {request.recipient?.issue_reason || "The assigned person reported that this request belongs elsewhere."}</div>}<div className="request-actions">{isAssignedActor && <button className="primary-button" type="button" onClick={() => onOpenRequest(request.id)}>Open request</button>}{canReview && <button className="primary-button" type="button" disabled={review?.status === "loading"} onClick={() => void reviewResponse(request)}>{review?.status === "loading" ? "Loading response…" : review?.status === "live" ? "Refresh response" : "Review response"}</button>}{responseUnavailable && <div className="inline-notice">{externalRecipient ? <strong>The external recipient responds using an invitation link; check its current status below.</strong> : <strong>Only the assigned person can respond to this request.</strong>} {canManage ? <span>You created this request. Change the recipient if the assignment is wrong.</span> : <span>Ask the request creator to change the recipient if the assignment is wrong.</span>}</div>}<small>A response is recorded first. Evidence quality is assessed separately.</small></div>{review?.status === "error" && <p className="error-text" role="alert">The submitted response could not be loaded. Try again before completing the evidence review.</p>}{review?.status === "live" && review.submission && <section className="evidence-response-review" aria-label={`Submitted response for ${request.title}`}><h3>Submitted response</h3><p>Received {formatOperationalDateTime(review.submission.submitted_at)}</p><dl>{request.fields.map((field) => <div key={field.id}><dt>{field.label}</dt><dd>{reviewAnswer(review.submission?.answers[field.id])}</dd></div>)}</dl></section>}{isAssignedActor && <details className="recipient-lifecycle-action"><summary>This request isn&apos;t mine</summary><label className="capture-field"><span>Why should it be reassigned?</span><textarea value={edit.reason} maxLength={500} onChange={(event) => updateEdit(request.id, { reason: event.target.value, error: "" })}/></label>{edit.error && <p className="error-text" role="alert">{edit.error}</p>}<button className="secondary-button" type="button" disabled={!edit.reason.trim() || edit.busy} onClick={() => void declareWrong(request)}>{edit.busy ? "Returning…" : "Return to requester"}</button></details>}{canManage && <details className="recipient-lifecycle-action" open={recipientState === "REASSIGNMENT_REQUIRED"}><summary>{recipientState === "REASSIGNMENT_REQUIRED" ? "Reassign this request" : "Change recipient"}</summary>{externalRecipient ? <label className="capture-field"><span>New recipient address</span><input type="email" value={edit.recipient} onChange={(event) => updateEdit(request.id, { recipient: event.target.value, error: "" })} placeholder="name@example.com"/></label> : openID === request.id && <EvidenceRecipientCandidateSelect requestID={request.id} value={edit.recipient} disabled={edit.busy} onChange={(recipient) => updateEdit(request.id, { recipient, error: "" })}/>}<label className="capture-field"><span>Reason for change</span><textarea value={edit.reason} maxLength={500} onChange={(event) => updateEdit(request.id, { reason: event.target.value, error: "" })}/></label>{externalRecipient && <p className="field-help">Changing the external recipient revokes existing invitation and session access.</p>}{edit.error && <p className="error-text" role="alert">{edit.error}</p>}<button className="secondary-button" type="button" disabled={!edit.recipient.trim() || !edit.reason.trim() || edit.busy} onClick={() => void reassign(request)}>{edit.busy ? "Reassigning…" : "Save recipient"}</button></details>}{canManage && externalRecipient && openID === request.id && <EvidenceRequestAdminContainer requestID={request.id} requestTitle={request.title}/>}</div></details>;
+        return <details className={targetID === request.id ? "request-row targeted" : "request-row"} id={`evidence-request-${request.id}`} key={request.id} open={openID === request.id} onToggle={(event) => { if (event.currentTarget.open) setOpenID(request.id); else if (openID === request.id) setOpenID(undefined); }}><summary><div><strong>{request.title}</strong><span>{label(request.audience_type)} · about {request.estimated_minutes} min</span></div><div><mark>{label(recipientState === "REASSIGNMENT_REQUIRED" ? recipientState : request.status)}</mark><span>Due {formatOperationalDateTime(request.deadline)}</span></div><span className="request-disclosure">View details</span></summary><div className="request-detail"><p>{request.purpose}</p><dl>{Object.entries(request.known_facts).map(([factLabel, value]) => <div key={factLabel}><dt>{label(factLabel)}</dt><dd>{value}</dd></div>)}</dl><p><strong>Why this person:</strong> {request.why_you}</p>{recipientLabel && <p><strong>Current recipient:</strong> {recipientLabel}</p>}{recipientState === "REASSIGNMENT_REQUIRED" && <div className="inline-notice" role="status"><strong>Recipient correction required.</strong> {request.recipient?.issue_reason || "The assigned person reported that this request belongs elsewhere."}</div>}<div className="request-actions">{isAssignedActor && <button className="primary-button" type="button" onClick={() => onOpenRequest(request.id)}>Open request</button>}{canReview && <button className="primary-button" type="button" disabled={review?.status === "loading"} onClick={() => void reviewResponse(request)}>{review?.status === "loading" ? "Loading response…" : review?.status === "live" ? "Refresh response" : "Review response"}</button>}{responseUnavailable && <div className="inline-notice">{externalRecipient ? <strong>The external recipient responds using an invitation link; check its current status below.</strong> : <strong>Only the assigned person can respond to this request.</strong>} {canManage ? <span>You created this request. Change the recipient if the assignment is wrong.</span> : <span>Ask the request creator to change the recipient if the assignment is wrong.</span>}</div>}<small>A response is recorded first. Evidence quality is assessed separately.</small></div>{review?.status === "error" && <p className="error-text" role="alert">The submitted response could not be loaded. Try again before completing the evidence review.</p>}{review?.status === "live" && review.submission && <EvidenceResponseReview request={request} submission={review.submission}/>} {isAssignedActor && <details className="recipient-lifecycle-action"><summary>This request isn&apos;t mine</summary><label className="capture-field"><span>Why should it be reassigned?</span><textarea value={edit.reason} maxLength={500} onChange={(event) => updateEdit(request.id, { reason: event.target.value, error: "" })}/></label>{edit.error && <p className="error-text" role="alert">{edit.error}</p>}<button className="secondary-button" type="button" disabled={!edit.reason.trim() || edit.busy} onClick={() => void declareWrong(request)}>{edit.busy ? "Returning…" : "Return to requester"}</button></details>}{canManage && <details className="recipient-lifecycle-action" open={recipientState === "REASSIGNMENT_REQUIRED"}><summary>{recipientState === "REASSIGNMENT_REQUIRED" ? "Reassign this request" : "Change recipient"}</summary>{externalRecipient ? <label className="capture-field"><span>New recipient address</span><input type="email" value={edit.recipient} onChange={(event) => updateEdit(request.id, { recipient: event.target.value, error: "" })} placeholder="name@example.com"/></label> : openID === request.id && <EvidenceRecipientCandidateSelect requestID={request.id} value={edit.recipient} disabled={edit.busy} onChange={(recipient) => updateEdit(request.id, { recipient, error: "" })}/>}<label className="capture-field"><span>Reason for change</span><textarea value={edit.reason} maxLength={500} onChange={(event) => updateEdit(request.id, { reason: event.target.value, error: "" })}/></label>{externalRecipient && <p className="field-help">Changing the external recipient revokes existing invitation and session access.</p>}{edit.error && <p className="error-text" role="alert">{edit.error}</p>}<button className="secondary-button" type="button" disabled={!edit.recipient.trim() || !edit.reason.trim() || edit.busy} onClick={() => void reassign(request)}>{edit.busy ? "Reassigning…" : "Save recipient"}</button></details>}{canManage && externalRecipient && openID === request.id && <EvidenceRequestAdminContainer requestID={request.id} requestTitle={request.title}/>}</div></details>;
       })}</div> : <EmptyState kind={currentRequests.length ? "no-results" : "empty"} label="Requests" title={currentRequests.length ? "No requests match these filters" : "No evidence requests in this scope"} description={currentRequests.length ? "Change the search or status filter to see other requests." : "There are no evidence requests in the current scope."} action={query || requestStatus ? "Clear filters" : undefined} onAction={() => { setQuery(""); setRequestStatus(""); }}/>} 
     </section>
     <details className="source-inventory">

@@ -131,6 +131,7 @@ describe("EvidenceWorkspace response authority", () => {
       fields: [
         { id: "enabled", label: "Encryption enabled", type: "single_select", required: true, options: ["Yes", "No"] },
         { id: "reference", label: "Evidence reference", type: "short_text", required: false },
+        { id: "signoff", label: "Required sign-off", type: "attestation", required: true },
       ],
     });
     vi.mocked(loadEvidenceReviewSubmission).mockResolvedValue({
@@ -138,7 +139,7 @@ describe("EvidenceWorkspace response authority", () => {
       request_id: submitted.id,
       submitted_by: "recipient-1",
       channel: "INTERNAL",
-      answers: { enabled: { values: ["Yes"] }, reference: { text: "ENC-2026-09" } },
+      answers: { enabled: { values: ["Yes"] }, reference: { text: "ENC-2026-09" }, signoff: { text: "true" } },
       submitted_at: "2026-08-29T12:00:00Z",
     });
 
@@ -149,6 +150,10 @@ describe("EvidenceWorkspace response authority", () => {
     expect(await screen.findByRole("region", { name: "Submitted response for Confirm account review evidence" })).toBeTruthy();
     expect(screen.getByText("Yes")).toBeTruthy();
     expect(screen.getByText("ENC-2026-09")).toBeTruthy();
+    expect(screen.getByText("Internal response")).toBeTruthy();
+    expect(screen.getByText("3 of 3 answered")).toBeTruthy();
+    expect(screen.getByText("Read only")).toBeTruthy();
+    expect(screen.getByText("Confirmed")).toBeTruthy();
     expect(loadEvidenceReviewSubmission).toHaveBeenCalledWith(submitted.id);
   });
 
