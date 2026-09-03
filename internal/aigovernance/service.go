@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigateway"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
@@ -46,17 +47,21 @@ func (s *Service) CreatePolicy(ctx context.Context, input CreatePolicyInput) (Po
 	if err := validatePolicyDefinition(input.Definition); err != nil {
 		return Policy{}, errors.Join(ErrInvalid, err)
 	}
+	code := strings.TrimSpace(input.Code)
+	actionClass := strings.TrimSpace(input.ActionClass)
+	if err := validatePolicyScope(code, actionClass, input.Definition); err != nil {
+		return Policy{}, errors.Join(ErrInvalid, err)
+	}
 	idValue, err := id.NewUUIDv7()
 	if err != nil {
 		return Policy{}, err
 	}
 	tenantID := strings.TrimSpace(input.TenantID)
-	code := strings.TrimSpace(input.Code)
 	version, err := s.repo.NextPolicyVersion(ctx, tenantID, code)
 	if err != nil {
 		return Policy{}, err
 	}
-	value := Policy{ID: idValue, TenantID: tenantID, Code: code, Name: strings.TrimSpace(input.Name), ActionClass: strings.TrimSpace(input.ActionClass), Eligibility: normalizedJSON(input.Eligibility, `{}`), BlastRadiusLimit: normalizedJSON(input.BlastRadiusLimit, `{}`), VerificationContract: normalizedJSON(input.VerificationContract, `{}`), Definition: input.Definition, Status: "DRAFT", RolloutMode: input.RolloutMode, MakerID: strings.TrimSpace(input.MakerID), EffectiveFrom: input.EffectiveFrom, EffectiveUntil: input.EffectiveUntil, Version: version, RecordVersion: 1}
+	value := Policy{ID: idValue, TenantID: tenantID, Code: code, Name: strings.TrimSpace(input.Name), ActionClass: actionClass, Eligibility: normalizedJSON(input.Eligibility, `{}`), BlastRadiusLimit: normalizedJSON(input.BlastRadiusLimit, `{}`), VerificationContract: normalizedJSON(input.VerificationContract, `{}`), Definition: input.Definition, Status: "DRAFT", RolloutMode: input.RolloutMode, MakerID: strings.TrimSpace(input.MakerID), EffectiveFrom: input.EffectiveFrom, EffectiveUntil: input.EffectiveUntil, Version: version, RecordVersion: 1}
 	value.Checksum = checksumPolicy(value)
 	return s.repo.CreatePolicy(ctx, value)
 }
@@ -147,6 +152,9 @@ func (s *Service) CreateWorkload(ctx context.Context, input CreateWorkloadInput)
 	policy, err := s.repo.Policy(ctx, input.TenantID, input.PolicyID)
 	if err != nil || policy.Version != input.PolicyVersion {
 		return Workload{}, ErrInvalid
+	}
+	if policy.Code == aigateway.GatewayBaselinePolicyCode || policy.ActionClass == aigateway.GatewayBaselineActionClass {
+		return Workload{}, errors.Join(ErrInvalid, fmt.Errorf("the organization gateway baseline cannot be bound as a workload policy"))
 	}
 	keyDigest, err := parseSHA256(input.KeySHA256)
 	if err != nil {
@@ -251,6 +259,9 @@ func (s *Service) IngestReceipt(ctx context.Context, receipt DecisionReceipt) (b
 	if err != nil || policy.Version != receipt.PolicyVersion || policy.Code != receipt.PolicyCode {
 		return false, ErrInvalid
 	}
+	if err := s.validateReceiptBaseline(ctx, receipt); err != nil {
+		return false, err
+	}
 	if receipt.ExpiresAt.IsZero() {
 		receipt.ExpiresAt = receipt.ObservedAt.Add(90 * 24 * time.Hour)
 	}
@@ -259,24 +270,52 @@ func (s *Service) IngestReceipt(ctx context.Context, receipt DecisionReceipt) (b
 	}
 	receipt.ReasonCodes = uniqueSorted(receipt.ReasonCodes)
 	receipt.Obligations = uniqueSorted(receipt.Obligations)
+	receipt.BaselineReasonCodes = uniqueSorted(receipt.BaselineReasonCodes)
 	receipt.Fingerprint = checksumReceipt(receipt)
 	inserted, err := s.repo.IngestReceipt(ctx, receipt)
 	if err != nil || !inserted {
 		return inserted, err
 	}
-	if s.auto != nil && receipt.Decision == aigateway.DecisionRequireApproval {
+	if s.auto != nil && (receipt.Decision == aigateway.DecisionRequireApproval || receipt.BaselineDecision == aigateway.DecisionRequireApproval) {
 		// Reconcile a material approval condition as one stable episode rather than
 		// manufacturing one Signal/Drift per model request. autonomy.Ingest owns
 		// dedupe, so repeated receipts for the same governed condition converge.
 		episodeKey := approvalEpisodeKey(receipt)
+		payload := map[string]string{
+			"decision":       "REQUIRE_APPROVAL",
+			"policy_id":      receipt.PolicyID,
+			"policy_version": fmt.Sprint(receipt.PolicyVersion),
+		}
+		if receipt.BaselinePolicyID != "" {
+			payload["baseline_policy_id"] = receipt.BaselinePolicyID
+			payload["baseline_policy_version"] = fmt.Sprint(receipt.BaselinePolicyVersion)
+		}
 		_, _, _ = s.auto.Ingest(ctx, autonomy.Signal{
 			TenantID: receipt.TenantID, Type: autonomy.SignalContextChanged,
 			SubjectType: "AI_WORKLOAD", SubjectID: receipt.WorkloadID, Source: "ai-gateway",
 			DedupeKey: episodeKey,
-			Payload:   map[string]string{"decision": "REQUIRE_APPROVAL", "policy_id": receipt.PolicyID, "policy_version": fmt.Sprint(receipt.PolicyVersion)},
+			Payload:   payload,
 		})
 	}
 	return true, nil
+}
+
+func (s *Service) validateReceiptBaseline(ctx context.Context, receipt DecisionReceipt) error {
+	baselineID := strings.TrimSpace(receipt.BaselinePolicyID)
+	if baselineID == "" {
+		if receipt.BaselinePolicyCode != "" || receipt.BaselinePolicyVersion != 0 || receipt.BaselineRolloutMode != "" || receipt.BaselineDecision != "" || receipt.BaselineProposedAction != "" || len(receipt.BaselineReasonCodes) != 0 {
+			return ErrInvalid
+		}
+		return nil
+	}
+	if baselineID == receipt.PolicyID || receipt.BaselinePolicyCode != aigateway.GatewayBaselinePolicyCode || receipt.BaselinePolicyVersion < 1 || !validRolloutMode(receipt.BaselineRolloutMode) || !validReceiptAction(receipt.BaselineDecision, false) || !validReceiptAction(receipt.BaselineProposedAction, true) || !boundedStrings(receipt.BaselineReasonCodes, 32, 256) {
+		return ErrInvalid
+	}
+	baseline, err := s.repo.Policy(ctx, receipt.TenantID, baselineID)
+	if err != nil || baseline.Code != aigateway.GatewayBaselinePolicyCode || baseline.ActionClass != aigateway.GatewayBaselineActionClass || baseline.Version != receipt.BaselinePolicyVersion || baseline.RolloutMode != receipt.BaselineRolloutMode {
+		return ErrInvalid
+	}
+	return nil
 }
 
 func (s *Service) CreateExecutionGrant(ctx context.Context, input CreateGrantInput) (ExecutionGrant, error) {
@@ -376,6 +415,11 @@ func validatePolicyDefinition(def aigateway.PolicyDefinition) error {
 		if r.Action == aigateway.DecisionRoute && strings.TrimSpace(r.RouteID) == "" {
 			return fmt.Errorf("route action requires a route id")
 		}
+		for _, obligation := range r.Obligations {
+			if strings.TrimSpace(obligation.Code) == "" || len(obligation.Code) > 128 || len(obligation.Detail) > 4096 || !utf8.ValidString(obligation.Code) || !utf8.ValidString(obligation.Detail) {
+				return fmt.Errorf("invalid policy obligation")
+			}
+		}
 		for _, redaction := range r.Redactions {
 			if len(redaction.Pattern) == 0 || len(redaction.Pattern) > 4096 {
 				return fmt.Errorf("invalid request redaction")
@@ -401,6 +445,40 @@ func validatePolicyDefinition(def aigateway.PolicyDefinition) error {
 		}
 	}
 	return nil
+}
+
+func validatePolicyScope(code, actionClass string, def aigateway.PolicyDefinition) error {
+	baselineCode := code == aigateway.GatewayBaselinePolicyCode
+	baselineClass := actionClass == aigateway.GatewayBaselineActionClass
+	if baselineCode != baselineClass {
+		return fmt.Errorf("gateway baseline code and action class must be used together")
+	}
+	instructionCount := 0
+	instructionBytes := 0
+	for _, rule := range def.Rules {
+		for _, obligation := range rule.Obligations {
+			if obligation.Code != aigateway.ObligationOrganizationInstruction {
+				continue
+			}
+			if !baselineCode {
+				return fmt.Errorf("organization instruction obligations are reserved for the organization gateway baseline")
+			}
+			instruction := strings.TrimSpace(obligation.Detail)
+			if instruction == "" || len(instruction) > 4096 {
+				return fmt.Errorf("organization instruction obligation is invalid")
+			}
+			instructionCount++
+			instructionBytes += len(instruction)
+		}
+	}
+	if instructionCount > 8 || instructionBytes > 16384 {
+		return fmt.Errorf("organization instruction obligations exceed supported limits")
+	}
+	return nil
+}
+
+func validRolloutMode(mode aigateway.RolloutMode) bool {
+	return mode == aigateway.RolloutShadow || mode == aigateway.RolloutEnforce
 }
 
 func validReceiptAction(action aigateway.DecisionAction, allowEmpty bool) bool {
@@ -429,7 +507,17 @@ func boundedStrings(values []string, maxItems, maxLen int) bool {
 
 func approvalEpisodeKey(receipt DecisionReceipt) string {
 	reasons := uniqueSorted(receipt.ReasonCodes)
-	basis := receipt.TenantID + "|" + receipt.WorkloadID + "|" + receipt.PolicyID + "|" + fmt.Sprint(receipt.PolicyVersion) + "|" + strings.Join(reasons, ",")
+	baselineReasons := uniqueSorted(receipt.BaselineReasonCodes)
+	basis := strings.Join([]string{
+		receipt.TenantID,
+		receipt.WorkloadID,
+		receipt.PolicyID,
+		fmt.Sprint(receipt.PolicyVersion),
+		strings.Join(reasons, ","),
+		receipt.BaselinePolicyID,
+		fmt.Sprint(receipt.BaselinePolicyVersion),
+		strings.Join(baselineReasons, ","),
+	}, "|")
 	sum := sha256.Sum256([]byte(basis))
 	return "ai-approval:" + hex.EncodeToString(sum[:12])
 }
