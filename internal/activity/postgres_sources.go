@@ -32,9 +32,9 @@ const actorKindExpression = `CASE
 END`
 
 // activitySourcesCTE federates only durable sources with an explicit ownership
-// contract. Identity/access administration already records committed decisions
-// in governance_decisions, so those receipts are projected here instead of
-// creating another audit table or writing duplicate business history.
+// contract. Identity/access administration and governed runtime recovery already
+// have canonical append-only receipts, so the activity layer projects them
+// instead of writing duplicate history into another audit table.
 const activitySourcesCTE = `WITH scope AS (
 	SELECT id AS tenant_id FROM tenants WHERE id::text=$1 OR slug=$1 LIMIT 1
 ), oe AS (
@@ -57,6 +57,16 @@ const activitySourcesCTE = `WITH scope AS (
 	    OR
 	    (gd.object_type='DIRECTORY_GROUP_ROLE_BINDING' AND gd.rationale IN ('DIRECTORY_GROUP_ROLE_BOUND','DIRECTORY_GROUP_ROLE_RETIRED'))
 	  )
+	UNION ALL
+	SELECT 'recovery:' || recovery.id::text,recovery.tenant_id,'RUNTIME_RECOVERY',recovery.job_id::text,
+	       CASE recovery.queue
+	         WHEN 'outbox-delivery' THEN 'OUTBOX_DELIVERY_RETRIED'
+	         WHEN 'workflow-timers' THEN 'WORKFLOW_TIMER_RETRIED'
+	       END,
+	       jsonb_build_object('actor_id',recovery.actor_principal_id::text),
+	       recovery.recovered_at,'OPERATIONAL_RECOVERY_EVENT'::text
+	FROM operational_recovery_events recovery
+	WHERE recovery.tenant_id=(SELECT tenant_id FROM scope)
 )`
 
 const activityProjection = `
