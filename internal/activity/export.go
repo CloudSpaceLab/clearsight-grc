@@ -244,7 +244,7 @@ func (s *ExportService) render(ctx context.Context, query Query, format string) 
 		}
 		for _, event := range page.Items {
 			if csvWriter != nil {
-				if err := csvWriter.Write(exportCSVRow(event)); err != nil {
+				if err := csvWriter.Write(spreadsheetSafeCSVRow(exportCSVRow(event))); err != nil {
 					return nil, 0, err
 				}
 			} else if err := jsonEncoder.Encode(event); err != nil {
