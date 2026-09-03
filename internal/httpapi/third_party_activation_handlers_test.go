@@ -1,11 +1,13 @@
 package httpapi
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
 
 func TestThirdPartyActivationCommandsAcceptServerBoundIdentity(t *testing.T) {
@@ -44,5 +46,23 @@ func TestThirdPartyActivationCommandsAcceptServerBoundIdentity(t *testing.T) {
 				t.Fatalf("server-bound identity must remain decodable: %v", err)
 			}
 		})
+	}
+}
+
+func TestThirdPartyActivationSimulationFailuresIdentifyTheSafeRecoveryStage(t *testing.T) {
+	tests := []struct {
+		err  error
+		code string
+	}{
+		{err: thirdparty.ErrActivationCandidateList, code: "activation_candidate_list_failed"},
+		{err: thirdparty.ErrActivationCandidateFacts, code: "activation_candidate_evaluation_failed"},
+		{err: thirdparty.ErrActivationSimulationStore, code: "activation_simulation_store_failed"},
+	}
+	for _, test := range tests {
+		response := httptest.NewRecorder()
+		writeThirdPartyActivationError(response, test.err)
+		if response.Code != http.StatusServiceUnavailable || !strings.Contains(response.Body.String(), `"error":"`+test.code+`"`) {
+			t.Fatalf("%s response = %d %s", test.code, response.Code, response.Body.String())
+		}
 	}
 }
