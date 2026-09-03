@@ -86,6 +86,7 @@ func main() {
 		os.Exit(1)
 	}
 	vendorWorkService.ConfigureRelationshipReader(services.ThirdPartyAssessmentRepo)
+	vendorWorkService.ConfigureDistributionDispatcher(assessmentDispatcher)
 	vendorWorkService.ConfigureAuthority(guard)
 	vendorWorkService.ConfigureReadAuthority(services.Authority)
 	vendorWorkService.ConfigureTargetReader(services.Continuity)

@@ -161,7 +161,7 @@ func (r *PostgresRepository) ReserveVendorWorkInvitation(ctx context.Context, sc
 	if _, err := tx.Exec(ctx, `UPDATE third_party_work_invitation_reservations SET state='SUPERSEDED',resolved_at=$4 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND work_request_id=$3::uuid AND state='PENDING'`, tenantID, scope.LegalEntityID, id, now.UTC()); err != nil {
 		return VendorWorkRequest{}, fmt.Errorf("supersede vendor work invitation reservation: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO third_party_work_invitation_reservations(invitation_id,tenant_id,legal_entity_id,work_request_id,request_id,capture_sequence,state,created_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'PENDING',$7)`, invitationID, tenantID, scope.LegalEntityID, id, current.CurrentRequestID, current.CurrentCaptureSequence, now.UTC()); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO third_party_work_invitation_reservations(invitation_id,access_route_id,tenant_id,legal_entity_id,work_request_id,request_id,capture_sequence,state,created_at) VALUES($1::uuid,$1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'PENDING',$7)`, invitationID, tenantID, scope.LegalEntityID, id, current.CurrentRequestID, current.CurrentCaptureSequence, now.UTC()); err != nil {
 		if isUniqueViolation(err) {
 			return VendorWorkRequest{}, ErrVersionConflict
 		}

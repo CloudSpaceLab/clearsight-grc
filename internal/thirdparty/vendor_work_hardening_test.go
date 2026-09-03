@@ -18,7 +18,7 @@ import (
 
 func TestRetryVendorWorkCompletesIncompletePreparation(t *testing.T) {
 	fixture := newVendorWorkFixture(t)
-	fixture.service.evidence = &vendorWorkEvidenceFailure{vendorWorkEvidence: fixture.evidence, createFailures: 1}
+	fixture.service.dispatch = &vendorWorkDispatcherFailure{vendorWorkDispatcher: fixture.dispatcher, dispatchFailures: 1}
 	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
 		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID,
 		Purpose: "Confirm service information.", Instructions: "Review the request.",
@@ -116,7 +116,7 @@ func TestSendVendorWorkReconcilesCommittedInvitationBeforeRevocation(t *testing.
 	if outcome.Work.CurrentInvitationID == "" || outcome.CaptureURL == "" {
 		t.Fatalf("reconciled send outcome = %#v", outcome)
 	}
-	if _, err := fixture.evidence.RedeemInvitation(context.Background(), vendorWorkCaptureToken(t, outcome.CaptureURL), fixture.audience); err != nil {
+	if _, err := fixture.access.StartDistributionAccess(context.Background(), vendorWorkCaptureToken(t, outcome.CaptureURL)); err != nil {
 		t.Fatalf("committed invitation was revoked: %v", err)
 	}
 }
@@ -138,34 +138,34 @@ func (r *failedVendorWorkDeliveryRepository) GetVendorWork(ctx context.Context, 
 	return r.MemoryVendorWorkRepository.GetVendorWork(ctx, scope, id)
 }
 
-type revocationTrackingVendorWorkEvidence struct {
-	vendorWorkEvidence
-	revokedRequests int
+type revocationTrackingVendorWorkDispatcher struct {
+	vendorWorkDispatcher
+	revokedRequests []string
 	revokeFailures  int
-	issued          []evidence.IssuedInvitation
+	issued          []evidence.IssuedAccessRoute
 }
 
-func (s *revocationTrackingVendorWorkEvidence) RevokeRequestCapabilities(ctx context.Context, tenantID, requestID string) error {
-	s.revokedRequests++
+func (s *revocationTrackingVendorWorkDispatcher) RevokeRequestCapabilities(ctx context.Context, tenantID, requestID string) error {
+	s.revokedRequests = append(s.revokedRequests, requestID)
 	if s.revokeFailures > 0 {
 		s.revokeFailures--
 		return errors.New("capability revocation unavailable")
 	}
-	return s.vendorWorkEvidence.RevokeRequestCapabilities(ctx, tenantID, requestID)
+	return s.vendorWorkDispatcher.RevokeRequestCapabilities(ctx, tenantID, requestID)
 }
 
-func (s *revocationTrackingVendorWorkEvidence) IssueInvitation(ctx context.Context, input evidence.IssueInvitationInput) (evidence.IssuedInvitation, error) {
-	issued, err := s.vendorWorkEvidence.IssueInvitation(ctx, input)
-	if err == nil {
-		s.issued = append(s.issued, issued)
+func (s *revocationTrackingVendorWorkDispatcher) Resume(ctx context.Context, tenantID, legalEntityID, requestID, actorID string, expiresAt time.Time) (evidence.WorkflowDistributionDispatch, error) {
+	dispatched, err := s.vendorWorkDispatcher.Resume(ctx, tenantID, legalEntityID, requestID, actorID, expiresAt)
+	if err == nil && dispatched.Route.RouteID != "" {
+		s.issued = append(s.issued, dispatched.Route)
 	}
-	return issued, err
+	return dispatched, err
 }
 
 func TestSendVendorWorkReturnsRecoverableStateWhenInvitationPersistenceIsAmbiguous(t *testing.T) {
 	fixture := newVendorWorkFixture(t)
-	tracking := &revocationTrackingVendorWorkEvidence{vendorWorkEvidence: fixture.evidence}
-	fixture.service.evidence = tracking
+	tracking := &revocationTrackingVendorWorkDispatcher{vendorWorkDispatcher: fixture.dispatcher}
+	fixture.service.dispatch = tracking
 	fixture.service.repo = &failedVendorWorkDeliveryRepository{MemoryVendorWorkRepository: fixture.repository}
 	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
 		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, Purpose: "Confirm service information.", Instructions: "Review the request.",
@@ -178,8 +178,8 @@ func TestSendVendorWorkReturnsRecoverableStateWhenInvitationPersistenceIsAmbiguo
 	if err != nil {
 		t.Fatalf("recoverable send = %v", err)
 	}
-	if outcome.State != VendorWorkDeliveryRetryRequired || outcome.Work.DeliveryState != VendorWorkDeliveryRetryRequired || outcome.CaptureURL != "" || tracking.revokedRequests != 1 {
-		t.Fatalf("recoverable invitation outcome = %#v, revocations=%d", outcome, tracking.revokedRequests)
+	if outcome.State != VendorWorkDeliveryRetryRequired || outcome.Work.DeliveryState != VendorWorkDeliveryRetryRequired || outcome.CaptureURL != "" || len(tracking.revokedRequests) != 1 {
+		t.Fatalf("recoverable invitation outcome = %#v, revocations=%v", outcome, tracking.revokedRequests)
 	}
 }
 
@@ -210,9 +210,9 @@ func (r *failedVendorWorkFinalizationRepository) GetVendorWork(ctx context.Conte
 func TestSendVendorWorkDurablyReservesInvitationBeforeIssueWhenFinalizationAndRevocationFail(t *testing.T) {
 	fixture := newVendorWorkFixture(t)
 	repository := &failedVendorWorkFinalizationRepository{MemoryVendorWorkRepository: fixture.repository, finalizeFailures: 1, readFailures: 1}
-	tracking := &revocationTrackingVendorWorkEvidence{vendorWorkEvidence: fixture.evidence, revokeFailures: 1}
+	tracking := &revocationTrackingVendorWorkDispatcher{vendorWorkDispatcher: fixture.dispatcher, revokeFailures: 1}
 	fixture.service.repo = repository
-	fixture.service.evidence = tracking
+	fixture.service.dispatch = tracking
 	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
 		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, Purpose: "Confirm service information.", Instructions: "Review the request.",
 		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
@@ -224,21 +224,21 @@ func TestSendVendorWorkDurablyReservesInvitationBeforeIssueWhenFinalizationAndRe
 	if err != nil {
 		t.Fatalf("recoverable send = %v", err)
 	}
-	if len(tracking.issued) != 1 || failed.Work.PendingInvitationID == "" || failed.Work.PendingInvitationID != tracking.issued[0].InvitationID || failed.Work.PendingInvitationRequestID != prepared.CurrentRequestID {
+	if len(tracking.issued) != 1 || failed.Work.PendingInvitationID == "" || failed.Work.PendingInvitationID != tracking.issued[0].RouteID || failed.Work.PendingInvitationRequestID != prepared.CurrentRequestID {
 		t.Fatalf("reserved invitation outcome=%#v issued=%#v", failed, tracking.issued)
 	}
-	if failed.State != VendorWorkDeliveryRetryRequired || failed.CaptureURL != "" || tracking.revokedRequests != 1 {
-		t.Fatalf("failed finalization outcome=%#v revocations=%d", failed, tracking.revokedRequests)
+	if failed.State != VendorWorkDeliveryRetryRequired || failed.CaptureURL != "" || len(tracking.revokedRequests) != 1 {
+		t.Fatalf("failed finalization outcome=%#v revocations=%v", failed, tracking.revokedRequests)
 	}
 
 	recovered, err := fixture.service.Retry(context.Background(), fixture.actor, prepared.ID, RetryVendorWorkInput{ExpectedVersion: failed.Work.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tracking.issued) != 2 || recovered.Work.PendingInvitationID != "" || recovered.Work.CurrentInvitationID != tracking.issued[1].InvitationID || recovered.Work.CurrentInvitationID == tracking.issued[0].InvitationID {
+	if len(tracking.issued) != 2 || recovered.Work.PendingInvitationID != "" || recovered.Work.CurrentInvitationID != tracking.issued[1].RouteID || recovered.Work.CurrentInvitationID == tracking.issued[0].RouteID {
 		t.Fatalf("recovered invitation outcome=%#v issued=%#v", recovered, tracking.issued)
 	}
-	if _, err := fixture.evidence.RedeemInvitation(context.Background(), tracking.issued[0].Token, fixture.audience); !errors.Is(err, evidence.ErrInvitationInvalid) {
+	if _, err := fixture.access.StartDistributionAccess(context.Background(), tracking.issued[0].Selector); !errors.Is(err, evidence.ErrDistributionAccessUnavailable) {
 		t.Fatalf("reserved predecessor remained usable: %v", err)
 	}
 }
@@ -246,6 +246,19 @@ func TestSendVendorWorkDurablyReservesInvitationBeforeIssueWhenFinalizationAndRe
 type failingVendorWorkChangesRepository struct {
 	*MemoryVendorWorkRepository
 	failure error
+}
+
+type failOnceVendorWorkChangesRepository struct {
+	*MemoryVendorWorkRepository
+	failures int
+}
+
+func (r *failOnceVendorWorkChangesRepository) RecordVendorWorkChanges(ctx context.Context, scope Scope, id string, expected int64, link VendorWorkCaptureLink, actor, message string, dueAt, now time.Time) (VendorWorkRequest, error) {
+	if r.failures > 0 {
+		r.failures--
+		return VendorWorkRequest{}, errors.New("vendor-work update unavailable")
+	}
+	return r.MemoryVendorWorkRepository.RecordVendorWorkChanges(ctx, scope, id, expected, link, actor, message, dueAt, now)
 }
 
 type ambiguousVendorWorkChangesRepository struct{ *MemoryVendorWorkRepository }
@@ -317,8 +330,86 @@ func TestRequestVendorWorkChangesReturnsRecoveryWhenPostCommitSendReadFails(t *t
 		t.Fatalf("fallback delivery outcome = %#v", outcome)
 	}
 	stored, readErr := fixture.repository.GetVendorWork(context.Background(), scopeFrom(fixture.actor), reviewing.ID)
-	if readErr != nil || stored.State != VendorWorkChangesRequested {
+	if readErr != nil || stored.State != VendorWorkChangesRequested || stored.DeliveryState != VendorWorkDeliveryRetryRequired || stored.Recovery == "" {
 		t.Fatalf("stored clarification = %#v err=%v", stored, readErr)
+	}
+	evidenceFailure.failOriginRead = false
+	retried, retryErr := fixture.service.Retry(context.Background(), fixture.actor, stored.ID, RetryVendorWorkInput{
+		ExpectedVersion: stored.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60,
+	})
+	if retryErr != nil || retried.Work.DeliveryState == VendorWorkDeliveryRetryRequired || retried.Work.CurrentInvitationID == "" {
+		t.Fatalf("retry committed clarification = %#v err=%v", retried, retryErr)
+	}
+}
+
+func TestRequestVendorWorkChangesRevokesPreviousRequestBeforeReplacement(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	prepared, reviewing := vendorWorkUnderReview(t, fixture)
+	tracking := &revocationTrackingVendorWorkDispatcher{vendorWorkDispatcher: fixture.dispatcher}
+	fixture.service.dispatch = tracking
+
+	outcome, err := fixture.service.RequestChanges(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}, reviewing.ID, RequestVendorWorkChangesInput{
+		ExpectedVersion: reviewing.Version, Message: "Confirm the updated service owner.", FieldIDs: []string{"service_current"},
+		VendorAudience: "replacement@vendor.example", DueAt: fixture.now.Add(5 * 24 * time.Hour), InvitationTTLMinutes: 60,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tracking.revokedRequests) == 0 || tracking.revokedRequests[0] != prepared.CurrentRequestID {
+		t.Fatalf("revoked requests = %v, want predecessor %q", tracking.revokedRequests, prepared.CurrentRequestID)
+	}
+	if outcome.Work.CurrentRequestID == prepared.CurrentRequestID || outcome.Work.CurrentInvitationID == "" {
+		t.Fatalf("replacement clarification = %#v", outcome)
+	}
+}
+
+func TestRequestVendorWorkChangesPersistsRoutePreparationFailureForReloadAndRetry(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	_, reviewing := vendorWorkUnderReview(t, fixture)
+	fixture.service.dispatch = &vendorWorkDispatcherFailure{vendorWorkDispatcher: fixture.dispatcher, resumeFailures: 1}
+
+	outcome, err := fixture.service.RequestChanges(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}, reviewing.ID, RequestVendorWorkChangesInput{
+		ExpectedVersion: reviewing.Version, Message: "Confirm the updated service owner.", FieldIDs: []string{"service_current"},
+		VendorAudience: fixture.audience, DueAt: fixture.now.Add(5 * 24 * time.Hour), InvitationTTLMinutes: 60,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, readErr := fixture.repository.GetVendorWork(context.Background(), scopeFrom(fixture.actor), reviewing.ID)
+	if readErr != nil || outcome.Work.DeliveryState != VendorWorkDeliveryRetryRequired || stored.DeliveryState != VendorWorkDeliveryRetryRequired || stored.Recovery == "" {
+		t.Fatalf("persisted route recovery outcome=%#v stored=%#v err=%v", outcome, stored, readErr)
+	}
+	retried, retryErr := fixture.service.Retry(context.Background(), fixture.actor, stored.ID, RetryVendorWorkInput{
+		ExpectedVersion: stored.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60,
+	})
+	if retryErr != nil || retried.Work.CurrentInvitationID == "" || retried.Work.DeliveryState == VendorWorkDeliveryRetryRequired {
+		t.Fatalf("retry route preparation = %#v err=%v", retried, retryErr)
+	}
+}
+
+func TestRequestVendorWorkChangesRejectsMismatchedRecoveredCaptureRequest(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	prepared, reviewing := vendorWorkUnderReview(t, fixture)
+	fixture.service.repo = &failOnceVendorWorkChangesRepository{MemoryVendorWorkRepository: fixture.repository, failures: 1}
+	reviewer := Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}
+
+	_, firstErr := fixture.service.RequestChanges(context.Background(), reviewer, reviewing.ID, RequestVendorWorkChangesInput{
+		ExpectedVersion: reviewing.Version, Message: "Confirm the updated service owner.", FieldIDs: []string{"service_current"},
+		VendorAudience: fixture.audience, DueAt: fixture.now.Add(5 * 24 * time.Hour), InvitationTTLMinutes: 60,
+	})
+	if firstErr == nil {
+		t.Fatal("interrupted clarification unexpectedly succeeded")
+	}
+	_, secondErr := fixture.service.RequestChanges(context.Background(), reviewer, reviewing.ID, RequestVendorWorkChangesInput{
+		ExpectedVersion: reviewing.Version, Message: "Send a different clarification.", FieldIDs: []string{"service_current"},
+		VendorAudience: "different@vendor.example", DueAt: fixture.now.Add(6 * 24 * time.Hour), InvitationTTLMinutes: 60,
+	})
+	if !errors.Is(secondErr, ErrInvalid) {
+		t.Fatalf("mismatched recovered clarification error = %v, want invalid", secondErr)
+	}
+	stored, readErr := fixture.repository.GetVendorWork(context.Background(), scopeFrom(fixture.actor), reviewing.ID)
+	if readErr != nil || stored.State != VendorWorkUnderReview || stored.CurrentRequestID != prepared.CurrentRequestID || stored.Version != reviewing.Version {
+		t.Fatalf("mismatched recovery changed work = %#v err=%v", stored, readErr)
 	}
 }
 
@@ -385,15 +476,9 @@ func vendorWorkUnderReview(t *testing.T, fixture vendorWorkFixture) (VendorWorkR
 	if err != nil {
 		t.Fatal(err)
 	}
-	session, err := fixture.evidence.RedeemInvitation(context.Background(), vendorWorkCaptureToken(t, sent.CaptureURL), fixture.audience)
-	if err != nil {
-		t.Fatal(err)
-	}
-	receipt, err := fixture.evidence.SubmitSession(context.Background(), session.SessionToken, map[string]formcontract.AnswerValue{"service_current": formcontract.TextAnswer("Yes")}, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: fixture.actor.TenantID, WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: receipt.SubmissionID, CausationID: "response-event"})
+	session := redeemVendorWorkAccess(t, fixture, sent.CaptureURL)
+	result := submitVendorWorkAnswers(t, fixture, session.SessionToken, map[string]formcontract.AnswerValue{"service_current": formcontract.TextAnswer("Yes")})
+	received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: fixture.actor.TenantID, WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: result.Submission.SubmissionID, CausationID: "response-event"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -427,19 +512,13 @@ func TestVendorWorkResponseReturnsBoundDocumentBeforeScanCompletes(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	session, err := fixture.evidence.RedeemInvitation(context.Background(), vendorWorkCaptureToken(t, sent.CaptureURL), fixture.audience)
+	session := redeemVendorWorkAccess(t, fixture, sent.CaptureURL)
+	artifact, err := fixture.evidence.StoreArtifactForDistributionSession(context.Background(), fixture.access, session.SessionToken, evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, SessionToken: session.SessionToken, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	receipt, err := fixture.evidence.SubmitSession(context.Background(), session.SessionToken, map[string]formcontract.AnswerValue{"executed_document": {Document: &formcontract.DocumentAnswer{ArtifactID: artifact.ID, DocumentType: "Executed agreement"}}}, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: fixture.actor.TenantID, WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: receipt.SubmissionID, CausationID: "document-event"})
+	result := submitVendorWorkAnswers(t, fixture, session.SessionToken, map[string]formcontract.AnswerValue{"executed_document": {Document: &formcontract.DocumentAnswer{ArtifactID: artifact.ID, DocumentType: "Executed agreement"}}})
+	received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: fixture.actor.TenantID, WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: result.Submission.SubmissionID, CausationID: "document-event"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -477,19 +556,13 @@ func TestAcceptVendorWorkBlocksUnavailableCurrentResponseDocument(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
-			session, err := fixture.evidence.RedeemInvitation(context.Background(), vendorWorkCaptureToken(t, sent.CaptureURL), fixture.audience)
+			session := redeemVendorWorkAccess(t, fixture, sent.CaptureURL)
+			artifact, err := fixture.evidence.StoreArtifactForDistributionSession(context.Background(), fixture.access, session.SessionToken, evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"))
 			if err != nil {
 				t.Fatal(err)
 			}
-			artifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: fixture.actor.TenantID, RequestID: prepared.CurrentRequestID, SessionToken: session.SessionToken, FileName: "agreement.pdf", MediaType: "application/pdf"}, strings.NewReader("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			receipt, err := fixture.evidence.SubmitSession(context.Background(), session.SessionToken, map[string]formcontract.AnswerValue{"executed_document": {Document: &formcontract.DocumentAnswer{ArtifactID: artifact.ID, DocumentType: "Executed agreement"}}}, 1)
-			if err != nil {
-				t.Fatal(err)
-			}
-			received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: fixture.actor.TenantID, WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: receipt.SubmissionID, CausationID: "document-event"})
+			result := submitVendorWorkAnswers(t, fixture, session.SessionToken, map[string]formcontract.AnswerValue{"executed_document": {Document: &formcontract.DocumentAnswer{ArtifactID: artifact.ID, DocumentType: "Executed agreement"}}})
+			received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: fixture.actor.TenantID, WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: result.Submission.SubmissionID, CausationID: "document-event"})
 			if err != nil {
 				t.Fatal(err)
 			}
