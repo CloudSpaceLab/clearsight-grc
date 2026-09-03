@@ -155,14 +155,18 @@ describe("Program record workspace", () => {
 	expect(await screen.findByRole("heading", { name: "1 change since your last review" })).toBeTruthy();
 	expect(screen.queryByRole("button", { name: "Mark current state reviewed" })).toBeNull();
 	expect(screen.queryByRole("button", { name: "Approve Program activation" })).toBeNull();
+	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.queryByRole("button", { name: "Record new issue" })).toBeNull();
-	expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
 	expect(screen.getByText("New issues cannot be recorded until current Program responsibilities are available.")).toBeTruthy();
+	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
+	expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
 	expect(screen.getByText("Monitoring changes are disabled until current Program responsibilities are available.")).toBeTruthy();
 
 	fireEvent.click(screen.getByRole("button", { name: "Retry responsibilities" }));
 	expect(await screen.findByRole("button", { name: "Approve Program activation" })).toBeTruthy();
+	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.getByRole("button", { name: "Record new issue" })).toBeTruthy();
+	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
 	expect(screen.getByRole("button", { name: "Add monitoring check" })).toBeTruthy();
 	expect(loadProgramOperations).toHaveBeenCalledTimes(2);
 	expect(loadProgram).toHaveBeenCalledTimes(1);
@@ -185,7 +189,9 @@ describe("Program record workspace", () => {
 	expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
 	expect(screen.queryByText(/program-owner-internal|safeguard-owner-internal|source-internal|reviewer-internal/)).toBeNull();
 	expect(screen.getAllByText("Recorded Program owner unavailable").length).toBeGreaterThan(0);
+	fireEvent.click(screen.getByRole("tab", { name: "Requirements & controls" }));
 	expect(screen.getByText(/Recorded safeguard owner unavailable/)).toBeTruthy();
+	fireEvent.click(screen.getByRole("tab", { name: "Evidence & results" }));
 	expect(screen.getByText(/Accepted sources: Source name unavailable/)).toBeTruthy();
 	expect(screen.getByText(/Reviewer name unavailable/)).toBeTruthy();
   });
@@ -296,12 +302,16 @@ describe("Program record workspace", () => {
 
 	expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
 	expect(screen.queryByRole("button", { name: "Approve Program activation" })).toBeNull();
+	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.queryByRole("button", { name: "Record new issue" })).toBeNull();
+	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
 	expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Reload Program data" }));
 
 	expect(await screen.findByRole("button", { name: "Approve Program activation" })).toBeTruthy();
+	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.getByRole("button", { name: "Record new issue" })).toBeTruthy();
+	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
 	expect(screen.getByRole("button", { name: "Add monitoring check" })).toBeTruthy();
 	expect(loadProgram).toHaveBeenCalledTimes(2);
 	expect(loadProgramOperations).toHaveBeenCalledTimes(2);
@@ -406,6 +416,8 @@ describe("Program record workspace", () => {
 	const onOpenMatter = vi.fn();
 	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()} onOpenMatter={onOpenMatter}/>);
 
+	await screen.findByRole("heading", { name: "Nigeria data protection" });
+	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	const issues = await screen.findByRole("heading", { name: "Linked issues and changes" });
 	const panel = issues.closest("article")!;
 	fireEvent.click(await within(panel).findByRole("button", { name: "Try again" }));
@@ -424,12 +436,16 @@ describe("Program record workspace", () => {
 	expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
 	expect(screen.getByText("Two applicable requirements do not have evidence checks.")).toBeTruthy();
 	expect(screen.queryByRole("button", { name: "Approve Program activation" })).toBeNull();
+	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.queryByRole("button", { name: "Record new issue" })).toBeNull();
+	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
 	expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
 
 	fireEvent.click(screen.getByRole("button", { name: "Retry review status" }));
 	expect(await screen.findByRole("button", { name: "Approve Program activation" })).toBeTruthy();
+	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.getByRole("button", { name: "Record new issue" })).toBeTruthy();
+	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
 	expect(screen.getByRole("button", { name: "Add monitoring check" })).toBeTruthy();
 	expect(loadProgramReviewDigest).toHaveBeenCalledTimes(2);
 	expect(loadProgram).toHaveBeenCalledTimes(1);
@@ -525,6 +541,8 @@ describe("Program record workspace", () => {
 	] });
 	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
 
+	await screen.findByRole("heading", { name: "Nigeria data protection" });
+	fireEvent.click(screen.getByRole("tab", { name: "Requirements & controls" }));
 	fireEvent.click(await screen.findByRole("button", { name: "Add requirement" }));
 	fireEvent.change(screen.getByLabelText("Requirement code"), { target: { value: "CAR-02" } });
 	fireEvent.change(screen.getByLabelText("Requirement title"), { target: { value: "Keep filing evidence" } });
@@ -572,6 +590,8 @@ describe("Program record workspace", () => {
 	  reason: "You hold the current Program owner responsibility.",
 	}] });
 	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+	await screen.findByRole("heading", { name: "Nigeria data protection" });
+	fireEvent.click(screen.getByRole("tab", { name: "Requirements & controls" }));
 	await screen.findByRole("heading", { name: "Safeguards and coverage" });
 	const panel = document.getElementById("program-safeguards-panel")!;
 
@@ -611,9 +631,11 @@ describe("Program record workspace", () => {
 	  { command: "program.evidence.assess", subresource_id: "contract-1", label: "Record a result for Annual return filing evidence", responsibility: "REVIEWER", can_act: true, assigned_to: { id: "reviewer-1", display_name: "Compliance assurance reviewer", kind: "PERSON", role: "Reviewer" }, reason: "You hold the current reviewer responsibility." },
 	] });
 	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+	await screen.findByRole("heading", { name: "Nigeria data protection" });
+	fireEvent.click(screen.getByRole("tab", { name: "Evidence & results" }));
 	await screen.findByRole("heading", { name: "Evidence checks and results" });
 	const panel = document.getElementById("program-evidence-panel")!;
-	expect(within(panel).getByRole("heading", { name: "Monitoring" })).toBeTruthy();
+	expect(within(panel).queryByRole("heading", { name: "Monitoring" })).toBeNull();
 
 	fireEvent.click(within(panel).getByRole("button", { name: "Define evidence check" }));
 	fireEvent.change(screen.getByLabelText("Evidence code"), { target: { value: "CAR-COMPLETE" } });
@@ -633,6 +655,8 @@ describe("Program record workspace", () => {
 	fireEvent.change(screen.getByLabelText("Evidence references"), { target: { value: "Return register export\nFiling receipt" } });
 	fireEvent.click(screen.getByRole("button", { name: "Save evidence result" }));
 	await waitFor(() => expect(recordProgramEvidenceAssessment).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ contractID: "contract-1", conclusion: "PARTIALLY_SUPPORTED", coverage: .89, basis: { summary: "89 of 100 filing sections have current evidence.", evidence_references: ["Return register export", "Filing receipt"] } })));
+	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
+	expect(screen.getAllByRole("heading", { name: "Monitoring" })).toHaveLength(2);
   });
 
   it("shows only exactly linked issues and opens newly created work", async () => {
@@ -646,6 +670,8 @@ describe("Program record workspace", () => {
 	vi.mocked(createMatter).mockResolvedValue(created);
 	const onOpenMatter = vi.fn();
 	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()} onOpenMatter={onOpenMatter}/>);
+	await screen.findByRole("heading", { name: "Nigeria data protection" });
+	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	await screen.findByRole("heading", { name: "Linked issues and changes" });
 	const issues = document.getElementById("program-issues-panel")!;
 	await waitFor(() => expect(loadMatterSummaries).toHaveBeenCalledWith({ status: "OPEN", programID: "program-1", limit: 20 }));

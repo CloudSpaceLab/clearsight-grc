@@ -4,7 +4,6 @@ import { loadEvidenceSources } from "../api";
 import { addProgramEvidenceContract, recordProgramEvidenceAssessment, reviseProgramEvidenceContract, transitionProgramEvidenceContract } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
 import type { EvidenceSource, ProgramAggregate, RecordResponsibleParty } from "../types";
-import { MonitoringSetup } from "./MonitoringSetup";
 
 type Props = {
   aggregate: ProgramAggregate;
@@ -24,7 +23,7 @@ function futureDate(days: number) { return new Date(Date.now() + days * 86400000
 function statusLabel(value: string) { return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
 function lines(value: string) { return value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean); }
 
-export function ProgramEvidencePanel({ aggregate, operations, responsibleParties = [], actorPrincipalID, canConfigureSources, canOperate = true, onUpdated, onReload, onOpenMatter }: Props) {
+export function ProgramEvidencePanel({ aggregate, operations, responsibleParties = [], canOperate = true, onUpdated, onReload }: Props) {
   const defineOperation = operations.find((value) => value.command === "program.evidence.define");
   const [sources, setSources] = useState<EvidenceSource[]>([]);
   const [sourcesState, setSourcesState] = useState<"loading" | "live" | "unavailable">("loading");
@@ -223,6 +222,5 @@ export function ProgramEvidencePanel({ aggregate, operations, responsibleParties
     })()}
 
     {!defineOperation?.can_act && defineOperation?.reason && <p className="program-operation-reason">{defineOperation.reason}</p>}
-    <MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} operations={operations} onOpenMatter={onOpenMatter}/>
   </article>;
 }

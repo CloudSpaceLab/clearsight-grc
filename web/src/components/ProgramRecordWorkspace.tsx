@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import type { ProgramSection } from "../appRouting";
 import { loadProgram, loadProgramAt } from "../api";
 import { loadProgramOperations } from "../programOperationsApi";
 import type { ProgramOperations } from "../programOperationsApi";
@@ -17,8 +19,10 @@ import { ProgramStatusPanel } from "./ProgramStatusPanel";
 import { RecordSnapshotControl } from "./RecordSnapshotControl";
 import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
+import { MonitoringSetup } from "./MonitoringSetup";
+import { ProgramDetailSections } from "./ProgramDetailSections";
 
-type Props = { programID: string; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void; onOpenRequest?: (requestID: string) => void };
+type Props = { programID: string; section?: ProgramSection; onSectionChange?: (section: ProgramSection) => void; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void; onOpenRequest?: (requestID: string) => void };
 type LoadState = "loading" | "live" | "unavailable";
 
 function statusLabel(value: string) {
@@ -31,13 +35,14 @@ function statusLabel(value: string) {
   }
 }
 
-export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "", canConfigureSources = false, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; }, onOpenRequest }: Props) {
+export function ProgramRecordWorkspace({ programID, section = "overview", onSectionChange, onBack, actorPrincipalID = "", canConfigureSources = false, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; }, onOpenRequest }: Props) {
   const [aggregateState, setAggregateState] = useState<LoadState>("loading");
   const [operationsState, setOperationsState] = useState<LoadState>("loading");
   const [reviewState, setReviewState] = useState<LoadState>("loading");
   const [aggregate, setAggregate] = useState<ProgramAggregate | null>(null);
   const [operations, setOperations] = useState<ProgramOperations | null>(null);
   const [digest, setDigest] = useState<ReviewDigest | null>(null);
+  const [activeSection, setActiveSection] = useState<ProgramSection>(section);
   const [ownerIntent, setOwnerIntent] = useState(0);
   const loadIDs = useRef({ aggregate: 0, operations: 0, review: 0 });
   const activeTarget = useRef({ id: programID, generation: 0 });
@@ -54,6 +59,8 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
     setOperationsState("loading");
     setReviewState("loading");
   }, [programID]);
+
+  useEffect(() => { setActiveSection(section); }, [programID, section]);
 
   useEffect(() => {
     mounted.current = true;
@@ -169,6 +176,33 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
   const dominantAction = digest ? dominantProgramAction(displayedOperations.operations, digest) : undefined;
   const ownerActionIsDominant = dominantAction?.command === "program.assign";
 
+  function selectSection(next: ProgramSection) {
+    setActiveSection(next);
+    onSectionChange?.(next);
+  }
+
+  const panels: Record<ProgramSection, ReactNode> | null = aggregate ? {
+    overview: <section className="program-record-grid">
+      <article className="program-record-panel" id="program-review-panel">{digest ? <ProgramReviewDigest aggregate={aggregate} initialDigest={digest} canAcknowledge={canAcknowledgeReview} onDigestUpdated={applyDigestUpdated}/> : <div className="inline-notice">Review actions are disabled until the current review status is available.</div>}</article>
+      <ProgramStatusPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+      <ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} ownerIntent={ownerIntent} suppressOwnerAction={ownerActionIsDominant} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+    </section>,
+    "requirements-controls": <section className="program-record-grid">
+      <ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+      <ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+    </section>,
+    monitoring: <article className="program-record-panel program-wide-panel"><MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} operations={displayedOperations.operations} onOpenMatter={onOpenMatter}/></article>,
+    "evidence-results": <section className="program-record-grid"><ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/></section>,
+    "issues-actions": <section className="program-record-grid">
+      <ProgramIssuesPanel aggregate={aggregate} canCreateIssue={mutationsReady} onOpenMatter={onOpenMatter}/>
+      <VendorRelationshipLinks targetType="PROGRAM" targetID={aggregate.program.id}/>
+      <VendorWorkPanel targetType="PROGRAM" targetID={aggregate.program.id} onOpenRequest={onOpenRequest}/>
+    </section>,
+    history: <section className="program-record-grid">
+      <article className="program-record-panel program-wide-panel"><div className="program-panel-heading"><div><span className="eyebrow">History</span><h2>Program record history</h2></div></div><dl className="program-history-facts"><div><dt>Program version</dt><dd>{aggregate.program.version}</dd></div><div><dt>Created</dt><dd><time dateTime={aggregate.program.created_at}>{new Date(aggregate.program.created_at).toLocaleString()}</time></dd></div><div><dt>Last changed</dt><dd><time dateTime={aggregate.program.updated_at}>{new Date(aggregate.program.updated_at).toLocaleString()}</time></dd></div><div><dt>Latest status calculated</dt><dd>{aggregate.current_state?.generated_at ? <time dateTime={aggregate.current_state.generated_at}>{new Date(aggregate.current_state.generated_at).toLocaleString()}</time> : "Not available"}</dd></div></dl><RecordSnapshotControl recordLabel="Program" loadSnapshot={async (at) => { const value = await loadProgramAt(aggregate.program.id, at); return { version: value.program.version, status: value.program.status, updatedAt: value.program.updated_at }; }}/></article>
+    </section>,
+  } : null;
+
   return <section className="program-record-workspace" aria-label="Program record">
     <button aria-label="Back to Programs" className="text-button program-record-back" type="button" onClick={onBack}>← Back to Programs</button>
     {aggregateState === "loading" && !aggregate && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Program record…</div>}
@@ -178,7 +212,6 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
         <div><span className="program-kicker">{aggregate.program.code} · {aggregate.program.owning_function}</span><h1>{aggregate.program.name}</h1><p>{aggregate.program.jurisdiction || "Jurisdiction not recorded"}</p></div>
         <dl><div><dt>Operating status</dt><dd>{statusLabel(aggregate.program.status)}</dd></div><div><dt>Calculated state</dt><dd>{aggregate.state_label}</dd></div><div><dt>Record version</dt><dd>{aggregate.program.version}</dd></div></dl>
       </header>
-      <RecordSnapshotControl recordLabel="Program" loadSnapshot={async (at) => { const value = await loadProgramAt(aggregate.program.id, at); return { version: value.program.version, status: value.program.status, updatedAt: value.program.updated_at }; }}/>
       {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking current responsibilities.</strong> Program values remain visible while the current responsibility route is loaded.</div>}
       {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Program responsibilities could not be checked.</strong> Program values and stored owners remain visible, but changes are disabled until the current responsibility route is available. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}
       {operations && !operations.authority_available && <div className="inline-notice" role="status"><strong>Responsibilities are temporarily unavailable.</strong> Program values and stored owners remain visible, but changes are disabled until authority routing recovers. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}
@@ -190,17 +223,7 @@ export function ProgramRecordWorkspace({ programID, onBack, actorPrincipalID = "
       {digest
         ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
         : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label}</h2><div className="program-position-reasons"><h3>Why this status</h3><ul>{(aggregate.current_state?.reasons ?? []).map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul></div></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
-      <section className="program-record-grid">
-        <article className="program-record-panel" id="program-review-panel">{digest ? <ProgramReviewDigest aggregate={aggregate} initialDigest={digest} canAcknowledge={canAcknowledgeReview} onDigestUpdated={applyDigestUpdated}/> : <div className="inline-notice">Review actions are disabled until the current review status is available.</div>}</article>
-		<ProgramStatusPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
-		<ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} ownerIntent={ownerIntent} suppressOwnerAction={ownerActionIsDominant} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
-		<ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
-		<ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
-		<ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/>
-		<ProgramIssuesPanel aggregate={aggregate} canCreateIssue={mutationsReady} onOpenMatter={onOpenMatter}/>
-		<VendorRelationshipLinks targetType="PROGRAM" targetID={aggregate.program.id}/>
-		<VendorWorkPanel targetType="PROGRAM" targetID={aggregate.program.id} onOpenRequest={onOpenRequest}/>
-      </section>
+      {panels && <ProgramDetailSections section={activeSection} panels={panels} onSectionChange={selectSection}/>} 
     </>}
   </section>;
 }
