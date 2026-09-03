@@ -1,3 +1,5 @@
+BEGIN;
+
 ALTER TABLE capture_access_routes
     ADD COLUMN max_redemptions integer,
     ADD COLUMN redemptions integer;
@@ -13,3 +15,5 @@ ALTER TABLE capture_access_routes
     ALTER COLUMN redemptions SET NOT NULL,
     ADD CONSTRAINT capture_access_routes_max_redemptions_check CHECK (max_redemptions BETWEEN 1 AND 20),
     ADD CONSTRAINT capture_access_routes_redemptions_check CHECK (redemptions >= 0 AND redemptions <= max_redemptions);
+
+COMMIT;
