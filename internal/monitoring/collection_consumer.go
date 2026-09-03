@@ -115,7 +115,7 @@ func (c *CollectionConsumer) Publish(ctx context.Context, event workflowruntime.
 	cycle := CollectionCycle{
 		ID: cycleID, TenantID: event.TenantID, ProgramID: check.ProgramID, MonitoringCheckID: check.ID, MonitoringCheckVersion: check.Version,
 		Sequence: request.Origin.Version, Policy: policy, CurrentRequestID: request.ID, PredecessorRequestID: request.PredecessorRequestID,
-		LatestSubmissionID: submission.ID, LatestSubmittedAt: &submittedAt, ExpiresAt: expires, RenewalOpensAt: opens, NextActionAt: &nextAction,
+		LatestSubmissionID: submission.ID, LatestSubmittedAt: &submittedAt, LatestRespondentLabel: strings.TrimSpace(submission.SubmittedBy), ExpiresAt: expires, RenewalOpensAt: opens, NextActionAt: &nextAction,
 		Recipient: route, DeliveryState: delivery, State: CycleScheduled, CreatedAt: now, UpdatedAt: now,
 	}
 	if _, err := c.Repository.UpsertCollectionCycle(ctx, cycle); err != nil {

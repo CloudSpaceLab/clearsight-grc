@@ -13,7 +13,7 @@ import (
 
 const collectionCycleColumns = `id::text,tenant_id::text,program_id::text,monitoring_check_id::text,monitoring_check_version,sequence,
 	validity_months,renewal_window_days,reminder_count,reminders_sent,
-	COALESCE(current_request_id::text,''),COALESCE(predecessor_request_id::text,''),COALESCE(latest_submission_id::text,''),latest_submitted_at,
+	COALESCE(current_request_id::text,''),COALESCE(predecessor_request_id::text,''),COALESCE(latest_submission_id::text,''),latest_submitted_at,latest_respondent_label,
 	expires_at,renewal_opens_at,next_action_at,recipient_route_type,COALESCE(recipient_principal_id::text,''),COALESCE(recipient_contact_ref,''),recipient_safe_hint,
 	delivery_state,delivery_reference,state,COALESCE(lease_owner,''),COALESCE(lease_token::text,''),lease_until,attempts,safe_error,created_at,updated_at`
 
@@ -26,17 +26,17 @@ func (r *PostgresRepository) UpsertCollectionCycle(ctx context.Context, value Co
 		INSERT INTO monitoring_collection_cycles(
 			id,tenant_id,program_id,monitoring_check_id,monitoring_check_version,sequence,
 			validity_months,renewal_window_days,reminder_count,reminders_sent,
-			current_request_id,predecessor_request_id,latest_submission_id,latest_submitted_at,
+			current_request_id,predecessor_request_id,latest_submission_id,latest_submitted_at,latest_respondent_label,
 			expires_at,renewal_opens_at,next_action_at,recipient_route_type,recipient_principal_id,recipient_contact_ref,recipient_safe_hint,
 			delivery_state,delivery_reference,state,lease_owner,lease_token,lease_until,attempts,safe_error,created_at,updated_at)
 		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5,$6,$7,$8,$9,$10,
-			NULLIF($11,'')::uuid,NULLIF($12,'')::uuid,NULLIF($13,'')::uuid,$14,$15,$16,$17,$18,NULLIF($19,'')::uuid,NULLIF($20,''),$21,
-			$22,$23,$24,NULLIF($25,''),NULLIF($26,'')::uuid,$27,$28,$29,$30,$31)
+			NULLIF($11,'')::uuid,NULLIF($12,'')::uuid,NULLIF($13,'')::uuid,$14,$15,$16,$17,$18,$19,NULLIF($20,'')::uuid,NULLIF($21,''),$22,
+			$23,$24,$25,NULLIF($26,''),NULLIF($27,'')::uuid,$28,$29,$30,$31,$32)
 		ON CONFLICT(tenant_id,monitoring_check_id,sequence) DO NOTHING
 		RETURNING `+collectionCycleColumns,
 		validated.ID, validated.TenantID, validated.ProgramID, validated.MonitoringCheckID, validated.MonitoringCheckVersion, validated.Sequence,
 		validated.Policy.ValidityMonths, validated.Policy.RenewalWindowDays, validated.Policy.ReminderCount, validated.RemindersSent,
-		validated.CurrentRequestID, validated.PredecessorRequestID, validated.LatestSubmissionID, validated.LatestSubmittedAt,
+		validated.CurrentRequestID, validated.PredecessorRequestID, validated.LatestSubmissionID, validated.LatestSubmittedAt, validated.LatestRespondentLabel,
 		validated.ExpiresAt, validated.RenewalOpensAt, validated.NextActionAt, validated.Recipient.Type, validated.Recipient.PrincipalID, validated.Recipient.ContactRef, validated.Recipient.SafeHint,
 		validated.DeliveryState, validated.DeliveryReference, validated.State, validated.LeaseOwner, validated.LeaseToken, validated.LeaseUntil,
 		validated.Attempts, validated.SafeError, validated.CreatedAt, validated.UpdatedAt))
@@ -221,7 +221,7 @@ func scanCollectionCycle(row scanner) (CollectionCycle, error) {
 	err := row.Scan(
 		&value.ID, &value.TenantID, &value.ProgramID, &value.MonitoringCheckID, &value.MonitoringCheckVersion, &value.Sequence,
 		&value.Policy.ValidityMonths, &value.Policy.RenewalWindowDays, &value.Policy.ReminderCount, &value.RemindersSent,
-		&value.CurrentRequestID, &value.PredecessorRequestID, &value.LatestSubmissionID, &value.LatestSubmittedAt,
+		&value.CurrentRequestID, &value.PredecessorRequestID, &value.LatestSubmissionID, &value.LatestSubmittedAt, &value.LatestRespondentLabel,
 		&value.ExpiresAt, &value.RenewalOpensAt, &value.NextActionAt, &value.Recipient.Type, &value.Recipient.PrincipalID, &value.Recipient.ContactRef, &value.Recipient.SafeHint,
 		&value.DeliveryState, &value.DeliveryReference, &value.State, &value.LeaseOwner, &value.LeaseToken, &value.LeaseUntil,
 		&value.Attempts, &value.SafeError, &value.CreatedAt, &value.UpdatedAt,

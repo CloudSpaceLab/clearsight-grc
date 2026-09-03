@@ -204,8 +204,10 @@ func (a *API) routes() []routeSpec {
 		read("/api/v1/programs/{id}/monitoring-checks", a.listMonitoringChecks),
 		material("/api/v1/programs/{id}/monitoring-checks", "program.monitoring.define", a.createMonitoringCheck, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2, ActorField: noActorField}),
 		material("/api/v1/monitoring-checks/{id}/transition", "program.monitoring.transition", a.transitionMonitoringCheck, commandPolicy{ObjectType: "MONITORING_CHECK", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}),
+		material("/api/v1/monitoring-checks/{id}/collection-policy", "program.monitoring.collection-policy.update", a.updateCollectionPolicy, commandPolicy{ObjectType: "MONITORING_CHECK", Responsibility: authority.ResponsibilityOwner, Materiality: 3, ActorField: noActorField}),
 		material("/api/v1/monitoring-checks/{id}/evaluate-source", "program.monitoring.evaluate", a.evaluateMonitoringSource, commandPolicy{ObjectType: "MONITORING_CHECK", Responsibility: authority.ResponsibilityPerformer, Materiality: 2, ActorField: noActorField}),
 		read("/api/v1/monitoring-checks/{id}/results", a.listMonitoringResults),
+		read("/api/v1/programs/{id}/collection-summaries", a.listCollectionSummaries),
 		material("/api/v1/monitoring-results/{result_id}/linked-issue", "program.monitoring.issue.create", a.createMonitoringLinkedIssue, commandPolicy{ObjectType: "MONITORING_CHECK", Responsibility: authority.ResponsibilityReviewer, Materiality: 4, ActorField: noActorField}),
 
 		read("/api/v1/matter-summaries", a.listMatterSummaries),

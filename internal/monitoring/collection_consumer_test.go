@@ -100,7 +100,7 @@ func TestCollectionConsumerProjectsSubmissionOnce(t *testing.T) {
 	}
 	wantExpiry := time.Date(2027, 2, 28, 10, 32, 0, 0, time.UTC)
 	got := summaries[0]
-	if got.CycleID != "cycle-1" || got.Sequence != 1 || got.LatestSubmissionID != receipt.SubmissionID || got.LatestSubmittedAt == nil || !got.LatestSubmittedAt.Equal(submittedAt) || !got.ExpiresAt.Equal(wantExpiry) || got.Recipient.PrincipalID != "respondent-1" {
+	if got.CycleID != "cycle-1" || got.Sequence != 1 || got.LatestSubmissionID != receipt.SubmissionID || got.LatestSubmittedAt == nil || !got.LatestSubmittedAt.Equal(submittedAt) || got.LatestRespondentLabel != "respondent-1" || !got.ExpiresAt.Equal(wantExpiry) || got.Recipient.PrincipalID != "respondent-1" {
 		t.Fatalf("summary = %#v", got)
 	}
 	processed, err := inbox.InboxProcessed(ctx, "bank-a", collectionSubmissionConsumer, event.ID)

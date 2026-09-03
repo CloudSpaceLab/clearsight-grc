@@ -523,11 +523,17 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 			linked = &candidate
 		}
 	}
-	if linked == nil || linked.CollectionPolicy == nil {
+	if linked == nil {
 		return evidence.Request{}, ErrInactive
 	}
-	if _, err := normalizeCollectionPolicy(linked.CollectionPolicy); err != nil {
-		return evidence.Request{}, err
+	if linked.CollectionPolicy != nil {
+		if _, err := normalizeCollectionPolicy(linked.CollectionPolicy); err != nil {
+			return evidence.Request{}, err
+		}
+	}
+	origin := evidence.RequestOrigin{}
+	if linked.CollectionPolicy != nil {
+		origin = evidence.RequestOrigin{Type: evidence.OriginMonitoringCollection, ID: linked.ID, Version: 1}
 	}
 	fields := make([]evidence.Field, len(form.Fields))
 	for index, field := range form.Fields {
@@ -545,7 +551,7 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 		Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile,
 		Sections: form.Sections, Fields: fields, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
 		CollectionPeriodStart: &periodStart, CollectionPeriodEnd: &periodEnd,
-		Origin: evidence.RequestOrigin{Type: evidence.OriginMonitoringCollection, ID: linked.ID, Version: 1}, CreatedBy: actor.PrincipalID,
+		Origin: origin, CreatedBy: actor.PrincipalID,
 	})
 }
 

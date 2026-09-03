@@ -247,8 +247,10 @@
       "get": { "operationId": "listMonitoringChecks", "x-clearsight-route-class": "AUTHENTICATED_READ" },
       "post": { "operationId": "createMonitoringCheck", "x-clearsight-route-class": "MATERIAL_COMMAND" }
     },
-    "/api/v1/monitoring-checks/{id}/transition": { "post": { "operationId": "transitionMonitoringCheck", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
-    "/api/v1/monitoring-checks/{id}/evaluate-source": { "post": { "operationId": "evaluateMonitoringSource", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+	"/api/v1/programs/{id}/collection-summaries": { "get": { "operationId": "listCollectionSummaries", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+	"/api/v1/monitoring-checks/{id}/transition": { "post": { "operationId": "transitionMonitoringCheck", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+	"/api/v1/monitoring-checks/{id}/collection-policy": { "post": { "operationId": "updateCollectionPolicy", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+	"/api/v1/monitoring-checks/{id}/evaluate-source": { "post": { "operationId": "evaluateMonitoringSource", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/monitoring-checks/{id}/results": { "get": { "operationId": "listMonitoringResults", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/monitoring-results/{result_id}/linked-issue": { "post": { "operationId": "createMonitoringLinkedIssue", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
 
