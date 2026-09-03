@@ -27,9 +27,15 @@ func TestRuntimeProviderAttachesNewestActiveGatewayBaseline(t *testing.T) {
 	baselineV2.ID = "baseline-v2"
 	baselineV2.Name = "Baseline v2"
 	baselineV2.Version = 2
-	if _, err := repo.CreatePolicy(ctx, workloadPolicy); err != nil { t.Fatal(err) }
-	if _, err := repo.CreatePolicy(ctx, baselineV1); err != nil { t.Fatal(err) }
-	if _, err := repo.CreatePolicy(ctx, baselineV2); err != nil { t.Fatal(err) }
+	if _, err := repo.CreatePolicy(ctx, workloadPolicy); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.CreatePolicy(ctx, baselineV1); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.CreatePolicy(ctx, baselineV2); err != nil {
+		t.Fatal(err)
+	}
 	secret := "runtime-secret"
 	digest := sha256.Sum256([]byte(secret))
 	workload := Workload{
@@ -38,7 +44,9 @@ func TestRuntimeProviderAttachesNewestActiveGatewayBaseline(t *testing.T) {
 		TokensPerMinute: 1, CostMicroUSDPerMinute: 1, MaxConcurrent: 1, PolicyID: workloadPolicy.ID, PolicyVersion: 1,
 		State: "ACTIVE", Version: 1, RecordVersion: 1, KeySHA256: hex.EncodeToString(digest[:]),
 	}
-	if _, err := repo.CreateWorkload(ctx, workload); err != nil { t.Fatal(err) }
+	if _, err := repo.CreateWorkload(ctx, workload); err != nil {
+		t.Fatal(err)
+	}
 
 	provider := NewRuntimeProvider(repo, nil)
 	result, err := provider.Authenticate(ctx, "Bearer "+secret)
@@ -67,7 +75,9 @@ func TestRuntimeProviderBaselineCacheIsBoundedAndRefreshes(t *testing.T) {
 		ActionClass: aigateway.GatewayBaselineActionClass, Status: "ACTIVE", RolloutMode: aigateway.RolloutShadow,
 		Version: 1, RecordVersion: 1, Definition: aigateway.PolicyDefinition{DefaultAction: aigateway.DecisionAllow},
 	}
-	if _, err := repo.CreatePolicy(ctx, baseline); err != nil { t.Fatal(err) }
+	if _, err := repo.CreatePolicy(ctx, baseline); err != nil {
+		t.Fatal(err)
+	}
 	if cached, found, err := provider.activeGatewayBaseline(ctx, "tenant-a"); err != nil || found || cached.ID != "" {
 		t.Fatalf("negative cache did not hold: %#v found=%v err=%v", cached, found, err)
 	}
