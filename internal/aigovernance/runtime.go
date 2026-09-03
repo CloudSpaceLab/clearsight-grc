@@ -69,6 +69,10 @@ func (p *RuntimeProvider) Authenticate(ctx context.Context, header string) (*aig
 }
 
 func (p *RuntimeProvider) ResolveFacts(ctx context.Context, workload aigateway.Workload, request aigateway.Request, requirements []aigateway.BindingRequirement) ([]aigateway.Fact, error) {
+	requirements, err := runtimeBindingRequirements(workload, requirements)
+	if err != nil {
+		return nil, err
+	}
 	facts := make([]aigateway.Fact, 0, len(requirements))
 	for _, requirement := range requirements {
 		fact := aigateway.Fact{Key: requirement.FactKey, State: aigateway.FactUnknown}
