@@ -92,6 +92,25 @@ func TestAdministrativePermissionsLiveInRouteRegistry(t *testing.T) {
 	}
 }
 
+func TestThirdPartyActivationApprovalUsesBusinessAuthorityNotConfigurationPermission(t *testing.T) {
+	for _, route := range (&API{}).routes() {
+		if route.Method != http.MethodPost || route.Path != "/api/v1/third-party-activation-policies/{id}/approve" {
+			continue
+		}
+		if route.Permission != "" {
+			t.Fatalf("activation-policy approval requires unrelated administrative permission %q", route.Permission)
+		}
+		if route.Command == nil || route.Command.Name != "thirdparty.activation_policy.approve" {
+			t.Fatalf("activation-policy approval lacks its material command: %#v", route.Command)
+		}
+		if route.Command.Policy.Responsibility != authority.ResponsibilityAuthorizer {
+			t.Fatalf("activation-policy approval responsibility = %q, want %q", route.Command.Policy.Responsibility, authority.ResponsibilityAuthorizer)
+		}
+		return
+	}
+	t.Fatal("activation-policy approval route was not registered")
+}
+
 func TestAdministrativeRouteRequiresEffectivePermission(t *testing.T) {
 	handler := New(Dependencies{
 		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
