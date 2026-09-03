@@ -170,6 +170,12 @@ func writeThirdPartyActivationError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusForbidden, "activation_not_authorized", "The current authority route does not permit this activation decision.")
 	case errors.Is(err, thirdparty.ErrActivationSimulationRequired):
 		httpx.WriteError(w, http.StatusConflict, "activation_simulation_required", "Run a complete activation impact simulation for this policy revision before approving it.")
+	case errors.Is(err, thirdparty.ErrActivationCandidateList):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "activation_candidate_list_failed", "The proposed vendor population could not be loaded for this simulation. No simulation was recorded.")
+	case errors.Is(err, thirdparty.ErrActivationCandidateFacts):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "activation_candidate_evaluation_failed", "One or more proposed vendor records could not be evaluated. No simulation was recorded.")
+	case errors.Is(err, thirdparty.ErrActivationSimulationStore):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "activation_simulation_store_failed", "The completed simulation could not be recorded. Run the simulation again.")
 	case errors.Is(err, thirdparty.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "version_conflict", "This vendor activation record changed. Reload before continuing.")
 	case errors.Is(err, thirdparty.ErrNotFound):
