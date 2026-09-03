@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/activity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
@@ -109,6 +110,8 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	workflowService := workflow.NewService(workflow.NewPostgresRepository(pool))
 	accessAdmin := access.NewPostgresAdministrator(pool)
 	backgroundJobs := operations.NewService(continuityRepo, runtimeRepo)
+	activityService := activity.NewService(activity.NewPostgresRepository(pool))
+	auditExports := activity.NewExportService(activityService, activity.NewPostgresExportRepository(pool), store)
 	todayService := actorTodayService(workflowService, continuityService, authorityService, accessAdmin, backgroundJobs)
 	oversightService := oversight.NewService(oversight.NewPostgresRepository(pool))
 	sessionStore := pgxstore.NewWithConfig(pool, pgxstore.Config{CleanUpInterval: 5 * time.Minute, TableName: "web_sessions"})
@@ -130,7 +133,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		FormPolicies: formPolicies,
 		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
-		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs,
+		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports,
 		Access: access.NewPostgresResolver(pool), AccessAdmin: accessAdmin, SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
 		RuntimeContext: runtimecontext.NewPostgresResolver(pool),
 	}, nil

@@ -154,7 +154,14 @@ func developmentPermissions(roles []string) []string {
 		case "CRO", "CCO", "CISO", "EXECUTIVE":
 			permissions = append(permissions, PermissionConfigRead, PermissionOversightRead)
 		case "GRC_ADMIN":
-			permissions = append(permissions, PermissionConfigRead, PermissionConfigWrite, PermissionPlatformOperationsRead, PermissionPlatformOperationsWrite, PermissionOversightRead)
+			permissions = append(permissions,
+				PermissionConfigRead,
+				PermissionConfigWrite,
+				PermissionPlatformOperationsRead,
+				PermissionPlatformOperationsWrite,
+				PermissionAuditExport,
+				PermissionOversightRead,
+			)
 		case "SYSTEM_ADMIN", "SUPER_ADMIN":
 			permissions = append(permissions,
 				PermissionConfigRead,
@@ -164,6 +171,7 @@ func developmentPermissions(roles []string) []string {
 				PermissionPlatformOperationsRead,
 				PermissionPlatformOperationsWrite,
 				PermissionPlatformJobsRead,
+				PermissionAuditExport,
 			)
 		}
 	}

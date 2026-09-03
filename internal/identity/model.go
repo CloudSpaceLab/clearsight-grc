@@ -20,6 +20,7 @@ const (
 	PermissionPlatformOperationsRead  = "PLATFORM_OPERATIONS_READ"
 	PermissionPlatformOperationsWrite = "PLATFORM_OPERATIONS_WRITE"
 	PermissionPlatformJobsRead        = "PLATFORM_JOBS_READ"
+	PermissionAuditExport             = "AUDIT_EXPORT"
 	PermissionOversightRead           = "OVERSIGHT_READ"
 )
 
