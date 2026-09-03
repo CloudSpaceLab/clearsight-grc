@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createFormMonitoringCheck, createFormTemplate, createMonitoringLinkedIssue, loadCollectionSummaries, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection } from "../monitoringApi";
+import { createFormMonitoringCheck, createFormTemplate, createMonitoringLinkedIssue, loadCollectionSummaries, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection, transitionMonitoringCheck } from "../monitoringApi";
+import { ApiError } from "../http";
 import { createProgram, loadProgramSetupCandidates } from "../continuityCommands";
 import type { ProgramAggregate } from "../types";
 import { FormBuilder } from "./FormBuilder";
@@ -105,7 +106,8 @@ describe("monitoring setup", () => {
 
   it("does not collect a form until its exact Program check is active", async () => {
     vi.mocked(loadFormTemplates).mockResolvedValue([{
-      id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards", fields: [],
+      id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards",
+      fields: [{ id: "identity", label: "Was identity verified?", type: "yes_no", required: true, options: ["Yes", "No"], scoring: { id: "identity", required: true, weight: 100, answer_scores: { Yes: 0, No: 100 } } }],
       status: "ACTIVE", is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
     }]);
 
@@ -115,9 +117,23 @@ describe("monitoring setup", () => {
     expect(screen.queryByRole("button", { name: "Collect responses" })).toBeNull();
   });
 
+  it("explains why an unscored active form cannot become a monitoring check", async () => {
+    vi.mocked(loadFormTemplates).mockResolvedValue([{
+      id: "form-1", tenant_id: "bank-1", code: "ENCRYPTION", name: "Monthly cloud encryption Form", purpose: "Confirm encryption controls.",
+      fields: [{ id: "encrypted", label: "Is encryption enabled?", type: "yes_no", required: true, options: ["Yes", "No"] }],
+      scoring_mode: "NONE", status: "ACTIVE", is_current: true, version: 3, created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-02T00:00:00Z",
+    }]);
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={ownerOperations}/>);
+
+    expect(await screen.findByText(/This active revision has no scored questions/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Set collection schedule" })).toBeNull();
+  });
+
   it("adds the recommended expiry and reminder policy to a Program collection", async () => {
     const form = {
-      id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards", fields: [],
+      id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards",
+      fields: [{ id: "identity", label: "Was identity verified?", type: "yes_no" as const, required: true, options: ["Yes", "No"], scoring: { id: "identity", required: true, weight: 100, answer_scores: { Yes: 0, No: 100 } } }],
       status: "ACTIVE" as const, is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
     };
     vi.mocked(loadFormTemplates).mockResolvedValue([form]);
@@ -357,6 +373,73 @@ describe("monitoring setup", () => {
     expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Check source now" })).toBeNull();
     expect(screen.getByText("Assigned to Monitoring analyst.")).toBeTruthy();
+  });
+
+  it("approves the latest monitoring-check revision instead of the revision first rendered", async () => {
+    const pending = {
+      id: "check-pending", tenant_id: "bank-1", program_id: "program-1", code: "PENDING", name: "Pending check", claim: "The check awaits review.", input_kind: "SOURCE" as const, binding_id: "binding-1", binding_version: 1,
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1, failure_action: "REVIEW" as const, status: "PENDING_APPROVAL" as const,
+      submitted_by: "owner-1", is_current: false, version: 9, created_at: "2026-09-02T00:00:00Z", updated_at: "2026-09-02T00:00:00Z",
+    };
+    const latest = { ...pending, version: 10, updated_at: "2026-09-02T00:01:00Z" };
+    const active = { ...latest, version: 11, status: "ACTIVE" as const, is_current: true, approved_by: "reviewer-1" };
+    vi.mocked(loadMonitoringChecks).mockResolvedValueOnce([pending]).mockResolvedValueOnce([latest]);
+    vi.mocked(transitionMonitoringCheck).mockResolvedValue(active);
+    const operation: ProgramOperation = {
+      command: "program.monitoring.transition", subresource_id: pending.id, label: "Approve Pending check", responsibility: "REVIEWER", can_act: true,
+      assigned_to: { id: "reviewer-1", display_name: "Controls reviewer", kind: "PERSON", role: "Reviewer" }, reason: "You hold the current responsibility.", allowed_targets: ["ACTIVE", "REJECTED"],
+    };
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="reviewer-1" canConfigureSources={false} operations={[operation]}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Approve check" }));
+
+    await waitFor(() => expect(transitionMonitoringCheck).toHaveBeenCalledWith(pending.id, 10, "ACTIVE", undefined));
+    expect(screen.getByRole("heading", { name: "Pending check" }).nextElementSibling?.textContent).toContain("Active");
+  });
+
+  it("stops replacement approval when the active check changed after review", async () => {
+    const pending = {
+      id: "check-pending", tenant_id: "bank-1", program_id: "program-1", code: "CHECK-FAMILY", name: "Pending replacement", claim: "The replacement awaits review.", input_kind: "SOURCE" as const, binding_id: "binding-1", binding_version: 1,
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1, failure_action: "REVIEW" as const, status: "PENDING_APPROVAL" as const,
+      submitted_by: "owner-1", is_current: false, version: 2, created_at: "2026-09-02T00:00:00Z", updated_at: "2026-09-02T00:00:00Z",
+    };
+    const staleCurrent = { ...pending, id: "check-old", name: "Former current check", status: "ACTIVE" as const, is_current: true, version: 3 };
+    const refreshedCurrent = { ...staleCurrent, id: "check-current", name: "Current check", version: 7 };
+    const retiredStaleCurrent = { ...staleCurrent, status: "RETIRED" as const, is_current: false, version: 4 };
+    const active = { ...pending, version: 3, status: "ACTIVE" as const, is_current: true, approved_by: "reviewer-1" };
+    vi.mocked(loadMonitoringChecks).mockResolvedValueOnce([pending, staleCurrent]).mockResolvedValueOnce([pending, retiredStaleCurrent, refreshedCurrent]);
+    vi.mocked(transitionMonitoringCheck).mockResolvedValue(active);
+    const operation: ProgramOperation = {
+      command: "program.monitoring.transition", subresource_id: pending.id, label: "Approve replacement", responsibility: "REVIEWER", can_act: true,
+      assigned_to: { id: "reviewer-1", display_name: "Controls reviewer", kind: "PERSON", role: "Reviewer" }, reason: "You hold the current responsibility.", allowed_targets: ["ACTIVE", "REJECTED"],
+    };
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="reviewer-1" canConfigureSources={false} operations={[operation]}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Approve check" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("The active monitoring check changed after you opened this review");
+    expect(transitionMonitoringCheck).not.toHaveBeenCalled();
+  });
+
+  it("reloads the latest monitoring-check revision after a concurrent update", async () => {
+    const pending = {
+      id: "check-pending", tenant_id: "bank-1", program_id: "program-1", code: "PENDING", name: "Pending check", claim: "The check awaits review.", input_kind: "SOURCE" as const, binding_id: "binding-1", binding_version: 1,
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1, failure_action: "REVIEW" as const, status: "PENDING_APPROVAL" as const,
+      submitted_by: "owner-1", is_current: false, version: 9, created_at: "2026-09-02T00:00:00Z", updated_at: "2026-09-02T00:00:00Z",
+    };
+    const latest = { ...pending, version: 10, updated_at: "2026-09-02T00:01:00Z" };
+    vi.mocked(loadMonitoringChecks).mockResolvedValueOnce([pending]).mockResolvedValueOnce([pending]).mockResolvedValueOnce([latest]);
+    vi.mocked(transitionMonitoringCheck).mockRejectedValue(new ApiError(409, "monitoring record version conflict", "monitoring_conflict"));
+    const operation: ProgramOperation = {
+      command: "program.monitoring.transition", subresource_id: pending.id, label: "Approve Pending check", responsibility: "REVIEWER", can_act: true,
+      assigned_to: { id: "reviewer-1", display_name: "Controls reviewer", kind: "PERSON", role: "Reviewer" }, reason: "You hold the current responsibility.", allowed_targets: ["ACTIVE", "REJECTED"],
+    };
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="reviewer-1" canConfigureSources={false} operations={[operation]}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Approve check" }));
+
+    expect(await screen.findByText("This monitoring check changed after you opened it. The latest revision has been loaded. Review it, then approve again.")).toBeTruthy();
+    expect(loadMonitoringChecks).toHaveBeenCalledTimes(3);
   });
   vi.mocked(loadProgramOperations).mockResolvedValue({ program_id: "program-1", program_version: 1, authority_available: true, operations: ownerOperations, generated_at: "2026-08-26T00:00:00Z" });
 });

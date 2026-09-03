@@ -22,7 +22,7 @@ func TestFormScorePreviewRouteIsAuthenticatedWrite(t *testing.T) {
 		if route.Method+" "+route.Path != want {
 			continue
 		}
-		if route.Class != routeAuthenticatedWrite || route.Permission != identity.PermissionConfigRead || route.Command != nil {
+		if route.Class != routeAuthenticatedWrite || route.Permission != "" || route.Command != nil {
 			t.Fatalf("score preview route = %#v", route)
 		}
 		return
@@ -105,7 +105,7 @@ func scorePreviewHandler(t *testing.T) (http.Handler, *monitoring.MemoryReposito
 	}
 	service := monitoring.NewService(repo, nil)
 	return New(Dependencies{
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank-a", "maker-a", "entity-a", "GRC_ADMIN"), Monitoring: service,
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank-a", "maker-a", "entity-a", "PROGRAM_OWNER"), Monitoring: service,
 	}), repo
 }
 

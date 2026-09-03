@@ -7,6 +7,7 @@ import { DataSourceBuilder } from "./DataSourceBuilder";
 import type { SourceBinding } from "../sourceConfigApi";
 import type { ProgramOperation } from "../programOperationsApi";
 import { Notice, StatusBadge, type StatusTone } from "./ui";
+import { apiErrorKind } from "../http";
 import { CollectionPolicyForm } from "./CollectionPolicyForm";
 import { CollectionRecord } from "./CollectionRecord";
 
@@ -74,6 +75,10 @@ function eligibleForLinkedIssue(check: MonitoringCheck, result?: MonitoringResul
   if (!result || check.status !== "ACTIVE" || !check.is_current || check.failure_action !== "RECOMMEND_MATTER" || result.monitoring_check_version !== check.version) return false;
   if (result.evaluation.band === "HIGH" || result.evaluation.band === "CRITICAL" || result.evaluation.coverage < check.minimum_coverage || (result.evaluation.critical_failures?.length ?? 0) > 0) return true;
   return (result.evaluation.rule_results ?? []).some((rule) => rule.critical && rule.outcome !== "PASS");
+}
+
+function hasScoredQuestions(form: FormTemplate) {
+  return form.fields.some((field) => Boolean(field.scoring && Object.keys(field.scoring.answer_scores ?? {}).length));
 }
 
 export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSources, operations, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; } }: Props) {
@@ -193,10 +198,30 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     if (!operation?.can_act || !operation.allowed_targets?.includes(to)) return;
     setBusy(check.id); setError("");
     try {
-      const updated = await transitionMonitoringCheck(check.id, check.version, to);
+      const reviewedCurrent = checks.find((candidate) => candidate.program_id === check.program_id && candidate.code === check.code && candidate.is_current);
+      const revisions = await loadMonitoringChecks(aggregate.program.id);
+      const refreshedChecks = latestByID(revisions);
+      const latest = refreshedChecks.find((candidate) => candidate.id === check.id);
+      if (!latest) throw new Error("This monitoring check could not be found. Reload the Program and try again.");
+      setChecks(refreshedChecks);
+      if (latest.status !== check.status) {
+        setError("This monitoring check changed after you opened it. The latest revision has been loaded. Review the current status before taking another action.");
+        return;
+      }
+      const refreshedCurrent = refreshedChecks.find((candidate) => candidate.program_id === latest.program_id && candidate.code === latest.code && candidate.is_current);
+      if (to === "ACTIVE" && (reviewedCurrent?.id !== refreshedCurrent?.id || reviewedCurrent?.version !== refreshedCurrent?.version)) {
+        setError("The active monitoring check changed after you opened this review. The latest checks are loaded. Review the active check and pending replacement before approving again.");
+        return;
+      }
+      const updated = await transitionMonitoringCheck(latest.id, latest.version, to, reviewedCurrent);
       setChecks((current) => latestByID([...current, updated]));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The monitoring check status could not be changed.");
+      if (apiErrorKind(caught) === "conflict") {
+        await reload();
+        setError("This monitoring check changed after you opened it. The latest revision has been loaded. Review it, then approve again.");
+      } else {
+        setError(caught instanceof Error ? caught.message : "The monitoring check status could not be changed.");
+      }
     } finally { setBusy(""); }
   }
 
@@ -278,8 +303,9 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
           {formTransitionOperation(form.id)?.can_act && formTransitionOperation(form.id)?.allowed_targets?.includes("PENDING_APPROVAL") && form.status === "DRAFT" && <button className="secondary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "PENDING_APPROVAL")}>Send for approval</button>}
           {formTransitionOperation(form.id)?.can_act && formTransitionOperation(form.id)?.allowed_targets?.includes("ACTIVE") && form.status === "PENDING_APPROVAL" && form.submitted_by !== actorPrincipalID && <button className="primary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "ACTIVE")}>Approve form</button>}
           {form.status === "PENDING_APPROVAL" && form.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this form.</span>}
-          {canDefineCheck && form.status === "ACTIVE" && <button className="secondary-button" disabled={busy === form.id} onClick={() => setConfiguringForm(form)}>Set collection schedule</button>}
+          {canDefineCheck && form.status === "ACTIVE" && hasScoredQuestions(form) && <button className="secondary-button" disabled={busy === form.id} onClick={() => setConfiguringForm(form)}>Set collection schedule</button>}
         </div>
+        {canDefineCheck && form.status === "ACTIVE" && !hasScoredQuestions(form) && <p className="program-operation-reason">This active revision has no scored questions. Create and approve a scored revision in Forms before adding a monitoring check.</p>}
         {configuringForm?.id === form.id && <CollectionPolicyForm onCancel={() => setConfiguringForm(null)} onSave={(policy) => addCheck(form, policy)}/>}
       </article>)}
       {formChecks.map((check) => {

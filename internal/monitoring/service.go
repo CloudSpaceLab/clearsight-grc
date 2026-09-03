@@ -69,11 +69,13 @@ type InstantiateStarterTemplateInput struct {
 }
 
 type TransitionInput struct {
-	ID              string          `json:"id"`
-	ProgramID       string          `json:"program_id,omitempty"`
-	LegalEntityID   string          `json:"legal_entity_id,omitempty"`
-	ExpectedVersion int64           `json:"expected_version"`
-	To              LifecycleStatus `json:"to"`
+	ID                     string          `json:"id"`
+	ProgramID              string          `json:"program_id,omitempty"`
+	LegalEntityID          string          `json:"legal_entity_id,omitempty"`
+	ExpectedVersion        int64           `json:"expected_version"`
+	ExpectedCurrentID      string          `json:"expected_current_id,omitempty"`
+	ExpectedCurrentVersion int64           `json:"expected_current_version,omitempty"`
+	To                     LifecycleStatus `json:"to"`
 }
 
 type StartCollectionInput struct {
@@ -542,7 +544,7 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 	periodStart := input.PeriodStart.UTC()
 	periodEnd := input.PeriodEnd.UTC()
 	return s.requests.CreateRequest(ctx, evidence.CreateRequestInput{
-		TenantID: actor.TenantID, SubjectType: "PROGRAM", SubjectID: input.ProgramID, Title: form.Name,
+		TenantID: actor.TenantID, LegalEntityID: input.LegalEntityID, SubjectType: "PROGRAM", SubjectID: input.ProgramID, Title: form.Name,
 		Purpose: form.Purpose, WhyYou: "You are responsible for completing this control review.",
 		Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: input.RespondentPrincipalID},
@@ -597,6 +599,9 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		if form.Status != LifecycleActive || !form.IsCurrent {
 			return MonitoringCheck{}, ErrInactive
 		}
+		if !hasFormFieldScoring(form.Fields) {
+			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("the active form revision has no scored questions; create and approve a scored revision before adding a monitoring check"))
+		}
 		policy, err := normalizeCollectionPolicy(input.CollectionPolicy)
 		if err != nil {
 			return MonitoringCheck{}, err
@@ -633,6 +638,15 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		OwnerPrincipalID: strings.TrimSpace(input.OwnerPrincipalID), ReviewerPrincipalID: strings.TrimSpace(input.ReviewerPrincipalID), FailureAction: input.FailureAction,
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},
 	})
+}
+
+func hasFormFieldScoring(fields []TemplateField) bool {
+	for _, field := range fields {
+		if field.Scoring != nil && len(field.Scoring.AnswerScores) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) ListChecks(ctx context.Context, actor Actor, programID string, limit int) ([]MonitoringCheck, error) {
@@ -855,7 +869,7 @@ func (s *Service) TransitionCheck(ctx context.Context, actor Actor, input Transi
 			return MonitoringCheck{}, err
 		}
 	}
-	return s.repo.TransitionCheck(ctx, LifecycleTransition{TenantID: actor.TenantID, ID: current.ID, ExpectedVersion: input.ExpectedVersion, To: input.To, ActorID: actor.PrincipalID, At: s.now().UTC()})
+	return s.repo.TransitionCheck(ctx, LifecycleTransition{TenantID: actor.TenantID, ID: current.ID, ExpectedVersion: input.ExpectedVersion, ExpectedCurrentID: strings.TrimSpace(input.ExpectedCurrentID), ExpectedCurrentVersion: input.ExpectedCurrentVersion, To: input.To, ActorID: actor.PrincipalID, At: s.now().UTC()})
 }
 
 func (s *Service) validateSourceBinding(ctx context.Context, actor Actor, bindingID string, bindingVersion int64) (sourceaccess.BindingRevision, error) {

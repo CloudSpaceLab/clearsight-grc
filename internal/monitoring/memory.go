@@ -414,19 +414,59 @@ func (r *MemoryRepository) TransitionCheck(_ context.Context, input LifecycleTra
 	if _, exists := r.checks[nextKey]; exists {
 		return MonitoringCheck{}, ErrConflict
 	}
+	var retirementEvents []MonitoringEvent
 	if next.IsCurrent || current.IsCurrent {
+		var familyCurrent *MonitoringCheck
+		var familyCurrentKey string
 		for storedKey, stored := range r.checks {
-			if stored.TenantID == input.TenantID && stored.ID == input.ID && stored.IsCurrent {
-				stored.IsCurrent = false
-				stored.Status = LifecycleRetired
-				until := input.At.UTC()
-				stored.EffectiveUntil = &until
-				stored.UpdatedAt = until
-				r.checks[storedKey] = stored
+			if stored.TenantID == input.TenantID && stored.ProgramID == current.ProgramID && stored.Code == current.Code && stored.IsCurrent {
+				copy := cloneValue(stored)
+				familyCurrent = &copy
+				familyCurrentKey = storedKey
+				break
 			}
+		}
+		if next.IsCurrent {
+			expectsNone := input.ExpectedCurrentID == "" && input.ExpectedCurrentVersion == 0
+			if familyCurrent == nil && !expectsNone {
+				return MonitoringCheck{}, ErrConflict
+			}
+			if familyCurrent != nil && (familyCurrent.ID != current.ID || !expectsNone) && (familyCurrent.ID != input.ExpectedCurrentID || familyCurrent.Version != input.ExpectedCurrentVersion) {
+				return MonitoringCheck{}, ErrConflict
+			}
+		}
+		if familyCurrent != nil {
+			old := cloneValue(*familyCurrent)
+			old.IsCurrent = false
+			old.Status = LifecycleRetired
+			until := input.At.UTC()
+			old.EffectiveUntil = &until
+			old.UpdatedAt = until
+			r.checks[familyCurrentKey] = old
+		}
+		if familyCurrent != nil && familyCurrent.ID != current.ID {
+			retiredLifecycle, transitionErr := transitionLifecycle(familyCurrent.Lifecycle, LifecycleTransition{TenantID: input.TenantID, ID: familyCurrent.ID, ExpectedVersion: familyCurrent.Version, To: LifecycleRetired, ActorID: input.ActorID, At: input.At})
+			if transitionErr != nil {
+				return MonitoringCheck{}, transitionErr
+			}
+			retired := cloneValue(*familyCurrent)
+			retired.Lifecycle = retiredLifecycle
+			retiredKey := revisionKey(input.TenantID, retired.ID, retired.Version)
+			if _, exists := r.checks[retiredKey]; exists {
+				return MonitoringCheck{}, ErrConflict
+			}
+			r.checks[retiredKey] = retired
+			retirementEvent, eventErr := newMonitoringEvent(input.TenantID, AggregateMonitoringCheck, retired.ID, retired.Version, EventMonitoringCheckStateChanged, retired, input.ActorID, input.At)
+			if eventErr != nil {
+				return MonitoringCheck{}, eventErr
+			}
+			retirementEvents = append(retirementEvents, retirementEvent)
 		}
 	}
 	r.checks[nextKey] = cloneValue(next)
+	for _, retirementEvent := range retirementEvents {
+		r.appendEvent(retirementEvent)
+	}
 	r.appendEvent(event)
 	return cloneValue(next), nil
 }

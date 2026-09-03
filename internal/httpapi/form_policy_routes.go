@@ -25,6 +25,6 @@ func (a *API) formPolicyRoutes() []routeSpec {
 		command(base+"/{id}/activate", "forms.response-policy.activate", authority.ResponsibilityAuthorizer, 5, a.activateFormPolicy),
 		command(base+"/{id}/suspend", "forms.response-policy.suspend", authority.ResponsibilityAuthorizer, 5, a.suspendFormPolicy),
 		command(base+"/{id}/rollback", "forms.response-policy.rollback", authority.ResponsibilityAuthorizer, 5, a.rollbackFormPolicy),
-		withPermission(write(http.MethodPost, "/api/v1/config/form-templates/{id}/score-preview", a.previewFormScore, nil), identity.PermissionConfigRead),
+		write(http.MethodPost, "/api/v1/config/form-templates/{id}/score-preview", a.previewFormScore, nil),
 	}
 }

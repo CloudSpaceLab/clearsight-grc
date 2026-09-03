@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadContext } from "./api";
 import { requestJSON } from "./http";
-import { createFormMonitoringCheck, createMonitoringLinkedIssue, loadCollectionSummaries, updateCollectionPolicy } from "./monitoringApi";
+import { createFormMonitoringCheck, createMonitoringLinkedIssue, loadCollectionSummaries, transitionMonitoringCheck, updateCollectionPolicy } from "./monitoringApi";
 
 vi.mock("./api", () => ({ loadContext: vi.fn() }));
 vi.mock("./http", () => ({ requestJSON: vi.fn() }));
@@ -27,6 +27,19 @@ describe("monitoring API", () => {
     expect(body).not.toHaveProperty("actor_id");
     expect(body).not.toHaveProperty("reviewer_principal_id");
     expect(body).not.toHaveProperty("program_id");
+  });
+
+  it("binds replacement approval to the current check revision shown to the reviewer", async () => {
+    await transitionMonitoringCheck("replacement-1", 2, "ACTIVE", { id: "current-1", version: 4 });
+
+    const [, path, init] = vi.mocked(requestJSON).mock.calls[0]!;
+    expect(path).toBe("/api/v1/monitoring-checks/replacement-1/transition?tenant_id=tenant-1");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      expected_version: 2,
+      expected_current_id: "current-1",
+      expected_current_version: 4,
+      to: "ACTIVE",
+    });
   });
 
   it("sends the approved collection policy with a new form check", async () => {

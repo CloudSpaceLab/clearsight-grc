@@ -13,14 +13,16 @@ var (
 )
 
 type LifecycleTransition struct {
-	TenantID        string
-	LegalEntityID   string
-	ProgramID       string
-	ID              string
-	ExpectedVersion int64
-	To              LifecycleStatus
-	ActorID         string
-	At              time.Time
+	TenantID               string
+	LegalEntityID          string
+	ProgramID              string
+	ID                     string
+	ExpectedVersion        int64
+	ExpectedCurrentID      string
+	ExpectedCurrentVersion int64
+	To                     LifecycleStatus
+	ActorID                string
+	At                     time.Time
 }
 
 type CheckRevisionUpdate struct {

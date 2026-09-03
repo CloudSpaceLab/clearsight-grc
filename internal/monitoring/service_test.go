@@ -3,6 +3,7 @@ package monitoring
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -160,7 +161,7 @@ func TestServiceStartsCollectionFromExactActiveForm(t *testing.T) {
 	if err != nil {
 		t.Fatalf("start collection: %v", err)
 	}
-	if request.FormTemplateID != "form-1" || request.FormTemplateVersion != 3 || len(request.Fields) != 1 || requests.input.Recipient.PrincipalID != "respondent" || requests.input.SubjectType != "PROGRAM" {
+	if request.FormTemplateID != "form-1" || request.FormTemplateVersion != 3 || len(request.Fields) != 1 || requests.input.Recipient.PrincipalID != "respondent" || requests.input.SubjectType != "PROGRAM" || requests.input.LegalEntityID != "entity-a" {
 		t.Fatalf("request = %#v, input = %#v", request, requests.input)
 	}
 	if requests.input.ScoringMode != formcontract.ScoringRisk || requests.input.ScoreProfile == nil || requests.input.ScoreProfile.Version != "risk-v2" {
@@ -268,6 +269,23 @@ func TestServiceGovernsFormMonitoringCheck(t *testing.T) {
 	active, err := service.TransitionCheck(context.Background(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "reviewer"}, TransitionInput{ID: check.ID, ExpectedVersion: pending.Version, To: LifecycleActive})
 	if err != nil || active.Status != LifecycleActive || !active.IsCurrent || active.ApprovedBy != "reviewer" {
 		t.Fatalf("active = %#v, err = %v", active, err)
+	}
+}
+
+func TestServiceRejectsMonitoringCheckForUnscoredForm(t *testing.T) {
+	repo := NewMemoryRepository()
+	activeAt := time.Now().UTC().Add(-time.Hour)
+	form := FormTemplate{ID: "form-unscored", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "FORM", Name: "Encryption review", Purpose: "Collect encryption evidence.", Fields: []TemplateField{{ID: "encrypted", Label: "Is encryption enabled?", Type: "yes_no", Required: true, Options: []string{"Yes", "No"}}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 1}}
+	if _, err := repo.CreateFormRevision(t.Context(), form); err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(repo, nil)
+	_, err := service.CreateCheck(t.Context(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner"}, CreateCheckInput{
+		ProgramID: "program-1", Code: "ENCRYPTION", Name: "Encryption review", Claim: "Encryption controls operated.",
+		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, FreshnessMinutes: 60, MinimumCoverage: 1,
+	})
+	if !errors.Is(err, ErrInvalid) || !strings.Contains(err.Error(), "no scored questions") {
+		t.Fatalf("unscored form check error = %v", err)
 	}
 }
 

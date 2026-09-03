@@ -93,7 +93,10 @@ func TestServiceRevisesActiveCollectionPolicyThroughMakerChecker(t *testing.T) {
 	activeAt := now.Add(-24 * time.Hour)
 	form := FormTemplate{
 		ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "VENDOR-FORM", Name: "Vendor review", Purpose: "Collect a current vendor response.",
-		Fields:    []TemplateField{{ID: "answer", Label: "Answer", Type: "text", Required: true}},
+		Fields: []TemplateField{{
+			ID: "answer", Label: "Is the control operating?", Type: "yes_no", Required: true, Options: []string{"Yes", "No"},
+			Scoring: &FormField{ID: "answer", Required: true, Weight: 100, AnswerScores: map[string]int{"Yes": 0, "No": 100}},
+		}},
 		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 2},
 	}
 	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
@@ -144,7 +147,10 @@ func collectionPolicyService(t *testing.T) (*MemoryRepository, *Service, Actor) 
 	activeAt := time.Date(2026, 9, 1, 9, 0, 0, 0, time.UTC)
 	form := FormTemplate{
 		ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "FORM", Name: "Vendor review", Purpose: "Collect a current vendor response.",
-		Fields:    []TemplateField{{ID: "answer", Label: "Answer", Type: "text", Required: true}},
+		Fields: []TemplateField{{
+			ID: "answer", Label: "Is the control operating?", Type: "yes_no", Required: true, Options: []string{"Yes", "No"},
+			Scoring: &FormField{ID: "answer", Required: true, Weight: 100, AnswerScores: map[string]int{"Yes": 0, "No": 100}},
+		}},
 		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 2},
 	}
 	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {

@@ -459,6 +459,9 @@ func (r *PostgresRepository) TransitionCheck(ctx context.Context, input Lifecycl
 		return MonitoringCheck{}, mapPostgresError(err)
 	}
 	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, input.TenantID+":"+input.ID); err != nil {
+		return MonitoringCheck{}, mapPostgresError(err)
+	}
 	current, err := scanCheck(tx.QueryRow(ctx, checkSelect+` WHERE (t.id::text=$1 OR t.slug=$1) AND c.id=$2::uuid AND c.version=$3 FOR UPDATE`, input.TenantID, input.ID, input.ExpectedVersion))
 	if err != nil {
 		return MonitoringCheck{}, mapPostgresError(err)
@@ -467,10 +470,47 @@ func (r *PostgresRepository) TransitionCheck(ctx context.Context, input Lifecycl
 	if err != nil {
 		return MonitoringCheck{}, err
 	}
-	if nextLifecycle.IsCurrent || current.IsCurrent {
-		_, err = tx.Exec(ctx, `UPDATE monitoring_checks SET status='RETIRED',is_current=false,effective_until=$3,updated_at=$3 WHERE tenant_id=$1::uuid AND id=$2::uuid AND is_current`, current.TenantID, current.ID, input.At.UTC())
-		if err != nil {
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, current.TenantID+":"+current.ProgramID+":"+current.Code); err != nil {
+		return MonitoringCheck{}, mapPostgresError(err)
+	}
+	var familyCurrent *MonitoringCheck
+	loadedCurrent, loadErr := scanCheck(tx.QueryRow(ctx, checkSelect+` WHERE c.tenant_id=$1::uuid AND c.program_id=$2::uuid AND c.code=$3 AND c.is_current FOR UPDATE`, current.TenantID, current.ProgramID, current.Code))
+	if loadErr == nil {
+		familyCurrent = &loadedCurrent
+	} else if !errors.Is(loadErr, pgx.ErrNoRows) {
+		return MonitoringCheck{}, mapPostgresError(loadErr)
+	}
+	if nextLifecycle.IsCurrent {
+		expectsNone := input.ExpectedCurrentID == "" && input.ExpectedCurrentVersion == 0
+		if familyCurrent == nil && !expectsNone {
+			return MonitoringCheck{}, ErrConflict
+		}
+		if familyCurrent != nil && (familyCurrent.ID != current.ID || !expectsNone) && (familyCurrent.ID != input.ExpectedCurrentID || familyCurrent.Version != input.ExpectedCurrentVersion) {
+			return MonitoringCheck{}, ErrConflict
+		}
+	}
+	if familyCurrent != nil && (nextLifecycle.IsCurrent || current.IsCurrent) {
+		if _, err = tx.Exec(ctx, `UPDATE monitoring_checks SET status='RETIRED',is_current=false,effective_until=$4,updated_at=$4 WHERE tenant_id=$1::uuid AND id=$2::uuid AND version=$3 AND is_current`, familyCurrent.TenantID, familyCurrent.ID, familyCurrent.Version, input.At.UTC()); err != nil {
 			return MonitoringCheck{}, mapPostgresError(err)
+		}
+		if familyCurrent.ID != current.ID {
+			retiredLifecycle, transitionErr := transitionLifecycle(familyCurrent.Lifecycle, LifecycleTransition{TenantID: input.TenantID, ID: familyCurrent.ID, ExpectedVersion: familyCurrent.Version, To: LifecycleRetired, ActorID: input.ActorID, At: input.At})
+			if transitionErr != nil {
+				return MonitoringCheck{}, transitionErr
+			}
+			retired := *familyCurrent
+			retired.Lifecycle = retiredLifecycle
+			retiredRevision, insertErr := insertCheckRevision(ctx, tx, retired)
+			if insertErr != nil {
+				return MonitoringCheck{}, insertErr
+			}
+			retirementEvent, eventErr := newMonitoringEvent(retiredRevision.TenantID, AggregateMonitoringCheck, retiredRevision.ID, retiredRevision.Version, EventMonitoringCheckStateChanged, retiredRevision, input.ActorID, input.At)
+			if eventErr != nil {
+				return MonitoringCheck{}, eventErr
+			}
+			if eventErr = insertMonitoringEventAndOutbox(ctx, tx, retirementEvent); eventErr != nil {
+				return MonitoringCheck{}, eventErr
+			}
 		}
 	}
 	next := current

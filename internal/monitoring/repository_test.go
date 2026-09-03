@@ -200,3 +200,67 @@ func TestMemoryRepositoryLoadsLatestMonitoringCheckRevisionByID(t *testing.T) {
 		t.Fatalf("cross-tenant latest check error = %v, want not found", err)
 	}
 }
+
+func TestMemoryRepositoryActivatingReplacementCheckRetiresCurrentCheckWithSameProgramCode(t *testing.T) {
+	repo := NewMemoryRepository()
+	now := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
+	current := MonitoringCheck{
+		ID: "check-current", TenantID: "bank-a", ProgramID: "program-a", Code: "ENCRYPTION-CHECK", Name: "Encryption check", Claim: "Encryption remains enabled.",
+		InputKind: InputForm, FormTemplateID: "form-a", FormTemplateVersion: 8, Thresholds: DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1,
+		FailureAction: FailureReview, Lifecycle: Lifecycle{Status: LifecyclePaused, IsCurrent: true, Version: 3, EffectiveFrom: &now, CreatedAt: now, UpdatedAt: now},
+	}
+	replacement := current
+	replacement.ID = "check-replacement"
+	replacement.FormTemplateVersion = 9
+	replacement.Lifecycle = Lifecycle{Status: LifecyclePendingApproval, Version: 2, SubmittedBy: "owner", CreatedAt: now, UpdatedAt: now}
+	for _, check := range []MonitoringCheck{current, replacement} {
+		if _, err := repo.CreateCheckRevision(t.Context(), check); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	activated, err := repo.TransitionCheck(t.Context(), LifecycleTransition{TenantID: "bank-a", ID: replacement.ID, ExpectedVersion: 2, ExpectedCurrentID: current.ID, ExpectedCurrentVersion: current.Version, To: LifecycleActive, ActorID: "reviewer", At: now.Add(time.Minute)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !activated.IsCurrent || activated.Status != LifecycleActive {
+		t.Fatalf("replacement = %#v, want current active check", activated)
+	}
+	retired, err := repo.CheckRevision(t.Context(), "bank-a", current.ID, current.Version+1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if retired.IsCurrent || retired.Status != LifecycleRetired || retired.EffectiveUntil == nil {
+		t.Fatalf("superseded check = %#v, want ended non-current check", retired)
+	}
+	events := repo.MonitoringEvents("bank-a", AggregateMonitoringCheck, current.ID)
+	outbox := repo.MonitoringOutbox("bank-a", AggregateMonitoringCheck, current.ID)
+	if len(events) != 2 || len(outbox) != 2 || events[1].Type != EventMonitoringCheckStateChanged || events[1].AggregateVersion != current.Version+1 {
+		t.Fatalf("retirement event/outbox = %#v/%#v, want created and state-changed revision %d", events, outbox, current.Version+1)
+	}
+}
+
+func TestMemoryRepositoryRejectsReplacementWhenExpectedCurrentCheckChanged(t *testing.T) {
+	repo := NewMemoryRepository()
+	now := time.Date(2026, 9, 2, 13, 0, 0, 0, time.UTC)
+	base := MonitoringCheck{ID: "check-current", TenantID: "bank-a", ProgramID: "program-a", Code: "ENCRYPTION-CHECK", Name: "Encryption check", Claim: "Encryption remains enabled.", InputKind: InputForm, FormTemplateID: "form-a", FormTemplateVersion: 8, Thresholds: DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1, FailureAction: FailureReview, Lifecycle: Lifecycle{Status: LifecyclePaused, IsCurrent: true, Version: 3, EffectiveFrom: &now, CreatedAt: now, UpdatedAt: now}}
+	first := base
+	first.ID = "replacement-one"
+	first.Lifecycle = Lifecycle{Status: LifecyclePendingApproval, Version: 2, SubmittedBy: "owner", CreatedAt: now, UpdatedAt: now}
+	second := first
+	second.ID = "replacement-two"
+	for _, check := range []MonitoringCheck{base, first, second} {
+		if _, err := repo.CreateCheckRevision(t.Context(), check); err != nil {
+			t.Fatal(err)
+		}
+	}
+	input := LifecycleTransition{TenantID: "bank-a", ExpectedVersion: 2, ExpectedCurrentID: base.ID, ExpectedCurrentVersion: base.Version, To: LifecycleActive, ActorID: "reviewer", At: now.Add(time.Minute)}
+	input.ID = first.ID
+	if _, err := repo.TransitionCheck(t.Context(), input); err != nil {
+		t.Fatal(err)
+	}
+	input.ID = second.ID
+	if _, err := repo.TransitionCheck(t.Context(), input); !errors.Is(err, ErrConflict) {
+		t.Fatalf("second stale approval error = %v, want conflict", err)
+	}
+}

@@ -9,6 +9,9 @@
 /coverage
 coverage.out
 *.coverprofile
+.tmp-go-cache
+.gocache
+.codex-test-cache
 
 # Web
 web/node_modules/
