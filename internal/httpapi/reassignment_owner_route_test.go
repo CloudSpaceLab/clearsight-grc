@@ -160,3 +160,59 @@ func TestReassignmentOperationsRespectDeniedCurrentOwnerRoute(t *testing.T) {
 		})
 	}
 }
+
+func TestActionReassignmentOperationsCheckCurrentPerformerRoute(t *testing.T) {
+	for _, test := range []struct {
+		name, actor string
+		performer   authority.Resolution
+		wantCanAct  bool
+	}{
+		{
+			name: "current performer is not the Matter owner", actor: "action-owner", wantCanAct: true,
+			performer: authority.Resolution{Principal: authority.Principal{ID: "action-owner"}},
+		},
+		{
+			name: "current performer delegate", actor: "performer-delegate", wantCanAct: true,
+			performer: authority.Resolution{Principal: authority.Principal{ID: "performer-delegate"}, EffectiveOrigins: []authority.EffectiveOrigin{{PrincipalID: "performer-delegate", OriginPrincipalID: "action-owner"}}},
+		},
+		{
+			name: "revoked current performer", actor: "action-owner",
+			performer: authority.Resolution{Principal: authority.Principal{ID: "replacement-performer"}},
+		},
+		{
+			name: "padded revoked current performer", actor: " action-owner ",
+			performer: authority.Resolution{Principal: authority.Principal{ID: "replacement-performer"}},
+		},
+		{
+			name: "unrelated eligible performer", actor: "replacement-performer",
+			performer: authority.Resolution{Principal: authority.Principal{ID: "replacement-performer"}},
+		},
+		{
+			name: "delegate for a different performer", actor: "performer-delegate",
+			performer: authority.Resolution{Principal: authority.Principal{ID: "performer-delegate"}, EffectiveOrigins: []authority.EffectiveOrigin{{PrincipalID: "performer-delegate", OriginPrincipalID: "other-owner"}}},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			now := time.Now().UTC()
+			aggregate := continuity.MatterAggregate{
+				Matter:  continuity.Matter{ID: "matter-1", TenantID: "bank", LegalEntityID: "bank-ng", Title: "Verify address", Type: continuity.MatterControlGap, Status: continuity.MatterAssessment, Priority: 3, OwnerPrincipalID: "matter-owner", Version: 1, CreatedAt: now, UpdatedAt: now},
+				Actions: []continuity.Action{{ID: "action-1", TenantID: "bank", MatterID: "matter-1", Title: "Check address evidence", Status: continuity.ActionPlanned, OwnerPrincipalID: "action-owner", Version: 1, CreatedAt: now, UpdatedAt: now}},
+			}
+			resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+				authority.ResponsibilityOwner:     {Principal: authority.Principal{ID: "matter-owner"}},
+				authority.ResponsibilityPerformer: test.performer,
+			}}
+			api := &API{deps: Dependencies{Authority: resolver, Access: &reassignmentAccessStub{allowed: false}}}
+			actor := identity.Actor{TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: test.actor, Kind: "PERSON"}
+			for _, operation := range api.buildMatterOperations(t.Context(), actor, aggregate, now).Operations {
+				if operation.Command == "matter.action.assign" && operation.SubresourceID == "action-1" {
+					if operation.CanAct != test.wantCanAct {
+						t.Fatalf("want Action handoff CanAct=%t, got %#v", test.wantCanAct, operation)
+					}
+					return
+				}
+			}
+			t.Fatal("Action handoff operation missing")
+		})
+	}
+}

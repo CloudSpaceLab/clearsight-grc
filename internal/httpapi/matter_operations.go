@@ -365,6 +365,11 @@ func (a *API) resolveMatterOperation(ctx context.Context, actor identity.Actor, 
 	} else if requiresStoredPrincipal && spec.Command != "matter.assign" {
 		allowed = false
 	}
+	// Action handoff permits the current performer's route as well as the
+	// Matter owner's route, matching the material command's ordered checks.
+	if !allowed && spec.Command == "matter.action.assign" && resolved.candidate != nil && resolved.candidate.Err == nil {
+		allowed = resolved.candidate.Resolution.AllowsPrincipalFor(actor.PrincipalID, strings.TrimSpace(spec.ReassignmentPrincipalID))
+	}
 	operation.CanAct = allowed
 	if !operation.CanAct && strings.TrimSpace(spec.ReassignmentPrincipalID) != "" {
 		if decision, checked := a.canReassignStoredResponsibility(ctx, actor, matter.LegalEntityID, spec.ReassignmentPrincipalID); checked && decision.Allowed {
