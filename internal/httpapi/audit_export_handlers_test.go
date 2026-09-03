@@ -72,8 +72,8 @@ func TestAuditExportRequiresSeparatePermissionAndStreamsExactPopulation(t *testi
 
 func TestAuditExportRoutesUseBulkExportPermission(t *testing.T) {
 	expected := map[string]string{
-		http.MethodPost + " /api/v1/audit-exports":              identity.PermissionAuditExport,
-		http.MethodGet + " /api/v1/audit-exports/{id}":         identity.PermissionAuditExport,
+		http.MethodPost + " /api/v1/audit-exports":               identity.PermissionAuditExport,
+		http.MethodGet + " /api/v1/audit-exports/{id}":          identity.PermissionAuditExport,
 		http.MethodGet + " /api/v1/audit-exports/{id}/download": identity.PermissionAuditExport,
 	}
 	seen := map[string]bool{}
