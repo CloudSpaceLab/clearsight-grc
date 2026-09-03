@@ -25,11 +25,11 @@ const (
 	ExportStatusReady  = "READY"
 	ExportStatusFailed = "FAILED"
 
-	exportPageSize   = 100
-	maxExportRows    = 10_000
-	maxExportBytes   = int64(32 << 20)
-	exportRetention  = 7 * 24 * time.Hour
-	exportSchema     = "clearsight.audit-export.v1"
+	exportPageSize  = 100
+	maxExportRows   = 10_000
+	maxExportBytes  = int64(32 << 20)
+	exportRetention = 7 * 24 * time.Hour
+	exportSchema    = "clearsight.audit-export.v1"
 )
 
 type ExportFilter struct {
