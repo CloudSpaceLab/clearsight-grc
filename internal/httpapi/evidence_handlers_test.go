@@ -203,12 +203,26 @@ func TestEvidenceMagicLinkSessionAndSubmission(t *testing.T) {
 		t.Fatalf("external artifact carried false principal identity or wrong request: %#v", externalArtifact)
 	}
 
-	submit := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/session/submissions", strings.NewReader(`{"answers":{"condition":"Operational"},"expected_version":1}`))
+	submit := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/session/submissions", strings.NewReader(`{"answers":{"condition":{"text":"Operational"}},"expected_version":1}`))
 	submit.Header.Set("Authorization", "Bearer "+session.SessionToken)
 	submitResponse := httptest.NewRecorder()
 	handler.ServeHTTP(submitResponse, submit)
 	if submitResponse.Code != http.StatusOK {
 		t.Fatalf("submit expected 200, got %d: %s", submitResponse.Code, submitResponse.Body.String())
+	}
+}
+
+func TestEvidenceSessionSubmissionRejectsScalarAnswers(t *testing.T) {
+	handler := testHandler()
+	session := openExternalEvidenceSession(t, handler)
+
+	submit := httptest.NewRequest(http.MethodPost, "/api/v1/evidence/session/submissions", strings.NewReader(`{"answers":{"condition":"Operational"},"expected_version":1}`))
+	submit.Header.Set("Authorization", "Bearer "+session.SessionToken)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, submit)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("scalar answer submission expected 400, got %d: %s", response.Code, response.Body.String())
 	}
 }
 
