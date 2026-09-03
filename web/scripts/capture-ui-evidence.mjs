@@ -40,6 +40,8 @@ const captures = [
   { name: "89-matter-action-reassignment-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-action-reassignment", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "matter-action-reassignment", openActionReassignment: true },
   { name: "129-oversight-completeness-light-1440x900", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "oversight-completeness" },
   { name: "130-oversight-completeness-dark-mobile-390x844", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "oversight-completeness-mobile" },
+  { name: "176-matter-overdue-action-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-overdue-action", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "matter-overdue-action", expectText: "Overdue" },
+  { name: "177-matter-overdue-action-dark-mobile-390x844", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-overdue-action", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "matter-overdue-action-mobile", expectText: "Overdue" },
 ];
 
 try {
@@ -54,7 +56,9 @@ try {
   await captureMobileCaptureAndFocus();
   await captureZoomProxy();
   await captureFieldVisit();
-  await captureImportSelection();
+  await captureImportSelection("178-import-selected-light-1440x900", "light", { width: 1440, height: 900 });
+  await captureImportSelection("179-import-selected-dark-1440x900", "dark", { width: 1440, height: 900 });
+  await captureImportSelection("180-import-selected-light-mobile-390x844", "light", { width: 390, height: 844 }, true);
   await captureVendorWorkflows();
 } catch (error) {
   failure = error instanceof Error ? error.message : String(error);
@@ -105,6 +109,12 @@ async function capturePage(capture) {
       await dialog.getByText("Privacy Control Owner", { exact: true }).waitFor({ state: "visible" });
       await dialog.getByRole("button", { name: /Select an eligible performer New action owner/ }).waitFor({ state: "visible" });
       if (await dialog.getByRole("button", { name: "Assign action owner" }).isEnabled()) throw new Error(`${capture.name} permits reassignment before a replacement and reason are entered`);
+    }
+    if (capture.state?.startsWith("matter-overdue-action")) {
+      const action = page.locator(".matter-action-card").filter({ hasText: "Complete the annual return evidence checklist" }).first();
+      await action.getByText("In progress", { exact: true }).waitFor({ state: "visible" });
+      await action.getByText("Overdue", { exact: true }).waitFor({ state: "visible" });
+      await action.scrollIntoViewIfNeeded();
     }
     await saveScreenshot(page, capture.name);
     await record(page, capture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
@@ -402,8 +412,8 @@ async function captureFieldVisit() {
   }
 }
 
-async function captureImportSelection() {
-  const capture = { name: "32-import-dropzone-selected-light-1440x900", route: "#imports", title: "Imports", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+async function captureImportSelection(name, theme, viewport, touch = false) {
+  const capture = { name, route: "#imports", title: "Imports", theme, density: "comfortable", viewport, touch };
   const { context, page } = await openPage(capture);
   try {
     const form = page.locator(".document-import-form");

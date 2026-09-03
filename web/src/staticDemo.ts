@@ -125,6 +125,9 @@ export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.
   matterDetail = clone(fixtures.matterDetail);
   matterDetail.matter = matter;
   for (const action of matterDetail.actions ?? []) { action.due_at = future; action.version ??= 1; action.owner_principal_id ??= "role-privacy-control"; }
+  if (activeFixture() === "matter-overdue-action") {
+    for (const action of matterDetail.actions ?? []) action.due_at = "2026-08-22T17:00:00.000Z";
+  }
   for (const contract of matterDetail.verification_contracts ?? []) { contract.version ??= 1; contract.authority_principal_id ??= "role-dpco"; }
   for (const implementation of programDetail.control_implementations ?? []) implementation.version ??= 1;
   for (const implementation of programDetail.control_implementations ?? []) implementation.owner_principal_id ??= "role-privacy-control";
@@ -802,6 +805,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   }
   if (pathname === `/api/v1/matters/${matterID}/operations` && method === "GET") return clone(currentMatterOperations()) as T;
   if (pathname === `/api/v1/matters/${matterID}/history` && method === "GET") return clone(matterBaseline) as T;
+  if (pathname === `/api/v1/matters/${matterID}/form-remediations` && method === "GET") return clone({ items: [] }) as T;
   if (/\/api\/v1\/matters\/[^/]+\/responses\/[^/]+\/history$/.test(pathname) && method === "GET") {
     const responseID = decodeURIComponent(pathname.split("/").at(-2) ?? ""); const response = matterDetail.response_packages.find((item: any) => item.id === responseID);
     if (!response) throw new StaticDemoHTTPError(404, "response_not_found", "The selected response is no longer available.");
