@@ -83,7 +83,7 @@ func (r *PostgresRepository) List(ctx context.Context, query Query) (Page, error
 		add(`meta.actor_ref=$%d`, query.ActorID)
 	}
 	if query.ActorQuery != "" {
-		add(`(meta.actor_ref=$%d OR p.display_name ILIKE '%%' || $%d || '%%')`, query.ActorQuery)
+		add(`(meta.actor_ref=$%[1]d OR p.display_name ILIKE '%%' || $%[1]d || '%%')`, query.ActorQuery)
 	}
 	if query.ActorKind != "" {
 		add(`(`+actorKindExpression+`)=$%d`, query.ActorKind)
