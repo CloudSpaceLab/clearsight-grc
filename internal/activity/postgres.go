@@ -40,6 +40,14 @@ const actorReferenceExpression = `COALESCE(
 	NULLIF(oe.payload->>'approved_by','')
 )`
 
+const actorKindExpression = `CASE
+	WHEN upper(COALESCE(p.kind,'')) IN ('PERSON','TEAM','QUEUE','COMMITTEE') THEN 'INTERNAL_USER'
+	WHEN upper(COALESCE(p.kind,''))='EXTERNAL_PARTY' THEN 'EXTERNAL_PARTICIPANT'
+	WHEN upper(COALESCE(p.kind,''))='SERVICE' THEN 'SERVICE'
+	WHEN (` + categoryExpression + `)='SYSTEM' THEN 'SYSTEM'
+	ELSE 'UNKNOWN'
+END`
+
 func (r *PostgresRepository) List(ctx context.Context, query Query) (Page, error) {
 	if r == nil || r.pool == nil || strings.TrimSpace(query.TenantID) == "" {
 		return Page{}, ErrInvalid
@@ -72,10 +80,16 @@ func (r *PostgresRepository) List(ctx context.Context, query Query) (Page, error
 		add(`oe.aggregate_id::text=$%d`, query.ObjectID)
 	}
 	if query.ActorID != "" {
-		add(`(`+actorReferenceExpression+`)=$%d`, query.ActorID)
+		add(`meta.actor_ref=$%d`, query.ActorID)
+	}
+	if query.ActorQuery != "" {
+		add(`(meta.actor_ref=$%d OR p.display_name ILIKE '%%' || $%d || '%%')`, query.ActorQuery)
+	}
+	if query.ActorKind != "" {
+		add(`(`+actorKindExpression+`)=$%d`, query.ActorKind)
 	}
 	if query.LegalEntityID != "" {
-		add(`COALESCE(NULLIF(oe.payload->>'legal_entity_id',''),'')=$%d`, query.LegalEntityID)
+		add(`meta.legal_entity_ref=$%d`, query.LegalEntityID)
 	}
 	args = append(args, query.Limit+1)
 	limitPosition := len(args)
