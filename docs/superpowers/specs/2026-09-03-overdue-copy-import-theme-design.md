@@ -1,7 +1,7 @@
 # Explicit overdue work, production copy and Imports theme parity
 
-**Status:** Approved direction  
-**Date:** 2026-09-03  
+**Status:** Approved direction
+**Date:** 2026-09-03
 **Tracker:** GitHub issue #177
 
 ## Decision brief

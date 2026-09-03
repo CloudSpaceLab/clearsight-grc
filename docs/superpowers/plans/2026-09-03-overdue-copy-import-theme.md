@@ -130,7 +130,7 @@ export function actionDeadlinePresentation(
 
 - [ ] **Step 4: Run the focused unit test**
 
-Run: `npm --prefix web test -- src/dueDate.test.ts`  
+Run: `npm --prefix web test -- src/dueDate.test.ts`
 Expected: PASS.
 
 - [ ] **Step 5: Commit the deadline domain presentation**
@@ -280,7 +280,7 @@ Append these expressions to `productCommentary`:
 
 - [ ] **Step 2: Run the copy regression and capture the complete violation list**
 
-Run: `npm --prefix web test -- src/copyQuality.test.ts`  
+Run: `npm --prefix web test -- src/copyQuality.test.ts`
 Expected: FAIL with source locations in the affected Matter, Program and Forms components. Preserve this output in the issue-resolution ledger created in Task 6.
 
 ### Task 4: Rewrite the complete affected workflow copy
@@ -391,7 +391,7 @@ it("preserves the review basis when the issue changed", async () => {
 
 - [ ] **Step 2: Run linked-form tests and verify the new wording fails**
 
-Run: `npm --prefix web test -- src/components/MatterFormRemediationPanel.test.tsx`  
+Run: `npm --prefix web test -- src/components/MatterFormRemediationPanel.test.tsx`
 Expected: FAIL on the new production-copy assertions.
 
 - [ ] **Step 3: Rewrite every linked-form state**
@@ -509,7 +509,7 @@ test("document import surfaces reject local dark palette values", async () => {
 
 - [ ] **Step 2: Run the contract and verify the existing dark values fail**
 
-Run: `npm --prefix web run check:ui-contracts`  
+Run: `npm --prefix web run check:ui-contracts`
 Expected: FAIL on the hard-coded dark backgrounds, borders, shadows and numeric radii in `document-import.css`.
 
 - [ ] **Step 3: Replace the Imports operational palette**
