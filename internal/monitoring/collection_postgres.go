@@ -101,7 +101,7 @@ func (r *PostgresRepository) ClaimDueCollectionCycles(ctx context.Context, worke
 }
 
 func (r *PostgresRepository) CompleteCollectionAction(ctx context.Context, claim CollectionCycle, completion CollectionActionCompletion) (CollectionCycle, error) {
-	if completion.At.IsZero() || claim.LeaseToken == "" || claim.LeaseOwner == "" {
+	if completion.At.IsZero() || claim.LeaseToken == "" || claim.LeaseOwner == "" || len(strings.TrimSpace(completion.SafeError)) > 1000 {
 		return CollectionCycle{}, ErrInvalid
 	}
 	switch completion.State {
@@ -117,12 +117,12 @@ func (r *PostgresRepository) CompleteCollectionAction(ctx context.Context, claim
 		UPDATE monitoring_collection_cycles SET
 			state=$5,current_request_id=COALESCE(NULLIF($6,'')::uuid,current_request_id),
 			delivery_state=COALESCE(NULLIF($7,''),delivery_state),delivery_reference=CASE WHEN $8='' THEN delivery_reference ELSE $8 END,
-			next_action_at=$9,reminders_sent=COALESCE($10,reminders_sent),safe_error='',
-			lease_owner=NULL,lease_token=NULL,lease_until=NULL,updated_at=$11
-		WHERE tenant_id=$1::uuid AND id=$2::uuid AND state='CLAIMED' AND lease_token=$3::uuid AND lease_owner=$4 AND lease_until >= $11
+			next_action_at=$9,reminders_sent=COALESCE($10,reminders_sent),safe_error=$11,
+			lease_owner=NULL,lease_token=NULL,lease_until=NULL,updated_at=$12
+		WHERE tenant_id=$1::uuid AND id=$2::uuid AND state='CLAIMED' AND lease_token=$3::uuid AND lease_owner=$4 AND lease_until >= $12
 		RETURNING `+collectionCycleColumns,
 		claim.TenantID, claim.ID, claim.LeaseToken, claim.LeaseOwner, completion.State, strings.TrimSpace(completion.CurrentRequestID),
-		completion.DeliveryState, strings.TrimSpace(completion.DeliveryReference), completion.NextActionAt, nullableInt(completion.RemindersSent), completion.At.UTC()))
+		completion.DeliveryState, strings.TrimSpace(completion.DeliveryReference), completion.NextActionAt, nullableInt(completion.RemindersSent), strings.TrimSpace(completion.SafeError), completion.At.UTC()))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return CollectionCycle{}, ErrConflict
 	}
@@ -137,6 +137,7 @@ func (r *PostgresRepository) FailCollectionAction(ctx context.Context, claim Col
 		UPDATE monitoring_collection_cycles SET
 			attempts=attempts+1,
 			state=CASE WHEN attempts+1 >= $5 OR $6::timestamptz IS NULL THEN 'FAILED' ELSE 'SCHEDULED' END,
+			delivery_state=CASE WHEN attempts+1 >= $5 OR $6::timestamptz IS NULL THEN 'FAILED' ELSE delivery_state END,
 			next_action_at=CASE WHEN attempts+1 >= $5 THEN NULL ELSE $6::timestamptz END,
 			safe_error=$7,lease_owner=NULL,lease_token=NULL,lease_until=NULL,updated_at=$8
 		WHERE tenant_id=$1::uuid AND id=$2::uuid AND state='CLAIMED' AND lease_token=$3::uuid AND lease_owner=$4 AND lease_until >= $8

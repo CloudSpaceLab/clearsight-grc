@@ -122,6 +122,7 @@ func (r *MemoryRepository) CompleteCollectionAction(_ context.Context, claim Col
 	if completion.RemindersSent != nil {
 		current.RemindersSent = *completion.RemindersSent
 	}
+	current.SafeError = strings.TrimSpace(completion.SafeError)
 	current.LeaseOwner = ""
 	current.LeaseToken = ""
 	current.LeaseUntil = nil
@@ -152,6 +153,7 @@ func (r *MemoryRepository) FailCollectionAction(_ context.Context, claim Collect
 	current.UpdatedAt = at.UTC()
 	if current.Attempts >= maxAttempts || retryAt == nil {
 		current.State = CycleFailed
+		current.DeliveryState = DeliveryFailed
 		current.NextActionAt = nil
 	} else {
 		retry := retryAt.UTC()

@@ -85,6 +85,8 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	evidenceService := evidence.NewService(evidenceRepository, store)
 	monitoringRepository := monitoring.NewPostgresRepository(pool)
 	collectionSubmissions := &monitoring.CollectionConsumer{Inbox: runtimeRepository, Repository: monitoringRepository, Evidence: evidenceService}
+	collectionDispatcher := &monitoring.CanonicalCollectionDispatcher{Requests: evidenceService}
+	collectionRenewal := &monitoring.CollectionMaintainer{Repository: monitoringRepository, Requests: evidenceService, Dispatcher: collectionDispatcher, WorkerID: cfg.WorkerID}
 	formPolicyRepository := formpolicy.NewPostgresRepository(pool)
 	formPolicyResponses := evidence.NewDistributionService(evidence.NewPostgresDistributionStore(evidenceRepository, nil))
 	formPolicyExecutor := formpolicy.NewExecutor(formPolicyRepository, formPolicyResponses, formPolicyExecutionAuthority{Automation: autonomyService, Authority: authorityService, Subjects: evidenceRepository})
@@ -136,6 +138,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
 	assessmentProvisioner.ConfigureAuthority(authorityService)
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
+	service.AddMaintainerClass(monitoring.CollectionRenewalWorkClass, collectionRenewal)
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	service.AddMaintainerClass(thirdparty.AssessmentSetupWorkClass, assessmentProvisioner)
 	refreshPolicy, _ := vendorRefreshWorkerSettings(cfg)

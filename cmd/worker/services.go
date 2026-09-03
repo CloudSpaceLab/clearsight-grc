@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
@@ -42,6 +43,7 @@ func configureWorkerRuntime(service *workflowruntime.Service, cfg config.Config,
 	policy, refreshOptions := vendorRefreshWorkerSettings(cfg)
 	_ = policy
 	service.ConfigureClass(thirdparty.VendorRefreshMaintenanceWorkClass, refreshOptions)
+	service.ConfigureClass(monitoring.CollectionRenewalWorkClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 50})
 }
 
 func vendorRefreshWorkerSettings(cfg config.Config) (thirdparty.RefreshMaintenancePolicy, workflowruntime.WorkClassOptions) {

@@ -80,6 +80,7 @@ type CollectionActionCompletion struct {
 	DeliveryReference string
 	NextActionAt      *time.Time
 	RemindersSent     *int
+	SafeError         string
 	At                time.Time
 }
 
