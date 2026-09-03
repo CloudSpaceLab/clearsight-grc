@@ -92,13 +92,22 @@ type DecisionReceipt struct {
 	ProposedAction aigateway.DecisionAction `json:"proposed_action,omitempty"`
 	ReasonCodes    []string                 `json:"reason_codes,omitempty"`
 	Obligations    []string                 `json:"obligations,omitempty"`
-	ModelAlias     string                   `json:"model_alias,omitempty"`
-	RouteID        string                   `json:"route_id,omitempty"`
-	Outcome        string                   `json:"outcome"`
-	ErrorCode      string                   `json:"error_code,omitempty"`
-	ObservedAt     time.Time                `json:"observed_at"`
-	ExpiresAt      time.Time                `json:"expires_at"`
-	Fingerprint    string                   `json:"fingerprint"`
+
+	BaselinePolicyID       string                   `json:"baseline_policy_id,omitempty"`
+	BaselinePolicyCode     string                   `json:"baseline_policy_code,omitempty"`
+	BaselinePolicyVersion  int64                    `json:"baseline_policy_version,omitempty"`
+	BaselineRolloutMode    aigateway.RolloutMode    `json:"baseline_rollout_mode,omitempty"`
+	BaselineDecision       aigateway.DecisionAction `json:"baseline_decision,omitempty"`
+	BaselineProposedAction aigateway.DecisionAction `json:"baseline_proposed_action,omitempty"`
+	BaselineReasonCodes    []string                 `json:"baseline_reason_codes,omitempty"`
+
+	ModelAlias  string    `json:"model_alias,omitempty"`
+	RouteID     string    `json:"route_id,omitempty"`
+	Outcome     string    `json:"outcome"`
+	ErrorCode   string    `json:"error_code,omitempty"`
+	ObservedAt  time.Time `json:"observed_at"`
+	ExpiresAt   time.Time `json:"expires_at"`
+	Fingerprint string    `json:"fingerprint"`
 }
 
 type ExecutionGrant struct {

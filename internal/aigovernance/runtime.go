@@ -7,6 +7,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -18,10 +19,14 @@ type RuntimeProvider struct {
 	repo    Repository
 	sources *sourceaccess.CatalogService
 	ready   atomic.Bool
+
+	baselineCache sync.Map
+	baselineTTL   time.Duration
+	now           func() time.Time
 }
 
 func NewRuntimeProvider(repo Repository, sources *sourceaccess.CatalogService) *RuntimeProvider {
-	p := &RuntimeProvider{repo: repo, sources: sources}
+	p := &RuntimeProvider{repo: repo, sources: sources, baselineTTL: 5 * time.Second, now: time.Now}
 	p.ready.Store(repo != nil)
 	return p
 }
@@ -45,17 +50,29 @@ func (p *RuntimeProvider) Authenticate(ctx context.Context, header string) (*aig
 	for _, model := range workload.AllowedModels {
 		allowed[model] = struct{}{}
 	}
+	policySnapshot := aigateway.PolicySnapshot{ID: policy.ID, Code: policy.Code, Version: policy.Version, RolloutMode: policy.RolloutMode, Definition: policy.Definition}
+	baseline, found, err := p.activeGatewayBaseline(ctx, workload.TenantID)
+	if err != nil {
+		return nil, aigateway.ErrPolicyUnavailable
+	}
+	if found && baseline.ID != policy.ID {
+		policySnapshot.Baseline = &baseline
+	}
 	result := &aigateway.Workload{
 		ID: workload.WorkloadID, TenantID: workload.TenantID, Purpose: workload.Purpose, Environment: workload.Environment,
 		VerifiedMetadata: cloneMap(workload.VerifiedMetadata), AllowedModels: allowed,
 		RequestsPerMinute: workload.RequestsPerMinute, TokensPerMinute: workload.TokensPerMinute,
 		CostMicroUSDPerMinute: workload.CostMicroUSDPerMinute, MaxConcurrent: workload.MaxConcurrent,
-		Policy: aigateway.PolicySnapshot{ID: policy.ID, Code: policy.Code, Version: policy.Version, RolloutMode: policy.RolloutMode, Definition: policy.Definition},
+		Policy: policySnapshot,
 	}
 	return result, nil
 }
 
 func (p *RuntimeProvider) ResolveFacts(ctx context.Context, workload aigateway.Workload, request aigateway.Request, requirements []aigateway.BindingRequirement) ([]aigateway.Fact, error) {
+	requirements, err := runtimeBindingRequirements(workload, requirements)
+	if err != nil {
+		return nil, err
+	}
 	facts := make([]aigateway.Fact, 0, len(requirements))
 	for _, requirement := range requirements {
 		fact := aigateway.Fact{Key: requirement.FactKey, State: aigateway.FactUnknown}
@@ -136,8 +153,11 @@ func (p *RuntimeProvider) RecordReceipt(ctx context.Context, record aigateway.Re
 		return nil
 	}
 	// Keep all material/non-allow outcomes. Ordinary successful ALLOW traffic is
-	// deterministically sampled at 1% so retries produce the same decision.
-	if record.Decision.Action == aigateway.DecisionAllow && record.Outcome == "AUTHORIZED" {
+	// deterministically sampled at 1% so retries produce the same decision. A
+	// material SHADOW proposal in the organization baseline must never be sampled
+	// away even if the workload policy itself allows the request.
+	baselineMaterial := record.Decision.BaselineAction == aigateway.DecisionShadow && record.Decision.BaselineProposedAction != ""
+	if record.Decision.Action == aigateway.DecisionAllow && record.Outcome == "AUTHORIZED" && !baselineMaterial {
 		digest := sha256.Sum256([]byte(record.TenantID + "|" + record.WorkloadID + "|" + record.RequestID))
 		if int(digest[0]) >= 3 { // ~1.17%, deterministic and stateless.
 			return nil
@@ -155,7 +175,11 @@ func (p *RuntimeProvider) RecordReceipt(ctx context.Context, record aigateway.Re
 		PolicyVersion: record.Decision.PolicyVersion, Decision: record.Decision.Action, ProposedAction: record.Decision.ProposedAction,
 		ReasonCodes: uniqueSorted(record.Decision.ReasonCodes), Obligations: uniqueSorted(obligations), ModelAlias: record.ModelAlias,
 		RouteID: record.RouteID, Outcome: record.Outcome, ErrorCode: record.ErrorCode, ObservedAt: record.ObservedAt,
-		ExpiresAt: record.ObservedAt.Add(90 * 24 * time.Hour),
+		ExpiresAt:        record.ObservedAt.Add(90 * 24 * time.Hour),
+		BaselinePolicyID: record.Decision.BaselinePolicyID, BaselinePolicyCode: record.Decision.BaselinePolicyCode,
+		BaselinePolicyVersion: record.Decision.BaselinePolicyVersion, BaselineRolloutMode: record.Decision.BaselineRolloutMode,
+		BaselineDecision: record.Decision.BaselineAction, BaselineProposedAction: record.Decision.BaselineProposedAction,
+		BaselineReasonCodes: uniqueSorted(record.Decision.BaselineReasonCodes),
 	}
 	receipt.Fingerprint = checksumReceipt(receipt)
 	_, err := p.repo.IngestReceipt(ctx, receipt)
