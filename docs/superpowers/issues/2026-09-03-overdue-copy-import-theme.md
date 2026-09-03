@@ -25,6 +25,7 @@
 - UI contract: 11 checks passed, including enforced semantic Imports CSS;
 - typecheck and production build: passed;
 - rendered-evidence manifest: `web/ui-evidence/issue-177/manifest.json`, 65 captures, no recorded failure or horizontal overflow in captures 176–180;
+- managed UI review: 134/134 flow records, 72/72 Forms capabilities, 134/134 screenshots, nine behavioral scenarios, eight accessibility/touch states and all interaction bundle budgets passed;
 - inspected renders: `176-matter-overdue-action-light-1440x900.png`, `177-matter-overdue-action-dark-mobile-390x844.png`, `178-import-selected-light-1440x900.png`, `179-import-selected-dark-1440x900.png`, and `180-import-selected-light-mobile-390x844.png`;
 - highest-impact visual repair: the overdue fixture is scrolled to the assigned Action in both Work captures, and an unsupported linked-form request exposed by that render now returns the named empty population instead of displaying a false failure notice.
 

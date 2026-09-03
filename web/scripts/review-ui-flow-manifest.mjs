@@ -37,7 +37,6 @@ const expectedNames = [
   "29-field-visit-entry-light-390x844",
   "30-field-visit-review-light-390x844",
   "31-field-visit-receipt-light-390x844",
-  "32-import-dropzone-selected-light-1440x900",
   "33-today-lifecycle-collapsed-light-1440x900",
   "34-today-lifecycle-expanded-light-1440x900",
   "35-today-lifecycle-collapsed-light-mobile-390x844",
@@ -97,6 +96,11 @@ const expectedNames = [
   "89-matter-action-reassignment-light-1440x900",
   "129-oversight-completeness-light-1440x900",
   "130-oversight-completeness-dark-mobile-390x844",
+  "176-matter-overdue-action-light-1440x900",
+  "177-matter-overdue-action-dark-mobile-390x844",
+  "178-import-selected-light-1440x900",
+  "179-import-selected-dark-1440x900",
+  "180-import-selected-light-mobile-390x844",
   ...formsEvidenceScenarios.map((scenario) => scenario.name),
 ];
 const requiredStates = [
@@ -170,6 +174,8 @@ const requiredStates = [
   "vendor-link-focused-sheet",
   "vendor-link-focused-sheet-mobile",
   "matter-action-reassignment",
+  "matter-overdue-action",
+  "matter-overdue-action-mobile",
   ...formsEvidenceScenarios.map((scenario) => scenario.state),
 ];
 
