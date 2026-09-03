@@ -41,14 +41,18 @@ func TestPostgresCollectionPolicyCycleScopeAndLease(t *testing.T) {
 	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
-	if _, err := pool.Exec(ctx, `
-		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'collection-renewal-test','Collection Renewal Test');
-		INSERT INTO principals(id,tenant_id,kind,display_name,status) VALUES($2::uuid,$1::uuid,'PERSON','Collection Owner','ACTIVE');
-		INSERT INTO programs(id,tenant_id,code,name,program_type,status,owning_function,scope,effective_from,version)
-			VALUES($3::uuid,$1::uuid,'COLLECTION','Collection renewal','COMPLIANCE','ACTIVE','Compliance','{}'::jsonb,$4,1);
-		INSERT INTO monitoring_form_templates(id,tenant_id,code,name,purpose,fields,status,is_current,effective_from,version,created_by,approved_by,created_at,updated_at)
-			VALUES($5::uuid,$1::uuid,'VENDOR','Vendor review','Collect a current response.','[{"id":"answer","label":"Answer","type":"text","required":true}]'::jsonb,'ACTIVE',true,$4,1,$2::uuid,$2::uuid,$4,$4)`,
-		tenantID, principal, programID, now.Add(-time.Hour), formID); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'collection-renewal-test','Collection Renewal Test')`, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status) VALUES($1::uuid,$2::uuid,'PERSON','Collection Owner','ACTIVE')`, principal, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO programs(id,tenant_id,code,name,program_type,status,owning_function,scope,effective_from,version)
+		VALUES($1::uuid,$2::uuid,'COLLECTION','Collection renewal','COMPLIANCE','ACTIVE','Compliance','{}'::jsonb,$3,1)`, programID, tenantID, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO monitoring_form_templates(id,tenant_id,code,name,purpose,fields,status,is_current,effective_from,version,created_by,approved_by,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,'VENDOR','Vendor review','Collect a current response.','[{"id":"answer","label":"Answer","type":"text","required":true}]'::jsonb,'ACTIVE',true,$3,1,$4::uuid,$4::uuid,$3,$3)`, formID, tenantID, now.Add(-time.Hour), principal); err != nil {
 		t.Fatal(err)
 	}
 	repo := NewPostgresRepository(pool)
