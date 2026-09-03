@@ -199,7 +199,7 @@ func migrationEvidenceRequestInput(relationshipID, workID string, sequence int64
 	return evidence.CreateRequestInput{
 		TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationshipID,
 		Title: "Vendor due diligence", Purpose: "Confirm current vendor controls.", WhyYou: "Confirm the current control information.",
-		Sensitivity: "CONFIDENTIAL", AudienceType: "VENDOR", Recipient: evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience},
+		Sensitivity: "INTERNAL", AudienceType: "VENDOR", Recipient: evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience},
 		EstimatedMinutes: 5, Deadline: now.Add(24 * time.Hour), Origin: evidence.RequestOrigin{Type: VendorWorkOrigin, ID: workID, Version: sequence},
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard}, Sections: []formcontract.Section{{ID: "company", Title: "Company details"}},
 		Fields:         []evidence.Field{{ID: "confirmed", SectionID: "company", Label: "Confirm the supplied details", Type: string(formcontract.TypeYesNo), Required: true}},
