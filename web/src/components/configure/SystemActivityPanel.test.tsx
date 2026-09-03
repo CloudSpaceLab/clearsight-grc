@@ -32,14 +32,15 @@ it("applies audit actor and date filters through the server query", async () => 
   await screen.findByText("Acme Payments");
 
   fireEvent.change(screen.getByLabelText("Actor"), { target: { value: "Acme" } });
-  fireEvent.change(screen.getByLabelText("Actor type"), { target: { value: "EXTERNAL_PARTICIPANT" } });
+  fireEvent.click(screen.getByLabelText("Actor type"));
+  fireEvent.click(await screen.findByRole("option", { name: "Vendor / external participant" }));
   fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-09-01T00:00" } });
   fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
 
   await waitFor(() => expect(activityApi.loadSystemActivity).toHaveBeenLastCalledWith(expect.objectContaining({
     actor: "Acme",
     actorKind: "EXTERNAL_PARTICIPANT",
-    from: "2026-09-01T00:00:00.000Z",
+    from: new Date("2026-09-01T00:00").toISOString(),
     limit: 50,
   })));
 });
