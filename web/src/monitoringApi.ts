@@ -1,7 +1,7 @@
 import { loadContext } from "./api";
 import { requestJSON } from "./http";
 import type { EvidenceRequest } from "./types";
-import type { CreateFormTemplateInput, FormTemplate, LifecycleStatus, MonitoringCheck, MonitoringResult } from "./monitoringTypes";
+import type { CollectionPolicy, CollectionSummary, CreateFormTemplateInput, FormTemplate, LifecycleStatus, MonitoringCheck, MonitoringResult } from "./monitoringTypes";
 import type { SourceBinding } from "./sourceConfigApi";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -31,16 +31,28 @@ export async function loadMonitoringChecks(programID: string): Promise<Monitorin
   return (await scoped<{ items: MonitoringCheck[] }>(`/api/v1/programs/${encodeURIComponent(programID)}/monitoring-checks?limit=100`)).items;
 }
 
-export function createFormMonitoringCheck(programID: string, form: FormTemplate): Promise<MonitoringCheck> {
+export function createFormMonitoringCheck(programID: string, form: FormTemplate, policy: CollectionPolicy): Promise<MonitoringCheck> {
   return scoped<MonitoringCheck>(`/api/v1/programs/${encodeURIComponent(programID)}/monitoring-checks`, {
     method: "POST",
     body: JSON.stringify({
       code: `${form.code}-CHECK`, name: form.name, claim: form.purpose, input_kind: "FORM",
       form_template_id: form.id, form_template_version: form.version,
+      collection_policy: policy,
       thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 },
       freshness_minutes: 10080, minimum_coverage: 1, failure_action: "REVIEW",
     }),
   });
+}
+
+export function updateCollectionPolicy(checkID: string, expectedVersion: number, policy: CollectionPolicy): Promise<MonitoringCheck> {
+  return scoped<MonitoringCheck>(`/api/v1/monitoring-checks/${encodeURIComponent(checkID)}/collection-policy`, {
+    method: "POST",
+    body: JSON.stringify({ expected_version: expectedVersion, collection_policy: policy }),
+  });
+}
+
+export async function loadCollectionSummaries(programID: string): Promise<CollectionSummary[]> {
+  return (await scoped<{ items: CollectionSummary[] }>(`/api/v1/programs/${encodeURIComponent(programID)}/collection-summaries?limit=100`)).items;
 }
 
 export function createSourceMonitoringCheck(programID: string, binding: SourceBinding, input: { code: string; name: string; claim: string; field: string; expected: string }): Promise<MonitoringCheck> {
