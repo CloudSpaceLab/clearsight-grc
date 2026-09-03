@@ -74,9 +74,9 @@ func TestPostgresCollectionPolicyCycleScopeAndLease(t *testing.T) {
 
 	requestInsert := `INSERT INTO capture_requests(
 		id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,
-		known_facts,fields,status,created_by,version,created_at,updated_at,origin_type,origin_id,origin_sequence)
+		known_facts,fields,status,created_by,version,created_at,updated_at,origin_type,origin_id,origin_version)
 		VALUES($1::uuid,$2::uuid,'PROGRAM',$3::text,'Vendor review','Collect a current response.','You own this response.','INTERNAL','INTERNAL',5,$4,
-		'{}'::jsonb,'[{"id":"answer","label":"Answer","type":"text","required":true}]'::jsonb,'READY',$5::uuid,1,$4,$4,'MONITORING_COLLECTION',$6::uuid,1)`
+		'{}'::jsonb,'[{"id":"answer","label":"Answer","type":"text","required":true}]'::jsonb,'READY',$5::uuid,1,$4,$4,'MONITORING_COLLECTION',$6::text,1)`
 	if _, err := pool.Exec(ctx, requestInsert, requestID, tenantID, programID, now, principal, originID); err != nil {
 		t.Fatal(err)
 	}

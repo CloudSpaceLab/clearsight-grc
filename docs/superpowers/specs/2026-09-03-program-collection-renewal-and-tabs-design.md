@@ -164,11 +164,11 @@ Evidence Requests gain a generic, immutable origin reference:
 ```text
 origin_type
 origin_id
-origin_sequence
+origin_version
 predecessor_request_id
 ```
 
-The tuple `(tenant_id, origin_type, origin_id, origin_sequence)` is unique. For recurring Program collection, `origin_type` is `MONITORING_COLLECTION`, `origin_id` is the stable Monitoring Check ID and `origin_sequence` increments for every request. Exact-origin lookup makes renewal request creation idempotent after a worker crash.
+The existing shared capture-origin tuple `(tenant_id, origin_type, origin_id, origin_version)` remains unique. For recurring Program collection, `origin_type` is `MONITORING_COLLECTION`, `origin_id` is the stable Monitoring Check ID and `origin_version` increments for every request. Exact-origin lookup makes renewal request creation idempotent after a worker crash.
 
 The initial manually started request is sequence 1. Every successor links its predecessor. Historical request schemas, submissions, results and artifacts remain immutable.
 

@@ -11,26 +11,20 @@ ALTER TABLE monitoring_checks
     );
 
 ALTER TABLE capture_requests
-    ADD COLUMN origin_type text,
-    ADD COLUMN origin_id uuid,
-    ADD COLUMN origin_sequence bigint,
     ADD COLUMN predecessor_request_id uuid,
     ADD COLUMN previous_responses jsonb NOT NULL DEFAULT '{}'::jsonb,
-    ADD CONSTRAINT capture_requests_origin_shape_check CHECK (
-        (origin_type IS NULL AND origin_id IS NULL AND origin_sequence IS NULL AND predecessor_request_id IS NULL) OR
-        (origin_type IS NOT NULL AND origin_type=btrim(origin_type) AND char_length(origin_type) BETWEEN 1 AND 64
-            AND origin_id IS NOT NULL AND origin_sequence > 0
-            AND ((origin_sequence=1 AND predecessor_request_id IS NULL) OR (origin_sequence>1 AND predecessor_request_id IS NOT NULL)))
+    ADD CONSTRAINT capture_requests_monitoring_lineage_check CHECK (
+        origin_type IS DISTINCT FROM 'MONITORING_COLLECTION' OR (
+            origin_version > 0 AND
+            ((origin_version=1 AND predecessor_request_id IS NULL) OR
+                (origin_version>1 AND predecessor_request_id IS NOT NULL))
+        )
     ),
     ADD CONSTRAINT capture_requests_previous_responses_check CHECK (
         jsonb_typeof(previous_responses)='object' AND octet_length(previous_responses::text) <= 131072
     ),
     ADD CONSTRAINT capture_requests_predecessor_tenant_fk
         FOREIGN KEY(predecessor_request_id,tenant_id) REFERENCES capture_requests(id,tenant_id);
-
-CREATE UNIQUE INDEX capture_requests_origin_idx
-    ON capture_requests(tenant_id,origin_type,origin_id,origin_sequence)
-    WHERE origin_type IS NOT NULL;
 
 CREATE TABLE monitoring_collection_cycles (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
@@ -47,6 +41,8 @@ CREATE TABLE monitoring_collection_cycles (
     predecessor_request_id uuid,
     latest_submission_id uuid,
     latest_submitted_at timestamptz,
+    latest_respondent_label text NOT NULL DEFAULT ''
+        CHECK (latest_respondent_label=btrim(latest_respondent_label) AND char_length(latest_respondent_label) <= 256),
     expires_at timestamptz NOT NULL,
     renewal_opens_at timestamptz NOT NULL,
     next_action_at timestamptz,
@@ -70,9 +66,10 @@ CREATE TABLE monitoring_collection_cycles (
     FOREIGN KEY(tenant_id,monitoring_check_id,monitoring_check_version) REFERENCES monitoring_checks(tenant_id,id,version),
     FOREIGN KEY(current_request_id,tenant_id) REFERENCES capture_requests(id,tenant_id),
     FOREIGN KEY(predecessor_request_id,tenant_id) REFERENCES capture_requests(id,tenant_id),
-    FOREIGN KEY(latest_submission_id) REFERENCES capture_submissions(id),
+    FOREIGN KEY(latest_submission_id,tenant_id,current_request_id) REFERENCES capture_submissions(id,tenant_id,request_id),
     FOREIGN KEY(recipient_principal_id,tenant_id) REFERENCES principals(id,tenant_id),
-    CHECK ((latest_submission_id IS NULL AND latest_submitted_at IS NULL) OR (latest_submission_id IS NOT NULL AND latest_submitted_at IS NOT NULL)),
+    CHECK ((latest_submission_id IS NULL AND latest_submitted_at IS NULL) OR
+        (latest_submission_id IS NOT NULL AND latest_submitted_at IS NOT NULL AND current_request_id IS NOT NULL)),
     CHECK ((recipient_route_type='INTERNAL_PRINCIPAL' AND recipient_principal_id IS NOT NULL AND recipient_contact_ref IS NULL AND recipient_safe_hint='') OR
         (recipient_route_type='EXTERNAL_CONTACT' AND recipient_principal_id IS NULL AND recipient_contact_ref IS NOT NULL
             AND recipient_contact_ref=btrim(recipient_contact_ref) AND char_length(recipient_contact_ref) BETWEEN 1 AND 512

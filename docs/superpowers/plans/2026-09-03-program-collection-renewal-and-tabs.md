@@ -37,7 +37,7 @@ New focused units:
 - `web/src/components/ProgramDetailSections.tsx` — Program section navigation.
 - `web/src/components/CollectionPolicyForm.tsx` — policy entry.
 - `web/src/components/CollectionRecord.tsx` — unified collection state.
-- `migrations/000036_program_collection_renewal.up.sql` / `.down.sql` — schema.
+- `migrations/000076_program_collection_renewal.up.sql` / `.down.sql` — schema, sequenced after the current mainline migration set.
 
 Existing monitoring, evidence, HTTP, worker, React routing, capture, fixture, CSS and documentation files change only where listed by each task.
 
@@ -145,8 +145,8 @@ Expected: tests PASS. Preserve the existing `UseAsEvidence` and `SubmissionEvide
 ### Task 3: Persist policy, request origin and collection cycles
 
 **Files:**
-- Create: `migrations/000036_program_collection_renewal.up.sql`
-- Create: `migrations/000036_program_collection_renewal.down.sql`
+- Create: `migrations/000076_program_collection_renewal.up.sql`
+- Create: `migrations/000076_program_collection_renewal.down.sql`
 - Create: `internal/monitoring/collection_cycle.go`
 - Create: `internal/monitoring/collection_memory.go`
 - Create: `internal/monitoring/collection_postgres.go`
@@ -170,9 +170,9 @@ go test -tags "postgres postgresintegration" ./internal/monitoring -run TestPost
 
 Expected: schema test FAIL before migration; integration FAIL with configured PostgreSQL or explicit SKIP without `TEST_DATABASE_URL`.
 
-- [ ] **Step 3: Add migration 000036**
+- [ ] **Step 3: Add migration 000076**
 
-Add nullable `validity_months`, `renewal_window_days`, `reminder_count` to `monitoring_checks`, constrained as an all-null legacy group or valid all-present group for `FORM`. Add nullable `origin_type`, `origin_id`, `origin_sequence`, `predecessor_request_id` and non-null `previous_responses jsonb DEFAULT '{}'` to `capture_requests`, with all-or-none origin constraint, same-table predecessor FK, JSON-object check and partial unique `(tenant_id,origin_type,origin_id,origin_sequence)`.
+Add nullable `validity_months`, `renewal_window_days`, `reminder_count` to `monitoring_checks`, constrained as an all-null legacy group or valid all-present group for `FORM`. Reuse the shared `origin_type`, `origin_id` and `origin_version` capture contract from migration `000036_shared_form_capture_contract`; add nullable `predecessor_request_id` and non-null `previous_responses jsonb DEFAULT '{}'` to `capture_requests`, with monitoring-lineage, same-table predecessor and bounded JSON-object checks. The existing partial unique `(tenant_id,origin_type,origin_id,origin_version)` index provides idempotency.
 
 Create `monitoring_collection_cycles` with tenant/Program/check IDs, policy/check version, current/predecessor request, latest submission, expiry/open/next timestamps, reminder progress, recipient route, delivery state, state, lease, attempts, safe error and timestamps. Its state check permits only `SCHEDULED`, `CLAIMED`, `AWAITING_RESPONSE`, `COMPLETE`, `CANCELLED`, `BLOCKED`, `FAILED`. Store no raw address, answers, artifact content or invitation token.
 
@@ -190,7 +190,7 @@ Update `insertCheckRevision`, `checkSelect` and `scanCheck` together. Do not dro
 go test ./internal/monitoring -count=1
 go test -tags postgres ./internal/monitoring ./internal/platform/database -count=1
 go test -tags "postgres postgresintegration" ./internal/monitoring -run TestPostgresCollection -count=1
-git add migrations/000036_program_collection_renewal.up.sql migrations/000036_program_collection_renewal.down.sql internal/monitoring/collection_cycle.go internal/monitoring/collection_memory.go internal/monitoring/collection_postgres.go internal/monitoring/collection_postgres_integration_test.go internal/monitoring/postgres.go internal/monitoring/repository.go internal/monitoring/schema_test.go internal/evidence/model.go docs/architecture/durable-schema-ownership.md
+git add migrations/000076_program_collection_renewal.up.sql migrations/000076_program_collection_renewal.down.sql internal/monitoring/collection_cycle.go internal/monitoring/collection_memory.go internal/monitoring/collection_postgres.go internal/monitoring/collection_postgres_integration_test.go internal/monitoring/postgres.go internal/monitoring/repository.go internal/monitoring/schema_test.go internal/evidence/model.go docs/architecture/durable-schema-ownership.md
 git commit -m "feat(monitoring): persist collection renewal cycles"
 ```
 
