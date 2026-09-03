@@ -112,6 +112,9 @@ The exact browser matrix includes and was visually inspected for:
 - vendor identity editing with hostname validation, staged image metadata, optimistic conflict, permission failure and retained entries/files;
 - approved-logo removal restoring a matching website icon and restoring the monogram when no matching discovered icon exists;
 - desktop and mobile identity editing with the first field focused, a visible **Return to relationship** action, no competing **Add vendor** action, no horizontal overflow and reachable save/brand actions.
+- Program detail sections in desktop tabs and a native narrow-screen selector, including keyboard focus and a 200% reflow proxy;
+- collection renewal states with stored sample dates: current, renewal due, potentially expired, awaiting response and blocked delivery;
+- latest collection respondent/time, calculated expiry, reminder progress, long names and blocked-delivery recovery copy in light and dark themes.
 
 The lossless dark-theme cover at `docs/presentation-assets/clearsight-premium-first-run-cover.png` was inspected at its original 1600×900 resolution. It retains the sidebar, guide actions and current Today work context without an open modal or focal obstruction. The exact-head static-evidence bundle measured 578,586 bytes for its largest raw JavaScript chunk and 178,064 bytes total gzip; the production build measured 473,526 bytes and 164,651 bytes. The 600 KiB/192 KiB regression ceilings include the deterministic fixture weight and remain enforced by the review script.
 

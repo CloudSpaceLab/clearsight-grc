@@ -10,6 +10,7 @@ const browser = await chromium.launch({ headless: true });
 try {
   await captureDesktopReview();
   await captureMobileReview();
+  await captureProgramSectionsAndCollections();
 } catch (error) {
   await recordFailure(error);
   throw error;
@@ -56,21 +57,23 @@ async function captureMobileReview() {
   }
 }
 
-async function openContext(viewport, touch = false) {
-  const context = await browser.newContext({ viewport, colorScheme: "light", hasTouch: touch, reducedMotion: "reduce", locale: "en-NG", timezoneId: "Africa/Lagos" });
-  await context.addInitScript(() => {
-    localStorage.setItem("clearsight.theme", "light");
+async function openContext(viewport, touch = false, theme = "light") {
+  const context = await browser.newContext({ viewport, colorScheme: theme, hasTouch: touch, reducedMotion: "reduce", locale: "en-NG", timezoneId: "Africa/Lagos" });
+  await context.addInitScript((selectedTheme) => {
+    localStorage.setItem("clearsight.theme", selectedTheme);
     localStorage.setItem("clearsight.density", "comfortable");
-  });
+  }, theme);
   return context;
 }
 
-async function openProgram(context) {
+async function openProgram(context, { section = "overview", fixture } = {}) {
   const page = await context.newPage();
   const browserErrors = [];
   page.on("pageerror", (error) => browserErrors.push(error.message));
   page.on("console", (message) => { if (message.type() === "error") browserErrors.push(message.text()); });
-  await page.goto(`${baseURL}/?tour=off#programs/program-ndpa`, { waitUntil: "networkidle" });
+  const params = new URLSearchParams({ tour: "off" });
+  if (fixture) params.set("fixture", fixture);
+  await page.goto(`${baseURL}/?${params.toString()}#programs/program-ndpa/${section}`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "Programs", exact: true }).waitFor({ state: "visible" });
   await page.getByText("Nigeria Data Protection Programme", { exact: true }).first().waitFor({ state: "visible" });
   await page.evaluate(() => document.fonts?.ready);
@@ -84,9 +87,51 @@ async function assertChangedContent(page) {
   if (await page.getByText(/recommendation/i).count()) throw new Error("Program review digest invented recommendation semantics");
 }
 
-async function capture(page, name, state) {
+async function captureProgramSectionsAndCollections() {
+  await captureProgramSection({ name: "40-program-overview-dark-1440x900", section: "overview", theme: "dark", viewport: { width: 1440, height: 900 }, state: "program-overview-dark" });
+  await captureProgramSection({ name: "41-program-evidence-results-light-1024x768", section: "evidence-results", theme: "light", viewport: { width: 1024, height: 768 }, touch: true, state: "program-evidence-results-tablet" });
+  await captureProgramSection({ name: "42-program-monitoring-light-1440x900", section: "monitoring", fixture: "collection-renewal-states", theme: "light", viewport: { width: 1440, height: 900 }, state: "collection-current", expectedText: "Ada Okafor · Vendor assurance lead" });
+  await captureProgramSection({ name: "43-program-monitoring-blocked-dark-1440x900", section: "monitoring", fixture: "collection-renewal-states", theme: "dark", viewport: { width: 1440, height: 900 }, state: "collection-delivery-blocked", expectedText: "Renewal blocked", scrollText: "Renewal blocked" });
+  await captureProgramSection({ name: "44-program-monitoring-light-mobile-390x844", section: "monitoring", fixture: "collection-renewal-states", theme: "light", viewport: { width: 390, height: 844 }, touch: true, compact: true, state: "collection-mobile-selector", expectedText: "Sample · Current vendor security confirmation" });
+  await captureProgramSection({ name: "45-program-monitoring-long-dark-reflow-320x800", section: "monitoring", fixture: "collection-long-content", theme: "dark", viewport: { width: 320, height: 800 }, touch: true, compact: true, state: "collection-long-content", expectedText: "cross-border payment-processing" });
+  await captureProgramSection({ name: "46-program-monitoring-light-200pct-reflow-proxy", section: "monitoring", fixture: "collection-renewal-states", theme: "light", viewport: { width: 720, height: 900 }, compact: true, state: "collection-200pct-reflow-proxy", expectedText: "Sample · Current vendor security confirmation" });
+
+  const context = await openContext({ width: 1440, height: 900 });
+  const page = await openProgram(context, { section: "overview" });
+  try {
+    const monitoringTab = page.getByRole("tab", { name: "Monitoring" });
+    await monitoringTab.focus();
+    if (!(await monitoringTab.evaluate((element) => element === document.activeElement))) throw new Error("Program Monitoring tab did not retain keyboard focus");
+    await capture(page, "47-program-sections-tab-focus-light-1440x900", "program-tab-focus", { route: "#programs/program-ndpa/overview" });
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureProgramSection({ name, section, fixture, theme, viewport, touch = false, compact = false, state, expectedText, scrollText }) {
+  const context = await openContext(viewport, touch, theme);
+  const page = await openProgram(context, { section, fixture });
+  try {
+    if (compact) {
+      await page.getByRole("combobox", { name: "Program section" }).waitFor({ state: "visible" });
+      if (await page.getByRole("tablist", { name: "Program sections" }).count()) throw new Error(`${name} retained the desktop tablist in a compact viewport`);
+    } else {
+      await page.getByRole("tablist", { name: "Program sections" }).waitFor({ state: "visible" });
+    }
+    if (expectedText) await page.getByText(expectedText, { exact: false }).first().waitFor({ state: "visible" });
+    const anchor = scrollText ? page.getByText(scrollText, { exact: true }).first() : page.locator(".program-detail-sections");
+    await anchor.evaluate((element) => element.scrollIntoView({ block: "start" }));
+    await page.evaluate(() => window.scrollBy(0, -70));
+    await assertNoHorizontalOverflow(page, name);
+    await capture(page, name, state, { route: `#programs/program-ndpa/${section}`, fixture: fixture ?? null, theme });
+  } finally {
+    await context.close();
+  }
+}
+
+async function capture(page, name, state, metadata = {}) {
   await page.screenshot({ path: path.join(outputDir, `${name}.png`), fullPage: false, animations: "disabled", caret: "hide" });
-  await appendRecord(page, name, state);
+  await appendRecord(page, name, state, metadata);
 }
 
 async function assertNoHorizontalOverflow(page, name) {
@@ -106,10 +151,10 @@ async function layoutMetrics(page) {
   }));
 }
 
-async function appendRecord(page, name, state) {
+async function appendRecord(page, name, state, metadata = {}) {
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   const viewport = page.viewportSize() ?? { width: 0, height: 0 };
-  manifest.captures.push({ name, route: "#programs/program-ndpa", fixture: null, state, viewport, theme: "light", density: "comfortable", metrics: await layoutMetrics(page) });
+  manifest.captures.push({ name, route: metadata.route ?? "#programs/program-ndpa/overview", fixture: metadata.fixture ?? null, state, viewport, theme: metadata.theme ?? "light", density: "comfortable", metrics: await layoutMetrics(page) });
   await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
 }
 

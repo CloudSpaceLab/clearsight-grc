@@ -727,4 +727,31 @@ describe("static stakeholder demo transport", () => {
     const appliedReview = await staticDemoRequest<{ application_receipt?: { accepted_field_ids: string[]; prior_vendor_version: number; result_vendor_version: number } }>(`/api/v1/vendor-assessments/${appliedCurrent.assessment.id}`);
     expect(appliedReview.application_receipt).toMatchObject({ accepted_field_ids: ["registered_address"], prior_vendor_version: 1, result_vendor_version: 2 });
   });
+
+  it("exposes stored sample collection states without deriving dates from viewer time", async () => {
+    window.history.replaceState(null, "", "/?fixture=collection-renewal-states");
+    const { staticDemoRequest } = await demo();
+    const forms = await staticDemoRequest<{ items: Array<{ id: string; name: string }> }>("/api/v1/form-templates?limit=100");
+    const checks = await staticDemoRequest<{ items: Array<{ id: string; collection_policy?: { validity_months: number; renewal_window_days: number; reminder_count: number } }> }>("/api/v1/programs/program-ndpa/monitoring-checks?limit=100");
+    const summaries = await staticDemoRequest<{ items: Array<{ monitoring_check_id: string; currency_state: string; latest_submission_at?: string; respondent_label?: string; expires_at: string; reminders_sent: number; reminder_count: number; delivery_state: string }> }>("/api/v1/programs/program-ndpa/collection-summaries?limit=100");
+
+    expect(forms.items.some((form) => form.id === "form-no-policy")).toBe(true);
+    expect(checks.items.find((check) => check.id === "check-no-policy")?.collection_policy).toBeUndefined();
+    expect(checks.items.find((check) => check.id === "check-current")?.collection_policy).toEqual({ validity_months: 12, renewal_window_days: 30, reminder_count: 3 });
+    expect(summaries.items.map((summary) => summary.currency_state)).toEqual(expect.arrayContaining(["CURRENT", "RENEWAL_DUE", "RESPONSE_POTENTIALLY_EXPIRED", "AWAITING_RESPONSE", "RENEWAL_BLOCKED"]));
+    expect(summaries.items.find((summary) => summary.monitoring_check_id === "check-current")).toMatchObject({
+      latest_submission_at: "2026-08-14T10:30:00Z",
+      respondent_label: "Ada Okafor · Vendor assurance lead",
+      expires_at: "2027-08-14T10:30:00Z",
+    });
+    expect(summaries.items.find((summary) => summary.monitoring_check_id === "check-awaiting")).toMatchObject({ reminders_sent: 1, reminder_count: 3 });
+    expect(summaries.items.find((summary) => summary.monitoring_check_id === "check-blocked")?.delivery_state).toBe("BLOCKED");
+  });
+
+  it("provides a deterministic long-name collection fixture", async () => {
+    window.history.replaceState(null, "", "/?fixture=collection-long-content");
+    const { staticDemoRequest } = await demo();
+    const checks = await staticDemoRequest<{ items: Array<{ name: string }> }>("/api/v1/programs/program-ndpa/monitoring-checks?limit=100");
+    expect(checks.items[0]?.name).toContain("cross-border payment-processing");
+  });
 });
