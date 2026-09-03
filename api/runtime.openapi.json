@@ -61,6 +61,17 @@
     "/api/v1/ai-governance/workloads/{id}/retire": {"post": {"operationId": "retireAIGovernanceWorkload", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}},
     "/api/v1/ai-governance/workloads/{id}/submit": {"post": {"operationId": "submitAIGovernanceWorkload", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}},
     "/api/v1/ai-governance/workloads/{id}/suspend": {"post": {"operationId": "suspendAIGovernanceWorkload", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}},
+    "/api/v1/ai-governance/gateway-configs": {
+      "get": {"operationId": "listAIGatewayTransports", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ"},
+      "post": {"operationId": "createAIGatewayTransport", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}
+    },
+    "/api/v1/ai-governance/gateway-configs/active": {"get": {"operationId": "getActiveAIGatewayTransport", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ"}},
+    "/api/v1/ai-governance/gateway-configs/{id}": {"get": {"operationId": "getAIGatewayTransport", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ"}},
+    "/api/v1/ai-governance/gateway-configs/{id}/submit": {"post": {"operationId": "submitAIGatewayTransport", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}},
+    "/api/v1/ai-governance/gateway-configs/{id}/approve": {"post": {"operationId": "approveAIGatewayTransport", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}},
+    "/api/v1/ai-governance/gateway-configs/{id}/activate": {"post": {"operationId": "activateAIGatewayTransport", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}},
+    "/api/v1/ai-governance/gateway-configs/{id}/suspend": {"post": {"operationId": "suspendAIGatewayTransport", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}},
+    "/api/v1/ai-governance/gateway-configs/{id}/retire": {"post": {"operationId": "retireAIGatewayTransport", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}},
     "/api/v1/program-summaries": { "get": { "operationId": "listProgramSummaries", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/programs": {
       "get": { "operationId": "listPrograms", "x-clearsight-route-class": "AUTHENTICATED_READ" },

@@ -30,9 +30,10 @@ const (
 	GovernanceDatabase = "DATABASE"
 )
 
-// FileConfig owns provider transport configuration. Workloads may be supplied
-// statically only in development/test; production resolves governed workload
-// and policy revisions from the ClearSight database.
+// FileConfig owns bootstrap server/runtime settings. Provider transport
+// configuration is authoritative here only when transport mode is STATIC.
+// Workloads may be supplied statically only in development/test; production
+// resolves governed workload and policy revisions from the ClearSight database.
 type FileConfig struct {
 	Environment          string               `json:"environment"`
 	ListenAddr           string               `json:"listen_addr"`
@@ -46,8 +47,8 @@ type FileConfig struct {
 	GovernanceMode       string               `json:"governance_mode,omitempty"`
 	GovernanceRefreshMS  int64                `json:"governance_refresh_ms,omitempty"`
 	Workloads            []WorkloadConfig     `json:"workloads,omitempty"`
-	Providers            []ProviderConfig     `json:"providers"`
-	Models               []ModelConfig        `json:"models"`
+	Providers            []ProviderConfig     `json:"providers,omitempty"`
+	Models               []ModelConfig        `json:"models,omitempty"`
 }
 
 type CircuitBreakerConfig struct {
@@ -103,6 +104,7 @@ type RuntimeConfig struct {
 	CircuitBreaker       CircuitBreakerConfig
 	GovernanceMode       string
 	GovernanceRefresh    time.Duration
+	TransportMode        string
 	Workloads            []ConfiguredWorkload
 	Providers            []ResolvedProviderConfig
 	Models               []ModelConfig
@@ -172,6 +174,13 @@ func (file FileConfig) resolve(lookupEnv func(string) (string, bool)) (RuntimeCo
 	if environment != "development" && environment != "test" && environment != "production" {
 		return RuntimeConfig{}, fmt.Errorf("gateway environment must be development, test or production")
 	}
+	transportMode := TransportStatic
+	if value, ok := lookupEnv("CLEARSIGHT_AI_GATEWAY_TRANSPORT_MODE"); ok && strings.TrimSpace(value) != "" {
+		transportMode = strings.ToUpper(strings.TrimSpace(value))
+	}
+	if transportMode != TransportStatic && transportMode != TransportDatabase {
+		return RuntimeConfig{}, fmt.Errorf("CLEARSIGHT_AI_GATEWAY_TRANSPORT_MODE must be STATIC or DATABASE")
+	}
 	cfg := RuntimeConfig{
 		Environment:          environment,
 		ListenAddr:           strings.TrimSpace(file.ListenAddr),
@@ -183,7 +192,7 @@ func (file FileConfig) resolve(lookupEnv func(string) (string, bool)) (RuntimeCo
 		CircuitBreaker:       file.CircuitBreaker,
 		GovernanceMode:       strings.ToUpper(strings.TrimSpace(file.GovernanceMode)),
 		GovernanceRefresh:    durationMS(file.GovernanceRefreshMS, defaultGovernanceRefresh),
-		Models:               append([]ModelConfig(nil), file.Models...),
+		TransportMode:        transportMode,
 	}
 	if cfg.ListenAddr == "" {
 		cfg.ListenAddr = defaultGatewayAddr
@@ -197,6 +206,9 @@ func (file FileConfig) resolve(lookupEnv func(string) (string, bool)) (RuntimeCo
 	}
 	if cfg.GovernanceMode != GovernanceStatic && cfg.GovernanceMode != GovernanceDatabase {
 		return RuntimeConfig{}, fmt.Errorf("gateway governance_mode must be STATIC or DATABASE")
+	}
+	if cfg.TransportMode == TransportDatabase && cfg.GovernanceMode != GovernanceDatabase {
+		return RuntimeConfig{}, fmt.Errorf("DATABASE transport requires DATABASE governed workload state")
 	}
 	if cfg.GovernanceRefresh < time.Second || cfg.GovernanceRefresh > 5*time.Minute {
 		return RuntimeConfig{}, fmt.Errorf("gateway governance refresh is outside supported bounds")
@@ -267,6 +279,15 @@ func (file FileConfig) resolve(lookupEnv func(string) (string, bool)) (RuntimeCo
 	} else if len(file.Workloads) != 0 {
 		return RuntimeConfig{}, fmt.Errorf("DATABASE governance does not accept static workload credentials")
 	}
+	if cfg.TransportMode == TransportDatabase {
+		// The file may retain stale provider/model bootstrap fields during migration,
+		// but they are deliberately not parsed, secret-resolved, or copied into the
+		// runtime config. The active tenant transport revision is the only request-
+		// routing authority in DATABASE transport mode.
+		sort.Slice(cfg.Workloads, func(i, j int) bool { return cfg.Workloads[i].ID < cfg.Workloads[j].ID })
+		return cfg, nil
+	}
+	cfg.Models = append([]ModelConfig(nil), file.Models...)
 	if len(file.Providers) < 1 || len(file.Providers) > 64 {
 		return RuntimeConfig{}, fmt.Errorf("gateway requires between 1 and 64 provider configurations")
 	}

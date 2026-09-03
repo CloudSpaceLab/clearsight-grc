@@ -34,7 +34,15 @@ func buildGateway(ctx context.Context, config aigateway.RuntimeConfig, logger *s
 	}
 	catalog := sourceaccess.NewCatalogService(sourceaccess.NewPostgresCatalogRepository(pool), sourceaccess.EnvironmentSecretResolver{}, sourceaccess.DefaultCatalogAdapters())
 	runtime := aigovernance.NewRuntimeProvider(aigovernance.NewPostgresRepository(pool), catalog)
-	gateway, err := aigateway.NewGatewayWithGovernance(config, runtime, runtime, logger)
+	var gateway *aigateway.Gateway
+	switch config.TransportMode {
+	case aigateway.TransportStatic:
+		gateway, err = aigateway.NewGatewayWithGovernance(config, runtime, runtime, logger)
+	case aigateway.TransportDatabase:
+		gateway, err = aigateway.NewGatewayWithControlPlane(config, runtime, runtime, runtime, aigateway.EnvironmentSecretResolver{}, logger)
+	default:
+		err = fmt.Errorf("validated gateway transport mode is unavailable")
+	}
 	if err != nil {
 		pool.Close()
 		return nil, func() {}, err
