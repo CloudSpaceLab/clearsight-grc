@@ -37,7 +37,7 @@ func (s *Service) List(ctx context.Context, query Query) (Page, error) {
 		return Page{}, ErrInvalid
 	}
 	query = normalizeQuery(query)
-	if query.TenantID == "" || (query.From != nil && query.To != nil && query.From.After(*query.To)) {
+	if query.TenantID == "" || (query.From != nil && query.To != nil && query.From.After(*query.To)) || !validActorKind(query.ActorKind) {
 		return Page{}, ErrInvalid
 	}
 	page, err := s.repository.List(ctx, query)
@@ -76,6 +76,8 @@ func normalizeQuery(query Query) Query {
 	query.ObjectType = strings.ToUpper(strings.TrimSpace(query.ObjectType))
 	query.ObjectID = strings.TrimSpace(query.ObjectID)
 	query.ActorID = strings.TrimSpace(query.ActorID)
+	query.ActorQuery = strings.TrimSpace(query.ActorQuery)
+	query.ActorKind = strings.ToUpper(strings.TrimSpace(query.ActorKind))
 	query.LegalEntityID = strings.TrimSpace(query.LegalEntityID)
 	if query.Limit <= 0 {
 		query.Limit = defaultLimit
@@ -91,6 +93,15 @@ func normalizeQuery(query Query) Query {
 		query.To = &value
 	}
 	return query
+}
+
+func validActorKind(value string) bool {
+	switch value {
+	case "", ActorInternalUser, ActorExternalParticipant, ActorService, ActorSystem, ActorUnknown:
+		return true
+	default:
+		return false
+	}
 }
 
 func decorate(value *Event) {
