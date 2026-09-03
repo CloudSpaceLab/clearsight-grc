@@ -13,8 +13,8 @@ required=(
   migrations/000035_ai_governance_enforcement.down.sql
   migrations/000036_ai_governance_receipts_grants.up.sql
   migrations/000036_ai_governance_receipts_grants.down.sql
-  migrations/000072_ai_governance_baseline_attribution.up.sql
-  migrations/000072_ai_governance_baseline_attribution.down.sql
+  migrations/000076_ai_governance_baseline_attribution.up.sql
+  migrations/000076_ai_governance_baseline_attribution.down.sql
   docs/acceptance/t4-governed-ai-enforcement.md
   docs/acceptance/t5-ai-governance-receipts-approval.md
 )
@@ -25,7 +25,7 @@ done
 ai_governance_migrations=(
   migrations/000035_ai_governance_enforcement.up.sql
   migrations/000036_ai_governance_receipts_grants.up.sql
-  migrations/000072_ai_governance_baseline_attribution.up.sql
+  migrations/000076_ai_governance_baseline_attribution.up.sql
 )
 if grep -nE '(prompt|response_body|source_payload|provider_secret|authorization_header)' "${ai_governance_migrations[@]}"; then
   echo "AI governance durable schema contains prohibited raw-content or credential field names" >&2
