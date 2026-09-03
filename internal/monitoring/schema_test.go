@@ -86,7 +86,7 @@ func TestLegalEntityFormsMigrationPromotesWithoutRewritingHistoricalRows(t *test
 }
 
 func TestMonitoringMigrationIncludesCollectionRenewal(t *testing.T) {
-	content, err := os.ReadFile("../../migrations/000076_program_collection_renewal.up.sql")
+	content, err := os.ReadFile("../../migrations/000077_program_collection_renewal.up.sql")
 	if err != nil {
 		t.Fatalf("read collection renewal migration: %v", err)
 	}
