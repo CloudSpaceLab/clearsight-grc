@@ -19,7 +19,7 @@ func (r *PostgresRepository) StoreActivationSimulation(ctx context.Context, scop
 		return ActivationSimulation{}, err
 	}
 	_, err = r.pool.Exec(ctx, `INSERT INTO third_party_activation_policy_simulations(id,tenant_id,legal_entity_id,policy_id,policy_version,candidate_count,eligible_count,missing_gate_counts,population_is_complete,evaluated_by,evaluated_at,expires_at)
-		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5,$6,$7,$8,$9,$10::uuid,$11,$12)`,
+		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5,$6,$7,$8::jsonb,$9,$10::uuid,$11,$12)`,
 		value.ID, scope.TenantID, scope.LegalEntityID, value.PolicyID, value.PolicyVersion, value.CandidateCount, value.EligibleCount, missing, value.PopulationIsComplete, value.EvaluatedBy, value.EvaluatedAt, value.ExpiresAt)
 	if err != nil {
 		return ActivationSimulation{}, fmt.Errorf("store activation policy simulation: %w", err)
