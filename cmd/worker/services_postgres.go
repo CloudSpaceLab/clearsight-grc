@@ -14,6 +14,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reconciliation"
@@ -51,6 +52,9 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 		Inbox: runtimeRepository, Dependencies: continuityRepository,
 		Signals: autonomyService, Programs: continuityService,
 	}
+	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
+	monitoringRepository := monitoring.NewPostgresRepository(pool)
+	collectionSubmissions := &monitoring.CollectionConsumer{Inbox: runtimeRepository, Repository: monitoringRepository, Evidence: evidenceService}
 	workflowRepository := workflow.NewPostgresRepository(pool)
 	actionWork := &workflow.MatterActionProjector{Repo: workflowRepository}
 	lifecycleWork := &workflow.MatterLifecycleProjector{
@@ -63,7 +67,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	documentService := documentimport.NewService(documentimport.NewPostgresRepository(pool), store)
 	documentService.Configure(cfg.MaxArtifactBytes, cfg.DocumentImportAllowUnscannedAnalysis)
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
-	publisher := workflowruntime.NewCompositePublisher(sourceEventCheckpoint, sourceHealth, actionWork, lifecycleWork, escalationWork, documentService, coverageService, workflowruntime.LogPublisher{Logger: logger})
+	publisher := workflowruntime.NewCompositePublisher(sourceEventCheckpoint, sourceHealth, collectionSubmissions, actionWork, lifecycleWork, escalationWork, documentService, coverageService, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
 	// Matter events update immediately through the outbox publisher. This slower
@@ -79,7 +83,6 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	// projection without adding another event or worker stack.
 	service.ConfigureClass(evidenceWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 100})
 
-	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	service.AddMaintainerClass(matterWorkProjectionClass, lifecycleWork)

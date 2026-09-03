@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 const (
@@ -16,6 +17,34 @@ type CollectionPolicy struct {
 	ValidityMonths    int `json:"validity_months"`
 	RenewalWindowDays int `json:"renewal_window_days"`
 	ReminderCount     int `json:"reminder_count"`
+}
+
+// CollectionDates uses calendar-month validity and evenly spaces reminders
+// inside the renewal window. Month-end submissions clamp to the target month's
+// last valid day.
+func CollectionDates(submitted time.Time, policy CollectionPolicy) (time.Time, time.Time, []time.Time) {
+	normalized, err := normalizeCollectionPolicy(&policy)
+	if err != nil || submitted.IsZero() {
+		return time.Time{}, time.Time{}, nil
+	}
+	expires := addMonthsClamped(submitted.UTC(), normalized.ValidityMonths)
+	opens := expires.AddDate(0, 0, -normalized.RenewalWindowDays)
+	window := expires.Sub(opens)
+	reminders := make([]time.Time, normalized.ReminderCount)
+	for index := range reminders {
+		reminders[index] = opens.Add(window * time.Duration(index+1) / time.Duration(normalized.ReminderCount+1))
+	}
+	return expires, opens, reminders
+}
+
+func addMonthsClamped(value time.Time, months int) time.Time {
+	targetMonth := time.Date(value.Year(), value.Month(), 1, value.Hour(), value.Minute(), value.Second(), value.Nanosecond(), value.Location()).AddDate(0, months, 0)
+	lastDay := time.Date(targetMonth.Year(), targetMonth.Month()+1, 0, value.Hour(), value.Minute(), value.Second(), value.Nanosecond(), value.Location()).Day()
+	day := value.Day()
+	if day > lastDay {
+		day = lastDay
+	}
+	return time.Date(targetMonth.Year(), targetMonth.Month(), day, value.Hour(), value.Minute(), value.Second(), value.Nanosecond(), value.Location())
 }
 
 type UpdateCollectionPolicyInput struct {

@@ -182,15 +182,21 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 	if err != nil {
 		return evidence.Request{}, err
 	}
-	linked := false
+	var linked *MonitoringCheck
 	for _, check := range checks {
 		if check.Status == LifecycleActive && check.IsCurrent && check.InputKind == InputForm && check.FormTemplateID == form.ID && check.FormTemplateVersion == form.Version {
-			linked = true
-			break
+			if linked != nil {
+				return evidence.Request{}, errors.Join(ErrConflict, fmt.Errorf("more than one active collection check uses this form"))
+			}
+			candidate := check
+			linked = &candidate
 		}
 	}
-	if !linked {
+	if linked == nil || linked.CollectionPolicy == nil {
 		return evidence.Request{}, ErrInactive
+	}
+	if _, err := normalizeCollectionPolicy(linked.CollectionPolicy); err != nil {
+		return evidence.Request{}, err
 	}
 	fields := make([]evidence.Field, len(form.Fields))
 	for index, field := range form.Fields {
@@ -206,7 +212,8 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 		EstimatedMinutes: estimateMinutes(len(fields)), Deadline: input.Deadline.UTC(),
 		KnownFacts: map[string]string{"reviewer": input.ReviewerPrincipalID, "reporting_period_start": periodStart.Format(time.RFC3339), "reporting_period_end": periodEnd.Format(time.RFC3339)},
 		Fields:     fields, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
-		CollectionPeriodStart: &periodStart, CollectionPeriodEnd: &periodEnd, CreatedBy: actor.PrincipalID,
+		CollectionPeriodStart: &periodStart, CollectionPeriodEnd: &periodEnd,
+		Origin: &evidence.RequestOrigin{Type: evidence.OriginMonitoringCollection, ID: linked.ID, Sequence: 1}, CreatedBy: actor.PrincipalID,
 	})
 }
 

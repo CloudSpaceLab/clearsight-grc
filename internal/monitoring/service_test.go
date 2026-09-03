@@ -39,7 +39,7 @@ func (r *recordingRequestCreator) CreateRequest(_ context.Context, input evidenc
 		Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity,
 		AudienceType: input.AudienceType, EstimatedMinutes: input.EstimatedMinutes, Deadline: input.Deadline,
 		Fields: input.Fields, FormTemplateID: input.FormTemplateID, FormTemplateVersion: input.FormTemplateVersion,
-		CollectionPeriodStart: input.CollectionPeriodStart, CollectionPeriodEnd: input.CollectionPeriodEnd, Version: 1,
+		CollectionPeriodStart: input.CollectionPeriodStart, CollectionPeriodEnd: input.CollectionPeriodEnd, Origin: input.Origin, Version: 1,
 	}, nil
 }
 
@@ -90,7 +90,7 @@ func TestServiceStartsCollectionFromExactActiveForm(t *testing.T) {
 	}
 	check := MonitoringCheck{
 		ID: "check-1", TenantID: "bank-a", ProgramID: "program-1", Code: "PASSWORD-RESET-CHECK", Name: "Password reset review", Claim: "Password reset safeguards operated.",
-		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
+		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, CollectionPolicy: &CollectionPolicy{ValidityMonths: 12, RenewalWindowDays: 30, ReminderCount: 3}, Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
 		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 1},
 	}
 	if _, err := repo.CreateCheckRevision(context.Background(), check); err != nil {
@@ -111,6 +111,9 @@ func TestServiceStartsCollectionFromExactActiveForm(t *testing.T) {
 	}
 	if requests.input.KnownFacts["reviewer"] != "reviewer" {
 		t.Fatalf("reviewer fact missing: %#v", requests.input.KnownFacts)
+	}
+	if requests.input.Origin == nil || requests.input.Origin.Type != evidence.OriginMonitoringCollection || requests.input.Origin.ID != check.ID || requests.input.Origin.Sequence != 1 {
+		t.Fatalf("request origin = %#v", requests.input.Origin)
 	}
 }
 

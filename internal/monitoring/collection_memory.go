@@ -18,13 +18,10 @@ func (r *MemoryRepository) UpsertCollectionCycle(_ context.Context, value Collec
 	defer r.mu.Unlock()
 	for key, existing := range r.collectionCycles {
 		if existing.TenantID == validated.TenantID && existing.MonitoringCheckID == validated.MonitoringCheckID && existing.Sequence == validated.Sequence {
-			if existing.State == CycleClaimed {
+			if !sameCollectionSchedule(existing, validated) {
 				return CollectionCycle{}, ErrConflict
 			}
-			validated.ID = existing.ID
-			validated.CreatedAt = existing.CreatedAt
-			r.collectionCycles[key] = cloneValue(validated)
-			return cloneValue(validated), nil
+			return cloneValue(r.collectionCycles[key]), nil
 		}
 	}
 	key := collectionCycleKey(validated.TenantID, validated.ID)
@@ -33,6 +30,17 @@ func (r *MemoryRepository) UpsertCollectionCycle(_ context.Context, value Collec
 	}
 	r.collectionCycles[key] = cloneValue(validated)
 	return cloneValue(validated), nil
+}
+
+func (r *MemoryRepository) CollectionCycleForSequence(_ context.Context, tenant, checkID string, sequence int64) (CollectionCycle, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, value := range r.collectionCycles {
+		if value.TenantID == tenant && value.MonitoringCheckID == checkID && value.Sequence == sequence {
+			return cloneValue(value), nil
+		}
+	}
+	return CollectionCycle{}, ErrNotFound
 }
 
 func (r *MemoryRepository) CollectionCycle(_ context.Context, tenant, cycleID string) (CollectionCycle, error) {
@@ -166,6 +174,29 @@ func (r *MemoryRepository) CancelCollectionCyclesByCheck(_ context.Context, tena
 			continue
 		}
 		current.State = CycleCancelled
+		current.NextActionAt = nil
+		current.LeaseOwner = ""
+		current.LeaseToken = ""
+		current.LeaseUntil = nil
+		current.UpdatedAt = at.UTC()
+		r.collectionCycles[key] = cloneValue(current)
+		count++
+	}
+	return count, nil
+}
+
+func (r *MemoryRepository) CompleteCollectionCyclesBeforeSequence(_ context.Context, tenant, checkID string, sequence int64, at time.Time) (int, error) {
+	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(checkID) == "" || sequence < 1 || at.IsZero() {
+		return 0, ErrInvalid
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	count := 0
+	for key, current := range r.collectionCycles {
+		if current.TenantID != tenant || current.MonitoringCheckID != checkID || current.Sequence >= sequence || current.State == CycleComplete || current.State == CycleCancelled || current.State == CycleFailed {
+			continue
+		}
+		current.State = CycleComplete
 		current.NextActionAt = nil
 		current.LeaseOwner = ""
 		current.LeaseToken = ""
