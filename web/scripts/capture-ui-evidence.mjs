@@ -35,8 +35,8 @@ const captures = [
   { name: "84-matter-filters-dark-1440x900", route: "#work/matters?matter_type=REGULATORY_CHANGE&priority=4&due=DUE_7_DAYS", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "matter-portfolio-filters" },
   { name: "85-vendor-add-light-1440x900", route: "#vendors", title: "Vendors", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-add-website-address", openVendorSetup: true },
   { name: "86-vendor-form-readiness-light-1440x900", route: "#vendors", title: "Vendors", fixture: "vendor-no-form", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-form-readiness", openFormReadiness: true },
-  { name: "87-vendor-link-sheet-light-1440x900", route: "#programs/program-ndpa", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-link-focused-sheet", openVendorLink: true },
-  { name: "88-vendor-link-sheet-dark-mobile-390x844", route: "#programs/program-ndpa", title: "Programs", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "vendor-link-focused-sheet-mobile", openVendorLink: true },
+  { name: "87-vendor-link-sheet-light-1440x900", route: "#programs/program-ndpa/issues-actions", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-link-focused-sheet", openVendorLink: true },
+  { name: "88-vendor-link-sheet-dark-mobile-390x844", route: "#programs/program-ndpa/issues-actions", title: "Programs", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "vendor-link-focused-sheet-mobile", openVendorLink: true },
   { name: "89-matter-action-reassignment-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-action-reassignment", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "matter-action-reassignment", openActionReassignment: true },
   { name: "129-oversight-completeness-light-1440x900", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "oversight-completeness" },
   { name: "130-oversight-completeness-dark-mobile-390x844", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "oversight-completeness-mobile" },
@@ -486,7 +486,7 @@ async function captureVendorWorkflows() {
 }
 
 async function captureVendorLinkedWorkflows() {
-  await captureVendorTargetEntry({ name: "46-vendor-work-program-entry-light-1440x900", route: "#programs/program-ndpa", title: "Programs", fixture: "vendor-work-empty", state: "vendor-work-program-entry", theme: "light", viewport: { width: 1440, height: 900 } });
+  await captureVendorTargetEntry({ name: "46-vendor-work-program-entry-light-1440x900", route: "#programs/program-ndpa/issues-actions", title: "Programs", fixture: "vendor-work-empty", state: "vendor-work-program-entry", theme: "light", viewport: { width: 1440, height: 900 } });
   await captureVendorTargetEntry({ name: "47-vendor-work-matter-entry-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "vendor-work-empty", state: "vendor-work-matter-entry", theme: "dark", viewport: { width: 1440, height: 900 } });
   await captureVendorWorkCreation();
   await captureVendorWorkCreationMobile();
@@ -561,7 +561,7 @@ async function assertSharedSelectOptions(page, label, expected) {
 }
 
 async function captureVendorWorkCreation() {
-  const capture = { name: "48-vendor-work-create-light-1440x900", route: "#programs/program-ndpa", title: "Programs", fixture: "vendor-work-empty", state: "vendor-work-create-layouts-and-typed-fields", theme: "light", viewport: { width: 1440, height: 900 }, density: "comfortable" };
+  const capture = { name: "48-vendor-work-create-light-1440x900", route: "#programs/program-ndpa/issues-actions", title: "Programs", fixture: "vendor-work-empty", state: "vendor-work-create-layouts-and-typed-fields", theme: "light", viewport: { width: 1440, height: 900 }, density: "comfortable" };
   const { context, page } = await openVendorWorkTarget(capture);
   try {
     await fillVendorWorkCreation(page, "AUTOMATIC");
@@ -590,7 +590,7 @@ async function captureVendorWorkCreationMobile() {
 }
 
 async function captureVendorWorkDeliveryRecovery() {
-  const capture = { name: "50-vendor-work-delivery-partial-light-1440x900", route: "#programs/program-ndpa", title: "Programs", fixture: "vendor-work-partial-delivery", state: "vendor-work-delivery-partial", theme: "light", viewport: { width: 1440, height: 900 }, density: "comfortable" };
+  const capture = { name: "50-vendor-work-delivery-partial-light-1440x900", route: "#programs/program-ndpa/issues-actions", title: "Programs", fixture: "vendor-work-partial-delivery", state: "vendor-work-delivery-partial", theme: "light", viewport: { width: 1440, height: 900 }, density: "comfortable" };
   const { context, page } = await openVendorWorkTarget(capture);
   try {
     const retry = page.getByRole("button", { name: "Retry delivery" });

@@ -1,6 +1,6 @@
 # Program collection renewal and tabs issue log
 
-**Status:** In review
+**Status:** In review — production external delivery remains a release dependency
 
 **Opened:** 2026-09-03
 
@@ -13,7 +13,7 @@
 | ID | Work item | Status | Depends on | Acceptance evidence |
 | --- | --- | --- | --- | --- |
 | PCR-01 | Versioned form collection-policy contract | Complete | Approved written spec | `df8201a1`; policy tests cover required expiry, 30-day/3-reminder defaults, ranges, form/source separation and governed revision behavior |
-| PCR-02 | Durable schema, lineage and bounded indexes | Complete | PCR-01 | `c906fa93`, `40c35e7b`; schema/repository tests cover policy/cycle persistence, tenant-scoped origin uniqueness, leases and bounded reads |
+| PCR-02 | Durable schema, lineage and bounded indexes | Complete | PCR-01 | `c906fa93`, `40c35e7b`, `15220bd8`; schema/repository tests cover policy/cycle persistence, shared capture-origin reuse, tenant-scoped origin uniqueness, leases and bounded reads |
 | PCR-03 | Submission-driven collection-cycle lifecycle | Complete | PCR-01, PCR-02 | `f26e0238`; consumer tests cover inbox replay, expiry/month-end calculation, one current cycle and safe event handling |
 | PCR-04 | Attributed renewal prefill | Complete | PCR-02, PCR-03 | `55e2e874`, `85902b60`; service/browser tests cover scalar provenance, governed-source priority and file/signature exclusion |
 | PCR-05 | Leased renewal worker | Complete | PCR-02, PCR-03, PCR-04 | `faad72f6`; worker tests cover origin reuse, lease fencing, retries, stop conditions and internal assignment receipt |
@@ -21,7 +21,7 @@
 | PCR-07 | Program collection-summary read model and API | Complete | PCR-02, PCR-03 | `ab5741aa`; actor-scoped API tests cover latest submission, safe respondent label, expiry, reminder progress, delivery and freshness |
 | PCR-08 | Accessible tabbed Program workspace | Complete | Written UI brief | `40471f91`; Vitest/axe plus rendered evidence cover six sections, one panel, URL state, keyboard tabs and selector replacement |
 | PCR-09 | Unified Monitoring collection experience | Complete | PCR-01, PCR-07, PCR-08 | `b0338914`, `17250882`; workflow tests/fixtures cover schedule setup, unified records, last submission and all currency states |
-| PCR-10 | Full acceptance, copy, documentation and recovery proof | Complete | PCR-01…PCR-09 | `17250882`; full Go, vet, 150 frontend tests, type/build/copy and 51/51 rendered states pass; live PostgreSQL cases explicitly skipped without `TEST_DATABASE_URL` |
+| PCR-10 | Full acceptance, copy, documentation and recovery proof | Complete | PCR-01…PCR-09 | `17250882`, `15220bd8`, `6fe5abef`; full Go, vet, 921 frontend tests, type/build/copy and 138/138 rendered states pass; live PostgreSQL cases explicitly skipped without `TEST_DATABASE_URL` |
 
 Status values are `Planning`, `Ready for planning`, `In progress`, `Blocked`, `In review` and `Complete`. An item becomes complete only when its listed acceptance evidence has been run on the final change and recorded below.
 
@@ -241,6 +241,9 @@ Add only the provider-neutral resolver/delivery interface needed by this workflo
 | 2026-09-03 | Implemented unified collection records, expiry/reminder/last-respondent display, six URL-addressable Program sections and attributed previous-response capture in `b0338914`, `40471f91` and `85902b60`. |
 | 2026-09-03 | Added deterministic sample states and 51-state rendered acceptance in `17250882`. The first render review found low-contrast light-theme state colors; semantic theme tokens were applied and the full render gate passed. |
 | 2026-09-03 | Final verification passed all memory/PostgreSQL-build Go packages, `go vet ./...`, 33 frontend files/150 tests, typecheck, normal/static builds and the 51-state UI review. PostgreSQL integration-tag packages passed, with live-database cases explicitly skipped because `TEST_DATABASE_URL` was absent. |
+| 2026-09-03 | Replayed the feature onto the updated `main` line, consolidated its schema into migration `000076_program_collection_renewal`, and reused the existing text-based capture origin/version contract in `15220bd8`. |
+| 2026-09-03 | Updated exact-target and rendered-evidence automation to navigate the intentional **Issues & actions** Program section. No product composition was moved back to the default Overview section. |
+| 2026-09-03 | Post-integration verification passed 144 frontend files/921 tests and the complete 138-state managed UI review. Direct inspection covered desktop current, dark blocked, 390px selector, 320px long-content and 200% reflow states. |
 
 ## Verification log
 
@@ -252,5 +255,5 @@ Add only the provider-neutral resolver/delivery interface needed by this workflo
 - Rendered UI: `npm run review:ui` — PASS, 51/51 flow records and screenshots, 8 accessibility route states, no browser errors or horizontal overflow, 133 KiB JavaScript gzip and 21 KiB CSS gzip.
 - External delivery: BLOCKED for production acceptance. Deterministic internal/failure adapters were exercised; no real provider adapter or receipt was available.
 - Final backend: `go test ./... -count=1`, `go test -tags postgres ./... -count=1`, `go test -tags "postgres postgresintegration" ./... -count=1` and `go vet ./...` — PASS. Live PostgreSQL tests reported `TEST_DATABASE_URL is not configured` and were SKIPPED.
-- Final frontend: `npm test` — PASS, 33 files and 150 tests; `npm run typecheck` — PASS; normal and static `npm run build` — PASS.
-- Final rendered acceptance: `npm run review:ui` — PASS, 51/51 flow records, 51/51 screenshots, 8 accessibility route states and bundle budgets.
+- Post-integration frontend: `npm test` — PASS, 144 files and 921 tests; `npm run typecheck`, `npm run build`, `npm run check:runtime-truth` and `npm run check:ui-contracts` — PASS. The copy-quality regression is included in the full test run.
+- Post-integration rendered acceptance: `npm run review:ui` — PASS, 138/138 flow records, 138/138 screenshots, 72/72 governed Forms capabilities, 8 accessibility/touch route states and bundle budgets. Direct PNG inspection confirmed current/renewal/expired/awaiting/blocked collection states, last-submission attribution, mobile selector replacement and long-content reflow.
