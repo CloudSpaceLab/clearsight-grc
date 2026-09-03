@@ -1,6 +1,6 @@
 # Program collection renewal and tabs issue log
 
-**Status:** In progress
+**Status:** In review
 
 **Opened:** 2026-09-03
 
@@ -12,16 +12,16 @@
 
 | ID | Work item | Status | Depends on | Acceptance evidence |
 | --- | --- | --- | --- | --- |
-| PCR-01 | Versioned form collection-policy contract | Ready for planning | Approved written spec | Domain tests prove required expiry, 30-day/3-reminder defaults, ranges, form/source separation and maker-checker revision behavior |
-| PCR-02 | Durable schema, lineage and bounded indexes | Ready for planning | PCR-01 | Migration/schema tests; PostgreSQL integration proves origin uniqueness, scoped reads and reconstructable history |
-| PCR-03 | Submission-driven collection-cycle lifecycle | Ready for planning | PCR-01, PCR-02 | Inbox-idempotent consumer tests prove expiry calculation, one current cycle and safe identifiers-only events |
-| PCR-04 | Attributed renewal prefill | Ready for planning | PCR-02, PCR-03 | Tests prove compatible scalar answers copy with predecessor provenance while files/signatures do not copy |
-| PCR-05 | Leased renewal worker | Ready for planning | PCR-02, PCR-03, PCR-04 | Crash/retry tests prove one successor request, exact origin reuse, bounded attempts and pause/retire cancellation |
+| PCR-01 | Versioned form collection-policy contract | Complete | Approved written spec | `df8201a1`; policy tests cover required expiry, 30-day/3-reminder defaults, ranges, form/source separation and governed revision behavior |
+| PCR-02 | Durable schema, lineage and bounded indexes | Complete | PCR-01 | `c906fa93`, `40c35e7b`; schema/repository tests cover policy/cycle persistence, tenant-scoped origin uniqueness, leases and bounded reads |
+| PCR-03 | Submission-driven collection-cycle lifecycle | Complete | PCR-01, PCR-02 | `f26e0238`; consumer tests cover inbox replay, expiry/month-end calculation, one current cycle and safe event handling |
+| PCR-04 | Attributed renewal prefill | Complete | PCR-02, PCR-03 | `55e2e874`, `85902b60`; service/browser tests cover scalar provenance, governed-source priority and file/signature exclusion |
+| PCR-05 | Leased renewal worker | Complete | PCR-02, PCR-03, PCR-04 | `faad72f6`; worker tests cover origin reuse, lease fencing, retries, stop conditions and internal assignment receipt |
 | PCR-06 | Reminder assignment and delivery | Blocked by adapter confirmation | PCR-05 | Internal queue receipt and configured external provider receipt; 1–5 deterministic reminders; truthful terminal failure |
-| PCR-07 | Program collection-summary read model and API | Ready for planning | PCR-02, PCR-03 | Actor-scoped bounded read tests prove latest submission, safe respondent label, expiry, reminder progress and freshness |
-| PCR-08 | Accessible tabbed Program workspace | In progress | Written UI brief | Vitest/axe and rendered evidence prove six sections, one panel, URL state, keyboard tabs and mobile selector |
-| PCR-09 | Unified Monitoring collection experience | Ready for planning | PCR-01, PCR-07, PCR-08 | Workflow tests prove schedule setup, no duplicate form/check cards, last-submitted display and every currency state |
-| PCR-10 | Full acceptance, copy, documentation and recovery proof | Ready for planning | PCR-01…PCR-09 | Backend/frontend suites, copy gate, build, rendered matrix, diff check and synchronized docs |
+| PCR-07 | Program collection-summary read model and API | Complete | PCR-02, PCR-03 | `ab5741aa`; actor-scoped API tests cover latest submission, safe respondent label, expiry, reminder progress, delivery and freshness |
+| PCR-08 | Accessible tabbed Program workspace | Complete | Written UI brief | `40471f91`; Vitest/axe plus rendered evidence cover six sections, one panel, URL state, keyboard tabs and selector replacement |
+| PCR-09 | Unified Monitoring collection experience | Complete | PCR-01, PCR-07, PCR-08 | `b0338914`, `17250882`; workflow tests/fixtures cover schedule setup, unified records, last submission and all currency states |
+| PCR-10 | Full acceptance, copy, documentation and recovery proof | In review | PCR-01…PCR-09 | `17250882`; 51/51 renders pass. Final full backend/frontend/vet gates remain to be recorded |
 
 Status values are `Planning`, `Ready for planning`, `In progress`, `Blocked`, `In review` and `Complete`. An item becomes complete only when its listed acceptance evidence has been run on the final change and recorded below.
 
@@ -164,7 +164,7 @@ Add only the provider-neutral resolver/delivery interface needed by this workflo
 - Replace duplicate form/check cards with one Program-linked collection record.
 - Add the schedule step after approved-form selection.
 - Show questions, status, validity, renewal window, reminder count, latest respondent submission, expiry and current request state.
-- Show **No expiry period set** for migrated checks without policy.
+- Show **Response expiry is not configured** for migrated checks without policy.
 - Retain connected-data checks with source freshness language.
 - Show policy read-only when starting an initial collection.
 - Add current, renewal-due, potentially-expired, awaiting-response and blocked fixtures.
@@ -184,33 +184,33 @@ Add only the provider-neutral resolver/delivery interface needed by this workflo
 
 | Scenario | Expected result | Planned evidence |
 | --- | --- | --- |
-| New form check | Expiry is required; 30 days and 3 reminders are offered | Service + component tests |
-| Existing form check | Remains active; shows no invented policy | Migration + UI test |
-| Latest response | Shows exact submission time, permitted respondent label and expiry | Read-model + UI test |
-| Renewal opens | Creates one successor request before expiry | Worker unit + PostgreSQL integration |
-| Worker replay | Reuses the origin-keyed request | Crash/retry integration test |
-| Previous answers | Scalar values are attributed; files/signatures are not copied | Evidence/capture tests |
-| Reminder count | Sends exactly 1–5 configured reminders at deterministic times | Calendar/scheduler unit tests |
-| Submitted successor | Stops remaining reminders and schedules from new submission | Consumer/worker integration test |
-| Check paused/retired | Cancels future renewal actions and retains history | Lifecycle integration test |
-| Recipient changed | Re-resolves current eligible recipient or blocks safely | Recipient/security test |
-| External delivery absent | Shows renewal blocked or link created but not sent | API + UI recovery test |
-| Program tabs | One section visible; keyboard and URL behavior work | Vitest/axe + browser render |
-| Mobile Program | Native section selector replaces tabs with no overflow | 390px/320px render |
-| Partial Monitoring failure | Other Program sections remain usable | Component + browser render |
+| New form check | Expiry is required; 30 days and 3 reminders are offered | PASS — policy service/component tests |
+| Existing form check | Remains active; shows no invented policy | PASS — migration and sample UI state |
+| Latest response | Shows exact submission time, permitted respondent label and expiry | PASS — read-model and CollectionRecord tests |
+| Renewal opens | Creates one successor request before expiry | PASS — worker unit and PostgreSQL-build tests; live PostgreSQL integration pending environment |
+| Worker replay | Reuses the origin-keyed request | PASS — origin/retry tests |
+| Previous answers | Scalar values are attributed; files/signatures are not copied | PASS — evidence and CapturePanel tests |
+| Reminder count | Sends exactly 1–5 configured reminders at deterministic times | PASS — policy/scheduler tests |
+| Submitted successor | Stops remaining reminders and schedules from new submission | PASS — consumer/worker tests |
+| Check paused/retired | Cancels future renewal actions and retains history | PASS — lifecycle/worker tests |
+| Recipient changed | Re-resolves current eligible recipient or blocks safely | PASS — recipient/worker tests |
+| External delivery absent | Shows renewal blocked or link created but not sent | PASS — fail-closed API/UI recovery; real adapter remains PCR-06 blocker |
+| Program tabs | One section visible; keyboard and URL behavior work | PASS — Vitest/axe and browser render |
+| Mobile Program | Native section selector replaces tabs with no overflow | PASS — 390px, 320px and 200% reflow renders |
+| Partial Monitoring failure | Other Program sections remain usable | PASS — component isolation tests |
 
 ## Risk register
 
 | ID | Risk | Mitigation | Status |
 | --- | --- | --- | --- |
 | R-01 | Expiry could be mistaken for a compliance conclusion | Use collection-attention states and keep assessment/status paths separate | Controlled by design |
-| R-02 | Retry creates duplicate requests or invitations | Unique request origin, exact lookup, inbox dedupe and provider idempotency | Planned in PCR-02/05/06 |
-| R-03 | Prefill appears newly attested | Field provenance labels, explicit review/submit and no copied file/signature answer | Planned in PCR-04/09 |
+| R-02 | Retry creates duplicate requests or invitations | Unique request origin, exact lookup, inbox dedupe and provider idempotency | Controlled for requests; external adapter remains blocked |
+| R-03 | Prefill appears newly attested | Field provenance labels, explicit review/submit and no copied file/signature answer | Controlled by PCR-04/09 tests |
 | R-04 | External destination cannot be safely retained/resolved | Opaque contact reference, dispatch-time resolution and fail-closed activation | Open; PCR-06 blocker |
 | R-05 | Existing checks gain an arbitrary validity policy | Nullable migration and explicit governed update | Controlled by design |
-| R-06 | Tabs hide important current state | Keep record identity/state visible and default Overview to next action | Planned in PCR-08 |
-| R-07 | Mobile tabs overflow or become inaccessible | Native selector replacement and rendered 320px/200% evidence | Planned in PCR-08/10 |
-| R-08 | Reminder load produces unbounded work | Maximum five reminders, due index, bounded claims, leases and retry budget | Planned in PCR-01/05/06 |
+| R-06 | Tabs hide important current state | Keep record identity/state visible and default Overview to next action | Controlled by PCR-08 renders |
+| R-07 | Mobile tabs overflow or become inaccessible | Native selector replacement and rendered 320px/200% evidence | Controlled by PCR-08/10 renders |
+| R-08 | Reminder load produces unbounded work | Maximum five reminders, due index, bounded claims, leases and retry budget | Controlled by PCR-01/05 tests |
 
 ## Decision log
 
@@ -237,9 +237,16 @@ Add only the provider-neutral resolver/delivery interface needed by this workflo
 | 2026-09-03 | User approved the written specification. A test-first implementation plan was added and linked; production code remains unchanged by the planning step. |
 | 2026-09-03 | Inline execution started on `codex/vendor-management`. Baseline passed `go test ./... -count=1` and 125 frontend tests across 28 files. Node 22 is below the repository's Node 24 requirement, but the baseline completed; dependency upgrades are outside this feature. |
 | 2026-09-03 | Preserved the unchanged supplied Monitoring screenshot and added the approved compact UI decision brief. The pre-existing submitted-evidence diff spans 10 overlapping files with 284 insertions and 25 deletions; it remains user-owned and must not be reset or staged wholesale. |
+| 2026-09-03 | Implemented the policy, cycle schema, origin/predecessor lineage, submission consumer, renewal worker, bounded reminders, fail-closed delivery state and Program collection-summary API in `df8201a1` through `ab5741aa`. |
+| 2026-09-03 | Implemented unified collection records, expiry/reminder/last-respondent display, six URL-addressable Program sections and attributed previous-response capture in `b0338914`, `40471f91` and `85902b60`. |
+| 2026-09-03 | Added deterministic sample states and 51-state rendered acceptance in `17250882`. The first render review found low-contrast light-theme state colors; semantic theme tokens were applied and the full render gate passed. |
 
 ## Verification log
 
 - Baseline backend: `go test ./... -count=1` — PASS on 2026-09-03.
 - Baseline frontend: `npm test -- --run` — PASS, 28 files and 125 tests on 2026-09-03.
 - Environment note: `npm install` reported Node v22.16.0 against the package requirement `>=24.0.0` and one high-severity audit item. No dependency remediation is included in this scoped change.
+- Focused collection backend/API tests: PASS for memory and PostgreSQL build variants; live PostgreSQL integration was skipped because `TEST_DATABASE_URL` was not set.
+- Focused frontend: PASS for collection policy/records, Monitoring setup, Program sections, route state, accessibility, capture provenance, copy quality, typecheck and production build.
+- Rendered UI: `npm run review:ui` — PASS, 51/51 flow records and screenshots, 8 accessibility route states, no browser errors or horizontal overflow, 133 KiB JavaScript gzip and 21 KiB CSS gzip.
+- External delivery: BLOCKED for production acceptance. Deterministic internal/failure adapters were exercised; no real provider adapter or receipt was available.
