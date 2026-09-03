@@ -85,6 +85,8 @@ The route's recorded expiry is the authoritative time limit. Opening an unexpire
 
 Direct magic-link access proves link possession only. Direct and shared email-OTP policies prove control of the configured recipient mailbox before creating an email-verified session. Enterprise identity federation is not implemented in this flow and must not be implied by the interface.
 
+Vendor assessment and vendor-work links use this same route boundary. A vendor-work initial request or requested change is created as one exact form distribution using direct email OTP. The work record stores only the route identifier as delivery proof; it never calls the retired `capture_invitations` issuer. Retrying, cancelling or replacing the recipient revokes every active route and session for the exact request before a replacement route is delivered.
+
 ## Artifact path
 
 ```text

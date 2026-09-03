@@ -95,3 +95,36 @@ func TestCurrentVendorWorkRequestKindsExcludeInternalAddressVerification(t *test
 		t.Fatal("historical address work must allow only its governed terminal cancellation")
 	}
 }
+
+func TestVendorWorkCanonicalAccessRouteMigrationRemovesLegacyInvitationProof(t *testing.T) {
+	up, err := os.ReadFile("../../migrations/000074_vendor_work_canonical_access_routes.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := string(up)
+	for _, required := range []string{
+		"BEGIN;", "COMMIT;",
+		"third_party_work_requests_access_route_fk",
+		"third_party_work_capture_links_access_route_fk",
+		"REFERENCES capture_access_routes(id,tenant_id)",
+		"UPDATE third_party_work_requests SET current_invitation_id=NULL",
+		"UPDATE third_party_work_capture_links SET invitation_id=NULL",
+	} {
+		if !strings.Contains(schema, required) {
+			t.Fatalf("canonical vendor-work route migration missing %q", required)
+		}
+	}
+}
+
+func TestVendorWorkRuntimeCannotCallLegacyInvitationIssuer(t *testing.T) {
+	raw, err := os.ReadFile("vendor_work.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(raw)
+	for _, retired := range []string{"IssueInvitation(", "RedeemInvitation(", "capture_invitations"} {
+		if strings.Contains(source, retired) {
+			t.Fatalf("vendor-work runtime retained legacy invitation path %q", retired)
+		}
+	}
+}

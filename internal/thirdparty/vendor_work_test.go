@@ -19,10 +19,37 @@ type vendorWorkFixture struct {
 	links      *MemoryRelationshipLinkRepository
 	forms      *monitoring.MemoryRepository
 	evidence   *evidence.Service
+	access     *evidence.DistributionAccessService
+	dispatcher *evidence.WorkflowDistributionDispatcher
+	otp        *vendorWorkOTPDelivery
 	link       RelationshipLink
 	actor      Actor
 	audience   string
 	now        time.Time
+}
+
+type vendorWorkOTPDelivery struct {
+	values []evidence.DistributionOTPDelivery
+}
+
+func (delivery *vendorWorkOTPDelivery) DeliverDistributionOTP(_ context.Context, value evidence.DistributionOTPDelivery) error {
+	delivery.values = append(delivery.values, value)
+	return nil
+}
+
+type vendorWorkDistributionFormReader struct{ forms *monitoring.MemoryRepository }
+
+func (reader vendorWorkDistributionFormReader) GetDistributionFormRevision(ctx context.Context, tenantID, legalEntityID, formID string, version int64) (evidence.DistributionFormRevision, error) {
+	form, err := reader.forms.ReusableFormRevision(ctx, tenantID, legalEntityID, formID, version)
+	if err != nil {
+		return evidence.DistributionFormRevision{}, err
+	}
+	return evidence.DistributionFormRevision{
+		ID: form.ID, TenantID: form.TenantID, LegalEntityID: form.LegalEntityID, Version: form.Version,
+		Sensitivity: form.Sensitivity, Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile,
+		Sections: append([]formcontract.Section(nil), form.Sections...), Fields: append([]formcontract.Field(nil), form.Fields...),
+		Active: form.Status == monitoring.LifecycleActive && form.IsCurrent,
+	}, nil
 }
 
 type vendorWorkEvidenceRepository struct {
@@ -38,7 +65,7 @@ func (r *vendorWorkEvidenceRepository) ResolveSubjectScope(_ context.Context, te
 
 func newVendorWorkFixture(t *testing.T) vendorWorkFixture {
 	t.Helper()
-	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	now := time.Now().UTC().Truncate(time.Second)
 	actor := Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "owner-1"}
 	links := NewMemoryRelationshipLinkRepository()
 	links.AllowRelationship(actor.TenantID, actor.LegalEntityID, "relationship-1")
@@ -55,6 +82,7 @@ func newVendorWorkFixture(t *testing.T) vendorWorkFixture {
 	forms := monitoring.NewMemoryRepository()
 	_, err = forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{
 		ID: "form-1", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "VENDOR-CONTROL", Name: "Quarterly service confirmation", Purpose: "Confirm current service and control information.",
+		Sensitivity:  "CONFIDENTIAL",
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
 		Sections:     []formcontract.Section{{ID: "service", Title: "Service"}},
 		Fields:       []monitoring.TemplateField{{ID: "service_current", SectionID: "service", Label: "Is the service information current?", Type: formcontract.TypeYesNo, Required: true}},
@@ -65,12 +93,31 @@ func newVendorWorkFixture(t *testing.T) vendorWorkFixture {
 	}
 	evidenceRepository := &vendorWorkEvidenceRepository{MemoryRepository: evidence.NewMemoryRepository(nil, nil)}
 	evidenceService := evidence.NewServiceWithClock(evidenceRepository, evidence.NewMemoryObjectStore(), func() time.Time { return now })
+	var recipientKey [32]byte
+	var accessKey [32]byte
+	for index := range recipientKey {
+		recipientKey[index], accessKey[index] = 0x31, 0x42
+	}
+	keyring, err := evidence.NewRecipientKeyring("recipient-v1", map[string][32]byte{"recipient-v1": recipientKey})
+	if err != nil {
+		t.Fatal(err)
+	}
+	distributionStore := evidence.NewMemoryDistributionStore(evidenceRepository.MemoryRepository, vendorWorkDistributionFormReader{forms: forms}, keyring)
+	distributions := evidence.NewDistributionService(distributionStore)
+	accessStore := evidence.NewMemoryDistributionAccessStore(distributionStore)
+	otp := &vendorWorkOTPDelivery{}
+	access, err := evidence.NewDistributionAccessService(accessStore, keyring, otp, accessKey, 20*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dispatcher := evidence.NewWorkflowDistributionDispatcher(distributions, access)
 	repository := NewMemoryVendorWorkRepository()
 	service, err := NewVendorWorkService(repository, links, evidenceService, forms, nil, "https://capture.example.test/respond", "production")
 	if err != nil {
 		t.Fatal(err)
 	}
 	service.now = func() time.Time { return now }
+	service.ConfigureDistributionDispatcher(dispatcher)
 	relationships := NewMemoryRepository()
 	_, err = relationships.CreateRelationship(context.Background(), CreateRecord{
 		Vendor:       Vendor{ID: "vendor-1", TenantID: "bank", LegalName: "Northstar Hosting Limited", Status: VendorActive, Version: 1, CreatedAt: now, UpdatedAt: now},
@@ -86,7 +133,7 @@ func newVendorWorkFixture(t *testing.T) vendorWorkFixture {
 		ids = ids[1:]
 		return value, nil
 	}
-	return vendorWorkFixture{service: service, repository: repository, links: links, forms: forms, evidence: evidenceService, link: link, actor: actor, audience: "security@vendor.example", now: now}
+	return vendorWorkFixture{service: service, repository: repository, links: links, forms: forms, evidence: evidenceService, access: access, dispatcher: dispatcher, otp: otp, link: link, actor: actor, audience: "security@vendor.example", now: now}
 }
 
 func TestCertificationRefreshRequiresActiveRelationship(t *testing.T) {
@@ -120,6 +167,7 @@ func addVendorWorkForm(t *testing.T, fixture vendorWorkFixture, id, code string,
 	}
 	_, err := fixture.forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{
 		ID: id, TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Code: code, Name: code, Purpose: "Collect the evidence required for this vendor request.",
+		Sensitivity:  "CONFIDENTIAL",
 		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
 		Sections:     sections, Fields: fields,
 		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 1},
@@ -157,29 +205,22 @@ func TestVendorWorkLifecyclePreservesCaptureAndReviewBoundaries(t *testing.T) {
 	if sent.Work.State != VendorWorkAwaitingVendor || sent.Work.CurrentInvitationID == "" || sent.CaptureURL == "" || sent.State != VendorWorkDeliveryLinkAvailable {
 		t.Fatalf("sent outcome = %#v", sent)
 	}
-	token := vendorWorkCaptureToken(t, sent.CaptureURL)
-	session, err := fixture.evidence.RedeemInvitation(context.Background(), token, fixture.audience)
-	if err != nil {
-		t.Fatal(err)
-	}
-	receipt, err := fixture.evidence.SubmitSession(context.Background(), session.SessionToken, map[string]formcontract.AnswerValue{"service_current": formcontract.TextAnswer("Yes")}, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	session := redeemVendorWorkAccess(t, fixture, sent.CaptureURL)
+	result := submitVendorWorkAnswers(t, fixture, session.SessionToken, map[string]formcontract.AnswerValue{"service_current": formcontract.TextAnswer("Yes")})
 	received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{
-		TenantID: "bank", WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: receipt.SubmissionID, CausationID: "event-1",
+		TenantID: "bank", WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: result.Submission.SubmissionID, CausationID: "event-1",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if received.State != VendorWorkResponseReceived || received.SubmissionID != receipt.SubmissionID {
+	if received.State != VendorWorkResponseReceived || received.SubmissionID != result.Submission.SubmissionID {
 		t.Fatalf("received work = %#v", received)
 	}
 	view, err := fixture.service.Response(context.Background(), fixture.actor, received.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if view.Response.SubmissionID != receipt.SubmissionID || len(view.Answers) != 1 || view.Answers[0].Value == nil {
+	if view.Response.SubmissionID != result.Submission.SubmissionID || len(view.Answers) != 1 || view.Answers[0].Value == nil {
 		t.Fatalf("response view = %#v", view)
 	}
 	if answer, ok := view.Answers[0].Value.ScalarText(); !ok || answer != "Yes" {
@@ -208,17 +249,10 @@ func TestVendorWorkLifecyclePreservesCaptureAndReviewBoundaries(t *testing.T) {
 		t.Fatalf("changes outcome = %#v", changes)
 	}
 
-	clarificationToken := vendorWorkCaptureToken(t, changes.CaptureURL)
-	clarificationSession, err := fixture.evidence.RedeemInvitation(context.Background(), clarificationToken, fixture.audience)
-	if err != nil {
-		t.Fatal(err)
-	}
-	clarificationReceipt, err := fixture.evidence.SubmitSession(context.Background(), clarificationSession.SessionToken, map[string]formcontract.AnswerValue{"service_current": formcontract.TextAnswer("No")}, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	clarificationSession := redeemVendorWorkAccess(t, fixture, changes.CaptureURL)
+	clarificationResult := submitVendorWorkAnswers(t, fixture, clarificationSession.SessionToken, map[string]formcontract.AnswerValue{"service_current": formcontract.TextAnswer("No")})
 	received, err = fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{
-		TenantID: "bank", WorkRequestID: prepared.ID, RequestID: changes.Work.CurrentRequestID, SubmissionID: clarificationReceipt.SubmissionID, CausationID: "event-2",
+		TenantID: "bank", WorkRequestID: prepared.ID, RequestID: changes.Work.CurrentRequestID, SubmissionID: clarificationResult.Submission.SubmissionID, CausationID: "event-2",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -238,6 +272,39 @@ func TestVendorWorkLifecyclePreservesCaptureAndReviewBoundaries(t *testing.T) {
 	page, err := fixture.service.List(context.Background(), fixture.actor, VendorWorkListInput{RelationshipID: "relationship-1", TargetType: LinkTargetProgram, TargetID: "program-1", Limit: 10})
 	if err != nil || len(page.Items) != 1 || page.Items[0].ID != accepted.ID {
 		t.Fatalf("work page=%#v err=%v", page, err)
+	}
+}
+
+func TestVendorWorkCanonicalOTPLinkReopensUntilExpiryAndSubmitsAfterAutosave(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID,
+		Purpose: "Confirm the service information needed for the Program review.", Instructions: "Review the known service details and correct anything that changed.",
+		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sent, err := fixture.service.Send(context.Background(), fixture.actor, prepared.ID, SendVendorWorkInput{
+		ExpectedVersion: prepared.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	selector := vendorWorkCaptureToken(t, sent.CaptureURL)
+	first := redeemVendorWorkAccess(t, fixture, sent.CaptureURL)
+	if _, err := fixture.access.StartDistributionAccess(context.Background(), selector); err != nil {
+		t.Fatalf("unexpired vendor-work selector could not be reopened: %v", err)
+	}
+	second := redeemVendorWorkAccess(t, fixture, sent.CaptureURL)
+	if first.SessionID == second.SessionID || first.SessionToken == second.SessionToken {
+		t.Fatal("reopening the vendor-work link reused the prior bounded session")
+	}
+	result := submitVendorWorkAnswers(t, fixture, second.SessionToken, map[string]formcontract.AnswerValue{
+		"service_current": formcontract.TextAnswer("Yes"),
+	})
+	if result.Submission.SubmissionID == "" {
+		t.Fatalf("canonical OTP submission did not produce a receipt: %#v", result)
 	}
 }
 
@@ -296,29 +363,23 @@ func TestCertificationChangeRequestIncludesConditionalApplicabilityField(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	initialSession, err := fixture.evidence.RedeemInvitation(context.Background(), vendorWorkCaptureToken(t, sent.CaptureURL), fixture.audience)
+	initialSession := redeemVendorWorkAccess(t, fixture, sent.CaptureURL)
+	isoArtifact, err := fixture.evidence.StoreArtifactForDistributionSession(context.Background(), fixture.access, initialSession.SessionToken, evidence.ArtifactInput{TenantID: "bank", RequestID: prepared.CurrentRequestID, FieldID: "iso_certificate", FileName: "iso-original.pdf", MediaType: "application/pdf"}, bytes.NewBufferString(testVendorWorkPDF))
 	if err != nil {
 		t.Fatal(err)
 	}
-	isoArtifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: "bank", RequestID: prepared.CurrentRequestID, FieldID: "iso_certificate", FileName: "iso-original.pdf", MediaType: "application/pdf", SessionToken: initialSession.SessionToken}, bytes.NewBufferString(testVendorWorkPDF))
+	pciArtifact, err := fixture.evidence.StoreArtifactForDistributionSession(context.Background(), fixture.access, initialSession.SessionToken, evidence.ArtifactInput{TenantID: "bank", RequestID: prepared.CurrentRequestID, FieldID: "pci_attestation", FileName: "pci-current.pdf", MediaType: "application/pdf"}, bytes.NewBufferString(testVendorWorkPDF))
 	if err != nil {
 		t.Fatal(err)
 	}
-	pciArtifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: "bank", RequestID: prepared.CurrentRequestID, FieldID: "pci_attestation", FileName: "pci-current.pdf", MediaType: "application/pdf", SessionToken: initialSession.SessionToken}, bytes.NewBufferString(testVendorWorkPDF))
-	if err != nil {
-		t.Fatal(err)
-	}
-	initialReceipt, err := fixture.evidence.SubmitSession(context.Background(), initialSession.SessionToken, map[string]formcontract.AnswerValue{
+	initialResult := submitVendorWorkAnswers(t, fixture, initialSession.SessionToken, map[string]formcontract.AnswerValue{
 		"certifications_applicable": formcontract.TextAnswer("Yes"),
 		"iso_applicable":            formcontract.TextAnswer("Yes"),
 		"pci_applicable":            formcontract.TextAnswer("Yes"),
 		"iso_certificate":           {Document: &formcontract.DocumentAnswer{ArtifactID: isoArtifact.ID, DocumentType: "ISO_27001"}},
 		"pci_attestation":           {Document: &formcontract.DocumentAnswer{ArtifactID: pciArtifact.ID, DocumentType: "PCI_DSS"}},
-	}, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: "bank", WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: initialReceipt.SubmissionID, CausationID: "certification-submission"})
+	})
+	received, err := fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: "bank", WorkRequestID: prepared.ID, RequestID: prepared.CurrentRequestID, SubmissionID: initialResult.Submission.SubmissionID, CausationID: "certification-submission"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -344,23 +405,17 @@ func TestCertificationChangeRequestIncludesConditionalApplicabilityField(t *test
 	if len(request.Fields) != 3 || request.Fields[0].ID != "certifications_applicable" || request.Fields[1].ID != "iso_applicable" || request.Fields[2].ID != "iso_certificate" {
 		t.Fatalf("change request fields = %#v", request.Fields)
 	}
-	replacementSession, err := fixture.evidence.RedeemInvitation(context.Background(), vendorWorkCaptureToken(t, changes.CaptureURL), fixture.audience)
+	replacementSession := redeemVendorWorkAccess(t, fixture, changes.CaptureURL)
+	replacementArtifact, err := fixture.evidence.StoreArtifactForDistributionSession(context.Background(), fixture.access, replacementSession.SessionToken, evidence.ArtifactInput{TenantID: "bank", RequestID: request.ID, FieldID: "iso_certificate", FileName: "iso-replacement.pdf", MediaType: "application/pdf"}, bytes.NewBufferString(testVendorWorkPDF))
 	if err != nil {
 		t.Fatal(err)
 	}
-	replacementArtifact, err := fixture.evidence.StoreArtifact(context.Background(), evidence.ArtifactInput{TenantID: "bank", RequestID: request.ID, FieldID: "iso_certificate", FileName: "iso-replacement.pdf", MediaType: "application/pdf", SessionToken: replacementSession.SessionToken}, bytes.NewBufferString(testVendorWorkPDF))
-	if err != nil {
-		t.Fatal(err)
-	}
-	replacementReceipt, err := fixture.evidence.SubmitSession(context.Background(), replacementSession.SessionToken, map[string]formcontract.AnswerValue{
+	replacementResult := submitVendorWorkAnswers(t, fixture, replacementSession.SessionToken, map[string]formcontract.AnswerValue{
 		"certifications_applicable": formcontract.TextAnswer("Yes"),
 		"iso_applicable":            formcontract.TextAnswer("Yes"),
 		"iso_certificate":           {Document: &formcontract.DocumentAnswer{ArtifactID: replacementArtifact.ID, DocumentType: "ISO_27001"}},
-	}, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	received, err = fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: "bank", WorkRequestID: prepared.ID, RequestID: request.ID, SubmissionID: replacementReceipt.SubmissionID, CausationID: "certification-replacement"})
+	})
+	received, err = fixture.service.RecordSubmission(context.Background(), VendorWorkSubmissionInput{TenantID: "bank", WorkRequestID: prepared.ID, RequestID: request.ID, SubmissionID: replacementResult.Submission.SubmissionID, CausationID: "certification-replacement"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -396,10 +451,7 @@ func TestCancelVendorWorkRevokesCurrentInvitationAndRedeemedSession(t *testing.T
 		t.Fatal(err)
 	}
 	token := vendorWorkCaptureToken(t, sent.CaptureURL)
-	session, err := fixture.evidence.RedeemInvitation(context.Background(), token, fixture.audience)
-	if err != nil {
-		t.Fatal(err)
-	}
+	session := redeemVendorWorkAccess(t, fixture, sent.CaptureURL)
 	cancelled, err := fixture.service.Cancel(context.Background(), fixture.actor, sent.Work.ID, CancelVendorWorkInput{ExpectedVersion: sent.Work.Version, Reason: "The Program no longer needs this vendor response."})
 	if err != nil {
 		t.Fatal(err)
@@ -407,10 +459,10 @@ func TestCancelVendorWorkRevokesCurrentInvitationAndRedeemedSession(t *testing.T
 	if cancelled.State != VendorWorkCancelled || cancelled.CancellationReason == "" {
 		t.Fatalf("cancelled work = %#v", cancelled)
 	}
-	if _, err := fixture.evidence.RedeemInvitation(context.Background(), token, fixture.audience); !errors.Is(err, evidence.ErrInvitationInvalid) {
+	if _, err := fixture.access.StartDistributionAccess(context.Background(), token); !errors.Is(err, evidence.ErrDistributionAccessUnavailable) {
 		t.Fatalf("cancelled invitation remained usable: %v", err)
 	}
-	if _, _, err := fixture.evidence.SessionRequest(context.Background(), session.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
+	if _, _, err := fixture.access.SessionRequest(context.Background(), session.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
 		t.Fatalf("cancelled session remained usable: %v", err)
 	}
 }
@@ -436,10 +488,10 @@ func TestRetryVendorWorkReissuesAndRevokesPreviousCapability(t *testing.T) {
 	if retried.Work.CurrentInvitationID == first.Work.CurrentInvitationID || retried.CaptureURL == "" || retried.Work.Version <= first.Work.Version {
 		t.Fatalf("retry outcome = %#v", retried)
 	}
-	if _, err := fixture.evidence.RedeemInvitation(context.Background(), firstToken, fixture.audience); !errors.Is(err, evidence.ErrInvitationInvalid) {
+	if _, err := fixture.access.StartDistributionAccess(context.Background(), firstToken); !errors.Is(err, evidence.ErrDistributionAccessUnavailable) {
 		t.Fatalf("previous capability error = %v", err)
 	}
-	if _, err := fixture.evidence.RedeemInvitation(context.Background(), vendorWorkCaptureToken(t, retried.CaptureURL), fixture.audience); err != nil {
+	if _, err := fixture.access.StartDistributionAccess(context.Background(), vendorWorkCaptureToken(t, retried.CaptureURL)); err != nil {
 		t.Fatalf("replacement capability: %v", err)
 	}
 }
@@ -459,7 +511,7 @@ func TestEndRelationshipLinkConflictsWhileVendorWorkIsActive(t *testing.T) {
 
 func TestPrepareVendorWorkReturnsRecoverableStateAndResumesCapture(t *testing.T) {
 	fixture := newVendorWorkFixture(t)
-	fixture.service.evidence = &vendorWorkEvidenceFailure{vendorWorkEvidence: fixture.evidence, createFailures: 1}
+	fixture.service.dispatch = &vendorWorkDispatcherFailure{vendorWorkDispatcher: fixture.dispatcher, dispatchFailures: 1}
 	input := PrepareVendorWorkInput{RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, Purpose: "Confirm service information.", Instructions: "Review the request.", FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour)}
 	first, err := fixture.service.Prepare(context.Background(), fixture.actor, input)
 	if err != nil {
@@ -477,17 +529,17 @@ func TestPrepareVendorWorkReturnsRecoverableStateAndResumesCapture(t *testing.T)
 	}
 }
 
-type vendorWorkEvidenceFailure struct {
-	vendorWorkEvidence
-	createFailures int
+type vendorWorkDispatcherFailure struct {
+	vendorWorkDispatcher
+	dispatchFailures int
 }
 
-func (f *vendorWorkEvidenceFailure) CreateRequest(ctx context.Context, input evidence.CreateRequestInput) (evidence.Request, error) {
-	if f.createFailures > 0 {
-		f.createFailures--
-		return evidence.Request{}, errors.New("capture store unavailable")
+func (f *vendorWorkDispatcherFailure) Dispatch(ctx context.Context, input evidence.WorkflowDistributionDispatchInput) (evidence.WorkflowDistributionDispatch, error) {
+	if f.dispatchFailures > 0 {
+		f.dispatchFailures--
+		return evidence.WorkflowDistributionDispatch{}, errors.New("capture store unavailable")
 	}
-	return f.vendorWorkEvidence.CreateRequest(ctx, input)
+	return f.vendorWorkDispatcher.Dispatch(ctx, input)
 }
 
 func vendorWorkCaptureToken(t *testing.T, raw string) string {
@@ -505,4 +557,46 @@ func vendorWorkCaptureToken(t *testing.T, raw string) string {
 		t.Fatalf("capture URL has no token: %q", raw)
 	}
 	return token
+}
+
+func redeemVendorWorkAccess(t *testing.T, fixture vendorWorkFixture, rawURL string) evidence.RedeemedDistributionSession {
+	t.Helper()
+	selector := vendorWorkCaptureToken(t, rawURL)
+	start, err := fixture.access.StartDistributionAccess(context.Background(), selector)
+	if err != nil || start.Policy != evidence.AccessDirectEmailOTP || len(start.Recipients) != 1 {
+		t.Fatalf("start vendor-work access = (%#v, %v)", start, err)
+	}
+	receipt, err := fixture.access.SendOTP(context.Background(), selector, start.Recipients[0].SelectorID)
+	if err != nil || len(fixture.otp.values) == 0 {
+		t.Fatalf("send vendor-work OTP = (%#v, %v)", receipt, err)
+	}
+	delivered := fixture.otp.values[len(fixture.otp.values)-1]
+	redeemed, err := fixture.access.VerifyOTP(context.Background(), selector, receipt.ChallengeID, delivered.Code)
+	if err != nil {
+		t.Fatalf("verify vendor-work OTP = %v", err)
+	}
+	return redeemed
+}
+
+func submitVendorWorkAnswers(t *testing.T, fixture vendorWorkFixture, sessionToken string, answers map[string]formcontract.AnswerValue) evidence.WorkspaceSubmissionResult {
+	t.Helper()
+	view, err := fixture.access.GetResponseWorkspace(context.Background(), sessionToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	edits := make([]evidence.FieldEdit, 0, len(answers))
+	for fieldID, value := range answers {
+		edits = append(edits, evidence.FieldEdit{FieldID: fieldID, Value: value, BaseSequence: view.FieldSequences[fieldID]})
+	}
+	saved, err := fixture.access.SaveResponseWorkspace(context.Background(), sessionToken, evidence.SaveWorkspaceInput{
+		ExpectedVersion: view.Workspace.Version, PresentationMode: view.PresentationMode, Edits: edits,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := fixture.access.SubmitResponseWorkspace(context.Background(), sessionToken, evidence.SubmitWorkspaceInput{ExpectedVersion: saved.Workspace.Version})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return result
 }

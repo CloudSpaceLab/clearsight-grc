@@ -27,15 +27,31 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 		t.Fatal(err)
 	}
 	forms := monitoring.NewMemoryRepository()
-	_, err = forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{ID: "form-1", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "VENDOR-CERTIFICATION-REFRESH", Name: "Certification refresh", Purpose: "Collect current ISO 27001 and PCI DSS evidence.", Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationAutomatic, AllowModeSwitch: true}, Sections: []formcontract.Section{{ID: "certification", Title: "Certifications"}}, Fields: []monitoring.TemplateField{{ID: "current", SectionID: "certification", Label: "Are the certifications current?", Type: formcontract.TypeYesNo, Required: true}}, Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 1}})
+	_, err = forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{ID: "form-1", TenantID: "bank", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "VENDOR-CERTIFICATION-REFRESH", Name: "Certification refresh", Purpose: "Collect current ISO 27001 and PCI DSS evidence.", Sensitivity: "CONFIDENTIAL", Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationAutomatic, AllowModeSwitch: true}, Sections: []formcontract.Section{{ID: "certification", Title: "Certifications"}}, Fields: []monitoring.TemplateField{{ID: "current", SectionID: "certification", Label: "Are the certifications current?", Type: formcontract.TypeYesNo, Required: true}}, Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	evidenceService := evidence.NewService(newScopedVendorEvidenceRepository("bank", "entity-a", "relationship-1"), evidence.NewMemoryObjectStore())
+	evidenceRepository := newScopedVendorEvidenceRepository("bank", "entity-a", "relationship-1")
+	evidenceService := evidence.NewService(evidenceRepository, evidence.NewMemoryObjectStore())
 	workService, err := thirdparty.NewVendorWorkService(thirdparty.NewMemoryVendorWorkRepository(), links, evidenceService, forms, nil, "https://capture.example.test/respond", "production")
 	if err != nil {
 		t.Fatal(err)
 	}
+	var recipientKey, accessKey [32]byte
+	for index := range recipientKey {
+		recipientKey[index], accessKey[index] = 0x31, 0x42
+	}
+	keyring, err := evidence.NewRecipientKeyring("handler-v1", map[string][32]byte{"handler-v1": recipientKey})
+	if err != nil {
+		t.Fatal(err)
+	}
+	distributionStore := evidence.NewMemoryDistributionStore(evidenceRepository.MemoryRepository, vendorWorkHandlerFormReader{forms: forms}, keyring)
+	distributions := evidence.NewDistributionService(distributionStore)
+	access, err := evidence.NewDistributionAccessService(evidence.NewMemoryDistributionAccessStore(distributionStore), keyring, nil, accessKey, 20*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workService.ConfigureDistributionDispatcher(evidence.NewWorkflowDistributionDispatcher(distributions, access))
 	relationships := thirdparty.NewMemoryRepository()
 	_, err = relationships.CreateRelationship(context.Background(), thirdparty.CreateRecord{Vendor: thirdparty.Vendor{ID: "vendor-1", TenantID: "bank", LegalName: "Northstar Hosting Limited", Status: thirdparty.VendorActive, Version: 1}, Relationship: thirdparty.Relationship{ID: "relationship-1", TenantID: "bank", LegalEntityID: "entity-a", VendorID: "vendor-1", ServiceName: "Managed transaction screening", BusinessOwnerPrincipalID: "verified-owner", Status: thirdparty.RelationshipActive, Version: 1}})
 	if err != nil {
@@ -98,3 +114,18 @@ func TestVendorWorkAcceptanceBlockedReturnsActionableConflict(t *testing.T) {
 }
 
 func jsonNumber(value int64) string { raw, _ := json.Marshal(value); return string(raw) }
+
+type vendorWorkHandlerFormReader struct{ forms *monitoring.MemoryRepository }
+
+func (reader vendorWorkHandlerFormReader) GetDistributionFormRevision(ctx context.Context, tenantID, legalEntityID, formID string, version int64) (evidence.DistributionFormRevision, error) {
+	form, err := reader.forms.ReusableFormRevision(ctx, tenantID, legalEntityID, formID, version)
+	if err != nil {
+		return evidence.DistributionFormRevision{}, err
+	}
+	return evidence.DistributionFormRevision{
+		ID: form.ID, TenantID: form.TenantID, LegalEntityID: form.LegalEntityID, Version: form.Version,
+		Sensitivity: form.Sensitivity, Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile,
+		Sections: append([]formcontract.Section(nil), form.Sections...), Fields: append([]formcontract.Field(nil), form.Fields...),
+		Active: form.Status == monitoring.LifecycleActive && form.IsCurrent,
+	}, nil
+}

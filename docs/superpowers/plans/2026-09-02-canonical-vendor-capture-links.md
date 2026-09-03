@@ -32,15 +32,15 @@
 
 ### Task 4: Replace vendor-work invitation issuance
 
-- [ ] Create vendor-work capture requests as canonical distributions for initial collection and requested changes.
-- [ ] Reserve/finalize canonical route IDs, update route proof constraints, and rotate/revoke routes on retry, cancellation, or recipient change.
+- [x] Create vendor-work capture requests as canonical distributions for initial collection and requested changes.
+- [x] Reserve/finalize canonical route IDs, update route proof constraints, and rotate/revoke routes on retry, cancellation, or recipient change.
 - [ ] Prove address-verification and certification-refresh email selectors redeem through the same public capture endpoints.
 
 ### Task 5: Remove the obsolete journey path
 
-- [ ] Delete assessment/vendor-work tests and interfaces that require `IssueInvitation`/`RedeemInvitation` for these journeys. Assessment complete; vendor work remains.
-- [ ] Add a regression scan that prevents these packages from calling the retired invitation issuer.
-- [ ] Keep unrelated internal capture migration work out of this change unless required by a failing canonical test.
+- [x] Delete assessment/vendor-work tests and interfaces that require `IssueInvitation`/`RedeemInvitation` for these journeys.
+- [x] Add a regression scan that prevents these packages from calling the retired invitation issuer.
+- [x] Keep unrelated internal capture migration work out of this change unless required by a failing canonical test.
 
 ### Task 6: Verify, merge, deploy, and reissue
 
