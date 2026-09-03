@@ -1,0 +1,153 @@
+.ai-gateway-control-plane {
+  display: grid;
+  gap: 1rem;
+}
+
+.ai-gateway-control-plane__header {
+  align-items: flex-start;
+}
+
+.ai-gateway-control-plane__state {
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 700;
+  padding: .38rem .62rem;
+  white-space: nowrap;
+}
+
+.ai-gateway-control-plane__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .7rem;
+}
+
+.ai-gateway-control-plane__summary > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: .55rem;
+  row-gap: .15rem;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: .9rem;
+  padding: .8rem;
+}
+
+.ai-gateway-control-plane__summary span {
+  display: grid;
+  place-items: center;
+  inline-size: 1.65rem;
+  block-size: 1.65rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  font-size: .75rem;
+  font-weight: 800;
+}
+
+.ai-gateway-control-plane__summary small {
+  grid-column: 2;
+  opacity: .68;
+  line-height: 1.35;
+}
+
+.ai-gateway-control-plane__form {
+  display: grid;
+  gap: .9rem;
+}
+
+.ai-gateway-control-plane__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .8rem;
+}
+
+.ai-gateway-control-plane__form label {
+  display: grid;
+  gap: .38rem;
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.ai-gateway-control-plane__form input,
+.ai-gateway-control-plane__form select,
+.ai-gateway-control-plane__form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: .8rem;
+  background: color-mix(in srgb, Canvas 92%, transparent);
+  color: inherit;
+  font: inherit;
+  padding: .72rem .8rem;
+}
+
+.ai-gateway-control-plane__form textarea {
+  resize: vertical;
+  min-block-size: 7.5rem;
+  line-height: 1.5;
+}
+
+.ai-gateway-control-plane__form input:focus-visible,
+.ai-gateway-control-plane__form select:focus-visible,
+.ai-gateway-control-plane__form textarea:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.ai-gateway-control-plane__instruction small,
+.ai-gateway-control-plane__check small {
+  font-weight: 500;
+  opacity: .66;
+  line-height: 1.4;
+}
+
+.ai-gateway-control-plane__check {
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  align-content: center;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: .8rem;
+  padding: .7rem .8rem;
+}
+
+.ai-gateway-control-plane__check input {
+  width: auto;
+  margin-top: .15rem;
+}
+
+.ai-gateway-control-plane__check > span {
+  display: grid;
+  gap: .18rem;
+}
+
+.ai-gateway-control-plane__preview {
+  border-radius: .85rem;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  padding: .8rem .9rem;
+}
+
+.ai-gateway-control-plane__preview p,
+.ai-gateway-control-plane__message {
+  margin: .3rem 0 0;
+  line-height: 1.45;
+  opacity: .78;
+}
+
+.ai-gateway-control-plane__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem;
+  align-items: center;
+}
+
+.ai-gateway-control-plane__actions > span {
+  font-size: .78rem;
+  opacity: .68;
+}
+
+@media (max-width: 760px) {
+  .ai-gateway-control-plane__summary,
+  .ai-gateway-control-plane__grid {
+    grid-template-columns: 1fr;
+  }
+}

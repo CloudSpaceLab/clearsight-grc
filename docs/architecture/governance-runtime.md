@@ -117,6 +117,14 @@ Publisher panics are contained per outbox item. One bad event is moved through i
 
 Consumers record `(tenant, consumer, event_id)` after their required internal effects succeed. Duplicate delivery therefore does not duplicate the consumer result. Internal consumers may additionally check an existing receipt before replaying effects.
 
+## Program collection renewal
+
+An `EvidenceResponseSubmitted` event is consumed through the durable inbox. The consumer loads the exact request, submission and approved form Monitoring Check revision, then stores a Program-scoped collection cycle containing the policy snapshot, predecessor lineage, calculated expiry and renewal-opening time. Month arithmetic preserves end-of-month behavior. Expiry is a collection-currency observation only; it does not change Program risk, compliance or legal status.
+
+The existing worker claims due cycles with a bounded lease and retry budget. Before creating work it re-reads the current Program, Monitoring Check, Form Template, recipient and route state. A tenant-scoped origin key makes successor creation idempotent across crashes and reclaimed leases. The successor is a new immutable Evidence Request linked to its predecessor. Compatible scalar answers carry field-level submission provenance; file and signature answers remain on the predecessor.
+
+Reminder actions are capped at five, distributed inside the approved renewal window and stopped by submission, cancellation, check pause/retirement or terminal delivery failure. Internal assignment is receipt-backed through the request/queue state. External destinations remain opaque and must be resolved at dispatch time. Without a configured external adapter and provider receipt, the cycle is recorded as blocked rather than delivered.
+
 The current log publisher is an internal development/observability adapter. External email, messaging, ITSM or Probo delivery requires a dedicated adapter, idempotency contract, reconciliation and monitoring. A future external publisher must not be represented as delivered merely because an event was logged.
 
 ## Consistency and failure behavior

@@ -7,6 +7,7 @@ import { TodayInterventions } from "./components/TodayInterventions";
 import { WorkspaceErrorBoundary } from "./components/WorkspaceErrorBoundary";
 import type { AttentionItem, AuthorityResolution, EvidenceRequest, EvidenceSource, Readiness } from "./types";
 import { initials } from "./components/Monogram";
+import type { ProgramSection } from "./appRouting";
 
 export { CapturePanel } from "./components/CapturePanel";
 
@@ -25,8 +26,8 @@ export function TodayView({ organizationName, items, connection, generatedAt, re
   </>;
 }
 
-export function ProgramsView({ organizationName, actorPrincipalID, canConfigureSources, targetID, openFirst, onOpenRequest, onAnalyzeDocument }: { organizationName: string; actorPrincipalID?: string; canConfigureSources?: boolean; targetID?: string; openFirst?: boolean; onOpenRequest?: (requestID: string) => void; onAnalyzeDocument?: () => void }) {
-  return <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Programs</h1><p>Ongoing obligations, safeguards, evidence checks and open issues.</p></div>{onAnalyzeDocument && <div className="topbar-actions"><button className="secondary-button" type="button" aria-label="Analyze document to create or update Programs" onClick={onAnalyzeDocument}>Analyze document</button></div>}</header><ProgramsWorkspace targetID={targetID} openFirst={openFirst} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} onOpenRequest={onOpenRequest}/></>;
+export function ProgramsView({ organizationName, actorPrincipalID, canConfigureSources, targetID, targetSection, onSectionChange, openFirst, onOpenRequest, onAnalyzeDocument }: { organizationName: string; actorPrincipalID?: string; canConfigureSources?: boolean; targetID?: string; targetSection?: ProgramSection; onSectionChange?: (programID: string, section: ProgramSection) => void; openFirst?: boolean; onOpenRequest?: (requestID: string) => void; onAnalyzeDocument?: () => void }) {
+  return <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Programs</h1><p>Ongoing obligations, safeguards, evidence checks and open issues.</p></div>{onAnalyzeDocument && <div className="topbar-actions"><button className="secondary-button" type="button" aria-label="Analyze document to create or update Programs" onClick={onAnalyzeDocument}>Analyze document</button></div>}</header><ProgramsWorkspace targetID={targetID} targetSection={targetSection} onSectionChange={onSectionChange} openFirst={openFirst} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} onOpenRequest={onOpenRequest}/></>;
 }
 
 export function ReferenceJourneysView({ organizationName }: { organizationName: string }) {

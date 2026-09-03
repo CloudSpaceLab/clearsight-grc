@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import type { ProgramSection } from "../appRouting";
 import { loadProgram, loadProgramSummaries } from "../api";
 import type { ProgramSummary } from "../summaryTypes";
 import type { ProgramAggregate, ProgramState } from "../types";
@@ -10,7 +11,7 @@ import { ProgramRecordWorkspace } from "./ProgramRecordWorkspace";
 import { readWorkspaceFilters, replaceWorkspaceHash, workspaceHash } from "../workspaceFilters";
 
 type LoadState = "loading" | "live" | "unavailable";
-type Props = { targetID?: string; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenRequest?: (requestID: string) => void };
+type Props = { targetID?: string; targetSection?: ProgramSection; onSectionChange?: (programID: string, section: ProgramSection) => void; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenRequest?: (requestID: string) => void };
 
 function ProgramIcon() {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v4h4M9 11h6M9 15h6M9 19h4"/></svg>;
@@ -59,7 +60,7 @@ function summaryFromAggregate(detail: ProgramAggregate): ProgramSummary {
 }
 
 export function ProgramsWorkspace(props: Props) {
-  if (props.targetID) return <ProgramRecordWorkspace programID={props.targetID} actorPrincipalID={props.actorPrincipalID} canConfigureSources={props.canConfigureSources} onOpenRequest={props.onOpenRequest} onBack={() => { window.location.hash = workspaceHash("#programs", readWorkspaceFilters(window.location.hash)); }}/>;
+  if (props.targetID) return <ProgramRecordWorkspace programID={props.targetID} section={props.targetSection} onSectionChange={(section) => props.onSectionChange?.(props.targetID!, section)} actorPrincipalID={props.actorPrincipalID} canConfigureSources={props.canConfigureSources} onOpenRequest={props.onOpenRequest} onBack={() => { window.location.hash = workspaceHash("#programs", readWorkspaceFilters(window.location.hash)); }}/>;
   return <ProgramListWorkspace {...props}/>;
 }
 

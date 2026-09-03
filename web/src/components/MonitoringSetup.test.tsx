@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createFormTemplate, createMonitoringLinkedIssue, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection } from "../monitoringApi";
+import { createFormMonitoringCheck, createFormTemplate, createMonitoringLinkedIssue, loadCollectionSummaries, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection } from "../monitoringApi";
 import { createProgram, loadProgramSetupCandidates } from "../continuityCommands";
 import type { ProgramAggregate } from "../types";
 import { FormBuilder } from "./FormBuilder";
@@ -14,6 +14,7 @@ import type { ProgramOperation } from "../programOperationsApi";
 vi.mock("../monitoringApi", () => ({
   createFormTemplate: vi.fn(),
   createFormMonitoringCheck: vi.fn(),
+  loadCollectionSummaries: vi.fn(),
   loadFormTemplates: vi.fn(),
   loadMonitoringChecks: vi.fn(),
   loadMonitoringResults: vi.fn(),
@@ -52,6 +53,7 @@ beforeEach(() => {
   vi.mocked(loadFormTemplates).mockResolvedValue([]);
   vi.mocked(loadMonitoringChecks).mockResolvedValue([]);
   vi.mocked(loadMonitoringResults).mockResolvedValue([]);
+  vi.mocked(loadCollectionSummaries).mockResolvedValue([]);
   vi.mocked(loadProgramSetupCandidates).mockResolvedValue({
     owner_candidates: [{ id: "owner-1", display_name: "Data Protection Officer", kind: "PERSON", role: "DPO" }],
     approval_authority_candidates: [{ id: "cro-1", display_name: "Chief Risk Officer", kind: "PERSON", role: "CRO" }],
@@ -109,8 +111,29 @@ describe("monitoring setup", () => {
 
     render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={ownerOperations}/>);
 
-    expect(await screen.findByRole("button", { name: "Create monitoring check" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Set collection schedule" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Collect responses" })).toBeNull();
+  });
+
+  it("adds the recommended expiry and reminder policy to a Program collection", async () => {
+    const form = {
+      id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards", fields: [],
+      status: "ACTIVE" as const, is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    };
+    vi.mocked(loadFormTemplates).mockResolvedValue([form]);
+    vi.mocked(createFormMonitoringCheck).mockResolvedValue({
+      id: "check-1", tenant_id: "bank-1", program_id: "program-1", code: "RESET-CHECK", name: form.name, claim: form.purpose, input_kind: "FORM",
+      form_template_id: form.id, form_template_version: form.version, collection_policy: { validity_months: 12, renewal_window_days: 30, reminder_count: 3 },
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 10080, minimum_coverage: 1, failure_action: "REVIEW",
+      status: "DRAFT", is_current: false, version: 1, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    });
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={ownerOperations}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Set collection schedule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add collection to Program" }));
+
+    await waitFor(() => expect(createFormMonitoringCheck).toHaveBeenCalledWith("program-1", form, { validity_months: 12, renewal_window_days: 30, reminder_count: 3 }));
+    expect(screen.getAllByRole("heading", { name: form.name })).toHaveLength(1);
   });
 
   it("shows the latest risk and coverage for each monitoring check", async () => {
@@ -288,16 +311,13 @@ describe("monitoring setup", () => {
 
     render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={[]}/>);
 
-    expect(await screen.findByRole("heading", { name: "Draft owner review" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Active owner review" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Pending owner review" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Linked active review" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Active owner review" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Live source check" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Draft monitoring check" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Pending monitoring check" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Active collection check" })).toBeTruthy();
     expect(screen.getByText("Monitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available.")).toBeTruthy();
-    for (const name of ["Add monitoring check", "Send for approval", "Approve form", "Create monitoring check", "Collect responses", "Approve check", "Check source now"]) {
+    for (const name of ["Add monitoring check", "Send for approval", "Approve form", "Set collection schedule", "Collect responses", "Approve check", "Check source now"]) {
       expect(screen.queryByRole("button", { name })).toBeNull();
     }
   });

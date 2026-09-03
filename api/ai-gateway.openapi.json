@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "ClearSight AI Gateway Transport",
-    "version": "t3",
-    "description": "Executable transport contract for the isolated, stateless ClearSight AI gateway. T3 supports text and function tools only; it does not persist prompts, responses or policy decisions."
+    "version": "t3-cp1",
+    "description": "Executable transport contract for the isolated ClearSight AI gateway. Workload traffic remains content-minimal in telemetry; database-governed transport configuration exposes only compact operational status through an independently authenticated endpoint."
   },
   "paths": {
     "/health/live": {
@@ -23,10 +23,54 @@
         "x-clearsight-route-access": "PUBLIC_HEALTH",
         "responses": {
           "200": {
-            "description": "At least one route is available for every configured alias"
+            "description": "Gateway runtime dependencies are ready"
           },
           "503": {
-            "description": "A configured alias has no available route"
+            "description": "Gateway runtime dependencies are not ready"
+          }
+        }
+      }
+    },
+    "/health/config": {
+      "get": {
+        "operationId": "aiGatewayTransportStatus",
+        "x-clearsight-route-access": "METRICS_AUTHENTICATED",
+        "security": [
+          {
+            "metricsBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["DEVELOPMENT", "TEST", "PRODUCTION"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compact desired-versus-applied transport configuration status; contains no provider credentials or model traffic content"
+          },
+          "400": {
+            "description": "Invalid tenant or environment"
+          },
+          "401": {
+            "description": "Invalid operational credential"
+          },
+          "404": {
+            "description": "Operational metrics/status access is disabled"
           }
         }
       }
@@ -177,7 +221,7 @@
       "metricsBearer": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Independent metrics credential."
+        "description": "Independent operational metrics/status credential."
       }
     },
     "schemas": {

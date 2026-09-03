@@ -17,9 +17,10 @@ it("shows safe terminal-job facts and requires a reason before governed retry", 
   await screen.findByText("FORM_DISTRIBUTION_OPEN");
   expect(screen.getByText("outbox-delivery · INVALID_TENANT_IDENTIFIER · 5 attempts")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Review retry" }));
-  const submit = screen.getByRole("button", { name: "Schedule retry" });
+  const submit = await screen.findByRole("button", { name: "Schedule retry" });
   expect((submit as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.change(screen.getByLabelText("Why is this retry safe now?"), { target: { value: "The tenant lookup defect is fixed and the event is safe to retry." } });
+  const rationale = await screen.findByRole("textbox", { name: /Why is this retry safe now\?/ });
+  fireEvent.change(rationale, { target: { value: "The tenant lookup defect is fixed and the event is safe to retry." } });
   fireEvent.click(submit);
   await waitFor(() => expect(api.retryBackgroundJob).toHaveBeenCalledWith("job-1", "outbox-delivery", 5, "The tenant lookup defect is fixed and the event is safe to retry."));
 });

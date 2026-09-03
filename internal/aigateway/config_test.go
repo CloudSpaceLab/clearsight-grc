@@ -7,6 +7,15 @@ import (
 	"testing"
 )
 
+func staticTransportEnv(value string) func(string) (string, bool) {
+	return func(name string) (string, bool) {
+		if name == "CLEARSIGHT_AI_GATEWAY_TRANSPORT_MODE" {
+			return "", false
+		}
+		return value, true
+	}
+}
+
 func TestParseConfigResolvesSecretsAndBounds(t *testing.T) {
 	key := sha256.Sum256([]byte("workload-secret-value"))
 	metrics := sha256.Sum256([]byte("metrics-secret-value"))
@@ -24,7 +33,13 @@ func TestParseConfigResolvesSecretsAndBounds(t *testing.T) {
 		]}]
 	}`
 	secrets := map[string]string{"OPENAI_TEST_KEY": "openai-secret", "ANTHROPIC_TEST_KEY": "anthropic-secret"}
-	config, err := ParseConfig([]byte(payload), func(name string) (string, bool) { value, ok := secrets[name]; return value, ok })
+	config, err := ParseConfig([]byte(payload), func(name string) (string, bool) {
+		if name == "CLEARSIGHT_AI_GATEWAY_TRANSPORT_MODE" {
+			return "", false
+		}
+		value, ok := secrets[name]
+		return value, ok
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,6 +51,27 @@ func TestParseConfigResolvesSecretsAndBounds(t *testing.T) {
 	}
 }
 
+func TestParseConfigDatabaseTransportSkipsStaticProviderAuthority(t *testing.T) {
+	payload := `{"environment":"production","governance_mode":"DATABASE"}`
+	providerLookup := false
+	config, err := ParseConfig([]byte(payload), func(name string) (string, bool) {
+		if name == "CLEARSIGHT_AI_GATEWAY_TRANSPORT_MODE" {
+			return "DATABASE", true
+		}
+		providerLookup = true
+		return "", false
+	})
+	if err != nil {
+		t.Fatalf("ParseConfig() error = %v", err)
+	}
+	if config.TransportMode != TransportDatabase || len(config.Providers) != 0 || len(config.Models) != 0 {
+		t.Fatalf("database transport config = %#v", config)
+	}
+	if providerLookup {
+		t.Fatal("database transport bootstrap unexpectedly resolved a static provider secret")
+	}
+}
+
 func TestParseConfigRejectsProductionHTTPAndDuplicateCredentials(t *testing.T) {
 	production := `{
 		"environment":"production",
@@ -43,7 +79,7 @@ func TestParseConfigRejectsProductionHTTPAndDuplicateCredentials(t *testing.T) {
 		"providers":[{"id":"p1","kind":"OPENAI","base_url":"http://127.0.0.1:1","secret_env":"A"}],
 		"models":[{"alias":"m","routes":[{"id":"r1","provider_id":"p1","model":"x","weight":1}]}]
 	}`
-	if _, err := ParseConfig([]byte(production), func(string) (string, bool) { return "provider-secret", true }); err == nil || !strings.Contains(err.Error(), "HTTPS") {
+	if _, err := ParseConfig([]byte(production), staticTransportEnv("provider-secret")); err == nil || !strings.Contains(err.Error(), "HTTPS") {
 		t.Fatalf("expected production HTTPS error, got %v", err)
 	}
 
@@ -58,7 +94,7 @@ func TestParseConfigRejectsProductionHTTPAndDuplicateCredentials(t *testing.T) {
 		"providers":[{"id":"p1","kind":"OPENAI","base_url":"http://127.0.0.1:1","secret_env":"A"}],
 		"models":[{"alias":"m","routes":[{"id":"r1","provider_id":"p1","model":"x","weight":1}]}]
 	}`
-	if _, err := ParseConfig([]byte(duplicate), func(string) (string, bool) { return "provider-secret", true }); err == nil || !strings.Contains(err.Error(), "share one credential") {
+	if _, err := ParseConfig([]byte(duplicate), staticTransportEnv("provider-secret")); err == nil || !strings.Contains(err.Error(), "share one credential") {
 		t.Fatalf("expected duplicate workload credential error, got %v", err)
 	}
 }
@@ -66,28 +102,28 @@ func TestParseConfigRejectsProductionHTTPAndDuplicateCredentials(t *testing.T) {
 func TestParseConfigRejectsTrailingJSONAndOverflowedTimeout(t *testing.T) {
 	key := sha256.Sum256([]byte("workload-secret-value"))
 	base := `{"environment":"test","request_timeout_ms":9223372036854775807,"workloads":[{"id":"w","tenant_id":"t","key_sha256":"` + hex.EncodeToString(key[:]) + `","allowed_models":["m"],"requests_per_minute":1,"tokens_per_minute":10,"cost_microusd_per_minute":10,"max_concurrent":1}],"providers":[{"id":"p","kind":"OPENAI","base_url":"http://127.0.0.1:1","secret_env":"P"}],"models":[{"alias":"m","routes":[{"id":"r","provider_id":"p","model":"x","weight":1}]}]}`
-	if _, err := ParseConfig([]byte(base), func(string) (string, bool) { return "provider-secret", true }); err == nil || !strings.Contains(err.Error(), "timeouts") {
+	if _, err := ParseConfig([]byte(base), staticTransportEnv("provider-secret")); err == nil || !strings.Contains(err.Error(), "timeouts") {
 		t.Fatalf("overflowed timeout error = %v", err)
 	}
 	valid := strings.Replace(base, `"request_timeout_ms":9223372036854775807,`, "", 1)
-	if _, err := ParseConfig([]byte(valid+` {}`), func(string) (string, bool) { return "provider-secret", true }); err == nil || !strings.Contains(err.Error(), "trailing") {
+	if _, err := ParseConfig([]byte(valid+` {}`), staticTransportEnv("provider-secret")); err == nil || !strings.Contains(err.Error(), "trailing") {
 		t.Fatalf("trailing JSON error = %v", err)
 	}
 }
 
 func TestParseConfigRejectsOversizedAndUnsafeProviderConfiguration(t *testing.T) {
-	if _, err := ParseConfig(make([]byte, maxConfigBytes+1), func(string) (string, bool) { return "provider-secret", true }); err == nil || !strings.Contains(err.Error(), "byte limit") {
+	if _, err := ParseConfig(make([]byte, maxConfigBytes+1), staticTransportEnv("provider-secret")); err == nil || !strings.Contains(err.Error(), "byte limit") {
 		t.Fatalf("oversized config error = %v", err)
 	}
 
 	key := sha256.Sum256([]byte("workload-secret-value"))
 	payload := `{"environment":"test","workloads":[{"id":"w","tenant_id":"t","key_sha256":"` + hex.EncodeToString(key[:]) + `","allowed_models":["m"],"requests_per_minute":1,"tokens_per_minute":10,"cost_microusd_per_minute":10,"max_concurrent":1}],"providers":[{"id":"p","kind":"ANTHROPIC","base_url":"http://127.0.0.1:1","secret_env":"P","api_version":"2023-06-01\ninvalid"}],"models":[{"alias":"m","routes":[{"id":"r","provider_id":"p","model":"x","weight":1}]}]}`
-	if _, err := ParseConfig([]byte(payload), func(string) (string, bool) { return "provider-secret", true }); err == nil || !strings.Contains(err.Error(), "API version") {
+	if _, err := ParseConfig([]byte(payload), staticTransportEnv("provider-secret")); err == nil || !strings.Contains(err.Error(), "API version") {
 		t.Fatalf("unsafe API version error = %v", err)
 	}
 
 	payload = strings.Replace(payload, `,"api_version":"2023-06-01\ninvalid"`, "", 1)
-	if _, err := ParseConfig([]byte(payload), func(string) (string, bool) { return "provider\nsecret", true }); err == nil || !strings.Contains(err.Error(), "unavailable") {
+	if _, err := ParseConfig([]byte(payload), staticTransportEnv("provider\nsecret")); err == nil || !strings.Contains(err.Error(), "unavailable") {
 		t.Fatalf("unsafe provider credential error = %v", err)
 	}
 }

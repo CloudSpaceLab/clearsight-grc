@@ -134,6 +134,24 @@ func TestCaptureSelectHandlesValidatedWhitespaceConsistently(t *testing.T) {
 	}
 }
 
+func TestPreviousResponseInputDropsInvalidSuccessorValues(t *testing.T) {
+	now := time.Date(2026, 8, 7, 18, 0, 0, 0, time.UTC)
+	fields := []Field{
+		{ID: "choice", Label: "Current rating", Type: "single_select", Options: []string{"Low", "High"}},
+		{ID: "document", Label: "Current certificate", Type: "file"},
+	}
+	previousResponses := map[string]PreviousResponseValue{
+		"choice":   {Value: "Retired", PreviousRequestID: "request-1", PreviousSubmissionID: "submission-1", PreviousSubmittedAt: now.Add(-24 * time.Hour)},
+		"document": {Value: "artifact-1", PreviousRequestID: "request-1", PreviousSubmissionID: "submission-1", PreviousSubmittedAt: now.Add(-24 * time.Hour)},
+		"removed":  {Value: "old", PreviousRequestID: "request-1", PreviousSubmissionID: "submission-1", PreviousSubmittedAt: now.Add(-24 * time.Hour)},
+	}
+
+	got := normalizePreviousResponses(fields, previousResponses)
+	if len(got) != 0 {
+		t.Fatalf("invalid previous responses retained: %#v", got)
+	}
+}
+
 func TestCapturePhotoMustReferenceArtifactFromExactRequest(t *testing.T) {
 	service, repo, now := testCaptureService()
 	photoField := Field{ID: "photo", Label: "Site photo", Type: "photo", Required: true, AcceptedFormats: []string{"image/jpeg", "image/png"}}

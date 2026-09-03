@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
@@ -51,6 +52,12 @@ type createMonitoringLinkedIssueRequest struct {
 	TenantID          string `json:"tenant_id,omitempty"`
 	ProgramID         string `json:"program_id,omitempty"`
 	MonitoringCheckID string `json:"monitoring_check_id,omitempty"`
+}
+
+type updateCollectionPolicyRequest struct {
+	monitoring.UpdateCollectionPolicyInput
+	TenantID string `json:"tenant_id,omitempty"`
+	ActorID  string `json:"actor_id,omitempty"`
 }
 
 func (a *API) monitoringService(w http.ResponseWriter) (*monitoring.Service, bool) {
@@ -336,6 +343,121 @@ func (a *API) transitionMonitoringCheck(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, value)
+}
+
+func (a *API) updateCollectionPolicy(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.monitoringService(w)
+	if !ok {
+		return
+	}
+	var request updateCollectionPolicyRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input := request.UpdateCollectionPolicyInput
+	input.ID = r.PathValue("id")
+	actor, _, _, err := a.bindMonitoringCheck(r, service, input.ID, input.ExpectedVersion)
+	if err != nil {
+		writeMonitoringScopeError(w, err)
+		return
+	}
+	value, err := service.UpdateCollectionPolicy(r.Context(), actor, input)
+	if err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, value)
+}
+
+type collectionSummaryResponse struct {
+	MonitoringCheckID       string                   `json:"monitoring_check_id"`
+	LatestRequestID         string                   `json:"latest_request_id,omitempty"`
+	LatestSubmissionID      string                   `json:"latest_submission_id,omitempty"`
+	LatestSubmissionAt      *time.Time               `json:"latest_submission_at,omitempty"`
+	RespondentLabel         string                   `json:"respondent_label,omitempty"`
+	RecipientHint           string                   `json:"recipient_hint,omitempty"`
+	ExpiresAt               time.Time                `json:"expires_at"`
+	RenewalOpensAt          time.Time                `json:"renewal_opens_at"`
+	CurrencyState           string                   `json:"currency_state"`
+	ActiveRequestDeadline   *time.Time               `json:"active_request_deadline,omitempty"`
+	RemindersSent           int                      `json:"reminders_sent"`
+	ReminderCount           int                      `json:"reminder_count"`
+	DeliveryState           monitoring.DeliveryState `json:"delivery_state"`
+	LastErrorSafe           string                   `json:"last_error_safe,omitempty"`
+	ProjectionGeneratedAt   time.Time                `json:"projection_generated_at"`
+	ProjectionSourceVersion int64                    `json:"projection_source_version"`
+}
+
+func (a *API) listCollectionSummaries(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.monitoringService(w)
+	if !ok {
+		return
+	}
+	programs, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	actor, err := monitoringActor(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "Sign in is required.")
+		return
+	}
+	programID := r.PathValue("id")
+	if _, err := programs.GetProgram(r.Context(), actor.TenantID, programID); err != nil {
+		writeContinuityError(w, err)
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	values, err := service.ListCollectionSummaries(r.Context(), actor, programID, limit)
+	if err != nil {
+		writeMonitoringError(w, err)
+		return
+	}
+	now := time.Now().UTC()
+	items := make([]collectionSummaryResponse, len(values))
+	for index, value := range values {
+		items[index] = collectionSummaryView(value, now)
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
+func collectionSummaryView(value monitoring.CollectionSummary, now time.Time) collectionSummaryResponse {
+	view := collectionSummaryResponse{
+		MonitoringCheckID: value.MonitoringCheckID, LatestRequestID: value.CurrentRequestID,
+		LatestSubmissionID: value.LatestSubmissionID, LatestSubmissionAt: value.LatestSubmittedAt,
+		RespondentLabel: value.LatestRespondentLabel, ExpiresAt: value.ExpiresAt, RenewalOpensAt: value.RenewalOpensAt,
+		CurrencyState: collectionCurrencyState(value, now), RemindersSent: value.RemindersSent, ReminderCount: value.Policy.ReminderCount,
+		DeliveryState: value.DeliveryState, LastErrorSafe: value.SafeError, ProjectionGeneratedAt: value.GeneratedAt,
+		ProjectionSourceVersion: value.MonitoringCheckVersion,
+	}
+	if value.Recipient.Type == monitoring.RouteExternalContact {
+		view.RecipientHint = value.Recipient.SafeHint
+	}
+	if value.State == monitoring.CycleAwaitingResponse && value.CurrentRequestID != "" {
+		deadline := value.ExpiresAt
+		view.ActiveRequestDeadline = &deadline
+	}
+	return view
+}
+
+func collectionCurrencyState(value monitoring.CollectionSummary, now time.Time) string {
+	if value.State == monitoring.CycleBlocked || value.State == monitoring.CycleFailed || value.DeliveryState == monitoring.DeliveryBlocked || value.DeliveryState == monitoring.DeliveryFailed {
+		return "RENEWAL_BLOCKED"
+	}
+	if value.State == monitoring.CycleAwaitingResponse {
+		return "AWAITING_RESPONSE"
+	}
+	if value.LatestSubmittedAt == nil {
+		return "NO_RESPONSE_SUBMITTED"
+	}
+	if !now.Before(value.ExpiresAt) {
+		return "RESPONSE_POTENTIALLY_EXPIRED"
+	}
+	if !now.Before(value.RenewalOpensAt) {
+		return "RENEWAL_DUE"
+	}
+	return "CURRENT"
 }
 
 func (a *API) listMonitoringResults(w http.ResponseWriter, r *http.Request) {

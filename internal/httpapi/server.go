@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/activity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/aigateway"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
@@ -32,6 +34,10 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
+
+type AIGatewayOperationsReader interface {
+	TransportStatus(context.Context, string, string) (aigateway.TransportApplyStatus, error)
+}
 
 type Dependencies struct {
 	Logger                           *slog.Logger
@@ -83,8 +89,11 @@ type Dependencies struct {
 	Onboarding            *onboarding.Service
 	Autonomy              *autonomy.Service
 	AIGovernance          *aigovernance.Service
+	AIGatewayOperations   AIGatewayOperationsReader
 	BankVerticals         *bankverticals.Service
 	BackgroundJobs        *operations.Service
+	Activity              *activity.Service
+	AuditExports          *activity.ExportService
 	MaxArtifactBytes      int64
 }
 

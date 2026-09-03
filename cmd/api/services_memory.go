@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/activity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
@@ -144,6 +145,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	tasks := workflow.TasksFromMatterAggregates(seededMatters)
 	workflowService := workflow.NewService(workflow.NewMemoryRepository(tasks))
 	backgroundJobs := operations.NewService(continuityRepo, runtimeRepo)
+	activityService := activity.NewService(activity.NewMemoryRepository())
+	auditExports := activity.NewExportService(activityService, activity.NewMemoryExportRepository(), store)
 	todayService := actorTodayService(workflowService, continuityService, authorityService, nil, backgroundJobs)
 	oversightRepo := oversight.NewMemoryRepository(nil)
 	if cfg.DemoMode {
@@ -158,7 +161,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		FormPolicies: formPolicies,
 		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdparty.NewMemoryActivationRepository(thirdPartyRepo), ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
-		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Close: func() {},
+		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports, Close: func() {},
 		RuntimeContext: runtimecontext.IdentifierResolver{},
 	}, nil
 }
