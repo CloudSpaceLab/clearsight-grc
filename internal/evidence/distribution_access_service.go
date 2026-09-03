@@ -3,6 +3,7 @@ package evidence
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"strings"
@@ -294,7 +295,7 @@ func (service *DistributionAccessService) SessionRequest(ctx context.Context, se
 	eligible := eligibleAccessRecipients(route, bundle.Recipients)
 	bound := false
 	for _, recipient := range eligible {
-		if recipient.ID == session.RecipientID && recipient.RequestID == session.RequestID && recipient.AudienceHint == session.AudienceHint {
+		if recipient.ID == session.RecipientID && recipient.RequestID == session.RequestID {
 			bound = true
 			break
 		}
@@ -303,7 +304,13 @@ func (service *DistributionAccessService) SessionRequest(ctx context.Context, se
 		return DistributionAccessSession{}, Request{}, ErrSessionInvalid
 	}
 	request, err := service.store.GetRequest(ctx, session.TenantID, session.RequestID)
-	if err != nil || !requestOpenAt(request, now) || !externalRecipientRequest(request) || request.Recipient.AudienceHint != session.AudienceHint {
+	if err != nil || !requestOpenAt(request, now) || !externalRecipientRequest(request) {
+		return DistributionAccessSession{}, Request{}, ErrSessionInvalid
+	}
+	recipient, protected, err := service.store.ProtectedRecipientForAccess(ctx, route, session.RecipientID)
+	if err != nil || recipient.ID != session.RecipientID || recipient.RequestID != session.RequestID ||
+		len(protected.Hash) != sha256.Size || len(request.Recipient.AudienceHash) != sha256.Size ||
+		subtle.ConstantTimeCompare(protected.Hash, request.Recipient.AudienceHash) != 1 {
 		return DistributionAccessSession{}, Request{}, ErrSessionInvalid
 	}
 	return session, RespondentRequest(request), nil
