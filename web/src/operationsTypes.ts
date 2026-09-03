@@ -65,3 +65,34 @@ export type SystemActivityQuery = {
   legalEntityID?: string;
   limit?: number;
 };
+
+export type AuditExportFormat = "CSV" | "NDJSON";
+
+export type AuditExportReceipt = {
+  id: string;
+  tenant_id: string;
+  legal_entity_id?: string;
+  requested_by: string;
+  format: AuditExportFormat;
+  filter: {
+    from?: string;
+    to?: string;
+    category?: string;
+    event_type?: string;
+    object_type?: string;
+    object_id?: string;
+    actor_id?: string;
+    actor_query?: string;
+    actor_kind?: string;
+    legal_entity_id?: string;
+  };
+  as_of: string;
+  status: "GENERATING" | "READY" | "FAILED";
+  row_count: number;
+  data_sha256?: string;
+  manifest_sha256?: string;
+  failure_code?: string;
+  created_at: string;
+  completed_at?: string;
+  expires_at: string;
+};
