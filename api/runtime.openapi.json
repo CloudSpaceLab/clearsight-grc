@@ -290,6 +290,8 @@
     "/api/v1/operations/projections/rebuild": { "post": { "operationId": "rebuildProgramState", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "PLATFORM_OPERATIONS_WRITE" } },
     "/api/v1/operations/background-jobs": { "get": { "operationId": "backgroundJobs", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "PLATFORM_JOBS_READ" } },
     "/api/v1/operations/background-jobs/{job_id}/retry": { "post": { "operationId": "retryBackgroundJob", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "PLATFORM_OPERATIONS_WRITE" } },
+    "/api/v1/system-activity": { "get": { "operationId": "listSystemActivity", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "PLATFORM_OPERATIONS_READ" } },
+    "/api/v1/system-activity/{event_id}": { "get": { "operationId": "getSystemActivity", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "PLATFORM_OPERATIONS_READ" } },
 
     "/api/v1/config/sources/{source_id}/health": { "get": { "operationId": "sourceScopeHealth", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
     "/api/v1/config/sources/{source_id}/connections": {
