@@ -178,13 +178,29 @@ func (service *WorkflowDistributionDispatcher) Resume(ctx context.Context, tenan
 		if listErr != nil {
 			return WorkflowDistributionDispatch{Distribution: bundle.Distribution, Request: request}, ErrDistributionAccessUnavailable
 		}
+		var source AccessRoute
+		selectSource := func(route AccessRoute) {
+			if source.ID == "" || route.CreatedAt.After(source.CreatedAt) || (route.CreatedAt.Equal(source.CreatedAt) && route.ID > source.ID) {
+				source = route
+			}
+		}
 		for _, route := range active {
+			if route.Policy != bundle.Distribution.AccessPolicy {
+				continue
+			}
+			if route.Policy == AccessSharedEmailOTP && route.RecipientID == "" {
+				selectSource(route)
+				continue
+			}
 			for _, recipient := range bundle.Recipients {
 				if recipient.RequestID == requestID && route.RecipientID == recipient.ID {
-					issued, err = service.access.RotateDistributionAccessRoute(ctx, bundle.Distribution.TenantID, bundle.Distribution.LegalEntityID, bundle.Distribution.ID, route.ID, actorID)
+					selectSource(route)
 					break
 				}
 			}
+		}
+		if source.ID != "" {
+			issued, err = service.access.RotateDistributionAccessRoute(ctx, bundle.Distribution.TenantID, bundle.Distribution.LegalEntityID, bundle.Distribution.ID, source.ID, actorID)
 		}
 	}
 	if err != nil || issued.RouteID == "" {

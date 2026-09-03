@@ -234,6 +234,16 @@ func (service *DistributionAccessService) RotateDistributionAccessRoute(ctx cont
 		RouteExpiresAt: bundle.Distribution.RouteExpiresAt, Deadline: bundle.Distribution.Deadline,
 		CreatedBy: createdBy,
 	}
+	if current.Policy == AccessDirectMagicLink {
+		next, issued, err := service.engine.IssueRoute(input)
+		if err != nil {
+			return IssuedAccessRoute{}, ErrDistributionAccessUnavailable
+		}
+		if err := service.store.CreateAccessRoutes(ctx, []AccessRoute{next}); err != nil {
+			return IssuedAccessRoute{}, ErrDistributionAccessUnavailable
+		}
+		return issued, nil
+	}
 	next, issued, err := service.engine.RotateRoute(&current, input, service.currentTime())
 	if err != nil {
 		return IssuedAccessRoute{}, ErrDistributionAccessUnavailable
@@ -271,7 +281,7 @@ func (service *DistributionAccessService) SessionRequest(ctx context.Context, se
 		return DistributionAccessSession{}, Request{}, ErrSessionInvalid
 	}
 	bundle, err := service.store.GetDistribution(ctx, session.TenantID, session.LegalEntityID, session.DistributionID)
-	if err != nil || !distributionOpenForAccess(bundle.Distribution, now) {
+	if err != nil || !distributionAcceptsAccess(bundle.Distribution) {
 		return DistributionAccessSession{}, Request{}, ErrSessionInvalid
 	}
 	route, err := service.store.AccessRouteByID(ctx, session.TenantID, session.LegalEntityID, session.DistributionID, session.RouteID)
@@ -313,7 +323,7 @@ func (service *DistributionAccessService) resolvePublicRoute(ctx context.Context
 		return AccessRoute{}, DistributionBundle{}, "", ErrDistributionAccessUnavailable
 	}
 	bundle, err := service.store.GetDistribution(ctx, route.TenantID, route.LegalEntityID, route.DistributionID)
-	if err != nil || !distributionOpenForAccess(bundle.Distribution, service.currentTime()) || bundle.Distribution.AccessPolicy != route.Policy {
+	if err != nil || !distributionAcceptsAccess(bundle.Distribution) || bundle.Distribution.AccessPolicy != route.Policy {
 		return AccessRoute{}, DistributionBundle{}, "", ErrDistributionAccessUnavailable
 	}
 	return route, bundle, selector, nil
@@ -374,8 +384,8 @@ func distributionMayIssueAccess(distribution FormDistribution, now time.Time) bo
 	}
 }
 
-func distributionOpenForAccess(distribution FormDistribution, now time.Time) bool {
-	return distribution.Status == DistributionOpen && distribution.Deadline.After(now) && distribution.RouteExpiresAt.After(now)
+func distributionAcceptsAccess(distribution FormDistribution) bool {
+	return distribution.Status == DistributionOpen
 }
 
 func externalTORecipients(recipients []DistributionRecipient) []DistributionRecipient {

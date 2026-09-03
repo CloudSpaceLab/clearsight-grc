@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 )
 
 func TestDistributionRecoveryContextUsesAuthorizedDistributionMetadata(t *testing.T) {
@@ -14,6 +15,11 @@ func TestDistributionRecoveryContextUsesAuthorizedDistributionMetadata(t *testin
 	if err != nil || len(issued) != 1 {
 		t.Fatalf("issue route: %+v %v", issued, err)
 	}
+	fixture.distributions.mu.Lock()
+	distribution := fixture.distributions.distributions[fixture.distribution.ID]
+	distribution.RouteExpiresAt = fixture.now.Add(10 * time.Minute)
+	fixture.distributions.distributions[distribution.ID] = distribution
+	fixture.distributions.mu.Unlock()
 	redeemed, err := fixture.access.RedeemDirectRoute(context.Background(), issued[0].Selector)
 	if err != nil {
 		t.Fatal(err)
@@ -27,7 +33,7 @@ func TestDistributionRecoveryContextUsesAuthorizedDistributionMetadata(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	if value.LegalEntityID != fixture.distribution.LegalEntityID || value.DistributionID != fixture.distribution.ID || value.SchemaVersion != fixture.distribution.FormTemplateVersion || !value.RouteExpiresAt.Equal(fixture.distribution.RouteExpiresAt) {
+	if value.LegalEntityID != fixture.distribution.LegalEntityID || value.DistributionID != fixture.distribution.ID || value.SchemaVersion != fixture.distribution.FormTemplateVersion || !value.RouteExpiresAt.Equal(issued[0].ExpiresAt) {
 		t.Fatalf("unexpected recovery context: %+v distribution=%+v", value, fixture.distribution)
 	}
 }

@@ -282,7 +282,7 @@ func (store *MemoryDistributionAccessStore) activeRouteConflictIgnoring(candidat
 		if candidate.Policy == AccessSharedEmailOTP && existing.Policy == AccessSharedEmailOTP {
 			return true
 		}
-		if candidate.Policy != AccessSharedEmailOTP && existing.RecipientID == candidate.RecipientID {
+		if candidate.Policy == AccessDirectEmailOTP && existing.Policy == AccessDirectEmailOTP && existing.RecipientID == candidate.RecipientID {
 			return true
 		}
 	}

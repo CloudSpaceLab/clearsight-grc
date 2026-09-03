@@ -26,15 +26,16 @@ func (s *invitationDeliveryStub) Deliver(_ context.Context, request evidence.Inv
 }
 
 type assessmentEvidenceStub struct {
-	requests     map[evidence.RequestOrigin]evidence.Request
-	created      []evidence.CreateRequestInput
-	dispatched   int
-	issueErr     error
-	revokeErr    error
-	revoked      []string
-	reassigned   []evidence.ReassignRecipientInput
-	repo         AssessmentRepository
-	assessmentID string
+	requests          map[evidence.RequestOrigin]evidence.Request
+	created           []evidence.CreateRequestInput
+	dispatched        int
+	resumeReplacement bool
+	issueErr          error
+	revokeErr         error
+	revoked           []string
+	reassigned        []evidence.ReassignRecipientInput
+	repo              AssessmentRepository
+	assessmentID      string
 }
 
 func (s *assessmentEvidenceStub) CreateRequest(_ context.Context, input evidence.CreateRequestInput) (evidence.Request, error) {
@@ -139,7 +140,7 @@ func (s *assessmentEvidenceStub) Resume(_ context.Context, tenantID, legalEntity
 		return evidence.WorkflowDistributionDispatch{}, evidence.ErrNotFound
 	}
 	routeID, selector := "invitation-1", "one-time-token"
-	if len(s.revoked) > 0 {
+	if s.resumeReplacement {
 		routeID, selector = "invitation-2", "replacement-token"
 	}
 	return evidence.WorkflowDistributionDispatch{

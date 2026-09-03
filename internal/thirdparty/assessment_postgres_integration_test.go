@@ -89,7 +89,7 @@ func TestPostgresAssessmentRequestResolverRequiresExactCurrentCollectingLink(t *
 	}
 }
 
-func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(t *testing.T) {
+func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndKeepsPriorLinkUntilExpiry(t *testing.T) {
 	pool := assessmentPostgresPool(t)
 	ctx := context.Background()
 	relationship := seedAssessmentRelationship(t, pool, "Managed secure document exchange")
@@ -157,9 +157,6 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 	if preparedAssessment.Status != AssessmentCollecting || preparedAssessment.Version != 5 || preparedLink.InvitationID != "" {
 		t.Fatalf("replacement preparation changed lifecycle or retained invitation: assessment=%#v link=%#v", preparedAssessment, preparedLink)
 	}
-	if err := dispatcher.RevokeRequest(ctx, request.TenantID, request.LegalEntityID, request.ID, initial.Route.RouteID); err != nil {
-		t.Fatal(err)
-	}
 	replacementExpiry := now.Add(2 * time.Hour)
 	replacement, err := dispatcher.Resume(ctx, request.TenantID, request.LegalEntityID, request.ID, thirdPartyPrincipal, replacementExpiry)
 	if err != nil {
@@ -176,8 +173,8 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndRevokesPriorSession(
 	if updated.Status != AssessmentCollecting || updated.Version != 6 || link.InvitationID != replacement.Route.RouteID || replacement.Route.ExpiresAt.Sub(replacementExpiry).Abs() >= time.Microsecond {
 		t.Fatalf("replacement changed lifecycle or failed to update link: assessment=%#v link=%#v", updated, link)
 	}
-	if _, _, err := access.SessionRequest(ctx, priorSession.SessionToken); !errors.Is(err, evidence.ErrSessionInvalid) {
-		t.Fatalf("prior session remained usable: %v", err)
+	if _, _, err := access.SessionRequest(ctx, priorSession.SessionToken); err != nil {
+		t.Fatalf("reissue invalidated the prior unexpired session: %v", err)
 	}
 	if _, err := access.RedeemDirectRoute(ctx, replacement.Route.Selector); err != nil {
 		t.Fatalf("replacement invitation was not redeemable: %v", err)

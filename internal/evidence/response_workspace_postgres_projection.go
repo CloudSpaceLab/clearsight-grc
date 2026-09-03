@@ -56,7 +56,7 @@ func loadPostgresWorkspaceState(ctx context.Context, tx pgx.Tx, session Distribu
 		  AND s.recipient_id=$5::uuid AND s.request_id=$6::uuid AND s.route_id=$7::uuid AND s.assurance=$8
 		  AND s.revoked_at IS NULL AND s.expires_at>$9
 		  AND ar.revoked_at IS NULL AND ar.expires_at>$9 AND ar.access_policy=d.access_policy
-		  AND d.status='OPEN' AND d.deadline>$9 AND d.route_expires_at>$9
+		  AND d.status='OPEN'
 		  AND w.status='OPEN'
 		  AND r.role='TO' AND r.state NOT IN ('REVOKED','COMPLETED') AND r.request_id=s.request_id
 		  AND er.status IN ('READY','IN_PROGRESS') AND er.deadline>$9`+lockSQL,

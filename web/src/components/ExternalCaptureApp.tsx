@@ -163,7 +163,7 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
 
   async function submit(answers: CaptureAnswers) {
     const controller = syncRef.current;
-    if (!workspace || !sessionToken || !controller) throw new Error("Response workspace is unavailable");
+    if (!request || !workspace || !sessionToken || !controller) throw new Error("Response workspace is unavailable");
     try {
       const currentSnapshot = controller.snapshot();
       controller.change(answers, currentSnapshot.presentationMode, currentSnapshot.page);
@@ -176,7 +176,8 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
       }
       const current = controller.currentWorkspace();
       const result = await submitFormResponseWorkspace(sessionToken, { expected_version: current.workspace.version });
-      if (result.workspace.status !== "COMPLETED" || !result.revision) {
+      if (result.workspace.id !== current.workspace.id || result.workspace.version <= current.workspace.version ||
+          !result.revision?.current || !result.submission?.submission_id || result.submission.request_id !== request.id) {
         throw new ApiError(503, "The final response could not be confirmed.", "submission_unconfirmed");
       }
       await controller.clearRecovery().catch(() => undefined);
