@@ -23,7 +23,7 @@ Use:
 
 Invitation possession alone does not establish sufficient identity for high-impact or sensitive actions.
 
-For canonical form distributions, the opaque route selector remains exchangeable until its recorded expiry unless it is rotated, revoked, cancelled or superseded. Each successful open mints a distinct short-lived session. There is no hidden redemption counter that can make the route appear expired before that timestamp. Email OTP challenges and session tokens remain single-use or replay-protected at their own boundary.
+For canonical form distributions, the opaque direct magic-link selector remains exchangeable until its recorded expiry unless it is explicitly revoked, its recipient changes, or its request is cancelled or completed. Sending another direct magic link creates an independently expiring selector and does not silently invalidate an earlier email. Each successful open mints a distinct short-lived session. There is no hidden redemption counter that can make the route appear expired before that timestamp. Email-OTP routes may be replaced as part of their stronger verification ceremony; OTP challenges and session tokens remain single-use or replay-protected at their own boundary.
 
 Protected anonymous reporting uses a separate identity-isolated mailbox and is not implemented through the ordinary invitation model.
 

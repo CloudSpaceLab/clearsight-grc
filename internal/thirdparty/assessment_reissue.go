@@ -75,11 +75,8 @@ func (s *AssessmentRequestService) ReissueRequest(ctx context.Context, _ Actor, 
 	if s.dispatch == nil || link.InvitationID == "" {
 		return SendRequestOutcome{}, evidence.ErrDistributionAccessUnavailable
 	}
-	if err := s.dispatch.RevokeRequest(ctx, scope.TenantID, scope.LegalEntityID, request.ID, link.InvitationID); err != nil {
-		return SendRequestOutcome{}, err
-	}
 	if s.captureBase == nil {
-		return SendRequestOutcome{Assessment: preparedAssessment, Request: request, State: SendRequestReadyInvitationNotIssued, Recovery: "Set the secure capture address, then issue a replacement invitation."}, nil
+		return SendRequestOutcome{Assessment: preparedAssessment, Request: request, State: SendRequestReadyInvitationNotIssued, Recovery: "Set the secure capture address, then issue another invitation."}, nil
 	}
 	routeExpiry := s.assessments.now().UTC().Add(time.Duration(input.InvitationTTLMinutes) * time.Minute)
 	if routeExpiry.After(request.Deadline) {
@@ -87,7 +84,7 @@ func (s *AssessmentRequestService) ReissueRequest(ctx context.Context, _ Actor, 
 	}
 	dispatched, err := s.dispatch.Resume(ctx, scope.TenantID, scope.LegalEntityID, request.ID, verified.PrincipalID, routeExpiry)
 	if err != nil || dispatched.Route.RouteID == "" {
-		return SendRequestOutcome{Assessment: preparedAssessment, Request: request, State: SendRequestReadyInvitationNotIssued, Recovery: "Retry replacement invitation creation for this request."}, nil
+		return SendRequestOutcome{Assessment: preparedAssessment, Request: request, State: SendRequestReadyInvitationNotIssued, Recovery: "Retry creating another invitation for this request."}, nil
 	}
 	issued := evidence.IssuedInvitation{InvitationID: dispatched.Route.RouteID, Token: dispatched.Route.Selector, AudienceHint: request.Recipient.AudienceHint, ExpiresAt: dispatched.Route.ExpiresAt}
 	linkURL := captureInvitationURL(s.captureBase, dispatched.Route.Selector)
@@ -110,7 +107,7 @@ func (s *AssessmentRequestService) ReissueRequest(ctx context.Context, _ Actor, 
 	if deliveryErr != nil || receipt.Status != evidence.InvitationDelivered {
 		outcome.State = SendRequestLinkCreatedEmailNotSent
 		outcome.CaptureURL = linkURL
-		outcome.Recovery = "Copy the replacement secure link or retry email delivery."
+		outcome.Recovery = "Copy the new secure link or retry email delivery."
 		return outcome, nil
 	}
 	outcome.State = SendRequestDelivered

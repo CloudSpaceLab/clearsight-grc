@@ -60,6 +60,18 @@ func TestWorkflowDistributionDispatcherIssuesRedeemableCanonicalRoute(t *testing
 	if replacement.Route.RouteID == result.Route.RouteID || replacement.Route.Selector == "" || !replacement.Route.ExpiresAt.Equal(replacementExpiry) || !replacement.Distribution.RouteExpiresAt.Equal(replacementExpiry) {
 		t.Fatalf("canonical replacement did not apply the requested future expiry: %#v", replacement)
 	}
+	secondReplacementExpiry := now.Add(40 * time.Hour)
+	secondReplacement, err := dispatcher.Resume(context.Background(), requestInput.TenantID, requestInput.LegalEntityID, result.Request.ID, requestInput.CreatedBy, secondReplacementExpiry)
+	if err != nil || secondReplacement.Route.RouteID == "" {
+		t.Fatalf("second reissue failed: %#v %v", secondReplacement, err)
+	}
+	active, err := accessStore.ListActiveAccessRoutes(context.Background(), requestInput.TenantID, requestInput.LegalEntityID, result.Distribution.ID, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(active) != 3 {
+		t.Fatalf("each reissue must mint exactly one link; got %d active routes after two reissues", len(active))
+	}
 	if err := dispatcher.RevokeRequestCapabilities(context.Background(), requestInput.TenantID, result.Request.ID); err != nil {
 		t.Fatal(err)
 	}

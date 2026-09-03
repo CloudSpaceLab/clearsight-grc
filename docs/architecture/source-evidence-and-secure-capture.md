@@ -81,7 +81,7 @@ An access route is:
 - invalid when the distribution or request is no longer open; and
 - protected by the distribution's direct-link or email-OTP access policy.
 
-The route's recorded expiry is the authoritative time limit. Opening an unexpired, unrevoked route creates a new short-lived server-side session; it does not consume the route or shorten the displayed expiry. Route rotation, recipient change, cancellation, supersession and explicit revocation still invalidate the route and its sessions. OTP challenges remain single-use and attempt-limited.
+The route's recorded expiry is the authoritative time limit. Runtime access checks use that exact route expiry, not the distribution's latest delivery expiry, because another email may have a different lifetime. Opening an unexpired, unrevoked route creates a new short-lived server-side session; it does not consume the route or shorten the displayed expiry. Sending another direct magic link mints exactly one independently expiring route and does not invalidate an earlier unexpired route. Recipient change, cancellation, request completion and explicit revocation still invalidate affected routes and sessions. Email-OTP route replacement invalidates the prior route, and OTP challenges remain single-use and attempt-limited.
 
 Direct magic-link access proves link possession only. Direct and shared email-OTP policies prove control of the configured recipient mailbox before creating an email-verified session. Enterprise identity federation is not implemented in this flow and must not be implied by the interface.
 

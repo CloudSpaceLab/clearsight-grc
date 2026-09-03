@@ -372,7 +372,7 @@ func (store *MemoryDistributionAccessStore) validateMemoryWorkspaceAccess(sessio
 	defer store.distributions.mu.RUnlock()
 	distribution := store.distributions.distributions[session.DistributionID]
 	workspace := store.distributions.workspaces[session.DistributionID]
-	if !distributionOpenForAccess(distribution, now) || workspace.ID == "" || workspace.Status != ResponseWorkspaceOpen ||
+	if !distributionAcceptsAccess(distribution) || workspace.ID == "" || workspace.Status != ResponseWorkspaceOpen ||
 		workspace.TenantID != session.TenantID || workspace.LegalEntityID != session.LegalEntityID {
 		return ResponseWorkspace{}, ErrWorkspaceUnavailable
 	}
@@ -382,7 +382,7 @@ func (store *MemoryDistributionAccessStore) validateMemoryWorkspaceAccess(sessio
 func validateMemoryDistributionWorkspaceLocked(distributions *MemoryDistributionStore, session DistributionAccessSession, workspace ResponseWorkspace, now time.Time) error {
 	distribution := distributions.distributions[session.DistributionID]
 	persisted := distributions.workspaces[session.DistributionID]
-	if !distributionOpenForAccess(distribution, now) || persisted.ID != workspace.ID || persisted.Status != ResponseWorkspaceOpen ||
+	if !distributionAcceptsAccess(distribution) || persisted.ID != workspace.ID || persisted.Status != ResponseWorkspaceOpen ||
 		persisted.Version != workspace.Version || persisted.TenantID != session.TenantID || persisted.LegalEntityID != session.LegalEntityID {
 		return ErrWorkspaceUnavailable
 	}

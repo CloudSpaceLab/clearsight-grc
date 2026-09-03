@@ -149,6 +149,7 @@ func TestPostgresDirectMagicLinkReopensUntilExpiryOrRevocation(t *testing.T) {
 		subjectID = "9d666666-6666-7666-8666-666666666665"
 	)
 	now := time.Date(2026, 8, 28, 3, 0, 0, 0, time.UTC)
+	clock := now
 	setupDistributionAccessFixture(t, ctx, pool, tenantID, entityID, actorID, formID, now)
 	defer cleanupDistributionTenant(context.Background(), pool, tenantID)
 
@@ -162,7 +163,7 @@ func TestPostgresDirectMagicLinkReopensUntilExpiryOrRevocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	store := NewPostgresDistributionStore(NewPostgresRepository(pool), keyring)
-	store.now = func() time.Time { return now }
+	store.now = func() time.Time { return clock }
 	bundle, err := store.CreateDistribution(ctx, CreateDistributionInput{
 		TenantID: "distribution-access-reopen", LegalEntityID: "ACCESS", FormTemplateID: formID, FormTemplateVersion: 1,
 		SubjectType: "VENDOR", SubjectID: subjectID, Title: "Direct evidence request", Purpose: "Verify reusable access before expiry.",
@@ -184,7 +185,7 @@ func TestPostgresDirectMagicLinkReopensUntilExpiryOrRevocation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	service.now = func() time.Time { return now }
+	service.now = func() time.Time { return clock }
 	routes, err := service.IssueDistributionAccessRoutes(ctx, tenantID, entityID, bundle.Distribution.ID, actorID)
 	if err != nil || len(routes) != 1 {
 		t.Fatalf("issue direct access route: routes=%+v err=%v", routes, err)
@@ -200,11 +201,42 @@ func TestPostgresDirectMagicLinkReopensUntilExpiryOrRevocation(t *testing.T) {
 	if first.SessionID == second.SessionID || first.SessionToken == second.SessionToken {
 		t.Fatalf("reopening reused a bearer session: first=%s second=%s", first.SessionID, second.SessionID)
 	}
+	replacement, err := service.RotateDistributionAccessRoute(ctx, tenantID, entityID, bundle.Distribution.ID, routes[0].RouteID, actorID)
+	if err != nil {
+		t.Fatalf("reissue direct link: %v", err)
+	}
+	if _, err := service.RedeemDirectRoute(ctx, routes[0].Selector); err != nil {
+		t.Fatalf("reissue invalidated prior unexpired selector: %v", err)
+	}
+	if _, err := service.RedeemDirectRoute(ctx, replacement.Selector); err != nil {
+		t.Fatalf("replacement selector was not usable: %v", err)
+	}
+	shortExpiry := now.Add(30 * time.Minute)
+	if _, err := pool.Exec(ctx, `UPDATE capture_form_distributions SET route_expires_at=$2,version=version+1,updated_at=$3 WHERE id=$1::uuid`, bundle.Distribution.ID, shortExpiry, now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	short, err := service.RotateDistributionAccessRoute(ctx, tenantID, entityID, bundle.Distribution.ID, replacement.RouteID, actorID)
+	if err != nil || !short.ExpiresAt.Equal(shortExpiry) {
+		t.Fatalf("issue shorter-lived link: %+v %v", short, err)
+	}
+	clock = now.Add(time.Hour)
+	if _, err := service.RedeemDirectRoute(ctx, routes[0].Selector); err != nil {
+		t.Fatalf("distribution expiry change invalidated the first link before its own expiry: %v", err)
+	}
+	if _, err := service.RedeemDirectRoute(ctx, replacement.Selector); err != nil {
+		t.Fatalf("distribution expiry change invalidated the replacement before its own expiry: %v", err)
+	}
+	if _, err := service.RedeemDirectRoute(ctx, short.Selector); !errors.Is(err, ErrDistributionAccessUnavailable) {
+		t.Fatalf("shorter-lived link remained usable after its own expiry: %v", err)
+	}
 	if err := service.RevokeDistributionAccessRoute(ctx, tenantID, entityID, bundle.Distribution.ID, routes[0].RouteID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.RedeemDirectRoute(ctx, routes[0].Selector); !errors.Is(err, ErrDistributionAccessUnavailable) {
 		t.Fatalf("revoked selector remained usable: %v", err)
+	}
+	if _, err := service.RedeemDirectRoute(ctx, replacement.Selector); err != nil {
+		t.Fatalf("revoking one link invalidated a different active link: %v", err)
 	}
 }
 
@@ -214,6 +246,8 @@ func setupDistributionAccessFixture(t *testing.T, ctx context.Context, pool *pgx
 	tenantSlug := "distribution-access-integration"
 	if tenantID == "9d666666-6666-7666-8666-666666666661" {
 		tenantSlug = "distribution-access-reopen"
+	} else if tenantID == "9d777777-7777-7777-8777-777777777771" {
+		tenantSlug = "distribution-access-migration"
 	}
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$6,'Distribution Access Integration');

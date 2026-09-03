@@ -7,6 +7,7 @@ import {
   sendFormAccessOTP,
   startFormAccess,
   submitFormResponseWorkspace,
+  type RedeemedFormAccessSession,
   verifyFormAccessOTP,
 } from "../captureApi";
 import { consumeCaptureInvitation, purgeLegacyCaptureSession } from "../captureInvitationBrowser";
@@ -50,7 +51,7 @@ const request: CaptureRequest = {
   version: 1,
 };
 
-const directSession = {
+const directSession: RedeemedFormAccessSession = {
   session_id: "session-1",
   session_token: "session-secret",
   distribution_id: "distribution-1",
@@ -58,6 +59,13 @@ const directSession = {
   audience_hint: "f***@example.com",
   assurance: "LINK_POSSESSION" as const,
   expires_at: request.deadline,
+};
+
+const verifiedSession = {
+  ...directSession,
+  session_id: "verified-session-1",
+  session_token: "verified-session-secret",
+  assurance: "EMAIL_VERIFIED" as const,
 };
 
 const workspace = {
@@ -216,9 +224,15 @@ describe("ExternalCaptureApp", () => {
     expect(screen.queryByText("provider diagnostic")).toBeNull();
   });
 
-  it("writes the final changed answers to the shared workspace before submission", async () => {
-    vi.mocked(startFormAccess).mockResolvedValue({ policy: "DIRECT_MAGIC_LINK", expires_at: request.deadline });
-    vi.mocked(redeemFormAccess).mockResolvedValue(directSession);
+  it("submits an email-verified OTP response when the server keeps the shared workspace open", async () => {
+    vi.mocked(startFormAccess).mockResolvedValue({
+      policy: "DIRECT_LINK_EMAIL_OTP",
+      expires_at: request.deadline,
+      recipients: [{ selector_id: "selector-direct", hint: "f***@example.com", contact_label: "Field agent" }],
+    });
+    vi.mocked(sendFormAccessOTP).mockResolvedValue({ challenge_id: "challenge-direct", hint: "f***@example.com", expires_at: request.deadline });
+    vi.mocked(verifyFormAccessOTP).mockResolvedValue(verifiedSession);
+    vi.mocked(loadFormResponseWorkspace).mockResolvedValue(workspacePayload(verifiedSession));
     vi.mocked(saveFormResponseWorkspace).mockResolvedValue({
       ...workspace,
       answers: { present: { text: "Yes" } },
@@ -226,23 +240,31 @@ describe("ExternalCaptureApp", () => {
       workspace: { ...workspace.workspace, version: 1 },
     });
     vi.mocked(submitFormResponseWorkspace).mockResolvedValue({
-      workspace: { ...workspace.workspace, status: "COMPLETED", version: 2 },
+      // A submitted revision does not close the shared workspace; targeted
+      // change requests may produce later immutable revisions.
+      workspace: { ...workspace.workspace, status: "OPEN", version: 2 },
       revision: { revision: 1, current: true },
       submission: { request_id: request.id, submission_id: "submission-1", status: "SUBMITTED", submitted_at: "2026-08-28T13:00:00Z", version: 2 },
     });
 
-    render(<ExternalCaptureApp invitationToken="route-secret"/>);
+    render(<ExternalCaptureApp invitationToken="direct-otp-route"/>);
+
+    const code = await screen.findByRole("textbox", { name: "Verification code" });
+    fireEvent.change(code, { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verify and open" }));
+
+    expect(await screen.findByRole("heading", { name: request.title })).toBeTruthy();
 
     fireEvent.click(await screen.findByRole("radio", { name: "Yes" }));
     fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
     fireEvent.click(await screen.findByRole("button", { name: "Submit evidence" }));
 
-    await waitFor(() => expect(saveFormResponseWorkspace).toHaveBeenCalledWith("session-secret", {
+    await waitFor(() => expect(saveFormResponseWorkspace).toHaveBeenCalledWith("verified-session-secret", {
       expected_version: 0,
       presentation_mode: "AUTOMATIC",
       edits: [{ field_id: "present", value: { text: "Yes" }, base_sequence: 0 }],
     }));
-    expect(submitFormResponseWorkspace).toHaveBeenCalledWith("session-secret", { expected_version: 1 });
+    expect(submitFormResponseWorkspace).toHaveBeenCalledWith("verified-session-secret", { expected_version: 1 });
     expect(await screen.findByRole("heading", { name: "Submitted" })).toBeTruthy();
     expect(Object.keys(sessionStorage)).toEqual([]);
   });

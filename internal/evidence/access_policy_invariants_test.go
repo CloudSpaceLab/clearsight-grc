@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -27,6 +28,26 @@ func TestAccessPolicyPublicProjectionsOmitInternalSelectorsAndRecipientIDs(t *te
 	text := string(encoded)
 	if strings.Contains(text, route.RecipientID) || strings.Contains(text, issued.Selector) || strings.Contains(text, fmt.Sprintf("%x", route.SelectorHash)) {
 		t.Fatalf("route JSON leaked protected selectors: %s", text)
+	}
+}
+
+func TestMagicLinkExpiryMigrationAllowsIndependentDirectLinksAndKeepsOTPReplacementUnique(t *testing.T) {
+	up, err := os.ReadFile("../../migrations/000075_magic_link_expiry_semantics.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	upSQL := string(up)
+	for _, required := range []string{
+		"DROP INDEX capture_access_routes_active_direct_uq",
+		"CREATE UNIQUE INDEX capture_access_routes_active_direct_otp_uq",
+		"access_policy='DIRECT_LINK_EMAIL_OTP'",
+	} {
+		if !strings.Contains(upSQL, required) {
+			t.Fatalf("magic-link expiry migration lacks %q", required)
+		}
+	}
+	if strings.Contains(upSQL, "access_policy='DIRECT_MAGIC_LINK'") {
+		t.Fatal("magic-link expiry migration retained a single-active-link constraint")
 	}
 }
 

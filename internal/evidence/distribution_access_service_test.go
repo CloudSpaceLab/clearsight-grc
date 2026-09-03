@@ -21,7 +21,7 @@ func (delivery *recordingOTPDelivery) DeliverDistributionOTP(_ context.Context, 
 	return nil
 }
 
-func TestDistributionAccessDirectMagicLinkSessionAndRotation(t *testing.T) {
+func TestDistributionAccessDirectMagicLinkReissueKeepsPriorLinkUntilExplicitRevocation(t *testing.T) {
 	fixture := newMemoryAccessFixture(t, AccessDirectMagicLink, []DistributionRecipientInput{{
 		Role: RecipientTo, Type: RecipientExternalAudience, Address: "owner@example.test", AudienceHint: "o***@example.test", ContactLabel: "Owner",
 	}})
@@ -55,19 +55,61 @@ func TestDistributionAccessDirectMagicLinkSessionAndRotation(t *testing.T) {
 
 	replacement, err := fixture.access.RotateDistributionAccessRoute(context.Background(), "tenant-a", "entity-a", fixture.distribution.ID, issued[0].RouteID, "actor-a")
 	if err != nil || replacement.Selector == "" || replacement.Selector == issued[0].Selector {
-		t.Fatalf("route rotation failed: %+v %v", replacement, err)
+		t.Fatalf("route reissue failed: %+v %v", replacement, err)
 	}
-	if _, _, err := fixture.access.SessionRequest(context.Background(), redeemed.SessionToken); !errors.Is(err, ErrSessionInvalid) {
-		t.Fatalf("rotation did not revoke the old session: %v", err)
+	if _, _, err := fixture.access.SessionRequest(context.Background(), redeemed.SessionToken); err != nil {
+		t.Fatalf("reissue invalidated an unexpired session: %v", err)
+	}
+	if _, err := fixture.access.StartDistributionAccess(context.Background(), issued[0].Selector); err != nil {
+		t.Fatalf("reissue invalidated the prior unexpired link: %v", err)
+	}
+	if _, err := fixture.access.StartDistributionAccess(context.Background(), replacement.Selector); err != nil {
+		t.Fatalf("replacement link was not usable: %v", err)
+	}
+	if err := fixture.access.RevokeDistributionAccessRoute(context.Background(), "tenant-a", "entity-a", fixture.distribution.ID, issued[0].RouteID); err != nil {
+		t.Fatal(err)
 	}
 	if _, err := fixture.access.StartDistributionAccess(context.Background(), issued[0].Selector); !errors.Is(err, ErrDistributionAccessUnavailable) {
-		t.Fatalf("rotated selector remained usable: %v", err)
+		t.Fatalf("explicitly revoked prior link remained usable: %v", err)
 	}
 	if err := fixture.access.RevokeDistributionAccessRoute(context.Background(), "tenant-a", "entity-a", fixture.distribution.ID, replacement.RouteID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := fixture.access.StartDistributionAccess(context.Background(), replacement.Selector); !errors.Is(err, ErrDistributionAccessUnavailable) {
 		t.Fatalf("revoked replacement remained usable: %v", err)
+	}
+}
+
+func TestDistributionAccessDirectMagicLinkUsesEachLinksPrintedExpiry(t *testing.T) {
+	fixture := newMemoryAccessFixture(t, AccessDirectMagicLink, []DistributionRecipientInput{{
+		Role: RecipientTo, Type: RecipientExternalAudience, Address: "owner@example.test", AudienceHint: "o***@example.test", ContactLabel: "Owner",
+	}})
+
+	issued, err := fixture.access.IssueDistributionAccessRoutes(context.Background(), "tenant-a", "entity-a", fixture.distribution.ID, "actor-a")
+	if err != nil || len(issued) != 1 {
+		t.Fatalf("issue direct route: %+v %v", issued, err)
+	}
+	shorterExpiry := fixture.now.Add(10 * time.Minute)
+	fixture.distributions.mu.Lock()
+	distribution := fixture.distributions.distributions[fixture.distribution.ID]
+	distribution.RouteExpiresAt = shorterExpiry
+	distribution.Version++
+	fixture.distributions.distributions[distribution.ID] = distribution
+	fixture.distributions.mu.Unlock()
+	replacement, err := fixture.access.RotateDistributionAccessRoute(context.Background(), "tenant-a", "entity-a", fixture.distribution.ID, issued[0].RouteID, "actor-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !replacement.ExpiresAt.Equal(shorterExpiry) || !issued[0].ExpiresAt.After(replacement.ExpiresAt) {
+		t.Fatalf("test setup did not create independently expiring links: first=%s second=%s", issued[0].ExpiresAt, replacement.ExpiresAt)
+	}
+
+	*fixture.now = fixture.now.Add(15 * time.Minute)
+	if _, err := fixture.access.StartDistributionAccess(context.Background(), issued[0].Selector); err != nil {
+		t.Fatalf("first link expired before the date printed in its email: %v", err)
+	}
+	if _, err := fixture.access.StartDistributionAccess(context.Background(), replacement.Selector); !errors.Is(err, ErrDistributionAccessUnavailable) {
+		t.Fatalf("shorter-lived replacement remained available after its own expiry: %v", err)
 	}
 }
 
@@ -153,14 +195,17 @@ func TestDistributionAccessDirectEmailOTPCreatesOneBoundRoutePerExternalTO(t *te
 }
 
 type memoryAccessFixture struct {
-	access       *DistributionAccessService
-	delivery     *recordingOTPDelivery
-	distribution FormDistribution
+	access        *DistributionAccessService
+	delivery      *recordingOTPDelivery
+	distribution  FormDistribution
+	distributions *MemoryDistributionStore
+	now           *time.Time
 }
 
 func newMemoryAccessFixture(t *testing.T, policy AccessPolicy, recipients []DistributionRecipientInput) memoryAccessFixture {
 	t.Helper()
 	now := time.Date(2026, 8, 27, 20, 0, 0, 0, time.UTC)
+	clock := &now
 	encryptionKey := testSecurityKey(0x31)
 	hmacKey := testSecurityKey(0x42)
 	keyring, err := NewRecipientKeyring("recipient-v1", map[string][32]byte{"recipient-v1": encryptionKey})
@@ -169,7 +214,7 @@ func newMemoryAccessFixture(t *testing.T, policy AccessPolicy, recipients []Dist
 	}
 	repo := NewMemoryRepository(nil, nil)
 	distributions := NewMemoryDistributionStore(repo, stubDistributionFormReader{form: activeDistributionForm()}, keyring)
-	distributions.now = func() time.Time { return now }
+	distributions.now = func() time.Time { return *clock }
 	bundle, err := distributions.CreateDistribution(context.Background(), CreateDistributionInput{
 		TenantID: "tenant-a", LegalEntityID: "entity-a", FormTemplateID: "form-a", FormTemplateVersion: 3,
 		SubjectType: "VENDOR", SubjectID: "subject-a", Title: "Access review", Purpose: "Collect protected evidence.",
@@ -191,8 +236,8 @@ func newMemoryAccessFixture(t *testing.T, policy AccessPolicy, recipients []Dist
 	if err != nil {
 		t.Fatal(err)
 	}
-	access.now = func() time.Time { return now }
-	return memoryAccessFixture{access: access, delivery: delivery, distribution: distribution}
+	access.now = func() time.Time { return *clock }
+	return memoryAccessFixture{access: access, delivery: delivery, distribution: distribution, distributions: distributions, now: clock}
 }
 
 func testSecurityKey(value byte) [32]byte {

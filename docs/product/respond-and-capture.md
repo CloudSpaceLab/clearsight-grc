@@ -159,9 +159,9 @@ Invitation tokens must be:
 - cryptographically random and opaque;
 - short-lived and revocable;
 - audience- and request-bound;
-- explicitly bounded for safe resume: canonical form routes may mint fresh short-lived sessions until their recorded expiry, revocation, cancellation or supersession;
+- explicitly bounded for safe resume: canonical form routes may mint fresh short-lived sessions until their recorded expiry, explicit revocation, recipient change, cancellation or request completion;
 - stored hashed or using equivalent one-way protection;
-- rotated when reissued;
+- direct magic links remain valid when another copy is issued; email-OTP routes are rotated when their verification route is replaced;
 - invalidated on request cancellation, supersession, recipient change, or security event.
 
 Tokens and sensitive request content must not appear in:
