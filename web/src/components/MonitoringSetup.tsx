@@ -147,7 +147,8 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
         setError("This monitoring check changed after you opened it. The latest revision has been loaded. Review the current status before taking another action.");
         return;
       }
-      const updated = await transitionMonitoringCheck(latest.id, latest.version, to);
+      const expectedCurrent = checks.find((candidate) => candidate.program_id === latest.program_id && candidate.code === latest.code && candidate.is_current);
+      const updated = await transitionMonitoringCheck(latest.id, latest.version, to, expectedCurrent);
       setChecks((current) => latestByID([...current, updated]));
     } catch (caught) {
       if (apiErrorKind(caught) === "conflict") {

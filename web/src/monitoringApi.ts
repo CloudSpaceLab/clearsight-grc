@@ -56,8 +56,8 @@ export function createSourceMonitoringCheck(programID: string, binding: SourceBi
   });
 }
 
-export function transitionMonitoringCheck(id: string, expectedVersion: number, to: LifecycleStatus): Promise<MonitoringCheck> {
-  return scoped<MonitoringCheck>(`/api/v1/monitoring-checks/${encodeURIComponent(id)}/transition`, { method: "POST", body: JSON.stringify({ expected_version: expectedVersion, to }) });
+export function transitionMonitoringCheck(id: string, expectedVersion: number, to: LifecycleStatus, expectedCurrent?: Pick<MonitoringCheck, "id" | "version">): Promise<MonitoringCheck> {
+  return scoped<MonitoringCheck>(`/api/v1/monitoring-checks/${encodeURIComponent(id)}/transition`, { method: "POST", body: JSON.stringify({ expected_version: expectedVersion, expected_current_id: expectedCurrent?.id, expected_current_version: expectedCurrent?.version, to }) });
 }
 
 export function startFormCollection(form: FormTemplate, input: { programID: string; periodStart: string; periodEnd: string; deadline: string }): Promise<EvidenceRequest> {

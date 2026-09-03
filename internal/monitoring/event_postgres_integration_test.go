@@ -6,12 +6,99 @@ import (
 	"context"
 	"errors"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+func TestPostgresConcurrentReplacementApprovalBindsCurrentAndRecordsRetirement(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	const (
+		tenantID  = "9c666666-6666-7666-8666-666666666661"
+		entityID  = "9c666666-6666-7666-8666-666666666662"
+		programID = "9c666666-6666-7666-8666-666666666663"
+		currentID = "9c666666-6666-7666-8666-666666666664"
+		firstID   = "9c666666-6666-7666-8666-666666666665"
+		secondID  = "9c666666-6666-7666-8666-666666666666"
+		actorID   = "9c666666-6666-7666-8666-666666666667"
+	)
+	cleanupMonitoringEventTenant(ctx, pool, tenantID)
+	defer cleanupMonitoringEventTenant(context.Background(), pool, tenantID)
+	now := time.Date(2026, 9, 3, 8, 0, 0, 0, time.UTC)
+	if _, err = pool.Exec(ctx, `
+		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'monitoring-concurrency-test','Monitoring Concurrency Test');
+		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($2::uuid,$1::uuid,'NG','Nigeria','Nigeria');
+		INSERT INTO principals(id,tenant_id,kind,display_name) VALUES($4::uuid,$1::uuid,'PERSON','Independent Reviewer');
+		INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from)
+		VALUES($3::uuid,$1::uuid,$2::uuid,'MON-CONCURRENT','Monitoring concurrency','COMPLIANCE','ACTIVE','Compliance','NG','{}'::jsonb,$5)`, pgx.QueryExecModeSimpleProtocol, tenantID, entityID, programID, actorID, now); err != nil {
+		t.Fatal(err)
+	}
+	repo := NewPostgresRepository(pool)
+	base := MonitoringCheck{ID: currentID, TenantID: "monitoring-concurrency-test", ProgramID: programID, Code: "ENCRYPTION", Name: "Encryption check", Claim: "Encryption remains enabled.", InputKind: InputSource, BindingID: "9c666666-6666-7666-8666-666666666668", BindingVersion: 1, SourceRules: []SourceRule{{ID: "enabled", Field: "enabled", Operator: OperatorEquals, Expected: "true", RiskPoints: 100}}, Thresholds: DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1, FailureAction: FailureReview, Lifecycle: Lifecycle{Status: LifecyclePaused, IsCurrent: true, Version: 3, EffectiveFrom: &now, CreatedAt: now, UpdatedAt: now}}
+	first := base
+	first.ID = firstID
+	first.Lifecycle = Lifecycle{Status: LifecyclePendingApproval, Version: 2, SubmittedBy: actorID, CreatedAt: now, UpdatedAt: now}
+	second := first
+	second.ID = secondID
+	for _, check := range []MonitoringCheck{base, first, second} {
+		if _, err = repo.CreateCheckRevision(ctx, check); err != nil {
+			t.Fatal(err)
+		}
+	}
+	start := make(chan struct{})
+	results := make(chan error, 2)
+	var wg sync.WaitGroup
+	for _, id := range []string{firstID, secondID} {
+		wg.Add(1)
+		go func(candidateID string) {
+			defer wg.Done()
+			<-start
+			_, transitionErr := repo.TransitionCheck(ctx, LifecycleTransition{TenantID: tenantID, ID: candidateID, ExpectedVersion: 2, ExpectedCurrentID: currentID, ExpectedCurrentVersion: 3, To: LifecycleActive, ActorID: actorID, At: now.Add(time.Minute)})
+			results <- transitionErr
+		}(id)
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+	successes, conflicts := 0, 0
+	for transitionErr := range results {
+		if transitionErr == nil {
+			successes++
+		} else if errors.Is(transitionErr, ErrConflict) {
+			conflicts++
+		} else {
+			t.Fatalf("unexpected transition error: %v", transitionErr)
+		}
+	}
+	if successes != 1 || conflicts != 1 {
+		t.Fatalf("successes/conflicts = %d/%d, want 1/1", successes, conflicts)
+	}
+	var currentCount, retirementEvents, retirementOutbox int
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM monitoring_checks WHERE tenant_id=$1::uuid AND program_id=$2::uuid AND code='ENCRYPTION' AND is_current`, tenantID, programID).Scan(&currentCount); err != nil {
+		t.Fatal(err)
+	}
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM monitoring_events WHERE tenant_id=$1::uuid AND aggregate_id=$2::uuid AND aggregate_version=4 AND event_type=$3`, tenantID, currentID, EventMonitoringCheckStateChanged).Scan(&retirementEvents); err != nil {
+		t.Fatal(err)
+	}
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND aggregate_id=$2::uuid AND event_type=$3 AND payload->>'version'='4'`, tenantID, currentID, EventMonitoringCheckStateChanged).Scan(&retirementOutbox); err != nil {
+		t.Fatal(err)
+	}
+	if currentCount != 1 || retirementEvents != 1 || retirementOutbox != 1 {
+		t.Fatalf("current/event/outbox = %d/%d/%d, want 1/1/1", currentCount, retirementEvents, retirementOutbox)
+	}
+}
 
 func TestPostgresMonitoringResultRowEventAndOutboxAreAtomicAndIdempotent(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")

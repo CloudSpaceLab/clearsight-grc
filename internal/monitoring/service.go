@@ -69,11 +69,13 @@ type InstantiateStarterTemplateInput struct {
 }
 
 type TransitionInput struct {
-	ID              string          `json:"id"`
-	ProgramID       string          `json:"program_id,omitempty"`
-	LegalEntityID   string          `json:"legal_entity_id,omitempty"`
-	ExpectedVersion int64           `json:"expected_version"`
-	To              LifecycleStatus `json:"to"`
+	ID                     string          `json:"id"`
+	ProgramID              string          `json:"program_id,omitempty"`
+	LegalEntityID          string          `json:"legal_entity_id,omitempty"`
+	ExpectedVersion        int64           `json:"expected_version"`
+	ExpectedCurrentID      string          `json:"expected_current_id,omitempty"`
+	ExpectedCurrentVersion int64           `json:"expected_current_version,omitempty"`
+	To                     LifecycleStatus `json:"to"`
 }
 
 type StartCollectionInput struct {
@@ -840,7 +842,7 @@ func (s *Service) TransitionCheck(ctx context.Context, actor Actor, input Transi
 			return MonitoringCheck{}, err
 		}
 	}
-	return s.repo.TransitionCheck(ctx, LifecycleTransition{TenantID: actor.TenantID, ID: current.ID, ExpectedVersion: input.ExpectedVersion, To: input.To, ActorID: actor.PrincipalID, At: s.now().UTC()})
+	return s.repo.TransitionCheck(ctx, LifecycleTransition{TenantID: actor.TenantID, ID: current.ID, ExpectedVersion: input.ExpectedVersion, ExpectedCurrentID: strings.TrimSpace(input.ExpectedCurrentID), ExpectedCurrentVersion: input.ExpectedCurrentVersion, To: input.To, ActorID: actor.PrincipalID, At: s.now().UTC()})
 }
 
 func (s *Service) validateSourceBinding(ctx context.Context, actor Actor, bindingID string, bindingVersion int64) (sourceaccess.BindingRevision, error) {
