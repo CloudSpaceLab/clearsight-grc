@@ -7,15 +7,15 @@ import "database/sql"
 const accessRouteSelect = `
 	SELECT ar.id::text,ar.tenant_id::text,ar.legal_entity_id::text,ar.distribution_id::text,
 	       COALESCE(ar.recipient_id::text,''),ar.access_policy,ar.selector_hash,ar.audience_hint,
-	       ar.expires_at,ar.max_redemptions,ar.redemptions,ar.revoked_at,ar.created_by::text,ar.created_at
+	       ar.expires_at,ar.revoked_at,ar.created_by::text,ar.created_at
 	FROM capture_access_routes ar`
 
 func scanAccessRoute(row scanner) (AccessRoute, error) {
 	var route AccessRoute
 	var revoked sql.NullTime
 	if err := row.Scan(&route.ID, &route.TenantID, &route.LegalEntityID, &route.DistributionID, &route.RecipientID,
-		&route.Policy, &route.SelectorHash, &route.AudienceHint, &route.ExpiresAt, &route.MaxRedemptions,
-		&route.Redemptions, &revoked, &route.CreatedBy, &route.CreatedAt); err != nil {
+		&route.Policy, &route.SelectorHash, &route.AudienceHint, &route.ExpiresAt,
+		&revoked, &route.CreatedBy, &route.CreatedAt); err != nil {
 		return AccessRoute{}, err
 	}
 	if revoked.Valid {

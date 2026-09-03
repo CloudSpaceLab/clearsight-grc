@@ -19,7 +19,7 @@ func (store *PostgresDistributionStore) CommitAccessSession(ctx context.Context,
 	defer tx.Rollback(ctx)
 	persisted, err := scanAccessRoute(tx.QueryRow(ctx, accessRouteSelect+` WHERE ar.id=$1::uuid FOR UPDATE`, commit.Route.ID))
 	if err != nil || persisted.TenantID != commit.Session.TenantID || persisted.LegalEntityID != commit.Session.LegalEntityID || persisted.DistributionID != commit.Session.DistributionID ||
-		persisted.RevokedAt != nil || persisted.Redemptions != commit.ExpectedRedemptions || persisted.Redemptions >= persisted.MaxRedemptions || !persisted.ExpiresAt.After(commit.Session.CreatedAt) ||
+		persisted.RevokedAt != nil || !persisted.ExpiresAt.After(commit.Session.CreatedAt) ||
 		commit.Recipient.ID != commit.Session.RecipientID || commit.Recipient.RequestID != commit.Session.RequestID || len(eligibleAccessRecipients(persisted, []DistributionRecipient{commit.Recipient})) != 1 ||
 		!commit.Session.ExpiresAt.After(commit.Session.CreatedAt) || commit.Session.ExpiresAt.After(persisted.ExpiresAt) || !accessGrantAssuranceMatches(persisted.Policy, commit.Session.Assurance) {
 		return ErrAccessVerificationFailed
@@ -51,12 +51,6 @@ func (store *PostgresDistributionStore) CommitAccessSession(ctx context.Context,
 		commit.Session.AudienceHint, commit.Session.Assurance, commit.Session.ExpiresAt, commit.Session.CreatedAt); err != nil {
 		return ErrAccessVerificationFailed
 	}
-	if tag, err := tx.Exec(ctx, `
-		UPDATE capture_access_routes SET redemptions=redemptions+1
-		WHERE id=$1::uuid AND redemptions=$2 AND revoked_at IS NULL AND redemptions<max_redemptions`,
-		persisted.ID, commit.ExpectedRedemptions); err != nil || tag.RowsAffected() != 1 {
-		return ErrAccessVerificationFailed
-	}
 	if err := tx.Commit(ctx); err != nil {
 		return ErrAccessVerificationFailed
 	}
@@ -82,10 +76,10 @@ func (store *PostgresDistributionStore) RotateAccessRoute(ctx context.Context, c
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO capture_access_routes(
 			id,tenant_id,legal_entity_id,distribution_id,recipient_id,access_policy,selector_hash,audience_hint,
-			expires_at,max_redemptions,redemptions,created_by,created_at
-		) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,NULLIF($5,'')::uuid,$6,$7,$8,$9,$10,0,$11::uuid,$12)`,
+			expires_at,created_by,created_at
+		) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,NULLIF($5,'')::uuid,$6,$7,$8,$9,$10::uuid,$11)`,
 		next.ID, next.TenantID, next.LegalEntityID, next.DistributionID, next.RecipientID, next.Policy,
-		next.SelectorHash, next.AudienceHint, next.ExpiresAt, next.MaxRedemptions, next.CreatedBy, next.CreatedAt); err != nil {
+		next.SelectorHash, next.AudienceHint, next.ExpiresAt, next.CreatedBy, next.CreatedAt); err != nil {
 		return ErrDistributionAccessUnavailable
 	}
 	if err := tx.Commit(ctx); err != nil {

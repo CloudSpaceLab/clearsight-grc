@@ -75,7 +75,7 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 	state := store.memoryWorkspaceState(workspace, command.Request)
 	state.mu.Lock()
 	defer state.mu.Unlock()
-	if command.Input.ExpectedVersion != state.workspace.Version || state.workspace.Status != ResponseWorkspaceOpen {
+	if !memoryWorkspaceSubmitVersionUsable(state, command.Session.ID, command.Input.ExpectedVersion) || state.workspace.Status != ResponseWorkspaceOpen {
 		return WorkspaceSubmissionResult{}, WorkspaceConflict{CurrentVersion: state.workspace.Version}
 	}
 	answers := cloneAnswerValues(state.answers)
@@ -204,6 +204,27 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 			SubmittedAt: command.Now.UTC(), Version: request.Version,
 		},
 	}, nil
+}
+
+func memoryWorkspaceSubmitVersionUsable(state *memoryWorkspaceState, sessionID string, expectedVersion int64) bool {
+	if state == nil || expectedVersion < 0 || expectedVersion > state.workspace.Version {
+		return false
+	}
+	if expectedVersion == state.workspace.Version {
+		return true
+	}
+	needed := state.workspace.Version - expectedVersion
+	var ownEdits int64
+	for _, edit := range state.edits {
+		if edit.ResultVersion <= expectedVersion || edit.ResultVersion > state.workspace.Version {
+			continue
+		}
+		if edit.SessionID != sessionID {
+			return false
+		}
+		ownEdits++
+	}
+	return ownEdits == needed
 }
 
 func (store *MemoryDistributionAccessStore) ValidateWorkspaceAnswers(ctx context.Context, session DistributionAccessSession, request Request, answers map[string]formcontract.AnswerValue, requireComplete bool) error {

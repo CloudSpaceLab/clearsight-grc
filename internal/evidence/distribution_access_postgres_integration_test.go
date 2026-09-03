@@ -139,6 +139,75 @@ func TestPostgresDistributionAccessPersistsProtectedVerifiedSessionAndRevokesOnR
 	}
 }
 
+func TestPostgresDirectMagicLinkReopensUntilExpiryOrRevocation(t *testing.T) {
+	pool, ctx := distributionTestPool(t)
+	const (
+		tenantID  = "9d666666-6666-7666-8666-666666666661"
+		entityID  = "9d666666-6666-7666-8666-666666666662"
+		actorID   = "9d666666-6666-7666-8666-666666666663"
+		formID    = "9d666666-6666-7666-8666-666666666664"
+		subjectID = "9d666666-6666-7666-8666-666666666665"
+	)
+	now := time.Date(2026, 8, 28, 3, 0, 0, 0, time.UTC)
+	setupDistributionAccessFixture(t, ctx, pool, tenantID, entityID, actorID, formID, now)
+	defer cleanupDistributionTenant(context.Background(), pool, tenantID)
+
+	var recipientKey, accessKey [32]byte
+	for index := range recipientKey {
+		recipientKey[index] = 0x6c
+		accessKey[index] = 0x7d
+	}
+	keyring, err := NewRecipientKeyring("recipient-v1", map[string][32]byte{"recipient-v1": recipientKey})
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := NewPostgresDistributionStore(NewPostgresRepository(pool), keyring)
+	store.now = func() time.Time { return now }
+	bundle, err := store.CreateDistribution(ctx, CreateDistributionInput{
+		TenantID: "distribution-access-integration", LegalEntityID: "ACCESS", FormTemplateID: formID, FormTemplateVersion: 1,
+		SubjectType: "VENDOR", SubjectID: subjectID, Title: "Direct evidence request", Purpose: "Verify reusable access before expiry.",
+		AccessPolicy: AccessDirectMagicLink, EstimatedMinutes: 5,
+		Deadline: now.Add(4 * time.Hour), RouteExpiresAt: now.Add(3 * time.Hour), CreatedBy: actorID,
+		Recipients: []DistributionRecipientInput{{
+			Role: RecipientTo, Type: RecipientExternalAudience, Address: "owner@example.test",
+			AudienceHint: "o***@example.test", ContactLabel: "Evidence owner",
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE capture_form_distributions SET status='OPEN',updated_at=$2 WHERE id=$1::uuid`, bundle.Distribution.ID, now); err != nil {
+		t.Fatal(err)
+	}
+
+	service, err := NewDistributionAccessService(store, keyring, &postgresAccessOTPDelivery{}, accessKey, 20*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.now = func() time.Time { return now }
+	routes, err := service.IssueDistributionAccessRoutes(ctx, tenantID, entityID, bundle.Distribution.ID, actorID)
+	if err != nil || len(routes) != 1 {
+		t.Fatalf("issue direct access route: routes=%+v err=%v", routes, err)
+	}
+	first, err := service.RedeemDirectRoute(ctx, routes[0].Selector)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := service.RedeemDirectRoute(ctx, routes[0].Selector)
+	if err != nil {
+		t.Fatalf("unexpired selector could not be reopened: %v", err)
+	}
+	if first.SessionID == second.SessionID || first.SessionToken == second.SessionToken {
+		t.Fatalf("reopening reused a bearer session: first=%s second=%s", first.SessionID, second.SessionID)
+	}
+	if err := service.RevokeDistributionAccessRoute(ctx, tenantID, entityID, bundle.Distribution.ID, routes[0].RouteID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.RedeemDirectRoute(ctx, routes[0].Selector); !errors.Is(err, ErrDistributionAccessUnavailable) {
+		t.Fatalf("revoked selector remained usable: %v", err)
+	}
+}
+
 func setupDistributionAccessFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, entityID, actorID, formID string, now time.Time) {
 	t.Helper()
 	cleanupDistributionTenant(ctx, pool, tenantID)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
+	"github.com/jackc/pgx/v5"
 )
 
 func (store *PostgresDistributionStore) GetResponseWorkspace(ctx context.Context, session DistributionAccessSession, request Request, now time.Time) (ResponseWorkspaceView, error) {
@@ -121,7 +122,11 @@ func (store *PostgresDistributionStore) SubmitResponseWorkspace(ctx context.Cont
 	if err != nil {
 		return WorkspaceSubmissionResult{}, err
 	}
-	if command.Input.ExpectedVersion != state.View.Workspace.Version {
+	versionUsable, err := postgresWorkspaceSubmitVersionUsable(ctx, tx, command.Session, state.View.Workspace, command.Input.ExpectedVersion)
+	if err != nil {
+		return WorkspaceSubmissionResult{}, err
+	}
+	if !versionUsable {
 		return WorkspaceSubmissionResult{}, WorkspaceConflict{CurrentVersion: state.View.Workspace.Version}
 	}
 	answers := cloneAnswerValues(state.View.Answers)
@@ -184,6 +189,26 @@ func (store *PostgresDistributionStore) SubmitResponseWorkspace(ctx context.Cont
 		return WorkspaceSubmissionResult{}, ErrWorkspaceUnavailable
 	}
 	return WorkspaceSubmissionResult{Workspace: state.View.Workspace, Revision: metadata, Submission: receipt}, nil
+}
+
+func postgresWorkspaceSubmitVersionUsable(ctx context.Context, tx pgx.Tx, session DistributionAccessSession, workspace ResponseWorkspace, expectedVersion int64) (bool, error) {
+	if expectedVersion < 0 || expectedVersion > workspace.Version {
+		return false, nil
+	}
+	if expectedVersion == workspace.Version {
+		return true, nil
+	}
+	var total, own int64
+	if err := tx.QueryRow(ctx, `
+		SELECT count(*), count(*) FILTER (WHERE patch->>'session_id'=$6)
+		FROM capture_response_workspace_edits
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND distribution_id=$3::uuid AND workspace_id=$4::uuid
+		  AND result_version>$5 AND result_version<=$7`,
+		session.TenantID, session.LegalEntityID, session.DistributionID, workspace.ID,
+		expectedVersion, session.ID, workspace.Version).Scan(&total, &own); err != nil {
+		return false, ErrWorkspaceUnavailable
+	}
+	return total == workspace.Version-expectedVersion && own == total, nil
 }
 
 func (store *PostgresDistributionStore) ValidateWorkspaceAnswers(ctx context.Context, session DistributionAccessSession, request Request, answers map[string]formcontract.AnswerValue, requireComplete bool) error {

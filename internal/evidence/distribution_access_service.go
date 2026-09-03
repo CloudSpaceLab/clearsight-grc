@@ -183,12 +183,11 @@ func (service *DistributionAccessService) VerifyOTP(ctx context.Context, routeSe
 		return RedeemedDistributionSession{}, ErrAccessVerificationFailed
 	}
 
-	expectedRedemptions := route.Redemptions
 	grant, err := service.engine.RedeemVerifiedRoute(&route, verification, service.currentTime().Add(service.sessionTTL), service.currentTime())
 	if err != nil {
 		return RedeemedDistributionSession{}, ErrAccessVerificationFailed
 	}
-	return service.commitSession(ctx, route, recipient, grant, &challenge, expectedAttempts, expectedResends, expectedDigest, expectedRedemptions)
+	return service.commitSession(ctx, route, recipient, grant, &challenge, expectedAttempts, expectedResends, expectedDigest)
 }
 
 func (service *DistributionAccessService) RedeemDirectRoute(ctx context.Context, routeSelector string) (RedeemedDistributionSession, error) {
@@ -196,7 +195,6 @@ func (service *DistributionAccessService) RedeemDirectRoute(ctx context.Context,
 	if err != nil || route.Policy != AccessDirectMagicLink {
 		return RedeemedDistributionSession{}, ErrDistributionAccessUnavailable
 	}
-	expectedRedemptions := route.Redemptions
 	grant, err := service.engine.RedeemDirectRoute(&route, selector, bundle.Recipients, service.currentTime().Add(service.sessionTTL), service.currentTime())
 	if err != nil {
 		return RedeemedDistributionSession{}, ErrDistributionAccessUnavailable
@@ -211,7 +209,7 @@ func (service *DistributionAccessService) RedeemDirectRoute(ctx context.Context,
 	if recipient.ID == "" {
 		return RedeemedDistributionSession{}, ErrDistributionAccessUnavailable
 	}
-	result, err := service.commitSession(ctx, route, recipient, grant, nil, 0, 0, nil, expectedRedemptions)
+	result, err := service.commitSession(ctx, route, recipient, grant, nil, 0, 0, nil)
 	if err != nil {
 		return RedeemedDistributionSession{}, ErrDistributionAccessUnavailable
 	}
@@ -234,7 +232,7 @@ func (service *DistributionAccessService) RotateDistributionAccessRoute(ctx cont
 		TenantID: current.TenantID, LegalEntityID: current.LegalEntityID, DistributionID: current.DistributionID,
 		RecipientID: current.RecipientID, Policy: current.Policy, AudienceHint: current.AudienceHint,
 		RouteExpiresAt: bundle.Distribution.RouteExpiresAt, Deadline: bundle.Distribution.Deadline,
-		MaxRedemptions: current.MaxRedemptions, CreatedBy: createdBy,
+		CreatedBy: createdBy,
 	}
 	next, issued, err := service.engine.RotateRoute(&current, input, service.currentTime())
 	if err != nil {
@@ -321,7 +319,7 @@ func (service *DistributionAccessService) resolvePublicRoute(ctx context.Context
 	return route, bundle, selector, nil
 }
 
-func (service *DistributionAccessService) commitSession(ctx context.Context, route AccessRoute, recipient DistributionRecipient, grant AccessGrant, challenge *OTPChallenge, expectedAttempts, expectedResends int, expectedDigest []byte, expectedRedemptions int) (RedeemedDistributionSession, error) {
+func (service *DistributionAccessService) commitSession(ctx context.Context, route AccessRoute, recipient DistributionRecipient, grant AccessGrant, challenge *OTPChallenge, expectedAttempts, expectedResends int, expectedDigest []byte) (RedeemedDistributionSession, error) {
 	token, tokenHash, err := tokenPair()
 	if err != nil {
 		return RedeemedDistributionSession{}, ErrAccessVerificationFailed
@@ -339,7 +337,7 @@ func (service *DistributionAccessService) commitSession(ctx context.Context, rou
 	if err := service.store.CommitAccessSession(ctx, accessSessionCommit{
 		Route: route, Recipient: recipient, Session: session, Challenge: challenge,
 		ExpectedAttempts: expectedAttempts, ExpectedResends: expectedResends,
-		ExpectedDigest: append([]byte(nil), expectedDigest...), ExpectedRedemptions: expectedRedemptions,
+		ExpectedDigest: append([]byte(nil), expectedDigest...),
 	}); err != nil {
 		return RedeemedDistributionSession{}, ErrAccessVerificationFailed
 	}
