@@ -21,12 +21,22 @@ type LifecycleTransition struct {
 	At              time.Time
 }
 
+type CheckRevisionUpdate struct {
+	TenantID        string
+	ID              string
+	ExpectedVersion int64
+	Policy          CollectionPolicy
+	ActorID         string
+	At              time.Time
+}
+
 type Repository interface {
 	CreateFormRevision(context.Context, FormTemplate) (FormTemplate, error)
 	FormRevision(context.Context, string, string, int64) (FormTemplate, error)
 	ListFormRevisions(context.Context, string, int) ([]FormTemplate, error)
 	TransitionForm(context.Context, LifecycleTransition) (FormTemplate, error)
 	CreateCheckRevision(context.Context, MonitoringCheck) (MonitoringCheck, error)
+	ReviseCheck(context.Context, CheckRevisionUpdate) (MonitoringCheck, error)
 	CheckRevision(context.Context, string, string, int64) (MonitoringCheck, error)
 	ListCheckRevisions(context.Context, string, string, int) ([]MonitoringCheck, error)
 	TransitionCheck(context.Context, LifecycleTransition) (MonitoringCheck, error)

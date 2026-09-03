@@ -111,6 +111,34 @@ func (r *MemoryRepository) CreateCheckRevision(_ context.Context, value Monitori
 	return cloneValue(stored), nil
 }
 
+func (r *MemoryRepository) ReviseCheck(_ context.Context, input CheckRevisionUpdate) (MonitoringCheck, error) {
+	if input.TenantID == "" || input.ID == "" || input.ExpectedVersion < 1 || input.ActorID == "" || input.At.IsZero() {
+		return MonitoringCheck{}, ErrInvalid
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	current, ok := r.checks[revisionKey(input.TenantID, input.ID, input.ExpectedVersion)]
+	if !ok {
+		return MonitoringCheck{}, ErrNotFound
+	}
+	if current.InputKind != InputForm || current.Status != LifecycleActive || !current.IsCurrent {
+		return MonitoringCheck{}, ErrConflict
+	}
+	next := cloneValue(current)
+	next.CollectionPolicy = &input.Policy
+	now := input.At.UTC()
+	next.Lifecycle = Lifecycle{
+		Status: LifecycleDraft, Version: current.Version + 1, CreatedBy: input.ActorID,
+		CreatedAt: now, UpdatedAt: now,
+	}
+	key := revisionKey(input.TenantID, input.ID, next.Version)
+	if _, exists := r.checks[key]; exists {
+		return MonitoringCheck{}, ErrConflict
+	}
+	r.checks[key] = cloneValue(next)
+	return cloneValue(next), nil
+}
+
 func (r *MemoryRepository) CheckRevision(_ context.Context, tenant, id string, version int64) (MonitoringCheck, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

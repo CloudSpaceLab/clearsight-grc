@@ -141,27 +141,28 @@ const (
 )
 
 type MonitoringCheck struct {
-	ID                      string        `json:"id"`
-	TenantID                string        `json:"tenant_id"`
-	ProgramID               string        `json:"program_id"`
-	RequirementID           string        `json:"requirement_id,omitempty"`
-	ControlImplementationID string        `json:"control_implementation_id,omitempty"`
-	EvidenceContractID      string        `json:"evidence_contract_id,omitempty"`
-	Code                    string        `json:"code"`
-	Name                    string        `json:"name"`
-	Claim                   string        `json:"claim"`
-	InputKind               InputKind     `json:"input_kind"`
-	FormTemplateID          string        `json:"form_template_id,omitempty"`
-	FormTemplateVersion     int64         `json:"form_template_version,omitempty"`
-	BindingID               string        `json:"binding_id,omitempty"`
-	BindingVersion          int64         `json:"binding_version,omitempty"`
-	SourceRules             []SourceRule  `json:"source_rules,omitempty"`
-	Thresholds              Thresholds    `json:"thresholds"`
-	FreshnessMinutes        int           `json:"freshness_minutes"`
-	MinimumCoverage         float64       `json:"minimum_coverage"`
-	OwnerPrincipalID        string        `json:"owner_principal_id,omitempty"`
-	ReviewerPrincipalID     string        `json:"reviewer_principal_id,omitempty"`
-	FailureAction           FailureAction `json:"failure_action"`
+	ID                      string            `json:"id"`
+	TenantID                string            `json:"tenant_id"`
+	ProgramID               string            `json:"program_id"`
+	RequirementID           string            `json:"requirement_id,omitempty"`
+	ControlImplementationID string            `json:"control_implementation_id,omitempty"`
+	EvidenceContractID      string            `json:"evidence_contract_id,omitempty"`
+	Code                    string            `json:"code"`
+	Name                    string            `json:"name"`
+	Claim                   string            `json:"claim"`
+	InputKind               InputKind         `json:"input_kind"`
+	FormTemplateID          string            `json:"form_template_id,omitempty"`
+	FormTemplateVersion     int64             `json:"form_template_version,omitempty"`
+	CollectionPolicy        *CollectionPolicy `json:"collection_policy,omitempty"`
+	BindingID               string            `json:"binding_id,omitempty"`
+	BindingVersion          int64             `json:"binding_version,omitempty"`
+	SourceRules             []SourceRule      `json:"source_rules,omitempty"`
+	Thresholds              Thresholds        `json:"thresholds"`
+	FreshnessMinutes        int               `json:"freshness_minutes"`
+	MinimumCoverage         float64           `json:"minimum_coverage"`
+	OwnerPrincipalID        string            `json:"owner_principal_id,omitempty"`
+	ReviewerPrincipalID     string            `json:"reviewer_principal_id,omitempty"`
+	FailureAction           FailureAction     `json:"failure_action"`
 	Lifecycle
 }
 
