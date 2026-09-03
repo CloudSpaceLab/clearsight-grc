@@ -126,6 +126,7 @@ func normalizeCompletedResponseQuery(query *CompletedResponseQuery) (completedRe
 	if query == nil || strings.TrimSpace(query.TenantID) == "" || strings.TrimSpace(query.LegalEntityID) == "" || strings.TrimSpace(query.PrincipalID) == "" || query.Limit < 1 || query.Limit > 100 || query.FormTemplateVersion < 0 {
 		return completedResponseCursor{}, fmt.Errorf("completed response query is invalid")
 	}
+	query.SubjectType = strings.ToUpper(strings.TrimSpace(query.SubjectType))
 	if query.FormTemplateVersion > 0 && strings.TrimSpace(query.FormTemplateID) == "" {
 		return completedResponseCursor{}, fmt.Errorf("form template version requires a form template")
 	}

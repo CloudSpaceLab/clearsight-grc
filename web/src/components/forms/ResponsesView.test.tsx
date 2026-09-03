@@ -1,6 +1,7 @@
 import axe from "axe-core";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CompletedResponsePage, CompletedResponseSummary } from "../../formsDistributionApi";
 import { ResponsesView } from "./ResponsesView";
 
 const distributionApi = vi.hoisted(() => ({
@@ -10,12 +11,12 @@ const distributionApi = vi.hoisted(() => ({
 }));
 vi.mock("../../formsDistributionApi", () => distributionApi);
 
-const completedResponse = {
+const completedResponse: CompletedResponseSummary = {
   id: "response-a", distribution_id: "distribution-a", form_template_id: "form-a", form_template_version: 4,
   title: "Vendor certification refresh", subject_type: "VENDOR", subject_id: "vendor-a", revision: 2,
   current: true, state: "FINAL", completed_at: "2026-09-01T09:30:00Z",
   score: { mode: "COMPLIANCE", direction: "LOW_IS_POOR", raw_score: 42, adverse_score: 58, band: "HIGH", coverage: 0.9, final: true, state: "FINAL", profile_version: "iso-v2", profile_checksum: "checksum", evaluator_version: "advanced-v1", calculated_at: "2026-09-01T09:30:00Z", contribution_results: [], rule_results: [] },
-} as const;
+};
 
 beforeEach(() => {
   window.history.replaceState(null, "", "/#forms");
@@ -50,7 +51,50 @@ describe("completed response portfolio", () => {
     fireEvent.click(await screen.findByRole("option", { name: "Critical" }));
     fireEvent.change(screen.getByLabelText("Completed from"), { target: { value: "2026-08-01" } });
 
-    await waitFor(() => expect(distributionApi.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({ bands: ["CRITICAL"], completed_from: "2026-08-01T00:00:00.000Z" })));
+    const localDayStart = new Date(2026, 7, 1, 0, 0, 0, 0).toISOString();
+    await waitFor(() => expect(distributionApi.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({ bands: ["CRITICAL"], completed_from: localDayStart })));
+  });
+
+  it("uses the reviewer's local calendar day for completion filters", async () => {
+    vi.stubEnv("TZ", "Africa/Lagos");
+    try {
+      render(<ResponsesView/>);
+      expect(await screen.findByText("Vendor certification refresh")).toBeTruthy();
+
+      fireEvent.change(screen.getByLabelText("Completed from"), { target: { value: "2026-08-01" } });
+      fireEvent.change(screen.getByLabelText("Completed until"), { target: { value: "2026-08-01" } });
+
+      await waitFor(() => expect(distributionApi.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({
+        completed_from: "2026-07-31T23:00:00.000Z",
+        completed_until: "2026-08-01T22:59:59.999Z",
+      })));
+      expect((screen.getByLabelText("Completed from") as HTMLInputElement).value).toBe("2026-08-01");
+      expect((screen.getByLabelText("Completed until") as HTMLInputElement).value).toBe("2026-08-01");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("does not append an older page after the response filters change", async () => {
+    let resolveOlderPage!: (page: CompletedResponsePage) => void;
+    const filteredResponse = { ...completedResponse, id: "response-critical", title: "Critical vendor review", score: { ...completedResponse.score, raw_score: 10, adverse_score: 90, band: "CRITICAL" as const } };
+    const staleResponse = { ...completedResponse, id: "response-stale", title: "Stale unfiltered response" };
+    distributionApi.loadCompletedResponses
+      .mockResolvedValueOnce({ items: [completedResponse], next_cursor: "older-page" })
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveOlderPage = resolve; }))
+      .mockResolvedValueOnce({ items: [filteredResponse] });
+
+    render(<ResponsesView/>);
+    expect(await screen.findByText("Vendor certification refresh")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Load more responses" }));
+    fireEvent.click(screen.getByRole("button", { name: /Concern/ }));
+    fireEvent.click(await screen.findByRole("option", { name: "Critical" }));
+    await waitFor(() => expect(distributionApi.loadCompletedResponses).toHaveBeenCalledTimes(3));
+    expect(await screen.findByText("Critical vendor review")).toBeTruthy();
+
+    await act(async () => { resolveOlderPage({ items: [staleResponse] }); });
+
+    expect(screen.queryByText("Stale unfiltered response")).toBeNull();
   });
 
   it("keeps a failed score reviewable and offers one row action", async () => {

@@ -90,6 +90,19 @@ func TestCompletedResponseQueryRejectsInvalidScoreBoundsAndCursor(t *testing.T) 
 	}
 }
 
+func TestCompletedResponseQueryNormalizesSubjectType(t *testing.T) {
+	query := CompletedResponseQuery{
+		TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "principal-a",
+		SubjectType: " Vendor ", Limit: 25,
+	}
+	if _, err := normalizeCompletedResponseQuery(&query); err != nil {
+		t.Fatal(err)
+	}
+	if query.SubjectType != "VENDOR" {
+		t.Fatalf("subject type = %q, want VENDOR", query.SubjectType)
+	}
+}
+
 func completedRevision(id, tenantID, entityID, distributionID string, completedAt time.Time, adverse float64, band formcontract.ConcernBand) ResponseRevision {
 	raw := adverse
 	return ResponseRevision{

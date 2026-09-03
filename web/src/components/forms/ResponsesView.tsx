@@ -93,26 +93,33 @@ export function ResponsesView() {
 
   async function loadMore() {
     if (!nextCursor || loadingMore) return;
+    const sequence = requestSequence.current;
     setLoadingMore(true);
     try {
       const page = await loadCompletedResponses({ ...query, cursor: nextCursor, current_only: true, limit: query.limit ?? 25 });
+      if (sequence !== requestSequence.current) return;
       setItems((current) => [...current, ...page.items]);
       setNextCursor(page.next_cursor);
     } catch (cause) {
+      if (sequence !== requestSequence.current) return;
       setError(message(cause, "More completed responses could not be loaded."));
     } finally {
-      setLoadingMore(false);
+      if (sequence === requestSequence.current) setLoadingMore(false);
     }
   }
 
   function updateQuery(patch: Partial<CompletedResponseQuery>) {
     const next = { ...query, ...patch, cursor: undefined };
+    requestSequence.current++;
+    setLoadingMore(false);
     setQuery(next);
     writeQuery(next);
   }
 
   function clearFilters() {
     const next: CompletedResponseQuery = { sort: "CONCERN_DESC", current_only: true, limit: 25 };
+    requestSequence.current++;
+    setLoadingMore(false);
     setQuery(next);
     writeQuery(next);
   }
@@ -277,9 +284,21 @@ function formatNumber(value: number) { return new Intl.NumberFormat(undefined, {
 function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (part) => part.toUpperCase()); }
 function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Unknown date" : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date); }
 function formatDateTime(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Unknown time" : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date); }
-function startOfDate(value: string) { return value ? new Date(`${value}T00:00:00.000Z`).toISOString() : undefined; }
-function endOfDate(value: string) { return value ? new Date(`${value}T23:59:59.999Z`).toISOString() : undefined; }
-function dateInputValue(value?: string) { return value?.slice(0, 10) ?? ""; }
+function startOfDate(value: string) { return localDateBoundary(value, false); }
+function endOfDate(value: string) { return localDateBoundary(value, true); }
+function localDateBoundary(value: string, end: boolean) {
+  if (!value) return undefined;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return undefined;
+  return new Date(year, month - 1, day, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0).toISOString();
+}
+function dateInputValue(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const part = (number: number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${part(date.getMonth() + 1)}-${part(date.getDate())}`;
+}
 function message(cause: unknown, fallback: string) { return cause instanceof Error ? cause.message : fallback; }
 
 function hasFilters(query: CompletedResponseQuery) {
