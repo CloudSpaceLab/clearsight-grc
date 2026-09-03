@@ -199,14 +199,15 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     setBusy(check.id); setError("");
     try {
       const revisions = await loadMonitoringChecks(aggregate.program.id);
-      const latest = latestByID(revisions).find((candidate) => candidate.id === check.id);
+      const refreshedChecks = latestByID(revisions);
+      const latest = refreshedChecks.find((candidate) => candidate.id === check.id);
       if (!latest) throw new Error("This monitoring check could not be found. Reload the Program and try again.");
-      setChecks((current) => latestByID([...current, latest]));
+      setChecks(refreshedChecks);
       if (latest.status !== check.status) {
         setError("This monitoring check changed after you opened it. The latest revision has been loaded. Review the current status before taking another action.");
         return;
       }
-      const expectedCurrent = checks.find((candidate) => candidate.program_id === latest.program_id && candidate.code === latest.code && candidate.is_current);
+      const expectedCurrent = refreshedChecks.find((candidate) => candidate.program_id === latest.program_id && candidate.code === latest.code && candidate.is_current);
       const updated = await transitionMonitoringCheck(latest.id, latest.version, to, expectedCurrent);
       setChecks((current) => latestByID([...current, updated]));
     } catch (caught) {

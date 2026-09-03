@@ -397,6 +397,29 @@ describe("monitoring setup", () => {
     expect(screen.getByRole("heading", { name: "Pending check" }).nextElementSibling?.textContent).toContain("Active");
   });
 
+  it("approves against the current family member from the same refreshed snapshot", async () => {
+    const pending = {
+      id: "check-pending", tenant_id: "bank-1", program_id: "program-1", code: "CHECK-FAMILY", name: "Pending replacement", claim: "The replacement awaits review.", input_kind: "SOURCE" as const, binding_id: "binding-1", binding_version: 1,
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1, failure_action: "REVIEW" as const, status: "PENDING_APPROVAL" as const,
+      submitted_by: "owner-1", is_current: false, version: 2, created_at: "2026-09-02T00:00:00Z", updated_at: "2026-09-02T00:00:00Z",
+    };
+    const staleCurrent = { ...pending, id: "check-old", name: "Former current check", status: "ACTIVE" as const, is_current: true, version: 3 };
+    const refreshedCurrent = { ...staleCurrent, id: "check-current", name: "Current check", version: 7 };
+    const retiredStaleCurrent = { ...staleCurrent, status: "RETIRED" as const, is_current: false, version: 4 };
+    const active = { ...pending, version: 3, status: "ACTIVE" as const, is_current: true, approved_by: "reviewer-1" };
+    vi.mocked(loadMonitoringChecks).mockResolvedValueOnce([pending, staleCurrent]).mockResolvedValueOnce([pending, retiredStaleCurrent, refreshedCurrent]);
+    vi.mocked(transitionMonitoringCheck).mockResolvedValue(active);
+    const operation: ProgramOperation = {
+      command: "program.monitoring.transition", subresource_id: pending.id, label: "Approve replacement", responsibility: "REVIEWER", can_act: true,
+      assigned_to: { id: "reviewer-1", display_name: "Controls reviewer", kind: "PERSON", role: "Reviewer" }, reason: "You hold the current responsibility.", allowed_targets: ["ACTIVE", "REJECTED"],
+    };
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="reviewer-1" canConfigureSources={false} operations={[operation]}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Approve check" }));
+
+    await waitFor(() => expect(transitionMonitoringCheck).toHaveBeenCalledWith(pending.id, pending.version, "ACTIVE", refreshedCurrent));
+  });
+
   it("reloads the latest monitoring-check revision after a concurrent update", async () => {
     const pending = {
       id: "check-pending", tenant_id: "bank-1", program_id: "program-1", code: "PENDING", name: "Pending check", claim: "The check awaits review.", input_kind: "SOURCE" as const, binding_id: "binding-1", binding_version: 1,
