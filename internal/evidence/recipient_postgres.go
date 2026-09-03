@@ -73,18 +73,19 @@ func (r *PostgresRepository) CreateRequestWithRecipient(ctx context.Context, val
 			id,tenant_id,legal_entity_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
 			recipient_type,recipient_principal_id,recipient_audience_hash,recipient_hint,recipient_state,recipient_revision,recipient_issue_reason,
 			estimated_minutes,deadline,known_facts,presentation,scoring_mode,score_profile,sections,fields,source_bindings,form_template_id,form_template_version,collection_period_start,collection_period_end,
-			origin_type,origin_id,origin_version,status,created_by,version,created_at,updated_at
+			origin_type,origin_id,origin_version,status,created_by,version,created_at,updated_at,predecessor_request_id
 		) VALUES(
 			$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10,
 			$11,NULLIF($12,'')::uuid,$13,$14,$15,$16,'',$17,$18,$19::jsonb,$20::jsonb,$21,$22::jsonb,$23::jsonb,$24::jsonb,$25::jsonb,NULLIF($26,'')::uuid,NULLIF($27,0),$28,$29,
-			NULLIF($30,''),NULLIF($31,''),NULLIF($32,0),$33,NULLIF($34,'')::uuid,$35,$36,$36
+			NULLIF($30,''),NULLIF($31,''),NULLIF($32,0),$33,NULLIF($34,'')::uuid,$35,$36,$36,NULLIF($37,'')::uuid
 		)
 		RETURNING `+requestReturningColumns,
 		value.ID, value.TenantID, value.LegalEntityID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType,
 		value.Recipient.Type, value.Recipient.PrincipalID, nullableAudienceHash(value.Recipient), value.Recipient.AudienceHint, state, revision,
 		value.EstimatedMinutes, value.Deadline, string(facts), string(presentation), value.ScoringMode, scoreProfile, string(sections), string(fields), string(sourceBindings), value.FormTemplateID, value.FormTemplateVersion, value.CollectionPeriodStart, value.CollectionPeriodEnd,
-		value.Origin.Type, value.Origin.ID, value.Origin.Version, value.Status, value.CreatedBy, value.Version, value.CreatedAt)
+		value.Origin.Type, value.Origin.ID, value.Origin.Version, value.Status, value.CreatedBy, value.Version, value.CreatedAt, value.PredecessorRequestID)
 	created, err := scanRequest(row)
+	created, err = r.resolveOriginCreate(ctx, value, created, err)
 	if err != nil {
 		return Request{}, fmt.Errorf("create evidence request with recipient: %w", err)
 	}

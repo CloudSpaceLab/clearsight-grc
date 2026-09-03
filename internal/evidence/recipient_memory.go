@@ -40,27 +40,7 @@ func (r *MemoryRepository) CanReadSubject(_ context.Context, tenant, principalID
 func (r *MemoryRepository) CreateRequestWithRecipient(_ context.Context, value Request) (Request, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if !value.Deadline.After(value.CreatedAt) {
-		return Request{}, ErrRequestClosed
-	}
-	value.Origin = value.Origin.normalized()
-	if err := value.Origin.validate(); err != nil {
-		return Request{}, err
-	}
-	if !value.Origin.empty() {
-		for _, existing := range r.requests {
-			if existing.TenantID == value.TenantID && existing.Origin == value.Origin {
-				return Request{}, ErrVersionConflict
-			}
-		}
-	}
-	value.KnownFacts = cloneMap(value.KnownFacts)
-	value.Sections = cloneSections(value.Sections)
-	value.Fields = cloneFields(value.Fields)
-	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
-	value.Recipient = cloneRecipient(value.Recipient)
-	r.requests[value.ID] = value
-	return cloneRequest(value), nil
+	return r.createRequestLocked(value)
 }
 
 func (r *MemoryRepository) GetRequestRecipient(_ context.Context, tenant, requestID string) (Recipient, error) {

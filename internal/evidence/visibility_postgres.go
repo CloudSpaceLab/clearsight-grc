@@ -111,7 +111,7 @@ func scanRequestWithRecipient(row scanner) (Request, error) {
 	if err := row.Scan(
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType,
 		&value.EstimatedMinutes, &value.Deadline, &facts, &presentation, &value.ScoringMode, &scoreProfile, &sections, &fields, &sourceBindings, &value.FormTemplateID, &value.FormTemplateVersion, &value.CollectionPeriodStart, &value.CollectionPeriodEnd,
-		&value.Origin.Type, &value.Origin.ID, &value.Origin.Version, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt,
+		&value.Origin.Type, &value.Origin.ID, &value.Origin.Version, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt, &value.PredecessorRequestID,
 		&recipientType, &principalID, &displayName, &audienceHash, &hint, &state, &value.Recipient.Revision, &issueReason,
 	); err != nil {
 		return Request{}, err

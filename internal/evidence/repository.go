@@ -29,6 +29,7 @@ type Repository interface {
 	CreateRequest(context.Context, Request) (Request, error)
 	ListRequests(context.Context, string, int) ([]Request, error)
 	GetRequest(context.Context, string, string) (Request, error)
+	GetRequestByOrigin(context.Context, string, RequestOrigin) (Request, error)
 	Submit(context.Context, Submission) (SubmissionReceipt, error)
 	ExpireRequests(context.Context, time.Time, int) (int, error)
 

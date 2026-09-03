@@ -221,7 +221,10 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if !deadline.After(now) {
 		return Request{}, fmt.Errorf("deadline must be in the future")
 	}
-	request := Request{ID: valueID, TenantID: input.TenantID, LegalEntityID: scope.LegalEntityID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Presentation: contract.Presentation, ScoringMode: contract.ScoringMode, ScoreProfile: cloneScoreProfile(contract.ScoreProfile), Sections: contract.Sections, Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Origin: input.Origin.normalized(), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
+	request := Request{ID: valueID, TenantID: input.TenantID, LegalEntityID: scope.LegalEntityID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Presentation: contract.Presentation, ScoringMode: contract.ScoringMode, ScoreProfile: cloneScoreProfile(contract.ScoreProfile), Sections: contract.Sections, Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Origin: input.Origin.normalized(), PredecessorRequestID: strings.TrimSpace(input.PredecessorRequestID), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
+	if err := validateRequestPredecessor(ctx, s.repo, request); err != nil {
+		return Request{}, err
+	}
 	return store.CreateRequestWithRecipient(ctx, request)
 }
 
@@ -612,7 +615,7 @@ func validateRequestInput(input CreateRequestInput) error {
 	if input.CollectionPeriodStart != nil && input.CollectionPeriodStart.After(*input.CollectionPeriodEnd) {
 		return fmt.Errorf("collection period start must not be after the end")
 	}
-	if err := input.Origin.validate(); err != nil {
+	if err := validateRequestLineage(input.Origin, input.PredecessorRequestID); err != nil {
 		return err
 	}
 	if len(input.Fields) == 0 || len(input.Fields) > 200 {

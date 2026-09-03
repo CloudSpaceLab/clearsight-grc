@@ -274,6 +274,7 @@ type Request struct {
 	CollectionPeriodStart *time.Time                 `json:"collection_period_start,omitempty"`
 	CollectionPeriodEnd   *time.Time                 `json:"collection_period_end,omitempty"`
 	Origin                RequestOrigin              `json:"origin,omitempty"`
+	PredecessorRequestID  string                     `json:"predecessor_request_id,omitempty"`
 	Status                RequestStatus              `json:"status"`
 	CreatedBy             string                     `json:"created_by,omitempty"`
 	Version               int64                      `json:"version"`
@@ -306,6 +307,7 @@ type CreateRequestInput struct {
 	CollectionPeriodStart *time.Time                 `json:"collection_period_start,omitempty"`
 	CollectionPeriodEnd   *time.Time                 `json:"collection_period_end,omitempty"`
 	Origin                RequestOrigin              `json:"origin,omitempty"`
+	PredecessorRequestID  string                     `json:"predecessor_request_id,omitempty"`
 	CreatedBy             string                     `json:"created_by,omitempty"`
 }
 
