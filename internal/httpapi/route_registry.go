@@ -111,8 +111,10 @@ func (a *API) routes() []routeSpec {
 		read("/api/v1/programs/{id}/monitoring-checks", a.listMonitoringChecks),
 		write(http.MethodPost, "/api/v1/programs/{id}/monitoring-checks", a.createMonitoringCheck, nil),
 		write(http.MethodPost, "/api/v1/monitoring-checks/{id}/transition", a.transitionMonitoringCheck, nil),
+		write(http.MethodPost, "/api/v1/monitoring-checks/{id}/collection-policy", a.updateCollectionPolicy, nil),
 		write(http.MethodPost, "/api/v1/monitoring-checks/{id}/evaluate-source", a.evaluateMonitoringSource, nil),
 		read("/api/v1/monitoring-checks/{id}/results", a.listMonitoringResults),
+		read("/api/v1/programs/{id}/collection-summaries", a.listCollectionSummaries),
 
 		read("/api/v1/matter-summaries", a.listMatterSummaries),
 		read("/api/v1/matters", a.listMatters),

@@ -56,6 +56,7 @@ type CollectionCycle struct {
 	PredecessorRequestID   string               `json:"predecessor_request_id,omitempty"`
 	LatestSubmissionID     string               `json:"latest_submission_id,omitempty"`
 	LatestSubmittedAt      *time.Time           `json:"latest_submitted_at,omitempty"`
+	LatestRespondentLabel  string               `json:"latest_respondent_label,omitempty"`
 	ExpiresAt              time.Time            `json:"expires_at"`
 	RenewalOpensAt         time.Time            `json:"renewal_opens_at"`
 	NextActionAt           *time.Time           `json:"next_action_at,omitempty"`
@@ -95,6 +96,7 @@ type CollectionSummary struct {
 	CurrentRequestID       string               `json:"current_request_id,omitempty"`
 	LatestSubmissionID     string               `json:"latest_submission_id,omitempty"`
 	LatestSubmittedAt      *time.Time           `json:"latest_submitted_at,omitempty"`
+	LatestRespondentLabel  string               `json:"latest_respondent_label,omitempty"`
 	ExpiresAt              time.Time            `json:"expires_at"`
 	RenewalOpensAt         time.Time            `json:"renewal_opens_at"`
 	NextActionAt           *time.Time           `json:"next_action_at,omitempty"`
@@ -116,6 +118,21 @@ type CollectionCycleRepository interface {
 	CancelCollectionCyclesByCheck(context.Context, string, string, time.Time) (int, error)
 	CompleteCollectionCyclesBeforeSequence(context.Context, string, string, int64, time.Time) (int, error)
 	ListCollectionSummaries(context.Context, string, string, int) ([]CollectionSummary, error)
+}
+
+func (s *Service) ListCollectionSummaries(ctx context.Context, actor Actor, programID string, limit int) ([]CollectionSummary, error) {
+	if err := validateActor(actor); err != nil {
+		return nil, err
+	}
+	programID = strings.TrimSpace(programID)
+	if programID == "" {
+		return nil, errors.Join(ErrInvalid, fmt.Errorf("program is required"))
+	}
+	repo, ok := s.repo.(CollectionCycleRepository)
+	if !ok {
+		return nil, fmt.Errorf("collection summaries are unavailable")
+	}
+	return repo.ListCollectionSummaries(ctx, actor.TenantID, programID, boundedCollectionLimit(limit))
 }
 
 func validateCollectionCycle(value CollectionCycle) (CollectionCycle, error) {
@@ -152,7 +169,8 @@ func validateCollectionCycle(value CollectionCycle) (CollectionCycle, error) {
 	default:
 		return CollectionCycle{}, errors.Join(ErrInvalid, fmt.Errorf("collection cycle state is invalid"))
 	}
-	if len(strings.TrimSpace(value.SafeError)) > 1000 || len(strings.TrimSpace(value.DeliveryReference)) > 512 {
+	value.LatestRespondentLabel = strings.TrimSpace(value.LatestRespondentLabel)
+	if len(value.LatestRespondentLabel) > 256 || len(strings.TrimSpace(value.SafeError)) > 1000 || len(strings.TrimSpace(value.DeliveryReference)) > 512 {
 		return CollectionCycle{}, errors.Join(ErrInvalid, fmt.Errorf("collection operational detail is too long"))
 	}
 	if value.CreatedAt.IsZero() || value.UpdatedAt.IsZero() || value.UpdatedAt.Before(value.CreatedAt) {
@@ -181,7 +199,7 @@ func collectionSummary(value CollectionCycle, generatedAt time.Time) CollectionS
 	return CollectionSummary{
 		CycleID: value.ID, TenantID: value.TenantID, ProgramID: value.ProgramID, MonitoringCheckID: value.MonitoringCheckID,
 		MonitoringCheckVersion: value.MonitoringCheckVersion, Sequence: value.Sequence, Policy: value.Policy,
-		CurrentRequestID: value.CurrentRequestID, LatestSubmissionID: value.LatestSubmissionID, LatestSubmittedAt: value.LatestSubmittedAt,
+		CurrentRequestID: value.CurrentRequestID, LatestSubmissionID: value.LatestSubmissionID, LatestSubmittedAt: value.LatestSubmittedAt, LatestRespondentLabel: value.LatestRespondentLabel,
 		ExpiresAt: value.ExpiresAt, RenewalOpensAt: value.RenewalOpensAt, NextActionAt: value.NextActionAt,
 		RemindersSent: value.RemindersSent, Recipient: value.Recipient, DeliveryState: value.DeliveryState, State: value.State, SafeError: value.SafeError,
 		GeneratedAt: generatedAt.UTC(),
@@ -192,7 +210,7 @@ func sameCollectionSchedule(left, right CollectionCycle) bool {
 	return left.TenantID == right.TenantID && left.ProgramID == right.ProgramID && left.MonitoringCheckID == right.MonitoringCheckID &&
 		left.MonitoringCheckVersion == right.MonitoringCheckVersion && left.Sequence == right.Sequence && left.Policy == right.Policy &&
 		left.CurrentRequestID == right.CurrentRequestID && left.PredecessorRequestID == right.PredecessorRequestID &&
-		left.LatestSubmissionID == right.LatestSubmissionID && equalOptionalTime(left.LatestSubmittedAt, right.LatestSubmittedAt) &&
+		left.LatestSubmissionID == right.LatestSubmissionID && equalOptionalTime(left.LatestSubmittedAt, right.LatestSubmittedAt) && left.LatestRespondentLabel == right.LatestRespondentLabel &&
 		left.ExpiresAt.Equal(right.ExpiresAt) && left.RenewalOpensAt.Equal(right.RenewalOpensAt) && left.Recipient == right.Recipient
 }
 

@@ -91,7 +91,10 @@ func (s *Service) UpdateCollectionPolicy(ctx context.Context, actor Actor, input
 	if err != nil {
 		return MonitoringCheck{}, err
 	}
-	if current.InputKind != InputForm || current.Status != LifecycleActive || !current.IsCurrent {
+	if current.InputKind != InputForm {
+		return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("collection policy applies only to form checks"))
+	}
+	if current.Status != LifecycleActive || !current.IsCurrent {
 		return MonitoringCheck{}, ErrInactive
 	}
 	return s.repo.ReviseCheck(ctx, CheckRevisionUpdate{
