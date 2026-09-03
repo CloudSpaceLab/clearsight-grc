@@ -1,6 +1,6 @@
 # Program collection renewal and tabs issue log
 
-**Status:** Planning
+**Status:** In progress
 
 **Opened:** 2026-09-03
 
@@ -19,7 +19,7 @@
 | PCR-05 | Leased renewal worker | Ready for planning | PCR-02, PCR-03, PCR-04 | Crash/retry tests prove one successor request, exact origin reuse, bounded attempts and pause/retire cancellation |
 | PCR-06 | Reminder assignment and delivery | Blocked by adapter confirmation | PCR-05 | Internal queue receipt and configured external provider receipt; 1–5 deterministic reminders; truthful terminal failure |
 | PCR-07 | Program collection-summary read model and API | Ready for planning | PCR-02, PCR-03 | Actor-scoped bounded read tests prove latest submission, safe respondent label, expiry, reminder progress and freshness |
-| PCR-08 | Accessible tabbed Program workspace | Ready for planning | Written UI brief | Vitest/axe and rendered evidence prove six sections, one panel, URL state, keyboard tabs and mobile selector |
+| PCR-08 | Accessible tabbed Program workspace | In progress | Written UI brief | Vitest/axe and rendered evidence prove six sections, one panel, URL state, keyboard tabs and mobile selector |
 | PCR-09 | Unified Monitoring collection experience | Ready for planning | PCR-01, PCR-07, PCR-08 | Workflow tests prove schedule setup, no duplicate form/check cards, last-submitted display and every currency state |
 | PCR-10 | Full acceptance, copy, documentation and recovery proof | Ready for planning | PCR-01…PCR-09 | Backend/frontend suites, copy gate, build, rendered matrix, diff check and synchronized docs |
 
@@ -235,7 +235,11 @@ Add only the provider-neutral resolver/delivery interface needed by this workflo
 | 2026-09-03 | User approved Program-linked policy, pre-expiry renewal, 30-day/3-reminder defaults, six Program sections, unified collection display and latest respondent submission details. |
 | 2026-09-03 | Written design and issue tracker created. No production code or migration changed. |
 | 2026-09-03 | User approved the written specification. A test-first implementation plan was added and linked; production code remains unchanged by the planning step. |
+| 2026-09-03 | Inline execution started on `codex/vendor-management`. Baseline passed `go test ./... -count=1` and 125 frontend tests across 28 files. Node 22 is below the repository's Node 24 requirement, but the baseline completed; dependency upgrades are outside this feature. |
+| 2026-09-03 | Preserved the unchanged supplied Monitoring screenshot and added the approved compact UI decision brief. The pre-existing submitted-evidence diff spans 10 overlapping files with 284 insertions and 25 deletions; it remains user-owned and must not be reset or staged wholesale. |
 
 ## Verification log
 
-No implementation verification has run. Documentation verification and commit evidence will be recorded after the written-spec self-review. Implementation commands will be defined in the implementation plan after user review.
+- Baseline backend: `go test ./... -count=1` — PASS on 2026-09-03.
+- Baseline frontend: `npm test -- --run` — PASS, 28 files and 125 tests on 2026-09-03.
+- Environment note: `npm install` reported Node v22.16.0 against the package requirement `>=24.0.0` and one high-severity audit item. No dependency remediation is included in this scoped change.
