@@ -67,6 +67,7 @@ type serviceSet struct {
 	BankVerticals                  *bankverticals.Service
 	BackgroundJobs                 *operations.Service
 	Activity                       *activity.Service
+	AuditExports                   *activity.ExportService
 	Access                         access.Resolver
 	RuntimeContext                 runtimecontext.Resolver
 	AccessAdmin                    access.Administrator
