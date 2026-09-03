@@ -1,14 +1,65 @@
 package httpapi
 
 import (
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
+
+func TestThirdPartyActivationApprovalSeparatesBusinessAuthorityFromPlatformAdministration(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	requestBody := `{"expected_version":2,"simulation_id":"simulation-1","rationale":"Approve after independent review of the complete simulation."}`
+
+	t.Run("business authorizer does not need configuration write", func(t *testing.T) {
+		guard, err := commandauth.New(commandAuthorityStub{principal: "business-checker"}, commandauth.ModeEnforce, logger)
+		if err != nil {
+			t.Fatal(err)
+		}
+		handler := New(Dependencies{
+			Logger:       logger,
+			Identity:     identity.NewDevelopmentAuthenticator("bank", "business-checker", "entity", "CRO"),
+			CommandGuard: guard,
+		})
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/third-party-activation-policies/policy-1/approve", strings.NewReader(requestBody)))
+
+		if response.Code == http.StatusForbidden && strings.Contains(response.Body.String(), "permission_required") {
+			t.Fatalf("business authorizer was blocked by configuration permission: %s", response.Body.String())
+		}
+		if response.Header().Get("X-ClearSight-Command-Authorization") != "enforced" {
+			t.Fatalf("business approval did not pass through enforced authority: %d %s", response.Code, response.Body.String())
+		}
+		if response.Code != http.StatusServiceUnavailable {
+			t.Fatalf("business authorizer did not reach the policy handler: %d %s", response.Code, response.Body.String())
+		}
+	})
+
+	t.Run("platform administrator is not the business checker", func(t *testing.T) {
+		guard, err := commandauth.New(commandAuthorityStub{principal: "business-checker"}, commandauth.ModeEnforce, logger)
+		if err != nil {
+			t.Fatal(err)
+		}
+		handler := New(Dependencies{
+			Logger:       logger,
+			Identity:     identity.NewDevelopmentAuthenticator("bank", "platform-admin", "entity", "SYSTEM_ADMIN"),
+			CommandGuard: guard,
+		})
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/third-party-activation-policies/policy-1/approve", strings.NewReader(requestBody)))
+
+		if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), "approval_required") {
+			t.Fatalf("platform administrator bypassed business authorization: %d %s", response.Code, response.Body.String())
+		}
+	})
+}
 
 func TestThirdPartyActivationCommandsAcceptServerBoundIdentity(t *testing.T) {
 	tests := []struct {
