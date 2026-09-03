@@ -72,7 +72,7 @@ func (r *MemoryRepository) Get(_ context.Context, tenantID, eventID string) (Eve
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	for _, value := range r.events {
-		if value.ID == eventID && value.SourceTenantID() == tenantID {
+		if value.ID == eventID && value.TenantID == tenantID {
 			return value, nil
 		}
 	}
@@ -80,7 +80,7 @@ func (r *MemoryRepository) Get(_ context.Context, tenantID, eventID string) (Eve
 }
 
 func memoryMatches(value Event, query Query) bool {
-	if tenant := value.SourceTenantID(); tenant != "" && tenant != query.TenantID {
+	if value.TenantID != "" && value.TenantID != query.TenantID {
 		return false
 	}
 	if query.From != nil && value.OccurredAt.Before(*query.From) {
@@ -105,15 +105,4 @@ func memoryMatches(value Event, query Query) bool {
 		return false
 	}
 	return query.LegalEntityID == "" || value.LegalEntityID == query.LegalEntityID
-}
-
-// SourceTenantID is intentionally not serialized. Memory fixtures may encode a
-// tenant prefix in Source as TENANT:<id>; production events obtain tenant scope
-// from their repository query and never expose it as event metadata.
-func (e Event) SourceTenantID() string {
-	const prefix = "TENANT:"
-	if strings.HasPrefix(e.Source, prefix) {
-		return strings.TrimPrefix(e.Source, prefix)
-	}
-	return ""
 }
