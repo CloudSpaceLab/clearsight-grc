@@ -48,7 +48,7 @@ func TestRouteRegistryHasExplicitAccessClasses(t *testing.T) {
 }
 
 func TestAdministrativePermissionsLiveInRouteRegistry(t *testing.T) {
-	routes := (&API{}).routes()
+	routes := (&API{}).productionRoutes()
 	expected := map[string]string{}
 	addExpected := func(method, path, permission string) {
 		expected[method+" "+path] = permission
