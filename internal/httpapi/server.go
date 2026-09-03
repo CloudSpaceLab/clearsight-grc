@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/activity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
@@ -85,6 +86,7 @@ type Dependencies struct {
 	AIGovernance          *aigovernance.Service
 	BankVerticals         *bankverticals.Service
 	BackgroundJobs        *operations.Service
+	Activity              *activity.Service
 	MaxArtifactBytes      int64
 }
 
