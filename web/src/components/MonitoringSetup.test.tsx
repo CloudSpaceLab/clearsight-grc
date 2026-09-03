@@ -397,7 +397,7 @@ describe("monitoring setup", () => {
     expect(screen.getByRole("heading", { name: "Pending check" }).nextElementSibling?.textContent).toContain("Active");
   });
 
-  it("approves against the current family member from the same refreshed snapshot", async () => {
+  it("stops replacement approval when the active check changed after review", async () => {
     const pending = {
       id: "check-pending", tenant_id: "bank-1", program_id: "program-1", code: "CHECK-FAMILY", name: "Pending replacement", claim: "The replacement awaits review.", input_kind: "SOURCE" as const, binding_id: "binding-1", binding_version: 1,
       thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1, failure_action: "REVIEW" as const, status: "PENDING_APPROVAL" as const,
@@ -417,7 +417,8 @@ describe("monitoring setup", () => {
     render(<MonitoringSetup aggregate={program} actorPrincipalID="reviewer-1" canConfigureSources={false} operations={[operation]}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Approve check" }));
 
-    await waitFor(() => expect(transitionMonitoringCheck).toHaveBeenCalledWith(pending.id, pending.version, "ACTIVE", refreshedCurrent));
+    expect((await screen.findByRole("alert")).textContent).toContain("The active monitoring check changed after you opened this review");
+    expect(transitionMonitoringCheck).not.toHaveBeenCalled();
   });
 
   it("reloads the latest monitoring-check revision after a concurrent update", async () => {

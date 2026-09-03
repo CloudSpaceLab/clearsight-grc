@@ -198,6 +198,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     if (!operation?.can_act || !operation.allowed_targets?.includes(to)) return;
     setBusy(check.id); setError("");
     try {
+      const reviewedCurrent = checks.find((candidate) => candidate.program_id === check.program_id && candidate.code === check.code && candidate.is_current);
       const revisions = await loadMonitoringChecks(aggregate.program.id);
       const refreshedChecks = latestByID(revisions);
       const latest = refreshedChecks.find((candidate) => candidate.id === check.id);
@@ -207,8 +208,12 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
         setError("This monitoring check changed after you opened it. The latest revision has been loaded. Review the current status before taking another action.");
         return;
       }
-      const expectedCurrent = refreshedChecks.find((candidate) => candidate.program_id === latest.program_id && candidate.code === latest.code && candidate.is_current);
-      const updated = await transitionMonitoringCheck(latest.id, latest.version, to, expectedCurrent);
+      const refreshedCurrent = refreshedChecks.find((candidate) => candidate.program_id === latest.program_id && candidate.code === latest.code && candidate.is_current);
+      if (to === "ACTIVE" && (reviewedCurrent?.id !== refreshedCurrent?.id || reviewedCurrent?.version !== refreshedCurrent?.version)) {
+        setError("The active monitoring check changed after you opened this review. The latest checks are loaded. Review the active check and pending replacement before approving again.");
+        return;
+      }
+      const updated = await transitionMonitoringCheck(latest.id, latest.version, to, reviewedCurrent);
       setChecks((current) => latestByID([...current, updated]));
     } catch (caught) {
       if (apiErrorKind(caught) === "conflict") {
