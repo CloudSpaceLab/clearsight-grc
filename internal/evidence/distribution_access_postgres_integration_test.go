@@ -246,6 +246,8 @@ func setupDistributionAccessFixture(t *testing.T, ctx context.Context, pool *pgx
 	tenantSlug := "distribution-access-integration"
 	if tenantID == "9d666666-6666-7666-8666-666666666661" {
 		tenantSlug = "distribution-access-reopen"
+	} else if tenantID == "9d777777-7777-7777-8777-777777777771" {
+		tenantSlug = "distribution-access-migration"
 	}
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$6,'Distribution Access Integration');
