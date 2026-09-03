@@ -20,9 +20,18 @@ func TestVendorWorkCanonicalRouteMigrationPreservesHistoricalRowsAndEnforcesNewP
 	now := time.Now().UTC().Truncate(time.Second)
 	down := readVendorWorkMigration(t, "../../migrations/000074_vendor_work_canonical_access_routes.down.sql")
 	up := readVendorWorkMigration(t, "../../migrations/000074_vendor_work_canonical_access_routes.up.sql")
+	migrationApplied := true
+	t.Cleanup(func() {
+		if !migrationApplied {
+			if _, err := pool.Exec(context.Background(), up); err != nil {
+				t.Errorf("restore migration 74 after failed test: %v", err)
+			}
+		}
+	})
 	if _, err := pool.Exec(ctx, down); err != nil {
 		t.Fatalf("prepare pre-74 schema: %v", err)
 	}
+	migrationApplied = false
 
 	relationship := seedAssessmentRelationship(t, pool, "Historical address verification")
 	repository := NewPostgresRepository(pool)
@@ -66,6 +75,7 @@ func TestVendorWorkCanonicalRouteMigrationPreservesHistoricalRowsAndEnforcesNewP
 	if _, err := pool.Exec(ctx, up); err != nil {
 		t.Fatalf("migration 74 rewrote historical address work: %v", err)
 	}
+	migrationApplied = true
 	assertVendorWorkInvitationAssociation(t, pool, legacyWork.ID, legacyCaptureID, legacyInvitation.InvitationID)
 
 	invalidLinkID := "33333333-3333-7333-8333-333333333385"
@@ -79,10 +89,12 @@ func TestVendorWorkCanonicalRouteMigrationPreservesHistoricalRowsAndEnforcesNewP
 	if _, err := pool.Exec(ctx, down); err != nil {
 		t.Fatalf("legacy-only rollback failed: %v", err)
 	}
+	migrationApplied = false
 	assertVendorWorkInvitationAssociation(t, pool, legacyWork.ID, legacyCaptureID, legacyInvitation.InvitationID)
 	if _, err := pool.Exec(ctx, up); err != nil {
 		t.Fatalf("reapply canonical migration: %v", err)
 	}
+	migrationApplied = true
 
 	canonicalLinkID := "33333333-3333-7333-8333-333333333388"
 	canonicalWorkID := "33333333-3333-7333-8333-333333333389"
