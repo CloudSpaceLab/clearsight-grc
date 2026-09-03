@@ -52,6 +52,8 @@ func (a *API) listSystemActivity(w http.ResponseWriter, r *http.Request) {
 		ObjectType:    r.URL.Query().Get("object_type"),
 		ObjectID:      r.URL.Query().Get("object_id"),
 		ActorID:       r.URL.Query().Get("actor_id"),
+		ActorQuery:    r.URL.Query().Get("actor"),
+		ActorKind:     r.URL.Query().Get("actor_kind"),
 		LegalEntityID: r.URL.Query().Get("legal_entity_id"),
 	})
 	if errors.Is(err, activity.ErrInvalid) {
