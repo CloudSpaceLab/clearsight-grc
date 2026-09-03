@@ -11,14 +11,15 @@ import (
 )
 
 const (
-	ObligationOrganizationInstruction = "ORG_INSTRUCTION"
-	FactPromptInjectionRisk           = "gateway.prompt_injection_risk"
-	FactInstructionExfiltration       = "gateway.instruction_exfiltration_attempt"
-	FactUntrustedContent              = "gateway.untrusted_content_present"
-
-	maxOrganizationInstructions      = 8
-	maxOrganizationInstructionBytes = 4096
-	maxOrganizationInstructionTotal = 16384
+	GatewayBaselinePolicyCode          = "ORG_AI_BASELINE"
+	GatewayBaselineActionClass         = "AI_GATEWAY_BASELINE"
+	ObligationOrganizationInstruction  = "ORG_INSTRUCTION"
+	FactPromptInjectionRisk            = "gateway.prompt_injection_risk"
+	FactInstructionExfiltration        = "gateway.instruction_exfiltration_attempt"
+	FactUntrustedContent               = "gateway.untrusted_content_present"
+	maxOrganizationInstructions        = 8
+	maxOrganizationInstructionBytes    = 4096
+	maxOrganizationInstructionTotal    = 16384
 )
 
 type DecisionAction string
@@ -110,6 +111,7 @@ type PolicySnapshot struct {
 	Version     int64            `json:"version"`
 	RolloutMode RolloutMode      `json:"rollout_mode"`
 	Definition  PolicyDefinition `json:"definition"`
+	Baseline    *PolicySnapshot  `json:"baseline,omitempty"`
 }
 
 type Obligation struct {
@@ -135,6 +137,14 @@ type Decision struct {
 	Obligations     []Obligation    `json:"obligations,omitempty"`
 	Redactions      []Redaction     `json:"redactions,omitempty"`
 	ResponseControl ResponseControl `json:"-"`
+
+	BaselinePolicyID       string         `json:"baseline_policy_id,omitempty"`
+	BaselinePolicyCode     string         `json:"baseline_policy_code,omitempty"`
+	BaselinePolicyVersion  int64          `json:"baseline_policy_version,omitempty"`
+	BaselineRolloutMode    RolloutMode    `json:"baseline_rollout_mode,omitempty"`
+	BaselineAction         DecisionAction `json:"baseline_action,omitempty"`
+	BaselineProposedAction DecisionAction `json:"baseline_proposed_action,omitempty"`
+	BaselineReasonCodes    []string       `json:"baseline_reason_codes,omitempty"`
 }
 
 type GovernedRequest struct {
@@ -205,18 +215,32 @@ func staticPolicy(workload Workload) PolicySnapshot {
 	}
 }
 
+// EvaluatePolicy evaluates the exact workload policy and, when present, the
+// tenant-wide organization baseline. The baseline is a separate governed policy
+// revision; it can strengthen or mutate an authorized request but cannot be
+// weakened by the workload policy. Both revisions remain explicitly attributed
+// on the returned decision.
 func EvaluatePolicy(policy PolicySnapshot, workload Workload, request Request, facts []Fact) (Decision, error) {
-	if strings.TrimSpace(policy.ID) == "" || strings.TrimSpace(policy.Code) == "" || policy.Version < 1 {
-		return Decision{}, fmt.Errorf("invalid policy snapshot")
+	factMap := makeFactMap(request, facts)
+	workloadPolicy := policy
+	workloadPolicy.Baseline = nil
+	workloadDecision, err := evaluateSinglePolicy(workloadPolicy, workload, request, factMap)
+	if err != nil {
+		return workloadDecision, err
 	}
-	mode := policy.RolloutMode
-	if mode == "" {
-		mode = RolloutShadow
+	if policy.Baseline == nil || strings.TrimSpace(policy.Baseline.ID) == "" || policy.Baseline.ID == policy.ID {
+		return combinePolicyDecisions(workloadDecision, nil), nil
 	}
-	if mode != RolloutShadow && mode != RolloutEnforce {
-		return Decision{}, fmt.Errorf("invalid rollout mode")
+	baselinePolicy := *policy.Baseline
+	baselinePolicy.Baseline = nil
+	baselineDecision, err := evaluateSinglePolicy(baselinePolicy, workload, request, factMap)
+	if err != nil {
+		return workloadDecision, err
 	}
-	decision := Decision{PolicyID: policy.ID, PolicyCode: policy.Code, PolicyVersion: policy.Version, RolloutMode: mode, ResponseControl: policy.Definition.ResponseControl}
+	return combinePolicyDecisions(workloadDecision, &baselineDecision), nil
+}
+
+func makeFactMap(request Request, facts []Fact) map[string]Fact {
 	factMap := make(map[string]Fact, len(facts)+3)
 	for _, fact := range facts {
 		if strings.TrimSpace(fact.Key) == "" || strings.HasPrefix(fact.Key, "gateway.") {
@@ -230,6 +254,21 @@ func EvaluatePolicy(policy PolicySnapshot, workload Workload, request Request, f
 	for _, fact := range gatewaySecurityFacts(request) {
 		factMap[fact.Key] = fact
 	}
+	return factMap
+}
+
+func evaluateSinglePolicy(policy PolicySnapshot, workload Workload, request Request, factMap map[string]Fact) (Decision, error) {
+	if strings.TrimSpace(policy.ID) == "" || strings.TrimSpace(policy.Code) == "" || policy.Version < 1 {
+		return Decision{}, fmt.Errorf("invalid policy snapshot")
+	}
+	mode := policy.RolloutMode
+	if mode == "" {
+		mode = RolloutShadow
+	}
+	if mode != RolloutShadow && mode != RolloutEnforce {
+		return Decision{}, fmt.Errorf("invalid rollout mode")
+	}
+	decision := Decision{PolicyID: policy.ID, PolicyCode: policy.Code, PolicyVersion: policy.Version, RolloutMode: mode, ResponseControl: cloneResponseControl(policy.Definition.ResponseControl)}
 	for _, requirement := range policy.Definition.Bindings {
 		if !requirement.Required {
 			continue
@@ -271,6 +310,132 @@ func EvaluatePolicy(policy PolicySnapshot, workload Workload, request Request, f
 		action = DecisionAllow
 	}
 	return finalizeDecision(decision, action, "POLICY_DEFAULT", nil, nil, ""), nil
+}
+
+func combinePolicyDecisions(workloadDecision Decision, baselineDecision *Decision) Decision {
+	combined := workloadDecision
+	combined.Obligations = nil
+	combined.Redactions = nil
+	combined.RouteID = ""
+	combined.ResponseControl = ResponseControl{}
+	combined.ReasonCodes = append([]string(nil), workloadDecision.ReasonCodes...)
+
+	workloadEnforcing := workloadDecision.RolloutMode == RolloutEnforce
+	if workloadEnforcing {
+		combined.Obligations = append(combined.Obligations, workloadDecision.Obligations...)
+		combined.Redactions = append(combined.Redactions, workloadDecision.Redactions...)
+		combined.RouteID = strings.TrimSpace(workloadDecision.RouteID)
+		combined.ResponseControl = cloneResponseControl(workloadDecision.ResponseControl)
+	}
+
+	var baseline Decision
+	baselineEnforcing := false
+	if baselineDecision != nil {
+		baseline = *baselineDecision
+		combined.BaselinePolicyID = baseline.PolicyID
+		combined.BaselinePolicyCode = baseline.PolicyCode
+		combined.BaselinePolicyVersion = baseline.PolicyVersion
+		combined.BaselineRolloutMode = baseline.RolloutMode
+		combined.BaselineAction = baseline.Action
+		combined.BaselineProposedAction = baseline.ProposedAction
+		combined.BaselineReasonCodes = append([]string(nil), baseline.ReasonCodes...)
+		baselineEnforcing = baseline.RolloutMode == RolloutEnforce
+		if baselineEnforcing {
+			// Workload mutations are applied first. Baseline redactions/routes are
+			// appended/selected last so a lower layer cannot undo them.
+			combined.Redactions = append(combined.Redactions, baseline.Redactions...)
+			combined.Obligations = append(append([]Obligation(nil), baseline.Obligations...), combined.Obligations...)
+			if route := strings.TrimSpace(baseline.RouteID); route != "" {
+				combined.RouteID = route
+			}
+			combined.ResponseControl = mergeResponseControls(combined.ResponseControl, baseline.ResponseControl)
+		}
+	}
+
+	workloadAction := enforcedAction(workloadDecision)
+	baselineAction := DecisionAllow
+	if baselineDecision != nil {
+		baselineAction = enforcedAction(baseline)
+	}
+	combined.Action = strongestEffectiveAction(workloadAction, baselineAction, len(combined.Redactions) > 0, combined.RouteID != "")
+	combined.ProposedAction = ""
+
+	if combined.Action == DecisionAllow || combined.Action == DecisionShadow {
+		if proposed := strongestProposedAction(workloadDecision, baselineDecision); proposed != DecisionAllow {
+			combined.Action = DecisionShadow
+			combined.ProposedAction = proposed
+		}
+	}
+
+	if baselineDecision != nil && (baselineEnforcing || baseline.Action == DecisionShadow || baseline.ProposedAction != "") {
+		combined.ReasonCodes = uniqueSortedStrings(append(combined.ReasonCodes, baseline.ReasonCodes...))
+	}
+	return combined
+}
+
+func enforcedAction(decision Decision) DecisionAction {
+	if decision.RolloutMode != RolloutEnforce {
+		return DecisionAllow
+	}
+	if decision.Action == "" || decision.Action == DecisionShadow {
+		return DecisionAllow
+	}
+	return decision.Action
+}
+
+func strongestEffectiveAction(workload, baseline DecisionAction, hasRedactions, hasRoute bool) DecisionAction {
+	for _, action := range []DecisionAction{DecisionDeny, DecisionRequireApproval} {
+		if baseline == action || workload == action {
+			return action
+		}
+	}
+	if baseline == DecisionModify || workload == DecisionModify || hasRedactions {
+		return DecisionModify
+	}
+	if baseline == DecisionRoute || workload == DecisionRoute || hasRoute {
+		return DecisionRoute
+	}
+	return DecisionAllow
+}
+
+func strongestProposedAction(workload Decision, baseline *Decision) DecisionAction {
+	candidates := []DecisionAction{workload.ProposedAction}
+	if baseline != nil {
+		candidates = append(candidates, baseline.ProposedAction)
+	}
+	for _, priority := range []DecisionAction{DecisionDeny, DecisionRequireApproval, DecisionModify, DecisionRoute} {
+		for _, candidate := range candidates {
+			if candidate == priority {
+				return priority
+			}
+		}
+	}
+	return DecisionAllow
+}
+
+func cloneResponseControl(control ResponseControl) ResponseControl {
+	control.DenyPatterns = append([]string(nil), control.DenyPatterns...)
+	control.RedactPatterns = append([]string(nil), control.RedactPatterns...)
+	return control
+}
+
+func mergeResponseControls(a, b ResponseControl) ResponseControl {
+	out := cloneResponseControl(a)
+	if out.MaxBytes == 0 || (b.MaxBytes > 0 && b.MaxBytes < out.MaxBytes) {
+		out.MaxBytes = b.MaxBytes
+	}
+	out.DenyPatterns = uniqueSortedStrings(append(out.DenyPatterns, b.DenyPatterns...))
+	out.RedactPatterns = uniqueSortedStrings(append(out.RedactPatterns, b.RedactPatterns...))
+	if responseControlConfigured(a) && responseControlConfigured(b) {
+		out.AllowStreaming = a.AllowStreaming && b.AllowStreaming
+	} else if responseControlConfigured(b) {
+		out.AllowStreaming = b.AllowStreaming
+	}
+	return out
+}
+
+func responseControlConfigured(control ResponseControl) bool {
+	return control.MaxBytes > 0 || len(control.DenyPatterns) > 0 || len(control.RedactPatterns) > 0 || control.AllowStreaming
 }
 
 func gatewaySecurityFacts(request Request) []Fact {
@@ -405,16 +570,23 @@ func ApplyDecision(request Request, decision Decision) (Request, error) {
 		return request, ErrPolicyDenied
 	case DecisionRequireApproval:
 		return request, ErrApprovalRequired
+	case DecisionAllow, DecisionShadow, DecisionModify, DecisionRoute:
+	default:
+		return request, ErrPolicyUnavailable
 	}
 
 	mutated := request
-	if decision.Action == DecisionRoute {
-		if !validIdentifier(decision.RouteID) {
+	if decision.RolloutMode == RolloutShadow && decision.BaselinePolicyID == "" {
+		return mutated, nil
+	}
+	if route := strings.TrimSpace(decision.RouteID); route != "" {
+		if !validIdentifier(route) {
 			return request, invalid("route", "The governed route is invalid.")
 		}
-		mutated.RouteID = decision.RouteID
+		mutated.RouteID = route
 	}
-	if decision.Action == DecisionModify {
+	if len(decision.Redactions) > 0 {
+		messages := append([]Message(nil), mutated.Messages...)
 		for _, redaction := range decision.Redactions {
 			if strings.ToLower(strings.TrimSpace(redaction.Target)) != "prompt" {
 				continue
@@ -427,18 +599,11 @@ func ApplyDecision(request Request, decision Decision) (Request, error) {
 			if replacement == "" {
 				replacement = "[REDACTED]"
 			}
-			messages := append([]Message(nil), mutated.Messages...)
 			for i := range messages {
 				messages[i].Text = re.ReplaceAllString(messages[i].Text, replacement)
 			}
-			mutated.Messages = messages
 		}
-	}
-	if decision.Action != DecisionAllow && decision.Action != DecisionShadow && decision.Action != DecisionModify && decision.Action != DecisionRoute {
-		return request, ErrPolicyUnavailable
-	}
-	if decision.RolloutMode == RolloutShadow {
-		return mutated, nil
+		mutated.Messages = messages
 	}
 	return applyOrganizationInstructions(mutated, decision.Obligations)
 }
