@@ -48,7 +48,7 @@ func TestRouteRegistryHasExplicitAccessClasses(t *testing.T) {
 }
 
 func TestAdministrativePermissionsLiveInRouteRegistry(t *testing.T) {
-	routes := (&API{}).routes()
+	routes := (&API{}).productionRoutes()
 	expected := map[string]string{}
 	addExpected := func(method, path, permission string) {
 		expected[method+" "+path] = permission
@@ -57,6 +57,8 @@ func TestAdministrativePermissionsLiveInRouteRegistry(t *testing.T) {
 	addExpected(http.MethodGet, "/api/v1/oversight", identity.PermissionOversightRead)
 	addExpected(http.MethodPost, "/api/v1/governance/policies", identity.PermissionConfigWrite)
 	addExpected(http.MethodPost, "/api/v1/authority/simulate", identity.PermissionConfigRead)
+	addExpected(http.MethodGet, "/api/v1/system-activity", identity.PermissionPlatformOperationsRead)
+	addExpected(http.MethodGet, "/api/v1/system-activity/{event_id}", identity.PermissionPlatformOperationsRead)
 	addExpected(http.MethodGet, "/api/v1/operations/projections", identity.PermissionPlatformOperationsRead)
 	addExpected(http.MethodPost, "/api/v1/operations/projections/reconcile", identity.PermissionPlatformOperationsWrite)
 	addExpected(http.MethodGet, "/api/v1/operations/background-jobs", identity.PermissionPlatformJobsRead)
