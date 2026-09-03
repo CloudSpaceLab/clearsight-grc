@@ -70,6 +70,7 @@ type ExportRepository interface {
 	CompleteExport(context.Context, ExportReceipt) (ExportReceipt, error)
 	FailExport(context.Context, string, string, string) error
 	GetExport(context.Context, string, string) (ExportReceipt, error)
+	RecordDownload(context.Context, string, string, string) error
 }
 
 type ExportManifest struct {
@@ -194,8 +195,8 @@ func (s *ExportService) Get(ctx context.Context, tenantID, exportID string) (Exp
 	return s.receipts.GetExport(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(exportID))
 }
 
-func (s *ExportService) Open(ctx context.Context, tenantID, exportID string) (ExportReceipt, io.ReadCloser, error) {
-	if s == nil || s.objects == nil {
+func (s *ExportService) Open(ctx context.Context, tenantID, exportID, downloadedBy string) (ExportReceipt, io.ReadCloser, error) {
+	if s == nil || s.objects == nil || strings.TrimSpace(downloadedBy) == "" {
 		return ExportReceipt{}, nil, ErrExportInvalid
 	}
 	receipt, err := s.Get(ctx, tenantID, exportID)
@@ -207,6 +208,10 @@ func (s *ExportService) Open(ctx context.Context, tenantID, exportID string) (Ex
 	}
 	reader, err := s.objects.Open(ctx, receipt.DataObjectKey)
 	if err != nil {
+		return ExportReceipt{}, nil, err
+	}
+	if err := s.receipts.RecordDownload(ctx, strings.TrimSpace(tenantID), receipt.ID, strings.TrimSpace(downloadedBy)); err != nil {
+		_ = reader.Close()
 		return ExportReceipt{}, nil, err
 	}
 	return receipt, reader, nil
