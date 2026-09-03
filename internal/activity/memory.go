@@ -104,5 +104,11 @@ func memoryMatches(value Event, query Query) bool {
 	if query.ActorID != "" && value.ActorID != query.ActorID {
 		return false
 	}
+	if query.ActorQuery != "" && value.ActorID != query.ActorQuery && !strings.Contains(strings.ToLower(value.ActorDisplayName), strings.ToLower(query.ActorQuery)) {
+		return false
+	}
+	if query.ActorKind != "" && actorKind(value.ActorKind, value.ObjectType) != query.ActorKind {
+		return false
+	}
 	return query.LegalEntityID == "" || value.LegalEntityID == query.LegalEntityID
 }
