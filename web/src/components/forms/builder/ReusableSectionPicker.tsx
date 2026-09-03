@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import type { ReusableFormTemplateRef } from "../../../formsTypes";
 import type { FormTemplate } from "../../../monitoringTypes";
 import { reusableRefLabel } from "../formAuthoring";
-import { SelectField } from "../../ui";
+import { Notice, SelectField } from "../../ui";
 
 type Props = {
   reusableTemplates?: ReusableFormTemplateRef[];
@@ -59,7 +59,7 @@ export function ReusableSectionPicker({ reusableTemplates, loadReusableTemplate,
         onChange={(value) => { if (value) setSourceSectionID(value); }}
       />}
       {sourceState === "loading" && <p role="status">Loading the approved revision…</p>}
-      {sourceState === "error" && <p className="inline-form-error" role="alert">That revision is no longer an active reusable template. Nothing was inserted.</p>}
+      {sourceState === "error" && <Notice tone="error">That revision is no longer an active reusable template. Nothing was inserted.</Notice>}
       {sourceTemplate && <button type="button" className="secondary-button" disabled={!sourceSectionID || sectionLimitReached} onClick={() => onInsert(sourceTemplate, sourceSectionID)}>Insert section</button>}
     </div>
   </details>;

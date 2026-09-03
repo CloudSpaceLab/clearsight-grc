@@ -23,6 +23,7 @@ import type {
   ApplyVendorAssessmentResponseInput,
 } from "../vendorAssessmentTypes";
 import { VendorResponseReview } from "./forms/VendorResponseReview";
+import { Notice, StatusBadge, type StatusTone } from "./ui";
 import "./vendor-due-diligence.css";
 
 type ViewState = "live" | "loading" | "unavailable";
@@ -474,7 +475,7 @@ export function VendorDueDiligence({
   return <section className="vdd-workspace" aria-labelledby="vdd-title" tabIndex={-1}>
     <header className="vdd-header">
       <div><span className="eyebrow">{relationship.relationship.service_name}</span><h2 id="vdd-title" tabIndex={-1}>Due diligence</h2><p>{statusCopy.description}</p></div>
-      <span className={`vdd-status vdd-status-${statusCopy.tone}`}>{statusCopy.label}</span>
+      <StatusBadge tone={dueDiligenceTone(statusCopy.tone)}>{statusCopy.label}</StatusBadge>
     </header>
 
     <div className="vdd-scope" aria-label="Assessment scope">
@@ -484,17 +485,17 @@ export function VendorDueDiligence({
       <div><span>Review due</span><strong>{formatDate(dueDate)}</strong></div>
     </div>
 
-    {sourceStatus && sourceStatus.state !== "CURRENT" && <div className="vdd-source-warning" role="status"><strong>{sourceStatus.state === "STALE" ? "Vendor source is out of date" : "Vendor source is unavailable"}</strong><span>{sourceStatus.detail}</span></div>}
-    {setupFailure && status === "SETUP_PENDING" && <div className="vdd-alert" role="alert"><strong>Review setup needs attention</strong><span>{setupFailure}</span></div>}
-    {effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" && <div className="vdd-alert" role="alert"><strong>The request is ready, but secure access was not issued</strong><span>{effectiveOutcome.recovery ?? "Retry invitation creation for this request."}</span></div>}
-    {effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && <div className="vdd-alert" role="alert"><strong>Email delivery did not complete</strong><span>{effectiveOutcome.recovery ?? "Copy the secure link or review delivery status."}</span></div>}
-    {clarificationOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" && <div className="vdd-alert" role="alert"><strong>Clarification access was not issued</strong><span>{clarificationOutcome.recovery ?? "Review the clarification request before retrying secure access."}</span></div>}
-    {clarificationOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && <div className="vdd-alert" role="alert"><strong>Clarification email delivery did not complete</strong><span>{clarificationOutcome.recovery ?? "Use the returned secure link or review delivery status."}</span></div>}
-    {notice && <p className="vdd-notice" role="status">{notice}</p>}
-    {error && <p className="vdd-error" role="alert">{error}</p>}
+    {sourceStatus && sourceStatus.state !== "CURRENT" && <Notice tone="warning"><strong>{sourceStatus.state === "STALE" ? "Vendor source is out of date" : "Vendor source is unavailable"}</strong> {sourceStatus.detail}</Notice>}
+    {setupFailure && status === "SETUP_PENDING" && <Notice tone="error"><strong>Review setup needs attention</strong> {setupFailure}</Notice>}
+    {effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" && <Notice tone="error"><strong>The request is ready, but secure access was not issued</strong> {effectiveOutcome.recovery ?? "Retry invitation creation for this request."}</Notice>}
+    {effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && <Notice tone="error"><strong>Email delivery did not complete</strong> {effectiveOutcome.recovery ?? "Copy the secure link or review delivery status."}</Notice>}
+    {clarificationOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" && <Notice tone="error"><strong>Clarification access was not issued</strong> {clarificationOutcome.recovery ?? "Review the clarification request before retrying secure access."}</Notice>}
+    {clarificationOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && <Notice tone="error"><strong>Clarification email delivery did not complete</strong> {clarificationOutcome.recovery ?? "Use the returned secure link or review delivery status."}</Notice>}
+    {notice && <Notice tone="success">{notice}</Notice>}
+    {error && <Notice tone="error">{error}</Notice>}
 
     {effectiveAssessment && needsReviewView(status) && reviewState === "loading" && <div className="vdd-review-state" aria-live="polite" aria-busy="true">Loading the submitted response and supporting documents…</div>}
-    {effectiveAssessment && needsReviewView(status) && reviewState === "unavailable" && <div className="vdd-alert" role="alert"><strong>Vendor response is unavailable</strong><span>The submitted answers and documents could not be loaded. Reload them before starting or completing the review.</span>{onRefreshReview && <button type="button" className="secondary-button" onClick={() => void onRefreshReview(effectiveAssessment.id)}>Reload vendor response</button>}</div>}
+    {effectiveAssessment && needsReviewView(status) && reviewState === "unavailable" && <Notice tone="error"><strong>Vendor response is unavailable</strong> The submitted answers and documents could not be loaded. Reload them before starting or completing the review. {onRefreshReview && <button type="button" className="secondary-button" onClick={() => void onRefreshReview(effectiveAssessment.id)}>Reload vendor response</button>}</Notice>}
 
     {reviewState === "live" && review && <ReviewSummary review={review} assessment={effectiveAssessment} onOpenMatter={onOpenMatter} onOpenDocument={!panel && onOpenDocument ? onOpenDocument : undefined} onReviewDocument={!panel && onReviewDocument ? openDocumentReview : undefined} onCreateDeficiency={!panel && onCreateDeficiency ? () => openPanel("deficiency") : undefined}/>}
 
@@ -798,6 +799,14 @@ function assessmentStatusCopy(assessment?: VendorAssessment | null, setupFailure
       ? { label: "Cancelled", tone: "neutral", description: "This onboarding assessment was cancelled. The relationship remains available for a new review." }
       : { label: "Cancelled", tone: "neutral", description: "This reassessment was cancelled. Start a new review with a new bank reference when required." };
   }
+}
+
+function dueDiligenceTone(tone: string): StatusTone {
+  if (tone === "complete") return "success";
+  if (tone === "pending") return "warning";
+  if (tone === "information") return "info";
+  if (tone === "danger") return "error";
+  return "neutral";
 }
 
 function assessmentStartMode(relationshipStatus: VendorRelationshipAggregate["relationship"]["status"], assessment?: VendorAssessment | null): AssessmentStartMode | null {

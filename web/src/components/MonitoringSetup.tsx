@@ -6,7 +6,7 @@ import type { ProgramAggregate } from "../types";
 import { DataSourceBuilder } from "./DataSourceBuilder";
 import type { SourceBinding } from "../sourceConfigApi";
 import type { ProgramOperation } from "../programOperationsApi";
-import { Notice } from "./ui";
+import { Notice, StatusBadge, type StatusTone } from "./ui";
 
 const FormBuilder = lazy(() => import("./FormBuilder").then((module) => ({ default: module.FormBuilder })));
 
@@ -36,6 +36,16 @@ function riskLabel(result: MonitoringResult) {
 
 function bandLabel(result: MonitoringResult) {
   return result.evaluation.band.toLowerCase().replaceAll("_", " ").replace(/^./, (value) => value.toUpperCase());
+}
+
+function bandTone(result: MonitoringResult): StatusTone {
+  switch (result.evaluation.band) {
+    case "LOW": return "success";
+    case "MODERATE": return "warning";
+    case "HIGH":
+    case "CRITICAL": return "error";
+    default: return "unknown";
+  }
 }
 
 function eligibleForLinkedIssue(check: MonitoringCheck, result?: MonitoringResult) {
@@ -197,7 +207,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     {!canConfigureMonitoring && <p className="program-operation-reason">{formDefineOperation?.reason ?? checkDefineOperation?.reason ?? "Monitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available."}</p>}
     {state === "loading" && <p aria-live="polite">Loading monitoring checks…</p>}
     {state === "unavailable" && <div className="inline-error"><p>Monitoring checks could not be loaded.</p><button className="secondary-button" type="button" onClick={() => void reload()}>Try again</button></div>}
-    {error && <p className="inline-form-error" role="alert">{error}</p>}
+    {error && <Notice tone="error">{error}</Notice>}
     {notice && <Notice tone="success">{notice}</Notice>}
     {canConfigureMonitoring && mode === "choose" && <div className="monitoring-choice-grid">
       <button type="button" aria-label="Collection form" disabled={!canDefineForm} onClick={() => setMode("form")}><strong>Collection form</strong><span>{canDefineForm ? "Ask assigned staff for structured responses and score the answers." : formDefineOperation?.reason ?? "The current Program owner must create this form."}</span></button>
@@ -240,7 +250,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
         <div><span className="record-type">Monitoring check</span><h4>{check.name}</h4><p>{check.input_kind === "FORM" ? "Collection form" : "Connected data"} · {statusLabel(check.status)}</p></div>
         {result && <div className="monitoring-result" aria-label={`Latest result for ${check.name}`}>
           <strong>{riskLabel(result)}</strong>
-          <span className={`risk-band risk-band-${result.evaluation.band.toLowerCase()}`}>{bandLabel(result)}</span>
+          <StatusBadge tone={bandTone(result)}>{bandLabel(result)}</StatusBadge>
           <span>{Math.round(result.evaluation.coverage * 100)}% coverage</span>
           <time dateTime={result.evaluated_at}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(result.evaluated_at))}</time>
         </div>}

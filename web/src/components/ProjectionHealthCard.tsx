@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ProjectionHealth, ReconcileResult } from "../operationsTypes";
 import { EmptyState } from "./EmptyState";
+import { Notice } from "./ui";
 
 type LoadState = "loading" | "live" | "unavailable";
 
@@ -60,7 +61,7 @@ export function ProjectionHealthCard({ health, state = "live", canReconcile, onR
       <div><span>Last completed</span><strong>{health.last_completed ? formatTime(health.last_completed) : "Not recorded"}</strong><small>Latest successful Program status update</small></div>
     </div>}
     {health?.last_error && <p className="error-text">Latest error: {health.last_error}</p>}
-    {result && <p className="success-text">Checked {result.checked} Programs. {result.queued} new status update{result.queued === 1 ? " was" : "s were"} queued{result.already_queued ? `; ${result.already_queued} already waiting` : ""}.</p>}
+    {result && <Notice tone="success">Checked {result.checked} Programs. {result.queued} new status update{result.queued === 1 ? " was" : "s were"} queued{result.already_queued ? `; ${result.already_queued} already waiting` : ""}.</Notice>}
     {error && <p className="error-text" role="alert">{error}</p>}
     <div className="card-actions"><button type="button" className="secondary-button" disabled={running || !canReconcile} onClick={() => void checkRecords()}>{running ? "Checking…" : "Check status records"}</button>{!canReconcile && <small>Platform Operations must check these records because your access is read-only.</small>}</div>
   </article>;

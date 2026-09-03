@@ -1,6 +1,7 @@
 import type { AutomationPolicy } from "../types";
 import "../automation-policies.css";
 import { EmptyState } from "./EmptyState";
+import { StatusBadge, type StatusTone } from "./ui";
 
 type LoadState = "loading" | "live" | "unavailable";
 
@@ -32,7 +33,7 @@ function PolicyRow({ policy }: { policy: AutomationPolicy }) {
   return <article className="automation-policy-row">
     <div className="automation-policy-main">
       <div><span className="eyebrow">{humanize(policy.action_class)}</span><h3>{policy.name}</h3><p>{policy.code} · version {policy.version}</p></div>
-      <div className="automation-policy-state"><mark className={`policy-${policy.status.toLowerCase()}`}>{humanize(policy.status)}</mark>{policy.effective_until && <span>Ends {formatDate(policy.effective_until)}</span>}</div>
+      <div className="automation-policy-state"><StatusBadge tone={policyTone(policy.status)}>{humanize(policy.status)}</StatusBadge>{policy.effective_until && <span>Ends {formatDate(policy.effective_until)}</span>}</div>
     </div>
     <details>
       <summary>View limits</summary>
@@ -43,6 +44,12 @@ function PolicyRow({ policy }: { policy: AutomationPolicy }) {
       </div>
     </details>
   </article>;
+}
+
+function policyTone(status: AutomationPolicy["status"]): StatusTone {
+  if (status === "ACTIVE") return "success";
+  if (status === "SUSPENDED" || status === "EXPIRED") return "warning";
+  return "neutral";
 }
 
 function GuardrailGroup({ title, value }: { title: string; value: Record<string, unknown> }) {
