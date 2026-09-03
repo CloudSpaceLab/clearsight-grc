@@ -81,3 +81,16 @@ func (r *MemoryExportRepository) GetExport(_ context.Context, tenantID, exportID
 	}
 	return receipt, nil
 }
+
+func (r *MemoryExportRepository) RecordDownload(_ context.Context, tenantID, exportID, downloadedBy string) error {
+	if r == nil || tenantID == "" || exportID == "" || downloadedBy == "" {
+		return ErrExportInvalid
+	}
+	r.mu.RLock()
+	receipt, ok := r.receipts[exportID]
+	r.mu.RUnlock()
+	if !ok || receipt.TenantID != tenantID || receipt.Status != ExportStatusReady || r.now().UTC().After(receipt.ExpiresAt) {
+		return ErrNotFound
+	}
+	return nil
+}
