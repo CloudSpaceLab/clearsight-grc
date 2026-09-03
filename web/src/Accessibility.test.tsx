@@ -5,9 +5,12 @@ import { CapturePanel } from "./components/CapturePanel";
 import { DemoLoginPage } from "./components/DemoLoginPage";
 import { MattersWorkspace } from "./components/MattersWorkspace";
 import { ProgramsWorkspace } from "./components/ProgramsWorkspace";
+import { ProgramDetailSections, programSections } from "./components/ProgramDetailSections";
 import { TodayInterventions } from "./components/TodayInterventions";
 import type { DemoAccount } from "./api";
 import type { AttentionItem, CaptureRequest, Readiness } from "./types";
+import type { ProgramSection } from "./appRouting";
+import type { ReactNode } from "react";
 
 vi.mock("./api", () => ({
   loadProgramSummaries: vi.fn().mockResolvedValue({ items: [], next_cursor: "", generated_at: "2026-08-07T13:00:00Z" }),
@@ -74,6 +77,15 @@ async function waitForEmptyState(container: HTMLElement) {
 }
 
 describe("semantic accessibility gates", () => {
+  it("passes axe for desktop tabs and the compact Program section selector", async () => {
+    const panels = Object.fromEntries(programSections.map((section) => [section.id, <p key={section.id}>{section.label} records</p>])) as Record<ProgramSection, ReactNode>;
+    const desktop = render(<ProgramDetailSections section="overview" panels={panels} onSectionChange={vi.fn()}/>);
+    await expectNoSemanticViolations(desktop.container);
+    desktop.unmount();
+    const compact = render(<ProgramDetailSections compact section="monitoring" panels={panels} onSectionChange={vi.fn()}/>);
+    await expectNoSemanticViolations(compact.container);
+  });
+
   it("passes axe for the Today intervention surface", async () => {
     const { container } = render(<TodayInterventions items={[item]} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()}/>);
     await expectNoSemanticViolations(container);

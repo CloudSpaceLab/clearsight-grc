@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
+import type { ProgramSection } from "../appRouting";
 import { loadProgram, loadProgramSummaries } from "../api";
 import type { ProgramSummary } from "../summaryTypes";
 import type { ProgramAggregate, ProgramState } from "../types";
@@ -8,9 +9,10 @@ import { ProgramLifecycleControls } from "./ProgramLifecycleControls";
 import { ProgramReviewDigest } from "./ProgramReviewDigest";
 import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
 import { MonitoringSetup } from "./MonitoringSetup";
+import { ProgramDetailSections } from "./ProgramDetailSections";
 
 type LoadState = "loading" | "live" | "unavailable";
-type Props = { targetID?: string; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean };
+type Props = { targetID?: string; targetSection?: ProgramSection; onSectionChange?: (programID: string, section: ProgramSection) => void; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean };
 
 function ProgramIcon() {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v4h4M9 11h6M9 15h6M9 19h4"/></svg>;
@@ -58,7 +60,12 @@ function summaryFromAggregate(detail: ProgramAggregate): ProgramSummary {
   };
 }
 
-export function ProgramsWorkspace({ targetID, openFirst = false, actorPrincipalID = "", canConfigureSources = false }: Props) {
+function formatProgramTime(value: string) {
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(parsed)) : "Not available";
+}
+
+export function ProgramsWorkspace({ targetID, targetSection = "overview", onSectionChange, openFirst = false, actorPrincipalID = "", canConfigureSources = false }: Props) {
   const [items, setItems] = useState<ProgramSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [nextCursor, setNextCursor] = useState("");
@@ -70,6 +77,7 @@ export function ProgramsWorkspace({ targetID, openFirst = false, actorPrincipalI
   const [detailState, setDetailState] = useState<Record<string, LoadState>>({});
   const [loadingMore, setLoadingMore] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
+  const [localSections, setLocalSections] = useState<Record<string, ProgramSection>>({});
   const requestID = useRef(0);
   const handledTarget = useRef("");
   const mounted = useRef(true);
@@ -151,6 +159,11 @@ export function ProgramsWorkspace({ targetID, openFirst = false, actorPrincipalI
     setOpenID(value.program.id);
   }
 
+  function selectProgramSection(programID: string, section: ProgramSection) {
+    setLocalSections((current) => ({ ...current, [programID]: section }));
+    onSectionChange?.(programID, section);
+  }
+
   async function toggleDetail(id: string) {
     if (openID === id) {
       setOpenID(null);
@@ -230,15 +243,35 @@ export function ProgramsWorkspace({ targetID, openFirst = false, actorPrincipalI
           {isOpen && <div className="program-detail progressive-detail" id={`program-detail-${program.id}`}>
             {currentDetailState === "loading" && <p aria-live="polite">Loading program details…</p>}
             {currentDetailState === "unavailable" && <div className="inline-error"><p>Program details could not be loaded.</p><button className="secondary-button" onClick={() => void fetchDetail(program.id)}>Try again</button></div>}
-            {detail && <>
-              {summaryItem.projection_stale && <div className="inline-notice" role="status">The Program changed after the latest assessment. The last known reasons remain available below while status is recalculated.</div>}
-              <ProgramReviewDigest aggregate={detail}/>
-              <ProgramLifecycleControls aggregate={detail} onUpdated={applyDetailUpdate}/>
-              <MonitoringSetup aggregate={detail} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources}/>
-              <section className="status-reasons"><h3>Why this status</h3>{detail.current_state?.reasons?.length ? <ul>{detail.current_state.reasons.map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul> : <p>No status reasons are recorded for the latest assessment.</p>}{summaryItem.reasons_omitted > 0 && <p>{summaryItem.reasons_omitted} additional status reason{summaryItem.reasons_omitted === 1 ? " is" : "s are"} available in the full Program record.</p>}</section>
-              <details className="progressive-section"><summary><span>Requirements</span><strong>{detail.requirements.length}</strong></summary><div>{detail.requirements.length ? detail.requirements.map((requirement) => <div className="detail-row" key={requirement.id}><div><strong>{requirement.title}</strong><small>{requirement.statement}</small>{requirement.source_anchor && <small>Source: {requirement.source_anchor}</small>}</div><span>{requirementStatusLabel(requirement.status)}</span></div>) : <p>No approved requirements have been added.</p>}</div></details>
-              <details className="progressive-section"><summary><span>Evidence expectations</span><strong>{detail.evidence_contracts.length}</strong></summary><div>{detail.evidence_contracts.length ? detail.evidence_contracts.map((contract) => <div className="detail-row" key={contract.id}><div><strong>{contract.name}</strong><small>{contract.claim}</small></div><span>Required coverage: {Math.round(contract.minimum_coverage * 100)}%</span></div>) : <p>No evidence checks have been defined.</p>}</div></details>
-            </>}
+            {detail && (() => {
+              const selectedSection = targetID === program.id ? targetSection : localSections[program.id] ?? "overview";
+              const contractNames = new Map(detail.evidence_contracts.map((contract) => [contract.id, contract.name]));
+              const panels = {
+                overview: <div className="program-section-stack">
+                  <ProgramReviewDigest aggregate={detail}/>
+                  <ProgramLifecycleControls aggregate={detail} onUpdated={applyDetailUpdate}/>
+                  <section className="status-reasons"><h4>Why this status</h4>{detail.current_state?.reasons?.length ? <ul>{detail.current_state.reasons.map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul> : <p>No status reasons are recorded for the latest assessment.</p>}{summaryItem.reasons_omitted > 0 && <p>{summaryItem.reasons_omitted} additional status reason{summaryItem.reasons_omitted === 1 ? " is" : "s are"} available in Program history.</p>}</section>
+                </div>,
+                "requirements-controls": <div className="program-section-stack">
+                  <section><div className="program-section-heading"><h4>Requirements</h4><span>{detail.requirements.length}</span></div>{detail.requirements.length ? detail.requirements.map((requirement) => <div className="detail-row" key={requirement.id}><div><strong>{requirement.title}</strong><small>{requirement.statement}</small>{requirement.source_anchor && <small>Source: {requirement.source_anchor}</small>}</div><span>{requirementStatusLabel(requirement.status)}</span></div>) : <p>No approved requirements have been added to this Program.</p>}</section>
+                  <section><div className="program-section-heading"><h4>Controls</h4><span>{detail.control_implementations.length}</span></div>{detail.control_implementations.length ? detail.control_implementations.map((control) => <div className="detail-row" key={control.id}><div><strong>{control.name}</strong><small>{control.description}</small></div><span>{requirementStatusLabel(control.status)}</span></div>) : <p>No control implementations have been added to this Program.</p>}</section>
+                </div>,
+                monitoring: <MonitoringSetup aggregate={detail} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources}/>,
+                "evidence-results": <div className="program-section-stack">
+                  <section><div className="program-section-heading"><h4>Evidence expectations</h4><span>{detail.evidence_contracts.length}</span></div>{detail.evidence_contracts.length ? detail.evidence_contracts.map((contract) => <div className="detail-row" key={contract.id}><div><strong>{contract.name}</strong><small>{contract.claim}</small></div><span>Required coverage: {Math.round(contract.minimum_coverage * 100)}%</span></div>) : <p>No evidence expectations have been defined for this Program.</p>}</section>
+                  <section><div className="program-section-heading"><h4>Assessment results</h4><span>{detail.evidence_assessments.length}</span></div>{detail.evidence_assessments.length ? detail.evidence_assessments.map((assessment) => <div className="detail-row" key={assessment.id}><div><strong>{contractNames.get(assessment.contract_id) ?? "Evidence expectation"}</strong><small>Assessed <time dateTime={assessment.assessed_at}>{formatProgramTime(assessment.assessed_at)}</time></small></div><span>{requirementStatusLabel(assessment.conclusion)} · {Math.round(assessment.coverage * 100)}% coverage</span></div>) : <p>No evidence assessment results have been recorded for this Program.</p>}</section>
+                </div>,
+                "issues-actions": <section className="program-section-empty"><h4>Open issues and actions</h4>{(detail.current_state?.open_matter_count ?? 0) > 0 ? <p>{detail.current_state?.open_matter_count} open issue{detail.current_state?.open_matter_count === 1 ? " or change is" : "s or changes are"} recorded in the latest Program status. Review the Work workspace for assigned decisions and actions.</p> : <p>No open issues or changes are recorded in the latest Program status.</p>}</section>,
+                history: <div className="program-section-stack">
+                  <dl className="program-history-facts"><div><dt>Program version</dt><dd>{detail.program.version}</dd></div><div><dt>Created</dt><dd><time dateTime={detail.program.created_at}>{formatProgramTime(detail.program.created_at)}</time></dd></div><div><dt>Last changed</dt><dd><time dateTime={detail.program.updated_at}>{formatProgramTime(detail.program.updated_at)}</time></dd></div><div><dt>Latest status calculated</dt><dd>{detail.current_state?.generated_at ? <time dateTime={detail.current_state.generated_at}>{formatProgramTime(detail.current_state.generated_at)}</time> : "Not available"}</dd></div></dl>
+                  <section><div className="program-section-heading"><h4>Recorded triggers</h4><span>{detail.triggers.length}</span></div>{detail.triggers.length ? detail.triggers.map((trigger) => <div className="detail-row" key={trigger.id}><div><strong>{requirementStatusLabel(trigger.type)}</strong><small>{trigger.source}</small></div><time dateTime={trigger.observed_at}>{formatProgramTime(trigger.observed_at)}</time></div>) : <p>No Program triggers have been recorded.</p>}</section>
+                </div>,
+              } satisfies Record<ProgramSection, ReactNode>;
+              return <>
+                {summaryItem.projection_stale && <div className="inline-notice" role="status">The Program changed after the latest assessment. The last known reasons remain available while status is recalculated.</div>}
+                <ProgramDetailSections section={selectedSection} panels={panels} onSectionChange={(section) => selectProgramSection(program.id, section)}/>
+              </>;
+            })()}
           </div>}
         </article>;
       })}

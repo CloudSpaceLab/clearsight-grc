@@ -99,6 +99,6 @@ describe("runtime navigation", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Open program" }));
     await screen.findByRole("heading", { name: "Programs" });
-    expect(window.location.hash).toBe("#programs/program-123");
+    expect(window.location.hash).toBe("#programs/program-123/overview");
   });
 });

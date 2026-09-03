@@ -9,6 +9,7 @@ import { TodayInterventions } from "./components/TodayInterventions";
 import { WorkspaceErrorBoundary } from "./components/WorkspaceErrorBoundary";
 import type { AttentionItem, AutomationPolicy, AuthorityResolution, EvidenceRequest, EvidenceSource, IntegrityFinding, PolicySummary, Readiness, WorkflowTask } from "./types";
 import type { ProjectionHealth, ReconcileResult } from "./operationsTypes";
+import type { ProgramSection } from "./appRouting";
 
 export { CapturePanel } from "./components/CapturePanel";
 
@@ -28,8 +29,8 @@ export function TodayView({ organizationName, items, connection, generatedAt, re
   </>;
 }
 
-export function ProgramsView({ organizationName, actorPrincipalID, canConfigureSources, targetID, openFirst }: { organizationName: string; actorPrincipalID?: string; canConfigureSources?: boolean; targetID?: string; openFirst?: boolean }) {
-  return <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Programs</h1><p>Ongoing obligations, safeguards, evidence checks and open issues.</p></div></header><ProgramsWorkspace targetID={targetID} openFirst={openFirst} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources}/></>;
+export function ProgramsView({ organizationName, actorPrincipalID, canConfigureSources, targetID, targetSection, onSectionChange, openFirst }: { organizationName: string; actorPrincipalID?: string; canConfigureSources?: boolean; targetID?: string; targetSection?: ProgramSection; onSectionChange?: (programID: string, section: ProgramSection) => void; openFirst?: boolean }) {
+  return <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Programs</h1><p>Ongoing obligations, safeguards, evidence checks and open issues.</p></div></header><ProgramsWorkspace targetID={targetID} targetSection={targetSection} onSectionChange={onSectionChange} openFirst={openFirst} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources}/></>;
 }
 
 export function ExploreView({ organizationName }: { organizationName: string }) {
