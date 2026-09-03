@@ -39,8 +39,15 @@ func TestSystemActivityUsesVerifiedTenantAndPlatformPermission(t *testing.T) {
 		RuntimeContext: runtimecontext.IdentifierResolver{},
 		Activity:       service,
 	})
+
+	spoofed := httptest.NewRecorder()
+	admin.ServeHTTP(spoofed, httptest.NewRequest(http.MethodGet, "/api/v1/system-activity?tenant_id=other-bank&limit=20", nil))
+	if spoofed.Code != http.StatusNotFound {
+		t.Fatalf("spoofed tenant scope returned %d: %s", spoofed.Code, spoofed.Body.String())
+	}
+
 	response = httptest.NewRecorder()
-	admin.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/system-activity?tenant_id=other-bank&limit=20", nil))
+	admin.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/system-activity?limit=20", nil))
 	if response.Code != http.StatusOK {
 		t.Fatalf("activity returned %d: %s", response.Code, response.Body.String())
 	}
