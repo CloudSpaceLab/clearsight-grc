@@ -24,6 +24,7 @@ type Gateway struct {
 	facts     FactResolver
 	receipts  ReceiptRecorder
 	router    *router
+	transport *transportManager
 	budgets   *budgetManager
 	telemetry *telemetry
 	logger    *slog.Logger
@@ -95,10 +96,26 @@ func (g *Gateway) Authenticate(ctx context.Context, header string) (*Workload, e
 }
 
 func (g *Gateway) Ready() bool {
-	return g.state != nil && g.state.Ready() && g.router.ready(g.now())
+	if g == nil || g.state == nil || !g.state.Ready() {
+		return false
+	}
+	if g.transport != nil {
+		return g.transport.ready()
+	}
+	return g.router != nil && g.router.ready(g.now())
 }
 
 func (g *Gateway) Metrics(writer io.Writer) error { return g.telemetry.writePrometheus(writer) }
+
+func (g *Gateway) routingFor(ctx context.Context, workload Workload) (*router, error) {
+	if g.transport != nil {
+		return g.transport.routerFor(ctx, workload)
+	}
+	if g.router == nil {
+		return nil, ErrUnavailable
+	}
+	return g.router, nil
+}
 
 // Govern resolves the exact workload policy and configured source facts before
 // any provider or budget operation. It returns a decision even when enforcement
@@ -155,7 +172,12 @@ func (g *Gateway) CompleteGoverned(ctx context.Context, workload Workload, gover
 	if err := ValidateRequest(request); err != nil {
 		return Response{}, "", err
 	}
-	candidates, highestPrice, err := g.router.candidatesFor(workload, request.ModelAlias, request.RouteID)
+	routing, err := g.routingFor(ctx, workload)
+	if err != nil {
+		g.recordFailure(request, "none", asGatewayError(err), started, 0)
+		return Response{}, "", err
+	}
+	candidates, highestPrice, err := routing.candidatesFor(workload, request.ModelAlias, request.RouteID)
 	if err != nil {
 		g.recordFailure(request, "none", asGatewayError(err), started, 0)
 		return Response{}, "", err
@@ -244,7 +266,12 @@ func (g *Gateway) StreamGoverned(ctx context.Context, workload Workload, governe
 		g.recordReceipt(ctx, workload, request, decision, "BLOCKED_RESPONSE_CONTROL", asGatewayError(err))
 		return err
 	}
-	candidates, highestPrice, err := g.router.candidatesFor(workload, request.ModelAlias, request.RouteID)
+	routing, err := g.routingFor(ctx, workload)
+	if err != nil {
+		g.recordFailure(request, "none", asGatewayError(err), started, 0)
+		return err
+	}
+	candidates, highestPrice, err := routing.candidatesFor(workload, request.ModelAlias, request.RouteID)
 	if err != nil {
 		g.recordFailure(request, "none", asGatewayError(err), started, 0)
 		return err
@@ -414,10 +441,21 @@ func classifyContextError(ctx context.Context, err error) *Error {
 }
 
 func (g *Gateway) modelMetricAlias(alias string) string {
-	if _, exists := g.router.aliases[alias]; !exists {
+	if !validIdentifier(alias) {
 		return "unknown"
 	}
-	return metricLabel(alias)
+	if g.transport != nil {
+		// Dynamic aliases are tenant-scoped. The process-level Prometheus surface
+		// must not turn caller input into an unbounded/high-cardinality label before
+		// a tenant router has proven that alias is configured.
+		return "governed"
+	}
+	for _, model := range g.config.Models {
+		if model.Alias == alias {
+			return metricLabel(alias)
+		}
+	}
+	return "unknown"
 }
 
 func (g *Gateway) recordFailure(request Request, provider string, gatewayErr *Error, started time.Time, ttft time.Duration) {

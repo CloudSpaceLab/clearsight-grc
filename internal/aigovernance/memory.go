@@ -10,16 +10,20 @@ import (
 )
 
 type MemoryRepository struct {
-	mu           sync.RWMutex
-	policies     map[string]Policy
-	workloads    map[string]Workload
-	receipts     map[string]DecisionReceipt
-	grants       map[string]ExecutionGrant
-	grantDigests map[string][sha256.Size]byte
+	mu                sync.RWMutex
+	policies          map[string]Policy
+	workloads         map[string]Workload
+	gatewayTransports map[string]GatewayTransportRevision
+	receipts          map[string]DecisionReceipt
+	grants            map[string]ExecutionGrant
+	grantDigests      map[string][sha256.Size]byte
 }
 
 func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{policies: map[string]Policy{}, workloads: map[string]Workload{}, receipts: map[string]DecisionReceipt{}, grants: map[string]ExecutionGrant{}, grantDigests: map[string][sha256.Size]byte{}}
+	return &MemoryRepository{
+		policies: map[string]Policy{}, workloads: map[string]Workload{}, gatewayTransports: map[string]GatewayTransportRevision{},
+		receipts: map[string]DecisionReceipt{}, grants: map[string]ExecutionGrant{}, grantDigests: map[string][sha256.Size]byte{},
+	}
 }
 
 func memKey(tenant, id string) string { return tenant + "|" + id }

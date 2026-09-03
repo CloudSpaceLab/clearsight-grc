@@ -26,6 +26,7 @@ type gatewayRouteSpec struct {
 var gatewayRouteSpecs = []gatewayRouteSpec{
 	{GatewayRoute: GatewayRoute{Method: http.MethodGet, Path: "/health/live", Access: RoutePublicHealth}, handler: (*HTTPHandler).live},
 	{GatewayRoute: GatewayRoute{Method: http.MethodGet, Path: "/health/ready", Access: RoutePublicHealth}, handler: (*HTTPHandler).ready},
+	{GatewayRoute: GatewayRoute{Method: http.MethodGet, Path: "/health/config", Access: RouteMetrics}, handler: (*HTTPHandler).transportStatus},
 	{GatewayRoute: GatewayRoute{Method: http.MethodGet, Path: "/metrics", Access: RouteMetrics}, handler: (*HTTPHandler).metrics},
 	{GatewayRoute: GatewayRoute{Method: http.MethodGet, Path: "/v1/models", Access: RouteWorkload}, handler: (*HTTPHandler).models},
 	{GatewayRoute: GatewayRoute{Method: http.MethodPost, Path: "/v1/chat/completions", Access: RouteWorkload}, handler: (*HTTPHandler).chatCompletions},
