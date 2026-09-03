@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/activity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
@@ -65,6 +66,7 @@ type serviceSet struct {
 	AIGovernance                   *aigovernance.Service
 	BankVerticals                  *bankverticals.Service
 	BackgroundJobs                 *operations.Service
+	Activity                       *activity.Service
 	Access                         access.Resolver
 	RuntimeContext                 runtimecontext.Resolver
 	AccessAdmin                    access.Administrator
