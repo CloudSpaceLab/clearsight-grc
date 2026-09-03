@@ -10,6 +10,17 @@ import (
 	"unicode/utf8"
 )
 
+const (
+	ObligationOrganizationInstruction = "ORG_INSTRUCTION"
+	FactPromptInjectionRisk           = "gateway.prompt_injection_risk"
+	FactInstructionExfiltration       = "gateway.instruction_exfiltration_attempt"
+	FactUntrustedContent              = "gateway.untrusted_content_present"
+
+	maxOrganizationInstructions      = 8
+	maxOrganizationInstructionBytes = 4096
+	maxOrganizationInstructionTotal = 16384
+)
+
 type DecisionAction string
 
 const (
@@ -206,14 +217,17 @@ func EvaluatePolicy(policy PolicySnapshot, workload Workload, request Request, f
 		return Decision{}, fmt.Errorf("invalid rollout mode")
 	}
 	decision := Decision{PolicyID: policy.ID, PolicyCode: policy.Code, PolicyVersion: policy.Version, RolloutMode: mode, ResponseControl: policy.Definition.ResponseControl}
-	factMap := make(map[string]Fact, len(facts))
+	factMap := make(map[string]Fact, len(facts)+3)
 	for _, fact := range facts {
-		if strings.TrimSpace(fact.Key) == "" {
+		if strings.TrimSpace(fact.Key) == "" || strings.HasPrefix(fact.Key, "gateway.") {
 			continue
 		}
 		if previous, ok := factMap[fact.Key]; ok && factPrecedence(previous.State) >= factPrecedence(fact.State) {
 			continue
 		}
+		factMap[fact.Key] = fact
+	}
+	for _, fact := range gatewaySecurityFacts(request) {
 		factMap[fact.Key] = fact
 	}
 	for _, requirement := range policy.Definition.Bindings {
@@ -257,6 +271,62 @@ func EvaluatePolicy(policy PolicySnapshot, workload Workload, request Request, f
 		action = DecisionAllow
 	}
 	return finalizeDecision(decision, action, "POLICY_DEFAULT", nil, nil, ""), nil
+}
+
+func gatewaySecurityFacts(request Request) []Fact {
+	now := time.Now().UTC()
+	var text strings.Builder
+	for _, message := range request.Messages {
+		if message.Role != RoleUser && message.Role != RoleTool {
+			continue
+		}
+		if text.Len() > 0 {
+			text.WriteByte('\n')
+		}
+		text.WriteString(strings.ToLower(message.Text))
+	}
+	value := text.String()
+	score := 0
+	patterns := []string{
+		"ignore previous instructions",
+		"ignore all previous instructions",
+		"disregard previous instructions",
+		"override system instructions",
+		"override developer instructions",
+		"bypass safety",
+		"jailbreak",
+		"do anything now",
+	}
+	for _, pattern := range patterns {
+		if strings.Contains(value, pattern) {
+			score++
+		}
+	}
+	exfiltration := containsAny(value, "reveal system prompt", "show system prompt", "print system prompt", "expose system prompt", "reveal developer message", "show developer message", "hidden instructions")
+	if exfiltration {
+		score += 2
+	}
+	risk := "LOW"
+	if score == 1 {
+		risk = "MEDIUM"
+	} else if score >= 2 {
+		risk = "HIGH"
+	}
+	untrusted := strings.EqualFold(strings.TrimSpace(request.Metadata["untrusted_content"]), "true") || strings.EqualFold(strings.TrimSpace(request.Metadata["content_trust"]), "untrusted")
+	return []Fact{
+		{Key: FactPromptInjectionRisk, Value: risk, State: FactKnown, Source: "GATEWAY_DETECTOR", ObservedAt: now},
+		{Key: FactInstructionExfiltration, Value: fmt.Sprint(exfiltration), State: FactKnown, Source: "GATEWAY_DETECTOR", ObservedAt: now},
+		{Key: FactUntrustedContent, Value: fmt.Sprint(untrusted), State: FactKnown, Source: "GATEWAY_DETECTOR", ObservedAt: now},
+	}
+}
+
+func containsAny(value string, candidates ...string) bool {
+	for _, candidate := range candidates {
+		if strings.Contains(value, candidate) {
+			return true
+		}
+	}
+	return false
 }
 
 func factPrecedence(state FactState) int {
@@ -331,20 +401,20 @@ func finalizeDecision(base Decision, proposed DecisionAction, reason string, obl
 
 func ApplyDecision(request Request, decision Decision) (Request, error) {
 	switch decision.Action {
-	case DecisionAllow, DecisionShadow:
-		return request, nil
 	case DecisionDeny:
 		return request, ErrPolicyDenied
 	case DecisionRequireApproval:
 		return request, ErrApprovalRequired
-	case DecisionRoute:
+	}
+
+	mutated := request
+	if decision.Action == DecisionRoute {
 		if !validIdentifier(decision.RouteID) {
 			return request, invalid("route", "The governed route is invalid.")
 		}
-		request.RouteID = decision.RouteID
-		return request, nil
-	case DecisionModify:
-		mutated := request
+		mutated.RouteID = decision.RouteID
+	}
+	if decision.Action == DecisionModify {
 		for _, redaction := range decision.Redactions {
 			if strings.ToLower(strings.TrimSpace(redaction.Target)) != "prompt" {
 				continue
@@ -357,14 +427,44 @@ func ApplyDecision(request Request, decision Decision) (Request, error) {
 			if replacement == "" {
 				replacement = "[REDACTED]"
 			}
-			for i := range mutated.Messages {
-				mutated.Messages[i].Text = re.ReplaceAllString(mutated.Messages[i].Text, replacement)
+			messages := append([]Message(nil), mutated.Messages...)
+			for i := range messages {
+				messages[i].Text = re.ReplaceAllString(messages[i].Text, replacement)
 			}
+			mutated.Messages = messages
 		}
-		return mutated, nil
-	default:
+	}
+	if decision.Action != DecisionAllow && decision.Action != DecisionShadow && decision.Action != DecisionModify && decision.Action != DecisionRoute {
 		return request, ErrPolicyUnavailable
 	}
+	return applyOrganizationInstructions(mutated, decision.Obligations)
+}
+
+func applyOrganizationInstructions(request Request, obligations []Obligation) (Request, error) {
+	instructions := make([]Message, 0, maxOrganizationInstructions)
+	total := 0
+	for _, obligation := range obligations {
+		if !strings.EqualFold(strings.TrimSpace(obligation.Code), ObligationOrganizationInstruction) {
+			continue
+		}
+		instruction := strings.TrimSpace(obligation.Detail)
+		if instruction == "" || !utf8.ValidString(instruction) || len(instruction) > maxOrganizationInstructionBytes || len(instructions) >= maxOrganizationInstructions {
+			return request, invalid("policy", "The organization instruction obligation is invalid or outside the supported limits.")
+		}
+		total += len(instruction)
+		if total > maxOrganizationInstructionTotal {
+			return request, invalid("policy", "The organization instruction obligations exceed the supported limit.")
+		}
+		instructions = append(instructions, Message{Role: RoleSystem, Text: instruction})
+	}
+	if len(instructions) == 0 {
+		return request, nil
+	}
+	messages := make([]Message, 0, len(instructions)+len(request.Messages))
+	messages = append(messages, instructions...)
+	messages = append(messages, request.Messages...)
+	request.Messages = messages
+	return request, nil
 }
 
 func InspectResponse(control ResponseControl, response Response, streaming bool) (Response, error) {
