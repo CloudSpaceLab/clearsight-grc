@@ -195,7 +195,7 @@ describe("Matter record workspace", () => {
     expect(screen.getByText("licensed DPCO")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Update status for Update the annual return evidence checklist" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Retry responsibilities" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry assignments" }));
     expect(await screen.findByRole("button", { name: "Update status for Update the annual return evidence checklist" })).toBeTruthy();
     expect(loadMatterOperations).toHaveBeenCalledTimes(2);
     expect(loadMatter).toHaveBeenCalledTimes(1);
@@ -490,24 +490,47 @@ describe("Matter record workspace", () => {
   });
 
   it("shows each Action owner and deadline and lets the accountable owner add assigned work", async () => {
+    const clock = vi.spyOn(Date, "now").mockReturnValue(new Date(2026, 8, 3, 12, 0, 0).valueOf());
     vi.mocked(loadMatterOperations).mockResolvedValue(actionOwnerOperations);
     vi.mocked(addMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, actions: [...detail.actions, { id: "action-2", title: "Confirm section owners", description: "Record the two remaining owners.", owner_principal_id: "owner-2", status: "PLANNED", due_at: "2026-09-02T00:00:00.000Z" }] });
-    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+    try {
+      render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
-    expect(await screen.findByText("Program Owner", { selector: ".matter-action-meta strong" })).toBeTruthy();
-    expect(screen.getByText("Action due 26 Aug 2026")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Add action" }));
-    fireEvent.change(screen.getByLabelText("Action title"), { target: { value: "Confirm section owners" } });
-    fireEvent.change(screen.getByLabelText("Action description"), { target: { value: "Record the two remaining owners." } });
-    fireEvent.change(screen.getByLabelText("Action owner"), { target: { value: "owner-2" } });
-    expect(screen.getByLabelText("Action due date").getAttribute("type")).toBe("date");
-    fireEvent.change(screen.getByLabelText("Action due date"), { target: { value: "2026-09-02" } });
-    fireEvent.click(screen.getByRole("button", { name: "Create assigned action" }));
+      expect(await screen.findByText("Program Owner", { selector: ".matter-action-meta strong" })).toBeTruthy();
+      expect(screen.getByText("In progress", { selector: ".cs-status-badge" })).toBeTruthy();
+      expect(screen.getByText("Overdue", { selector: ".cs-status-badge" })).toBeTruthy();
+      expect(screen.getByText("Due 26 Aug 2026 · 8 days overdue", { selector: "time" })).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Add action" }));
+      fireEvent.change(screen.getByLabelText("Action title"), { target: { value: "Confirm section owners" } });
+      fireEvent.change(screen.getByLabelText("Action description"), { target: { value: "Record the two remaining owners." } });
+      fireEvent.change(screen.getByLabelText("Action owner"), { target: { value: "owner-2" } });
+      expect(screen.getByLabelText("Action due date").getAttribute("type")).toBe("date");
+      fireEvent.change(screen.getByLabelText("Action due date"), { target: { value: "2026-09-02" } });
+      fireEvent.click(screen.getByRole("button", { name: "Create assigned action" }));
 
-    await waitFor(() => expect(addMatterAction).toHaveBeenCalledWith("matter-1", 7, {
-      title: "Confirm section owners", description: "Record the two remaining owners.", ownerPrincipalID: "owner-2", dueAt: new Date(2026, 8, 2, 23, 59, 59, 999).toISOString(),
-    }));
-    expect(await screen.findByText("Action added.")).toBeTruthy();
+      await waitFor(() => expect(addMatterAction).toHaveBeenCalledWith("matter-1", 7, {
+        title: "Confirm section owners", description: "Record the two remaining owners.", ownerPrincipalID: "owner-2", dueAt: new Date(2026, 8, 2, 23, 59, 59, 999).toISOString(),
+      }));
+      expect(await screen.findByText("Action added.")).toBeTruthy();
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it.each(["IMPLEMENTED", "CANCELLED"] as const)("does not label a %s Action deadline overdue", async (status) => {
+    const clock = vi.spyOn(Date, "now").mockReturnValue(new Date(2026, 8, 3, 12, 0, 0).valueOf());
+    vi.mocked(loadMatter).mockResolvedValue({
+      ...detail,
+      actions: [{ ...detail.actions[0]!, status }],
+    });
+    try {
+      render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+      expect(await screen.findByText("Due 26 Aug 2026", { selector: "time" })).toBeTruthy();
+      expect(screen.queryByText("Overdue", { selector: ".cs-status-badge" })).toBeNull();
+    } finally {
+      clock.mockRestore();
+    }
   });
 
   it("lets the accountable owner edit and reassign an Action", async () => {

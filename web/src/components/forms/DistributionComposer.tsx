@@ -110,7 +110,7 @@ export function DistributionComposer({ onCreated, onCancel }: Props) {
     <div className="forms-task-heading"><div><span>Send form</span><h2 id="distribution-composer-title">Create form distribution</h2><p>Choose the approved form, who must respond, the deadline and how recipients verify access.</p></div>{onCancel && <button type="button" onClick={onCancel}>Close</button>}</div>
     {error && <div className="forms-message error" role="alert">{error}</div>}
     <div className="forms-task-grid">
-      <SelectField label="Active form revision" value={templateKey || undefined} placeholder="Select active revision" description="Revision is immutable after send." options={templates.map((item) => ({ id: `${item.id}:${item.version}`, label: `${item.name} · ${item.code} · v${item.version}` }))} onChange={(value) => setTemplateKey(value ?? "")}/>
+      <SelectField label="Active form revision" value={templateKey || undefined} placeholder="Select active revision" description="The selected form version cannot change after sending." options={templates.map((item) => ({ id: `${item.id}:${item.version}`, label: `${item.name} · ${item.code} · v${item.version}` }))} onChange={(value) => setTemplateKey(value ?? "")}/>
       <label><span>Subject type</span><input value={subjectType} maxLength={80} onChange={(event) => setSubjectType(event.target.value)}/></label>
       <label><span>Subject identifier</span><input value={subjectID} maxLength={160} onChange={(event) => setSubjectID(event.target.value)}/></label>
       <label><span>Estimated minutes</span><input type="number" min={1} max={60} value={estimatedMinutes} onChange={(event) => setEstimatedMinutes(Number(event.target.value))}/></label>

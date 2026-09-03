@@ -102,9 +102,10 @@
 .matter-action-heading { display: flex; justify-content: space-between; gap: 16px; }
 .matter-action-heading h3 { margin: 0; font-size: .95rem; }
 .matter-action-heading p { margin: 5px 0 0; font-size: .8rem; }
-.matter-action-heading > span { flex: none; color: var(--muted); font-size: .72rem; }
+.matter-action-state { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .matter-action-meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; color: var(--muted); font-size: .75rem; }
 .matter-action-meta strong { color: var(--text); }
+.matter-action-deadline.is-overdue { color: var(--coral); font-weight: 750; }
 .matter-action-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .matter-action-controls button { min-height: 40px; }
 .matter-outcome-list { display: grid; gap: 12px; }
@@ -160,6 +161,7 @@
   .matter-form-error { display: grid; }
   .matter-information-list li { display: grid; }
   .matter-action-heading { display: grid; }
+  .matter-action-state { justify-content: flex-start; }
   .matter-action-controls { display: grid; }
   .matter-action-controls button { width: 100%; min-height: 44px; }
   .matter-outcome-meta { grid-template-columns: 1fr; }

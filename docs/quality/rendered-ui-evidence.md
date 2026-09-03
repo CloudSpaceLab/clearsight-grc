@@ -134,6 +134,15 @@ Matter workspace tests additionally render a scope-and-owner handoff with `matte
 
 The automated pane geometry assertion complements rather than replaces visual inspection. Native browser zoom and representative assistive-technology acceptance remain part of final release acceptance.
 
+## Accepted overdue Action and Imports theme evidence
+
+Issue #177 adds deterministic desktop and mobile renders for the affected Work and Imports states:
+
+- open Action cards show lifecycle and overdue deadline as separate text states in desktop and mobile Work renders;
+- selected-file Imports intake is captured in light and dark desktop themes and light mobile replacement, including readable fields, dropzone replacement and the explicit import action.
+
+The inspected Work renders keep **In progress**, **Overdue**, the recorded due date and elapsed time readable without relying on colour. The inspected Imports renders retain the selected filename, replacement action, purpose field, document type and import action without horizontal overflow in either theme or the mobile replacement. The first rendered Work pass also exposed an unsupported linked-form fixture request; the static review transport now returns the named empty linked-request population, and the corrected render was inspected again without the error notice.
+
 ## Input and upload review
 
 Rendered review must inspect whether the chosen input is appropriate, not only whether it renders:

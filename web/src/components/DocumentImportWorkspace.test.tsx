@@ -196,6 +196,20 @@ describe("DocumentImportWorkspace", () => {
     expect((screen.getByRole("textbox", { name: "What should reviewers look for?" }) as HTMLInputElement).value).toBe("Review payment requirements");
   });
 
+  it("uses the semantic intake surface while preserving entered import work", async () => {
+    vi.mocked(importDocument).mockRejectedValue(new Error("Upload interrupted"));
+    const { container } = render(<DocumentImportWorkspace/>);
+    await screen.findByRole("heading", { name: "regulatory-notice.md" });
+    await openImport();
+    expect(container.querySelector(".document-import-form")).toBeTruthy();
+    const file = new File(["notice"], "retry-notice.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText("Document"), { target: { files: [file] } });
+    fireEvent.change(screen.getByRole("textbox", { name: "What should reviewers look for?" }), { target: { value: "Review payment requirements" } });
+    fireEvent.click(screen.getByRole("button", { name: "Import document" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("Upload interrupted");
+    expect(screen.getByText(/retry-notice\.pdf/)).toBeTruthy();
+  });
+
   it("rejects a document larger than the stated 20 MB limit before upload", async () => {
     render(<DocumentImportWorkspace/>);
     await screen.findByRole("heading", { name: "regulatory-notice.md" });

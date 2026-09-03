@@ -188,6 +188,13 @@ describe("static stakeholder demo transport", () => {
     expect(transition).toMatchObject({ assigned_to: { id: "role-privacy-control" } });
   });
 
+  it("returns the named linked-form population for the stakeholder matter fixture", async () => {
+    const { staticDemoRequest } = await demo();
+
+    await expect(staticDemoRequest("/api/v1/matters/matter-gaid-change/form-remediations?limit=50"))
+      .resolves.toEqual({ items: [] });
+  });
+
   it("removes current Program and issue relationships while preserving version checks", async () => {
     const { staticDemoRequest } = await demo();
     const program = await staticDemoRequest<{ program: { version: number }; requirement_control_links: Array<{ id: string }> }>("/api/v1/programs/program-ndpa");

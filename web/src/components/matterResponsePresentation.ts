@@ -19,7 +19,7 @@ export function matterResponsePresentation(operation?: MatterOperation): MatterR
     case "ACKNOWLEDGEMENT_RECORDER":
       return { action: "Record acknowledgement", sheet: "Record response acknowledgement", submit: "Record acknowledgement", rationaleLabel: "Acknowledgement evidence or reference", consequence: "Records the recipient acknowledgement separately from sign-off and transmission." };
     default:
-      return { action: operation?.label || "Update response", sheet: operation?.label || "Update response", submit: "Confirm response state", rationaleLabel: "Reason for response state change", consequence: "Records only the selected response state permitted by the current authority route." };
+      return { action: operation?.label || "Update response", sheet: operation?.label || "Update response", submit: "Confirm response state", rationaleLabel: "Reason for response state change", consequence: "This records the selected response state. Assigned work and outcome checks are unchanged." };
   }
 }
 
@@ -38,6 +38,6 @@ export function matterStatusPresentation(operation?: MatterOperation): MatterRes
     sheet: "Change issue status",
     submit: "Confirm issue status",
     rationaleLabel: "Reason for status change",
-    consequence: "Records only the selected issue state permitted by the current authority route. Assigned work and outcome checks remain separate records.",
+    consequence: "This records the selected issue state. Assigned work and outcome checks are unchanged.",
   };
 }

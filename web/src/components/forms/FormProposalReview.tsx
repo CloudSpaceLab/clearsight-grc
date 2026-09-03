@@ -84,14 +84,14 @@ export function FormProposalReview({ proposal, sourceTitle, sourceElements = [],
     }
   }
 
-  if (proposal.status === "GENERATING") return <section className="form-proposal-state workspace-loading" aria-live="polite" aria-busy="true"><strong>Building a source-backed field proposal…</strong><p>The imported file and its exact version remain unchanged while candidate fields are prepared.</p></section>;
+  if (proposal.status === "GENERATING") return <section className="form-proposal-state workspace-loading" aria-live="polite" aria-busy="true"><strong>Preparing proposed fields from the imported document…</strong><p>The imported file remains unchanged while candidate fields are prepared.</p></section>;
   if (proposal.status === "FAILED") return <section className="form-proposal-state form-proposal-failed" role="alert"><strong>Field proposal needs attention</strong><p>{proposal.failure_message || "No reviewable field proposal was produced."}</p><small>The imported source is retained. You can use the manual form builder or retry after correcting the source.</small></section>;
   if (proposal.status === "ACCEPTED") return <section className="form-proposal-state form-proposal-complete" role="status"><strong>Draft form template created</strong><p>{proposal.accepted_change_ids?.length ?? 0} selected field changes were applied to draft revision {proposal.result_template_version}.</p>{proposal.result_template_id && <a href={`#/forms/${encodeURIComponent(proposal.result_template_id)}`}>Open draft template</a>}</section>;
   if (proposal.status === "REJECTED") return <section className="form-proposal-state"><strong>Proposal rejected</strong><p>No form template was created or changed.</p></section>;
 
   return <section className="form-proposal-review" aria-labelledby={`form-proposal-${proposal.id}`}>
     <header className="form-proposal-heading">
-      <div><span className="eyebrow">{proposal.source_kind === "AI" ? "Governed AI proposal" : "Document field proposal"}</span><h3 id={`form-proposal-${proposal.id}`}>Review proposed form fields</h3><p>{sourceTitle ? `Compare proposed fields with ${sourceTitle} before creating a draft.` : "Choose the exact field changes to include before creating a draft."}</p></div>
+      <div><span className="eyebrow">{proposal.source_kind === "AI" ? "Governed AI proposal" : "Document field proposal"}</span><h3 id={`form-proposal-${proposal.id}`}>Review proposed form fields</h3><p>{sourceTitle ? `Compare proposed fields with ${sourceTitle} before creating a draft.` : "Choose the field changes to include before creating a draft."}</p></div>
       <div className="form-proposal-count"><strong>{selected.size}</strong><span>of {proposal.field_changes.length} selected</span></div>
     </header>
     {error && <p className="error-text" role="alert">{error}</p>}
