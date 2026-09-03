@@ -4,7 +4,7 @@ import type { FormFieldType, FormTemplate } from "../../monitoringTypes";
 import type { CaptureFieldConstraints } from "../../types";
 import { reusableRefLabel, type AuthoringField, type AuthoringSection } from "./formAuthoring";
 import { FormFieldPropertyEditor } from "./FormFieldPropertyEditor";
-import { SelectField } from "../ui";
+import { Notice, SelectField } from "../ui";
 
 type Props = {
   scoringMode: FormScoringMode;
@@ -96,7 +96,7 @@ export function FormPropertyPanel(props: Props) {
           />}
         </div>
         {sourceState === "loading" && <p className="field-note" role="status">Loading the approved form version…</p>}
-        {sourceState === "error" && <p className="inline-form-error" role="alert">The selected revision is no longer an active reusable template. No section was inserted.</p>}
+        {sourceState === "error" && <Notice tone="error">The selected revision is no longer an active reusable template. No section was inserted.</Notice>}
         {sourceTemplate && <button className="secondary-button" type="button" disabled={!sourceSectionID || props.sections.length >= 20} onClick={() => props.onInsertReusableSection(sourceTemplate, sourceSectionID)}>Insert section</button>}
       </details>}
     </fieldset>

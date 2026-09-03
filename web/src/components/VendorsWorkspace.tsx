@@ -15,6 +15,7 @@ import { VendorBrandIcon, vendorBrandLabel } from "./VendorBrandIcon";
 import { VendorActivationPanel } from "./VendorActivationPanel";
 import { VendorIdentityEditor } from "./VendorIdentityEditor";
 import { VendorFormReadiness } from "./VendorFormReadiness";
+import { Notice } from "./ui";
 
 type Props = {
   organizationName: string;
@@ -576,7 +577,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       {mode === "browse" && <button id="vendor-add-action" type="button" className={selected ? "secondary-button" : "primary-button"} onClick={startCreate} disabled={state !== "live"}>Add vendor</button>}
     </header>
 
-    {notice && <p className="vendor-notice" role="status">{notice}</p>}
+    {notice && <Notice tone="success">{notice}</Notice>}
     {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships for {legalEntityName}…</div>}
     {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><button className="secondary-button" type="button" onClick={() => void refresh(targetID, "")}>Try again</button></section>}
     {state === "live" && <div className="vendor-layout">

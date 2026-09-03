@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { VendorRelationshipAggregate } from "../../vendorTypes";
 import type { ApplyVendorAssessmentResponseInput, VendorAssessmentApplicationResult, VendorAssessmentFieldApplicationDecision, VendorAssessmentReviewAnswer, VendorAssessmentReviewView } from "../../vendorAssessmentTypes";
+import { Notice } from "../ui";
 
 type Props = {
   relationship: VendorRelationshipAggregate;
@@ -53,7 +54,7 @@ export function VendorResponseReview({ relationship, review, onApply, onApplied 
 
   return <section className="vdd-response-application" aria-labelledby="response-application-title">
     <div className="vdd-review-group-heading"><div><span className="eyebrow">Held-record review</span><h3 id="response-application-title">Decide which vendor changes to apply</h3><p>Submission did not update the vendor record. Compare the requested value, submitted response and current held version before deciding each field.</p></div></div>
-    {conflicts.length > 0 && <div className="vdd-alert" role="alert"><strong>{conflicts.length} held {conflicts.length === 1 ? "record has" : "records have"} changed</strong><span>Reload the vendor and response before applying any decision.</span></div>}
+    {conflicts.length > 0 && <Notice tone="error"><strong>{conflicts.length} held {conflicts.length === 1 ? "record has" : "records have"} changed</strong> Reload the vendor and response before applying any decision.</Notice>}
     <div className="vdd-comparison-list">{governed.map((answer) => {
       const draft = decisions[answer.field_id] ?? { decision: "", rationale: "" };
       const conflict = conflicts.includes(answer);
@@ -63,10 +64,10 @@ export function VendorResponseReview({ relationship, review, onApply, onApplied 
         <dl className="vdd-value-comparison"><div><dt>Requested held value</dt><dd>{answer.baseline!.display_value || "Not recorded"}<small>{answer.baseline!.source_label} · version {answer.baseline!.record_version}</small></dd></div><div><dt>Submitted response</dt><dd>{answerValue(answer)}<small>{assuranceLabel(answer)}</small></dd></div><div><dt>Current bank record</dt><dd>{currentHeldValue(answer, relationship)}<small>{identityTarget(answer) ? `Vendor version ${relationship.vendor.version}` : `Requested version ${answer.baseline!.record_version}`}</small></dd></div></dl>
         <fieldset disabled={conflict || busy}><legend>Decision</legend><label><input type="radio" name={`decision-${answer.field_id}`} checked={draft.decision === "ACCEPT"} onChange={() => update(answer.field_id, { decision: "ACCEPT" })}/>Accept submitted value</label><label><input type="radio" name={`decision-${answer.field_id}`} checked={draft.decision === "REJECT"} onChange={() => update(answer.field_id, { decision: "REJECT" })}/>Keep current value</label></fieldset>
         <label className="vdd-field"><span>Decision rationale</span><textarea rows={2} maxLength={2000} value={draft.rationale} disabled={conflict || busy} onChange={(event) => update(answer.field_id, { rationale: event.target.value })}/></label>
-        {documentBlocked && <p className="vdd-inline-warning">Validate the replacement document before accepting it.</p>}
+        {documentBlocked && <Notice tone="warning">Validate the replacement document before accepting it.</Notice>}
       </article>;
     })}</div>
-    {error && <p className="vdd-error" role="alert">{error}</p>}
+    {error && <Notice tone="error">{error}</Notice>}
     <div className="vdd-panel-actions"><button type="button" className="primary-button" disabled={!ready || busy} onClick={() => void apply()}>{busy ? "Applying decisions…" : "Apply reviewed changes"}</button>{!ready && !conflicts.length && <small>Choose accept or reject and record a rationale for every held-record field.</small>}</div>
   </section>;
 }

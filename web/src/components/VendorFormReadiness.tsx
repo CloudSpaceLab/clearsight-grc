@@ -6,6 +6,7 @@ import type { FormTemplate } from "../monitoringTypes";
 import type { ProgramSummary } from "../summaryTypes";
 import { vendorDueDiligenceStarterForm } from "../vendorDueDiligenceForm";
 import { FocusedSheet } from "./FocusedSheet";
+import { Notice } from "./ui";
 import "./vendor-due-diligence.css";
 
 type Props = {
@@ -107,13 +108,13 @@ export function VendorFormReadiness({ onClose, onReady }: Props) {
     <div className="vendor-form-readiness">
       <header><span className="eyebrow">Vendor review readiness</span><h2>Set up due-diligence form</h2><p>Attach the bank&apos;s starter questionnaire to a Program, then send it to an independent reviewer before it can be used for vendor reviews.</p></header>
       {state === "loading" && <p aria-live="polite" aria-busy="true">Loading Programs available for this legal entity…</p>}
-      {state === "unavailable" && <div className="vdd-alert" role="alert"><strong>Programs are unavailable</strong><span>Programs could not be loaded. Close this panel and try again before configuring the form.</span></div>}
+      {state === "unavailable" && <Notice tone="error"><strong>Programs are unavailable</strong> Programs could not be loaded. Close this panel and try again before configuring the form.</Notice>}
       {state === "live" && programs.length === 0 && <div className="vdd-limitation"><strong>No Programs are available in this legal entity.</strong><p>Create or gain access to a Program before setting up vendor due diligence.</p></div>}
       {state === "live" && programs.length > 0 && <label className="vdd-field"><span>Program</span><select value={selectedProgramID} onChange={(event) => void selectProgram(event.target.value)}><option value="">Select a Program</option>{programs.map(({ program }) => <option key={program.id} value={program.id}>{program.name} · {program.code}</option>)}</select></label>}
 
       {formState === "loading" && <p aria-live="polite" aria-busy="true">Checking the selected Program&apos;s form status…</p>}
-      {formState === "unavailable" && <div className="vdd-alert" role="alert"><strong>Form status is unavailable</strong><span>The forms for {selectedProgram?.name ?? "this Program"} could not be loaded.</span><button type="button" className="secondary-button" onClick={() => void refreshForms()}>Reload form status</button></div>}
-      {error && <p className="vdd-error" role="alert">{error}</p>}
+      {formState === "unavailable" && <Notice tone="error"><strong>Form status is unavailable</strong> The forms for {selectedProgram?.name ?? "this Program"} could not be loaded. <button type="button" className="secondary-button" onClick={() => void refreshForms()}>Reload form status</button></Notice>}
+      {error && <Notice tone="error">{error}</Notice>}
       {conflict && <button type="button" className="secondary-button" onClick={() => void refreshForms()} disabled={busy}>Reload form status</button>}
 
       {formState === "live" && !current && <section className="vendor-form-readiness-state"><div><h3>Starter form not created</h3><p>This creates the four-section vendor security and privacy questionnaire as a draft and sends it for independent approval.</p></div><button type="button" className="primary-button" onClick={() => void createAndSubmit()} disabled={busy}>{busy ? "Sending for approval…" : "Create form and send for approval"}</button></section>}

@@ -64,6 +64,6 @@ export function DataSourceBuilder({ onSaved, onCancel }: Props) {
       </div>
       <div className="monitoring-form-actions"><button className="text-button" type="button" onClick={() => setPrepared(null)}>Change endpoint</button><button className="primary-button" type="button" disabled={busy} onClick={() => void save()}>{busy ? "Saving…" : "Use this source"}</button></div>
     </div>}
-    {error && <p className="inline-form-error" role="alert">{error}</p>}
+    {error && <Notice tone="error">{error}</Notice>}
   </div>;
 }

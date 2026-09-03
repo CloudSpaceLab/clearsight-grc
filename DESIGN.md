@@ -89,7 +89,7 @@ The static-only UI component gallery renders every family from production export
 
 Migration is explicit rather than inferred from visual similarity. A file is migrated only when it appears in `web/ui-contract-migrations.json`, imports public contracts through `components/ui`, has no prohibited raw interactive controls, and is represented by a gallery or full-host state fixture. The workspace-by-family record in [`docs/design/ui-component-adoption.md`](docs/design/ui-component-adoption.md) is the human review view of that boundary. Using one shared component in an otherwise legacy workspace does not make the whole workspace migrated.
 
-Success receipts use `Notice` rather than feature-owned pale-green text. The message remains the primary state cue; semantic success colour is limited to the notice border/surface treatment while readable copy uses the theme's primary text token. Compact status labels that use the success foreground must meet WCAG AA against their resolved tinted surface in both themes.
+Operational success and failure receipts use `Notice` rather than feature-owned coloured text. The message remains the primary state cue; semantic tone is limited to the notice border/surface treatment while readable copy uses the theme's primary text token. Compact stored states use `StatusBadge` with a non-colour marker and an explicit semantic tone, including an explicit unknown tone in each theme. Every badge foreground must meet WCAG AA against its resolved tinted surface in both themes. Feature workspaces arrange these components but do not define private feedback or status palettes.
 
 ## Structural patterns
 

@@ -1,5 +1,6 @@
 import type { AIGovernancePolicy, AIGovernanceWorkload } from "../types";
 import { EmptyState } from "./EmptyState";
+import { StatusBadge, type StatusTone } from "./ui";
 
 type LoadState = "loading" | "live" | "unavailable";
 
@@ -51,7 +52,7 @@ function PolicyList({ policies, state }: { policies: AIGovernancePolicy[]; state
   if (!policies.length) return <EmptyState label="AI policies" title="No AI policies in this scope" description="No governed model policy has been registered for the current bank scope."/>;
   return <div className="ai-governance-list">{policies.map((policy) => <div className="ai-governance-row" key={policy.id}>
     <div><strong>{policy.name}</strong><span>{policy.code} · v{policy.version}</span></div>
-    <div className="ai-governance-badges"><mark className={`ai-rollout-${policy.rollout_mode.toLowerCase()}`}>{humanize(policy.rollout_mode)}</mark><mark>{humanize(policy.status)}</mark></div>
+    <div className="ai-governance-badges"><StatusBadge tone={rolloutTone(policy.rollout_mode)}>{humanize(policy.rollout_mode)}</StatusBadge><StatusBadge tone={stateTone(policy.status)}>{humanize(policy.status)}</StatusBadge></div>
   </div>)}</div>;
 }
 
@@ -61,10 +62,23 @@ function WorkloadList({ workloads, state }: { workloads: AIGovernanceWorkload[];
   if (!workloads.length) return <EmptyState label="AI workloads" title="No AI workloads in this scope" description="No workload or agent is registered for governed model access."/>;
   return <div className="ai-governance-list">{workloads.map((workload) => <div className="ai-governance-row ai-workload-row" key={workload.id}>
     <div><strong>{workload.name}</strong><span>{workload.environment || "Environment not set"} · {workload.purpose}</span><small>{workload.allowed_models.join(", ")} · {workload.requests_per_minute}/min · {workload.max_concurrent} concurrent</small></div>
-    <div className="ai-governance-badges"><mark>{humanize(workload.state)}</mark><span>v{workload.version}</span></div>
+    <div className="ai-governance-badges"><StatusBadge tone={stateTone(workload.state)}>{humanize(workload.state)}</StatusBadge><span>v{workload.version}</span></div>
   </div>)}</div>;
 }
 
 function humanize(value: string) {
   return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
+function rolloutTone(value: string): StatusTone {
+  if (value === "ENFORCE") return "success";
+  if (value === "SHADOW") return "warning";
+  return "unknown";
+}
+
+function stateTone(value: string): StatusTone {
+  if (value === "ACTIVE") return "success";
+  if (value === "SUSPENDED" || value === "PENDING_APPROVAL") return "warning";
+  if (value === "REJECTED" || value === "FAILED") return "error";
+  return "neutral";
 }
