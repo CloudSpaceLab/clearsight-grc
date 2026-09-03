@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -123,6 +124,41 @@ func TestCommunicationDeliveryWorkerSkipsSupersededSecureLinkEvent(t *testing.T)
 	}
 }
 
+func TestCommunicationDeliveryWorkerLeavesWorkflowOwnedRouteForDomainSender(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 9, 3, 8, 0, 0, 0, time.UTC)
+	for _, originType := range []string{"THIRD_PARTY_WORK", "third_party_assessment"} {
+		originType := originType
+		t.Run(originType, func(t *testing.T) {
+			repository := &communicationDeliveryRepositoryStub{
+				bundle: communicationDeliveryBundle{
+					Distribution: FormDistribution{ID: "distribution", TenantID: "tenant", LegalEntityID: "entity", Version: 2, Status: DistributionOpen, Deadline: now.Add(24 * time.Hour), RouteExpiresAt: now.Add(12 * time.Hour)},
+					OriginType:   originType,
+					Recipients:   []communicationDeliveryRecipient{{DistributionRecipient: DistributionRecipient{ID: "recipient", Role: RecipientTo, Type: RecipientExternalAudience, State: DistributionRecipientDelivered}}},
+				},
+			}
+			deliveryCalls := 0
+			delivery := NewInvitationDeliveryService(invitationDeliveryFunc(func(context.Context, InvitationDeliveryRequest) (InvitationDeliveryReceipt, error) {
+				deliveryCalls++
+				return InvitationDeliveryReceipt{}, nil
+			}))
+			worker, err := NewCommunicationDeliveryWorker(repository, NewCommunicationService(NewMemoryCommunicationStore()), &DistributionAccessService{}, delivery, "https://capture.example")
+			if err != nil {
+				t.Fatalf("new worker: %v", err)
+			}
+			worker.now = func() time.Time { return now }
+			event := workflowruntime.OutboxEvent{ID: "event", TenantID: "tenant", AggregateType: "FORM_DISTRIBUTION", AggregateID: "distribution", EventType: "FORM_DISTRIBUTION_OPEN"}
+			if err := worker.Publish(context.Background(), event); err != nil {
+				t.Fatalf("publish: %v", err)
+			}
+			if deliveryCalls != 0 || repository.records != 1 || repository.lastFailure != "WORKFLOW_OWNED_COMMUNICATION" {
+				t.Fatalf("workflow-owned delivery was not skipped: deliveries=%d records=%d failure=%q", deliveryCalls, repository.records, repository.lastFailure)
+			}
+		})
+	}
+}
+
 func TestCommunicationDeliveryAttemptStatusFinalizesSupersededEvent(t *testing.T) {
 	t.Parallel()
 
@@ -132,6 +168,65 @@ func TestCommunicationDeliveryAttemptStatusFinalizesSupersededEvent(t *testing.T
 	)
 	if status != "SKIPPED" {
 		t.Fatalf("superseded delivery status = %q, want SKIPPED", status)
+	}
+}
+
+func TestCommunicationDeliveryAttemptStatusFinalizesWorkflowOwnedEvent(t *testing.T) {
+	t.Parallel()
+
+	status := communicationDeliveryAttemptStatus(
+		InvitationDeliveryReceipt{Status: InvitationDeliveryFailed},
+		"WORKFLOW_OWNED_COMMUNICATION",
+	)
+	if status != "SKIPPED" {
+		t.Fatalf("workflow-owned delivery status = %q, want SKIPPED", status)
+	}
+}
+
+func TestCommunicationDeliveryOwnershipUsesReservedWorkflowNamespace(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		origin string
+		owned  bool
+	}{
+		{origin: "THIRD_PARTY_WORK", owned: true},
+		{origin: " third_party_assessment ", owned: true},
+		{origin: "MATTER_FORM_REMEDIATION", owned: false},
+		{origin: "", owned: false},
+	}
+	for _, test := range tests {
+		if got := communicationOwnedByOriginWorkflow(test.origin); got != test.owned {
+			t.Errorf("communicationOwnedByOriginWorkflow(%q) = %t, want %t", test.origin, got, test.owned)
+		}
+	}
+}
+
+func TestCommunicationDeliveryWorkerKeepsGenericDeliveryForOrdinaryAndMatterForms(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 9, 3, 8, 30, 0, 0, time.UTC)
+	for _, originType := range []string{"", "MATTER_FORM_REMEDIATION"} {
+		originType := originType
+		t.Run(originType, func(t *testing.T) {
+			repository := &communicationDeliveryRepositoryStub{bundle: communicationDeliveryBundle{
+				Distribution: FormDistribution{ID: "distribution", TenantID: "tenant", LegalEntityID: "entity", Status: DistributionOpen, Deadline: now.Add(24 * time.Hour), RouteExpiresAt: now.Add(12 * time.Hour)},
+				OriginType:   originType,
+				Recipients:   []communicationDeliveryRecipient{{DistributionRecipient: DistributionRecipient{ID: "recipient", Role: RecipientTo, Type: RecipientExternalAudience, State: DistributionRecipientDelivered}}},
+			}}
+			worker, err := NewCommunicationDeliveryWorker(repository, NewCommunicationService(NewMemoryCommunicationStore()), &DistributionAccessService{}, NewInvitationDeliveryService(invitationDeliveryFunc(func(context.Context, InvitationDeliveryRequest) (InvitationDeliveryReceipt, error) {
+				t.Fatal("delivery should not run without an active template")
+				return InvitationDeliveryReceipt{}, nil
+			})), "https://capture.example")
+			if err != nil {
+				t.Fatal(err)
+			}
+			worker.now = func() time.Time { return now }
+			err = worker.Publish(context.Background(), workflowruntime.OutboxEvent{ID: "event", TenantID: "tenant", AggregateType: "FORM_DISTRIBUTION", AggregateID: "distribution", EventType: "FORM_DISTRIBUTION_OPEN"})
+			if !errors.Is(err, ErrCommunicationDeliveryRetry) || repository.records != 0 {
+				t.Fatalf("generic delivery origin %q = (err %v, skipped records %d)", originType, err, repository.records)
+			}
+		})
 	}
 }
 

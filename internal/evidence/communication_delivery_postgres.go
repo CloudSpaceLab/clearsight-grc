@@ -27,7 +27,15 @@ func (repository *PostgresCommunicationDeliveryRepository) LoadCommunicationDeli
 	err := repository.repo.pool.QueryRow(ctx, `
 		SELECT d.id::text,d.tenant_id::text,d.legal_entity_id::text,d.form_template_id::text,d.form_template_version,
 		       d.subject_type,d.subject_id::text,d.title,d.purpose,d.access_policy,d.status,d.deadline,d.route_expires_at,
-		       d.reminder_policy,d.created_by::text,d.version,d.created_at,d.updated_at
+		       d.reminder_policy,d.created_by::text,d.version,d.created_at,d.updated_at,
+		       COALESCE((
+		           SELECT q.origin_type
+		           FROM capture_distribution_recipients r
+		           JOIN capture_requests q ON q.tenant_id=r.tenant_id AND q.legal_entity_id=r.legal_entity_id AND q.id=r.request_id
+		           WHERE r.tenant_id=d.tenant_id AND r.legal_entity_id=d.legal_entity_id AND r.distribution_id=d.id AND r.role='TO'
+		           ORDER BY r.created_at,r.id
+		           LIMIT 1
+		       ),'')
 		FROM capture_form_distributions d
 		WHERE d.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND d.id=$2::uuid`, tenantID, distributionID).Scan(
 		&bundle.Distribution.ID, &bundle.Distribution.TenantID, &bundle.Distribution.LegalEntityID,
@@ -36,6 +44,7 @@ func (repository *PostgresCommunicationDeliveryRepository) LoadCommunicationDeli
 		&bundle.Distribution.Purpose, &bundle.Distribution.AccessPolicy, &bundle.Distribution.Status,
 		&bundle.Distribution.Deadline, &bundle.Distribution.RouteExpiresAt, &bundle.Distribution.ReminderPolicy,
 		&bundle.Distribution.CreatedBy, &bundle.Distribution.Version, &bundle.Distribution.CreatedAt, &bundle.Distribution.UpdatedAt,
+		&bundle.OriginType,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return communicationDeliveryBundle{}, ErrCommunicationNotFound

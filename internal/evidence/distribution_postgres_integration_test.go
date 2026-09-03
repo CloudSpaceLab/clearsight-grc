@@ -303,8 +303,10 @@ func distributionTestPool(t *testing.T) (*pgxpool.Pool, context.Context) {
 func setupDistributionFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, entityID, actorID, internalRecipient, formID string, now time.Time) {
 	t.Helper()
 	cleanupDistributionTenant(ctx, pool, tenantID)
-	slug := "distribution-test"
+	slug := "distribution-" + tenantID[len(tenantID)-12:]
 	switch tenantID {
+	case "9d111111-1111-7111-8111-111111111111":
+		slug = "distribution-test"
 	case "9d222222-2222-7222-8222-222222222221":
 		slug = "distribution-rollback"
 	case "9d333333-3333-7333-8333-333333333331":
