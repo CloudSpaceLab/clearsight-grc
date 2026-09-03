@@ -124,6 +124,9 @@ func (s *MemoryDistributionStore) CreateDistribution(ctx context.Context, input 
 			if requestErr != nil {
 				return DistributionBundle{}, requestErr
 			}
+			if stored.safe.Type == RecipientExternalAudience {
+				request.Recipient.AudienceHash = append([]byte(nil), stored.protected.Hash...)
+			}
 			requests = append(requests, request)
 		}
 		storedRecipients = append(storedRecipients, stored)
