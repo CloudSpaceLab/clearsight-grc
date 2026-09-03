@@ -37,6 +37,7 @@ func (r *PostgresRepository) listActorRequests(ctx context.Context, tenant, lega
 		  AND (
 			(er.recipient_type='INTERNAL_PRINCIPAL' AND er.recipient_state='ASSIGNED' AND er.recipient_principal_id=$2::uuid)
 			OR ($4::boolean AND er.created_by=$2::uuid)
+			OR ($4::boolean AND er.status='SUBMITTED' AND btrim(COALESCE(er.known_facts->>'reviewer',''))=($2::uuid)::text)
 		  )
 		  AND CASE er.subject_type
 			WHEN 'MATTER' THEN m.id IS NOT NULL AND

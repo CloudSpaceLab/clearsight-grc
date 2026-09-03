@@ -69,7 +69,10 @@ func (c *VendorWorkConsumer) Publish(ctx context.Context, event workflowruntime.
 	if err != nil {
 		return fmt.Errorf("read submitted vendor request: %w", err)
 	}
-	if request.ID != event.AggregateID || request.TenantID != event.TenantID {
+	// GetRequest has already enforced the event tenant at the repository
+	// boundary. Its projection may return the tenant slug when the event carries
+	// the canonical ID, so only the request identity needs a second comparison.
+	if request.ID != event.AggregateID {
 		return errors.New("submitted vendor request does not match the event scope")
 	}
 	origin := evidence.RequestOrigin{Type: strings.ToUpper(strings.TrimSpace(request.Origin.Type)), ID: strings.TrimSpace(request.Origin.ID), Version: request.Origin.Version}

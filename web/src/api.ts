@@ -1,5 +1,5 @@
 import { requestJSON, requestVoid } from "./http";
-import type { AIGovernancePolicy, AIGovernanceWorkload, AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, ResponseHistoryPage, WorkflowTask } from "./types";
+import type { AIGovernancePolicy, AIGovernanceWorkload, AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceReviewSubmission, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, ResponseHistoryPage, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { BackgroundJobSnapshot, JobRecoveryReceipt, ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
@@ -195,6 +195,10 @@ export type EvidenceRequestLoadIntent = "eligibility_preload" | "capture_revalid
 
 export async function loadEvidenceRequest(id: string, intent?: EvidenceRequestLoadIntent): Promise<EvidenceRequest> {
   return scopedRequest<EvidenceRequest>(`/api/v1/evidence/requests/${encodeURIComponent(id)}`, { request_intent: intent });
+}
+
+export async function loadEvidenceReviewSubmission(id: string): Promise<EvidenceReviewSubmission> {
+  return scopedRequest<EvidenceReviewSubmission>(`/api/v1/evidence/requests/${encodeURIComponent(id)}/review-submission`);
 }
 
 export async function loadProjectionHealth(): Promise<ProjectionHealth[]> {

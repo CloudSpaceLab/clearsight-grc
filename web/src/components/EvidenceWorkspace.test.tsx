@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { loadEvidenceReviewSubmission } from "../api";
 import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "../captureApi";
 import type { EvidenceRequest } from "../types";
 import { EvidenceWorkspace } from "./EvidenceWorkspace";
@@ -9,6 +10,10 @@ const { listEvidenceRecipientCandidates } = vi.hoisted(() => ({ listEvidenceReci
 vi.mock("../captureApi", () => ({
   declareWrongCaptureRecipient: vi.fn(),
   reassignCaptureRecipient: vi.fn(),
+}));
+vi.mock("../api", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../api")>(),
+  loadEvidenceReviewSubmission: vi.fn(),
 }));
 vi.mock("../evidenceRequestAdminApi", async (importOriginal) => ({
   ...await importOriginal<typeof import("../evidenceRequestAdminApi")>(),
@@ -117,6 +122,41 @@ describe("EvidenceWorkspace response authority", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Open request" }));
     expect(onOpenRequest).toHaveBeenCalledWith("request-1");
+  });
+
+  it("lets only the assigned reviewer inspect a submitted response without respondent controls", async () => {
+    const submitted = request({
+      status: "SUBMITTED",
+      known_facts: { reviewer: "reviewer-1" },
+      fields: [
+        { id: "enabled", label: "Encryption enabled", type: "single_select", required: true, options: ["Yes", "No"] },
+        { id: "reference", label: "Evidence reference", type: "short_text", required: false },
+      ],
+    });
+    vi.mocked(loadEvidenceReviewSubmission).mockResolvedValue({
+      id: "submission-1",
+      request_id: submitted.id,
+      submitted_by: "recipient-1",
+      channel: "INTERNAL",
+      answers: { enabled: { values: ["Yes"] }, reference: { text: "ENC-2026-09" } },
+      submitted_at: "2026-08-29T12:00:00Z",
+    });
+
+    renderWorkspace(submitted, "reviewer-1");
+
+    expect(screen.queryByRole("button", { name: "Open request" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Review response" }));
+    expect(await screen.findByRole("region", { name: "Submitted response for Confirm account review evidence" })).toBeTruthy();
+    expect(screen.getByText("Yes")).toBeTruthy();
+    expect(screen.getByText("ENC-2026-09")).toBeTruthy();
+    expect(loadEvidenceReviewSubmission).toHaveBeenCalledWith(submitted.id);
+  });
+
+  it("does not offer submitted-response review to an unassigned reviewer", () => {
+    renderWorkspace(request({ status: "SUBMITTED", known_facts: { reviewer: "reviewer-1" } }), "reviewer-2");
+
+    expect(screen.queryByRole("button", { name: "Review response" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open request" })).toBeNull();
   });
 
   it("fails closed when verified actor identity is missing", () => {

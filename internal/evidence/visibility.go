@@ -87,7 +87,7 @@ func (s *Service) ListManageableRequestsForEntity(ctx context.Context, scope Act
 		if hydrateErr != nil {
 			return nil, hydrateErr
 		}
-		if RequestManageableBy(withRecipient, scope.ActorPrincipalID) {
+		if RequestManageableBy(withRecipient, scope.ActorPrincipalID) || RequestReviewableBy(withRecipient, scope.ActorPrincipalID) {
 			manageable = append(manageable, withRecipient)
 			if len(manageable) == limit {
 				break
@@ -160,7 +160,7 @@ func (s *Service) ListManageableRequests(ctx context.Context, tenant, principal 
 		if hydrateErr != nil {
 			return nil, hydrateErr
 		}
-		if !RequestManageableBy(withRecipient, principal) {
+		if !RequestManageableBy(withRecipient, principal) && !RequestReviewableBy(withRecipient, principal) {
 			continue
 		}
 		if allowed != nil && !allowed(withRecipient) {

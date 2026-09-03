@@ -270,6 +270,17 @@ func (s *Service) GetRequest(ctx context.Context, tenant, requestID string) (Req
 	return effectiveRequest(value, s.now().UTC()), nil
 }
 
+func (s *Service) GetSubmissionForRequest(ctx context.Context, tenant, requestID string) (Submission, error) {
+	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(requestID) == "" {
+		return Submission{}, fmt.Errorf("tenant and request are required")
+	}
+	reader, ok := s.repo.(SubmissionReader)
+	if !ok {
+		return Submission{}, ErrNotFound
+	}
+	return reader.GetSubmissionForRequest(ctx, tenant, requestID)
+}
+
 func (s *Service) GetRequestForEntity(ctx context.Context, tenant, legalEntityID, requestID string) (Request, error) {
 	value, err := s.GetRequest(ctx, tenant, requestID)
 	if err != nil {

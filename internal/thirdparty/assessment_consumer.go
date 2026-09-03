@@ -81,7 +81,11 @@ func (c *AssessmentConsumer) Publish(ctx context.Context, event workflowruntime.
 	if err != nil {
 		return fmt.Errorf("read submitted evidence request: %w", err)
 	}
-	if request.ID != event.AggregateID || request.TenantID != event.TenantID {
+	// GetRequest is already tenant-scoped and accepts either the canonical tenant
+	// ID or its slug. The returned projection may use the other representation,
+	// so comparing those two strings would reject an otherwise correctly scoped
+	// request before this consumer can ignore non-assessment submissions.
+	if request.ID != event.AggregateID {
 		return errors.New("submitted evidence request does not match the event scope")
 	}
 	origin := evidence.RequestOrigin{
