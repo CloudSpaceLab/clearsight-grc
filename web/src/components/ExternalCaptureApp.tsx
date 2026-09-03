@@ -94,7 +94,15 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
         );
         return;
       }
-      await activateWorkspace(sessionToken, payload);
+      const controller = syncRef.current;
+      if (controller && request?.id === payload.request.id && workspace?.workspace.id === payload.workspace.workspace.id) {
+        await controller.reload(payload.workspace);
+        setRequest(payload.request);
+        setWorkspace(controller.currentWorkspace());
+        setSyncSnapshot(controller.snapshot());
+      } else {
+        await activateWorkspace(sessionToken, payload);
+      }
       setAudienceHint(payload.session.audience_hint);
       setAssurance(payload.session.assurance);
       setState("live");

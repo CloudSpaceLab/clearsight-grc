@@ -259,6 +259,14 @@ describe("ExternalCaptureApp", () => {
     vi.mocked(submitFormResponseWorkspace).mockRejectedValue(
       new ApiError(409, "The response workspace changed.", "workspace_conflict"),
     );
+    vi.mocked(loadFormResponseWorkspace)
+      .mockResolvedValueOnce(workspacePayload())
+      .mockResolvedValueOnce(workspacePayload(directSession, {
+        ...workspace,
+        answers: { present: { text: "No" } },
+        field_sequences: { present: 2 },
+        workspace: { ...workspace.workspace, version: 2 },
+      }));
 
     render(<ExternalCaptureApp invitationToken="route-secret"/>);
 
@@ -271,6 +279,9 @@ describe("ExternalCaptureApp", () => {
 
     await waitFor(() => expect(loadFormResponseWorkspace).toHaveBeenCalledTimes(2));
     expect(await screen.findByRole("heading", { name: request.title })).toBeTruthy();
+    expect(screen.getAllByText("Resolve changed answers").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Use ClearSight answer for Is the ATM present?" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Keep my answer for Is the ATM present?" })).toBeTruthy();
   });
 
   it("fails closed with generic copy when the route cannot be started", async () => {

@@ -294,16 +294,22 @@ func TestPostgresResponseWorkspaceSubmitAcceptsOnlyOwnInterveningAutosaves(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := access.SaveResponseWorkspace(ctx, tokens[0], SaveWorkspaceInput{
+	saved, err := access.SaveResponseWorkspace(ctx, tokens[0], SaveWorkspaceInput{
 		ExpectedVersion: initialA.Workspace.Version,
 		Edits: []FieldEdit{{
 			FieldID: "registered_address", Value: formcontract.TextAnswer("Lagos"), BaseSequence: initialA.FieldSequences["registered_address"],
 		}},
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := access.SubmitResponseWorkspace(ctx, tokens[0], SubmitWorkspaceInput{ExpectedVersion: initialA.Workspace.Version}); err != nil {
 		t.Fatalf("the verified session could not submit after its own PostgreSQL autosave: %v", err)
+	}
+	_, err = access.SubmitResponseWorkspace(ctx, tokens[0], SubmitWorkspaceInput{ExpectedVersion: saved.Workspace.Version})
+	var postSubmissionConflict WorkspaceConflict
+	if !errors.As(err, &postSubmissionConflict) {
+		t.Fatalf("a prior PostgreSQL submission version was mistaken for an autosave: %v", err)
 	}
 	_, err = access.SubmitResponseWorkspace(ctx, tokens[1], SubmitWorkspaceInput{ExpectedVersion: initialB.Workspace.Version})
 	var conflict WorkspaceConflict
