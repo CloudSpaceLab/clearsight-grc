@@ -36,6 +36,7 @@ func TestProductionDefaultsDisableUnscannedDocumentAnalysis(t *testing.T) {
 	t.Setenv("CLEARSIGHT_IDENTITY_HMAC_SECRET", strings.Repeat("s", 32))
 	t.Setenv("CLEARSIGHT_COMMAND_AUTHORIZATION", "enforce")
 	t.Setenv("CLEARSIGHT_DEMO_MODE", "false")
+	t.Setenv("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL", "https://capture.example.test")
 	cfg, err := Load()
 	if err != nil {
 		t.Fatal(err)
@@ -50,6 +51,7 @@ func TestProductionAllowsOIDCWithSecureServerSessions(t *testing.T) {
 	t.Setenv("CLEARSIGHT_IDENTITY_MODE", "oidc")
 	t.Setenv("CLEARSIGHT_COMMAND_AUTHORIZATION", "enforce")
 	t.Setenv("CLEARSIGHT_DEMO_MODE", "false")
+	t.Setenv("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL", "https://capture.example.test")
 	t.Setenv("DATABASE_URL", "postgres://clearsight:clearsight@localhost/clearsight")
 	t.Setenv("CLEARSIGHT_ALLOWED_ORIGIN", "https://clearsight.example.test")
 	t.Setenv("CLEARSIGHT_OIDC_ISSUER", "https://idp.example.test/tenant")
@@ -70,6 +72,7 @@ func TestProductionRejectsInsecureOIDCCookies(t *testing.T) {
 	t.Setenv("CLEARSIGHT_IDENTITY_MODE", "oidc")
 	t.Setenv("CLEARSIGHT_COMMAND_AUTHORIZATION", "enforce")
 	t.Setenv("CLEARSIGHT_DEMO_MODE", "false")
+	t.Setenv("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL", "https://capture.example.test")
 	t.Setenv("DATABASE_URL", "postgres://clearsight:clearsight@localhost/clearsight")
 	t.Setenv("CLEARSIGHT_OIDC_ISSUER", "https://idp.example.test/tenant")
 	t.Setenv("CLEARSIGHT_OIDC_CLIENT_ID", "clearsight")
@@ -79,5 +82,18 @@ func TestProductionRejectsInsecureOIDCCookies(t *testing.T) {
 	_, err := Load()
 	if err == nil || !strings.Contains(err.Error(), "secure session cookies") {
 		t.Fatalf("expected insecure OIDC cookie rejection, got %v", err)
+	}
+}
+
+func TestProductionRejectsInsecureCaptureBaseURL(t *testing.T) {
+	t.Setenv("CLEARSIGHT_ENV", "production")
+	t.Setenv("CLEARSIGHT_IDENTITY_MODE", "signed")
+	t.Setenv("CLEARSIGHT_IDENTITY_HMAC_SECRET", strings.Repeat("s", 32))
+	t.Setenv("CLEARSIGHT_COMMAND_AUTHORIZATION", "enforce")
+	t.Setenv("CLEARSIGHT_DEMO_MODE", "false")
+	t.Setenv("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL", "http://capture.example.test")
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "public HTTPS URL") {
+		t.Fatalf("expected insecure capture URL rejection, got %v", err)
 	}
 }

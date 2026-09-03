@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -25,6 +26,7 @@ type Config struct {
 	ArtifactRoot                         string
 	MaxArtifactBytes                     int64
 	CaptureSessionTTL                    time.Duration
+	CapturePublicBaseURL                 string
 	IdentityMode                         string
 	IdentityHMACSecret                   string
 	IdentityMaxSkew                      time.Duration
@@ -70,6 +72,7 @@ func Load() (Config, error) {
 		ArtifactRoot:                         env("CLEARSIGHT_ARTIFACT_ROOT", "./var/artifacts"),
 		MaxArtifactBytes:                     20 << 20,
 		CaptureSessionTTL:                    20 * time.Minute,
+		CapturePublicBaseURL:                 env("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL", ""),
 		IdentityMode:                         strings.ToLower(env("CLEARSIGHT_IDENTITY_MODE", defaultIdentityMode)),
 		IdentityHMACSecret:                   env("CLEARSIGHT_IDENTITY_HMAC_SECRET", ""),
 		IdentityMaxSkew:                      2 * time.Minute,
@@ -183,6 +186,12 @@ func Load() (Config, error) {
 		}
 		if cfg.DemoMode {
 			return Config{}, fmt.Errorf("production does not permit CLEARSIGHT_DEMO_MODE=true")
+		}
+	}
+	if !strings.EqualFold(environment, "development") {
+		captureURL, err := url.Parse(cfg.CapturePublicBaseURL)
+		if err != nil || captureURL.Scheme != "https" || captureURL.Host == "" || captureURL.User != nil || captureURL.RawQuery != "" || captureURL.Fragment != "" {
+			return Config{}, fmt.Errorf("CLEARSIGHT_CAPTURE_PUBLIC_BASE_URL must be a public HTTPS URL outside development")
 		}
 	}
 	if strings.EqualFold(env("CLEARSIGHT_LOG_LEVEL", "info"), "debug") {

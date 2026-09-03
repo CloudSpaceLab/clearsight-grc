@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"log/slog"
+	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 )
@@ -27,4 +29,5 @@ func configureWorkerRuntime(service *workflowruntime.Service, cfg config.Config,
 	} {
 		service.ConfigureClass(name, options)
 	}
+	service.ConfigureClass(monitoring.CollectionRenewalWorkClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 50})
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 )
@@ -21,6 +22,9 @@ func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (wor
 
 	evidenceService := evidence.NewService(evidence.NewMemoryRepository(evidence.DemoSources(), evidence.DemoRequests()), evidence.NewMemoryObjectStore())
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
+	monitoringRepository := monitoring.NewMemoryRepository()
+	collectionDispatcher := &monitoring.CanonicalCollectionDispatcher{Requests: evidenceService}
+	service.AddMaintainerClass(monitoring.CollectionRenewalWorkClass, &monitoring.CollectionMaintainer{Repository: monitoringRepository, Requests: evidenceService, Dispatcher: collectionDispatcher, WorkerID: cfg.WorkerID})
 	continuityRepository := continuity.NewMemoryRepository()
 	continuityService := continuity.NewService(continuityRepository)
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})

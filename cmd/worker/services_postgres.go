@@ -55,6 +55,8 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), store)
 	monitoringRepository := monitoring.NewPostgresRepository(pool)
 	collectionSubmissions := &monitoring.CollectionConsumer{Inbox: runtimeRepository, Repository: monitoringRepository, Evidence: evidenceService}
+	collectionDispatcher := &monitoring.CanonicalCollectionDispatcher{Requests: evidenceService}
+	collectionRenewal := &monitoring.CollectionMaintainer{Repository: monitoringRepository, Requests: evidenceService, Dispatcher: collectionDispatcher, WorkerID: cfg.WorkerID}
 	workflowRepository := workflow.NewPostgresRepository(pool)
 	actionWork := &workflow.MatterActionProjector{Repo: workflowRepository}
 	lifecycleWork := &workflow.MatterLifecycleProjector{
@@ -84,6 +86,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.ConfigureClass(evidenceWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 100})
 
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
+	service.AddMaintainerClass(monitoring.CollectionRenewalWorkClass, collectionRenewal)
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	service.AddMaintainerClass(matterWorkProjectionClass, lifecycleWork)
 	service.AddMaintainerClass(workflow.MatterEscalationWorkClass, escalationWork)
