@@ -297,18 +297,26 @@ func (r *PostgresRepository) CreateRequest(ctx context.Context, value Request) (
 	if err != nil {
 		return Request{}, err
 	}
+	previousResponseValues := value.PreviousResponses
+	if previousResponseValues == nil {
+		previousResponseValues = map[string]PreviousResponseValue{}
+	}
+	previousResponses, err := json.Marshal(previousResponseValues)
+	if err != nil {
+		return Request{}, err
+	}
 	row := r.pool.QueryRow(ctx, `INSERT INTO capture_requests(
 		id,tenant_id,legal_entity_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,
 		known_facts,presentation,scoring_mode,score_profile,sections,fields,source_bindings,form_template_id,form_template_version,collection_period_start,collection_period_end,
-		origin_type,origin_id,origin_version,status,created_by,version,created_at,updated_at,predecessor_request_id
+		origin_type,origin_id,origin_version,status,created_by,version,created_at,updated_at,predecessor_request_id,previous_responses
 	) VALUES(
 		$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10,$11,$12,
 		$13::jsonb,$14::jsonb,$15,$16::jsonb,$17::jsonb,$18::jsonb,$19::jsonb,NULLIF($20,'')::uuid,NULLIF($21,0),$22,$23,
-		NULLIF($24,''),NULLIF($25,''),NULLIF($26,0),$27,NULLIF($28,'')::uuid,$29,$30,$30,NULLIF($31,'')::uuid
+		NULLIF($24,''),NULLIF($25,''),NULLIF($26,0),$27,NULLIF($28,'')::uuid,$29,$30,$30,NULLIF($31,'')::uuid,$32::jsonb
 	) RETURNING `+requestReturningColumns,
 		value.ID, value.TenantID, value.LegalEntityID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType, value.EstimatedMinutes, value.Deadline,
 		string(facts), string(presentation), value.ScoringMode, scoreProfile, string(sections), string(fields), string(sourceBindings), value.FormTemplateID, value.FormTemplateVersion, value.CollectionPeriodStart, value.CollectionPeriodEnd,
-		value.Origin.Type, value.Origin.ID, value.Origin.Version, value.Status, value.CreatedBy, value.Version, value.CreatedAt, value.PredecessorRequestID)
+		value.Origin.Type, value.Origin.ID, value.Origin.Version, value.Status, value.CreatedBy, value.Version, value.CreatedAt, value.PredecessorRequestID, string(previousResponses))
 	created, err := scanRequest(row)
 	created, err = r.resolveOriginCreate(ctx, value, created, err)
 	if err != nil {
@@ -615,12 +623,12 @@ func (r *PostgresRepository) CreateArtifact(ctx context.Context, value Artifact)
 const requestReturningColumns = `id::text,(SELECT slug FROM tenants WHERE id=tenant_id),legal_entity_id::text,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
 	estimated_minutes,deadline,known_facts,presentation,scoring_mode,score_profile,sections,fields,source_bindings,
 	COALESCE(form_template_id::text,''),COALESCE(form_template_version,0),collection_period_start,collection_period_end,
-	COALESCE(origin_type,''),COALESCE(origin_id,''),COALESCE(origin_version,0),status,COALESCE(created_by::text,''),version,created_at,updated_at,COALESCE(predecessor_request_id::text,'')`
+	COALESCE(origin_type,''),COALESCE(origin_id,''),COALESCE(origin_version,0),status,COALESCE(created_by::text,''),version,created_at,updated_at,COALESCE(predecessor_request_id::text,''),previous_responses`
 
 const requestProjection = `er.id::text,t.id::text,er.legal_entity_id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
 	er.estimated_minutes,er.deadline,er.known_facts,er.presentation,er.scoring_mode,er.score_profile,er.sections,er.fields,er.source_bindings,
 	COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),er.collection_period_start,er.collection_period_end,
-	COALESCE(er.origin_type,''),COALESCE(er.origin_id,''),COALESCE(er.origin_version,0),er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at,COALESCE(er.predecessor_request_id::text,'')`
+	COALESCE(er.origin_type,''),COALESCE(er.origin_id,''),COALESCE(er.origin_version,0),er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at,COALESCE(er.predecessor_request_id::text,''),er.previous_responses`
 
 const requestSelect = `SELECT ` + requestProjection + ` FROM capture_requests er JOIN tenants t ON t.id=er.tenant_id`
 
@@ -643,11 +651,11 @@ func scanSource(row scanner) (Source, error) {
 
 func scanRequest(row scanner) (Request, error) {
 	var value Request
-	var facts, presentation, scoreProfile, sections, fields, sourceBindings []byte
+	var facts, presentation, scoreProfile, sections, fields, sourceBindings, previousResponses []byte
 	if err := row.Scan(
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType,
 		&value.EstimatedMinutes, &value.Deadline, &facts, &presentation, &value.ScoringMode, &scoreProfile, &sections, &fields, &sourceBindings, &value.FormTemplateID, &value.FormTemplateVersion, &value.CollectionPeriodStart, &value.CollectionPeriodEnd,
-		&value.Origin.Type, &value.Origin.ID, &value.Origin.Version, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt, &value.PredecessorRequestID,
+		&value.Origin.Type, &value.Origin.ID, &value.Origin.Version, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt, &value.PredecessorRequestID, &previousResponses,
 	); err != nil {
 		return Request{}, err
 	}
@@ -669,6 +677,9 @@ func scanRequest(row scanner) (Request, error) {
 		return Request{}, err
 	}
 	if err := json.Unmarshal(sourceBindings, &value.SourceBindings); err != nil {
+		return Request{}, err
+	}
+	if err := json.Unmarshal(previousResponses, &value.PreviousResponses); err != nil {
 		return Request{}, err
 	}
 	return value, nil

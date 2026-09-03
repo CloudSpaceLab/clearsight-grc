@@ -39,6 +39,7 @@ func NewMemoryRepositoryWithRecipientCandidates(sources []Source, requests []Req
 		request.Sections = cloneSections(request.Sections)
 		request.Fields = cloneFields(request.Fields)
 		request.SourceBindings = cloneRequestBindings(request.SourceBindings)
+		request.PreviousResponses = clonePreviousResponses(request.PreviousResponses)
 		repo.requests[request.ID] = request
 	}
 	for _, candidate := range candidates {
@@ -620,6 +621,7 @@ func cloneRequest(value Request) Request {
 	value.Sections = cloneSections(value.Sections)
 	value.Fields = cloneFields(value.Fields)
 	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
+	value.PreviousResponses = clonePreviousResponses(value.PreviousResponses)
 	value.CollectionPeriodStart = cloneTimePointer(value.CollectionPeriodStart)
 	value.CollectionPeriodEnd = cloneTimePointer(value.CollectionPeriodEnd)
 	return value

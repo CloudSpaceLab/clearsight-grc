@@ -78,6 +78,7 @@ func requestImmutableFingerprint(value Request) ([32]byte, error) {
 		CollectionPeriodEnd   *time.Time
 		Origin                RequestOrigin
 		PredecessorRequestID  string
+		PreviousResponses     map[string]PreviousResponseValue
 		CreatedBy             string
 	}{
 		LegalEntityID: value.LegalEntityID, SubjectType: value.SubjectType, SubjectID: value.SubjectID,
@@ -86,7 +87,7 @@ func requestImmutableFingerprint(value Request) ([32]byte, error) {
 		Presentation: value.Presentation, ScoringMode: value.ScoringMode, ScoreProfile: value.ScoreProfile, Sections: value.Sections,
 		Fields: value.Fields, SourceBindings: value.SourceBindings, FormTemplateID: value.FormTemplateID, FormTemplateVersion: value.FormTemplateVersion,
 		CollectionPeriodStart: value.CollectionPeriodStart, CollectionPeriodEnd: value.CollectionPeriodEnd,
-		Origin: value.Origin.normalized(), PredecessorRequestID: strings.TrimSpace(value.PredecessorRequestID), CreatedBy: value.CreatedBy,
+		Origin: value.Origin.normalized(), PredecessorRequestID: strings.TrimSpace(value.PredecessorRequestID), PreviousResponses: value.PreviousResponses, CreatedBy: value.CreatedBy,
 	}
 	immutable.Recipient.DisplayName = ""
 	encoded, err := json.Marshal(immutable)
@@ -134,6 +135,7 @@ func (r *MemoryRepository) createRequestLocked(value Request) (Request, error) {
 	value.Sections = cloneSections(value.Sections)
 	value.Fields = cloneFields(value.Fields)
 	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
+	value.PreviousResponses = clonePreviousResponses(value.PreviousResponses)
 	value.Recipient = cloneRecipient(value.Recipient)
 	r.requests[value.ID] = value
 	return cloneRequest(value), nil

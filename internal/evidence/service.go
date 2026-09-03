@@ -178,6 +178,10 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	for index := range fields {
 		applyContractField(&fields[index], contract.Fields[index])
 	}
+	previousResponses := normalizePreviousResponses(fields, input.PreviousResponses)
+	if err := validatePreviousResponsesBound(previousResponses); err != nil {
+		return Request{}, err
+	}
 	if strings.TrimSpace(input.CreatedBy) != "" {
 		access, ok := s.repo.(SubjectAccessChecker)
 		if !ok {
@@ -221,8 +225,11 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if !deadline.After(now) {
 		return Request{}, fmt.Errorf("deadline must be in the future")
 	}
-	request := Request{ID: valueID, TenantID: input.TenantID, LegalEntityID: scope.LegalEntityID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Presentation: contract.Presentation, ScoringMode: contract.ScoringMode, ScoreProfile: cloneScoreProfile(contract.ScoreProfile), Sections: contract.Sections, Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Origin: input.Origin.normalized(), PredecessorRequestID: strings.TrimSpace(input.PredecessorRequestID), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
+	request := Request{ID: valueID, TenantID: input.TenantID, LegalEntityID: scope.LegalEntityID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Presentation: contract.Presentation, ScoringMode: contract.ScoringMode, ScoreProfile: cloneScoreProfile(contract.ScoreProfile), Sections: contract.Sections, Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Origin: input.Origin.normalized(), PredecessorRequestID: strings.TrimSpace(input.PredecessorRequestID), PreviousResponses: previousResponses, Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
 	if err := validateRequestPredecessor(ctx, s.repo, request); err != nil {
+		return Request{}, err
+	}
+	if err := validatePreviousResponseLineage(ctx, s.repo, request); err != nil {
 		return Request{}, err
 	}
 	return store.CreateRequestWithRecipient(ctx, request)
