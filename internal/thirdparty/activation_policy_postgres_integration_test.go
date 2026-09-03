@@ -77,6 +77,21 @@ func TestPostgresActivationServiceSimulatesIncompleteProposedRelationships(t *te
 		if _, err := repository.CreateAssessment(ctx, postgresAssessmentRecord(assessmentID, relationship, candidateTime)); err != nil {
 			t.Fatal(err)
 		}
+		if index == 0 {
+			matterID := "33333333-3333-7333-8333-333333333366"
+			decisionID := "33333333-3333-7333-8333-333333333367"
+			if _, err := pool.Exec(ctx, `INSERT INTO matters(id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,source_type,source_id,trigger_type,known_facts,missing_facts,contradictions,created_at,updated_at)
+				VALUES($1::uuid,$2::uuid,$3::uuid,'MAT-ACTIVATION-REVIEW','VENDOR_REVIEW','DECISION_REQUIRED',3,'Review vendor onboarding','Confirm the onboarding assessment before activation.','{}'::jsonb,'THIRD_PARTY_ASSESSMENT',$4,'VENDOR_REGISTRATION_SUBMITTED','{}'::jsonb,'[]'::jsonb,'[]'::jsonb,$5,$5)`, matterID, thirdPartyTenantID, thirdPartyEntityA, assessmentID, candidateTime); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := pool.Exec(ctx, `INSERT INTO matter_decisions(id,tenant_id,matter_id,decision_type,status,options,rationale,conditions,authority_principal_id,decided_at,created_at,updated_at,version)
+				VALUES($1::uuid,$2::uuid,$3::uuid,'VENDOR_APPROVAL','APPROVED','[]'::jsonb,'Assessment approved for activation simulation.','[]'::jsonb,$4::uuid,$5,$5,$5,1)`, decisionID, thirdPartyTenantID, matterID, thirdPartyPrincipal, candidateTime); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := pool.Exec(ctx, `UPDATE third_party_assessments SET review_matter_id=$3::uuid WHERE tenant_id=$1::uuid AND id=$2::uuid`, pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, assessmentID, matterID); err != nil {
+				t.Fatal(err)
+			}
+		}
 		if _, err := pool.Exec(ctx, `UPDATE third_party_assessments SET status=$3,version=2,updated_at=$4 WHERE tenant_id=$1::uuid AND id=$2::uuid`, pgx.QueryExecModeSimpleProtocol, thirdPartyTenantID, assessmentID, status, candidateTime); err != nil {
 			t.Fatal(err)
 		}

@@ -323,7 +323,7 @@ func readActivationFacts(ctx context.Context, q activationQuerier, tenant, entit
 		facts.AssessmentCompletedAt = completedAt.UTC()
 	}
 	if reviewMatterID != "" {
-		rows, queryErr := q.Query(ctx, `SELECT id::text,decision_type,conditions,COALESCE(authority_principal_id::text,'') FROM matter_decisions d JOIN tenants t ON t.id=d.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND d.matter_id::text=$2 AND d.status IN ('APPROVED','CONDITIONALLY_APPROVED') AND (d.expires_at IS NULL OR d.expires_at>clock_timestamp()) ORDER BY d.created_at DESC,d.id DESC`, tenant, reviewMatterID)
+		rows, queryErr := q.Query(ctx, `SELECT d.id::text,d.decision_type,d.conditions,COALESCE(d.authority_principal_id::text,'') FROM matter_decisions d JOIN tenants t ON t.id=d.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND d.matter_id::text=$2 AND d.status IN ('APPROVED','CONDITIONALLY_APPROVED') AND (d.expires_at IS NULL OR d.expires_at>clock_timestamp()) ORDER BY d.created_at DESC,d.id DESC`, tenant, reviewMatterID)
 		if queryErr != nil {
 			return Relationship{}, ActivationFacts{}, queryErr
 		}
