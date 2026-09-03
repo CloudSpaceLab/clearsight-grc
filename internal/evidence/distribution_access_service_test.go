@@ -80,6 +80,45 @@ func TestDistributionAccessDirectMagicLinkReissueKeepsPriorLinkUntilExplicitRevo
 	}
 }
 
+func TestDistributionAccessSessionUsesRecipientIdentityInsteadOfDisplayHint(t *testing.T) {
+	fixture := newMemoryAccessFixture(t, AccessDirectMagicLink, []DistributionRecipientInput{{
+		Role: RecipientTo, Type: RecipientExternalAudience, Address: "owner@example.test", AudienceHint: "o***@example.test", ContactLabel: "Owner",
+	}})
+
+	issued, err := fixture.access.IssueDistributionAccessRoutes(context.Background(), "tenant-a", "entity-a", fixture.distribution.ID, "actor-a")
+	if err != nil || len(issued) != 1 {
+		t.Fatalf("issue direct route: %+v %v", issued, err)
+	}
+	redeemed, err := fixture.access.RedeemDirectRoute(context.Background(), issued[0].Selector)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fixture.distributions.mu.Lock()
+	recipient := fixture.distributions.recipients[fixture.distribution.ID][0]
+	fixture.distributions.repo.mu.Lock()
+	request := fixture.distributions.repo.requests[recipient.safe.RequestID]
+	request.Recipient.AudienceHint = "masked address updated"
+	fixture.distributions.repo.requests[request.ID] = request
+	fixture.distributions.repo.mu.Unlock()
+	fixture.distributions.mu.Unlock()
+
+	session, loaded, err := fixture.access.SessionRequest(context.Background(), redeemed.SessionToken)
+	if err != nil || session.RequestID != request.ID || loaded.ID != request.ID {
+		t.Fatalf("stable recipient identity was rejected after display hint changed: session=%+v request=%+v err=%v", session, loaded, err)
+	}
+
+	fixture.distributions.repo.mu.Lock()
+	request = fixture.distributions.repo.requests[request.ID]
+	request.Recipient.AudienceHash = append([]byte(nil), request.Recipient.AudienceHash...)
+	request.Recipient.AudienceHash[0] ^= 0xff
+	fixture.distributions.repo.requests[request.ID] = request
+	fixture.distributions.repo.mu.Unlock()
+	if _, _, err := fixture.access.SessionRequest(context.Background(), redeemed.SessionToken); !errors.Is(err, ErrSessionInvalid) {
+		t.Fatalf("session survived a recipient identity mismatch: %v", err)
+	}
+}
+
 func TestDistributionAccessDirectMagicLinkUsesEachLinksPrintedExpiry(t *testing.T) {
 	fixture := newMemoryAccessFixture(t, AccessDirectMagicLink, []DistributionRecipientInput{{
 		Role: RecipientTo, Type: RecipientExternalAudience, Address: "owner@example.test", AudienceHint: "o***@example.test", ContactLabel: "Owner",

@@ -112,6 +112,9 @@ func TestPostgresDistributionAccessPersistsProtectedVerifiedSessionAndRevokesOnR
 	if err != nil || redeemed.Assurance != AssuranceEmailVerified || redeemed.SessionToken == "" {
 		t.Fatalf("verify OTP: %+v %v", redeemed, err)
 	}
+	if _, err := pool.Exec(ctx, `UPDATE capture_requests SET recipient_hint='masked address updated' WHERE id=$1::uuid`, redeemed.RequestID); err != nil {
+		t.Fatal(err)
+	}
 	session, request, err := service.SessionRequest(ctx, redeemed.SessionToken)
 	if err != nil || session.Assurance != AssuranceEmailVerified || request.ID != redeemed.RequestID {
 		t.Fatalf("recover verified session: session=%+v request=%+v err=%v", session, request, err)
