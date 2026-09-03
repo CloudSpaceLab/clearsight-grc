@@ -13,6 +13,8 @@ required=(
   migrations/000035_ai_governance_enforcement.down.sql
   migrations/000036_ai_governance_receipts_grants.up.sql
   migrations/000036_ai_governance_receipts_grants.down.sql
+  migrations/000066_ai_governance_baseline_attribution.up.sql
+  migrations/000066_ai_governance_baseline_attribution.down.sql
   docs/acceptance/t4-governed-ai-enforcement.md
   docs/acceptance/t5-ai-governance-receipts-approval.md
 )
@@ -20,13 +22,18 @@ for file in "${required[@]}"; do
   test -s "$file" || { echo "missing AI governance contract: $file" >&2; exit 1; }
 done
 
-if grep -R -nE --include='*.sql' '(prompt|response_body|source_payload|provider_secret|authorization_header)' migrations/00003{5,6}_*.up.sql; then
-  echo "T4/T5 durable schema contains prohibited raw-content or credential field names" >&2
+ai_governance_migrations=(
+  migrations/000035_ai_governance_enforcement.up.sql
+  migrations/000036_ai_governance_receipts_grants.up.sql
+  migrations/000066_ai_governance_baseline_attribution.up.sql
+)
+if grep -nE '(prompt|response_body|source_payload|provider_secret|authorization_header)' "${ai_governance_migrations[@]}"; then
+  echo "AI governance durable schema contains prohibited raw-content or credential field names" >&2
   exit 1
 fi
 if ! grep -q "ai_gateway_decision_receipts" docs/architecture/durable-schema-ownership.md || \
    ! grep -q "ai_execution_grants" docs/architecture/durable-schema-ownership.md; then
-  echo "T5 durable tables are missing schema ownership classification" >&2
+  echo "AI governance durable tables are missing schema ownership classification" >&2
   exit 1
 fi
 
@@ -45,4 +52,4 @@ if [[ "$mode" == "postgres" || ( "$mode" == "auto" && -n "${TEST_DATABASE_URL:-}
   go test -tags 'postgres postgresintegration' ./internal/aigovernance
 fi
 
-echo "T4/T5 AI governance acceptance passed."
+echo "T4/T5 AI governance acceptance passed, including organization-baseline attribution."
