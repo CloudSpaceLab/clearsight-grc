@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { SystemActivityActorKind, SystemActivityCategory, SystemActivityEvent, SystemActivityQuery } from "../../operationsTypes";
 import { loadSystemActivity } from "../../systemActivityApi";
+import { Button, DataTable, EmptyState, FilterBar, Notice, SearchField, SelectField, StatusBadge, TextField, type DataColumn, type StatusTone } from "../ui";
 
 type Mode = "activity" | "audit";
 type LoadState = "loading" | "live" | "unavailable";
@@ -29,6 +30,34 @@ const emptyFilters: Filters = {
   to: "",
 };
 
+const actorKindOptions = [
+  { id: "INTERNAL_USER", label: "Internal user" },
+  { id: "EXTERNAL_PARTICIPANT", label: "Vendor / external participant" },
+  { id: "SERVICE", label: "Service" },
+  { id: "SYSTEM", label: "System" },
+  { id: "UNKNOWN", label: "Not recorded" },
+] satisfies ReadonlyArray<{ id: SystemActivityActorKind; label: string }>;
+
+const categoryOptions = [
+  { id: "GRC_WORK", label: "GRC work" },
+  { id: "FORMS_EVIDENCE", label: "Forms & evidence" },
+  { id: "VENDOR", label: "Vendors" },
+  { id: "AI", label: "AI" },
+  { id: "CONFIGURATION", label: "Configuration" },
+  { id: "SYSTEM", label: "System" },
+  { id: "OTHER", label: "Other" },
+] satisfies ReadonlyArray<{ id: SystemActivityCategory; label: string }>;
+
+function localDateTimeInput(value: Date): string {
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`;
+}
+
+function initialFilters(mode: Mode): Filters {
+  if (mode === "audit") return { ...emptyFilters };
+  return { ...emptyFilters, from: localDateTimeInput(new Date(Date.now() - 24 * 60 * 60 * 1000)) };
+}
+
 function toRFC3339(value: string): string | undefined {
   if (!value) return undefined;
   const parsed = new Date(value);
@@ -47,14 +76,58 @@ function objectLabel(event: SystemActivityEvent) {
   return `${event.object_type.replaceAll("_", " ")} · ${event.object_id}`;
 }
 
-function categoryLabel(value: string) {
+function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
 }
 
+function outcomeTone(outcome: SystemActivityEvent["outcome"]): StatusTone {
+  switch (outcome) {
+    case "SUCCEEDED": return "success";
+    case "FAILED": return "error";
+    case "DENIED": return "warning";
+    case "PENDING":
+    case "RETRYING": return "info";
+    case "CANCELLED": return "neutral";
+    default: return "unknown";
+  }
+}
+
+const columns: readonly DataColumn<SystemActivityEvent>[] = [
+  {
+    id: "time",
+    header: "Time",
+    render: (event) => <time dateTime={event.occurred_at}>{new Date(event.occurred_at).toLocaleString()}</time>,
+    accessibleText: (event) => new Date(event.occurred_at).toLocaleString(),
+  },
+  {
+    id: "actor",
+    header: "Actor",
+    render: (event) => <span className="system-activity-cell"><strong>{actorLabel(event)}</strong><small>{label(event.actor_kind)}</small></span>,
+    accessibleText: (event) => `${actorLabel(event)}, ${label(event.actor_kind)}`,
+  },
+  {
+    id: "activity",
+    header: "Activity",
+    render: (event) => <span className="system-activity-cell"><strong>{event.action}</strong><small>{label(event.category)} · {event.event_type}</small></span>,
+    accessibleText: (event) => `${event.action}, ${label(event.category)}, ${event.event_type}`,
+  },
+  {
+    id: "object",
+    header: "Object",
+    render: (event) => <span className="system-activity-cell"><strong>{event.object_type.replaceAll("_", " ")}</strong><small>{event.object_id}</small></span>,
+    accessibleText: objectLabel,
+  },
+  {
+    id: "outcome",
+    header: "Outcome",
+    kind: "status",
+    render: (event) => <StatusBadge tone={outcomeTone(event.outcome)}>{label(event.outcome)}</StatusBadge>,
+    accessibleText: (event) => label(event.outcome),
+  },
+];
+
 export function SystemActivityPanel({ mode }: { mode: Mode }) {
-  const [filters, setFilters] = useState<Filters>(() => mode === "activity"
-    ? { ...emptyFilters, from: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 16) }
-    : emptyFilters);
+  const [filters, setFilters] = useState<Filters>(() => initialFilters(mode));
   const [applied, setApplied] = useState<Filters>(filters);
   const [items, setItems] = useState<SystemActivityEvent[]>([]);
   const [nextCursor, setNextCursor] = useState("");
@@ -90,61 +163,68 @@ export function SystemActivityPanel({ mode }: { mode: Mode }) {
 
   useEffect(() => { void load(); }, [load]);
 
-  function applyFilters(event: React.FormEvent) {
+  function applyFilters(event: FormEvent) {
     event.preventDefault();
     setApplied(filters);
   }
 
   function clearFilters() {
-    const next = mode === "activity"
-      ? { ...emptyFilters, from: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 16) }
-      : emptyFilters;
+    const next = initialFilters(mode);
     setFilters(next);
     setApplied(next);
   }
 
-  return <section className="configure-card" aria-labelledby={`${mode}-events-heading`}>
+  const title = mode === "activity" ? "Recent activity" : "Audit log";
+  const description = mode === "activity"
+    ? "A bounded view of recently committed system and business activity. Open the owning record to act on it."
+    : "Reconstruct recorded activity by actor, object, event type and date range without exposing event payloads.";
+
+  return <section className="configure-card system-activity-panel" aria-labelledby={`${mode}-events-heading`}>
     <div className="configure-card-heading">
-      <div>
-        <h3 id={`${mode}-events-heading`}>{mode === "activity" ? "Recent activity" : "Audit log"}</h3>
-        <p>{mode === "activity"
-          ? "A bounded view of recently committed system and business activity. Open the owning record to act on it."
-          : "Reconstruct recorded activity by actor, object, event type and date range without exposing event payloads."}</p>
-      </div>
-      <div className="form-actions">
+      <div><h3 id={`${mode}-events-heading`}>{title}</h3><p>{description}</p></div>
+      <div className="system-activity-toolbar">
         {asOf && <span className="muted-copy">Current to {new Date(asOf).toLocaleString()}</span>}
-        <button className="secondary-button" type="button" onClick={() => void load()}>Refresh</button>
+        <Button variant="secondary" size="compact" isLoading={state === "loading" && items.length > 0} onPress={() => void load()}>Refresh</Button>
       </div>
     </div>
 
-    <form className="configure-filter-grid" onSubmit={applyFilters}>
-      <label><span>Actor</span><input value={filters.actor} onChange={(event) => setFilters({ ...filters, actor: event.target.value })} placeholder="Name or safe identifier" /></label>
-      <label><span>Actor type</span><select value={filters.actorKind} onChange={(event) => setFilters({ ...filters, actorKind: event.target.value as Filters["actorKind"] })}>
-        <option value="">All actors</option><option value="INTERNAL_USER">Internal user</option><option value="EXTERNAL_PARTICIPANT">Vendor / external participant</option><option value="SERVICE">Service</option><option value="SYSTEM">System</option><option value="UNKNOWN">Not recorded</option>
-      </select></label>
-      <label><span>Category</span><select value={filters.category} onChange={(event) => setFilters({ ...filters, category: event.target.value as Filters["category"] })}>
-        <option value="">All activity</option><option value="GRC_WORK">GRC work</option><option value="FORMS_EVIDENCE">Forms & evidence</option><option value="VENDOR">Vendors</option><option value="AI">AI</option><option value="CONFIGURATION">Configuration</option><option value="SYSTEM">System</option><option value="OTHER">Other</option>
-      </select></label>
-      <label><span>Event type</span><input value={filters.eventType} onChange={(event) => setFilters({ ...filters, eventType: event.target.value })} placeholder="e.g. MATTER_STATE_CHANGED" /></label>
-      {mode === "audit" && <>
-        <label><span>Object type</span><input value={filters.objectType} onChange={(event) => setFilters({ ...filters, objectType: event.target.value })} placeholder="Matter, vendor, policy…" /></label>
-        <label><span>Object ID</span><input value={filters.objectID} onChange={(event) => setFilters({ ...filters, objectID: event.target.value })} placeholder="Exact identifier" /></label>
-        <label><span>Legal entity</span><input value={filters.legalEntityID} onChange={(event) => setFilters({ ...filters, legalEntityID: event.target.value })} placeholder="Exact identifier" /></label>
-      </>}
-      <label><span>From</span><input type="datetime-local" value={filters.from} onChange={(event) => setFilters({ ...filters, from: event.target.value })} /></label>
-      <label><span>To</span><input type="datetime-local" value={filters.to} onChange={(event) => setFilters({ ...filters, to: event.target.value })} /></label>
-      <div className="form-actions configure-filter-actions"><button className="secondary-button" type="button" onClick={clearFilters}>Clear</button><button className="primary-button" type="submit">Apply filters</button></div>
-    </form>
+    <FilterBar
+      label={`${title} filters`}
+      resultCount={state === "live" ? items.length : undefined}
+      resultLabel={(count) => `${count} loaded ${count === 1 ? "event" : "events"}`}
+      onClear={clearFilters}
+      fields={<form className="system-activity-filters" onSubmit={applyFilters}>
+        <SearchField label="Actor" value={filters.actor} onChange={(actor) => setFilters((current) => ({ ...current, actor }))} placeholder="Actor name or safe identifier" isLoading={state === "loading"}/>
+        <SelectField label="Actor type" value={filters.actorKind || undefined} placeholder="All actors" options={actorKindOptions} onChange={(actorKind) => setFilters((current) => ({ ...current, actorKind: actorKind ?? "" }))}/>
+        <SelectField label="Category" value={filters.category || undefined} placeholder="All activity" options={categoryOptions} onChange={(category) => setFilters((current) => ({ ...current, category: category ?? "" }))}/>
+        <TextField label="Event type" value={filters.eventType} onChange={(eventType) => setFilters((current) => ({ ...current, eventType }))} placeholder="e.g. MATTER_STATE_CHANGED"/>
+        {mode === "audit" && <>
+          <TextField label="Object type" value={filters.objectType} onChange={(objectType) => setFilters((current) => ({ ...current, objectType }))} placeholder="Matter, vendor, policy…"/>
+          <TextField label="Object ID" value={filters.objectID} onChange={(objectID) => setFilters((current) => ({ ...current, objectID }))} placeholder="Exact identifier"/>
+          <TextField label="Legal entity" value={filters.legalEntityID} onChange={(legalEntityID) => setFilters((current) => ({ ...current, legalEntityID }))} placeholder="Exact identifier"/>
+        </>}
+        <TextField label="From" type="datetime-local" value={filters.from} onChange={(from) => setFilters((current) => ({ ...current, from }))}/>
+        <TextField label="To" type="datetime-local" value={filters.to} onChange={(to) => setFilters((current) => ({ ...current, to }))}/>
+        <div className="system-activity-filter-action"><Button type="submit" variant="primary" size="compact">Apply filters</Button></div>
+      </form>}
+    />
 
-    {state === "unavailable" && <div className="configure-empty-state"><strong>Activity could not be loaded.</strong><p>The recorded system state was not changed. Retry when the service is available.</p><button className="secondary-button" type="button" onClick={() => void load()}>Retry</button></div>}
-    {state === "loading" && items.length === 0 && <p role="status" className="muted-copy">Loading recorded activity…</p>}
-    {state === "live" && items.length === 0 && <div className="configure-empty-state"><strong>No matching activity.</strong><p>Try a wider time range or fewer filters.</p></div>}
-    {items.length > 0 && <div className="configure-record-list system-activity-list" aria-live="polite">{items.map((event) => <article key={event.event_id} className="system-activity-row">
-      <time dateTime={event.occurred_at}>{new Date(event.occurred_at).toLocaleString()}</time>
-      <div><strong>{actorLabel(event)}</strong><span>{categoryLabel(event.actor_kind)}</span></div>
-      <div><strong>{event.action}</strong><span>{categoryLabel(event.category)} · {event.event_type}</span></div>
-      <div><strong>{objectLabel(event)}</strong><span>{event.outcome}</span></div>
-    </article>)}</div>}
-    {nextCursor && <div className="form-actions"><button className="secondary-button" type="button" disabled={state === "loading"} onClick={() => void load(nextCursor, true)}>Load older activity</button></div>}
+    {state === "unavailable" && <Notice tone="error"><span>Activity could not be loaded. Recorded system state was not changed.</span> <Button variant="secondary" size="compact" onPress={() => void load()}>Retry</Button></Notice>}
+    {state === "loading" && items.length === 0 && <Notice>Loading recorded activity…</Notice>}
+    {state === "live" && items.length === 0 && <EmptyState population="Recorded activity matching the current filters" title="No matching activity" description="Try a wider time range or fewer filters."/>}
+    {items.length > 0 && <DataTable
+      ariaLabel={mode === "activity" ? "Recent system activity" : "Audit log events"}
+      rows={items}
+      rowKey={(event) => event.event_id}
+      rowName={(event) => `${event.action} by ${actorLabel(event)}`}
+      columns={columns}
+      isLoading={state === "loading"}
+      pagination={nextCursor ? {
+        label: "Activity history pagination",
+        nextLabel: "Load older activity",
+        onNext: () => void load(nextCursor, true),
+        isLoading: state === "loading",
+      } : undefined}
+    />}
   </section>;
 }
