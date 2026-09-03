@@ -8,6 +8,12 @@ const primitivesCSS = readFileSync("src/design-system/tokens/primitives.css", "u
 const preferencesCSS = readFileSync("src/ui-preferences.css", "utf8");
 const feedbackCSS = readFileSync("src/design-system/components/feedback.css", "utf8");
 const monitoringCSS = readFileSync("src/monitoring.css", "utf8");
+const aiGovernanceCSS = readFileSync("src/ai-governance.css", "utf8");
+const continuityCSS = readFileSync("src/continuity.css", "utf8");
+const vendorsCSS = readFileSync("src/vendors.css", "utf8");
+const vendorDueDiligenceCSS = readFileSync("src/components/vendor-due-diligence.css", "utf8");
+const identityAccessCSS = readFileSync("src/identity-access.css", "utf8");
+const automationPoliciesCSS = readFileSync("src/automation-policies.css", "utf8");
 
 function declarations(css: string) {
   const result = new Map<string, string>();
@@ -76,22 +82,31 @@ function required(tokens: Map<string, string>, name: string) {
 
 describe("feedback contrast", () => {
   for (const theme of ["dark", "light"] as const) {
-    it(`keeps Notice and success-label text at WCAG AA contrast in ${theme} mode`, () => {
+    it(`keeps every Notice and StatusBadge tone at WCAG contrast in ${theme} mode`, () => {
       const tokens = themeBlock(theme);
       const text = resolve(required(tokens, "--cs-text-primary"), tokens);
-      const success = resolve(required(tokens, "--cs-status-success"), tokens);
       const surface = resolve(required(tokens, "--cs-bg-surface-1"), tokens);
-      const noticeBackground = mix(success, 8, surface);
-      const successBackground = mix(success, 10, surface);
-
-      expect(contrast(text, noticeBackground)).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(success, successBackground)).toBeGreaterThanOrEqual(4.5);
+      for (const tone of ["info", "success", "warning", "error", "unknown"] as const) {
+        const status = resolve(required(tokens, `--cs-status-${tone}`), tokens);
+        const noticeBackground = mix(status, 8, surface);
+        const badgeBackground = mix(status, 12, surface);
+        expect(contrast(text, noticeBackground), `${tone} Notice text`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(status, badgeBackground), `${tone} StatusBadge text`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(status, surface), `${tone} boundary`).toBeGreaterThanOrEqual(3);
+      }
     });
   }
 
-  it("uses semantic feedback foregrounds and removes the dark-only success class", () => {
+  it("uses semantic feedback tokens and removes private workflow feedback contracts", () => {
     expect(feedbackCSS).toContain("color: var(--cs-text-primary)");
-    expect(monitoringCSS).not.toContain(".inline-success");
-    expect(monitoringCSS).not.toContain("#bdf5d8");
+    expect(aiGovernanceCSS).not.toMatch(/rgba\(13,24,38|rgba\(19,34,52/);
+    expect(aiGovernanceCSS).not.toMatch(/\.ai-governance-badges mark|\.ai-rollout-/);
+    expect(continuityCSS).not.toContain(".success-text");
+    expect(vendorsCSS).not.toContain(".vendor-notice");
+    expect(vendorDueDiligenceCSS).not.toMatch(/\.vdd-(notice|error|alert|source-warning|inline-warning|status-)/);
+    expect(monitoringCSS).not.toMatch(/\.inline-(success|form-error)/);
+    expect(monitoringCSS).not.toMatch(/\.risk-band-/);
+    expect(identityAccessCSS).not.toContain(".identity-line-state");
+    expect(automationPoliciesCSS).not.toMatch(/\.policy-(active|suspended|expired)/);
   });
 });

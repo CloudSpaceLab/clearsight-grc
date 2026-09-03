@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { apiErrorKind } from "../http";
-import { loadActorMatterWork, recordMatterDecision, recordVerificationResult, transitionMatterAction, transitionResponsePackage } from "../continuityCommands";
+import { loadActorMatterWork, recordMatterDecision, recordVerificationResult, transitionMatter, transitionMatterAction, transitionResponsePackage } from "../continuityCommands";
 import type { MatterAggregate, WorkflowTask } from "../types";
 
 type Props = {
@@ -13,6 +13,18 @@ type SubmitState = "idle" | "saving" | "saved" | "error";
 
 function humanize(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
+function matterStatusLabel(value: string) {
+  const labels: Record<string, string> = {
+    TRIAGE: "Initial review",
+    ASSESSMENT: "Reviewing impact",
+    DECISION_REQUIRED: "Decision needed",
+    ACTION_IN_PROGRESS: "Work in progress",
+    RESPONSE_PREPARATION: "Preparing response",
+    VERIFICATION: "Confirming outcome",
+  };
+  return labels[value] ?? humanize(value);
 }
 
 function messageFor(error: unknown) {
@@ -52,7 +64,9 @@ export function MatterWorkCommand({ aggregate, task, onUpdated, onCompleted }: P
     setError("");
     try {
       let updated: MatterAggregate;
-      if (actionCommand && currentAction && target) {
+      if (command === "matter.transition" && target) {
+        updated = await transitionMatter(aggregate.matter.id, aggregate.matter.version, target, rationale.trim());
+      } else if (actionCommand && currentAction && target) {
         updated = await transitionMatterAction(aggregate.matter.id, currentAction.id, aggregate.matter.version, target, rationale.trim());
       } else if (command === "matter.response.transition" && currentResponse && target) {
         updated = await transitionResponsePackage(aggregate.matter.id, currentResponse.id, aggregate.matter.version, target, rationale.trim());
@@ -81,7 +95,8 @@ export function MatterWorkCommand({ aggregate, task, onUpdated, onCompleted }: P
     }
   }
 
-  const supported = (actionCommand && Boolean(currentAction) && targets.length > 0)
+  const supported = (command === "matter.transition" && targets.length === 1)
+    || (actionCommand && Boolean(currentAction) && targets.length > 0)
     || (command === "matter.response.transition" && Boolean(currentResponse) && targets.length > 0)
     || (command === "matter.outcome.record" && Boolean(currentContract))
     || (command === "matter.decision.record" && Boolean(currentDecision) && targets.length > 0);
@@ -93,10 +108,11 @@ export function MatterWorkCommand({ aggregate, task, onUpdated, onCompleted }: P
     <h3 id={`work-command-${task.id}`}>{task.context?.primary_action || task.title}</h3>
     <p>{task.context?.why_now || "This action is assigned to you by the current workflow and authority policy."}</p>
     <form className="governed-command-form" onSubmit={submit}>
+      {command === "matter.transition" && <p className="governed-command-target"><strong>Next state</strong><span>{matterStatusLabel(target)}</span></p>}
       {(actionCommand || command === "matter.response.transition" || command === "matter.decision.record") && <label><span>{actionCommand ? "Next state" : "Outcome"}</span><select value={target} onChange={(event) => setTarget(event.target.value)} required>{targets.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>}
       {command === "matter.decision.record" && ["APPROVED", "CONDITIONALLY_APPROVED", "REJECTED"].includes(target) && <label><span>Selected option</span><input value={selectedOption} onChange={(event) => setSelectedOption(event.target.value)} placeholder={currentDecision?.selected_option || "Decision option"} required={!currentDecision?.selected_option}/></label>}
       {command === "matter.outcome.record" && <label><span>Outcome check</span><select value={result} onChange={(event) => setResult(event.target.value as typeof result)}><option value="PASS">Outcome confirmed</option><option value="FAIL">Outcome not achieved</option><option value="INCONCLUSIVE">More evidence needed</option></select></label>}
-      <label><span>Rationale{rationaleRequired ? "" : " (optional)"}</span><textarea value={rationale} onChange={(event) => setRationale(event.target.value)} placeholder={rationaleRequired ? "Record the concise basis for this action" : "Add context only if it helps the next reviewer"} required={rationaleRequired} rows={3}/></label>
+      <label><span>{command === "matter.transition" ? "Review basis" : "Rationale"}{rationaleRequired ? "" : " (optional)"}</span><textarea value={rationale} onChange={(event) => setRationale(event.target.value)} placeholder={rationaleRequired ? "Record the concise basis for this action" : "Add context only if it helps the next reviewer"} required={rationaleRequired} rows={3}/></label>
       {error && <p className="inline-error" role="alert">{error}</p>}
       {state === "saved" ? <div className="inline-notice" role="status">Action recorded. The issue and assigned work have been updated.</div> : <button className="primary-button" type="submit" disabled={state === "saving" || (!target && command !== "matter.outcome.record")}>{state === "saving" ? "Recording…" : task.context?.primary_action || "Record action"}</button>}
     </form>

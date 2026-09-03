@@ -95,3 +95,50 @@ func TestCurrentVendorWorkRequestKindsExcludeInternalAddressVerification(t *test
 		t.Fatal("historical address work must allow only its governed terminal cancellation")
 	}
 }
+
+func TestVendorWorkCanonicalAccessRouteMigrationRemovesLegacyInvitationProof(t *testing.T) {
+	up, err := os.ReadFile("../../migrations/000074_vendor_work_canonical_access_routes.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	down, err := os.ReadFile("../../migrations/000074_vendor_work_canonical_access_routes.down.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := string(up)
+	for _, required := range []string{
+		"BEGIN;", "COMMIT;",
+		"third_party_work_requests_access_route_fk",
+		"third_party_work_capture_links_access_route_fk",
+		"access_route_id uuid",
+		"validate_vendor_work_access_route_proof",
+		"REFERENCES third_party_work_invitation_reservations(access_route_id,tenant_id,request_id)",
+		"NOT VALID",
+	} {
+		if !strings.Contains(schema, required) {
+			t.Fatalf("canonical vendor-work route migration missing %q", required)
+		}
+	}
+	if strings.Contains(schema, "UPDATE third_party_work_requests") || strings.Contains(schema, "UPDATE third_party_work_capture_links") {
+		t.Fatal("canonical route migration must not rewrite historical vendor-work associations")
+	}
+	if strings.Contains(string(down), "UPDATE third_party_work_requests SET current_invitation_id=NULL") || strings.Contains(string(down), "UPDATE third_party_work_capture_links SET invitation_id=NULL") {
+		t.Fatal("canonical route rollback must not erase vendor-work audit associations")
+	}
+	if !strings.Contains(string(down), "cannot roll back canonical vendor-work access routes") {
+		t.Fatal("canonical route rollback must fail closed while route associations exist")
+	}
+}
+
+func TestVendorWorkRuntimeCannotCallLegacyInvitationIssuer(t *testing.T) {
+	raw, err := os.ReadFile("vendor_work.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(raw)
+	for _, retired := range []string{"IssueInvitation(", "RedeemInvitation(", "capture_invitations"} {
+		if strings.Contains(source, retired) {
+			t.Fatalf("vendor-work runtime retained legacy invitation path %q", retired)
+		}
+	}
+}

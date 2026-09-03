@@ -75,6 +75,7 @@ export class CaptureWorkspaceSync {
   private localSequence = 0;
   private filesToReselect: string[] = [];
   private conflicts: CaptureWorkspaceConflict[] = [];
+  private readonly sessionFieldIDs = new Set<string>();
   private saveState: CaptureWorkspaceSaveState = "saved_server";
   private localRecoveryComplete = false;
   private localWrite: Promise<void> = Promise.resolve();
@@ -188,6 +189,59 @@ export class CaptureWorkspaceSync {
     return this.flush();
   }
 
+  async reload(workspace: FormResponseWorkspace): Promise<void> {
+    if (this.disposed) return;
+    this.clearTimer();
+    await this.localWrite.catch(() => undefined);
+
+    const previous = this.serverWorkspace;
+    const local = this.localSnapshot();
+    const claimed = new Set(this.sessionFieldIDs);
+    for (const fieldID of new Set([...Object.keys(previous.answers), ...Object.keys(local.answers)])) {
+      if (!sameOptionalAnswer(previous.answers[fieldID], local.answers[fieldID])) claimed.add(fieldID);
+    }
+    for (const fieldID of local.filesToReselect) claimed.add(fieldID);
+    for (const conflict of this.conflicts) claimed.add(conflict.fieldID);
+
+    const nextServer = cloneWorkspace(workspace);
+    const answers = cloneAnswers(nextServer.answers);
+    const nextConflicts: CaptureWorkspaceConflict[] = [];
+    for (const fieldID of claimed) {
+      const localValue = local.answers[fieldID];
+      const serverValue = nextServer.answers[fieldID];
+      const awaitingReselection = local.filesToReselect.includes(fieldID);
+      const operation: RecoveryDeltaOperation = awaitingReselection
+        ? "reselect"
+        : hasAnswer(localValue) ? "set" : "delete";
+      const serverChanged = (nextServer.field_sequences[fieldID] ?? 0) !== (previous.field_sequences[fieldID] ?? 0);
+
+      if (serverChanged && !localOperationSatisfied(operation, localValue, serverValue ?? {})) {
+        nextConflicts.push({
+          fieldID,
+          serverValue: serverValue ? cloneAnswer(serverValue) : {},
+          localValue: localValue ? cloneAnswer(localValue) : {},
+          localOperation: operation,
+          sequence: nextServer.field_sequences[fieldID] ?? 0,
+        });
+      }
+      if (operation === "delete") delete answers[fieldID];
+      else if (hasAnswer(localValue)) answers[fieldID] = cloneAnswer(localValue ?? {});
+    }
+
+    this.serverWorkspace = nextServer;
+    this.recoveryContext = { ...this.recoveryContext, serverVersion: nextServer.workspace.version };
+    this.latestAnswers = answers;
+    this.latestMode = local.presentationMode;
+    this.page = local.page;
+    this.filesToReselect = [...local.filesToReselect];
+    this.conflicts = nextConflicts;
+    this.localSequence += 1;
+    await this.persistCurrentAgainstServer();
+    this.setSaveState(this.conflicts.length > 0 ? "conflict" : this.saveStateForPendingChanges());
+    this.emit();
+    if (this.conflicts.length === 0 && this.hasUnsyncedChanges()) this.scheduleFlush();
+  }
+
   async resolveConflict(fieldID: string, choice: CaptureWorkspaceConflictChoice): Promise<void> {
     if (this.disposed) return;
     const conflict = this.conflicts.find((item) => item.fieldID === fieldID);
@@ -273,6 +327,7 @@ export class CaptureWorkspaceSync {
         edits,
       });
       if (this.disposed) return false;
+      for (const edit of edits) this.sessionFieldIDs.add(edit.field_id);
       this.serverWorkspace = cloneWorkspace(saved);
       this.recoveryContext = { ...this.recoveryContext, serverVersion: saved.workspace.version };
       await this.persistCurrentAgainstServer();

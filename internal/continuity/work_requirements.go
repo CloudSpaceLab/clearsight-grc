@@ -116,6 +116,36 @@ func CompileMatterWork(aggregate MatterAggregate, now time.Time) ([]WorkRequirem
 	ambiguities := make([]WorkAmbiguity, 0, 2)
 	priority := aggregate.Matter.Priority
 
+	// An assigned owner must see the dominant current Matter handoff even when
+	// no Action, Decision, Response or verification subresource exists yet.
+	// Only project an exact transition here; substantive branching remains on
+	// the Matter record instead of being guessed by the read model.
+	if ownerID := strings.TrimSpace(aggregate.Matter.OwnerPrincipalID); ownerID != "" && (aggregate.Matter.Status == MatterDraft || aggregate.Matter.Status == MatterInitialReview) {
+		ownerTargets := make([]MatterStatus, 0, 2)
+		for _, target := range AllowedMatterTargets(aggregate.Matter.Status) {
+			if !GovernedMatterTransition(aggregate.Matter.Status, target) {
+				ownerTargets = append(ownerTargets, target)
+			}
+		}
+		if len(ownerTargets) == 1 {
+			target := ownerTargets[0]
+			requirements = append(requirements, WorkRequirement{
+				Key:                 "matter:" + aggregate.Matter.ID + ":" + string(target),
+				CommandName:         "matter.transition",
+				TargetStatus:        string(target),
+				AllowedTargets:      []string{string(target)},
+				Responsibility:      "ACCOUNTABLE_OWNER",
+				Materiality:         maxInt(3, priority),
+				Title:               firstNonBlank(aggregate.Matter.Title, "Review issue"),
+				PrimaryAction:       matterNextAction(aggregate.Matter.Status),
+				WhyNow:              "This open issue is assigned to you and its current review step is ready.",
+				InterventionClass:   "REVIEW",
+				DueAt:               aggregate.Matter.DueAt,
+				RequiredPrincipalID: ownerID,
+			})
+		}
+	}
+
 	for _, response := range currentResponses(aggregate.ResponsePackages) {
 		targets := allowedResponseTargets(response.Status)
 		if len(targets) == 1 {

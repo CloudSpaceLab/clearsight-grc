@@ -35,6 +35,7 @@ The documentation is layered so product semantics, safety, architecture, experie
 29. [`engineering/demo-role-login.md`](engineering/demo-role-login.md) — non-production stakeholder role catalogue, supplied demo credentials, signed demo session and production isolation boundary.
 30. [`quality/release-gates-and-traceability.md`](quality/release-gates-and-traceability.md), [`quality/rendered-ui-evidence.md`](quality/rendered-ui-evidence.md) and domain acceptance tests.
 31. [`superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md`](superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md) — current first-run guidance and vendor identity presentation decision.
+32. [`design/capture-route-expiry-and-submit-recovery-decision-brief.md`](design/capture-route-expiry-and-submit-recovery-decision-brief.md) — canonical link-expiry truth and shared-workspace submission recovery.
 
 ## Canonical precedence
 

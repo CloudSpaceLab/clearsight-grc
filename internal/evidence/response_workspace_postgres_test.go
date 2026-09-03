@@ -219,6 +219,105 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 	}
 }
 
+func TestPostgresResponseWorkspaceSubmitAcceptsOnlyOwnInterveningAutosaves(t *testing.T) {
+	pool, ctx := distributionTestPool(t)
+	tenantID := mustResponseWorkspaceID(t)
+	entityID := mustResponseWorkspaceID(t)
+	actorID := mustResponseWorkspaceID(t)
+	formID := mustResponseWorkspaceID(t)
+	subjectID := mustResponseWorkspaceID(t)
+	tenantSlug := "response-workspace-" + tenantID[len(tenantID)-12:]
+	now := time.Date(2026, 8, 28, 4, 0, 0, 0, time.UTC)
+	setupResponseWorkspaceFixture(t, ctx, pool, tenantID, tenantSlug, entityID, actorID, formID, now)
+	t.Cleanup(func() { cleanupResponseWorkspaceTenant(context.Background(), pool, tenantID) })
+
+	var recipientKey, accessKey [32]byte
+	for index := range recipientKey {
+		recipientKey[index] = 0x73
+		accessKey[index] = 0x74
+	}
+	keyring, err := NewRecipientKeyring("recipient-v1", map[string][32]byte{"recipient-v1": recipientKey})
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := NewPostgresDistributionStore(NewPostgresRepository(pool), keyring)
+	store.now = func() time.Time { return now }
+	bundle, err := store.CreateDistribution(ctx, CreateDistributionInput{
+		TenantID: tenantSlug, LegalEntityID: "WORKSPACE", FormTemplateID: formID, FormTemplateVersion: 1,
+		SubjectType: "VENDOR", SubjectID: subjectID, Title: "Submission concurrency review", Purpose: "Verify submission after autosave.",
+		AccessPolicy: AccessSharedEmailOTP, EstimatedMinutes: 5,
+		Deadline: now.Add(4 * time.Hour), RouteExpiresAt: now.Add(3 * time.Hour), CreatedBy: actorID,
+		Recipients: []DistributionRecipientInput{
+			{Role: RecipientTo, Type: RecipientExternalAudience, Address: "alpha@example.test", AudienceHint: "a***@example.test", ContactLabel: "Alpha"},
+			{Role: RecipientTo, Type: RecipientExternalAudience, Address: "beta@example.test", AudienceHint: "b***@example.test", ContactLabel: "Beta"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE capture_form_distributions SET status='OPEN',updated_at=$2 WHERE id=$1::uuid`, bundle.Distribution.ID, now); err != nil {
+		t.Fatal(err)
+	}
+
+	delivery := &postgresAccessOTPDelivery{}
+	access, err := NewDistributionAccessService(store, keyring, delivery, accessKey, 20*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	access.now = func() time.Time { return now }
+	routes, err := access.IssueDistributionAccessRoutes(ctx, tenantID, entityID, bundle.Distribution.ID, actorID)
+	if err != nil || len(routes) != 1 {
+		t.Fatalf("issue shared route: %+v %v", routes, err)
+	}
+	start, err := access.StartDistributionAccess(ctx, routes[0].Selector)
+	if err != nil || len(start.Recipients) != 2 {
+		t.Fatalf("start shared route: %+v %v", start, err)
+	}
+	var tokens [2]string
+	for index := range start.Recipients {
+		receipt, sendErr := access.SendOTP(ctx, routes[0].Selector, start.Recipients[index].SelectorID)
+		if sendErr != nil {
+			t.Fatal(sendErr)
+		}
+		redeemed, verifyErr := access.VerifyOTP(ctx, routes[0].Selector, receipt.ChallengeID, delivery.code)
+		if verifyErr != nil {
+			t.Fatal(verifyErr)
+		}
+		tokens[index] = redeemed.SessionToken
+	}
+
+	initialA, err := access.GetResponseWorkspace(ctx, tokens[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	initialB, err := access.GetResponseWorkspace(ctx, tokens[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, err := access.SaveResponseWorkspace(ctx, tokens[0], SaveWorkspaceInput{
+		ExpectedVersion: initialA.Workspace.Version,
+		Edits: []FieldEdit{{
+			FieldID: "registered_address", Value: formcontract.TextAnswer("Lagos"), BaseSequence: initialA.FieldSequences["registered_address"],
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := access.SubmitResponseWorkspace(ctx, tokens[0], SubmitWorkspaceInput{ExpectedVersion: initialA.Workspace.Version}); err != nil {
+		t.Fatalf("the verified session could not submit after its own PostgreSQL autosave: %v", err)
+	}
+	_, err = access.SubmitResponseWorkspace(ctx, tokens[0], SubmitWorkspaceInput{ExpectedVersion: saved.Workspace.Version})
+	var postSubmissionConflict WorkspaceConflict
+	if !errors.As(err, &postSubmissionConflict) {
+		t.Fatalf("a prior PostgreSQL submission version was mistaken for an autosave: %v", err)
+	}
+	_, err = access.SubmitResponseWorkspace(ctx, tokens[1], SubmitWorkspaceInput{ExpectedVersion: initialB.Workspace.Version})
+	var conflict WorkspaceConflict
+	if !errors.As(err, &conflict) {
+		t.Fatalf("another recipient's PostgreSQL edit did not block stale submission: %v", err)
+	}
+}
+
 func mustResponseWorkspaceID(t *testing.T) string {
 	t.Helper()
 	value, err := id.NewUUIDv7()

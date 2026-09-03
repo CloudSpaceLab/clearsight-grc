@@ -5,6 +5,7 @@ import { createMatter } from "../continuityCommands";
 import type { ProgramSummary } from "../summaryTypes";
 import type { MatterAggregate } from "../types";
 import { selectedDateEndOfLocalDay } from "../dueDate";
+import { Notice } from "./ui";
 
 type Props = { onCreated: (aggregate: MatterAggregate) => void; onClose: () => void; initialProgramID?: string };
 type ProgramState = "loading" | "live" | "unavailable";
@@ -79,7 +80,7 @@ export function MatterSetupWorkspace({ onCreated, onClose, initialProgramID = ""
       <div><span className="eyebrow">Issues and changes</span><h2 id="matter-setup-title">New issue or change</h2><p>Record what needs attention and when it is due.</p></div>
       <button className="text-button" type="button" onClick={onClose}>Close</button>
     </div>
-    {error && <p className="inline-form-error" role="alert">{error}</p>}
+    {error && <Notice tone="error">{error}</Notice>}
     <form className="setup-form" onSubmit={submit}>
       <div className="monitoring-form-grid">
         <label><span>Work type</span><select ref={firstField} name="type" defaultValue="RISK_SITUATION">{WORK_TYPES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>

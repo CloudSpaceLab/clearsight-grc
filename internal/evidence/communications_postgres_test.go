@@ -7,10 +7,59 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+func TestPostgresCommunicationDeliveryLoadsWorkflowOwnedRequestOrigin(t *testing.T) {
+	pool, ctx := distributionTestPool(t)
+	tenantID := mustCommunicationTestID(t)
+	entityID := mustCommunicationTestID(t)
+	actorID := mustCommunicationTestID(t)
+	principal := mustCommunicationTestID(t)
+	formID := mustCommunicationTestID(t)
+	subjectID := mustCommunicationTestID(t)
+	tenantSlug := "distribution-" + tenantID[len(tenantID)-12:]
+	now := time.Date(2026, 9, 3, 8, 0, 0, 0, time.UTC)
+	setupDistributionFixture(t, ctx, pool, tenantID, entityID, actorID, principal, formID, now)
+	defer cleanupDistributionTenant(context.Background(), pool, tenantID)
+
+	store := NewPostgresDistributionStore(NewPostgresRepository(pool), postgresTestRecipientProtector{})
+	bundle, err := store.CreateDistribution(WithRequestOriginAuthority(ctx, "THIRD_PARTY_WORK"), CreateDistributionInput{
+		TenantID: tenantSlug, LegalEntityID: entityID,
+		FormTemplateID: formID, FormTemplateVersion: 1,
+		SubjectType: "VENDOR", SubjectID: subjectID,
+		Title: "Vendor evidence", Purpose: "Confirm current vendor evidence.",
+		AccessPolicy: AccessDirectEmailOTP, EstimatedMinutes: 5,
+		Deadline: now.Add(24 * time.Hour), RouteExpiresAt: now.Add(12 * time.Hour), CreatedBy: actorID,
+		Recipients: []DistributionRecipientInput{{Role: RecipientTo, Type: RecipientExternalAudience, Address: "vendor@example.test", AudienceHint: "v***@example.test"}},
+		RequestInput: &CreateRequestInput{
+			TenantID: tenantSlug, LegalEntityID: entityID,
+			SubjectType: "VENDOR", SubjectID: subjectID, Title: "Vendor evidence",
+			Purpose: "Confirm current vendor evidence.", WhyYou: "You are the vendor contact for this request.",
+			Sensitivity: "INTERNAL", AudienceType: "VENDOR",
+			Recipient:        RecipientInput{Type: RecipientExternalAudience, Audience: "vendor@example.test"},
+			EstimatedMinutes: 5, Deadline: now.Add(24 * time.Hour),
+			Presentation:   formcontract.Presentation{DefaultMode: formcontract.PresentationWizard},
+			Sections:       []formcontract.Section{{ID: "general", Title: "General"}},
+			Fields:         []Field{{ID: "registered_address", SectionID: "general", Label: "Registered address", Type: string(formcontract.TypeShortText), Required: true, CollectionIntent: formcontract.IntentConfirmOrCorrect, RecordTarget: &formcontract.RecordTarget{Key: "registered_address", RequiredSubjectType: "VENDOR"}, BrowserCachePolicy: formcontract.BrowserCacheDenied}},
+			FormTemplateID: formID, FormTemplateVersion: 1,
+			Origin: RequestOrigin{Type: "THIRD_PARTY_WORK", ID: subjectID, Version: 1}, CreatedBy: actorID,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	delivery, err := NewPostgresCommunicationDeliveryRepository(NewPostgresRepository(pool)).LoadCommunicationDelivery(ctx, tenantID, bundle.Distribution.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if delivery.OriginType != "THIRD_PARTY_WORK" {
+		t.Fatalf("delivery origin = %q, want THIRD_PARTY_WORK", delivery.OriginType)
+	}
+}
 
 func TestPostgresCommunicationGovernancePersistsActivationFallbackAndRollback(t *testing.T) {
 	pool, ctx := distributionTestPool(t)

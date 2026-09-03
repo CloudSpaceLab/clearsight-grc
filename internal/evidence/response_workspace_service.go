@@ -58,8 +58,8 @@ func (service *DistributionAccessService) SubmitResponseWorkspace(ctx context.Co
 	if err != nil {
 		return WorkspaceSubmissionResult{}, ErrWorkspaceUnavailable
 	}
-	if input.ExpectedVersion < 1 {
-		return WorkspaceSubmissionResult{}, fmt.Errorf("%w: expected_version must be positive", ErrWorkspaceUnavailable)
+	if input.ExpectedVersion < 0 {
+		return WorkspaceSubmissionResult{}, fmt.Errorf("%w: expected_version must not be negative", ErrWorkspaceUnavailable)
 	}
 	input.AttestationFieldIDs, err = normalizeAttestationFieldIDs(input.AttestationFieldIDs)
 	if err != nil {

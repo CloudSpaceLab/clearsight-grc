@@ -24,22 +24,11 @@ func (engine *AccessPolicyEngine) IssueRoute(input AccessRouteInput) (AccessRout
 	if err != nil {
 		return AccessRoute{}, IssuedAccessRoute{}, ErrDistributionAccessUnavailable
 	}
-	maxRedemptions := input.MaxRedemptions
-	if maxRedemptions == 0 {
-		maxRedemptions = 1
-		if input.Policy == AccessSharedEmailOTP {
-			maxRedemptions = sharedRouteRedemptions
-		}
-	}
-	if maxRedemptions < 1 || maxRedemptions > sharedRouteRedemptions ||
-		(input.Policy != AccessSharedEmailOTP && maxRedemptions != 1) {
-		return AccessRoute{}, IssuedAccessRoute{}, ErrDistributionAccessUnavailable
-	}
 	route := AccessRoute{
 		ID: routeID, TenantID: strings.TrimSpace(input.TenantID), LegalEntityID: strings.TrimSpace(input.LegalEntityID),
 		DistributionID: strings.TrimSpace(input.DistributionID), RecipientID: strings.TrimSpace(input.RecipientID),
 		Policy: input.Policy, SelectorHash: selectorHash, AudienceHint: strings.TrimSpace(input.AudienceHint),
-		ExpiresAt: expiresAt, MaxRedemptions: maxRedemptions, CreatedBy: strings.TrimSpace(input.CreatedBy), CreatedAt: now,
+		ExpiresAt: expiresAt, CreatedBy: strings.TrimSpace(input.CreatedBy), CreatedAt: now,
 	}
 	issued := IssuedAccessRoute{RouteID: route.ID, Selector: selector, Policy: route.Policy, ExpiresAt: route.ExpiresAt}
 	return route, issued, nil
@@ -168,7 +157,7 @@ func accessGrantAssuranceMatches(policy AccessPolicy, assurance AccessAssurance)
 }
 
 func redeemAccessRoute(route *AccessRoute, recipientID string, assurance AccessAssurance, requestedSessionExpiry, now time.Time) (AccessGrant, error) {
-	if route == nil || route.Redemptions >= route.MaxRedemptions || !accessRouteActive(*route, now) {
+	if route == nil || !accessRouteActive(*route, now) {
 		return AccessGrant{}, ErrDistributionAccessUnavailable
 	}
 	expiresAt := requestedSessionExpiry.UTC()
@@ -178,7 +167,6 @@ func redeemAccessRoute(route *AccessRoute, recipientID string, assurance AccessA
 	if !expiresAt.After(now) {
 		return AccessGrant{}, ErrDistributionAccessUnavailable
 	}
-	route.Redemptions++
 	return AccessGrant{
 		RouteID: route.ID, TenantID: route.TenantID, DistributionID: route.DistributionID,
 		RecipientID: recipientID, Assurance: assurance, ExpiresAt: expiresAt,
@@ -200,7 +188,7 @@ func validAccessRouteInput(input AccessRouteInput) bool {
 }
 
 func accessRouteActive(route AccessRoute, now time.Time) bool {
-	return accessRouteOpen(route, now) && route.MaxRedemptions > 0 && route.Redemptions < route.MaxRedemptions
+	return accessRouteOpen(route, now)
 }
 
 func accessRouteOpen(route AccessRoute, now time.Time) bool {
@@ -212,9 +200,9 @@ func accessRouteOpen(route AccessRoute, now time.Time) bool {
 func validAccessRouteBinding(route AccessRoute) bool {
 	switch route.Policy {
 	case AccessSharedEmailOTP:
-		return strings.TrimSpace(route.RecipientID) == "" && route.MaxRedemptions >= 1 && route.MaxRedemptions <= sharedRouteRedemptions
+		return strings.TrimSpace(route.RecipientID) == ""
 	case AccessDirectMagicLink, AccessDirectEmailOTP:
-		return strings.TrimSpace(route.RecipientID) != "" && route.MaxRedemptions == 1
+		return strings.TrimSpace(route.RecipientID) != ""
 	default:
 		return false
 	}

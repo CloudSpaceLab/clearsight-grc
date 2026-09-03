@@ -935,7 +935,7 @@ func (a *API) validateCurrentResponsibilityRouteActor(ctx context.Context, tenan
 }
 
 func governedMatterTransition(from, target continuity.MatterStatus) bool {
-	return target == continuity.MatterDecisionRequired || target == continuity.MatterClosed || target == continuity.MatterCancelled || from == continuity.MatterClosed
+	return continuity.GovernedMatterTransition(from, target)
 }
 
 func (a *API) validateProgramAssignmentCandidate(ctx context.Context, tenant, commandName string, aggregate continuity.ProgramAggregate, candidateID string, candidateResponsibility authority.Responsibility, materiality int) error {

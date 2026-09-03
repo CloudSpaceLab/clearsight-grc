@@ -9,10 +9,11 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 )
 
-func TestReissueAssessmentRequestRotatesCanonicalRoute(t *testing.T) {
+func TestReissueAssessmentRequestKeepsPriorMagicLinkUntilItsExpiry(t *testing.T) {
 	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
 	capture := &assessmentEvidenceStub{repo: repo, assessmentID: assessment.ID}
+	capture.resumeReplacement = true
 	service, err := NewAssessmentRequestService(assessmentService, repo, capture, assessmentFormReaderStub{form: activeAssessmentForm()}, nil, "https://capture.example.test/capture", "production")
 	if err != nil {
 		t.Fatal(err)
@@ -29,8 +30,8 @@ func TestReissueAssessmentRequestRotatesCanonicalRoute(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(capture.revoked) != 1 || capture.revoked[0] != "invitation-1" {
-		t.Fatalf("revoked routes = %#v", capture.revoked)
+	if len(capture.revoked) != 0 {
+		t.Fatalf("reissue silently revoked prior magic links: %#v", capture.revoked)
 	}
 	if second.Invitation == nil || second.Invitation.InvitationID != "invitation-2" || !strings.Contains(second.CaptureURL, "#form_access=replacement-token") {
 		t.Fatalf("canonical replacement = %#v", second)
@@ -41,10 +42,11 @@ func TestReissueAssessmentRequestRotatesCanonicalRoute(t *testing.T) {
 	}
 }
 
-func TestReissueAssessmentRequestFailsClosedWhenCanonicalRouteCannotBeRevoked(t *testing.T) {
+func TestReissueAssessmentRequestDoesNotDependOnPriorMagicLinkRevocation(t *testing.T) {
 	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := mustReadyAssessment(t, assessmentService, mustStartAssessment(t, assessmentService, relationship))
 	capture := &assessmentEvidenceStub{repo: repo, assessmentID: assessment.ID}
+	capture.resumeReplacement = true
 	service, err := NewAssessmentRequestService(assessmentService, repo, capture, assessmentFormReaderStub{form: activeAssessmentForm()}, nil, "https://capture.example.test/capture", "production")
 	if err != nil {
 		t.Fatal(err)
@@ -58,7 +60,10 @@ func TestReissueAssessmentRequestFailsClosedWhenCanonicalRouteCannotBeRevoked(t 
 	capture.revokeErr = evidence.ErrDistributionAccessUnavailable
 	if _, err := service.ReissueRequest(assessmentContext(), assessmentActor(), assessment.ID, ReissueAssessmentRequestInput{
 		ExpectedVersion: first.Assessment.Version, Audience: "security@vendor.example", InvitationTTLMinutes: 60,
-	}); err == nil {
-		t.Fatal("reissue proceeded after canonical route revocation failed")
+	}); err != nil {
+		t.Fatalf("reissue depended on revoking the prior unexpired magic link: %v", err)
+	}
+	if len(capture.revoked) != 0 {
+		t.Fatalf("reissue called route revocation: %#v", capture.revoked)
 	}
 }

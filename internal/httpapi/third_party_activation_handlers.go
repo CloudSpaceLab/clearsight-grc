@@ -15,6 +15,22 @@ type activationPolicyTransitionRequest struct {
 	ExpectedVersion int64  `json:"expected_version"`
 	SimulationID    string `json:"simulation_id,omitempty"`
 	Rationale       string `json:"rationale"`
+	TenantID        string `json:"tenant_id,omitempty"`
+}
+
+type activationPolicyProposalRequest struct {
+	thirdparty.ProposeActivationPolicyInput
+	TenantID string `json:"tenant_id,omitempty"`
+}
+
+type activationPolicyRollbackRequest struct {
+	thirdparty.RollbackActivationPolicyInput
+	TenantID string `json:"tenant_id,omitempty"`
+}
+
+type activateVendorRelationshipRequest struct {
+	thirdparty.ActivateRelationshipInput
+	TenantID string `json:"tenant_id,omitempty"`
 }
 
 func (a *API) activationService(w http.ResponseWriter) (*thirdparty.ActivationService, bool) {
@@ -30,12 +46,12 @@ func (a *API) proposeThirdPartyActivationPolicy(w http.ResponseWriter, r *http.R
 	if !ok {
 		return
 	}
-	var input thirdparty.ProposeActivationPolicyInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+	var request activationPolicyProposalRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	value, err := service.ProposePolicy(r.Context(), input)
+	value, err := service.ProposePolicy(r.Context(), request.ProposeActivationPolicyInput)
 	writeThirdPartyActivationResult(w, value, err, http.StatusCreated)
 }
 
@@ -104,12 +120,12 @@ func (a *API) rollbackThirdPartyActivationPolicy(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
-	var input thirdparty.RollbackActivationPolicyInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+	var request activationPolicyRollbackRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	value, err := service.PrepareRollback(r.Context(), r.PathValue("id"), input)
+	value, err := service.PrepareRollback(r.Context(), r.PathValue("id"), request.RollbackActivationPolicyInput)
 	writeThirdPartyActivationResult(w, value, err, http.StatusCreated)
 }
 
@@ -118,12 +134,12 @@ func (a *API) activateVendorRelationship(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	var input thirdparty.ActivateRelationshipInput
-	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+	var request activateVendorRelationshipRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	value, err := service.ActivateRelationship(r.Context(), r.PathValue("id"), input)
+	value, err := service.ActivateRelationship(r.Context(), r.PathValue("id"), request.ActivateRelationshipInput)
 	writeThirdPartyActivationResult(w, value, err, http.StatusOK)
 }
 
@@ -154,6 +170,12 @@ func writeThirdPartyActivationError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusForbidden, "activation_not_authorized", "The current authority route does not permit this activation decision.")
 	case errors.Is(err, thirdparty.ErrActivationSimulationRequired):
 		httpx.WriteError(w, http.StatusConflict, "activation_simulation_required", "Run a complete activation impact simulation for this policy revision before approving it.")
+	case errors.Is(err, thirdparty.ErrActivationCandidateList):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "activation_candidate_list_failed", "The proposed vendor population could not be loaded for this simulation. No simulation was recorded.")
+	case errors.Is(err, thirdparty.ErrActivationCandidateFacts):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "activation_candidate_evaluation_failed", "One or more proposed vendor records could not be evaluated. No simulation was recorded.")
+	case errors.Is(err, thirdparty.ErrActivationSimulationStore):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "activation_simulation_store_failed", "The completed simulation could not be recorded. Run the simulation again.")
 	case errors.Is(err, thirdparty.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "version_conflict", "This vendor activation record changed. Reload before continuing.")
 	case errors.Is(err, thirdparty.ErrNotFound):

@@ -25,7 +25,7 @@ func communicationDeliveryAttemptStatus(receipt InvitationDeliveryReceipt, failu
 		return "DELIVERED"
 	}
 	switch failureCode {
-	case "DISTRIBUTION_NOT_DELIVERABLE", "RECIPIENT_NOT_DELIVERABLE", "SUPERSEDED_COMMUNICATION":
+	case "DISTRIBUTION_NOT_DELIVERABLE", "RECIPIENT_NOT_DELIVERABLE", "SUPERSEDED_COMMUNICATION", "WORKFLOW_OWNED_COMMUNICATION":
 		return "SKIPPED"
 	default:
 		return "FAILED"
@@ -39,6 +39,7 @@ type communicationDeliveryRecipient struct {
 
 type communicationDeliveryBundle struct {
 	Distribution FormDistribution
+	OriginType   string
 	Recipients   []communicationDeliveryRecipient
 }
 
@@ -81,6 +82,9 @@ func (worker *CommunicationDeliveryWorker) Publish(ctx context.Context, event wo
 		return err
 	}
 	now := worker.currentTime()
+	if communicationOwnedByOriginWorkflow(bundle.OriginType) {
+		return worker.skipRecipients(ctx, event, bundle, action, "WORKFLOW_OWNED_COMMUNICATION", now)
+	}
 	if communicationSecureLinkEventSuperseded(event, bundle.Distribution, action) {
 		return worker.skipRecipients(ctx, event, bundle, action, "SUPERSEDED_COMMUNICATION", now)
 	}
@@ -182,6 +186,15 @@ func (worker *CommunicationDeliveryWorker) Publish(ctx context.Context, event wo
 		return errors.Join(retryErrors...)
 	}
 	return nil
+}
+
+func communicationOwnedByOriginWorkflow(originType string) bool {
+	switch strings.ToUpper(strings.TrimSpace(originType)) {
+	case "THIRD_PARTY_ASSESSMENT", "THIRD_PARTY_WORK":
+		return true
+	default:
+		return false
+	}
 }
 
 func communicationSecureLinkEventSuperseded(event workflowruntime.OutboxEvent, distribution FormDistribution, action CommunicationAction) bool {

@@ -34,6 +34,9 @@ var (
 	ErrActivationPolicyUnavailable  = errors.New("third-party activation policy is unavailable")
 	ErrActivationMakerChecker       = errors.New("activation policy requires an independent checker")
 	ErrActivationSimulationRequired = errors.New("a current complete activation policy simulation is required")
+	ErrActivationCandidateList      = errors.New("activation simulation candidate list failed")
+	ErrActivationCandidateFacts     = errors.New("activation simulation candidate evaluation failed")
+	ErrActivationSimulationStore    = errors.New("activation simulation persistence failed")
 	ErrActivationIneligible         = errors.New("vendor relationship is not eligible for activation")
 )
 
@@ -303,13 +306,13 @@ func (s *ActivationService) SimulatePolicy(ctx context.Context, policyID string)
 	for cursor := ""; ; {
 		page, listErr := s.repo.ListActivationCandidates(ctx, scope, cursor, 500)
 		if listErr != nil {
-			return ActivationSimulation{}, listErr
+			return ActivationSimulation{}, fmt.Errorf("%w: %v", ErrActivationCandidateList, listErr)
 		}
 		result.CandidateCount += len(page.Items)
 		for _, candidate := range page.Items {
 			_, facts, readErr := s.repo.ReadActivationFacts(ctx, scope, candidate.ID, policy)
 			if readErr != nil {
-				return ActivationSimulation{}, readErr
+				return ActivationSimulation{}, fmt.Errorf("%w: %v", ErrActivationCandidateFacts, readErr)
 			}
 			facts.DecisionAuthoritiesCurrent = s.decisionAuthoritiesCurrent(ctx, scope, facts)
 			gates := activationGates(candidate, facts, policy, policy.EffectiveFrom)
@@ -330,7 +333,11 @@ func (s *ActivationService) SimulatePolicy(ctx context.Context, policyID string)
 		}
 		cursor = page.NextCursor
 	}
-	return s.repo.StoreActivationSimulation(ctx, scope, result)
+	stored, err := s.repo.StoreActivationSimulation(ctx, scope, result)
+	if err != nil {
+		return ActivationSimulation{}, fmt.Errorf("%w: %v", ErrActivationSimulationStore, err)
+	}
+	return stored, nil
 }
 
 func (s *ActivationService) ActivateRelationship(ctx context.Context, relationshipID string, input ActivateRelationshipInput) (ActivationResult, error) {

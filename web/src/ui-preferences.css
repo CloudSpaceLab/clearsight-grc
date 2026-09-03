@@ -30,6 +30,7 @@
   --cs-status-warning: var(--cs-primitive-color-amber-400);
   --cs-status-success: var(--cs-primitive-color-green-400);
   --cs-status-error: var(--cs-primitive-color-coral-400);
+  --cs-status-unknown: var(--cs-primitive-color-neutral-400);
   --cs-focus-ring: var(--cs-primitive-color-cyan-300);
   --cs-document-canvas: color-mix(in srgb, var(--cs-bg-canvas) 82%, var(--cs-bg-surface-1));
   --cs-document-surface: color-mix(in srgb, var(--cs-bg-surface-1) 76%, var(--cs-bg-surface-2));
@@ -79,6 +80,7 @@
   --cs-status-warning: var(--cs-primitive-color-amber-800);
   --cs-status-success: var(--cs-primitive-color-green-700);
   --cs-status-error: var(--cs-primitive-color-coral-700);
+  --cs-status-unknown: var(--cs-primitive-color-neutral-700);
   --cs-focus-ring: var(--cs-primitive-color-cyan-800);
   --cs-document-canvas: color-mix(in srgb, var(--cs-bg-surface-3) 72%, var(--cs-bg-surface-2));
   --cs-document-surface: var(--cs-primitive-color-white);
@@ -311,8 +313,7 @@ dd {
 .status-closed strong,
 .source-freshness .health-current,
 .policy-row mark,
-.task-row mark,
-.automation-policy-state .policy-active {
+.task-row mark {
   background: var(--green-soft);
 }
 
@@ -324,9 +325,7 @@ dd {
 .status-response-preparation strong,
 .status-verification strong,
 .source-freshness .health-stale,
-.source-freshness .health-degraded,
-.automation-policy-state .policy-suspended,
-.automation-policy-state .policy-expired {
+.source-freshness .health-degraded {
   background: var(--amber-soft);
 }
 

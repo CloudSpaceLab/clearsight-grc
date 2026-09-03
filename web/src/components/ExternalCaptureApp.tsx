@@ -94,7 +94,15 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
         );
         return;
       }
-      await activateWorkspace(sessionToken, payload);
+      const controller = syncRef.current;
+      if (controller && request?.id === payload.request.id && workspace?.workspace.id === payload.workspace.workspace.id) {
+        await controller.reload(payload.workspace);
+        setRequest(payload.request);
+        setWorkspace(controller.currentWorkspace());
+        setSyncSnapshot(controller.snapshot());
+      } else {
+        await activateWorkspace(sessionToken, payload);
+      }
       setAudienceHint(payload.session.audience_hint);
       setAssurance(payload.session.assurance);
       setState("live");
@@ -155,7 +163,7 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
 
   async function submit(answers: CaptureAnswers) {
     const controller = syncRef.current;
-    if (!workspace || !sessionToken || !controller) throw new Error("Response workspace is unavailable");
+    if (!request || !workspace || !sessionToken || !controller) throw new Error("Response workspace is unavailable");
     try {
       const currentSnapshot = controller.snapshot();
       controller.change(answers, currentSnapshot.presentationMode, currentSnapshot.page);
@@ -168,7 +176,8 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
       }
       const current = controller.currentWorkspace();
       const result = await submitFormResponseWorkspace(sessionToken, { expected_version: current.workspace.version });
-      if (result.workspace.status !== "COMPLETED" || !result.revision) {
+      if (result.workspace.id !== current.workspace.id || result.workspace.version <= current.workspace.version ||
+          !result.revision?.current || !result.submission?.submission_id || result.submission.request_id !== request.id) {
         throw new ApiError(503, "The final response could not be confirmed.", "submission_unconfirmed");
       }
       await controller.clearRecovery().catch(() => undefined);
@@ -246,7 +255,7 @@ export function ExternalCaptureApp({ invitationToken }: { invitationToken: strin
                 <div className="external-session-hint">Opened for {audienceHint || "invited respondent"}{assurance === "EMAIL_VERIFIED" ? " · Email verified" : ""}</div>
                 <WorkspaceConflictPanel fields={request.fields} conflicts={syncSnapshot?.conflicts ?? []} onResolve={(fieldID, choice) => void resolveWorkspaceConflict(fieldID, choice)}/>
                 <CaptureWorkspaceRecoveryProvider value={recoveryUI}>
-                  <CapturePanel key={`${request.id}:${workspace.workspace.id}:${panelGeneration}`} request={request} external workspacePersistence={persistence} onSubmit={(_, answers) => submit(answers)} onUploadArtifact={(_, file, fieldID) => upload(file, fieldID)}/>
+                  <CapturePanel key={`${request.id}:${workspace.workspace.id}:${panelGeneration}`} request={request} external workspacePersistence={persistence} onReload={() => void retrySession()} onSubmit={(_, answers) => submit(answers)} onUploadArtifact={(_, file, fieldID) => upload(file, fieldID)}/>
                 </CaptureWorkspaceRecoveryProvider>
               </section> : null}
   </main>;

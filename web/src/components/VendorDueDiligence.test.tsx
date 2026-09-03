@@ -181,21 +181,21 @@ describe("VendorDueDiligence", () => {
     expect(primaryActions()).toHaveLength(1);
   });
 
-  it("keeps request status primary and sends a replacement link as a focused secondary action", async () => {
+  it("keeps request status primary and sends another independently expiring link as a focused secondary action", async () => {
     const delivered = { assessment: { ...assessment("COLLECTING"), version: 4 }, request: { id: "request-1", status: "READY" }, state: "DELIVERED" as const };
     const onReissue = vi.fn().mockResolvedValue(delivered);
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("COLLECTING")} form={form} onOpenRequest={vi.fn()} onReissue={onReissue}/>);
 
     expect(screen.getByRole("button", { name: "Review request status" }).classList.contains("primary-button")).toBe(true);
-    expect(screen.getByRole("button", { name: "Send replacement link" }).classList.contains("secondary-button")).toBe(true);
+    expect(screen.getByRole("button", { name: "Send another link" }).classList.contains("secondary-button")).toBe(true);
     expect(primaryActions()).toHaveLength(1);
-    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
     fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
-    fireEvent.change(screen.getByLabelText("Replacement link valid for"), { target: { value: "10080" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.change(screen.getByLabelText("New link valid for"), { target: { value: "10080" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
 
     await waitFor(() => expect(onReissue).toHaveBeenCalledWith({ expected_version: 3, audience: "security@vendor.example", invitation_ttl_minutes: 10080 }));
-    expect(await screen.findByText("Replacement link sent. Previous access to this request has ended.")).toBeTruthy();
+    expect(await screen.findByText("Another link was sent. Earlier links remain available until their printed expiry unless you cancel the request.")).toBeTruthy();
     expect(screen.queryByText("security@vendor.example")).toBeNull();
     expect(screen.queryByDisplayValue("security@vendor.example")).toBeNull();
     expect(primaryActions()).toHaveLength(1);
@@ -205,11 +205,11 @@ describe("VendorDueDiligence", () => {
     const onReissue = vi.fn().mockRejectedValue(new Error("unavailable"));
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("COLLECTING")} form={form} onOpenRequest={vi.fn()} onReissue={onReissue}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
     fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
 
-    expect(await screen.findByText("The replacement link was not sent. Re-enter the vendor contact email before trying again.")).toBeTruthy();
+    expect(await screen.findByText("The new link was not sent. Re-enter the vendor contact email before trying again.")).toBeTruthy();
     expect(screen.queryByText("security@vendor.example")).toBeNull();
     expect(screen.queryByDisplayValue("security@vendor.example")).toBeNull();
   });
@@ -218,11 +218,11 @@ describe("VendorDueDiligence", () => {
     const onReissue = vi.fn();
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("COLLECTING")} form={form} onOpenRequest={vi.fn()} onReissue={onReissue}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
     fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "not-an-email" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
 
-    expect(await screen.findByText("Enter a valid vendor contact email before sending the replacement link.")).toBeTruthy();
+    expect(await screen.findByText("Enter a valid vendor contact email before sending another link.")).toBeTruthy();
     expect((screen.getByLabelText("Vendor contact email") as HTMLInputElement).value).toBe("");
     expect(onReissue).not.toHaveBeenCalled();
   });
@@ -237,11 +237,11 @@ describe("VendorDueDiligence", () => {
     };
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("COLLECTING")} form={form} onOpenRequest={vi.fn()} onReissue={vi.fn().mockResolvedValue(failed)}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
     fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
 
-    fireEvent.click(await screen.findByRole("button", { name: "Copy replacement link" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Copy new link" }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("https://capture.example.test/?capture_invite=replacement-secret"));
     expect(screen.queryByText(/replacement-secret/)).toBeNull();
     expect(primaryActions()).toHaveLength(1);

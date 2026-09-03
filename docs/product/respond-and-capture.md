@@ -159,9 +159,9 @@ Invitation tokens must be:
 - cryptographically random and opaque;
 - short-lived and revocable;
 - audience- and request-bound;
-- single-use for session exchange or explicitly bounded for safe resume;
+- explicitly bounded for safe resume: canonical form routes may mint fresh short-lived sessions until their recorded expiry, explicit revocation, recipient change, cancellation or request completion;
 - stored hashed or using equivalent one-way protection;
-- rotated when reissued;
+- direct magic links remain valid when another copy is issued; email-OTP routes are rotated when their verification route is replaced;
 - invalidated on request cancellation, supersession, recipient change, or security event.
 
 Tokens and sensitive request content must not appear in:
@@ -192,7 +192,7 @@ Step-up authentication is required before sensitive evidence, personal data, ext
 
 ### Unsafe invitation states
 
-A forwarded, wrong-recipient, expired, revoked, replayed, or already-consumed invitation must fail without revealing subject, customer, Program, Matter, or request details.
+A wrong-recipient, expired or revoked route, a replayed OTP challenge, or an invalidated session must fail without revealing subject, customer, Program, Matter, or request details. A still-valid canonical route may be opened again and must show the same recorded expiry rather than fail because of a hidden use count.
 
 The failure screen should offer a safe contact or “report wrong recipient” route using the invitation identifier only.
 
@@ -242,7 +242,7 @@ When the request supports a Program or an issue or change, the request must reta
 
 A vendor submission records receipt; it does not approve the response or complete the bank's work. The bank reviews the exact submitted answers and available documents, then accepts the response or requests specific changes through a new request in the same immutable sequence. Cancelling the work revokes active invitation and session access while retaining request and response history.
 
-Before an invitation capability is issued, the vendor-work service durably reserves its opaque invitation identifier against the exact work item and capture request. The invitation is attached to the work history before delivery. A retry revokes capabilities for the reserved request before replacing the reservation; tokens and recipient addresses are never stored in the vendor-work recovery record.
+Before a canonical access route is delivered, the vendor-work service durably reserves its opaque route identifier against the exact work item and capture request. The route is attached to the work history before delivery. Initial requests and requested changes are exact form distributions using direct email OTP. A retry, cancellation or recipient replacement revokes the request's active routes and sessions before issuing a replacement; selectors and recipient addresses are never stored in the vendor-work recovery record.
 
 ## 10. Customer capture
 

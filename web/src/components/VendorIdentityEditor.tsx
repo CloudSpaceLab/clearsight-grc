@@ -5,6 +5,7 @@ import { normalizeRegisteredAddress, normalizeWebsiteDomain, validateWebsiteDoma
 import type { VendorIdentityPresentation, VendorRelationshipAggregate } from "../vendorTypes";
 import { FileDropzone } from "./FileDropzone";
 import { VendorBrandIcon, vendorBrandLabel } from "./VendorBrandIcon";
+import { Notice } from "./ui";
 
 const allowedLogoTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/x-icon", "image/vnd.microsoft.icon"]);
 const maxLogoBytes = 512 * 1024;
@@ -228,7 +229,7 @@ export function VendorIdentityEditor({ record, onCancel, onIdentitySaved, onBran
 
   return <form className="vendor-form vendor-identity-form" onSubmit={saveIdentity} noValidate aria-busy={mutating || undefined}>
     <div className="vendor-identity-form-heading"><div><span className="eyebrow">Shared vendor identity</span><h2>Edit vendor details</h2><p>Update the organization details used across this vendor&apos;s relationships.</p></div><div className="vendor-identity-heading-actions"><VendorBrandIcon vendorID={presentation.vendor.id} legalName={presentation.vendor.legal_name} brand={presentation.brand} size="detail"/><button type="button" className="secondary-button" onClick={onCancel} disabled={mutating}>Return to relationship</button></div></div>
-    {notice && <p className="vendor-notice" role="status">{notice}</p>}
+    {notice && <Notice tone="success">{notice}</Notice>}
     {formError && <div className="vendor-form-error" role="alert">{formError}</div>}
     {conflict && <div className="vendor-conflict-recovery"><button type="button" className="secondary-button" disabled={mutating} onClick={() => void reloadCurrentVendor()}>{reloading ? "Reloading…" : "Reload current vendor"}</button></div>}
     <div className="vendor-form-grid">

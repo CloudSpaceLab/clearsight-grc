@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { OrganizationPosition } from "../../identityAccessApi";
+import { StatusBadge } from "../ui";
 
 type Props = {
   positions: OrganizationPosition[];
@@ -99,9 +100,9 @@ function ReportingList({ positions, positionByID }: { positions: OrganizationPos
           <p><strong>{subject}</strong> {position.parent_position_id ? `reports to ${manager}` : "is recorded as a top-level position"}</p>
           <span>{position.title} · {departmentLabel(position)}</span>
         </div>
-        <span className={`identity-line-state ${position.occupant_name && (!position.parent_position_id || parent) ? "complete" : "attention"}`}>
+        <StatusBadge tone={position.occupant_name && (!position.parent_position_id || parent) ? "success" : "warning"}>
           {!position.occupant_name ? "Vacant" : position.parent_position_id && !parent ? "Parent outside view" : "Active"}
-        </span>
+        </StatusBadge>
       </li>;
     })}
   </ol>;

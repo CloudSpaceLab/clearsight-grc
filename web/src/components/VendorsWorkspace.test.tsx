@@ -530,14 +530,14 @@ describe("VendorsWorkspace", () => {
     const onOpenRequest = vi.fn();
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1" onOpenRequest={onOpenRequest}/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Send replacement link" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Send another link" }));
     fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send replacement link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
 
     await waitFor(() => expect(reissueVendorAssessmentRequest).toHaveBeenCalledWith("assessment-1", {
       expected_version: 3, audience: "security@vendor.example", invitation_ttl_minutes: 1440,
     }));
-    expect(await screen.findByText("Replacement link sent. Previous access to this request has ended.")).toBeTruthy();
+    expect(await screen.findByText("Another link was sent. Earlier links remain available until their printed expiry unless you cancel the request.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review request status" }));
     expect(onOpenRequest).toHaveBeenCalledWith("request-1");
   });

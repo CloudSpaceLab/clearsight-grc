@@ -42,6 +42,14 @@ func AllowedMatterTargets(from MatterStatus) []MatterStatus {
 	return result
 }
 
+// GovernedMatterTransition identifies lifecycle changes that require an
+// authorizer rather than the accountable owner. It is shared by current-work
+// projection and command discovery so Today cannot advertise a transition
+// under weaker authority than the command boundary enforces.
+func GovernedMatterTransition(from, target MatterStatus) bool {
+	return target == MatterDecisionRequired || target == MatterClosed || target == MatterCancelled || from == MatterClosed
+}
+
 func assessClosure(aggregate MatterAggregate) ClosureAssessment {
 	return assessClosureAt(aggregate, time.Now().UTC())
 }

@@ -6,6 +6,7 @@ import { createFormTemplate } from "../monitoringApi";
 import type { CreateFormTemplateInput, FormFieldType, FormScoringMode, FormTemplate } from "../monitoringTypes";
 import type { CaptureFieldConstraints, CaptureFormContract } from "../types";
 import { FocusedSheet } from "./FocusedSheet";
+import { Notice } from "./ui";
 import { FormPreview } from "./forms/FormPreview";
 import { FormApprovalSheet } from "./forms/builder/FormApprovalSheet";
 import { FormBuilderResponsiveNav } from "./forms/builder/FormBuilderResponsiveNav";
@@ -506,7 +507,7 @@ export function FormBuilder({
       {renderInspectorPane()}
     </div>
 
-    {error && <p className="inline-form-error form-builder-error" role="alert">{error}</p>}
+    {error && <Notice tone="error">{error}</Notice>}
 
     {previewOpen && <FocusedSheet label="Form preview" closeLabel="Close form preview" panelClassName="form-preview-sheet" onClose={() => setPreviewOpen(false)}>
       <div className="form-preview-sheet-content"><FormPreview contract={previewContract}/></div>

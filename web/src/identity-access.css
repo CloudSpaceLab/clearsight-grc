@@ -87,9 +87,6 @@
 .identity-reporting-marker { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line-strong, #cfd5dd); border-radius: 10px; background: var(--surface-2, #f5f7f9); color: var(--text, #182230); font-size: .67rem; font-weight: 750; }
 .identity-reporting-list p { margin: 0; color: var(--text, #182230); font-size: .84rem; }
 .identity-reporting-list li > div:nth-child(2) > span { display: block; margin-top: 4px; color: var(--muted, #667085); font-size: .74rem; }
-.identity-line-state { padding: 5px 8px; border-radius: 999px; font-size: .7rem; font-weight: 650; white-space: nowrap; }
-.identity-line-state.complete { background: color-mix(in srgb, var(--success, #178553) 12%, var(--surface, #fff)); color: var(--success, #178553); }
-.identity-line-state.attention { background: color-mix(in srgb, var(--warning, #d78916) 14%, var(--surface, #fff)); color: var(--warning-text, #945d0e); }
 .identity-authority-note { display: flex; gap: 8px 16px; align-items: baseline; padding: 11px 13px; border-left: 3px solid var(--line-strong, #cfd5dd); border-radius: 0 9px 9px 0; background: var(--surface-2, #f5f7f9); }
 .identity-authority-note strong { color: var(--text, #182230); font-size: .78rem; }
 .identity-authority-note span { color: var(--muted, #667085); font-size: .75rem; }
@@ -119,6 +116,6 @@
   .identity-position-table td::before { grid-row: 1 / span 2; content: attr(data-label); color: var(--muted, #667085); font-size: .69rem; font-weight: 700; text-transform: uppercase; }
   .identity-role-chips { grid-column: 2; }
   .identity-reporting-list li { grid-template-columns: 36px minmax(0, 1fr); }
-  .identity-line-state { grid-column: 2; justify-self: start; }
+  .identity-reporting-list .cs-status-badge { grid-column: 2; justify-self: start; }
   .identity-authority-note { display: grid; }
 }

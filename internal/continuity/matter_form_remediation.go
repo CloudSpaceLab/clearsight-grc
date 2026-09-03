@@ -60,6 +60,9 @@ type MatterFormRemediationBinding struct {
 }
 
 type CreateMatterFormBindingInput struct {
+	// TenantID is part of the shared command transport envelope. Material scope is
+	// always derived from the verified request identity.
+	TenantID               string                   `json:"tenant_id,omitempty"`
 	LegalEntityID          string                   `json:"legal_entity_id,omitempty"`
 	ExpectedMatterVersion  int64                    `json:"expected_matter_version"`
 	ProgramID              string                   `json:"program_id"`
@@ -73,6 +76,7 @@ type CreateMatterFormBindingInput struct {
 }
 
 type SendMatterFormInput struct {
+	TenantID       string                              `json:"tenant_id,omitempty"`
 	BindingVersion int64                               `json:"binding_version"`
 	Recipient      evidence.DistributionRecipientInput `json:"recipient"`
 	Deadline       time.Time                           `json:"deadline"`
@@ -104,6 +108,7 @@ type matterFormResponseAppliedEvent struct {
 }
 
 type ApplyMatterFormResponseInput struct {
+	TenantID              string `json:"tenant_id,omitempty"`
 	BindingVersion        int64  `json:"binding_version"`
 	ExpectedMatterVersion int64  `json:"expected_matter_version"`
 	ResponseRevisionID    string `json:"response_revision_id"`

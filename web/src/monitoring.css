@@ -69,7 +69,6 @@
 .compact-control { min-height: 44px; display: flex; gap: 7px; align-items: center; color: var(--muted); font-size: 12px; }
 .compact-control input { width: 18px; height: 18px; accent-color: var(--cyan); }
 .danger-text { color: var(--coral); }
-.inline-form-error { padding: 11px 13px; color: #ffd8de; background: rgba(241,122,141,.1); border: 1px solid rgba(241,122,141,.35); border-radius: 10px; font-size: 12px; }
 .monitoring-records { display: grid; gap: 10px; margin-top: 16px; }
 .monitoring-record { padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .monitoring-record p { margin: 4px 0 0; font-size: 12px; }
@@ -87,14 +86,6 @@
 .monitoring-result-detail li { color: var(--muted); font-size: 12px; }
 .monitoring-result-detail li strong, .monitoring-result-detail li span { display: block; }
 .monitoring-result-detail li strong { color: var(--text); }
-.risk-band { justify-self: start; padding: 3px 7px; border-radius: 999px; border: 1px solid var(--border); }
-.risk-band-critical, .risk-band-high { color: #ffd8de !important; border-color: rgba(241,122,141,.35); background: rgba(241,122,141,.1); }
-.risk-band-moderate { color: #ffe5b2 !important; border-color: rgba(231,182,92,.35); background: rgba(231,182,92,.1); }
-.risk-band-low { color: var(--cs-status-success) !important; border-color: color-mix(in srgb, var(--cs-status-success) 40%, var(--cs-border-default)); background: color-mix(in srgb, var(--cs-status-success) 10%, var(--cs-bg-surface-1)); }
-:root[data-theme="light"] .risk-band-critical,
-:root[data-theme="light"] .risk-band-high { color: #8d2437 !important; border-color: #d9a8b1; background: #f8e7ea; }
-:root[data-theme="light"] .risk-band-moderate { color: #6c4700 !important; border-color: #d5bd8b; background: #f8efd9; }
-:root[data-theme="light"] .risk-band-low { color: #0d603e !important; border-color: #9bc9b4; background: #e4f3ec; }
 .collection-schedule { grid-column: 1 / -1; padding-top: 14px; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 12px; align-items: end; }
 .collection-schedule p { grid-column: 1 / -1; }
 .monitoring-empty { margin: 0; padding: 12px 0 2px; }

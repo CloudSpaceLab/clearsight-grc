@@ -151,7 +151,7 @@
     "/api/v1/third-party-activation-policies/current": { "get": { "operationId": "getCurrentThirdPartyActivationPolicy", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },
     "/api/v1/third-party-activation-policies/{id}/simulate": { "post": { "operationId": "simulateThirdPartyActivationPolicy", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" } },
     "/api/v1/third-party-activation-policies/{id}/submit": { "post": { "operationId": "submitThirdPartyActivationPolicy", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" } },
-    "/api/v1/third-party-activation-policies/{id}/approve": { "post": { "operationId": "approveThirdPartyActivationPolicy", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" } },
+    "/api/v1/third-party-activation-policies/{id}/approve": { "post": { "operationId": "approveThirdPartyActivationPolicy", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "" } },
     "/api/v1/third-party-activation-policies/{id}/rollback": { "post": { "operationId": "rollbackThirdPartyActivationPolicy", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" } },
 
     "/api/v1/form-templates": {

@@ -7,9 +7,9 @@ type OperationalCoverageEntry = {
 
 export const matterOperationalCoverage = {
   "matter.create": { surface: "MattersWorkspace", states: ["list", "empty", "create"], testedBy: ["MatterSetupWorkspace.test.tsx"] },
-  "matter.form-remediation.create": { surface: "MatterFormRemediationPanel", states: ["unbound", "approved_form_selected", "mapped"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
-  "matter.form-remediation.send": { surface: "MatterFormRemediationPanel", states: ["ready_to_send", "sent", "existing_request"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
-  "matter.form-remediation.apply": { surface: "MatterFormRemediationPanel", states: ["response_ready", "poor_score", "applied_for_outcome_check"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
+  "matter.form-remediation.create": { surface: "MatterFormRemediationPanel", states: ["unbound", "approved_form_selected", "mapped"], testedBy: ["MatterFormRemediationPanel.test.tsx"] },
+  "matter.form-remediation.send": { surface: "MatterFormRemediationPanel", states: ["ready_to_send", "sent", "existing_request"], testedBy: ["MatterFormRemediationPanel.test.tsx"] },
+  "matter.form-remediation.apply": { surface: "MatterFormRemediationPanel", states: ["response_ready", "poor_score", "applied_for_outcome_check"], testedBy: ["MatterFormRemediationPanel.test.tsx"] },
   "matter.details.update": { surface: "MatterDetailsPanel", states: ["open", "conflict", "read_only"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
   "matter.context.change": { surface: "MatterInformationPanel", states: ["facts", "missing", "contradiction", "read_only"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
   "matter.assign": { surface: "MatterDetailsPanel", states: ["assigned", "candidate_selection"], testedBy: ["MatterRecordWorkspace.test.tsx"] },

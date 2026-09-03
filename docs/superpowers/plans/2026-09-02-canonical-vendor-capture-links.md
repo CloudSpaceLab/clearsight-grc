@@ -25,25 +25,27 @@
 
 ### Task 3: Replace assessment invitation issuance
 
-- [x] Introduce a canonical external-dispatch service that prepares a distribution, issues/rotates its direct access route, opens the distribution, and returns only the one-time selector needed for delivery.
+- [x] Introduce a canonical external-dispatch service that prepares a distribution, issues/rotates its direct access route, opens the distribution, and returns only the opaque selector needed for delivery.
 - [x] Update initial assessment send, clarification, and reissue to use the canonical dispatch result.
 - [x] Change assessment request-link proof from `capture_invitations` to the route/recipient/request chain and update the schema foreign key.
 - [x] Revoke the canonical route/distribution when finalization fails; do not add a compatibility endpoint.
 
 ### Task 4: Replace vendor-work invitation issuance
 
-- [ ] Create vendor-work capture requests as canonical distributions for initial collection and requested changes.
-- [ ] Reserve/finalize canonical route IDs, update route proof constraints, and rotate/revoke routes on retry, cancellation, or recipient change.
+- [x] Create vendor-work capture requests as canonical distributions for initial collection and requested changes.
+- [x] Reserve/finalize canonical route IDs, update route proof constraints, and rotate/revoke routes on retry, cancellation, or recipient change.
 - [ ] Prove address-verification and certification-refresh email selectors redeem through the same public capture endpoints.
 
 ### Task 5: Remove the obsolete journey path
 
-- [ ] Delete assessment/vendor-work tests and interfaces that require `IssueInvitation`/`RedeemInvitation` for these journeys. Assessment complete; vendor work remains.
-- [ ] Add a regression scan that prevents these packages from calling the retired invitation issuer.
-- [ ] Keep unrelated internal capture migration work out of this change unless required by a failing canonical test.
+- [x] Delete assessment/vendor-work tests and interfaces that require `IssueInvitation`/`RedeemInvitation` for these journeys.
+- [x] Add a regression scan that prevents these packages from calling the retired invitation issuer.
+- [x] Keep unrelated internal capture migration work out of this change unless required by a failing canonical test.
 
 ### Task 6: Verify, merge, deploy, and reissue
 
+- [x] Remove hidden route redemption counters so canonical selectors remain usable until their recorded expiry or explicit invalidation.
+- [x] Accept only the submitting session's contiguous autosaves and expose reload/rebase for genuine workspace conflicts.
 - [ ] Run focused Go tests, PostgreSQL integration tests, the full backend suite, web capture tests/typecheck/build, schema tests, copy-quality checks, and `git diff --check`.
 - [ ] Review the exact diff for selectors, recipients, credentials, or full secure URLs; none may be committed or logged.
 - [ ] Open and merge the PR, deploy the exact merge SHA, and confirm public readiness reports the same revision.
