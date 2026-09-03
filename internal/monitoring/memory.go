@@ -9,14 +9,15 @@ import (
 )
 
 type MemoryRepository struct {
-	mu      sync.RWMutex
-	forms   map[string]FormTemplate
-	checks  map[string]MonitoringCheck
-	results map[string]MonitoringResult
+	mu               sync.RWMutex
+	forms            map[string]FormTemplate
+	checks           map[string]MonitoringCheck
+	results          map[string]MonitoringResult
+	collectionCycles map[string]CollectionCycle
 }
 
 func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{forms: map[string]FormTemplate{}, checks: map[string]MonitoringCheck{}, results: map[string]MonitoringResult{}}
+	return &MemoryRepository{forms: map[string]FormTemplate{}, checks: map[string]MonitoringCheck{}, results: map[string]MonitoringResult{}, collectionCycles: map[string]CollectionCycle{}}
 }
 
 func (r *MemoryRepository) CreateFormRevision(_ context.Context, value FormTemplate) (FormTemplate, error) {
