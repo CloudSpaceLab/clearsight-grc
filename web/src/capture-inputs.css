@@ -113,6 +113,10 @@
   color: var(--warning-text, #8a4b0f);
 }
 
+.source-origin.previous-response {
+  color: var(--muted, #52606d);
+}
+
 .source-origin-review {
   display: block;
   margin-top: 0.25rem;

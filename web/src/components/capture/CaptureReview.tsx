@@ -2,7 +2,7 @@ import type { ApiErrorKind } from "../../http";
 import type { CaptureAnswerValue, CaptureAnswers, CaptureField, CaptureRequest } from "../../types";
 import type { CaptureAttachment } from "./CaptureFieldControl";
 import { answerText, normalizeFieldType } from "./contract";
-import { reviewSourceLabel } from "./sourceProvenance";
+import { reviewProvenanceLabel } from "./sourceProvenance";
 
 type Props = { request: CaptureRequest; fields: CaptureField[]; answers: CaptureAnswers; attachments: Record<string, CaptureAttachment[]>; external?: boolean; submitting: boolean; error: string | null; errorKind: ApiErrorKind | null; onEdit: () => void; onReload?: () => void; onSubmit: () => void };
 
@@ -10,7 +10,7 @@ export function CaptureReview({ request, fields, answers, attachments, external 
   const groups = groupReviewFields(fields, answers);
   return <div className="panel-content response-review">
     <span className="eyebrow">Review response</span><h2>Check your response</h2><p>{request.title}</p>
-    <div className="capture-review-groups">{groups.map((group) => <section key={group.label} aria-labelledby={`capture-review-${group.key}`}><h3 id={`capture-review-${group.key}`}>{group.label}</h3><dl className="capture-review-list">{group.fields.map((field) => { const sourceLabel = reviewSourceLabel(field, answerText(answers[field.id])); return <div key={field.id}><dt>{field.label}</dt><dd>{reviewValue(field, answers[field.id], attachments[field.id])}{sourceLabel && <small className="source-origin-review">{sourceLabel}</small>}</dd></div>; })}</dl></section>)}</div>
+    <div className="capture-review-groups">{groups.map((group) => <section key={group.label} aria-labelledby={`capture-review-${group.key}`}><h3 id={`capture-review-${group.key}`}>{group.label}</h3><dl className="capture-review-list">{group.fields.map((field) => { const sourceLabel = reviewProvenanceLabel(request, field, answerText(answers[field.id])); return <div key={field.id}><dt>{field.label}</dt><dd>{reviewValue(field, answers[field.id], attachments[field.id])}{sourceLabel && <small className="source-origin-review">{sourceLabel}</small>}</dd></div>; })}</dl></section>)}</div>
     <details className="capture-context"><summary>Request details</summary><p>{request.purpose}</p><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl><p>Due {new Date(request.deadline).toLocaleString()} · {humanize(request.sensitivity)}</p></details>
     {error && <p className="error-text" role="alert">{error}</p>}
     <div className="wizard-actions"><button className="secondary-button" type="button" onClick={onEdit} disabled={submitting}>Edit response</button>{errorKind === "conflict" && onReload && <button className="secondary-button" type="button" onClick={onReload} disabled={submitting}>Reload request</button>}<button className="primary-button" type="button" onClick={onSubmit} disabled={submitting}>{submitting ? "Submitting…" : external ? "Submit evidence" : "Submit response"}</button></div>
