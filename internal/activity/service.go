@@ -126,15 +126,15 @@ func categoryFor(objectType string) string {
 	switch {
 	case strings.HasPrefix(objectType, "THIRD_PARTY"), strings.HasPrefix(objectType, "VENDOR"):
 		return CategoryVendor
-	case strings.HasPrefix(objectType, "FORM"), strings.HasPrefix(objectType, "CAPTURE"), strings.HasPrefix(objectType, "EVIDENCE"):
+	case strings.HasPrefix(objectType, "FORM"), strings.HasPrefix(objectType, "CAPTURE"), strings.HasPrefix(objectType, "EVIDENCE"), strings.HasPrefix(objectType, "DOCUMENT_"):
 		return CategoryFormsEvidence
 	case strings.HasPrefix(objectType, "AI"):
 		return CategoryAI
-	case strings.Contains(objectType, "POLICY"), objectType == "DELEGATION", strings.HasPrefix(objectType, "SOURCE_"):
+	case strings.Contains(objectType, "POLICY"), objectType == "DELEGATION", strings.HasPrefix(objectType, "SOURCE_"), strings.HasPrefix(objectType, "SCIM_"), strings.HasPrefix(objectType, "DIRECTORY_"):
 		return CategoryConfiguration
 	case objectType == "PROGRAM", objectType == "MATTER", strings.HasPrefix(objectType, "WORKFLOW"), strings.HasPrefix(objectType, "DECISION"), strings.HasPrefix(objectType, "ACTION"):
 		return CategoryGRCWork
-	case strings.HasPrefix(objectType, "PROJECTION"), strings.HasPrefix(objectType, "BACKGROUND_JOB"), strings.HasPrefix(objectType, "RUNTIME"):
+	case strings.HasPrefix(objectType, "PROJECTION"), strings.HasPrefix(objectType, "BACKGROUND_JOB"), strings.HasPrefix(objectType, "RUNTIME"), objectType == "AUDIT_EXPORT":
 		return CategorySystem
 	default:
 		return CategoryOther
