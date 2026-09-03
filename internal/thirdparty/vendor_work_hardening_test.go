@@ -248,6 +248,19 @@ type failingVendorWorkChangesRepository struct {
 	failure error
 }
 
+type failOnceVendorWorkChangesRepository struct {
+	*MemoryVendorWorkRepository
+	failures int
+}
+
+func (r *failOnceVendorWorkChangesRepository) RecordVendorWorkChanges(ctx context.Context, scope Scope, id string, expected int64, link VendorWorkCaptureLink, actor, message string, dueAt, now time.Time) (VendorWorkRequest, error) {
+	if r.failures > 0 {
+		r.failures--
+		return VendorWorkRequest{}, errors.New("vendor-work update unavailable")
+	}
+	return r.MemoryVendorWorkRepository.RecordVendorWorkChanges(ctx, scope, id, expected, link, actor, message, dueAt, now)
+}
+
 type ambiguousVendorWorkChangesRepository struct{ *MemoryVendorWorkRepository }
 
 type postCommitVendorWorkEvidenceFailure struct {
@@ -347,6 +360,56 @@ func TestRequestVendorWorkChangesRevokesPreviousRequestBeforeReplacement(t *test
 	}
 	if outcome.Work.CurrentRequestID == prepared.CurrentRequestID || outcome.Work.CurrentInvitationID == "" {
 		t.Fatalf("replacement clarification = %#v", outcome)
+	}
+}
+
+func TestRequestVendorWorkChangesPersistsRoutePreparationFailureForReloadAndRetry(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	_, reviewing := vendorWorkUnderReview(t, fixture)
+	fixture.service.dispatch = &vendorWorkDispatcherFailure{vendorWorkDispatcher: fixture.dispatcher, resumeFailures: 1}
+
+	outcome, err := fixture.service.RequestChanges(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}, reviewing.ID, RequestVendorWorkChangesInput{
+		ExpectedVersion: reviewing.Version, Message: "Confirm the updated service owner.", FieldIDs: []string{"service_current"},
+		VendorAudience: fixture.audience, DueAt: fixture.now.Add(5 * 24 * time.Hour), InvitationTTLMinutes: 60,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, readErr := fixture.repository.GetVendorWork(context.Background(), scopeFrom(fixture.actor), reviewing.ID)
+	if readErr != nil || outcome.Work.DeliveryState != VendorWorkDeliveryRetryRequired || stored.DeliveryState != VendorWorkDeliveryRetryRequired || stored.Recovery == "" {
+		t.Fatalf("persisted route recovery outcome=%#v stored=%#v err=%v", outcome, stored, readErr)
+	}
+	retried, retryErr := fixture.service.Retry(context.Background(), fixture.actor, stored.ID, RetryVendorWorkInput{
+		ExpectedVersion: stored.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60,
+	})
+	if retryErr != nil || retried.Work.CurrentInvitationID == "" || retried.Work.DeliveryState == VendorWorkDeliveryRetryRequired {
+		t.Fatalf("retry route preparation = %#v err=%v", retried, retryErr)
+	}
+}
+
+func TestRequestVendorWorkChangesRejectsMismatchedRecoveredCaptureRequest(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	prepared, reviewing := vendorWorkUnderReview(t, fixture)
+	fixture.service.repo = &failOnceVendorWorkChangesRepository{MemoryVendorWorkRepository: fixture.repository, failures: 1}
+	reviewer := Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}
+
+	_, firstErr := fixture.service.RequestChanges(context.Background(), reviewer, reviewing.ID, RequestVendorWorkChangesInput{
+		ExpectedVersion: reviewing.Version, Message: "Confirm the updated service owner.", FieldIDs: []string{"service_current"},
+		VendorAudience: fixture.audience, DueAt: fixture.now.Add(5 * 24 * time.Hour), InvitationTTLMinutes: 60,
+	})
+	if firstErr == nil {
+		t.Fatal("interrupted clarification unexpectedly succeeded")
+	}
+	_, secondErr := fixture.service.RequestChanges(context.Background(), reviewer, reviewing.ID, RequestVendorWorkChangesInput{
+		ExpectedVersion: reviewing.Version, Message: "Send a different clarification.", FieldIDs: []string{"service_current"},
+		VendorAudience: "different@vendor.example", DueAt: fixture.now.Add(6 * 24 * time.Hour), InvitationTTLMinutes: 60,
+	})
+	if !errors.Is(secondErr, ErrInvalid) {
+		t.Fatalf("mismatched recovered clarification error = %v, want invalid", secondErr)
+	}
+	stored, readErr := fixture.repository.GetVendorWork(context.Background(), scopeFrom(fixture.actor), reviewing.ID)
+	if readErr != nil || stored.State != VendorWorkUnderReview || stored.CurrentRequestID != prepared.CurrentRequestID || stored.Version != reviewing.Version {
+		t.Fatalf("mismatched recovery changed work = %#v err=%v", stored, readErr)
 	}
 }
 

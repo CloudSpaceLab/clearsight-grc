@@ -532,6 +532,7 @@ func TestPrepareVendorWorkReturnsRecoverableStateAndResumesCapture(t *testing.T)
 type vendorWorkDispatcherFailure struct {
 	vendorWorkDispatcher
 	dispatchFailures int
+	resumeFailures   int
 }
 
 func (f *vendorWorkDispatcherFailure) Dispatch(ctx context.Context, input evidence.WorkflowDistributionDispatchInput) (evidence.WorkflowDistributionDispatch, error) {
@@ -540,6 +541,14 @@ func (f *vendorWorkDispatcherFailure) Dispatch(ctx context.Context, input eviden
 		return evidence.WorkflowDistributionDispatch{}, errors.New("capture store unavailable")
 	}
 	return f.vendorWorkDispatcher.Dispatch(ctx, input)
+}
+
+func (f *vendorWorkDispatcherFailure) Resume(ctx context.Context, tenantID, legalEntityID, requestID, actorID string, expiresAt time.Time) (evidence.WorkflowDistributionDispatch, error) {
+	if f.resumeFailures > 0 {
+		f.resumeFailures--
+		return evidence.WorkflowDistributionDispatch{}, errors.New("capture route unavailable")
+	}
+	return f.vendorWorkDispatcher.Resume(ctx, tenantID, legalEntityID, requestID, actorID, expiresAt)
 }
 
 func vendorWorkCaptureToken(t *testing.T, raw string) string {

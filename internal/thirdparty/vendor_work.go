@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 
@@ -481,38 +482,43 @@ func (s *VendorWorkService) createCapture(ctx context.Context, actor Actor, work
 
 func (s *VendorWorkService) ensureCaptureRequest(ctx context.Context, actor Actor, work VendorWorkRequest, form monitoring.FormTemplate, audience, instructions string, dueAt time.Time, sequence int) (evidence.Request, error) {
 	origin := evidence.RequestOrigin{Type: VendorWorkOrigin, ID: work.ID, Version: int64(sequence)}
+	fields := make([]evidence.Field, len(form.Fields))
+	for index, field := range form.Fields {
+		fields[index] = evidence.Field{
+			ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: string(field.Type), Required: field.Required,
+			Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...),
+			Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring,
+			CollectionIntent: field.CollectionIntent, RecordTarget: field.RecordTarget, BrowserCachePolicy: field.BrowserCachePolicy,
+		}
+	}
+	presentation := form.Presentation
+	if work.Presentation != formcontract.PresentationAutomatic {
+		presentation.DefaultMode = work.Presentation
+	}
+	knownFacts := map[string]string{}
+	if s.relationships != nil {
+		relationship, relationshipErr := s.relationships.GetRelationship(ctx, Scope{TenantID: work.TenantID, LegalEntityID: work.LegalEntityID}, work.RelationshipID)
+		if relationshipErr != nil {
+			return evidence.Request{}, relationshipErr
+		}
+		if name := strings.TrimSpace(relationship.Vendor.LegalName); name != "" {
+			knownFacts["Vendor"] = name
+		}
+		if serviceName := strings.TrimSpace(relationship.Relationship.ServiceName); serviceName != "" {
+			knownFacts["Service"] = serviceName
+		}
+	}
+	requestInput := evidence.CreateRequestInput{
+		TenantID: work.TenantID, LegalEntityID: work.LegalEntityID, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: work.RelationshipID,
+		Title: form.Name, Purpose: work.Purpose, WhyYou: instructions, Sensitivity: form.Sensitivity, AudienceType: "VENDOR",
+		Recipient: evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience}, EstimatedMinutes: estimateAssessmentMinutes(len(fields)), Deadline: dueAt,
+		KnownFacts: knownFacts, Presentation: presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile, Sections: form.Sections, Fields: fields,
+		FormTemplateID: form.ID, FormTemplateVersion: form.Version, Origin: origin, CreatedBy: actor.PrincipalID,
+	}
 	request, err := s.evidence.GetRequestByOrigin(ctx, work.TenantID, origin)
 	if errors.Is(err, evidence.ErrNotFound) {
 		if s.dispatch == nil {
 			return evidence.Request{}, evidence.ErrDistributionAccessUnavailable
-		}
-		fields := make([]evidence.Field, len(form.Fields))
-		for index, field := range form.Fields {
-			fields[index] = evidence.Field{ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: string(field.Type), Required: field.Required, Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...), Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring}
-		}
-		presentation := form.Presentation
-		if work.Presentation != formcontract.PresentationAutomatic {
-			presentation.DefaultMode = work.Presentation
-		}
-		knownFacts := map[string]string{}
-		if s.relationships != nil {
-			relationship, relationshipErr := s.relationships.GetRelationship(ctx, Scope{TenantID: work.TenantID, LegalEntityID: work.LegalEntityID}, work.RelationshipID)
-			if relationshipErr != nil {
-				return evidence.Request{}, relationshipErr
-			}
-			if name := strings.TrimSpace(relationship.Vendor.LegalName); name != "" {
-				knownFacts["Vendor"] = name
-			}
-			if serviceName := strings.TrimSpace(relationship.Relationship.ServiceName); serviceName != "" {
-				knownFacts["Service"] = serviceName
-			}
-		}
-		requestInput := evidence.CreateRequestInput{
-			TenantID: work.TenantID, LegalEntityID: work.LegalEntityID, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: work.RelationshipID,
-			Title: form.Name, Purpose: work.Purpose, WhyYou: instructions, Sensitivity: form.Sensitivity, AudienceType: "VENDOR",
-			Recipient: evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: audience}, EstimatedMinutes: estimateAssessmentMinutes(len(fields)), Deadline: dueAt,
-			KnownFacts: knownFacts, Presentation: presentation, Sections: form.Sections, Fields: fields,
-			FormTemplateID: form.ID, FormTemplateVersion: form.Version, Origin: origin, CreatedBy: actor.PrincipalID,
 		}
 		dispatched, dispatchErr := s.dispatch.Dispatch(evidence.WithRequestOriginAuthority(ctx, VendorWorkOrigin), evidence.WorkflowDistributionDispatchInput{
 			Request: requestInput, AccessPolicy: evidence.AccessDirectEmailOTP, RouteExpiresAt: dueAt,
@@ -522,7 +528,37 @@ func (s *VendorWorkService) ensureCaptureRequest(ctx context.Context, actor Acto
 	if err != nil {
 		return evidence.Request{}, err
 	}
+	if !sameVendorWorkCaptureRequest(request, requestInput) {
+		return evidence.Request{}, ErrInvalid
+	}
 	return request, nil
+}
+
+func sameVendorWorkCaptureRequest(request evidence.Request, input evidence.CreateRequestInput) bool {
+	return request.TenantID == input.TenantID && request.LegalEntityID == input.LegalEntityID &&
+		request.SubjectType == input.SubjectType && request.SubjectID == input.SubjectID && request.Title == input.Title &&
+		request.Purpose == input.Purpose && request.WhyYou == input.WhyYou && request.Sensitivity == input.Sensitivity &&
+		request.AudienceType == input.AudienceType && request.EstimatedMinutes == input.EstimatedMinutes && request.Deadline.Equal(input.Deadline.UTC()) &&
+		request.FormTemplateID == input.FormTemplateID && request.FormTemplateVersion == input.FormTemplateVersion && request.Origin == input.Origin &&
+		evidence.ExternalAudienceMatches(request, input.Recipient.Audience) && reflect.DeepEqual(request.KnownFacts, input.KnownFacts) &&
+		reflect.DeepEqual(request.Presentation, input.Presentation) && request.ScoringMode == input.ScoringMode &&
+		reflect.DeepEqual(request.ScoreProfile, input.ScoreProfile) && reflect.DeepEqual(request.Sections, input.Sections) && sameVendorWorkCaptureFields(request.Fields, input.Fields)
+}
+
+func sameVendorWorkCaptureFields(actual, expected []evidence.Field) bool {
+	if len(actual) != len(expected) {
+		return false
+	}
+	for index := range actual {
+		actualField, expectedField := actual[index], expected[index]
+		actualField.RecordBaseline, expectedField.RecordBaseline = nil, nil
+		actualField.Bindings, expectedField.Bindings = nil, nil
+		actualField.SourceResolutions, expectedField.SourceResolutions = nil, nil
+		if !reflect.DeepEqual(actualField, expectedField) {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *VendorWorkService) Send(ctx context.Context, actor Actor, workID string, input SendVendorWorkInput) (VendorWorkSendOutcome, error) {
@@ -581,8 +617,7 @@ func (s *VendorWorkService) sendCurrent(ctx context.Context, actor Actor, work V
 	dispatched, err := s.dispatch.Resume(ctx, work.TenantID, work.LegalEntityID, request.ID, actor.PrincipalID, routeExpiry)
 	if err != nil || dispatched.Route.RouteID == "" || dispatched.Route.Selector == "" {
 		recovery := "Secure access could not be prepared. Retry sending this vendor request."
-		work.DeliveryState, work.Recovery = VendorWorkDeliveryRetryRequired, recovery
-		return VendorWorkSendOutcome{Work: work, State: VendorWorkDeliveryRetryRequired, Recovery: recovery}, nil
+		return s.persistVendorWorkDeliveryRecovery(ctx, actor, work, recovery), nil
 	}
 	invitationID := dispatched.Route.RouteID
 	reserved, err := s.repo.ReserveVendorWorkInvitation(ctx, scopeFrom(actor), work.ID, work.Version, invitationID, s.now().UTC())
@@ -632,6 +667,18 @@ func (s *VendorWorkService) sendCurrent(ctx context.Context, actor Actor, work V
 	}
 	issued.Token = ""
 	return VendorWorkSendOutcome{Work: delivered, Invitation: &issued, Delivery: &receipt, State: VendorWorkDeliveryDelivered}, nil
+}
+
+func (s *VendorWorkService) persistVendorWorkDeliveryRecovery(ctx context.Context, actor Actor, work VendorWorkRequest, recovery string) VendorWorkSendOutcome {
+	persisted, persistErr := s.repo.MarkVendorWorkSent(ctx, scopeFrom(actor), work.ID, work.Version, "", VendorWorkDeliveryRetryRequired, recovery, s.now().UTC())
+	if persistErr == nil {
+		work = persisted
+	} else if stored, readErr := s.repo.GetVendorWork(ctx, scopeFrom(actor), work.ID); readErr == nil && stored.Version == work.Version+1 && stored.DeliveryState == VendorWorkDeliveryRetryRequired && stored.Recovery == recovery {
+		work = stored
+	} else {
+		work.DeliveryState, work.Recovery = VendorWorkDeliveryRetryRequired, recovery
+	}
+	return VendorWorkSendOutcome{Work: work, State: VendorWorkDeliveryRetryRequired, Recovery: recovery}
 }
 
 func normalizeVendorWorkRequestKind(kind VendorWorkRequestKind) (VendorWorkRequestKind, error) {
@@ -859,6 +906,7 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 	if err != nil {
 		stored, readErr := s.repo.GetVendorWork(ctx, scopeFrom(actor), work.ID)
 		if readErr != nil || stored.Version != work.Version+1 || stored.State != VendorWorkChangesRequested || stored.CurrentRequestID != request.ID || stored.CurrentCaptureSequence != sequence || stored.ReviewerPrincipalID != actor.PrincipalID || stored.ReviewRationale != input.Message || !stored.DueAt.Equal(input.DueAt.UTC()) {
+			_ = s.dispatch.RevokeRequestCapabilities(ctx, work.TenantID, request.ID)
 			return VendorWorkSendOutcome{}, err
 		}
 		updated = stored
@@ -868,15 +916,7 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 		return outcome, nil
 	}
 	recovery := "The clarification was recorded, but secure delivery could not be prepared. Retry sending from this request."
-	persisted, persistErr := s.repo.MarkVendorWorkSent(ctx, scopeFrom(actor), updated.ID, updated.Version, "", VendorWorkDeliveryRetryRequired, recovery, s.now().UTC())
-	if persistErr == nil {
-		updated = persisted
-	} else if stored, readErr := s.repo.GetVendorWork(ctx, scopeFrom(actor), updated.ID); readErr == nil && stored.Version == updated.Version+1 && stored.DeliveryState == VendorWorkDeliveryRetryRequired && stored.Recovery == recovery {
-		updated = stored
-	} else {
-		updated.DeliveryState, updated.Recovery = VendorWorkDeliveryRetryRequired, recovery
-	}
-	return VendorWorkSendOutcome{Work: updated, State: VendorWorkDeliveryRetryRequired, Recovery: recovery}, nil
+	return s.persistVendorWorkDeliveryRecovery(ctx, actor, updated, recovery), nil
 }
 
 func (s *VendorWorkService) RecordSubmission(ctx context.Context, input VendorWorkSubmissionInput) (VendorWorkRequest, error) {
