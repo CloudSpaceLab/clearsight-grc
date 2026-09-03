@@ -171,6 +171,34 @@ func (r *PostgresExportRepository) GetExport(ctx context.Context, tenantID, expo
 	return scanExportReceipt(row)
 }
 
+func (r *PostgresExportRepository) RecordDownload(ctx context.Context, tenantID, exportID, downloadedBy string) error {
+	if r == nil || r.pool == nil || tenantID == "" || exportID == "" || downloadedBy == "" {
+		return ErrExportInvalid
+	}
+	commandTag, err := r.pool.Exec(ctx, `
+		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
+		SELECT ae.tenant_id,'AUDIT_EXPORT',ae.id,'AUDIT_EXPORT_DOWNLOAD_STARTED',
+		       jsonb_strip_nulls(jsonb_build_object(
+		         'actor_id',$3,
+		         'requested_by',ae.requested_by_ref,
+		         'legal_entity_id',ae.legal_entity_id::text,
+		         'format',ae.format,
+		         'row_count',ae.row_count,
+		         'data_sha256',ae.data_sha256
+		       )),clock_timestamp(),clock_timestamp()
+		FROM audit_export_receipts ae
+		JOIN tenants t ON t.id=ae.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND ae.id::text=$2
+		  AND ae.status='READY' AND ae.expires_at>clock_timestamp()`, tenantID, exportID, downloadedBy)
+	if err != nil {
+		return err
+	}
+	if commandTag.RowsAffected() != 1 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func scanExportReceipt(row pgx.Row) (ExportReceipt, error) {
 	var receipt ExportReceipt
 	var filter []byte
