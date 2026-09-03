@@ -536,6 +536,6 @@ function suggestionButtonLabel(value: CoverageSuggestion["type"]) {
 function actionReceipt(objectType?: string) {
   if (objectType === "PROGRAM") return "Draft Program created. It must follow the normal approval lifecycle.";
   if (objectType === "REQUIREMENT") return "Draft requirement added. It must be reviewed and approved before becoming effective.";
-  if (objectType === "MATTER") return "Issue created and linked to this source-backed obligation.";
+  if (objectType === "MATTER") return "Issue created and linked to this imported obligation.";
   return "The recommendation was applied.";
 }

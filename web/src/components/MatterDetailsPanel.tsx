@@ -161,7 +161,7 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
       <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving}>{saving ? "Saving…" : "Save issue details"}</button><button className="text-button" type="button" onClick={() => setEditing(false)}>Cancel</button></div>
     </form>}
     {assigning && <FocusedSheet label="Change issue owner" closeLabel="Close owner reassignment" onClose={() => setAssigning(false)}>
-      <div className="cs-sheet-heading"><span className="eyebrow">Accountable ownership</span><h2>Change issue owner</h2><p>Choose a person returned by the current authority route and record why responsibility is changing.</p></div>
+      <div className="cs-sheet-heading"><span className="eyebrow">Accountable ownership</span><h2>Change issue owner</h2><p>Choose an eligible person and record why responsibility is changing.</p></div>
       <form className="cs-sheet-form" onSubmit={saveAssignment}>
         <dl className="cs-sheet-facts"><div><dt>Issue</dt><dd>{aggregate.matter.title}</dd></div><div><dt>Current accountable owner</dt><dd>{owner?.display_name ?? storedOwner ?? "Issue owner not assigned"}</dd></div></dl>
         <SelectField label="New issue owner" value={newOwner || undefined} placeholder="Select an eligible owner" allowsEmpty={false} isRequired options={(assignmentOperation?.candidates ?? []).map((candidate) => ({ id: candidate.id, label: candidate.role ? `${candidate.display_name} · ${candidate.role}` : candidate.display_name }))} onChange={(value) => setNewOwner(value ?? "")}/>

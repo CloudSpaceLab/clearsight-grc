@@ -408,7 +408,7 @@ export function FormBuilder({
     setSaving(true);
     try {
       candidate = needsPersist ? await persist(createInput) : initialValue;
-      if (!candidate) throw new Error("The current governed draft could not be resolved.");
+      if (!candidate) throw new Error("The current form draft could not be loaded.");
       const transitioned = await onSendForApproval(candidate);
       onSaved(transitioned ?? candidate);
     } catch (caught) {

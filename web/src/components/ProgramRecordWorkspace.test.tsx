@@ -160,7 +160,7 @@ describe("Program record workspace", () => {
 	expect(screen.getByText("New issues cannot be recorded until current Program responsibilities are available.")).toBeTruthy();
 	expect(screen.getByText("Monitoring changes are disabled until current Program responsibilities are available.")).toBeTruthy();
 
-	fireEvent.click(screen.getByRole("button", { name: "Retry responsibilities" }));
+	fireEvent.click(screen.getByRole("button", { name: "Retry assignments" }));
 	expect(await screen.findByRole("button", { name: "Approve Program activation" })).toBeTruthy();
 	expect(screen.getByRole("button", { name: "Record new issue" })).toBeTruthy();
 	expect(screen.getByRole("button", { name: "Add monitoring check" })).toBeTruthy();

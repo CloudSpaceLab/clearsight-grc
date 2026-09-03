@@ -26,7 +26,7 @@ export function AdvancedFilterEditor({ expression, onApply, onClose }: Props) {
         <div>
           <span className="eyebrow">Advanced filters</span>
           <h2>Combine exact conditions</h2>
-          <p>Use only governed form fields. Groups are bounded to 12 nodes and 3 levels.</p>
+          <p>Use fields from this form. You can add up to 12 conditions across 3 levels.</p>
         </div>
         <span className="forms-expression-budget" aria-label={`${nodes} of 12 filter nodes used`}>{nodes}/12</span>
       </header>

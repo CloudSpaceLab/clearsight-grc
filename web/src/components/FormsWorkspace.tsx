@@ -358,7 +358,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   async function editorSaved(form: MonitoringFormTemplate) {
     setEditor(null);
     choose(form.id);
-    setNotice(form.status === "PENDING_APPROVAL" ? "Draft sent for independent approval." : "Form draft saved as a new governed revision.");
+    setNotice(form.status === "PENDING_APPROVAL" ? "Draft sent for independent approval." : "Form draft saved as a new version.");
     await Promise.all([refresh(), refreshReusableTemplates()]);
   }
 

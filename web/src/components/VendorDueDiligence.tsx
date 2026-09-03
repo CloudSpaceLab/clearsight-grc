@@ -524,7 +524,7 @@ export function VendorDueDiligence({
       {effectiveAssessment && !["COMPLETED", "CANCELLED"].includes(effectiveAssessment.status) && onCancelAssessment && <button type="button" className="secondary-button" onClick={() => openPanel("cancelAssessment")}>Cancel assessment</button>}
     </div>}
 
-    {!availableForms.length && !effectiveAssessment && <p className="vdd-limitation">No active due-diligence form was found in this legal entity. Create a governed draft or open Forms to review and approve an existing template before starting this vendor review.</p>}
+    {!availableForms.length && !effectiveAssessment && <p className="vdd-limitation">No active due-diligence form was found in this legal entity. Create a new form draft or open Forms to review and approve an existing template before starting this vendor review.</p>}
   </section>;
 }
 

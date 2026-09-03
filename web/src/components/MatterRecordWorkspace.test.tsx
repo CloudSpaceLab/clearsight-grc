@@ -195,7 +195,7 @@ describe("Matter record workspace", () => {
     expect(screen.getByText("licensed DPCO")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Update status for Update the annual return evidence checklist" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Retry responsibilities" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry assignments" }));
     expect(await screen.findByRole("button", { name: "Update status for Update the annual return evidence checklist" })).toBeTruthy();
     expect(loadMatterOperations).toHaveBeenCalledTimes(2);
     expect(loadMatter).toHaveBeenCalledTimes(1);

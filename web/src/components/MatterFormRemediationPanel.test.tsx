@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadFormTemplatePage, loadFormTemplateRevision } from "../formsApi";
+import { ApiError } from "../http";
 import { applyMatterFormRemediation, createMatterFormRemediation, loadMatterFormRemediations, sendMatterFormRemediation } from "../matterFormRemediationApi";
 import type { MatterFormRemediationState } from "../matterFormRemediationApi";
 import type { MatterOperation } from "../matterOperationsApi";
@@ -79,8 +80,11 @@ describe("MatterFormRemediationPanel", () => {
     vi.mocked(sendMatterFormRemediation).mockResolvedValue({ binding, next_action: "Open response" });
 
     render(<MatterFormRemediationPanel aggregate={aggregate} operations={[ownerOperation]} onUpdated={vi.fn()} onMappingsChange={vi.fn()}/>);
+    expect(screen.getByText("Send an approved form for the outstanding items. Review the response before updating this issue.")).toBeTruthy();
+    expect(await screen.findByText("No approved form has been sent for the outstanding items in this issue.", { exact: false })).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: "Send linked form" }));
     expect(await screen.findByRole("heading", { name: "Send an approved form" })).toBeTruthy();
+    expect(screen.getByText("Choose which form answer supplies each outstanding item. These choices are fixed after the request is sent.")).toBeTruthy();
 
     await choose("Approved form revision", "Annual return remediation · v2");
     await choose("Response field for Source owner", "Source owner");
@@ -118,6 +122,7 @@ describe("MatterFormRemediationPanel", () => {
     const updated = vi.fn();
 
     render(<MatterFormRemediationPanel aggregate={aggregate} operations={[reviewerOperation]} onUpdated={updated} onMappingsChange={vi.fn()}/>);
+    expect(await screen.findByText("Explain why this response answers the outstanding items.")).toBeTruthy();
     fireEvent.change(await screen.findByLabelText("Review basis"), { target: { value: "This final response supplies both mapped items." } });
     fireEvent.click(screen.getByRole("button", { name: "Apply response" }));
 
@@ -138,10 +143,73 @@ describe("MatterFormRemediationPanel", () => {
     const openRequest = vi.fn();
 
     render(<MatterFormRemediationPanel aggregate={aggregate} operations={[reviewerOperation]} onUpdated={vi.fn()} onOpenRequest={openRequest} onMappingsChange={vi.fn()}/>);
-    expect(await screen.findByText(/does not meet the binding's score threshold/i)).toBeTruthy();
+    expect(await screen.findByText("The response score is below the approved threshold. Review it or request a correction; this issue remains open.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review response" }));
     expect(openRequest).toHaveBeenCalledWith("request-1");
     expect(screen.queryByRole("button", { name: "Apply response" })).toBeNull();
     expect(applyMatterFormRemediation).not.toHaveBeenCalled();
+  });
+
+  it("states the remaining outcome work after information is added", async () => {
+    vi.mocked(loadMatterFormRemediations).mockResolvedValue([{
+      binding,
+      request: { id: "request-1", title: "Restore source evidence", status: "COMPLETED", deadline: "2026-09-12T23:59:59Z" },
+      response: { id: "response-revision-1", revision: 3, current: true, state: "FINAL", completed_at: "2026-09-03T10:00:00Z" },
+      application: { id: "application-1", response_revision_id: "response-revision-1", matter_version: 8, applied_at: "2026-09-03T10:05:00Z" },
+      next_action: "Check outcome",
+    }]);
+
+    render(<MatterFormRemediationPanel aggregate={aggregate} operations={[reviewerOperation]} onUpdated={vi.fn()} onMappingsChange={vi.fn()}/>);
+
+    expect(await screen.findByText("Information added · confirm the result before closing")).toBeTruthy();
+  });
+
+  it("keeps the named linked-request population visible while loading", () => {
+    vi.mocked(loadMatterFormRemediations).mockReturnValue(new Promise(() => undefined));
+
+    render(<MatterFormRemediationPanel aggregate={aggregate} operations={[ownerOperation]} onUpdated={vi.fn()} onMappingsChange={vi.fn()}/>);
+
+    expect(screen.getByText("Checking linked requests and responses…")).toBeTruthy();
+  });
+
+  it("names a linked-request load failure and its affected action", async () => {
+    vi.mocked(loadMatterFormRemediations).mockRejectedValue(new Error("Request service unavailable"));
+
+    render(<MatterFormRemediationPanel aggregate={aggregate} operations={[ownerOperation]} onUpdated={vi.fn()} onMappingsChange={vi.fn()}/>);
+
+    expect((await screen.findByRole("alert")).textContent).toContain("Linked form action could not be completed.");
+    expect(screen.getByRole("alert").textContent).toContain("Request service unavailable");
+  });
+
+  it("opens a sent linked request without asking for another evidence record", async () => {
+    vi.mocked(loadMatterFormRemediations).mockResolvedValue([{
+      binding,
+      request: { id: "request-1", title: "Restore source evidence", status: "READY", deadline: "2026-09-12T23:59:59Z" },
+      next_action: "Open response",
+    }]);
+    const openRequest = vi.fn();
+
+    render(<MatterFormRemediationPanel aggregate={aggregate} operations={[ownerOperation]} onUpdated={vi.fn()} onOpenRequest={openRequest} onMappingsChange={vi.fn()}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Open response" }));
+
+    expect(openRequest).toHaveBeenCalledWith("request-1");
+  });
+
+  it("preserves the review basis when the issue changed", async () => {
+    vi.mocked(loadMatterFormRemediations).mockResolvedValue([{
+      binding,
+      request: { id: "request-1", title: "Restore source evidence", status: "COMPLETED", deadline: "2026-09-12T23:59:59Z" },
+      response: { id: "response-revision-1", revision: 3, current: true, state: "FINAL", completed_at: "2026-09-03T10:00:00Z" },
+      next_action: "Review evidence",
+    }]);
+    vi.mocked(applyMatterFormRemediation).mockRejectedValue(new ApiError(409, "changed", "version_conflict"));
+
+    render(<MatterFormRemediationPanel aggregate={aggregate} operations={[reviewerOperation]} onUpdated={vi.fn()} onMappingsChange={vi.fn()}/>);
+    const basis = await screen.findByLabelText("Review basis");
+    fireEvent.change(basis, { target: { value: "The response answers both outstanding items with current evidence." } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply response" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("Reload the issue before applying the response.");
+    expect((basis as HTMLTextAreaElement).value).toContain("answers both outstanding items");
   });
 });

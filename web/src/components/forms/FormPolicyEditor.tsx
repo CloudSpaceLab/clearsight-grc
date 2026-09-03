@@ -21,14 +21,14 @@ export function FormPolicyEditor({ onCancel, onCreate, busy = false }: Props) {
     void onCreate({ ...value, code: normalizedCode(value.code), name: value.name.trim(), purpose: value.purpose.trim(), effective_from: effectiveFrom, effective_until: effectiveUntil });
   }
   return <form className="forms-policy-editor" noValidate onSubmit={submit}>
-    <header><p>New governed policy</p><h2>Create a response policy</h2><span>Define when a completed response needs an Issue and change. The server checks authority, simulation freshness and independent approval.</span></header>
+    <header><p>New response policy</p><h2>Create a response policy</h2><span>Define which completed responses create an issue. Activation requires a current simulation and independent approval.</span></header>
     {error && <Notice tone="error">{error}</Notice>}
     <section aria-labelledby="policy-identity-title"><h3 id="policy-identity-title">Policy purpose</h3><div className="forms-policy-control-grid">
       <TextField label="Policy name" value={value.name} onChange={(name) => patch("name", name)} maxLength={160}/>
       <TextField label="Policy code" description="Use a stable lowercase code; spaces become hyphens." value={value.code} onChange={(code) => patch("code", code)} maxLength={64}/>
       <div className="forms-policy-control-grid__full"><TextArea label="Purpose" value={value.purpose} onChange={(purpose) => patch("purpose", purpose)} rows={3} maxLength={1000}/></div>
     </div></section>
-    <section aria-labelledby="policy-population-title"><h3 id="policy-population-title">Response population</h3><p>Bind the policy to one exact approved form revision and a bounded subject population.</p><div className="forms-policy-control-grid">
+    <section aria-labelledby="policy-population-title"><h3 id="policy-population-title">Response population</h3><p>Choose one approved form version and the subject types this policy covers.</p><div className="forms-policy-control-grid">
       <TextField label="Form template ID" value={value.eligibility.form_template_id} onChange={(form_template_id) => patch("eligibility", { ...value.eligibility, form_template_id })}/>
       <NumberField label="Form revision" value={value.eligibility.form_template_version} min={1} max={1_000_000} onChange={(form_template_version) => patch("eligibility", { ...value.eligibility, form_template_version })}/>
       <TextField label="Subject types" description="Comma-separated stored subject types, for example VENDOR." value={value.eligibility.subject_types.join(", ")} onChange={(raw) => patch("eligibility", { ...value.eligibility, subject_types: raw.split(",").map((item) => item.trim().toUpperCase()).filter(Boolean) })}/>
