@@ -30,6 +30,7 @@ func NewMemoryRepository(sources []Source, requests []Request) *MemoryRepository
 		request.KnownFacts = cloneMap(request.KnownFacts)
 		request.Fields = cloneFields(request.Fields)
 		request.SourceBindings = cloneRequestBindings(request.SourceBindings)
+		request.PreviousResponses = clonePreviousResponses(request.PreviousResponses)
 		repo.requests[request.ID] = request
 		if request.Origin != nil {
 			repo.requestOrigins[requestOriginKey(request.TenantID, *request.Origin)] = request.ID
@@ -312,6 +313,7 @@ func cloneRequest(value Request) Request {
 	value.KnownFacts = cloneMap(value.KnownFacts)
 	value.Fields = cloneFields(value.Fields)
 	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
+	value.PreviousResponses = clonePreviousResponses(value.PreviousResponses)
 	value.CollectionPeriodStart = cloneTimePointer(value.CollectionPeriodStart)
 	value.CollectionPeriodEnd = cloneTimePointer(value.CollectionPeriodEnd)
 	value.Origin = cloneRequestOrigin(value.Origin)

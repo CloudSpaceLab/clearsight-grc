@@ -48,6 +48,14 @@ func (r *PostgresRepository) CreateRequestWithRecipient(ctx context.Context, val
 	if err != nil {
 		return Request{}, err
 	}
+	previousResponseValues := value.PreviousResponses
+	if previousResponseValues == nil {
+		previousResponseValues = map[string]PreviousResponseValue{}
+	}
+	previousResponses, err := json.Marshal(previousResponseValues)
+	if err != nil {
+		return Request{}, err
+	}
 	state := value.Recipient.State
 	if state == "" {
 		state = RecipientStateAssigned
@@ -61,17 +69,17 @@ func (r *PostgresRepository) CreateRequestWithRecipient(ctx context.Context, val
 		INSERT INTO capture_requests(
 			id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
 			recipient_type,recipient_principal_id,recipient_audience_hash,recipient_hint,recipient_state,recipient_revision,recipient_issue_reason,
-			estimated_minutes,deadline,known_facts,fields,source_bindings,form_template_id,form_template_version,collection_period_start,collection_period_end,status,created_by,version,created_at,updated_at,
+			estimated_minutes,deadline,known_facts,fields,source_bindings,previous_responses,form_template_id,form_template_version,collection_period_start,collection_period_end,status,created_by,version,created_at,updated_at,
 			origin_type,origin_id,origin_sequence,predecessor_request_id
 		) VALUES(
 			$1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,
-			$10,NULLIF($11,'')::uuid,$12,$13,$14,$15,'',$16,$17,$18::jsonb,$19::jsonb,$20::jsonb,NULLIF($21,'')::uuid,NULLIF($22,0),$23,$24,$25,NULLIF($26,'')::uuid,$27,$28,$28,
-			$29,$30::uuid,$31,NULLIF($32,'')::uuid
+			$10,NULLIF($11,'')::uuid,$12,$13,$14,$15,'',$16,$17,$18::jsonb,$19::jsonb,$20::jsonb,$21::jsonb,NULLIF($22,'')::uuid,NULLIF($23,0),$24,$25,$26,NULLIF($27,'')::uuid,$28,$29,$29,
+			$30,$31::uuid,$32,NULLIF($33,'')::uuid
 		)
 		RETURNING `+requestReturningColumns,
 		value.ID, value.TenantID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType,
 		value.Recipient.Type, value.Recipient.PrincipalID, nullableAudienceHash(value.Recipient), value.Recipient.AudienceHint, state, revision,
-		value.EstimatedMinutes, value.Deadline, string(facts), string(fields), string(sourceBindings), value.FormTemplateID, value.FormTemplateVersion, value.CollectionPeriodStart, value.CollectionPeriodEnd, value.Status, value.CreatedBy, value.Version, value.CreatedAt,
+		value.EstimatedMinutes, value.Deadline, string(facts), string(fields), string(sourceBindings), string(previousResponses), value.FormTemplateID, value.FormTemplateVersion, value.CollectionPeriodStart, value.CollectionPeriodEnd, value.Status, value.CreatedBy, value.Version, value.CreatedAt,
 		originType, originID, originSequence, value.PredecessorRequestID)
 	created, err := scanRequest(row)
 	created, err = r.resolveOriginCreate(ctx, value, created, err)

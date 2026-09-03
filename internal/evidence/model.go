@@ -123,9 +123,10 @@ const (
 	SourceResolutionUnavailable SourceResolutionState = "UNAVAILABLE"
 	SourceResolutionInvalid     SourceResolutionState = "INVALID"
 
-	AnswerSourcePrefilled     AnswerOrigin = "SOURCE_PREFILLED"
-	AnswerRespondentEntered   AnswerOrigin = "RESPONDENT_ENTERED"
-	AnswerRespondentCorrected AnswerOrigin = "RESPONDENT_CORRECTED"
+	AnswerSourcePrefilled        AnswerOrigin = "SOURCE_PREFILLED"
+	AnswerPriorResponsePrefilled AnswerOrigin = "PRIOR_RESPONSE_PREFILLED"
+	AnswerRespondentEntered      AnswerOrigin = "RESPONDENT_ENTERED"
+	AnswerRespondentCorrected    AnswerOrigin = "RESPONDENT_CORRECTED"
 )
 
 type LookupValueReference struct {
@@ -162,12 +163,16 @@ type RequestBindingReference struct {
 }
 
 type AnswerProvenance struct {
-	Origin         AnswerOrigin                   `json:"origin"`
-	BindingID      string                         `json:"binding_id,omitempty"`
-	BindingVersion int64                          `json:"binding_version,omitempty"`
-	SourceValue    *sourceaccess.Scalar           `json:"source_value,omitempty"`
-	SourceReceipt  *sourceaccess.OperationReceipt `json:"source_receipt,omitempty"`
-	Validations    []SourceResolution             `json:"validations,omitempty"`
+	Origin               AnswerOrigin                   `json:"origin"`
+	BindingID            string                         `json:"binding_id,omitempty"`
+	BindingVersion       int64                          `json:"binding_version,omitempty"`
+	SourceValue          *sourceaccess.Scalar           `json:"source_value,omitempty"`
+	SourceReceipt        *sourceaccess.OperationReceipt `json:"source_receipt,omitempty"`
+	PreviousValue        string                         `json:"previous_value,omitempty"`
+	PreviousRequestID    string                         `json:"previous_request_id,omitempty"`
+	PreviousSubmissionID string                         `json:"previous_submission_id,omitempty"`
+	PreviousSubmittedAt  *time.Time                     `json:"previous_submitted_at,omitempty"`
+	Validations          []SourceResolution             `json:"validations,omitempty"`
 }
 
 type Field struct {
@@ -199,56 +204,58 @@ type RecipientInput struct {
 }
 
 type Request struct {
-	ID                    string                    `json:"id"`
-	TenantID              string                    `json:"tenant_id"`
-	SubjectType           string                    `json:"subject_type"`
-	SubjectID             string                    `json:"subject_id"`
-	Title                 string                    `json:"title"`
-	Purpose               string                    `json:"purpose"`
-	WhyYou                string                    `json:"why_you"`
-	Sensitivity           string                    `json:"sensitivity"`
-	AudienceType          string                    `json:"audience_type"`
-	Recipient             Recipient                 `json:"recipient"`
-	EstimatedMinutes      int                       `json:"estimated_minutes"`
-	Deadline              time.Time                 `json:"deadline"`
-	KnownFacts            map[string]string         `json:"known_facts"`
-	Fields                []Field                   `json:"fields"`
-	SourceBindings        []RequestBindingReference `json:"source_bindings,omitempty"`
-	FormTemplateID        string                    `json:"form_template_id,omitempty"`
-	FormTemplateVersion   int64                     `json:"form_template_version,omitempty"`
-	CollectionPeriodStart *time.Time                `json:"collection_period_start,omitempty"`
-	CollectionPeriodEnd   *time.Time                `json:"collection_period_end,omitempty"`
-	Origin                *RequestOrigin            `json:"origin,omitempty"`
-	PredecessorRequestID  string                    `json:"predecessor_request_id,omitempty"`
-	Status                RequestStatus             `json:"status"`
-	CreatedBy             string                    `json:"created_by,omitempty"`
-	Version               int64                     `json:"version"`
-	CreatedAt             time.Time                 `json:"created_at"`
-	UpdatedAt             time.Time                 `json:"updated_at"`
+	ID                    string                           `json:"id"`
+	TenantID              string                           `json:"tenant_id"`
+	SubjectType           string                           `json:"subject_type"`
+	SubjectID             string                           `json:"subject_id"`
+	Title                 string                           `json:"title"`
+	Purpose               string                           `json:"purpose"`
+	WhyYou                string                           `json:"why_you"`
+	Sensitivity           string                           `json:"sensitivity"`
+	AudienceType          string                           `json:"audience_type"`
+	Recipient             Recipient                        `json:"recipient"`
+	EstimatedMinutes      int                              `json:"estimated_minutes"`
+	Deadline              time.Time                        `json:"deadline"`
+	KnownFacts            map[string]string                `json:"known_facts"`
+	Fields                []Field                          `json:"fields"`
+	SourceBindings        []RequestBindingReference        `json:"source_bindings,omitempty"`
+	FormTemplateID        string                           `json:"form_template_id,omitempty"`
+	FormTemplateVersion   int64                            `json:"form_template_version,omitempty"`
+	CollectionPeriodStart *time.Time                       `json:"collection_period_start,omitempty"`
+	CollectionPeriodEnd   *time.Time                       `json:"collection_period_end,omitempty"`
+	Origin                *RequestOrigin                   `json:"origin,omitempty"`
+	PredecessorRequestID  string                           `json:"predecessor_request_id,omitempty"`
+	PreviousResponses     map[string]PreviousResponseValue `json:"previous_responses,omitempty"`
+	Status                RequestStatus                    `json:"status"`
+	CreatedBy             string                           `json:"created_by,omitempty"`
+	Version               int64                            `json:"version"`
+	CreatedAt             time.Time                        `json:"created_at"`
+	UpdatedAt             time.Time                        `json:"updated_at"`
 }
 
 type CreateRequestInput struct {
-	TenantID              string                    `json:"tenant_id"`
-	SubjectType           string                    `json:"subject_type"`
-	SubjectID             string                    `json:"subject_id"`
-	Title                 string                    `json:"title"`
-	Purpose               string                    `json:"purpose"`
-	WhyYou                string                    `json:"why_you"`
-	Sensitivity           string                    `json:"sensitivity"`
-	AudienceType          string                    `json:"audience_type"`
-	Recipient             RecipientInput            `json:"recipient"`
-	EstimatedMinutes      int                       `json:"estimated_minutes"`
-	Deadline              time.Time                 `json:"deadline"`
-	KnownFacts            map[string]string         `json:"known_facts"`
-	Fields                []Field                   `json:"fields"`
-	SourceBindings        []RequestBindingReference `json:"source_bindings,omitempty"`
-	FormTemplateID        string                    `json:"form_template_id,omitempty"`
-	FormTemplateVersion   int64                     `json:"form_template_version,omitempty"`
-	CollectionPeriodStart *time.Time                `json:"collection_period_start,omitempty"`
-	CollectionPeriodEnd   *time.Time                `json:"collection_period_end,omitempty"`
-	Origin                *RequestOrigin            `json:"origin,omitempty"`
-	PredecessorRequestID  string                    `json:"predecessor_request_id,omitempty"`
-	CreatedBy             string                    `json:"created_by,omitempty"`
+	TenantID              string                           `json:"tenant_id"`
+	SubjectType           string                           `json:"subject_type"`
+	SubjectID             string                           `json:"subject_id"`
+	Title                 string                           `json:"title"`
+	Purpose               string                           `json:"purpose"`
+	WhyYou                string                           `json:"why_you"`
+	Sensitivity           string                           `json:"sensitivity"`
+	AudienceType          string                           `json:"audience_type"`
+	Recipient             RecipientInput                   `json:"recipient"`
+	EstimatedMinutes      int                              `json:"estimated_minutes"`
+	Deadline              time.Time                        `json:"deadline"`
+	KnownFacts            map[string]string                `json:"known_facts"`
+	Fields                []Field                          `json:"fields"`
+	SourceBindings        []RequestBindingReference        `json:"source_bindings,omitempty"`
+	FormTemplateID        string                           `json:"form_template_id,omitempty"`
+	FormTemplateVersion   int64                            `json:"form_template_version,omitempty"`
+	CollectionPeriodStart *time.Time                       `json:"collection_period_start,omitempty"`
+	CollectionPeriodEnd   *time.Time                       `json:"collection_period_end,omitempty"`
+	Origin                *RequestOrigin                   `json:"origin,omitempty"`
+	PredecessorRequestID  string                           `json:"predecessor_request_id,omitempty"`
+	PreviousResponses     map[string]PreviousResponseValue `json:"previous_responses,omitempty"`
+	CreatedBy             string                           `json:"created_by,omitempty"`
 }
 
 type DeclareWrongRecipientInput struct {

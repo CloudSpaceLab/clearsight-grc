@@ -83,29 +83,8 @@ func (s *Service) validateAnswers(ctx context.Context, request Request, answers 
 		if value == "" {
 			continue
 		}
-		fieldType := strings.ToLower(strings.TrimSpace(field.Type))
+		fieldType := normalizedFieldTypeName(field.Type)
 		switch fieldType {
-		case "text", "short_text":
-			if len(value) > maxShortAnswerBytes {
-				return fmt.Errorf("%s is too long", field.Label)
-			}
-		case "long_text":
-			if len(value) > maxLongAnswerBytes {
-				return fmt.Errorf("%s is too long", field.Label)
-			}
-		case "single_select":
-			if !containsOption(field.Options, value) {
-				return fmt.Errorf("%s contains an invalid selection", field.Label)
-			}
-		case "date":
-			if _, err := time.Parse("2006-01-02", value); err != nil {
-				return fmt.Errorf("%s must be a valid date", field.Label)
-			}
-		case "number":
-			number, err := strconv.ParseFloat(value, 64)
-			if err != nil || math.IsNaN(number) || math.IsInf(number, 0) {
-				return fmt.Errorf("%s must be a valid number", field.Label)
-			}
 		case "photo", "file", "signature":
 			artifact, err := s.repo.GetArtifact(ctx, request.TenantID, request.ID, value)
 			if err != nil {
@@ -115,8 +94,40 @@ func (s *Service) validateAnswers(ctx context.Context, request Request, answers 
 				return err
 			}
 		default:
-			return fmt.Errorf("%s uses an unsupported response type", field.Label)
+			if err := validateScalarFieldAnswer(field, value); err != nil {
+				return err
+			}
 		}
+	}
+	return nil
+}
+
+func validateScalarFieldAnswer(field Field, value string) error {
+	value = strings.TrimSpace(value)
+	switch normalizedFieldTypeName(field.Type) {
+	case "text":
+		if len(value) > maxShortAnswerBytes {
+			return fmt.Errorf("%s is too long", field.Label)
+		}
+	case "long_text":
+		if len(value) > maxLongAnswerBytes {
+			return fmt.Errorf("%s is too long", field.Label)
+		}
+	case "single_select":
+		if !containsOption(field.Options, value) {
+			return fmt.Errorf("%s contains an invalid selection", field.Label)
+		}
+	case "date":
+		if _, err := time.Parse("2006-01-02", value); err != nil {
+			return fmt.Errorf("%s must be a valid date", field.Label)
+		}
+	case "number":
+		number, err := strconv.ParseFloat(value, 64)
+		if err != nil || math.IsNaN(number) || math.IsInf(number, 0) {
+			return fmt.Errorf("%s must be a valid number", field.Label)
+		}
+	default:
+		return fmt.Errorf("%s uses an unsupported response type", field.Label)
 	}
 	return nil
 }

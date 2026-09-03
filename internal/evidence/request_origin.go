@@ -84,13 +84,14 @@ func requestImmutableFingerprint(value Request) ([32]byte, error) {
 		CreatedBy             string
 		Origin                *RequestOrigin
 		PredecessorRequestID  string
+		PreviousResponses     map[string]PreviousResponseValue
 	}{
 		SubjectType: value.SubjectType, SubjectID: value.SubjectID, Title: value.Title,
 		Purpose: value.Purpose, WhyYou: value.WhyYou, Sensitivity: value.Sensitivity, AudienceType: value.AudienceType,
 		EstimatedMinutes: value.EstimatedMinutes, Deadline: value.Deadline.UTC(), KnownFacts: value.KnownFacts,
 		Fields: value.Fields, SourceBindings: value.SourceBindings, FormTemplateID: value.FormTemplateID, FormTemplateVersion: value.FormTemplateVersion,
 		CollectionPeriodStart: value.CollectionPeriodStart, CollectionPeriodEnd: value.CollectionPeriodEnd, CreatedBy: value.CreatedBy,
-		Origin: value.Origin, PredecessorRequestID: value.PredecessorRequestID,
+		Origin: value.Origin, PredecessorRequestID: value.PredecessorRequestID, PreviousResponses: value.PreviousResponses,
 	}
 	immutable.Recipient.Type = value.Recipient.Type
 	immutable.Recipient.PrincipalID = value.Recipient.PrincipalID

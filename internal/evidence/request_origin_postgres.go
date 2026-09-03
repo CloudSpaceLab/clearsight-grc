@@ -12,12 +12,12 @@ import (
 )
 
 const requestSelectColumns = `er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
-	er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),
+	er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,er.previous_responses,COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),
 	er.collection_period_start,er.collection_period_end,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at,
 	COALESCE(er.origin_type,''),COALESCE(er.origin_id::text,''),COALESCE(er.origin_sequence,0),COALESCE(er.predecessor_request_id::text,'')`
 
 const requestReturningColumns = `id::text,(SELECT slug FROM tenants WHERE id=tenant_id),subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,
-	estimated_minutes,deadline,known_facts,fields,source_bindings,COALESCE(form_template_id::text,''),COALESCE(form_template_version,0),
+	estimated_minutes,deadline,known_facts,fields,source_bindings,previous_responses,COALESCE(form_template_id::text,''),COALESCE(form_template_version,0),
 	collection_period_start,collection_period_end,status,COALESCE(created_by::text,''),version,created_at,updated_at,
 	COALESCE(origin_type,''),COALESCE(origin_id::text,''),COALESCE(origin_sequence,0),COALESCE(predecessor_request_id::text,'')`
 

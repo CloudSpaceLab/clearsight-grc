@@ -138,6 +138,10 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if err := validateFieldContracts(fields); err != nil {
 		return Request{}, err
 	}
+	previousResponses := normalizePreviousResponses(fields, input.PreviousResponses)
+	if err := validatePreviousResponsesBound(previousResponses); err != nil {
+		return Request{}, err
+	}
 	recipient, err := buildRecipient(ctx, s.repo, input.TenantID, input.AudienceType, input.Recipient)
 	if err != nil {
 		return Request{}, err
@@ -168,8 +172,11 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	if !deadline.After(now) {
 		return Request{}, fmt.Errorf("deadline must be in the future")
 	}
-	request := Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Origin: cloneRequestOrigin(input.Origin), PredecessorRequestID: strings.TrimSpace(input.PredecessorRequestID), Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
+	request := Request{ID: valueID, TenantID: input.TenantID, SubjectType: input.SubjectType, SubjectID: input.SubjectID, Title: input.Title, Purpose: input.Purpose, WhyYou: input.WhyYou, Sensitivity: input.Sensitivity, AudienceType: input.AudienceType, Recipient: recipient, EstimatedMinutes: input.EstimatedMinutes, Deadline: deadline, KnownFacts: cloneMap(input.KnownFacts), Fields: fields, SourceBindings: sourceBindings, FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion, CollectionPeriodStart: cloneTimePointer(input.CollectionPeriodStart), CollectionPeriodEnd: cloneTimePointer(input.CollectionPeriodEnd), Origin: cloneRequestOrigin(input.Origin), PredecessorRequestID: strings.TrimSpace(input.PredecessorRequestID), PreviousResponses: previousResponses, Status: RequestReady, CreatedBy: input.CreatedBy, Version: 1, CreatedAt: now, UpdatedAt: now}
 	if err := validateRequestPredecessor(ctx, s.repo, request); err != nil {
+		return Request{}, err
+	}
+	if err := validatePreviousResponseLineage(ctx, s.repo, request); err != nil {
 		return Request{}, err
 	}
 	return store.CreateRequestWithRecipient(ctx, request)

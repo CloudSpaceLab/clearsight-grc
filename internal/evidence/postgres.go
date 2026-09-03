@@ -200,8 +200,16 @@ func (r *PostgresRepository) CreateRequest(ctx context.Context, value Request) (
 	if err != nil {
 		return Request{}, err
 	}
+	previousResponseValues := value.PreviousResponses
+	if previousResponseValues == nil {
+		previousResponseValues = map[string]PreviousResponseValue{}
+	}
+	previousResponses, err := json.Marshal(previousResponseValues)
+	if err != nil {
+		return Request{}, err
+	}
 	originType, originID, originSequence := originDatabaseValues(value.Origin)
-	row := r.pool.QueryRow(ctx, `INSERT INTO capture_requests(id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,source_bindings,form_template_id,form_template_version,collection_period_start,collection_period_end,status,created_by,version,created_at,updated_at,origin_type,origin_id,origin_sequence,predecessor_request_id) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13::jsonb,$14::jsonb,NULLIF($15,'')::uuid,NULLIF($16,0),$17,$18,$19,NULLIF($20,'')::uuid,$21,$22,$22,$23,$24::uuid,$25,NULLIF($26,'')::uuid) RETURNING `+requestReturningColumns, value.ID, value.TenantID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType, value.EstimatedMinutes, value.Deadline, string(facts), string(fields), string(sourceBindings), value.FormTemplateID, value.FormTemplateVersion, value.CollectionPeriodStart, value.CollectionPeriodEnd, value.Status, value.CreatedBy, value.Version, value.CreatedAt, originType, originID, originSequence, value.PredecessorRequestID)
+	row := r.pool.QueryRow(ctx, `INSERT INTO capture_requests(id,tenant_id,subject_type,subject_id,title,purpose,why_you,sensitivity,audience_type,estimated_minutes,deadline,known_facts,fields,source_bindings,previous_responses,form_template_id,form_template_version,collection_period_start,collection_period_end,status,created_by,version,created_at,updated_at,origin_type,origin_id,origin_sequence,predecessor_request_id) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13::jsonb,$14::jsonb,$15::jsonb,NULLIF($16,'')::uuid,NULLIF($17,0),$18,$19,$20,NULLIF($21,'')::uuid,$22,$23,$23,$24,$25::uuid,$26,NULLIF($27,'')::uuid) RETURNING `+requestReturningColumns, value.ID, value.TenantID, value.SubjectType, value.SubjectID, value.Title, value.Purpose, value.WhyYou, value.Sensitivity, value.AudienceType, value.EstimatedMinutes, value.Deadline, string(facts), string(fields), string(sourceBindings), string(previousResponses), value.FormTemplateID, value.FormTemplateVersion, value.CollectionPeriodStart, value.CollectionPeriodEnd, value.Status, value.CreatedBy, value.Version, value.CreatedAt, originType, originID, originSequence, value.PredecessorRequestID)
 	created, err := scanRequest(row)
 	created, err = r.resolveOriginCreate(ctx, value, created, err)
 	if err != nil {
@@ -447,10 +455,10 @@ func scanSource(row scanner) (Source, error) {
 
 func scanRequest(row scanner) (Request, error) {
 	var value Request
-	var facts, fields, sourceBindings []byte
+	var facts, fields, sourceBindings, previousResponses []byte
 	var originType, originID string
 	var originSequence int64
-	if err := row.Scan(&value.ID, &value.TenantID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType, &value.EstimatedMinutes, &value.Deadline, &facts, &fields, &sourceBindings, &value.FormTemplateID, &value.FormTemplateVersion, &value.CollectionPeriodStart, &value.CollectionPeriodEnd, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt, &originType, &originID, &originSequence, &value.PredecessorRequestID); err != nil {
+	if err := row.Scan(&value.ID, &value.TenantID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType, &value.EstimatedMinutes, &value.Deadline, &facts, &fields, &sourceBindings, &previousResponses, &value.FormTemplateID, &value.FormTemplateVersion, &value.CollectionPeriodStart, &value.CollectionPeriodEnd, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt, &originType, &originID, &originSequence, &value.PredecessorRequestID); err != nil {
 		return Request{}, err
 	}
 	if err := json.Unmarshal(facts, &value.KnownFacts); err != nil {
@@ -460,6 +468,9 @@ func scanRequest(row scanner) (Request, error) {
 		return Request{}, err
 	}
 	if err := json.Unmarshal(sourceBindings, &value.SourceBindings); err != nil {
+		return Request{}, err
+	}
+	if err := json.Unmarshal(previousResponses, &value.PreviousResponses); err != nil {
 		return Request{}, err
 	}
 	origin, err := requestOriginFromDatabase(originType, originID, originSequence)
