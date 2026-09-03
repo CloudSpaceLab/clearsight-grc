@@ -32,18 +32,7 @@ func (r *PostgresRepository) UpsertCollectionCycle(ctx context.Context, value Co
 		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5,$6,$7,$8,$9,$10,
 			NULLIF($11,'')::uuid,NULLIF($12,'')::uuid,NULLIF($13,'')::uuid,$14,$15,$16,$17,$18,NULLIF($19,'')::uuid,NULLIF($20,''),$21,
 			$22,$23,$24,NULLIF($25,''),NULLIF($26,'')::uuid,$27,$28,$29,$30,$31)
-		ON CONFLICT(tenant_id,monitoring_check_id,sequence) DO UPDATE SET
-			program_id=EXCLUDED.program_id,monitoring_check_version=EXCLUDED.monitoring_check_version,
-			validity_months=EXCLUDED.validity_months,renewal_window_days=EXCLUDED.renewal_window_days,reminder_count=EXCLUDED.reminder_count,
-			reminders_sent=EXCLUDED.reminders_sent,current_request_id=EXCLUDED.current_request_id,predecessor_request_id=EXCLUDED.predecessor_request_id,
-			latest_submission_id=EXCLUDED.latest_submission_id,latest_submitted_at=EXCLUDED.latest_submitted_at,
-			expires_at=EXCLUDED.expires_at,renewal_opens_at=EXCLUDED.renewal_opens_at,next_action_at=EXCLUDED.next_action_at,
-			recipient_route_type=EXCLUDED.recipient_route_type,recipient_principal_id=EXCLUDED.recipient_principal_id,
-			recipient_contact_ref=EXCLUDED.recipient_contact_ref,recipient_safe_hint=EXCLUDED.recipient_safe_hint,
-			delivery_state=EXCLUDED.delivery_state,delivery_reference=EXCLUDED.delivery_reference,state=EXCLUDED.state,
-			lease_owner=EXCLUDED.lease_owner,lease_token=EXCLUDED.lease_token,lease_until=EXCLUDED.lease_until,
-			attempts=EXCLUDED.attempts,safe_error=EXCLUDED.safe_error,updated_at=EXCLUDED.updated_at
-		WHERE monitoring_collection_cycles.state<>'CLAIMED'
+		ON CONFLICT(tenant_id,monitoring_check_id,sequence) DO NOTHING
 		RETURNING `+collectionCycleColumns,
 		validated.ID, validated.TenantID, validated.ProgramID, validated.MonitoringCheckID, validated.MonitoringCheckVersion, validated.Sequence,
 		validated.Policy.ValidityMonths, validated.Policy.RenewalWindowDays, validated.Policy.ReminderCount, validated.RemindersSent,
@@ -52,9 +41,23 @@ func (r *PostgresRepository) UpsertCollectionCycle(ctx context.Context, value Co
 		validated.DeliveryState, validated.DeliveryReference, validated.State, validated.LeaseOwner, validated.LeaseToken, validated.LeaseUntil,
 		validated.Attempts, validated.SafeError, validated.CreatedAt, validated.UpdatedAt))
 	if errors.Is(err, pgx.ErrNoRows) {
-		return CollectionCycle{}, ErrConflict
+		existing, lookupErr := r.CollectionCycleForSequence(ctx, validated.TenantID, validated.MonitoringCheckID, validated.Sequence)
+		if lookupErr != nil {
+			return CollectionCycle{}, lookupErr
+		}
+		if !sameCollectionSchedule(existing, validated) {
+			return CollectionCycle{}, ErrConflict
+		}
+		return existing, nil
 	}
 	return created, mapPostgresError(err)
+}
+
+func (r *PostgresRepository) CollectionCycleForSequence(ctx context.Context, tenant, checkID string, sequence int64) (CollectionCycle, error) {
+	value, err := scanCollectionCycle(r.pool.QueryRow(ctx, `SELECT `+collectionCycleColumns+`
+		FROM monitoring_collection_cycles
+		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND monitoring_check_id=$2::uuid AND sequence=$3`, tenant, checkID, sequence))
+	return value, mapPostgresError(err)
 }
 
 func (r *PostgresRepository) CollectionCycle(ctx context.Context, tenant, cycleID string) (CollectionCycle, error) {
@@ -153,6 +156,20 @@ func (r *PostgresRepository) CancelCollectionCyclesByCheck(ctx context.Context, 
 		UPDATE monitoring_collection_cycles SET state='CANCELLED',next_action_at=NULL,lease_owner=NULL,lease_token=NULL,lease_until=NULL,updated_at=$3
 		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND monitoring_check_id=$2::uuid
 			AND state NOT IN ('COMPLETE','CANCELLED','FAILED')`, tenant, checkID, at.UTC())
+	if err != nil {
+		return 0, mapPostgresError(err)
+	}
+	return int(tag.RowsAffected()), nil
+}
+
+func (r *PostgresRepository) CompleteCollectionCyclesBeforeSequence(ctx context.Context, tenant, checkID string, sequence int64, at time.Time) (int, error) {
+	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(checkID) == "" || sequence < 1 || at.IsZero() {
+		return 0, ErrInvalid
+	}
+	tag, err := r.pool.Exec(ctx, `
+		UPDATE monitoring_collection_cycles SET state='COMPLETE',next_action_at=NULL,lease_owner=NULL,lease_token=NULL,lease_until=NULL,updated_at=$4
+		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND monitoring_check_id=$2::uuid AND sequence<$3
+			AND state NOT IN ('COMPLETE','CANCELLED','FAILED')`, tenant, checkID, sequence, at.UTC())
 	if err != nil {
 		return 0, mapPostgresError(err)
 	}

@@ -98,6 +98,7 @@ type CollectionSummary struct {
 	RenewalOpensAt         time.Time            `json:"renewal_opens_at"`
 	NextActionAt           *time.Time           `json:"next_action_at,omitempty"`
 	RemindersSent          int                  `json:"reminders_sent"`
+	Recipient              RecipientRoute       `json:"recipient"`
 	DeliveryState          DeliveryState        `json:"delivery_state"`
 	State                  CollectionCycleState `json:"state"`
 	SafeError              string               `json:"safe_error,omitempty"`
@@ -107,10 +108,12 @@ type CollectionSummary struct {
 type CollectionCycleRepository interface {
 	UpsertCollectionCycle(context.Context, CollectionCycle) (CollectionCycle, error)
 	CollectionCycle(context.Context, string, string) (CollectionCycle, error)
+	CollectionCycleForSequence(context.Context, string, string, int64) (CollectionCycle, error)
 	ClaimDueCollectionCycles(context.Context, string, time.Time, time.Duration, int) ([]CollectionCycle, error)
 	CompleteCollectionAction(context.Context, CollectionCycle, CollectionActionCompletion) (CollectionCycle, error)
 	FailCollectionAction(context.Context, CollectionCycle, string, *time.Time, int, time.Time) (CollectionCycle, error)
 	CancelCollectionCyclesByCheck(context.Context, string, string, time.Time) (int, error)
+	CompleteCollectionCyclesBeforeSequence(context.Context, string, string, int64, time.Time) (int, error)
 	ListCollectionSummaries(context.Context, string, string, int) ([]CollectionSummary, error)
 }
 
@@ -179,7 +182,22 @@ func collectionSummary(value CollectionCycle, generatedAt time.Time) CollectionS
 		MonitoringCheckVersion: value.MonitoringCheckVersion, Sequence: value.Sequence, Policy: value.Policy,
 		CurrentRequestID: value.CurrentRequestID, LatestSubmissionID: value.LatestSubmissionID, LatestSubmittedAt: value.LatestSubmittedAt,
 		ExpiresAt: value.ExpiresAt, RenewalOpensAt: value.RenewalOpensAt, NextActionAt: value.NextActionAt,
-		RemindersSent: value.RemindersSent, DeliveryState: value.DeliveryState, State: value.State, SafeError: value.SafeError,
+		RemindersSent: value.RemindersSent, Recipient: value.Recipient, DeliveryState: value.DeliveryState, State: value.State, SafeError: value.SafeError,
 		GeneratedAt: generatedAt.UTC(),
 	}
+}
+
+func sameCollectionSchedule(left, right CollectionCycle) bool {
+	return left.TenantID == right.TenantID && left.ProgramID == right.ProgramID && left.MonitoringCheckID == right.MonitoringCheckID &&
+		left.MonitoringCheckVersion == right.MonitoringCheckVersion && left.Sequence == right.Sequence && left.Policy == right.Policy &&
+		left.CurrentRequestID == right.CurrentRequestID && left.PredecessorRequestID == right.PredecessorRequestID &&
+		left.LatestSubmissionID == right.LatestSubmissionID && equalOptionalTime(left.LatestSubmittedAt, right.LatestSubmittedAt) &&
+		left.ExpiresAt.Equal(right.ExpiresAt) && left.RenewalOpensAt.Equal(right.RenewalOpensAt) && left.Recipient == right.Recipient
+}
+
+func equalOptionalTime(left, right *time.Time) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	return left.Equal(*right)
 }

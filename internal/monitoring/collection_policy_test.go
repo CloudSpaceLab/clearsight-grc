@@ -92,7 +92,7 @@ func TestServiceRevisesActiveCollectionPolicyThroughMakerChecker(t *testing.T) {
 	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
 	activeAt := now.Add(-24 * time.Hour)
 	form := FormTemplate{
-		ID: "form-1", TenantID: "bank-a", Code: "VENDOR-FORM", Name: "Vendor review", Purpose: "Collect a current vendor response.",
+		ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "VENDOR-FORM", Name: "Vendor review", Purpose: "Collect a current vendor response.",
 		Fields:    []TemplateField{{ID: "answer", Label: "Answer", Type: "text", Required: true}},
 		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 2},
 	}
@@ -110,7 +110,7 @@ func TestServiceRevisesActiveCollectionPolicyThroughMakerChecker(t *testing.T) {
 	}
 	service := NewService(repo, nil)
 	service.now = func() time.Time { return now }
-	maker := Actor{TenantID: "bank-a", PrincipalID: "maker"}
+	maker := Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "maker"}
 	draft, err := service.UpdateCollectionPolicy(context.Background(), maker, UpdateCollectionPolicyInput{
 		ID: active.ID, ExpectedVersion: active.Version, Policy: CollectionPolicy{ValidityMonths: 24, RenewalWindowDays: 45, ReminderCount: 5},
 	})
@@ -132,7 +132,7 @@ func TestServiceRevisesActiveCollectionPolicyThroughMakerChecker(t *testing.T) {
 	if _, err := service.TransitionCheck(context.Background(), maker, TransitionInput{ID: pending.ID, ExpectedVersion: pending.Version, To: LifecycleActive}); !errors.Is(err, ErrMakerChecker) {
 		t.Fatalf("same-maker approval error = %v", err)
 	}
-	approved, err := service.TransitionCheck(context.Background(), Actor{TenantID: "bank-a", PrincipalID: "approver"}, TransitionInput{ID: pending.ID, ExpectedVersion: pending.Version, To: LifecycleActive})
+	approved, err := service.TransitionCheck(context.Background(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "approver"}, TransitionInput{ID: pending.ID, ExpectedVersion: pending.Version, To: LifecycleActive})
 	if err != nil || !approved.IsCurrent || approved.Status != LifecycleActive || approved.CollectionPolicy == nil || approved.CollectionPolicy.ValidityMonths != 24 {
 		t.Fatalf("approved revision = %#v, err = %v", approved, err)
 	}
@@ -143,7 +143,7 @@ func collectionPolicyService(t *testing.T) (*MemoryRepository, *Service, Actor) 
 	repo := NewMemoryRepository()
 	activeAt := time.Date(2026, 9, 1, 9, 0, 0, 0, time.UTC)
 	form := FormTemplate{
-		ID: "form-1", TenantID: "bank-a", Code: "FORM", Name: "Vendor review", Purpose: "Collect a current vendor response.",
+		ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "FORM", Name: "Vendor review", Purpose: "Collect a current vendor response.",
 		Fields:    []TemplateField{{ID: "answer", Label: "Answer", Type: "text", Required: true}},
 		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 2},
 	}
@@ -153,7 +153,7 @@ func collectionPolicyService(t *testing.T) (*MemoryRepository, *Service, Actor) 
 	service := NewService(repo, nil)
 	service.newID = func() (string, error) { return "check-1", nil }
 	service.now = func() time.Time { return time.Date(2026, 9, 3, 10, 0, 0, 0, time.UTC) }
-	return repo, service, Actor{TenantID: "bank-a", PrincipalID: "maker"}
+	return repo, service, Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "maker"}
 }
 
 func formCheckInput(policy *CollectionPolicy) CreateCheckInput {
