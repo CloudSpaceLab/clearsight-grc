@@ -107,6 +107,8 @@ The dedicated Program record keeps calculated state distinct from operating life
 
 Issue and Action reassignment uses one focused sheet that shows the exact work, current responsibility, an authority-returned eligible person and the required reason. Recording the assignment and attempting the assignee email are separate durable outcomes: the assignment remains effective if no usable staff mailbox is available, and the UI states that limitation before submission.
 
+Assigned Action cards present lifecycle and timing as separate states. An open Action whose deadline has passed keeps its lifecycle badge and adds an explicit **Overdue** badge plus the dated elapsed time. Completed or cancelled Actions retain their recorded deadline without being relabelled overdue. Missing or invalid deadlines state that no action deadline is recorded.
+
 Response handling names the actor's exact task. Reviewer, signatory, transmitter, acknowledgement recorder and issue authorizer actions use distinct labels, required basis fields and consequence copy. Sign-off never claims transmission; transmission never claims acknowledgement; authorization never claims that assigned work or an independent outcome check has completed.
 
 Do not default every concept to a dashboard card. Choose lists, rows, details, tables, timelines or focused forms according to the operator's task.
@@ -227,6 +229,8 @@ Every significant component and screen defines:
 - keyboard, focus, 200% zoom and reduced motion.
 
 A disabled control explains why. A visible enabled control must perform a real action.
+
+Deadline recovery never relies on colour alone: overdue work has a text badge, a semantic date-time value and a readable elapsed-time label in both themes.
 
 ## Responsive behavior
 

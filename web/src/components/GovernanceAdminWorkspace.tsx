@@ -230,7 +230,7 @@ export function GovernanceAdminWorkspace({ policies, delegations, eligiblePeople
         {createPolicyDraft && <button type="button" className="secondary-button" disabled={!policyDraftEnabled || busy !== ""} onClick={() => { setError(""); setComposer("policy"); }}>New routing policy</button>}
       </div>}
     </header>
-    {loadState === "loading" && <p role="status">Loading the current legal-entity governance inventory. Changes remain unavailable until the current authority route is confirmed.</p>}
+    {loadState === "loading" && <p role="status">Loading the current legal-entity governance inventory. Changes remain unavailable until the current approval route is confirmed.</p>}
     {loadState === "degraded" && <p role="alert">{degradedReason || "Current approval authority could not be confirmed."} Existing records remain available, but changes are disabled until authority can be confirmed.</p>}
     {loadState === "unavailable" && (policies.length > 0 || delegations.length > 0) && <p role="alert">{degradedReason || "The latest governance inventory could not be loaded."} Previously loaded records remain available, but changes are disabled.</p>}
     {loadState === "unavailable" && policies.length === 0 && delegations.length === 0 && <p role="alert">The current legal-entity governance population could not be loaded. Refresh this page to try again; no changes are available.</p>}

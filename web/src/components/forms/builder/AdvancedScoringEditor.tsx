@@ -59,7 +59,7 @@ export function AdvancedScoringEditor({ mode, profile, fields, templateRevision,
     </div>
 
     <section aria-labelledby="score-contributions-title">
-      <div className="forms-policy-section-heading"><div><h4 id="score-contributions-title">Score contributions</h4><p>Set the points awarded when a response matches one bounded condition.</p></div><Button size="compact" onPress={addContribution} isDisabled={!scoredFields.length || current.contributions.length >= 100}>Add score contribution</Button></div>
+      <div className="forms-policy-section-heading"><div><h4 id="score-contributions-title">Score contributions</h4><p>Set the points awarded when a response matches a condition.</p></div><Button size="compact" onPress={addContribution} isDisabled={!scoredFields.length || current.contributions.length >= 100}>Add score contribution</Button></div>
       {current.contributions.length === 0 && <p className="forms-policy-muted">Add at least one contribution before this score profile can be saved.</p>}
       {current.contributions.map((contribution, index) => <article className="forms-score-rule" key={contribution.id}>
         <div className="forms-score-rule__heading"><strong>{contribution.label || `Contribution ${index + 1}`}</strong><Button variant="quiet" size="compact" onPress={() => onChange({ ...current, contributions: current.contributions.filter((_, itemIndex) => itemIndex !== index) })}>Remove</Button></div>
@@ -94,7 +94,7 @@ export function AdvancedScoringEditor({ mode, profile, fields, templateRevision,
     </section>
 
     <section className="forms-score-preview" aria-labelledby="score-preview-title">
-      <div className="forms-policy-section-heading"><div><h4 id="score-preview-title">Preview stored revision</h4><p>{templateRevision ? `Test revision ${templateRevision.version} without changing a response or Matter.` : "Save this form as a governed revision before requesting a server score preview."}</p></div></div>
+      <div className="forms-policy-section-heading"><div><h4 id="score-preview-title">Preview stored revision</h4><p>{templateRevision ? `Test revision ${templateRevision.version} without changing a response or issue.` : "Save this form before previewing how responses will be scored."}</p></div></div>
       {templateRevision && <div className="forms-policy-control-grid">{scoredFields.map((field) => <PreviewAnswerField key={field.id} field={field} value={answers[field.id] ?? ""} onChange={(value) => setAnswers((currentAnswers) => ({ ...currentAnswers, [field.id]: value }))}/>)}</div>}
       {previewError && <Notice tone="error">{previewError} Check the stored scoring rules and preview answers, then try again.</Notice>}
       {preview && <div className="forms-score-preview__result"><StatusBadge tone={tone(preview.band)}>{title(preview.band)} concern</StatusBadge><strong>{formatScore(preview, mode)}</strong><span>{Math.round(preview.coverage * 100)}% answer coverage{preview.final ? " · final" : " · incomplete"}</span></div>}

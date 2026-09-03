@@ -162,7 +162,7 @@ describe("Program record workspace", () => {
 	expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
 	expect(screen.getByText("Monitoring changes are disabled until current Program responsibilities are available.")).toBeTruthy();
 
-	fireEvent.click(screen.getByRole("button", { name: "Retry responsibilities" }));
+	fireEvent.click(screen.getByRole("button", { name: "Retry assignments" }));
 	expect(await screen.findByRole("button", { name: "Approve Program activation" })).toBeTruthy();
 	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.getByRole("button", { name: "Record new issue" })).toBeTruthy();

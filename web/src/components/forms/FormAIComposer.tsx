@@ -16,7 +16,7 @@ export function FormAIComposer({ baseTemplate, sourceDocument, onProposal, onCan
 
   async function submit() {
     const value = objective.trim();
-    if (!value) { setError("Describe the form to create or the exact change reviewers need."); return; }
+    if (!value) { setError("Describe the form to create or the specific changes reviewers need."); return; }
     setBusy(true);
     setError(null);
     const input: RequestAIFormProposalInput = { objective: value };

@@ -253,7 +253,7 @@ export default function CommunicationsView({ canConfigure = true }: { canConfigu
               <EmptyState
                 population="Communication templates for this legal entity"
                 title="No communication templates"
-                description="Create the first governed draft revision before sending form messages."
+                description="Create the first message-template draft before sending form messages."
               />
             )}
           </section>
@@ -376,7 +376,7 @@ export default function CommunicationsView({ canConfigure = true }: { canConfigu
               <EmptyState
                 population="Communication templates for this legal entity"
                 title="No template is selected"
-                description="Select an existing message template or create the first governed draft."
+                description="Select an existing message template or create the first draft."
                 action={
                   <Button variant="primary" isDisabled={!canChangeConfiguration || Boolean(busy)} onPress={() => setEditorOpen(true)}>
                     Create template
@@ -530,11 +530,10 @@ function ProfileEditor({
     <div className="forms-communication-editor forms-dialog-editor">
       <div className="forms-task-heading">
         <div>
-          <span>New governed revision</span>
+          <span>New profile version</span>
           <h2>Communication profile</h2>
           <p>
-            Saving creates another immutable profile revision with its own
-            effective period.
+            Saving creates a new profile version with its own effective period. Earlier versions remain in history.
           </p>
         </div>
       </div>

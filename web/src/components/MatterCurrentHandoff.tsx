@@ -39,7 +39,7 @@ export function MatterCurrentHandoff({ aggregate, operations, responsibleParties
       <span className="eyebrow">What needs to happen next</span>
       <h2 id="matter-current-handoff-title">Current handoff</h2>
       <h3>{aggregate.next_action}</h3>
-      <p>{operation?.reason ?? "No current responsibility route was returned for this issue."}</p>
+      <p>{operation?.reason ?? "No person or role is currently assigned to this issue."}</p>
       <div className="matter-handoff-facts" aria-label="Current responsibility and timing">
         <span>{ownerLabel} <strong>{owner}</strong></span>
         <span>{formatDate(aggregate.matter.due_at)}</span>

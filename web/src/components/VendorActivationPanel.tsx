@@ -47,7 +47,7 @@ export function VendorActivationPanel({ relationship, onActivated }: { relations
       onActivated(result.relationship);
     } catch (caught) {
       const kind = apiErrorKind(caught);
-      setError(kind === "conflict" ? "The relationship or activation policy changed. Reload the activation checks before continuing." : kind === "validation" ? "One or more activation gates are no longer satisfied. Review the current checks below." : kind === "forbidden" || kind === "unauthorized" ? "Your current authority route does not permit this activation decision." : "The activation command did not complete. The relationship remains unchanged.");
+      setError(kind === "conflict" ? "The relationship or activation policy changed. Reload the activation checks before continuing." : kind === "validation" ? "One or more activation gates are no longer satisfied. Review the current checks below." : kind === "forbidden" || kind === "unauthorized" ? "You are not permitted to record this activation decision." : "The activation command did not complete. The relationship remains unchanged.");
     } finally {
       setBusy(false);
     }

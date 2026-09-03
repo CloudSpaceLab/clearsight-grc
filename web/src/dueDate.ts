@@ -25,3 +25,46 @@ export function storedDeadlineLocalDate(value?: string): string {
     String(stored.getDate()).padStart(2, "0"),
   ].join("-");
 }
+
+export type ActionDeadlinePresentation = {
+  dateTime?: string;
+  label: string;
+  overdue: boolean;
+};
+
+const dayMilliseconds = 86_400_000;
+
+function localCalendarDay(value: Date): number {
+  return Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()) / dayMilliseconds;
+}
+
+export function actionDeadlinePresentation(
+  value: string | undefined,
+  terminal: boolean,
+  now = new Date(Date.now()),
+): ActionDeadlinePresentation {
+  if (!value) return { label: "No action deadline", overdue: false };
+
+  const due = new Date(value);
+  if (!Number.isFinite(due.valueOf())) return { label: "No action deadline", overdue: false };
+
+  const dateTime = due.toISOString();
+  const formattedDate = `${due.getDate()} ${new Intl.DateTimeFormat("en-US", {
+    month: "short",
+  }).format(due)} ${due.getFullYear()}`;
+
+  if (terminal || due.valueOf() >= now.valueOf()) {
+    return { dateTime, label: `Due ${formattedDate}`, overdue: false };
+  }
+
+  const elapsedDays = Math.max(0, localCalendarDay(now) - localCalendarDay(due));
+  const elapsedLabel = elapsedDays === 0
+    ? "overdue today"
+    : `${elapsedDays} day${elapsedDays === 1 ? "" : "s"} overdue`;
+
+  return {
+    dateTime,
+    label: `Due ${formattedDate} · ${elapsedLabel}`,
+    overdue: true,
+  };
+}
