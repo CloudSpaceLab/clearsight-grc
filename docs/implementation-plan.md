@@ -7,7 +7,7 @@
 
 The operator paused further implementation on 3 September 2026. The [remaining-issue closure plan](superpowers/plans/2026-09-03-remaining-issue-closure.md) is the resume sequence for #137–143, #147 and #128; the [open-issue audit](evidence/2026-09-03-open-issue-audit.md) separates delivered foundations from missing outcomes across all 14 open issues. #144, #145 and #146 are already closed with hosted evidence, and #124 is closed.
 
-Local commit `c88c26004e1df57563a0d062f7978af69453431e` adds a narrow #141 reporting-chain/owner-fallback safety correction. Targeted PostgreSQL and HTTP regressions passed; independent review, clean-database full release gates, push, merge and deployment remain outstanding. It does not complete hierarchy configuration, escalation or scoring-policy acceptance. Resume with review of that commit, not a claim that it is released. Broader #13/#57/#74/#80/#172 scope retains its own acceptance boundaries. No unattended continuation is requested.
+Commit `c88c26004e1df57563a0d062f7978af69453431e` adds a narrow #141 reporting-chain/owner-fallback safety correction. At the pause checkpoint, targeted PostgreSQL and HTTP regressions had passed but independent review and full release gates remained outstanding. The operator subsequently authorized review and safe merge of those existing commits only; #141 and its linked PR carry the resulting release evidence. The correction does not complete hierarchy configuration, escalation or scoring-policy acceptance. Broader #13/#57/#74/#80/#172 scope retains its own acceptance boundaries. No unattended feature continuation is requested.
 
 ## Stored runtime truth — implemented, integration verification in progress
 

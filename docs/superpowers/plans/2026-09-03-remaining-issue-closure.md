@@ -1,6 +1,6 @@
 # Remaining Issue Closure Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Execution is **paused by the operator**; do not resume from this document without a new request.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Broad implementation is **paused by the operator**. The subsequent request permits review and safe merge of the existing correction/documentation only; do not resume the remaining features from this document without a new request.
 
 **Goal:** Complete the remaining V1 outcomes, reconcile every open issue with evidence, and retain broader roadmap issues until their own scope and acceptance are satisfied.
 
@@ -14,7 +14,7 @@
 
 - Audited main: `bbe7397423d69894c8fa6a6f063477bf0ffd7795`.
 - Isolated checkout: `C:\dev\pr158-review`, branch `codex/governed-hierarchy-v1`.
-- Local implementation commit: `c88c26004e1df57563a0d062f7978af69453431e` — malformed reporting-chain denial and current-owner fallback correction. **Not pushed, independently reviewed, merged or deployed.**
+- Implementation commit: `c88c26004e1df57563a0d062f7978af69453431e` — malformed reporting-chain denial and current-owner fallback correction. **At the pause checkpoint it was not pushed, independently reviewed, merged or deployed.** Subsequent review/merge evidence belongs to the focused PR linked from #141; do not infer release from the checkpoint alone.
 - Root checkout `C:\dev\clearsight-grc` is dirty on `codex/vendor-management`. Preserve it and all other worktrees.
 - #176 is merged; #180 and #124 are closed. Do not redo that reconciliation.
 - #144, #145 and #146 are closed with hosted evidence. Their #128 checkboxes were corrected on 3 September. Historical evidence is not a new current-head acceptance result.
@@ -218,4 +218,4 @@ At the stop request, the local safety commit had these results:
 
 Two disposable local databases were created in WSL Docker container `clearsight-hierarchy-test-pg18`: `clearsight_hierarchy` (contains test leftovers) and `clearsight_v1_verify` (fresh migrations, not yet used for the full gate). Stop the container on pause; it may be restarted explicitly for verification. Do not reuse the contaminated database as clean-install evidence and do not touch the unrelated `hostshell-postgres` container.
 
-No implementation should continue while this pause is in effect. Resume at Task A; the remaining tasks are not marked complete by this planning commit.
+No new feature implementation should continue while this pause is in effect. The operator subsequently authorized safe merge of the existing commits; check #141 and its linked PR for Task A's latest release evidence. The remaining tasks are not marked complete by this planning commit or by release of that prerequisite.
