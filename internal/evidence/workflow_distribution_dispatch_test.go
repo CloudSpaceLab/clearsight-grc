@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 )
@@ -34,7 +35,7 @@ func TestWorkflowDistributionDispatcherIssuesRedeemableCanonicalRoute(t *testing
 		Fields: requestFieldsFromContract(activeDistributionForm().Fields), FormTemplateID: "form-a", FormTemplateVersion: 3,
 		Origin: RequestOrigin{Type: "THIRD_PARTY_ASSESSMENT", ID: "assessment-a", Version: 1}, CreatedBy: "actor-a",
 	}
-	result, err := dispatcher.Dispatch(context.Background(), WorkflowDistributionDispatchInput{
+	result, err := dispatcher.Dispatch(WithRequestOriginAuthority(context.Background(), requestInput.Origin.Type), WorkflowDistributionDispatchInput{
 		Request: requestInput, AccessPolicy: AccessDirectMagicLink, RouteExpiresAt: now.Add(24 * time.Hour), AudienceHint: "v***@example.test",
 	})
 	if err != nil {
@@ -67,5 +68,31 @@ func TestWorkflowDistributionDispatcherIssuesRedeemableCanonicalRoute(t *testing
 	}
 	if _, err := access.RedeemDirectRoute(context.Background(), replacement.Route.Selector); err == nil {
 		t.Fatal("revoking request capabilities left the replacement route usable")
+	}
+}
+
+func TestWorkflowDistributionDispatcherRejectsUnownedReservedOrigin(t *testing.T) {
+	now := time.Date(2026, 9, 3, 9, 0, 0, 0, time.UTC)
+	keyring, err := NewRecipientKeyring("recipient-v1", map[string][32]byte{"recipient-v1": testSecurityKey(0x31)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo := NewMemoryRepository(nil, nil)
+	store := NewMemoryDistributionStore(repo, stubDistributionFormReader{form: activeDistributionForm()}, keyring)
+	dispatcher := NewWorkflowDistributionDispatcher(NewDistributionService(store), &DistributionAccessService{store: NewMemoryDistributionAccessStore(store)})
+	form := activeDistributionForm()
+	_, err = dispatcher.Dispatch(context.Background(), WorkflowDistributionDispatchInput{
+		Request: CreateRequestInput{
+			TenantID: "tenant-a", LegalEntityID: "entity-a", SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "subject-a",
+			Title: "Complete vendor registration", Purpose: "Collect registration evidence.", WhyYou: "You are the vendor contact.", Sensitivity: "CONFIDENTIAL",
+			AudienceType: "VENDOR", Recipient: RecipientInput{Type: RecipientExternalAudience, Audience: "vendor@example.test"}, EstimatedMinutes: 5,
+			Deadline: now.Add(48 * time.Hour), Presentation: form.Presentation, Sections: form.Sections,
+			Fields: requestFieldsFromContract(form.Fields), FormTemplateID: "form-a", FormTemplateVersion: 3,
+			Origin: RequestOrigin{Type: "THIRD_PARTY_WORK", ID: "work-a", Version: 1}, CreatedBy: "actor-a",
+		},
+		AccessPolicy: AccessDirectEmailOTP, RouteExpiresAt: now.Add(24 * time.Hour),
+	})
+	if err == nil || !strings.Contains(err.Error(), "request origin is reserved") {
+		t.Fatalf("unowned reserved request origin error = %v", err)
 	}
 }

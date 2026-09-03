@@ -39,6 +39,9 @@ func (service *WorkflowDistributionDispatcher) Dispatch(ctx context.Context, inp
 	if requestInput.Recipient.Type != RecipientExternalAudience || strings.TrimSpace(requestInput.Recipient.Audience) == "" || requestInput.Origin.empty() {
 		return WorkflowDistributionDispatch{}, fmt.Errorf("%w: external workflow request, recipient and origin are required", ErrDistributionInvalid)
 	}
+	if !requestOriginAllowed(ctx, requestInput.Origin) {
+		return WorkflowDistributionDispatch{}, fmt.Errorf("request origin is reserved for its owning workflow")
+	}
 	hint := strings.TrimSpace(input.AudienceHint)
 	if hint == "" {
 		hint = audienceHint(normalizeAudience(requestInput.Recipient.Audience))
