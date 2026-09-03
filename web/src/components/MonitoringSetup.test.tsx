@@ -132,7 +132,8 @@ describe("monitoring setup", () => {
 
   it("adds the recommended expiry and reminder policy to a Program collection", async () => {
     const form = {
-      id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards", fields: [],
+      id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards",
+      fields: [{ id: "identity", label: "Was identity verified?", type: "yes_no" as const, required: true, options: ["Yes", "No"], scoring: { id: "identity", required: true, weight: 100, answer_scores: { Yes: 0, No: 100 } } }],
       status: "ACTIVE" as const, is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
     };
     vi.mocked(loadFormTemplates).mockResolvedValue([form]);
@@ -392,7 +393,7 @@ describe("monitoring setup", () => {
     render(<MonitoringSetup aggregate={program} actorPrincipalID="reviewer-1" canConfigureSources={false} operations={[operation]}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Approve check" }));
 
-    await waitFor(() => expect(transitionMonitoringCheck).toHaveBeenCalledWith(pending.id, 10, "ACTIVE"));
+    await waitFor(() => expect(transitionMonitoringCheck).toHaveBeenCalledWith(pending.id, 10, "ACTIVE", undefined));
     expect(screen.getByRole("heading", { name: "Pending check" }).nextElementSibling?.textContent).toContain("Active");
   });
 
