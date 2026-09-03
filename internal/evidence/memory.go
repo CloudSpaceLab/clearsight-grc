@@ -10,18 +10,19 @@ import (
 )
 
 type MemoryRepository struct {
-	mu           sync.RWMutex
-	sources      map[string]Source
-	observations map[string]SourceObservation
-	requests     map[string]Request
-	submissions  map[string]Submission
-	invitations  map[string]Invitation
-	sessions     map[string]Session
-	artifacts    map[string]Artifact
+	mu             sync.RWMutex
+	sources        map[string]Source
+	observations   map[string]SourceObservation
+	requests       map[string]Request
+	requestOrigins map[string]string
+	submissions    map[string]Submission
+	invitations    map[string]Invitation
+	sessions       map[string]Session
+	artifacts      map[string]Artifact
 }
 
 func NewMemoryRepository(sources []Source, requests []Request) *MemoryRepository {
-	repo := &MemoryRepository{sources: map[string]Source{}, observations: map[string]SourceObservation{}, requests: map[string]Request{}, submissions: map[string]Submission{}, invitations: map[string]Invitation{}, sessions: map[string]Session{}, artifacts: map[string]Artifact{}}
+	repo := &MemoryRepository{sources: map[string]Source{}, observations: map[string]SourceObservation{}, requests: map[string]Request{}, requestOrigins: map[string]string{}, submissions: map[string]Submission{}, invitations: map[string]Invitation{}, sessions: map[string]Session{}, artifacts: map[string]Artifact{}}
 	for _, source := range sources {
 		repo.sources[source.ID] = source
 	}
@@ -30,6 +31,9 @@ func NewMemoryRepository(sources []Source, requests []Request) *MemoryRepository
 		request.Fields = cloneFields(request.Fields)
 		request.SourceBindings = cloneRequestBindings(request.SourceBindings)
 		repo.requests[request.ID] = request
+		if request.Origin != nil {
+			repo.requestOrigins[requestOriginKey(request.TenantID, *request.Origin)] = request.ID
+		}
 	}
 	return repo
 }
@@ -113,14 +117,7 @@ func (r *MemoryRepository) EvaluateSourceHealth(_ context.Context, now time.Time
 func (r *MemoryRepository) CreateRequest(_ context.Context, value Request) (Request, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if !value.Deadline.After(value.CreatedAt) {
-		return Request{}, ErrRequestClosed
-	}
-	value.KnownFacts = cloneMap(value.KnownFacts)
-	value.Fields = cloneFields(value.Fields)
-	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
-	r.requests[value.ID] = value
-	return cloneRequest(value), nil
+	return r.createRequestLocked(value)
 }
 
 func (r *MemoryRepository) ListRequests(_ context.Context, tenant string, limit int) ([]Request, error) {
@@ -317,6 +314,7 @@ func cloneRequest(value Request) Request {
 	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
 	value.CollectionPeriodStart = cloneTimePointer(value.CollectionPeriodStart)
 	value.CollectionPeriodEnd = cloneTimePointer(value.CollectionPeriodEnd)
+	value.Origin = cloneRequestOrigin(value.Origin)
 	return value
 }
 

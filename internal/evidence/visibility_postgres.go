@@ -17,8 +17,7 @@ func (r *PostgresRepository) ListManageableRequests(ctx context.Context, tenant,
 
 func (r *PostgresRepository) listActorRequests(ctx context.Context, tenant, principal string, limit int, includeCreated bool) ([]Request, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT er.id::text,t.id::text,er.subject_type,er.subject_id,er.title,er.purpose,er.why_you,er.sensitivity,er.audience_type,
-		       er.estimated_minutes,er.deadline,er.known_facts,er.fields,er.source_bindings,COALESCE(er.form_template_id::text,''),COALESCE(er.form_template_version,0),er.collection_period_start,er.collection_period_end,er.status,COALESCE(er.created_by::text,''),er.version,er.created_at,er.updated_at,
+		SELECT `+requestSelectColumns+`,
 		       COALESCE(er.recipient_type,''),COALESCE(er.recipient_principal_id::text,''),COALESCE(er.recipient_audience_hash,''::bytea),er.recipient_hint,
 		       er.recipient_state,er.recipient_revision,er.recipient_issue_reason
 		FROM capture_requests er
@@ -79,11 +78,14 @@ func (r *PostgresRepository) listActorRequests(ctx context.Context, tenant, prin
 func scanRequestWithRecipient(row scanner) (Request, error) {
 	var value Request
 	var facts, fields, sourceBindings []byte
+	var originType, originID string
+	var originSequence int64
 	var recipientType, principalID, hint, state, issueReason string
 	var audienceHash []byte
 	if err := row.Scan(
 		&value.ID, &value.TenantID, &value.SubjectType, &value.SubjectID, &value.Title, &value.Purpose, &value.WhyYou, &value.Sensitivity, &value.AudienceType,
 		&value.EstimatedMinutes, &value.Deadline, &facts, &fields, &sourceBindings, &value.FormTemplateID, &value.FormTemplateVersion, &value.CollectionPeriodStart, &value.CollectionPeriodEnd, &value.Status, &value.CreatedBy, &value.Version, &value.CreatedAt, &value.UpdatedAt,
+		&originType, &originID, &originSequence, &value.PredecessorRequestID,
 		&recipientType, &principalID, &audienceHash, &hint, &state, &value.Recipient.Revision, &issueReason,
 	); err != nil {
 		return Request{}, err
@@ -95,6 +97,11 @@ func scanRequestWithRecipient(row scanner) (Request, error) {
 		return Request{}, err
 	}
 	if err := json.Unmarshal(sourceBindings, &value.SourceBindings); err != nil {
+		return Request{}, err
+	}
+	var err error
+	value.Origin, err = requestOriginFromDatabase(originType, originID, originSequence)
+	if err != nil {
 		return Request{}, err
 	}
 	value.Recipient = Recipient{

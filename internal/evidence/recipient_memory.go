@@ -17,14 +17,7 @@ func (r *MemoryRepository) CanReadSubject(_ context.Context, tenant, principalID
 func (r *MemoryRepository) CreateRequestWithRecipient(_ context.Context, value Request) (Request, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if !value.Deadline.After(value.CreatedAt) {
-		return Request{}, ErrRequestClosed
-	}
-	value.KnownFacts = cloneMap(value.KnownFacts)
-	value.Fields = cloneFields(value.Fields)
-	value.Recipient = cloneRecipient(value.Recipient)
-	r.requests[value.ID] = value
-	return cloneRequest(value), nil
+	return r.createRequestLocked(value)
 }
 
 func (r *MemoryRepository) GetRequestRecipient(_ context.Context, tenant, requestID string) (Recipient, error) {
