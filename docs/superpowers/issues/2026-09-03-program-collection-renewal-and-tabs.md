@@ -6,7 +6,7 @@
 
 **Design:** `../specs/2026-09-03-program-collection-renewal-and-tabs-design.md`
 
-**Implementation plan:** Not written until the approved written specification passes user review
+**Implementation plan:** `../plans/2026-09-03-program-collection-renewal-and-tabs.md`
 
 ## Outcome tracker
 
@@ -234,6 +234,7 @@ Add only the provider-neutral resolver/delivery interface needed by this workflo
 | 2026-09-03 | Inspected current Monitoring form/check models, APIs, Program detail composition, collection creation and supplied before-state screenshot. |
 | 2026-09-03 | User approved Program-linked policy, pre-expiry renewal, 30-day/3-reminder defaults, six Program sections, unified collection display and latest respondent submission details. |
 | 2026-09-03 | Written design and issue tracker created. No production code or migration changed. |
+| 2026-09-03 | User approved the written specification. A test-first implementation plan was added and linked; production code remains unchanged by the planning step. |
 
 ## Verification log
 
