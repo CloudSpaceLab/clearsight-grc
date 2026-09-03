@@ -395,8 +395,10 @@ func (a *API) canReassignStoredResponsibility(ctx context.Context, actor identit
 	if currentOwnerID == "" {
 		return access.ReassignmentDecision{}, false
 	}
-	if actor.PrincipalID == currentOwnerID {
-		return access.ReassignmentDecision{Allowed: true, Basis: "CURRENT_ASSIGNEE"}, true
+	// The current responsibility route has already denied this operation.
+	// ID equality cannot restore owner authority through manager fallback.
+	if strings.TrimSpace(actor.PrincipalID) == currentOwnerID {
+		return access.ReassignmentDecision{}, true
 	}
 	resolver, ok := a.deps.Access.(access.ReassignmentResolver)
 	if !ok {

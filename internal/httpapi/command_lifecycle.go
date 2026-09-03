@@ -911,7 +911,7 @@ func (a *API) validateReassignmentActor(ctx context.Context, tenant, legalEntity
 	}
 	// The owner route has already denied this actor. Reporting-manager
 	// fallback must not restore revoked owner authority through ID equality.
-	if actor.PrincipalID == strings.TrimSpace(storedPrincipalID) {
+	if strings.TrimSpace(actor.PrincipalID) == strings.TrimSpace(storedPrincipalID) {
 		return false, err
 	}
 	decision, resolveErr := resolver.CanReassign(ctx, access.ReassignmentRequest{
