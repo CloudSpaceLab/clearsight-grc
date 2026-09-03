@@ -101,18 +101,30 @@ func TestVendorWorkCanonicalAccessRouteMigrationRemovesLegacyInvitationProof(t *
 	if err != nil {
 		t.Fatal(err)
 	}
+	down, err := os.ReadFile("../../migrations/000074_vendor_work_canonical_access_routes.down.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
 	schema := string(up)
 	for _, required := range []string{
 		"BEGIN;", "COMMIT;",
 		"third_party_work_requests_access_route_fk",
 		"third_party_work_capture_links_access_route_fk",
-		"REFERENCES capture_access_routes(id,tenant_id)",
+		"access_route_id uuid",
+		"validate_vendor_work_access_route_proof",
+		"REFERENCES third_party_work_invitation_reservations(access_route_id,tenant_id,request_id)",
 		"UPDATE third_party_work_requests SET current_invitation_id=NULL",
 		"UPDATE third_party_work_capture_links SET invitation_id=NULL",
 	} {
 		if !strings.Contains(schema, required) {
 			t.Fatalf("canonical vendor-work route migration missing %q", required)
 		}
+	}
+	if strings.Contains(string(down), "UPDATE third_party_work_requests SET current_invitation_id=NULL") || strings.Contains(string(down), "UPDATE third_party_work_capture_links SET invitation_id=NULL") {
+		t.Fatal("canonical route rollback must not erase vendor-work audit associations")
+	}
+	if !strings.Contains(string(down), "cannot roll back canonical vendor-work access routes") {
+		t.Fatal("canonical route rollback must fail closed while route associations exist")
 	}
 }
 

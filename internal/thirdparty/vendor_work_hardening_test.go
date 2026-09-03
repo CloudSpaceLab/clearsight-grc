@@ -140,13 +140,13 @@ func (r *failedVendorWorkDeliveryRepository) GetVendorWork(ctx context.Context, 
 
 type revocationTrackingVendorWorkDispatcher struct {
 	vendorWorkDispatcher
-	revokedRequests int
+	revokedRequests []string
 	revokeFailures  int
 	issued          []evidence.IssuedAccessRoute
 }
 
 func (s *revocationTrackingVendorWorkDispatcher) RevokeRequestCapabilities(ctx context.Context, tenantID, requestID string) error {
-	s.revokedRequests++
+	s.revokedRequests = append(s.revokedRequests, requestID)
 	if s.revokeFailures > 0 {
 		s.revokeFailures--
 		return errors.New("capability revocation unavailable")
@@ -178,8 +178,8 @@ func TestSendVendorWorkReturnsRecoverableStateWhenInvitationPersistenceIsAmbiguo
 	if err != nil {
 		t.Fatalf("recoverable send = %v", err)
 	}
-	if outcome.State != VendorWorkDeliveryRetryRequired || outcome.Work.DeliveryState != VendorWorkDeliveryRetryRequired || outcome.CaptureURL != "" || tracking.revokedRequests != 1 {
-		t.Fatalf("recoverable invitation outcome = %#v, revocations=%d", outcome, tracking.revokedRequests)
+	if outcome.State != VendorWorkDeliveryRetryRequired || outcome.Work.DeliveryState != VendorWorkDeliveryRetryRequired || outcome.CaptureURL != "" || len(tracking.revokedRequests) != 1 {
+		t.Fatalf("recoverable invitation outcome = %#v, revocations=%v", outcome, tracking.revokedRequests)
 	}
 }
 
@@ -227,8 +227,8 @@ func TestSendVendorWorkDurablyReservesInvitationBeforeIssueWhenFinalizationAndRe
 	if len(tracking.issued) != 1 || failed.Work.PendingInvitationID == "" || failed.Work.PendingInvitationID != tracking.issued[0].RouteID || failed.Work.PendingInvitationRequestID != prepared.CurrentRequestID {
 		t.Fatalf("reserved invitation outcome=%#v issued=%#v", failed, tracking.issued)
 	}
-	if failed.State != VendorWorkDeliveryRetryRequired || failed.CaptureURL != "" || tracking.revokedRequests != 1 {
-		t.Fatalf("failed finalization outcome=%#v revocations=%d", failed, tracking.revokedRequests)
+	if failed.State != VendorWorkDeliveryRetryRequired || failed.CaptureURL != "" || len(tracking.revokedRequests) != 1 {
+		t.Fatalf("failed finalization outcome=%#v revocations=%v", failed, tracking.revokedRequests)
 	}
 
 	recovered, err := fixture.service.Retry(context.Background(), fixture.actor, prepared.ID, RetryVendorWorkInput{ExpectedVersion: failed.Work.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60})
@@ -317,8 +317,36 @@ func TestRequestVendorWorkChangesReturnsRecoveryWhenPostCommitSendReadFails(t *t
 		t.Fatalf("fallback delivery outcome = %#v", outcome)
 	}
 	stored, readErr := fixture.repository.GetVendorWork(context.Background(), scopeFrom(fixture.actor), reviewing.ID)
-	if readErr != nil || stored.State != VendorWorkChangesRequested {
+	if readErr != nil || stored.State != VendorWorkChangesRequested || stored.DeliveryState != VendorWorkDeliveryRetryRequired || stored.Recovery == "" {
 		t.Fatalf("stored clarification = %#v err=%v", stored, readErr)
+	}
+	evidenceFailure.failOriginRead = false
+	retried, retryErr := fixture.service.Retry(context.Background(), fixture.actor, stored.ID, RetryVendorWorkInput{
+		ExpectedVersion: stored.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60,
+	})
+	if retryErr != nil || retried.Work.DeliveryState == VendorWorkDeliveryRetryRequired || retried.Work.CurrentInvitationID == "" {
+		t.Fatalf("retry committed clarification = %#v err=%v", retried, retryErr)
+	}
+}
+
+func TestRequestVendorWorkChangesRevokesPreviousRequestBeforeReplacement(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	prepared, reviewing := vendorWorkUnderReview(t, fixture)
+	tracking := &revocationTrackingVendorWorkDispatcher{vendorWorkDispatcher: fixture.dispatcher}
+	fixture.service.dispatch = tracking
+
+	outcome, err := fixture.service.RequestChanges(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}, reviewing.ID, RequestVendorWorkChangesInput{
+		ExpectedVersion: reviewing.Version, Message: "Confirm the updated service owner.", FieldIDs: []string{"service_current"},
+		VendorAudience: "replacement@vendor.example", DueAt: fixture.now.Add(5 * 24 * time.Hour), InvitationTTLMinutes: 60,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tracking.revokedRequests) == 0 || tracking.revokedRequests[0] != prepared.CurrentRequestID {
+		t.Fatalf("revoked requests = %v, want predecessor %q", tracking.revokedRequests, prepared.CurrentRequestID)
+	}
+	if outcome.Work.CurrentRequestID == prepared.CurrentRequestID || outcome.Work.CurrentInvitationID == "" {
+		t.Fatalf("replacement clarification = %#v", outcome)
 	}
 }
 

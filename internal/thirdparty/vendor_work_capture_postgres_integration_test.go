@@ -92,6 +92,31 @@ func TestPostgresVendorWorkUsesCanonicalOTPRouteAndSubmitsAfterAutosave(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
+	mismatched, err := dispatcher.Dispatch(evidence.WithRequestOriginAuthority(ctx, VendorWorkOrigin), evidence.WorkflowDistributionDispatchInput{
+		Request: evidence.CreateRequestInput{
+			TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA,
+			SubjectType: "VENDOR_RELATIONSHIP", SubjectID: relationship.Relationship.ID,
+			Title: "Unrelated vendor clarification", Purpose: work.Purpose, WhyYou: work.Instructions,
+			Sensitivity: "INTERNAL", AudienceType: "VENDOR",
+			Recipient:        evidence.RecipientInput{Type: evidence.RecipientExternalAudience, Audience: "other@vendor.example"},
+			EstimatedMinutes: 5, Deadline: work.DueAt,
+			Origin:       evidence.RequestOrigin{Type: VendorWorkOrigin, ID: work.ID, Version: 2},
+			Presentation: evidenceAssessmentPresentation(), Sections: []formcontract.Section{{ID: "company", Title: "Company details"}},
+			Fields:         []evidence.Field{{ID: "confirmed", SectionID: "company", Label: "Confirm the supplied details", Type: string(formcontract.TypeYesNo), Required: true}},
+			FormTemplateID: assessmentTemplateID, FormTemplateVersion: 3, CreatedBy: thirdPartyPrincipal,
+		},
+		AccessPolicy: evidence.AccessDirectEmailOTP, RouteExpiresAt: now.Add(time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.ReserveVendorWorkInvitation(ctx, Scope{TenantID: work.TenantID, LegalEntityID: work.LegalEntityID}, work.ID, work.Version, mismatched.Route.RouteID, now); err == nil {
+		t.Fatal("route for a different request was accepted as vendor-work proof")
+	}
+	unchanged, err := repository.GetVendorWork(ctx, Scope{TenantID: work.TenantID, LegalEntityID: work.LegalEntityID}, work.ID)
+	if err != nil || unchanged.Version != work.Version || unchanged.PendingInvitationID != "" {
+		t.Fatalf("mismatched route changed vendor work = %#v err=%v", unchanged, err)
+	}
 	work, err = repository.ReserveVendorWorkInvitation(ctx, Scope{TenantID: work.TenantID, LegalEntityID: work.LegalEntityID}, work.ID, work.Version, replacement.Route.RouteID, now)
 	if err != nil {
 		t.Fatal(err)

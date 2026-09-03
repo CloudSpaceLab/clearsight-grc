@@ -835,6 +835,14 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 		}
 	}
 	form.Sections = sections
+	if work.CurrentRequestID != "" {
+		if s.dispatch == nil {
+			return VendorWorkSendOutcome{}, evidence.ErrDistributionAccessUnavailable
+		}
+		if err := s.dispatch.RevokeRequestCapabilities(ctx, work.TenantID, work.CurrentRequestID); err != nil {
+			return VendorWorkSendOutcome{}, err
+		}
+	}
 	sequence := work.CurrentCaptureSequence + 1
 	request, err := s.ensureCaptureRequest(ctx, actor, work, form, input.VendorAudience, input.Message, input.DueAt.UTC(), sequence)
 	if err != nil {
@@ -860,7 +868,14 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 		return outcome, nil
 	}
 	recovery := "The clarification was recorded, but secure delivery could not be prepared. Retry sending from this request."
-	updated.DeliveryState, updated.Recovery = VendorWorkDeliveryRetryRequired, recovery
+	persisted, persistErr := s.repo.MarkVendorWorkSent(ctx, scopeFrom(actor), updated.ID, updated.Version, "", VendorWorkDeliveryRetryRequired, recovery, s.now().UTC())
+	if persistErr == nil {
+		updated = persisted
+	} else if stored, readErr := s.repo.GetVendorWork(ctx, scopeFrom(actor), updated.ID); readErr == nil && stored.Version == updated.Version+1 && stored.DeliveryState == VendorWorkDeliveryRetryRequired && stored.Recovery == recovery {
+		updated = stored
+	} else {
+		updated.DeliveryState, updated.Recovery = VendorWorkDeliveryRetryRequired, recovery
+	}
 	return VendorWorkSendOutcome{Work: updated, State: VendorWorkDeliveryRetryRequired, Recovery: recovery}, nil
 }
 
@@ -1105,7 +1120,8 @@ func (s *VendorWorkService) Retry(ctx context.Context, actor Actor, workID strin
 		}
 		return s.sendCurrent(ctx, actor, prepared, input.VendorAudience, input.InvitationTTLMinutes)
 	}
-	if work.CurrentRequestID == "" || (work.DeliveryState != VendorWorkDeliveryLinkAvailable && work.DeliveryState != VendorWorkDeliveryRetryRequired) || (work.State != VendorWorkPreparing && work.State != VendorWorkAwaitingVendor && work.State != VendorWorkChangesRequested) {
+	retryableUnsentClarification := work.State == VendorWorkChangesRequested && work.DeliveryState == VendorWorkDeliveryNotSent
+	if work.CurrentRequestID == "" || (!retryableUnsentClarification && work.DeliveryState != VendorWorkDeliveryLinkAvailable && work.DeliveryState != VendorWorkDeliveryRetryRequired) || (work.State != VendorWorkPreparing && work.State != VendorWorkAwaitingVendor && work.State != VendorWorkChangesRequested) {
 		return VendorWorkSendOutcome{}, ErrInvalidAssessmentTransition
 	}
 	if work.CurrentRequestID != "" {
