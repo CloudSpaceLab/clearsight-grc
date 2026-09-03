@@ -1,10 +1,12 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import type { SystemActivityActorKind, SystemActivityCategory, SystemActivityEvent, SystemActivityQuery } from "../../operationsTypes";
-import { loadSystemActivity } from "../../systemActivityApi";
-import { Button, DataTable, EmptyState, FilterBar, Notice, SearchField, SelectField, StatusBadge, TextField, type DataColumn, type StatusTone } from "../ui";
+import { loadContext } from "../../api";
+import type { AuditExportFormat, SystemActivityActorKind, SystemActivityCategory, SystemActivityEvent, SystemActivityQuery } from "../../operationsTypes";
+import { createAuditExport, downloadAuditExport, loadSystemActivity } from "../../systemActivityApi";
+import { Button, DataTable, EmptyState, FilterBar, FocusedDialog, Notice, SearchField, SelectField, StatusBadge, TextField, type DataColumn, type StatusTone } from "../ui";
 
 type Mode = "activity" | "audit";
 type LoadState = "loading" | "live" | "unavailable";
+type ExportState = "idle" | "creating" | "downloading" | "error";
 
 type Filters = {
   actor: string;
@@ -47,6 +49,11 @@ const categoryOptions = [
   { id: "SYSTEM", label: "System" },
   { id: "OTHER", label: "Other" },
 ] satisfies ReadonlyArray<{ id: SystemActivityCategory; label: string }>;
+
+const exportFormatOptions = [
+  { id: "CSV", label: "CSV", description: "Best for spreadsheet review and ordinary audit evidence." },
+  { id: "NDJSON", label: "NDJSON", description: "Machine-readable newline-delimited JSON for archival or analysis." },
+] satisfies ReadonlyArray<{ id: AuditExportFormat; label: string; description: string }>;
 
 function localDateTimeInput(value: Date): string {
   const pad = (part: number) => String(part).padStart(2, "0");
@@ -92,6 +99,18 @@ function outcomeTone(outcome: SystemActivityEvent["outcome"]): StatusTone {
   }
 }
 
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.style.display = "none";
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 const columns: readonly DataColumn<SystemActivityEvent>[] = [
   {
     id: "time",
@@ -133,6 +152,11 @@ export function SystemActivityPanel({ mode }: { mode: Mode }) {
   const [nextCursor, setNextCursor] = useState("");
   const [asOf, setAsOf] = useState("");
   const [state, setState] = useState<LoadState>("loading");
+  const [canExport, setCanExport] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<AuditExportFormat>("CSV");
+  const [exportState, setExportState] = useState<ExportState>("idle");
+  const [exportNotice, setExportNotice] = useState<{ tone: "info" | "error"; text: string }>();
 
   const query = useMemo<SystemActivityQuery>(() => ({
     from: toRFC3339(applied.from),
@@ -162,6 +186,14 @@ export function SystemActivityPanel({ mode }: { mode: Mode }) {
   }, [query]);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (mode !== "audit") return;
+    let active = true;
+    void loadContext()
+      .then((context) => { if (active) setCanExport(context.capabilities?.audit_export === true); })
+      .catch(() => { if (active) setCanExport(false); });
+    return () => { active = false; };
+  }, [mode]);
 
   function applyFilters(event: FormEvent) {
     event.preventDefault();
@@ -174,6 +206,24 @@ export function SystemActivityPanel({ mode }: { mode: Mode }) {
     setApplied(next);
   }
 
+  async function exportAudit() {
+    setExportState("creating");
+    setExportNotice(undefined);
+    try {
+      const receipt = await createAuditExport(exportFormat, query);
+      setExportState("downloading");
+      const file = await downloadAuditExport(receipt.id);
+      const extension = receipt.format === "NDJSON" ? "ndjson" : "csv";
+      saveBlob(file.blob, file.filename ?? `clearsight-audit-${receipt.id}.${extension}`);
+      setExportOpen(false);
+      setExportState("idle");
+      setExportNotice({ tone: "info", text: `Exported ${receipt.row_count} ${receipt.row_count === 1 ? "event" : "events"} through ${new Date(receipt.as_of).toLocaleString()}. The export expires ${new Date(receipt.expires_at).toLocaleString()}.` });
+    } catch (error) {
+      setExportState("error");
+      setExportNotice({ tone: "error", text: error instanceof Error ? error.message : "The audit export could not be generated." });
+    }
+  }
+
   const title = mode === "activity" ? "Recent activity" : "Audit log";
   const description = mode === "activity"
     ? "A bounded view of recently committed system and business activity. Open the owning record to act on it."
@@ -184,9 +234,12 @@ export function SystemActivityPanel({ mode }: { mode: Mode }) {
       <div><h3 id={`${mode}-events-heading`}>{title}</h3><p>{description}</p></div>
       <div className="system-activity-toolbar">
         {asOf && <span className="muted-copy">Current to {new Date(asOf).toLocaleString()}</span>}
+        {mode === "audit" && canExport && <Button variant="secondary" size="compact" onPress={() => { setExportOpen(true); setExportState("idle"); setExportNotice(undefined); }}>Export</Button>}
         <Button variant="secondary" size="compact" isLoading={state === "loading" && items.length > 0} onPress={() => void load()}>Refresh</Button>
       </div>
     </div>
+
+    {exportNotice && !exportOpen && <Notice tone={exportNotice.tone}>{exportNotice.text}</Notice>}
 
     <FilterBar
       label={`${title} filters`}
@@ -226,5 +279,18 @@ export function SystemActivityPanel({ mode }: { mode: Mode }) {
         isLoading: state === "loading",
       } : undefined}
     />}
+
+    {exportOpen && <FocusedDialog label="Export audit log" onClose={() => { setExportOpen(false); setExportState("idle"); }}>
+      <div className="system-audit-export-dialog">
+        <div><span className="eyebrow">Governed export</span><h2>Export the applied audit view</h2><p>The server fixes an exact as-of boundary and exports only normalized audit fields. Direct exports are limited to 10,000 events and are never silently truncated.</p></div>
+        <SelectField label="Export format" value={exportFormat} placeholder="Choose a format" options={exportFormatOptions} allowsEmpty={false} onChange={(value) => { if (value) setExportFormat(value); }}/>
+        <Notice>Current draft filter edits are not included until you select <strong>Apply filters</strong>. Export files and their checksum manifest expire after seven days.</Notice>
+        {exportState === "error" && exportNotice && <Notice tone="error">{exportNotice.text}</Notice>}
+        <div className="form-actions">
+          <Button variant="secondary" isDisabled={exportState === "creating" || exportState === "downloading"} onPress={() => setExportOpen(false)}>Cancel</Button>
+          <Button variant="primary" isLoading={exportState === "creating" || exportState === "downloading"} onPress={() => void exportAudit()}>{exportState === "downloading" ? "Downloading" : "Create export"}</Button>
+        </div>
+      </div>
+    </FocusedDialog>}
   </section>;
 }
