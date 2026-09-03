@@ -108,7 +108,7 @@ func main() {
 		FormPolicies: services.FormPolicies,
 		Monitoring:   services.Monitoring, FormProposals: services.FormProposals, ThirdParty: services.ThirdParty, VendorBrands: vendorBrandService, ThirdPartyRelationshipLinks: services.ThirdPartyRelationshipLinks, ThirdPartyWork: vendorWorkService, ThirdPartyAssessments: assessmentService, ThirdPartyActivation: activationService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentApplications: assessmentApplicationService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentDeficiencies: assessmentDeficiencyService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
 		Continuity: services.Continuity, MatterFormRemediation: matterFormRemediation, Today: services.Today, Oversight: services.Oversight, Workflow: services.Workflow, Onboarding: services.Onboarding,
-		Autonomy: services.Autonomy, AIGovernance: services.AIGovernance, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs,
+		Autonomy: services.Autonomy, AIGovernance: services.AIGovernance, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs, Activity: services.Activity,
 		MaxArtifactBytes: cfg.MaxArtifactBytes,
 	})
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: handler, ReadHeaderTimeout: 2 * time.Second, ReadTimeout: cfg.ReadTimeout, WriteTimeout: cfg.WriteTimeout, IdleTimeout: cfg.IdleTimeout, MaxHeaderBytes: 1 << 20}
