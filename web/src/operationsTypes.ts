@@ -60,6 +60,8 @@ export type SystemActivityQuery = {
   objectType?: string;
   objectID?: string;
   actorID?: string;
+  actor?: string;
+  actorKind?: SystemActivityActorKind | "";
   legalEntityID?: string;
   limit?: number;
 };
