@@ -57,5 +57,5 @@ it("loads older events without replacing the current page", async () => {
   await screen.findByText("Runtime recovered");
   fireEvent.click(screen.getByRole("button", { name: "Load older activity" }));
   await screen.findByText("Matter created");
-  expect(screen.getByText("Runtime recovered")).toBeInTheDocument();
+  expect(screen.getByText("Runtime recovered")).toBeTruthy();
 });
