@@ -14,7 +14,7 @@ const captures = [
   { name: "01-today-dark-comfortable-1440x900", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "03-today-dark-compact-1440x900", route: "#today", title: "Today", theme: "dark", density: "compact", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
-  { name: "04-program-light-1440x900", route: "#programs/program-ndpa", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
+  { name: "04-program-light-1440x900", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "07-import-dark-1440x900", route: "#imports", title: "Imports", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },

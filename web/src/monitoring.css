@@ -78,9 +78,9 @@
 .collection-activity { display: grid; gap: 5px; color: var(--muted); font-size: 12px; }
 .collection-activity > span { display: block; }
 .collection-currency { justify-self: start; color: var(--text); }
-.collection-currency-current { color: #bdf5d8; }
-.collection-currency-renewal_due, .collection-currency-awaiting_response { color: #ffe5b2; }
-.collection-currency-response_potentially_expired, .collection-currency-renewal_blocked, .collection-safe-error { color: #ffd8de; }
+.collection-currency-current { color: var(--green); }
+.collection-currency-renewal_due, .collection-currency-awaiting_response { color: var(--amber); }
+.collection-currency-response_potentially_expired, .collection-currency-renewal_blocked, .collection-safe-error { color: var(--coral); }
 .collection-freshness { margin-top: 3px; font-size: 11px; }
 .collection-summary-unavailable { display: grid; gap: 6px; justify-items: start; }
 .collection-summary-unavailable strong { font-size: 12px; }

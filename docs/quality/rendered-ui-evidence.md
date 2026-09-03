@@ -27,7 +27,7 @@ The capture suite prefers production components and realistic deterministic fixt
 
 ## UI foundation and capture matrix
 
-The current suite exercises **32 deterministic rendered states/interactions** across:
+The current suite exercises **51 deterministic rendered states/interactions** across:
 
 - Today in light and dark themes;
 - comfortable and compact desktop density;
@@ -48,6 +48,9 @@ The current suite exercises **32 deterministic rendered states/interactions** ac
 - external field-agent ATM verification on a 390px phone: known address displayed read-only, two tap confirmations, one required photo, optional note, signature, review and receipt;
 - photo evidence preview before review;
 - document-import dropzone selection with filename/size visible and a blank user-authored purpose before the explicit import action.
+- Program detail sections in desktop tabs and a native narrow-screen selector, including keyboard focus and a 200% reflow proxy;
+- collection renewal states with stored sample dates: current, renewal due, potentially expired, awaiting response and blocked delivery;
+- latest collection respondent/time, calculated expiry, reminder progress, long names and blocked-delivery recovery copy in light and dark themes.
 
 Mechanical checks fail CI for conditions such as unexpected horizontal overflow, browser runtime errors, loss of the first Today action from the unobstructed first viewport, focus escaping a focused-work sheet, authority-detail leakage in a forbidden state, terminal requests exposing submission actions, degraded views hiding still-available context, external capture asking for a known address again, or a required field-agent happy path depending on free-text explanation.
 
