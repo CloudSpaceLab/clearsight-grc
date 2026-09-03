@@ -40,7 +40,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
   useEffect(() => {
     revokeAllPreviews(previewURLs.current);
     previewURLs.current = {};
-    setAnswers(request ? initialSourceAnswers(request) : {});
+    setAnswers(request ? initialAnswers(request) : {});
     setAttachments({});
     setUploadingField(null);
     setReviewing(false);
@@ -156,7 +156,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
 
   if (reviewing) return <div className="panel-content response-review">
     <span className="eyebrow">Review</span><h2>Check your response</h2><p>{request.title}</p>
-    <dl className="capture-review-list">{fields.map((field) => <div key={field.id}><dt>{field.label}</dt><dd>{reviewValue(field, answers[field.id], attachments[field.id])}{reviewSourceLabel(field, answers[field.id]) && <small className="source-origin-review">{reviewSourceLabel(field, answers[field.id])}</small>}</dd></div>)}</dl>
+    <dl className="capture-review-list">{fields.map((field) => <div key={field.id}><dt>{field.label}</dt><dd>{reviewValue(field, answers[field.id], attachments[field.id])}{reviewProvenanceLabel(request, field, answers[field.id]) && <small className="source-origin-review">{reviewProvenanceLabel(request, field, answers[field.id])}</small>}</dd></div>)}</dl>
     <details className="capture-context"><summary>Request details</summary><p>{request.purpose}</p><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl><p>Due {new Date(request.deadline).toLocaleString()} · {humanize(request.sensitivity)}</p></details>
     {error && <p className="error-text" role="alert">{error}</p>}
     <div className="wizard-actions"><button className="secondary-button" type="button" onClick={() => setReviewing(false)} disabled={submitting}>Edit</button>{errorKind === "conflict" && onReload && <button className="secondary-button" type="button" onClick={onReload} disabled={submitting}>Reload request</button>}<button className="primary-button" type="button" onClick={() => void submit()} disabled={submitting}>{submitting ? "Submitting…" : external ? "Submit verification" : "Submit response"}</button></div>
@@ -167,7 +167,7 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     <div className="why-you"><strong>Why this was sent to you</strong><span>{request.why_you}</span></div>
     {Object.keys(request.known_facts).length > 0 && <><h3>Already filled in</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></>}
     {unsupported.length > 0 && <div className="inline-error" role="alert"><strong>This request includes a field this version cannot safely collect.</strong><p>{unsupported.map((field) => field.label).join(", ")}. Ask the sender to update the request.</p></div>}
-    <div className="capture-form">{fields.map((field) => <div className="capture-field-shell" key={field.id}><FieldControl field={field} value={answers[field.id] ?? ""} attachment={attachments[field.id]} uploading={uploadingField === field.id} external={external} onChange={(value) => updateAnswer(field.id, value)} onUpload={(file, previewURL) => void upload(field, file, previewURL)}/><FieldSourceNotice field={field} value={answers[field.id] ?? ""}/></div>)}</div>
+    <div className="capture-form">{fields.map((field) => <div className="capture-field-shell" key={field.id}><FieldControl field={field} value={answers[field.id] ?? ""} attachment={attachments[field.id]} uploading={uploadingField === field.id} external={external} onChange={(value) => updateAnswer(field.id, value)} onUpload={(file, previewURL) => void upload(field, file, previewURL)}/><FieldSourceNotice field={field} value={answers[field.id] ?? ""}/><FieldPreviousResponseNotice request={request} field={field} value={answers[field.id] ?? ""}/></div>)}</div>
     {error && <p className="error-text" role="alert">{error}</p>}
     <div className="wizard-actions"><button className="primary-button" type="button" onClick={() => setReviewing(true)} disabled={requiredMissing || unsupported.length > 0 || Boolean(uploadingField)}>{uploadingField ? "Uploading…" : "Review and submit"}</button></div>
   </div>;
@@ -267,9 +267,11 @@ function humanize(value: string) {
   return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
 
-function initialSourceAnswers(request: CaptureRequest): Record<string, string> {
+function initialAnswers(request: CaptureRequest): Record<string, string> {
   const answers: Record<string, string> = {};
   for (const field of request.fields) {
+    const previous = reusablePreviousResponse(request, field);
+    if (previous) answers[field.id] = previous.value;
     const prefill = sourceBinding(field, "PREFILL");
     const scalar = prefill?.resolution.state === "CURRENT" ? prefill.resolution.value : undefined;
     if (scalar?.kind !== "NULL" && scalar?.text) answers[field.id] = scalar.text;
@@ -298,9 +300,38 @@ function FieldSourceNotice({ field, value }: { field: CaptureField; value: strin
   return null;
 }
 
-function reviewSourceLabel(field: CaptureField, value?: string): string | null {
+function reviewProvenanceLabel(request: CaptureRequest, field: CaptureField, value?: string): string | null {
   const prefill = sourceBinding(field, "PREFILL");
   const sourceValue = prefill?.resolution.state === "CURRENT" ? prefill.resolution.value?.text?.trim() ?? "" : "";
-  if (!prefill || !sourceValue) return null;
-  return (value ?? "").trim() === sourceValue ? `Source-prefilled · ${prefill.resolution.binding_name}` : `Respondent correction · source value: ${sourceValue}`;
+  if (prefill && sourceValue) return (value ?? "").trim() === sourceValue ? `Source-prefilled · ${prefill.resolution.binding_name}` : `Respondent correction · source value: ${sourceValue}`;
+  const previous = reusablePreviousResponse(request, field);
+  if (!previous) return null;
+  return (value ?? "").trim() === previous.value.trim()
+    ? `Previous response · submitted ${formatPreviousResponseDate(previous.previous_submitted_at)}`
+    : `Respondent correction · previous response: ${previous.value}`;
+}
+
+function FieldPreviousResponseNotice({ request, field, value }: { request: CaptureRequest; field: CaptureField; value: string }) {
+  const prefill = sourceBinding(field, "PREFILL");
+  const currentSourceValue = prefill?.resolution.state === "CURRENT" && Boolean(prefill.resolution.value?.text?.trim());
+  const previous = currentSourceValue ? null : reusablePreviousResponse(request, field);
+  if (!previous) return null;
+  const changed = value.trim() !== previous.value.trim();
+  return <p className={changed ? "source-origin previous-response corrected" : "source-origin previous-response"}><span aria-hidden="true">{changed ? "↺" : "↳"}</span>{changed ? `Changed by you · previous response was ${previous.value}` : `From the response submitted on ${formatPreviousResponseDate(previous.previous_submitted_at)}`}</p>;
+}
+
+function reusablePreviousResponse(request: CaptureRequest, field: CaptureField) {
+  const type = normalizedFieldType(field.type);
+  if (!["text", "short_text", "long_text", "single_select", "date", "number"].includes(type)) return null;
+  const previous = request.previous_responses?.[field.id];
+  if (!previous?.value?.trim() || !previous.previous_submitted_at) return null;
+  if (type === "single_select" && field.options?.length && !field.options.includes(previous.value)) return null;
+  return previous;
+}
+
+function formatPreviousResponseDate(value: string) {
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed)
+    ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(parsed))
+    : "an earlier date";
 }
