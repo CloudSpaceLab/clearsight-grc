@@ -144,7 +144,7 @@ func TestShadowResponseControlsDoNotEnforce(t *testing.T) {
 	policy := PolicySnapshot{
 		ID: "workload-policy", Code: "WORKLOAD_POLICY", Version: 1, RolloutMode: RolloutShadow,
 		Definition: PolicyDefinition{
-			DefaultAction: DecisionAllow,
+			DefaultAction:   DecisionAllow,
 			ResponseControl: ResponseControl{DenyPatterns: []string{"blocked"}},
 		},
 	}
