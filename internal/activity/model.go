@@ -21,22 +21,22 @@ const (
 )
 
 type Event struct {
-	TenantID          string    `json:"-"`
-	ID                string    `json:"event_id"`
-	OccurredAt        time.Time `json:"occurred_at"`
-	Category          string    `json:"category"`
-	EventType         string    `json:"event_type"`
-	Action            string    `json:"action"`
-	Outcome           string    `json:"outcome"`
-	ActorKind         string    `json:"actor_kind"`
-	ActorID           string    `json:"actor_id,omitempty"`
-	ActorDisplayName  string    `json:"actor_display_name,omitempty"`
-	LegalEntityID     string    `json:"legal_entity_id,omitempty"`
-	ObjectType        string    `json:"object_type"`
-	ObjectID          string    `json:"object_id"`
-	RequestID         string    `json:"request_id,omitempty"`
-	CorrelationID     string    `json:"correlation_id,omitempty"`
-	Source            string    `json:"source"`
+	TenantID         string    `json:"-"`
+	ID               string    `json:"event_id"`
+	OccurredAt       time.Time `json:"occurred_at"`
+	Category         string    `json:"category"`
+	EventType        string    `json:"event_type"`
+	Action           string    `json:"action"`
+	Outcome          string    `json:"outcome"`
+	ActorKind        string    `json:"actor_kind"`
+	ActorID          string    `json:"actor_id,omitempty"`
+	ActorDisplayName string    `json:"actor_display_name,omitempty"`
+	LegalEntityID    string    `json:"legal_entity_id,omitempty"`
+	ObjectType       string    `json:"object_type"`
+	ObjectID         string    `json:"object_id"`
+	RequestID        string    `json:"request_id,omitempty"`
+	CorrelationID    string    `json:"correlation_id,omitempty"`
+	Source           string    `json:"source"`
 }
 
 type Query struct {
@@ -50,6 +50,8 @@ type Query struct {
 	ObjectType    string
 	ObjectID      string
 	ActorID       string
+	ActorQuery    string
+	ActorKind     string
 	LegalEntityID string
 }
 
