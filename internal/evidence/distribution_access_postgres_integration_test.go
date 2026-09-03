@@ -164,7 +164,7 @@ func TestPostgresDirectMagicLinkReopensUntilExpiryOrRevocation(t *testing.T) {
 	store := NewPostgresDistributionStore(NewPostgresRepository(pool), keyring)
 	store.now = func() time.Time { return now }
 	bundle, err := store.CreateDistribution(ctx, CreateDistributionInput{
-		TenantID: "distribution-access-integration", LegalEntityID: "ACCESS", FormTemplateID: formID, FormTemplateVersion: 1,
+		TenantID: "distribution-access-reopen", LegalEntityID: "ACCESS", FormTemplateID: formID, FormTemplateVersion: 1,
 		SubjectType: "VENDOR", SubjectID: subjectID, Title: "Direct evidence request", Purpose: "Verify reusable access before expiry.",
 		AccessPolicy: AccessDirectMagicLink, EstimatedMinutes: 5,
 		Deadline: now.Add(4 * time.Hour), RouteExpiresAt: now.Add(3 * time.Hour), CreatedBy: actorID,
@@ -211,8 +211,12 @@ func TestPostgresDirectMagicLinkReopensUntilExpiryOrRevocation(t *testing.T) {
 func setupDistributionAccessFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, entityID, actorID, formID string, now time.Time) {
 	t.Helper()
 	cleanupDistributionTenant(ctx, pool, tenantID)
+	tenantSlug := "distribution-access-integration"
+	if tenantID == "9d666666-6666-7666-8666-666666666661" {
+		tenantSlug = "distribution-access-reopen"
+	}
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'distribution-access-integration','Distribution Access Integration');
+		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$6,'Distribution Access Integration');
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from)
 		VALUES($2::uuid,$1::uuid,'ACCESS','Distribution Access Entity','NG',$5);
 		INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from)
@@ -225,7 +229,7 @@ func setupDistributionAccessFixture(t *testing.T, ctx context.Context, pool *pgx
 			'[{"id":"general","title":"General"}]'::jsonb,
 			'[{"id":"registered_address","section_id":"general","label":"Registered address","type":"short_text","required":true,"collection_intent":"CONFIRM_OR_CORRECT","record_target":{"key":"registered_address","required_subject_type":"VENDOR"},"browser_cache_policy":"NO_BROWSER_CACHE"}]'::jsonb,
 			'ACTIVE',true,$5,1,$3::uuid,$5,$5
-		)`, pgx.QueryExecModeSimpleProtocol, tenantID, entityID, actorID, formID, now.Add(-time.Hour)); err != nil {
+		)`, pgx.QueryExecModeSimpleProtocol, tenantID, entityID, actorID, formID, now.Add(-time.Hour), tenantSlug); err != nil {
 		t.Fatal(err)
 	}
 }
