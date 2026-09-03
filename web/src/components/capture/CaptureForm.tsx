@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import type { CaptureAnswerValue, CaptureAnswers, CaptureField, CaptureFormContract, CapturePresentationMode } from "../../types";
+import type { CaptureAnswerValue, CaptureAnswers, CaptureField, CaptureFormContract, CapturePresentationMode, CaptureRequest } from "../../types";
 import { CaptureFieldControl, type CaptureAttachment } from "./CaptureFieldControl";
 import { useCaptureWorkspaceRecoveryUI } from "./CaptureWorkspaceRecoveryContext";
 import { answerText, effectivePresentationMode, normalizeFieldType, validateCaptureFields, visibleCaptureSections } from "./contract";
-import { CaptureFieldSourceNotice } from "./sourceProvenance";
+import { CaptureFieldPreviousResponseNotice, CaptureFieldSourceNotice } from "./sourceProvenance";
 
 type Props = {
+  request?: CaptureRequest;
   contract: CaptureFormContract;
   answers: CaptureAnswers;
   attachments: Record<string, CaptureAttachment[]>;
@@ -20,7 +21,7 @@ type Props = {
   onReview: () => void;
 };
 
-export function CaptureForm({ contract, answers, attachments, mode, external, uploadingField, onAnswer, onUpload, onRemoveAttachment, onModeChange, onBeforeSectionNavigation, onReview }: Props) {
+export function CaptureForm({ request, contract, answers, attachments, mode, external, uploadingField, onAnswer, onUpload, onRemoveAttachment, onModeChange, onBeforeSectionNavigation, onReview }: Props) {
   const sections = visibleCaptureSections(contract, answers);
   const effectiveMode = effectivePresentationMode(contract, answers, mode);
   const recoveryUI = useCaptureWorkspaceRecoveryUI();
@@ -80,7 +81,7 @@ export function CaptureForm({ contract, answers, attachments, mode, external, up
       onChange={(value) => update(field.id, value)}
       onUpload={(files, previewURL) => onUpload(field, files, previewURL)}
       onRemove={(attachmentID) => onRemoveAttachment(field, attachmentID)}
-    />{reselectFields.has(field.id) && <p className="field-help" role="status">Reselect file to upload</p>}<CaptureFieldSourceNotice field={field} value={answerText(answers[field.id])}/></div>);
+    />{reselectFields.has(field.id) && <p className="field-help" role="status">Reselect file to upload</p>}<CaptureFieldSourceNotice field={field} value={answerText(answers[field.id])}/>{request && <CaptureFieldPreviousResponseNotice request={request} field={field} value={answerText(answers[field.id])}/>}</div>);
   }
 
   const errorEntries = Object.entries(errors);

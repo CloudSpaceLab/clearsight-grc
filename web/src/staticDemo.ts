@@ -141,6 +141,60 @@ export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.
   documentCoverage = clone(fixtures.documentCoverage);
 }
 let guide: Record<string, any>;
+
+const collectionLifecycle = { status: "ACTIVE", is_current: true, version: 1, created_at: "2026-07-01T09:00:00Z", updated_at: now };
+const collectionField = { id: "confirmation", label: "Is the submitted information still current?", type: "single_select", required: true, options: ["Yes", "No"] };
+
+function sampleCollectionForm(id: string, name: string) {
+  return { ...collectionLifecycle, id: `form-${id}`, tenant_id: "bank-demo", code: `SAMPLE-${id.toUpperCase()}`, name: `Sample · ${name}`, purpose: "Confirm that the vendor assurance record remains current.", fields: [collectionField] };
+}
+
+function sampleCollectionCheck(id: string, name: string, policy: { validity_months: number; renewal_window_days: number; reminder_count: number } | null = { validity_months: 12, renewal_window_days: 30, reminder_count: 3 }) {
+  return {
+    ...collectionLifecycle, id: `check-${id}`, tenant_id: "bank-demo", program_id: programID, code: `SAMPLE-CHECK-${id.toUpperCase()}`, name: `Sample · ${name}`,
+    claim: "The submitted vendor assurance information remains current.", input_kind: "FORM", form_template_id: `form-${id}`, form_template_version: 1,
+    ...(policy ? { collection_policy: policy } : { status: "PAUSED" }),
+    thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 525600, minimum_coverage: 1, failure_action: "REVIEW",
+  };
+}
+
+const collectionStateForms = [
+  sampleCollectionForm("current", "Current vendor security confirmation"),
+  sampleCollectionForm("renewal-due", "Vendor certification renewal"),
+  sampleCollectionForm("expired", "Expired processing-location confirmation"),
+  sampleCollectionForm("awaiting", "Vendor privacy contact confirmation"),
+  sampleCollectionForm("blocked", "External subprocessor assurance"),
+  sampleCollectionForm("no-policy", "Vendor ownership confirmation"),
+];
+const collectionStateChecks = [
+  sampleCollectionCheck("current", "Current vendor security confirmation"),
+  sampleCollectionCheck("renewal-due", "Vendor certification renewal"),
+  sampleCollectionCheck("expired", "Expired processing-location confirmation"),
+  sampleCollectionCheck("awaiting", "Vendor privacy contact confirmation"),
+  sampleCollectionCheck("blocked", "External subprocessor assurance"),
+  sampleCollectionCheck("no-policy", "Vendor ownership confirmation", null),
+];
+const summaryBase = { reminder_count: 3, delivery_state: "DELIVERED", projection_generated_at: "2026-08-15T09:00:00Z", projection_source_version: 4 };
+const collectionStateSummaries = [
+  { ...summaryBase, monitoring_check_id: "check-current", latest_request_id: "request-current", latest_submission_id: "submission-current", latest_submission_at: "2026-08-14T10:30:00Z", respondent_label: "Ada Okafor · Vendor assurance lead", expires_at: "2027-08-14T10:30:00Z", renewal_opens_at: "2027-07-15T10:30:00Z", currency_state: "CURRENT", reminders_sent: 0 },
+  { ...summaryBase, monitoring_check_id: "check-renewal-due", latest_request_id: "request-renewal", latest_submission_id: "submission-renewal", latest_submission_at: "2025-10-01T12:00:00Z", respondent_label: "Musa Bello · Certification owner", expires_at: "2026-10-01T12:00:00Z", renewal_opens_at: "2026-09-01T12:00:00Z", currency_state: "RENEWAL_DUE", active_request_deadline: "2026-09-12T17:00:00Z", reminders_sent: 1 },
+  { ...summaryBase, monitoring_check_id: "check-expired", latest_request_id: "request-expired", latest_submission_id: "submission-expired", latest_submission_at: "2025-07-01T08:15:00Z", respondent_label: "Ifeanyi Obi · Processing operations", expires_at: "2026-07-01T08:15:00Z", renewal_opens_at: "2026-06-01T08:15:00Z", currency_state: "RESPONSE_POTENTIALLY_EXPIRED", reminders_sent: 3 },
+  { ...summaryBase, monitoring_check_id: "check-awaiting", latest_request_id: "request-awaiting", latest_submission_id: "submission-awaiting", latest_submission_at: "2025-09-05T14:00:00Z", respondent_label: "Chioma Eze · Vendor privacy contact", expires_at: "2026-09-05T14:00:00Z", renewal_opens_at: "2026-08-06T14:00:00Z", currency_state: "AWAITING_RESPONSE", active_request_deadline: "2026-09-05T14:00:00Z", reminders_sent: 1 },
+  { ...summaryBase, monitoring_check_id: "check-blocked", latest_request_id: "request-blocked", latest_submission_id: "submission-blocked", latest_submission_at: "2025-08-20T11:45:00Z", respondent_label: "External respondent · account ending 42", recipient_hint: "Vendor contact ending 42", expires_at: "2026-08-20T11:45:00Z", renewal_opens_at: "2026-07-21T11:45:00Z", currency_state: "RENEWAL_BLOCKED", delivery_state: "BLOCKED", last_error_safe: "The renewal could not be delivered because the assigned vendor contact is no longer active. Assign a current contact and resend the request.", reminders_sent: 0 },
+];
+
+function collectionFixtures(fixture: string) {
+  if (fixture === "collection-renewal-states") return { forms: collectionStateForms, checks: collectionStateChecks, summaries: collectionStateSummaries };
+  if (fixture === "collection-long-content") {
+    const name = "Confirm current security, privacy, resilience and accountable ownership information for the cross-border payment-processing and delegated subprocessor relationship";
+    return {
+      forms: [sampleCollectionForm("long", name)], checks: [sampleCollectionCheck("long", name)],
+      summaries: [{ ...summaryBase, monitoring_check_id: "check-long", latest_request_id: "request-long", latest_submission_id: "submission-long", latest_submission_at: "2026-08-14T10:30:00Z", respondent_label: "A vendor assurance respondent with an intentionally long operational role name", expires_at: "2027-08-14T10:30:00Z", renewal_opens_at: "2027-07-15T10:30:00Z", currency_state: "CURRENT", reminders_sent: 0 }],
+    };
+  }
+  return { forms: [collectionStateForms[0]], checks: [collectionStateChecks[0]], summaries: [collectionStateSummaries[0]] };
+}
+
 let vendorRelationships: VendorRelationshipAggregate[] = [{
   vendor: {
     id: "vendor-acme-processing", tenant_id: "bank-demo", legal_name: "Acme Processing Limited", trading_name: "Acme Processing",
@@ -524,6 +578,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/programs/setup-candidates" && method === "GET") return clone({ owner_candidates: [{ id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }], approval_authority_candidates: [{ id: "role-cro", display_name: "Chief Risk Officer", kind: "POSITION", role: "CRO" }, { id: "role-deputy-cro", display_name: "Deputy Chief Risk Officer", kind: "POSITION", role: "Deputy CRO" }], has_more: false, generated_at: now }) as T;
   if (pathname === "/api/v1/program-summaries") return clone({ items: matchesProgramSummary(url) ? [programSummary] : [], generated_at: now }) as T;
   if (pathname === "/api/v1/form-templates" && method === "GET") {
+    if (fixture === "collection-renewal-states" || fixture === "collection-long-content") return clone({ items: collectionFixtures(fixture).forms }) as T;
     if (fixture === "vendor-source-degraded") throw new StaticDemoHTTPError(503, "vendor_forms_unavailable", "Approved due-diligence forms could not be loaded.");
     if (fixture === "vendor-no-form") return clone({ items: [], next_cursor: "" }) as T;
     return clone({ items: [vendorDueDiligenceForm], next_cursor: "" }) as T;
@@ -635,6 +690,11 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     vendorWorkRequests = vendorWorkRequests.map((item, itemIndex) => itemIndex === index ? updated : item);
     return clone(outcome ?? updated) as T;
   }
+  const collectionFixture = fixture === "collection-renewal-states" || fixture === "collection-long-content";
+  if (collectionFixture && pathname === `/api/v1/programs/${programID}/monitoring-checks` && method === "GET") return clone({ items: collectionFixtures(fixture).checks }) as T;
+  if (collectionFixture && pathname === `/api/v1/programs/${programID}/collection-summaries` && method === "GET") return clone({ items: collectionFixtures(fixture).summaries }) as T;
+  if (collectionFixture && /^\/api\/v1\/monitoring-checks\/[^/]+\/results$/.test(pathname) && method === "GET") return clone({ items: [] }) as T;
+  if (collectionFixture && /^\/api\/v1\/form-templates\/[^/]+\/collections$/.test(pathname) && method === "POST") return clone({ ...evidenceRequest, id: "sample-collection-request", subject_type: "PROGRAM", subject_id: programID, title: "Sample · Vendor assurance renewal", purpose: "Confirm that the vendor assurance record remains current." }) as T;
   if (pathname === "/api/v1/vendors" && method === "GET") {
     const query = (url.searchParams.get("search") ?? "").trim().toLowerCase();
     const available = fixture === "vendor-guide-empty" ? [] : vendorRelationships;

@@ -25,7 +25,7 @@ The repository contains a working application foundation for ongoing Programs an
 - source-anchored analysis proposals that require explicit human acceptance or rejection;
 - dedicated, actor-scoped Program records where authorized users can maintain scope, ownership, versioned requirements, applicability, safeguards, evidence expectations, reviewer results and operating status;
 - exact linked-issue handling from each Program, including bounded issue reads, new issue creation and direct record navigation;
-- non-modal Program setup for channel and obligation monitoring, reusable scored forms, public HTTPS status checks and immutable risk results;
+- sectioned Program workspaces for channel and obligation monitoring, reusable scored forms, response-expiry policies, bounded renewal reminders, public HTTPS status checks and immutable risk results;
 - typed Matters for changes, gaps, findings, requests, exceptions and incidents, with non-modal creation and optional Program linking;
 - decisions, actions, response packages and independently checked outcomes;
 - reason-bearing Program status and point-in-time reconstruction;
@@ -66,7 +66,9 @@ Authority Source or Standard
 
 Task completion, a submission, a stored artifact, an extracted statement, an accepted analysis proposal and external execution are not verified outcomes.
 
-Monitoring results are observations, not approved compliance conclusions. Form collections are created on demand; ClearSight does not automatically create a weekly request. A submitted form response is scored automatically against the exact active form and Monitoring Check versions. Connected status checks are run on demand and preserve the exact source receipt used for the result.
+Monitoring results are observations, not approved compliance conclusions. An approved form collection policy can mark submitted data as potentially expired after a configured number of months, open one immutable successor request before expiry and schedule 1–5 bounded reminders. The default renewal window is 30 days with 3 reminders. Expiry changes attention and collection currency; it does not silently change Program risk, compliance status or legal effect. Reusable scalar answers retain predecessor attribution, while file and signature answers are not copied. A submitted form response is scored automatically against the exact active form and Monitoring Check versions. Connected status checks remain on demand and preserve the exact source receipt used for the result.
+
+Internal renewal requests use the current eligible assignment route. External renewal delivery remains fail-closed unless a deployed adapter returns a delivery receipt; the development log publisher is not treated as delivery.
 
 ## Governed document imports
 

@@ -39,6 +39,7 @@ func NewMemoryRepositoryWithRecipientCandidates(sources []Source, requests []Req
 		request.Sections = cloneSections(request.Sections)
 		request.Fields = cloneFields(request.Fields)
 		request.SourceBindings = cloneRequestBindings(request.SourceBindings)
+		request.PreviousResponses = clonePreviousResponses(request.PreviousResponses)
 		repo.requests[request.ID] = request
 	}
 	for _, candidate := range candidates {
@@ -169,26 +170,7 @@ func (r *MemoryRepository) EvaluateSourceHealth(_ context.Context, now time.Time
 func (r *MemoryRepository) CreateRequest(_ context.Context, value Request) (Request, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if !value.Deadline.After(value.CreatedAt) {
-		return Request{}, ErrRequestClosed
-	}
-	value.Origin = value.Origin.normalized()
-	if err := value.Origin.validate(); err != nil {
-		return Request{}, err
-	}
-	if !value.Origin.empty() {
-		for _, existing := range r.requests {
-			if existing.TenantID == value.TenantID && existing.Origin == value.Origin {
-				return Request{}, ErrVersionConflict
-			}
-		}
-	}
-	value.KnownFacts = cloneMap(value.KnownFacts)
-	value.Sections = cloneSections(value.Sections)
-	value.Fields = cloneFields(value.Fields)
-	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
-	r.requests[value.ID] = value
-	return cloneRequest(value), nil
+	return r.createRequestLocked(value)
 }
 
 func (r *MemoryRepository) GetRequestByOrigin(_ context.Context, tenant string, origin RequestOrigin) (Request, error) {
@@ -639,6 +621,7 @@ func cloneRequest(value Request) Request {
 	value.Sections = cloneSections(value.Sections)
 	value.Fields = cloneFields(value.Fields)
 	value.SourceBindings = cloneRequestBindings(value.SourceBindings)
+	value.PreviousResponses = clonePreviousResponses(value.PreviousResponses)
 	value.CollectionPeriodStart = cloneTimePointer(value.CollectionPeriodStart)
 	value.CollectionPeriodEnd = cloneTimePointer(value.CollectionPeriodEnd)
 	return value

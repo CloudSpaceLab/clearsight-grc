@@ -84,3 +84,35 @@ func TestLegalEntityFormsMigrationPromotesWithoutRewritingHistoricalRows(t *test
 		t.Fatal("rollback must fail closed after legal-entity-only Forms adoption")
 	}
 }
+
+func TestMonitoringMigrationIncludesCollectionRenewal(t *testing.T) {
+	content, err := os.ReadFile("../../migrations/000077_program_collection_renewal.up.sql")
+	if err != nil {
+		t.Fatalf("read collection renewal migration: %v", err)
+	}
+	schema := string(content)
+	for _, required := range []string{
+		"validity_months",
+		"renewal_window_days",
+		"reminder_count",
+		"origin_type",
+		"origin_version",
+		"predecessor_request_id",
+		"previous_responses",
+		"latest_respondent_label",
+		"CREATE TABLE monitoring_collection_cycles",
+		"monitoring_collection_cycles_due_idx",
+		"monitoring_collection_cycles_program_idx",
+		"jsonb_typeof(previous_responses)='object'",
+	} {
+		if !strings.Contains(schema, required) {
+			t.Fatalf("collection renewal migration missing %q", required)
+		}
+	}
+	if !strings.HasPrefix(strings.TrimSpace(schema), "BEGIN;") || !strings.HasSuffix(strings.TrimSpace(schema), "COMMIT;") {
+		t.Fatal("collection renewal migration must use the repository outer transaction convention")
+	}
+	if strings.Contains(schema, "ADD COLUMN origin_type") || strings.Contains(schema, "CREATE UNIQUE INDEX capture_requests_origin_idx") {
+		t.Fatal("collection renewal migration must reuse the shared capture origin contract")
+	}
+}

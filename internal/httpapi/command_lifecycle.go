@@ -71,7 +71,7 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		payload["program_id"] = check.ProgramID
 		payload["monitoring_check_id"] = check.ID
 	}
-	if name == "program.monitoring.transition" || name == "program.monitoring.evaluate" {
+	if name == "program.monitoring.transition" || name == "program.monitoring.collection-policy.update" || name == "program.monitoring.evaluate" {
 		if a.deps.Monitoring == nil {
 			return policy, fmt.Errorf("%w: monitoring service is unavailable", commandauth.ErrGuardUnavailable)
 		}
@@ -348,6 +348,16 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 			policy.Materiality = 2
 		}
 		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "MONITORING_CHECK", monitoringCheck.ID, policy.Responsibility, assignedID, name, policy.Materiality); err != nil {
+			return policy, err
+		}
+		return policy, nil
+
+	case "program.monitoring.collection-policy.update":
+		if programAggregate == nil || monitoringCheck == nil {
+			return policy, nil
+		}
+		policy.Responsibility = authority.ResponsibilityOwner
+		if err := a.requireMonitoringResponsibility(ctx, tenant, programAggregate.Program, "MONITORING_CHECK", monitoringCheck.ID, policy.Responsibility, monitoringCheck.OwnerPrincipalID, name, policy.Materiality); err != nil {
 			return policy, err
 		}
 		return policy, nil

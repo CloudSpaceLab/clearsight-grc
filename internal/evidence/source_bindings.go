@@ -468,6 +468,19 @@ func (s *Service) deriveAnswerProvenance(ctx context.Context, request Request, a
 			sourceDerived = true
 			break
 		}
+		if !sourceDerived {
+			if previous, ok := request.PreviousResponses[field.ID]; ok {
+				provenance.PreviousValue = previous.Value
+				provenance.PreviousRequestID = previous.PreviousRequestID
+				provenance.PreviousSubmissionID = previous.PreviousSubmissionID
+				provenance.PreviousSubmittedAt = cloneTimePointer(&previous.PreviousSubmittedAt)
+				provenance.Origin = AnswerRespondentCorrected
+				if answerText != "" && answerText == strings.TrimSpace(previous.Value) {
+					provenance.Origin = AnswerPriorResponsePrefilled
+				}
+				sourceDerived = true
+			}
+		}
 		if answerText == "" {
 			if sourceDerived || answer.Answered() {
 				result[field.ID] = provenance
@@ -650,6 +663,7 @@ func cloneAnswerProvenance(input map[string]AnswerProvenance) map[string]AnswerP
 			value.SourceValue = &sourceValue
 		}
 		value.SourceReceipt = cloneOperationReceipt(value.SourceReceipt)
+		value.PreviousSubmittedAt = cloneTimePointer(value.PreviousSubmittedAt)
 		value.Validations = cloneSourceResolutions(value.Validations)
 		out[key] = value
 	}

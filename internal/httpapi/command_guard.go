@@ -11,6 +11,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 )
 
@@ -82,6 +83,10 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 			}
 			if strings.HasPrefix(name, "forms.response-policy.") {
 				writeFormPolicyError(w, err)
+				return
+			}
+			if strings.HasPrefix(name, "program.monitoring.") && errors.Is(err, monitoring.ErrNotFound) {
+				writeMonitoringScopeError(w, err)
 				return
 			}
 			writeContinuityError(w, err)

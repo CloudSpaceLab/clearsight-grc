@@ -1,13 +1,15 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { createFormMonitoringCheck, createMonitoringLinkedIssue, createSourceMonitoringCheck, evaluateMonitoringSource, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection, transitionFormTemplate, transitionMonitoringCheck } from "../monitoringApi";
-import type { FormTemplate, LifecycleStatus, MonitoringCheck, MonitoringResult } from "../monitoringTypes";
+import { createFormMonitoringCheck, createMonitoringLinkedIssue, createSourceMonitoringCheck, evaluateMonitoringSource, loadCollectionSummaries, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection, transitionFormTemplate, transitionMonitoringCheck } from "../monitoringApi";
+import type { CollectionPolicy, CollectionSummary, FormTemplate, LifecycleStatus, MonitoringCheck, MonitoringResult } from "../monitoringTypes";
 import type { ProgramAggregate } from "../types";
 import { DataSourceBuilder } from "./DataSourceBuilder";
 import type { SourceBinding } from "../sourceConfigApi";
 import type { ProgramOperation } from "../programOperationsApi";
 import { Notice, StatusBadge, type StatusTone } from "./ui";
 import { apiErrorKind } from "../http";
+import { CollectionPolicyForm } from "./CollectionPolicyForm";
+import { CollectionRecord } from "./CollectionRecord";
 
 const FormBuilder = lazy(() => import("./FormBuilder").then((module) => ({ default: module.FormBuilder })));
 
@@ -49,6 +51,26 @@ function bandTone(result: MonitoringResult): StatusTone {
   }
 }
 
+function MonitoringResultPanel({ check, result, formFields }: { check: MonitoringCheck; result?: MonitoringResult; formFields: ReadonlyMap<string, string> }) {
+  if (!result) return null;
+  return <>
+    <div className="monitoring-result" aria-label={`Latest result for ${check.name}`}>
+      <strong>{riskLabel(result)}</strong>
+      <StatusBadge tone={bandTone(result)}>{bandLabel(result)}</StatusBadge>
+      <span>{Math.round(result.evaluation.coverage * 100)}% coverage</span>
+      <time dateTime={result.evaluated_at}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(result.evaluated_at))}</time>
+    </div>
+    <details className="monitoring-result-detail">
+      <summary>Review result</summary>
+      {result.evaluation.band === "NOT_ASSESSED" ? <p>The available response or source data was not sufficient to calculate risk.</p> : (() => {
+        const exceptions = (result.evaluation.rule_results ?? []).filter((rule) => rule.outcome !== "PASS");
+        if (!exceptions.length) return <p>All configured checks passed.</p>;
+        return <ul>{exceptions.map((rule) => <li key={`${rule.rule_id ?? "form"}-${rule.field_id}`}><strong>{check.form_template_id ? formFields.get(`${check.form_template_id}:${rule.field_id}`) ?? rule.field_id : rule.field_id}</strong><span>{rule.reason}</span></li>)}</ul>;
+      })()}
+    </details>
+  </>;
+}
+
 function eligibleForLinkedIssue(check: MonitoringCheck, result?: MonitoringResult) {
   if (!result || check.status !== "ACTIVE" || !check.is_current || check.failure_action !== "RECOMMEND_MATTER" || result.monitoring_check_version !== check.version) return false;
   if (result.evaluation.band === "HIGH" || result.evaluation.band === "CRITICAL" || result.evaluation.coverage < check.minimum_coverage || (result.evaluation.critical_failures?.length ?? 0) > 0) return true;
@@ -62,17 +84,21 @@ function hasScoredQuestions(form: FormTemplate) {
 export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSources, operations, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; } }: Props) {
   const [forms, setForms] = useState<FormTemplate[]>([]);
   const [checks, setChecks] = useState<MonitoringCheck[]>([]);
+  const [collectionSummaries, setCollectionSummaries] = useState<Record<string, CollectionSummary>>({});
+  const [summaryState, setSummaryState] = useState<"loading" | "live" | "unavailable">("loading");
   const [latestResults, setLatestResults] = useState<Record<string, MonitoringResult>>({});
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
   const [mode, setMode] = useState<SetupMode>("closed");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [collecting, setCollecting] = useState<FormTemplate | null>(null);
+  const [configuringForm, setConfiguringForm] = useState<FormTemplate | null>(null);
   const [notice, setNotice] = useState("");
 
   async function reload() {
     setState("loading");
-    const [formResult, checkResult] = await Promise.allSettled([loadFormTemplates(aggregate.program.id), loadMonitoringChecks(aggregate.program.id)]);
+    setSummaryState("loading");
+    const [formResult, checkResult, summaryResult] = await Promise.allSettled([loadFormTemplates(aggregate.program.id), loadMonitoringChecks(aggregate.program.id), loadCollectionSummaries(aggregate.program.id)]);
     if (formResult.status === "fulfilled") setForms(latestByID(formResult.value));
     if (checkResult.status === "fulfilled") {
       const currentChecks = latestByID(checkResult.value);
@@ -81,6 +107,12 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
       const next: Record<string, MonitoringResult> = {};
       for (const value of loaded) if (value.status === "fulfilled" && value.value.results[0]) next[value.value.check.id] = value.value.results[0];
       setLatestResults(next);
+    }
+    if (summaryResult.status === "fulfilled") {
+      setCollectionSummaries(Object.fromEntries(summaryResult.value.map((summary) => [summary.monitoring_check_id, summary])));
+      setSummaryState("live");
+    } else {
+      setSummaryState("unavailable");
     }
     setState(formResult.status === "fulfilled" || checkResult.status === "fulfilled" ? "live" : "unavailable");
   }
@@ -99,14 +131,19 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     if (!canConfigureMonitoring) {
       setMode("closed");
       setCollecting(null);
+      setConfiguringForm(null);
     }
     if (mode === "form" && !canDefineForm) setMode("choose");
     if (mode === "source" && !canDefineCheck) setMode("choose");
   }, [canConfigureMonitoring, canDefineForm, canDefineCheck, mode]);
 
-  const linkedFormVersions = useMemo(() => new Set(checks.filter((check) => check.input_kind === "FORM").map((check) => `${check.form_template_id}:${check.form_template_version}`)), [checks]);
+  const linkedFormIDs = useMemo(() => new Set(checks.filter((check) => check.input_kind === "FORM").map((check) => check.form_template_id)), [checks]);
   const activeFormVersions = useMemo(() => new Set(checks.filter((check) => check.input_kind === "FORM" && check.status === "ACTIVE" && check.is_current).map((check) => `${check.form_template_id}:${check.form_template_version}`)), [checks]);
   const formFields = useMemo(() => new Map(forms.flatMap((form) => form.fields.map((field) => [`${form.id}:${field.id}`, field.label] as const))), [forms]);
+  const formsByID = useMemo(() => new Map(forms.map((form) => [form.id, form])), [forms]);
+  const unlinkedForms = useMemo(() => forms.filter((form) => !linkedFormIDs.has(form.id)), [forms, linkedFormIDs]);
+  const formChecks = useMemo(() => checks.filter((check) => check.input_kind === "FORM"), [checks]);
+  const sourceChecks = useMemo(() => checks.filter((check) => check.input_kind === "SOURCE"), [checks]);
 
   async function changeForm(form: FormTemplate, to: LifecycleStatus) {
     const operation = formTransitionOperation(form.id);
@@ -120,16 +157,28 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     } finally { setBusy(""); }
   }
 
-  async function addCheck(form: FormTemplate) {
+  async function addCheck(form: FormTemplate, policy: CollectionPolicy) {
     if (!canDefineCheck) return;
     setBusy(form.id); setError("");
     try {
-      const check = await createFormMonitoringCheck(aggregate.program.id, form);
+      const check = await createFormMonitoringCheck(aggregate.program.id, form, policy);
       setChecks((current) => latestByID([...current, check]));
-      setNotice("Monitoring check saved as a draft.");
+      setConfiguringForm(null);
+      setNotice("Collection schedule saved as a draft for approval.");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The monitoring check could not be saved.");
+      throw caught instanceof Error ? caught : new Error("The collection schedule could not be saved.");
     } finally { setBusy(""); }
+  }
+
+  async function reloadCollectionSummaries() {
+    setSummaryState("loading");
+    try {
+      const values = await loadCollectionSummaries(aggregate.program.id);
+      setCollectionSummaries(Object.fromEntries(values.map((summary) => [summary.monitoring_check_id, summary])));
+      setSummaryState("live");
+    } catch {
+      setSummaryState("unavailable");
+    }
   }
 
   async function addSourceCheck(binding: SourceBinding, config: { code: string; name: string; claim: string; field: string; expected: string }) {
@@ -242,61 +291,75 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     )}
     {state === "live" && <div className="monitoring-records">
       {!forms.length && !checks.length && mode === "closed" && <p className="monitoring-empty">No monitoring checks have been added to this Program.</p>}
-      {forms.map((form) => <article className="monitoring-record" key={form.id}>
+      {unlinkedForms.map((form) => <article className="monitoring-record" key={form.id}>
         <div><span className="record-type">Collection form</span><h4>{form.name}</h4><p>{form.fields.length} question{form.fields.length === 1 ? "" : "s"} · {statusLabel(form.status)}</p></div>
         <div className="record-actions">
           {formTransitionOperation(form.id)?.can_act && formTransitionOperation(form.id)?.allowed_targets?.includes("PENDING_APPROVAL") && form.status === "DRAFT" && <button className="secondary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "PENDING_APPROVAL")}>Send for approval</button>}
           {formTransitionOperation(form.id)?.can_act && formTransitionOperation(form.id)?.allowed_targets?.includes("ACTIVE") && form.status === "PENDING_APPROVAL" && form.submitted_by !== actorPrincipalID && <button className="primary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "ACTIVE")}>Approve form</button>}
           {form.status === "PENDING_APPROVAL" && form.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this form.</span>}
-          {canDefineCheck && form.status === "ACTIVE" && hasScoredQuestions(form) && !linkedFormVersions.has(`${form.id}:${form.version}`) && <button className="secondary-button" disabled={busy === form.id} onClick={() => void addCheck(form)}>Create monitoring check</button>}
-          {collectionOperation(form.id)?.can_act && form.status === "ACTIVE" && activeFormVersions.has(`${form.id}:${form.version}`) && <button className="primary-button" disabled={busy === form.id} onClick={() => setCollecting(form)}>Collect responses</button>}
+          {canDefineCheck && form.status === "ACTIVE" && hasScoredQuestions(form) && <button className="secondary-button" disabled={busy === form.id} onClick={() => setConfiguringForm(form)}>Set collection schedule</button>}
         </div>
         {canDefineCheck && form.status === "ACTIVE" && !hasScoredQuestions(form) && <p className="program-operation-reason">This active revision has no scored questions. Create and approve a scored revision in Forms before adding a monitoring check.</p>}
-        {collecting?.id === form.id && <form className="collection-schedule" onSubmit={collect}>
-          <label><span>Period starts</span><input name="period_start" type="date" defaultValue={periodStart} required/></label>
-          <label><span>Period ends</span><input name="period_end" type="date" defaultValue={periodEnd} required/></label>
-          <label><span>Due</span><input name="deadline" type="datetime-local" defaultValue={deadline} required/></label>
-          <p>The request will be assigned to the current responder and kept separate from its reviewer.</p>
-          <button className="text-button" type="button" onClick={() => setCollecting(null)}>Cancel</button><button className="primary-button" type="submit" disabled={busy === form.id}>Create request</button>
-        </form>}
+        {configuringForm?.id === form.id && <CollectionPolicyForm onCancel={() => setConfiguringForm(null)} onSave={(policy) => addCheck(form, policy)}/>}
       </article>)}
-      {checks.map((check) => {
+      {formChecks.map((check) => {
+        const form = check.form_template_id ? formsByID.get(check.form_template_id) : undefined;
+        const result = latestResults[check.id];
+        const transitionOperation = checkOperation(check.id, "program.monitoring.transition");
+        const issueOperation = checkOperation(check.id, "program.monitoring.issue.create");
+        const issueEligible = eligibleForLinkedIssue(check, result);
+        return <CollectionRecord key={check.id} form={form} check={check} summary={collectionSummaries[check.id]} summaryLoading={summaryState === "loading"} summaryUnavailable={summaryState === "unavailable"} onRetrySummary={() => void reloadCollectionSummaries()}>
+          <div className="collection-record-work">
+            <MonitoringResultPanel check={check} result={result} formFields={formFields}/>
+            <div className="record-actions">
+              {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("PENDING_APPROVAL") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "PENDING_APPROVAL")}>Send for approval</button>}
+              {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("ACTIVE") && check.status === "PENDING_APPROVAL" && check.submitted_by !== actorPrincipalID && <button className="primary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "ACTIVE")}>Approve check</button>}
+              {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("REJECTED") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "REJECTED")}>Return check</button>}
+              {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("PAUSED") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "PAUSED")}>Pause check</button>}
+              {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("ACTIVE") && check.status === "PAUSED" && <button className="primary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "ACTIVE")}>Resume check</button>}
+              {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("RETIRED") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "RETIRED")}>End check</button>}
+              {check.status === "PENDING_APPROVAL" && check.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this check.</span>}
+              {form && collectionOperation(form.id)?.can_act && check.status === "ACTIVE" && activeFormVersions.has(`${form.id}:${form.version}`) && <button className="primary-button" disabled={busy === form.id} onClick={() => setCollecting(form)}>Collect responses</button>}
+              {issueEligible && issueOperation && <button className="primary-button" type="button" disabled={!issueOperation.can_act || busy === result!.id} onClick={() => void createLinkedIssue(check, result!)}>{busy === result!.id ? "Creating linked issue…" : "Create linked issue"}</button>}
+            </div>
+            {!transitionOperation?.can_act && transitionOperation?.reason && <p className="program-operation-reason">{transitionOperation.reason}</p>}
+            {issueEligible && issueOperation && !issueOperation.can_act && <p className="program-operation-reason">{issueOperation.reason}</p>}
+            {form && collecting?.id === form.id && <form className="collection-schedule" onSubmit={collect}>
+              <label><span>Period starts</span><input name="period_start" type="date" defaultValue={periodStart} required/></label>
+              <label><span>Period ends</span><input name="period_end" type="date" defaultValue={periodEnd} required/></label>
+              <label><span>Due</span><input name="deadline" type="datetime-local" defaultValue={deadline} required/></label>
+              {check.collection_policy && <p>Responses expire after {check.collection_policy.validity_months} months. Renewal starts {check.collection_policy.renewal_window_days} days before expiry with up to {check.collection_policy.reminder_count} reminders.</p>}
+              <p>The request will be assigned to the current responder and kept separate from its reviewer.</p>
+              <button className="text-button" type="button" onClick={() => setCollecting(null)}>Cancel</button><button className="primary-button" type="submit" disabled={busy === form.id}>Create request</button>
+            </form>}
+          </div>
+        </CollectionRecord>;
+      })}
+      {sourceChecks.map((check) => {
         const result = latestResults[check.id];
         const transitionOperation = checkOperation(check.id, "program.monitoring.transition");
         const evaluateOperation = checkOperation(check.id, "program.monitoring.evaluate");
         const issueOperation = checkOperation(check.id, "program.monitoring.issue.create");
         const issueEligible = eligibleForLinkedIssue(check, result);
         return <article className="monitoring-record" key={check.id}>
-        <div><span className="record-type">Monitoring check</span><h4>{check.name}</h4><p>{check.input_kind === "FORM" ? "Collection form" : "Connected data"} · {statusLabel(check.status)}</p></div>
-        {result && <div className="monitoring-result" aria-label={`Latest result for ${check.name}`}>
-          <strong>{riskLabel(result)}</strong>
-          <StatusBadge tone={bandTone(result)}>{bandLabel(result)}</StatusBadge>
-          <span>{Math.round(result.evaluation.coverage * 100)}% coverage</span>
-          <time dateTime={result.evaluated_at}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(result.evaluated_at))}</time>
-        </div>}
-        <div className="record-actions">
-          {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("PENDING_APPROVAL") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "PENDING_APPROVAL")}>Send for approval</button>}
-          {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("ACTIVE") && check.status === "PENDING_APPROVAL" && check.submitted_by !== actorPrincipalID && <button className="primary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "ACTIVE")}>Approve check</button>}
-          {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("REJECTED") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "REJECTED")}>Return check</button>}
-          {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("PAUSED") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "PAUSED")}>Pause check</button>}
-          {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("ACTIVE") && check.status === "PAUSED" && <button className="primary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "ACTIVE")}>Resume check</button>}
-          {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("RETIRED") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "RETIRED")}>End check</button>}
-          {check.status === "PENDING_APPROVAL" && check.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this check.</span>}
-          {evaluateOperation?.can_act && check.status === "ACTIVE" && check.input_kind === "SOURCE" && <button className="primary-button" disabled={busy === check.id} onClick={() => void runSourceCheck(check)}>{busy === check.id ? "Checking…" : "Check source now"}</button>}
-          {issueEligible && issueOperation && <button className="primary-button" type="button" disabled={!issueOperation.can_act || busy === result!.id} onClick={() => void createLinkedIssue(check, result!)}>{busy === result!.id ? "Creating linked issue…" : "Create linked issue"}</button>}
-        </div>
-        {!transitionOperation?.can_act && transitionOperation?.reason && <p className="program-operation-reason">{transitionOperation.reason}</p>}
-        {!evaluateOperation?.can_act && evaluateOperation?.reason && <p className="program-operation-reason">{evaluateOperation.reason}</p>}
-        {issueEligible && issueOperation && !issueOperation.can_act && <p className="program-operation-reason">{issueOperation.reason}</p>}
-        {result && <details className="monitoring-result-detail">
-          <summary>Review result</summary>
-          {result.evaluation.band === "NOT_ASSESSED" ? <p>The available response or source data was not sufficient to calculate risk.</p> : (() => {
-            const exceptions = (result.evaluation.rule_results ?? []).filter((rule) => rule.outcome !== "PASS");
-            if (!exceptions.length) return <p>All configured checks passed.</p>;
-            return <ul>{exceptions.map((rule) => <li key={`${rule.rule_id ?? "form"}-${rule.field_id}`}><strong>{check.form_template_id ? formFields.get(`${check.form_template_id}:${rule.field_id}`) ?? rule.field_id : rule.field_id}</strong><span>{rule.reason}</span></li>)}</ul>;
-          })()}
-        </details>}
-      </article>;})}
+          <div><span className="record-type">Monitoring check</span><h4>{check.name}</h4><p>Connected data · {statusLabel(check.status)}</p></div>
+          <MonitoringResultPanel check={check} result={result} formFields={formFields}/>
+          <div className="record-actions">
+            {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("PENDING_APPROVAL") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "PENDING_APPROVAL")}>Send for approval</button>}
+            {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("ACTIVE") && check.status === "PENDING_APPROVAL" && check.submitted_by !== actorPrincipalID && <button className="primary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "ACTIVE")}>Approve check</button>}
+            {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("REJECTED") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "REJECTED")}>Return check</button>}
+            {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("PAUSED") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "PAUSED")}>Pause check</button>}
+            {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("ACTIVE") && check.status === "PAUSED" && <button className="primary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "ACTIVE")}>Resume check</button>}
+            {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("RETIRED") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "RETIRED")}>End check</button>}
+            {check.status === "PENDING_APPROVAL" && check.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this check.</span>}
+            {evaluateOperation?.can_act && check.status === "ACTIVE" && <button className="primary-button" disabled={busy === check.id} onClick={() => void runSourceCheck(check)}>{busy === check.id ? "Checking…" : "Check source now"}</button>}
+            {issueEligible && issueOperation && <button className="primary-button" type="button" disabled={!issueOperation.can_act || busy === result!.id} onClick={() => void createLinkedIssue(check, result!)}>{busy === result!.id ? "Creating linked issue…" : "Create linked issue"}</button>}
+          </div>
+          {!transitionOperation?.can_act && transitionOperation?.reason && <p className="program-operation-reason">{transitionOperation.reason}</p>}
+          {!evaluateOperation?.can_act && evaluateOperation?.reason && <p className="program-operation-reason">{evaluateOperation.reason}</p>}
+          {issueEligible && issueOperation && !issueOperation.can_act && <p className="program-operation-reason">{issueOperation.reason}</p>}
+        </article>;
+      })}
     </div>}
   </section>;
 }

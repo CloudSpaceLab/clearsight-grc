@@ -91,25 +91,26 @@ type StartCollectionInput struct {
 }
 
 type CreateCheckInput struct {
-	ProgramID               string        `json:"program_id"`
-	RequirementID           string        `json:"requirement_id,omitempty"`
-	ControlImplementationID string        `json:"control_implementation_id,omitempty"`
-	EvidenceContractID      string        `json:"evidence_contract_id,omitempty"`
-	Code                    string        `json:"code"`
-	Name                    string        `json:"name"`
-	Claim                   string        `json:"claim"`
-	InputKind               InputKind     `json:"input_kind"`
-	FormTemplateID          string        `json:"form_template_id,omitempty"`
-	FormTemplateVersion     int64         `json:"form_template_version,omitempty"`
-	BindingID               string        `json:"binding_id,omitempty"`
-	BindingVersion          int64         `json:"binding_version,omitempty"`
-	SourceRules             []SourceRule  `json:"source_rules,omitempty"`
-	Thresholds              Thresholds    `json:"thresholds"`
-	FreshnessMinutes        int           `json:"freshness_minutes"`
-	MinimumCoverage         float64       `json:"minimum_coverage"`
-	OwnerPrincipalID        string        `json:"owner_principal_id,omitempty"`
-	ReviewerPrincipalID     string        `json:"reviewer_principal_id,omitempty"`
-	FailureAction           FailureAction `json:"failure_action"`
+	ProgramID               string            `json:"program_id"`
+	RequirementID           string            `json:"requirement_id,omitempty"`
+	ControlImplementationID string            `json:"control_implementation_id,omitempty"`
+	EvidenceContractID      string            `json:"evidence_contract_id,omitempty"`
+	Code                    string            `json:"code"`
+	Name                    string            `json:"name"`
+	Claim                   string            `json:"claim"`
+	InputKind               InputKind         `json:"input_kind"`
+	FormTemplateID          string            `json:"form_template_id,omitempty"`
+	FormTemplateVersion     int64             `json:"form_template_version,omitempty"`
+	CollectionPolicy        *CollectionPolicy `json:"collection_policy,omitempty"`
+	BindingID               string            `json:"binding_id,omitempty"`
+	BindingVersion          int64             `json:"binding_version,omitempty"`
+	SourceRules             []SourceRule      `json:"source_rules,omitempty"`
+	Thresholds              Thresholds        `json:"thresholds"`
+	FreshnessMinutes        int               `json:"freshness_minutes"`
+	MinimumCoverage         float64           `json:"minimum_coverage"`
+	OwnerPrincipalID        string            `json:"owner_principal_id,omitempty"`
+	ReviewerPrincipalID     string            `json:"reviewer_principal_id,omitempty"`
+	FailureAction           FailureAction     `json:"failure_action"`
 }
 
 type EvaluateSourceInput struct {
@@ -514,15 +515,27 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 	if err != nil {
 		return evidence.Request{}, err
 	}
-	linked := false
+	var linked *MonitoringCheck
 	for _, check := range checks {
 		if check.Status == LifecycleActive && check.IsCurrent && check.InputKind == InputForm && check.FormTemplateID == form.ID && check.FormTemplateVersion == form.Version {
-			linked = true
-			break
+			if linked != nil {
+				return evidence.Request{}, errors.Join(ErrConflict, fmt.Errorf("more than one active collection check uses this form"))
+			}
+			candidate := check
+			linked = &candidate
 		}
 	}
-	if !linked {
+	if linked == nil {
 		return evidence.Request{}, ErrInactive
+	}
+	if linked.CollectionPolicy != nil {
+		if _, err := normalizeCollectionPolicy(linked.CollectionPolicy); err != nil {
+			return evidence.Request{}, err
+		}
+	}
+	origin := evidence.RequestOrigin{}
+	if linked.CollectionPolicy != nil {
+		origin = evidence.RequestOrigin{Type: evidence.OriginMonitoringCollection, ID: linked.ID, Version: 1}
 	}
 	fields := make([]evidence.Field, len(form.Fields))
 	for index, field := range form.Fields {
@@ -539,7 +552,8 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 		KnownFacts:   map[string]string{"reviewer": input.ReviewerPrincipalID, "legal_entity_id": input.LegalEntityID, "reporting_period_start": periodStart.Format(time.RFC3339), "reporting_period_end": periodEnd.Format(time.RFC3339)},
 		Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile,
 		Sections: form.Sections, Fields: fields, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
-		CollectionPeriodStart: &periodStart, CollectionPeriodEnd: &periodEnd, CreatedBy: actor.PrincipalID,
+		CollectionPeriodStart: &periodStart, CollectionPeriodEnd: &periodEnd,
+		Origin: origin, CreatedBy: actor.PrincipalID,
 	})
 }
 
@@ -588,8 +602,13 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		if !hasFormFieldScoring(form.Fields) {
 			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("the active form revision has no scored questions; create and approve a scored revision before adding a monitoring check"))
 		}
+		policy, err := normalizeCollectionPolicy(input.CollectionPolicy)
+		if err != nil {
+			return MonitoringCheck{}, err
+		}
+		input.CollectionPolicy = &policy
 	case InputSource:
-		if input.BindingID == "" || input.BindingVersion < 1 || input.FormTemplateID != "" || len(input.SourceRules) == 0 {
+		if input.BindingID == "" || input.BindingVersion < 1 || input.FormTemplateID != "" || len(input.SourceRules) == 0 || input.CollectionPolicy != nil {
 			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("source checks require one binding revision and at least one rule"))
 		}
 		for _, rule := range input.SourceRules {
@@ -613,7 +632,8 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		ControlImplementationID: strings.TrimSpace(input.ControlImplementationID), EvidenceContractID: strings.TrimSpace(input.EvidenceContractID),
 		Code: strings.TrimSpace(input.Code), Name: strings.TrimSpace(input.Name), Claim: strings.TrimSpace(input.Claim), InputKind: input.InputKind,
 		FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion,
-		BindingID: strings.TrimSpace(input.BindingID), BindingVersion: input.BindingVersion, SourceRules: append([]SourceRule(nil), input.SourceRules...),
+		CollectionPolicy: input.CollectionPolicy,
+		BindingID:        strings.TrimSpace(input.BindingID), BindingVersion: input.BindingVersion, SourceRules: append([]SourceRule(nil), input.SourceRules...),
 		Thresholds: input.Thresholds, FreshnessMinutes: input.FreshnessMinutes, MinimumCoverage: input.MinimumCoverage,
 		OwnerPrincipalID: strings.TrimSpace(input.OwnerPrincipalID), ReviewerPrincipalID: strings.TrimSpace(input.ReviewerPrincipalID), FailureAction: input.FailureAction,
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},

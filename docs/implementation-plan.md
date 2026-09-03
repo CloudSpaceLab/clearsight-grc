@@ -1,6 +1,6 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-09-02
+**Status date:** 2026-09-03
 **Current execution:** Stored runtime truth, oversight history completeness and hosted vendor email acceptance
 
 ## Stored runtime truth — implemented, integration verification in progress
@@ -60,7 +60,8 @@ This file is the authoritative implementation ledger. Code, migrations and execu
 | Stateless AI gateway transport T3 | issue #61; PR #71 |
 | Governed AI workload/policy runtime T4 + durable receipts/response grants T5 | issue #61; PR #73 |
 | Governed document-proposal reviewer/authorizer handoff | issue #72; PR #75 |
-| Program monitoring setup | Program and requirement creation, reusable forms, connected public status endpoints, maker-checker form/check activation, on-demand collection and immutable results |
+| Program monitoring setup | Program and requirement creation, reusable forms, connected public status endpoints, maker-checker form/check activation, immutable results and Program-linked collection renewal policies |
+| Program collection renewal and sections | Versioned expiry/month policy, 30-day/3-reminder defaults, immutable successor requests, attributed scalar prefill, bounded leased renewal work, Program collection summaries and responsive six-section Program workspace |
 | Issue and change creation | Inline authority-checked Matter creation, business work types, actor ownership, optional Program linking and immediate in-workspace handoff |
 | Complete Program operating record | Versioned details and ownership, requirement supersession, applicability, safeguards and eligible performers, evidence expectations/results, lifecycle, monitoring and exact linked issues |
 | Complete issue/change operating record | Facts and gaps, eligible assignment, decisions, actions, responses, outcome checks and closure through actor-scoped UI commands |
@@ -92,9 +93,13 @@ The integrated tranche passes the exact-head unit and tagged-build gates, the re
 
 ## 2. Mobile-channel monitoring — implemented application slice
 
-An authorized user can create a channel Program and requirements without API or JSON work. Reusable collection forms support weighted Yes/No scoring and critical answers. Active forms create dated Evidence Requests on demand; a submitted response is evaluated automatically against the exact active form and Monitoring Check versions. A GRC administrator can connect a public HTTPS JSON status endpoint, select an observed field and expected value, and create a connected-data Monitoring Check. Active source checks run on demand and store the source receipt with score, band and coverage.
+An authorized user can create a channel Program and requirements without API or JSON work. Reusable collection forms support weighted Yes/No scoring and critical answers. A Program-linked form Monitoring Check records an explicit response-validity period, renewal window and 1–5 reminders; new policies default to 30 days and 3 reminders. A submitted response creates a versioned collection cycle. The leased worker opens one origin-keyed successor before expiry, preserves the predecessor, carries forward compatible scalar answers with attribution and stops future work after submission, cancellation, pause or retirement. File and signature answers remain on the predecessor and are not copied. The Program Monitoring section shows the last respondent and submission time, calculated expiry, reminder progress, delivery state and projection freshness.
 
-Form and Monitoring Check activation requires a different approver from the submitter. A result is an observation and does not create an approved Evidence Assessment or compliance conclusion. Recurring form-request generation, credential entry in the browser, automatic Matter creation and a general-purpose integration catalogue remain outside this slice.
+Program details use six URL-addressable sections: Overview, Requirements & controls, Monitoring, Evidence & results, Issues & actions and History. Desktop/tablet use keyboard tabs; narrow and 200% reflow widths use a native selector.
+
+A GRC administrator can connect a public HTTPS JSON status endpoint, select an observed field and expected value, and create a connected-data Monitoring Check. Active source checks run on demand and store the source receipt with score, band and coverage.
+
+Form and Monitoring Check activation requires a different approver from the submitter. A result is an observation and does not create an approved Evidence Assessment or compliance conclusion. Collection expiry changes attention, not material risk or legal status. Production external email or messaging delivery, credential entry in the browser, automatic Matter creation and a general-purpose integration catalogue remain outside this slice.
 
 The Work workspace also supports inline creation of user-reported risk issues, control gaps, regulatory changes, findings, requests, exceptions and incidents. New items begin as Draft work, default to internal access and the signed-in accountable owner, and can be linked to a scoped Program at creation. System-derived types remain reserved for their originating checks and observations.
 
