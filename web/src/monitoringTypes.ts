@@ -43,6 +43,12 @@ export type FormTemplate = Lifecycle & {
   fields: FormTemplateField[];
 };
 
+export type CollectionPolicy = {
+  validity_months: number;
+  renewal_window_days: number;
+  reminder_count: number;
+};
+
 export type MonitoringCheck = Lifecycle & {
   id: string;
   tenant_id: string;
@@ -53,12 +59,34 @@ export type MonitoringCheck = Lifecycle & {
   input_kind: "FORM" | "SOURCE";
   form_template_id?: string;
   form_template_version?: number;
+  collection_policy?: CollectionPolicy;
   binding_id?: string;
   binding_version?: number;
   thresholds: { moderate_from: number; high_from: number; critical_from: number };
   freshness_minutes: number;
   minimum_coverage: number;
   failure_action: "REVIEW" | "RECOMMEND_MATTER";
+};
+
+export type CollectionCurrencyState = "NO_RESPONSE_SUBMITTED" | "CURRENT" | "RENEWAL_DUE" | "RESPONSE_POTENTIALLY_EXPIRED" | "AWAITING_RESPONSE" | "RENEWAL_BLOCKED";
+
+export type CollectionSummary = {
+  monitoring_check_id: string;
+  latest_request_id?: string;
+  latest_submission_id?: string;
+  latest_submission_at?: string;
+  respondent_label?: string;
+  recipient_hint?: string;
+  expires_at: string;
+  renewal_opens_at: string;
+  currency_state: CollectionCurrencyState;
+  active_request_deadline?: string;
+  reminders_sent: number;
+  reminder_count: number;
+  delivery_state: "NOT_DISPATCHED" | "ASSIGNED" | "DELIVERED" | "BLOCKED" | "FAILED";
+  last_error_safe?: string;
+  projection_generated_at: string;
+  projection_source_version: number;
 };
 
 export type MonitoringResult = {

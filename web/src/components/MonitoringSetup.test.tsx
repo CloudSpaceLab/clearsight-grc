@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createFormTemplate, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults } from "../monitoringApi";
+import { createFormMonitoringCheck, createFormTemplate, loadCollectionSummaries, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults } from "../monitoringApi";
 import { createProgram } from "../continuityCommands";
 import type { ProgramAggregate } from "../types";
 import { FormBuilder } from "./FormBuilder";
@@ -12,6 +12,7 @@ import { DataSourceBuilder } from "./DataSourceBuilder";
 vi.mock("../monitoringApi", () => ({
   createFormTemplate: vi.fn(),
   createFormMonitoringCheck: vi.fn(),
+  loadCollectionSummaries: vi.fn(),
   loadFormTemplates: vi.fn(),
   loadMonitoringChecks: vi.fn(),
   loadMonitoringResults: vi.fn(),
@@ -35,6 +36,7 @@ beforeEach(() => {
   vi.mocked(loadFormTemplates).mockResolvedValue([]);
   vi.mocked(loadMonitoringChecks).mockResolvedValue([]);
   vi.mocked(loadMonitoringResults).mockResolvedValue([]);
+  vi.mocked(loadCollectionSummaries).mockResolvedValue([]);
 });
 
 describe("monitoring setup", () => {
@@ -76,8 +78,29 @@ describe("monitoring setup", () => {
 
     render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources/>);
 
-    expect(await screen.findByRole("button", { name: "Create monitoring check" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Set collection schedule" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Collect responses" })).toBeNull();
+  });
+
+  it("adds the recommended expiry and reminder policy to a Program collection", async () => {
+    const form = {
+      id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards", fields: [],
+      status: "ACTIVE" as const, is_current: true, version: 2, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    };
+    vi.mocked(loadFormTemplates).mockResolvedValue([form]);
+    vi.mocked(createFormMonitoringCheck).mockResolvedValue({
+      id: "check-1", tenant_id: "bank-1", program_id: "program-1", code: "RESET-CHECK", name: form.name, claim: form.purpose, input_kind: "FORM",
+      form_template_id: form.id, form_template_version: form.version, collection_policy: { validity_months: 12, renewal_window_days: 30, reminder_count: 3 },
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 10080, minimum_coverage: 1, failure_action: "REVIEW",
+      status: "DRAFT", is_current: false, version: 1, created_at: "2026-08-17T00:00:00Z", updated_at: "2026-08-17T00:00:00Z",
+    });
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Set collection schedule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add collection to Program" }));
+
+    await waitFor(() => expect(createFormMonitoringCheck).toHaveBeenCalledWith("program-1", form, { validity_months: 12, renewal_window_days: 30, reminder_count: 3 }));
+    expect(screen.getAllByRole("heading", { name: form.name })).toHaveLength(1);
   });
 
   it("shows the latest risk and coverage for each monitoring check", async () => {
