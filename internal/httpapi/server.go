@@ -87,6 +87,7 @@ type Dependencies struct {
 	BankVerticals         *bankverticals.Service
 	BackgroundJobs        *operations.Service
 	Activity              *activity.Service
+	AuditExports          *activity.ExportService
 	MaxArtifactBytes      int64
 }
 
