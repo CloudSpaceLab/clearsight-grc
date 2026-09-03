@@ -250,7 +250,7 @@ func TestServiceGovernsFormMonitoringCheck(t *testing.T) {
 	maker := Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "maker"}
 	check, err := service.CreateCheck(context.Background(), maker, CreateCheckInput{
 		ProgramID: "program-1", Code: "RESET", Name: "Password reset safeguards", Claim: "Password reset safeguards are operating.",
-		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
+		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, CollectionPolicy: &CollectionPolicy{ValidityMonths: 12}, Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
 	})
 	if err != nil || check.Status != LifecycleDraft || check.Version != 1 {
 		t.Fatalf("check = %#v, err = %v", check, err)

@@ -405,6 +405,32 @@ func (r *PostgresRepository) CreateCheckRevision(ctx context.Context, value Moni
 	return created, nil
 }
 
+func (r *PostgresRepository) ReviseCheck(ctx context.Context, input CheckRevisionUpdate) (MonitoringCheck, error) {
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return MonitoringCheck{}, mapPostgresError(err)
+	}
+	defer tx.Rollback(ctx)
+	current, err := scanCheck(tx.QueryRow(ctx, checkSelect+` WHERE (t.id::text=$1 OR t.slug=$1) AND c.id=$2::uuid AND c.version=$3 FOR UPDATE`, input.TenantID, input.ID, input.ExpectedVersion))
+	if err != nil {
+		return MonitoringCheck{}, mapPostgresError(err)
+	}
+	if current.InputKind != InputForm || current.Status != LifecycleActive || !current.IsCurrent {
+		return MonitoringCheck{}, ErrConflict
+	}
+	now := input.At.UTC()
+	current.CollectionPolicy = &input.Policy
+	current.Lifecycle = Lifecycle{Status: LifecycleDraft, Version: current.Version + 1, CreatedBy: input.ActorID, CreatedAt: now, UpdatedAt: now}
+	created, err := insertCheckRevision(ctx, tx, current)
+	if err != nil {
+		return MonitoringCheck{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return MonitoringCheck{}, mapPostgresError(err)
+	}
+	return created, nil
+}
+
 func insertCheckRevision(ctx context.Context, db queryRower, value MonitoringCheck) (MonitoringCheck, error) {
 	sourceRules := value.SourceRules
 	if sourceRules == nil {
