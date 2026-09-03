@@ -437,6 +437,9 @@ func ApplyDecision(request Request, decision Decision) (Request, error) {
 	if decision.Action != DecisionAllow && decision.Action != DecisionShadow && decision.Action != DecisionModify && decision.Action != DecisionRoute {
 		return request, ErrPolicyUnavailable
 	}
+	if decision.RolloutMode == RolloutShadow {
+		return mutated, nil
+	}
 	return applyOrganizationInstructions(mutated, decision.Obligations)
 }
 
