@@ -61,8 +61,12 @@ func main() {
 		service.ConfigureEvidenceSourceValidator(evidenceService)
 		return service
 	})
-	journeys, err := installer.InstallSample(ctx, seed)
+	installedJourneys, err := installer.InstallSample(ctx, seed)
 	fatalIf(err)
+	programID := referenceProgramID(installedJourneys)
+	if programID == "" {
+		fatalIf(fmt.Errorf("response-policy acceptance requires an installed Program subject"))
+	}
 
 	maintainer := &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepo, WorkerID: "reference-installer"}
 	for {
@@ -84,15 +88,11 @@ func main() {
 	if oversightSnapshot.SourceHighWater["matters"].IsZero() || oversightSnapshot.SourceHighWater["continuity_events"].IsZero() {
 		fatalIf(fmt.Errorf("oversight snapshot is missing authoritative Matter or event high-water marks"))
 	}
-	journeys, err = installer.List(ctx, seed.TenantID)
+	journeys, err := installer.List(ctx, seed.TenantID)
 	fatalIf(err)
 
-	programID := referenceProgramID(journeys)
-	if programID == "" {
-		fatalIf(fmt.Errorf("response-policy acceptance requires an installed Program subject"))
-	}
 	fatalIf(installer.EnsureResponsePolicyAcceptanceForm(ctx, seed, programID))
-	scoring, err := seedScoringAcceptanceResponses(ctx, cfg, pool, seed, journeys, monitoringRepo, evidenceRepo)
+	scoring, err := seedScoringAcceptanceResponses(ctx, cfg, pool, seed, installedJourneys, monitoringRepo, evidenceRepo)
 	fatalIf(err)
 	fatalIf(ensureAcceptanceExecutionAuthority(ctx, pool, seed))
 	policySeed := seed
