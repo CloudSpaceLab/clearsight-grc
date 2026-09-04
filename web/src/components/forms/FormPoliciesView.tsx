@@ -41,7 +41,7 @@ export function FormPoliciesView() {
     setFormsLoading(true); setFormsError("");
     try {
       const values = await loadFormTemplates();
-      setForms(values.filter((form) => form.status === "ACTIVE" && form.scoring_mode !== undefined && form.scoring_mode !== "NONE" && Boolean(form.score_profile)).map((form) => ({
+      setForms(values.filter((form) => form.status === "ACTIVE" && form.scoring_mode !== undefined && form.scoring_mode !== "NONE").map((form) => ({
         id: form.id, name: form.name, code: form.code, version: form.version,
       })));
     } catch (cause) {
