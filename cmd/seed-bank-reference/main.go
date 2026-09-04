@@ -18,6 +18,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
 
 func main() {
@@ -52,6 +53,7 @@ func main() {
 	continuityService := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return seed.Now })
 	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
 	monitoringService := monitoring.NewService(monitoring.NewPostgresRepository(pool), evidenceService)
+	thirdPartyService := thirdparty.NewService(thirdparty.NewPostgresRepository(pool))
 	installer := bankverticals.NewService(continuityService, evidenceService)
 	installer.ConfigureMonitoring(monitoringService)
 	installer.ConfigureReferenceTimeline(func(at time.Time) *continuity.Service {
@@ -60,6 +62,8 @@ func main() {
 		return service
 	})
 	journeys, err := installer.InstallSample(ctx, seed)
+	fatalIf(err)
+	referenceVendor, err := installer.EnsureReferenceVendor(ctx, seed, thirdPartyService)
 	fatalIf(err)
 
 	maintainer := &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepo, WorkerID: "reference-installer"}
@@ -85,14 +89,16 @@ func main() {
 	journeys, err = installer.List(ctx, seed.TenantID)
 	fatalIf(err)
 	fatalIf(json.NewEncoder(os.Stdout).Encode(map[string]any{
-		"installed_at":                seed.Now,
-		"tenant_id":                   seed.TenantID,
-		"journeys":                    journeys,
-		"oversight_projection":        oversightSnapshot.ProjectionVersion,
-		"oversight_generated_at":      oversightSnapshot.GeneratedAt,
-		"oversight_population":        oversightSnapshot.Coverage.Population,
-		"oversight_resolution_ranges": len(oversightSnapshot.Estimates),
-		"oversight_source_high_water": oversightSnapshot.SourceHighWater,
+		"installed_at":                   seed.Now,
+		"tenant_id":                      seed.TenantID,
+		"journeys":                       journeys,
+		"reference_vendor_id":            referenceVendor.Vendor.ID,
+		"reference_vendor_relationship_id": referenceVendor.Relationship.ID,
+		"oversight_projection":           oversightSnapshot.ProjectionVersion,
+		"oversight_generated_at":         oversightSnapshot.GeneratedAt,
+		"oversight_population":           oversightSnapshot.Coverage.Population,
+		"oversight_resolution_ranges":    len(oversightSnapshot.Estimates),
+		"oversight_source_high_water":    oversightSnapshot.SourceHighWater,
 	}))
 }
 
