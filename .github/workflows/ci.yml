@@ -85,6 +85,8 @@ jobs:
             exit 1
           fi
           grep -q "checksum mismatch: 000001_foundation.up.sql" migration-error.log
+      - name: V1 contract gate
+        run: bash scripts/verify-v1-contract-gate.sh
       - name: Remove deployment migration test database
         if: always()
         env:
