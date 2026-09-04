@@ -91,17 +91,17 @@ func TestConfigureReferenceVerticalsInstallsActiveVendorForms(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]bool{"VENDOR-DUE-DILIGENCE": true, "VENDOR-ADDRESS-VERIFICATION": true, "VENDOR-CERTIFICATION-REFRESH": true, "RESPONSE-POLICY-ACCEPTANCE": true}
+	want := map[string]bool{"VENDOR-DUE-DILIGENCE": true, "VENDOR-ADDRESS-VERIFICATION": true, "VENDOR-CERTIFICATION-REFRESH": true}
 	if len(forms) != len(want) {
-		t.Fatalf("demo governed forms=%#v", forms)
+		t.Fatalf("demo vendor forms=%#v", forms)
 	}
 	for _, form := range forms {
 		if !want[form.Code] || form.Status != monitoring.LifecycleActive || !form.IsCurrent {
-			t.Fatalf("unexpected demo governed form=%#v", form)
+			t.Fatalf("unexpected demo vendor form=%#v", form)
 		}
 		delete(want, form.Code)
 	}
 	if len(want) != 0 {
-		t.Fatalf("missing demo governed forms=%#v", want)
+		t.Fatalf("missing demo vendor forms=%#v", want)
 	}
 }

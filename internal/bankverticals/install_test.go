@@ -38,10 +38,10 @@ func TestInstallSampleCreatesGovernedVendorFormsIdempotently(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(forms) != 4 {
-		t.Fatalf("active reusable forms=%d, want 4: %#v", len(forms), forms)
+	if len(forms) != 3 {
+		t.Fatalf("active reusable forms=%d, want 3: %#v", len(forms), forms)
 	}
-	want := map[string]int{"VENDOR-DUE-DILIGENCE": 8, "VENDOR-ADDRESS-VERIFICATION": 6, "VENDOR-CERTIFICATION-REFRESH": 7, "RESPONSE-POLICY-ACCEPTANCE": 4}
+	want := map[string]int{"VENDOR-DUE-DILIGENCE": 8, "VENDOR-ADDRESS-VERIFICATION": 6, "VENDOR-CERTIFICATION-REFRESH": 7}
 	for _, form := range forms {
 		fieldCount, exists := want[form.Code]
 		if !exists || form.Status != monitoring.LifecycleActive || !form.IsCurrent || len(form.Fields) != fieldCount {
@@ -53,9 +53,6 @@ func TestInstallSampleCreatesGovernedVendorFormsIdempotently(t *testing.T) {
 		if form.Code == vendorCertificationRefreshFormCode && (form.ScoringMode != "COMPLIANCE" || form.ScoreProfile == nil || form.ScoreProfile.Version != "vendor-certification-v1") {
 			t.Fatalf("seeded certification scoring was not preserved: %#v", form)
 		}
-		if form.Code == responsePolicyAcceptanceFormCode && (form.ScoringMode != "COMPLIANCE" || form.ScoreProfile == nil || form.ScoreProfile.Version != "response-policy-acceptance-v1") {
-			t.Fatalf("seeded response-policy acceptance scoring was not preserved: %#v", form)
-		}
 		delete(want, form.Code)
 	}
 	if len(want) != 0 {
@@ -66,8 +63,8 @@ func TestInstallSampleCreatesGovernedVendorFormsIdempotently(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(revisions) != 12 {
-		t.Fatalf("initial form lifecycle revisions=%d, want 12", len(revisions))
+	if len(revisions) != 9 {
+		t.Fatalf("initial form lifecycle revisions=%d, want 9", len(revisions))
 	}
 	if _, err := service.InstallSample(context.Background(), config); err != nil {
 		t.Fatal(err)
@@ -101,7 +98,244 @@ func TestInstallSampleRejectsSameVendorFormMakerAndChecker(t *testing.T) {
 	}
 	service.ConfigureMonitoring(monitoringService)
 	config.ReviewerPrincipalID = config.ActorID
-	if err := service.ensureVendorForms(context.Background(), config, program.Program.ID); !errors.Is(err, ErrInvalidSeed) {
-		t.Fatalf("same maker/checker form install err=%v", err)
+
+	err = service.ensureVendorDueDiligenceForm(context.Background(), config, program.Program.ID)
+	if !errors.Is(err, monitoring.ErrMakerChecker) {
+		t.Fatalf("same maker/checker error=%v, want %v", err, monitoring.ErrMakerChecker)
+	}
+}
+
+func TestInstallSampleRecoversPartialProgram(t *testing.T) {
+	ctx := continuity.WithTrustedSystemScope(context.Background())
+	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	repository := continuity.NewMemoryRepository()
+	continuityService := continuity.NewServiceWithClock(repository, func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, "bank-ng")
+	service := NewService(continuityService, evidenceService)
+	configureReferenceTimeline(service, repository)
+	config := DemoSeedConfig()
+	config.Now = now
+	config = normalizeSeedConfig(config)
+
+	sourceIDs, err := service.seedSources(ctx, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err := continuityService.CreateProgram(ctx, continuity.CreateProgramInput{
+		TenantID:             config.TenantID,
+		LegalEntityID:        config.LegalEntityID,
+		Code:                 programCodeNDPA,
+		Name:                 "Nigeria data protection",
+		Type:                 "PRIVACY",
+		OwningFunction:       "Data Protection Office",
+		OwnerPrincipalID:     config.OwnerPrincipalID,
+		AuthorityPrincipalID: config.SignatoryPrincipalID,
+		Jurisdiction:         "Nigeria",
+		Scope:                mustJSON(map[string]any{"journey_code": JourneyNDPAContinuous, "sample": true}),
+		EffectiveFrom:        config.Now.AddDate(0, -6, 0),
+		ActorID:              config.ActorID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.addRequirementBundle(ctx, config, program, sourceIDs, referenceRequirementSpecs()[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := service.InstallSample(ctx, config); err != nil {
+		t.Fatal(err)
+	}
+	program, err = continuityService.ProgramByCode(ctx, config.TenantID, programCodeNDPA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(program.Requirements) != 5 || len(program.EvidenceContracts) != 5 || program.Program.Status != continuity.ProgramActive {
+		t.Fatalf("partial program was not reconciled: requirements=%d checks=%d status=%s", len(program.Requirements), len(program.EvidenceContracts), program.Program.Status)
+	}
+	matters, err := continuityService.ListMatters(ctx, config.TenantID, "", 20)
+	if err != nil || len(matters) != 10 {
+		t.Fatalf("remaining journeys and oversight histories were not installed: matters=%d err=%v", len(matters), err)
+	}
+}
+
+func TestInstallSampleResumesPartiallyTransitionedMatter(t *testing.T) {
+	ctx := continuity.WithTrustedSystemScope(context.Background())
+	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	repository := continuity.NewMemoryRepository()
+	continuityService := continuity.NewServiceWithClock(repository, func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, "bank-ng")
+	service := NewService(continuityService, evidenceService)
+	configureReferenceTimeline(service, repository)
+	config := DemoSeedConfig()
+	config.Now = now
+	config = normalizeSeedConfig(config)
+
+	sourceIDs, err := service.seedSources(ctx, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err := service.ensureNDPAProgram(ctx, config, sourceIDs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	partial, err := continuityService.CreateMatter(ctx, continuity.CreateMatterInput{
+		TenantID:          config.TenantID,
+		Type:              continuity.MatterRegulatoryChange,
+		Priority:          4,
+		Title:             "Implement GAID 2025 annual return requirements",
+		Summary:           "Partially installed reference issue.",
+		Scope:             mustJSON(map[string]any{"journey_code": JourneyRegulatoryChange, "sample": true}),
+		SourceType:        "REGULATORY",
+		SourceID:          sourceIDs["NDPA-GAID-2025"],
+		TriggerType:       "REQUIREMENT_CHANGED",
+		TriggerKey:        triggerRegulatoryChange,
+		KnownFacts:        mustJSON(map[string]any{"filing_deadline": "31 March"}),
+		MissingFacts:      mustJSON([]string{}),
+		Contradictions:    mustJSON([]string{}),
+		OwnerPrincipalID:  config.OwnerPrincipalID,
+		RequiredAuthority: "AUTHORIZER",
+		DueAt:             timePointer(config.Now.Add(14 * 24 * time.Hour)),
+		ProgramID:         program.Program.ID,
+		ActorID:           config.ActorID,
+	})
+	if err != nil || partial.Matter.Status != continuity.MatterInitialReview {
+		t.Fatalf("could not create partial issue: status=%s err=%v", partial.Matter.Status, err)
+	}
+
+	if _, err := service.InstallSample(ctx, config); err != nil {
+		t.Fatal(err)
+	}
+	repaired, err := continuityService.MatterByTriggerKey(ctx, config.TenantID, triggerRegulatoryChange)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if repaired.Matter.Status != continuity.MatterActionsInProgress || !currentDecisionApproved(repaired.Decisions) || len(currentActions(repaired.Actions)) == 0 || activeVerificationContract(repaired, "") == nil {
+		t.Fatalf("partial issue was not resumed: %#v", repaired)
+	}
+	before := len(repaired.Actions)
+	if _, err := service.InstallSample(ctx, config); err != nil {
+		t.Fatal(err)
+	}
+	repaired, err = continuityService.MatterByTriggerKey(ctx, config.TenantID, triggerRegulatoryChange)
+	if err != nil || len(repaired.Actions) != before {
+		t.Fatalf("repeat installation duplicated work: before=%d after=%d err=%v", before, len(repaired.Actions), err)
+	}
+}
+
+func TestInstallSampleSeedsEvidenceCollectionWorkForASeparateContributor(t *testing.T) {
+	ctx := continuity.WithTrustedSystemScope(context.Background())
+	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	repo := continuity.NewMemoryRepository()
+	continuityService := continuity.NewServiceWithClock(repo, func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, "bank-ng")
+	service := NewService(continuityService, evidenceService)
+	configureReferenceTimeline(service, repo)
+	config := normalizeSeedConfig(DemoSeedConfig())
+	config.Now = now
+
+	if _, err := service.InstallSample(ctx, config); err != nil {
+		t.Fatal(err)
+	}
+	matter, err := continuityService.MatterByTriggerKey(ctx, config.TenantID, triggerRegulatoryChange)
+	if err != nil {
+		t.Fatal(err)
+	}
+	collection, found := actionByOriginKey(matter.Actions, regulatoryEvidenceCollectionOriginKey)
+	if !found {
+		t.Fatalf("reference issue is missing %q: %#v", regulatoryEvidenceCollectionActionTitle, matter.Actions)
+	}
+	if collection.OwnerPrincipalID != config.ContributorPrincipalID || collection.OwnerPrincipalID == config.OwnerPrincipalID {
+		t.Fatalf("collection owner=%q, want separate contributor %q", collection.OwnerPrincipalID, config.ContributorPrincipalID)
+	}
+
+	renamed, err := continuityService.UpdateAction(ctx, continuity.UpdateActionInput{
+		TenantID: config.TenantID, MatterID: matter.Matter.ID, ActionID: collection.ID,
+		ExpectedVersion: matter.Matter.Version, Title: "Collect the remaining annual return records",
+		Description: collection.Description, DueAt: collection.DueAt, ActorID: config.OwnerPrincipalID,
+		Rationale: "Use the working title agreed with the evidence team.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reassigned, err := continuityService.AssignAction(ctx, continuity.AssignActionInput{
+		TenantID: config.TenantID, MatterID: matter.Matter.ID, ActionID: collection.ID,
+		ExpectedVersion: renamed.Matter.Version, OwnerPrincipalID: config.OwnerPrincipalID,
+		ActorID: config.OwnerPrincipalID, Rationale: "Move the current collection work to the Program owner.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := len(reassigned.Actions)
+	if _, err := service.InstallSample(ctx, config); err != nil {
+		t.Fatal(err)
+	}
+	matter, err = continuityService.MatterByTriggerKey(ctx, config.TenantID, triggerRegulatoryChange)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matter.Actions) != before {
+		t.Fatalf("repeat installation duplicated collection work: before=%d after=%d", before, len(matter.Actions))
+	}
+	collection, found = actionByOriginKey(matter.Actions, regulatoryEvidenceCollectionOriginKey)
+	if !found || collection.Title != "Collect the remaining annual return records" || collection.OwnerPrincipalID != config.OwnerPrincipalID {
+		t.Fatalf("repeat installation overwrote governed collection changes: %#v", collection)
+	}
+}
+
+func TestInstallSampleUsesEntityBoundedProgramLookup(t *testing.T) {
+	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	repo := continuity.NewMemoryRepository()
+	continuityService := continuity.NewServiceWithClock(repo, func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, "bank-ng")
+	service := NewService(continuityService, evidenceService)
+	configureReferenceTimeline(service, repo)
+	config := normalizeSeedConfig(DemoSeedConfig())
+	config.Now = now
+	other := continuity.WithTrustedSystemEntityScope(context.Background(), config.TenantID, "entity-other")
+	foreign, err := continuityService.CreateProgram(other, continuity.CreateProgramInput{TenantID: config.TenantID, Code: programCodeNDPA, Name: "Other entity", Type: "PRIVACY", OwningFunction: "Privacy", Scope: mustJSON(map[string]any{"sample": true}), EffectiveFrom: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := service.InstallSample(context.Background(), config); err != nil {
+		t.Fatal(err)
+	}
+	targetCtx := continuity.WithTrustedSystemEntityScope(context.Background(), config.TenantID, config.LegalEntityID)
+	target, err := continuityService.ProgramByCode(targetCtx, config.TenantID, programCodeNDPA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if target.Program.ID == foreign.Program.ID || target.Program.LegalEntityID != config.LegalEntityID {
+		t.Fatalf("installer selected foreign Program: %#v", target.Program)
+	}
+}
+
+func TestInstallSampleCanonicalizesConfiguredEntityCodeInMemory(t *testing.T) {
+	now := time.Date(2026, 8, 5, 20, 0, 0, 0, time.UTC)
+	repo := continuity.NewMemoryRepository()
+	const targetID = "11111111-1111-4111-8111-111111111111"
+	repo.RegisterLegalEntity("bank-demo", targetID, "bank-ng")
+	repo.RegisterLegalEntity("bank-demo", "22222222-2222-4222-8222-222222222222", "other-ng")
+	continuityService := continuity.NewServiceWithClock(repo, func() time.Time { return now })
+	evidenceService := newReferenceEvidenceService(now, targetID)
+	service := NewService(continuityService, evidenceService)
+	configureReferenceTimeline(service, repo)
+	config := normalizeSeedConfig(DemoSeedConfig())
+	config.Now = now
+	other := continuity.WithTrustedSystemEntityScope(context.Background(), config.TenantID, "other-ng")
+	foreign, err := continuityService.CreateProgram(other, continuity.CreateProgramInput{TenantID: config.TenantID, Code: programCodeNDPA, Name: "Other", Type: "PRIVACY", OwningFunction: "Privacy", Scope: mustJSON(map[string]any{"sample": true}), EffectiveFrom: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.InstallSample(context.Background(), config); err != nil {
+		t.Fatal(err)
+	}
+	target, err := continuityService.ProgramByCode(continuity.WithTrustedSystemEntityScope(context.Background(), config.TenantID, config.LegalEntityID), config.TenantID, programCodeNDPA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if target.Program.ID == foreign.Program.ID || target.Program.LegalEntityID != targetID {
+		t.Fatalf("installer Program=%#v", target.Program)
 	}
 }
