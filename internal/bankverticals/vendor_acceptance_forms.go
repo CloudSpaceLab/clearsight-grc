@@ -10,6 +10,7 @@ import (
 const (
 	vendorAddressVerificationFormCode  = "VENDOR-ADDRESS-VERIFICATION"
 	vendorCertificationRefreshFormCode = "VENDOR-CERTIFICATION-REFRESH"
+	responsePolicyAcceptanceFormCode   = "RESPONSE-POLICY-ACCEPTANCE"
 )
 
 func (s *Service) ensureVendorAcceptanceForms(ctx context.Context, config SeedConfig, programID string) error {
@@ -19,6 +20,7 @@ func (s *Service) ensureVendorAcceptanceForms(ctx context.Context, config SeedCo
 	}{
 		{vendorAddressVerificationFormInput(programID, config.LegalEntityID), "vendor address-verification"},
 		{vendorCertificationRefreshFormInput(programID, config.LegalEntityID), "vendor certification-refresh"},
+		{responsePolicyAcceptanceFormInput(programID, config.LegalEntityID), "response-policy scoring acceptance"},
 	}
 	for _, form := range forms {
 		if err := s.ensureGovernedVendorForm(ctx, config, form.input, form.purpose); err != nil {
@@ -81,6 +83,47 @@ func vendorCertificationRefreshFormInput(programID, legalEntityID string) monito
 			{ID: "pci_attestation", SectionID: "pci", Label: "Current PCI DSS attestation", Type: formcontract.TypeVendorDocument, Required: true, AcceptedFormats: []string{"application/pdf"}, Constraints: formcontract.Constraints{MaxFiles: &maxFiles, MaxFileBytes: &maxFileBytes}, Condition: yesCondition("pci_current")},
 			{ID: "vendor_attestation", SectionID: "attestation", Label: "Authorized vendor confirmation", Type: formcontract.TypeAttestation, Required: true, Attestation: "I confirm that the applicability answers are accurate and that each submitted document is current and applies to the service provided to the bank."},
 		},
+	}
+}
+
+func responsePolicyAcceptanceFormInput(programID, legalEntityID string) monitoring.CreateFormInput {
+	return monitoring.CreateFormInput{
+		ProgramID: programID, LegalEntityID: legalEntityID,
+		Code:         responsePolicyAcceptanceFormCode,
+		Name:         "Control response scoring acceptance",
+		Purpose:      "Provide a deterministic good, borderline and poor scored-response population for validating governed automatic Matter policies.",
+		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
+		ScoringMode:  formcontract.ScoringCompliance,
+		ScoreProfile: responsePolicyAcceptanceScoreProfile(),
+		Sections:     []formcontract.Section{{ID: "control", Title: "Control assessment", Help: "Answer the bounded control questions used by the response-policy acceptance journey."}},
+		Fields: []formcontract.Field{
+			{ID: "control_designed", SectionID: "control", Label: "Is the control appropriately designed?", Type: formcontract.TypeYesNo, Required: true},
+			{ID: "control_operating", SectionID: "control", Label: "Is the control operating as designed?", Type: formcontract.TypeYesNo, Required: true},
+			{ID: "exceptions_resolved", SectionID: "control", Label: "Are identified exceptions resolved?", Type: formcontract.TypeYesNo, Required: true},
+			{ID: "critical_gap", SectionID: "control", Label: "Is there an unresolved critical control gap?", Type: formcontract.TypeYesNo, Required: true},
+		},
+	}
+}
+
+func responsePolicyAcceptanceScoreProfile() *formcontract.ScoreProfile {
+	weightedYes := func(id, fieldID, label string, weight float64) formcontract.ScoreContribution {
+		return formcontract.ScoreContribution{ID: id, Label: label, Weight: weight, Required: true,
+			Predicate: formcontract.Predicate{FieldID: fieldID, Operator: formcontract.PredicateEquals, Values: []string{"Yes"}},
+			MatchPoints: 100, NonMatchPoints: 0, Missing: formcontract.MissingIndeterminate}
+	}
+	return &formcontract.ScoreProfile{
+		Version: "response-policy-acceptance-v1", Mode: formcontract.ScoringCompliance, Direction: formcontract.DirectionLowIsPoor,
+		Contributions: []formcontract.ScoreContribution{
+			weightedYes("control-designed", "control_designed", "Control design", 40),
+			weightedYes("control-operating", "control_operating", "Control operation", 40),
+			weightedYes("exceptions-resolved", "exceptions_resolved", "Exception resolution", 20),
+		},
+		Rules: []formcontract.ScoreRule{{
+			ID: "critical-gap-open", Label: "An unresolved critical control gap exists",
+			Predicate: formcontract.Predicate{FieldID: "critical_gap", Operator: formcontract.PredicateEquals, Values: []string{"Yes"}},
+			Effect: formcontract.RuleEffect{Kind: formcontract.EffectDisqualify},
+		}},
+		Bands: formcontract.DefaultConcernBands(),
 	}
 }
 
