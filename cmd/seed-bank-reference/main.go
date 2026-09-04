@@ -87,6 +87,11 @@ func main() {
 	journeys, err = installer.List(ctx, seed.TenantID)
 	fatalIf(err)
 
+	programID := referenceProgramID(journeys)
+	if programID == "" {
+		fatalIf(fmt.Errorf("response-policy acceptance requires an installed Program subject"))
+	}
+	fatalIf(installer.EnsureResponsePolicyAcceptanceForm(ctx, seed, programID))
 	scoring, err := seedScoringAcceptanceResponses(ctx, cfg, pool, seed, journeys, monitoringRepo, evidenceRepo)
 	fatalIf(err)
 	fatalIf(ensureAcceptanceExecutionAuthority(ctx, pool, seed))
