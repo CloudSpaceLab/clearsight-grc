@@ -2,16 +2,21 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FormPolicyEditor } from "./FormPolicyEditor";
 
+const forms = [
+  { id: "form-1", name: "Vendor certification", code: "VENDOR-CERTIFICATION", version: 4 },
+  { id: "form-2", name: "Control assurance", code: "CONTROL-ASSURANCE", version: 2 },
+];
+
 describe("FormPolicyEditor", () => {
-  it("captures the exact form revision, blast radius and outcome check without actor fields", () => {
+  it("captures the selected approved form revision, blast radius and outcome check without actor fields", async () => {
     const save = vi.fn();
-    render(<FormPolicyEditor onCancel={() => undefined} onCreate={save}/>);
+    render(<FormPolicyEditor forms={forms} onCancel={() => undefined} onCreate={save}/>);
 
     fireEvent.change(screen.getByLabelText("Policy name"), { target: { value: "Review poor vendor scores" } });
     fireEvent.change(screen.getByLabelText("Policy code"), { target: { value: "poor-vendor-score" } });
     fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Create a review issue for an adverse completed vendor response." } });
-    fireEvent.change(screen.getByLabelText("Form template ID"), { target: { value: "form-1" } });
-    fireEvent.change(screen.getByLabelText("Form revision"), { target: { value: "4" } });
+    fireEvent.click(screen.getByRole("button", { name: /Approved form revision/ }));
+    fireEvent.click(await screen.findByRole("option", { name: "Control assurance · CONTROL-ASSURANCE · revision 2" }));
     fireEvent.change(screen.getByLabelText("Automation policy ID"), { target: { value: "automation-1" } });
     fireEvent.change(screen.getByLabelText("Automation policy revision"), { target: { value: "2" } });
     fireEvent.change(screen.getByLabelText("Effective from"), { target: { value: "2026-09-02T08:00" } });
@@ -22,7 +27,7 @@ describe("FormPolicyEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create policy draft" }));
 
     const input = save.mock.calls[0]?.[0];
-    expect(input.eligibility).toMatchObject({ form_template_id: "form-1", form_template_version: 4, current_only: true });
+    expect(input.eligibility).toMatchObject({ form_template_id: "form-2", form_template_version: 2, current_only: true });
     expect(input.blast_radius).toEqual({ per_run: 10, per_day: 50 });
     expect(input.code).toBe("poor-vendor-score");
     expect(input.action.type).toBe("VENDOR_DEFICIENCY");
@@ -35,10 +40,10 @@ describe("FormPolicyEditor", () => {
 
   it("blocks an effective window that ends before it starts", () => {
     const save = vi.fn();
-    render(<FormPolicyEditor onCancel={() => undefined} onCreate={save}/>);
+    render(<FormPolicyEditor forms={forms} onCancel={() => undefined} onCreate={save}/>);
     for (const [label, entry] of [
       ["Policy name", "Review poor scores"], ["Policy code", "poor-score"], ["Purpose", "Create a governed review issue."],
-      ["Form template ID", "form-1"], ["Automation policy ID", "automation-1"], ["Issue title", "Review response"],
+      ["Automation policy ID", "automation-1"], ["Issue title", "Review response"],
       ["Required handling", "Review and record treatment."], ["Expected outcome", "The response concern is treated."],
     ] as const) fireEvent.change(screen.getByLabelText(label), { target: { value: entry } });
     fireEvent.change(screen.getByLabelText("Effective from"), { target: { value: "2026-12-01T08:00" } });
@@ -48,5 +53,20 @@ describe("FormPolicyEditor", () => {
 
     expect(screen.getByText("Effective until must be later than effective from.")).toBeTruthy();
     expect(save).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when there is no active approved scoring form revision", () => {
+    render(<FormPolicyEditor forms={[]} onCancel={() => undefined} onCreate={vi.fn()}/>);
+    expect(screen.getByText(/No active approved scoring forms are available/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Create policy draft" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("keeps a form-source failure recoverable without exposing raw IDs", () => {
+    const retry = vi.fn();
+    render(<FormPolicyEditor forms={[]} formsError="Approved scoring forms cannot be checked right now." onRetryForms={retry} onCancel={() => undefined} onCreate={vi.fn()}/>);
+    expect(screen.queryByLabelText("Form template ID")).toBeNull();
+    expect(screen.queryByLabelText("Form revision")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Retry form choices" }));
+    expect(retry).toHaveBeenCalledTimes(1);
   });
 });
