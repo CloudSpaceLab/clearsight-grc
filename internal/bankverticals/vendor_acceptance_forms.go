@@ -20,7 +20,6 @@ func (s *Service) ensureVendorAcceptanceForms(ctx context.Context, config SeedCo
 	}{
 		{vendorAddressVerificationFormInput(programID, config.LegalEntityID), "vendor address-verification"},
 		{vendorCertificationRefreshFormInput(programID, config.LegalEntityID), "vendor certification-refresh"},
-		{responsePolicyAcceptanceFormInput(programID, config.LegalEntityID), "response-policy scoring acceptance"},
 	}
 	for _, form := range forms {
 		if err := s.ensureGovernedVendorForm(ctx, config, form.input, form.purpose); err != nil {
@@ -28,6 +27,10 @@ func (s *Service) ensureVendorAcceptanceForms(ctx context.Context, config SeedCo
 		}
 	}
 	return nil
+}
+
+func (s *Service) EnsureResponsePolicyAcceptanceForm(ctx context.Context, config SeedConfig, programID string) error {
+	return s.ensureGovernedVendorForm(ctx, config, responsePolicyAcceptanceFormInput(programID, config.LegalEntityID), "response-policy scoring acceptance")
 }
 
 func vendorAddressVerificationFormInput(programID, legalEntityID string) monitoring.CreateFormInput {
