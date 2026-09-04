@@ -102,7 +102,7 @@ func TestResponsePolicyAcceptanceFormContract(t *testing.T) {
 	if form.ScoreProfile.Version != "response-policy-acceptance-v1" || len(form.ScoreProfile.Contributions) != 3 || len(form.ScoreProfile.Rules) != 1 {
 		t.Fatalf("acceptance score profile=%#v", form.ScoreProfile)
 	}
-	weights := map[string]float64{}
+	weights := map[string]int{}
 	for _, contribution := range form.ScoreProfile.Contributions {
 		weights[contribution.ID] = contribution.Weight
 	}
