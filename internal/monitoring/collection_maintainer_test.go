@@ -163,7 +163,7 @@ func newRenewalFixture(t *testing.T, reminders int, routes ...RecipientRoute) re
 		t.Fatal(err)
 	}
 	evidenceRepo := &renewalEvidenceRepository{MemoryRepository: evidence.NewMemoryRepository(nil, nil)}
-	evidenceService := evidence.NewService(evidenceRepo, evidence.NewMemoryObjectStore())
+	evidenceService := evidence.NewServiceWithClock(evidenceRepo, evidence.NewMemoryObjectStore(), func() time.Time { return submittedAt })
 	predecessor, err := evidenceService.CreateRequest(ctx, evidence.CreateRequestInput{
 		TenantID: "bank-a", LegalEntityID: "entity-a", SubjectType: "PROGRAM", SubjectID: check.ProgramID, Title: form.Name, Purpose: form.Purpose,
 		WhyYou: "You are responsible for this vendor response.", Sensitivity: "INTERNAL", AudienceType: "INTERNAL",

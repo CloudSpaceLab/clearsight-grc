@@ -101,7 +101,7 @@ func (a *API) listFormDistributions(w http.ResponseWriter, r *http.Request) {
 		writeFormDistributionError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, page)
+	httpx.WriteJSON(w, http.StatusOK, distributionPageDTO(page))
 }
 func (a *API) createFormDistribution(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.formDistributionService(w)
@@ -448,7 +448,4 @@ func writeFormDistributionError(w http.ResponseWriter, err error) {
 	default:
 		httpx.WriteError(w, http.StatusInternalServerError, "distribution_failed", "The form distribution could not be completed.")
 	}
-}
-func distributionBundleJSON(bundle evidence.DistributionBundle) map[string]any {
-	return map[string]any{"distribution": map[string]any{"id": bundle.Distribution.ID, "tenant_id": bundle.Distribution.TenantID, "legal_entity_id": bundle.Distribution.LegalEntityID, "form_template_id": bundle.Distribution.FormTemplateID, "form_template_version": bundle.Distribution.FormTemplateVersion, "subject_type": bundle.Distribution.SubjectType, "subject_id": bundle.Distribution.SubjectID, "title": bundle.Distribution.Title, "purpose": bundle.Distribution.Purpose, "access_policy": bundle.Distribution.AccessPolicy, "status": bundle.Distribution.Status, "deadline": bundle.Distribution.Deadline, "route_expires_at": bundle.Distribution.RouteExpiresAt, "reminder_policy": bundle.Distribution.ReminderPolicy, "created_by": bundle.Distribution.CreatedBy, "version": bundle.Distribution.Version, "created_at": bundle.Distribution.CreatedAt, "updated_at": bundle.Distribution.UpdatedAt}, "recipients": bundle.Recipients, "workspace": bundle.Workspace}
 }
