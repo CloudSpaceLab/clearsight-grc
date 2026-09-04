@@ -50,8 +50,10 @@ func main() {
 	continuityRepo := continuity.NewPostgresRepository(pool)
 	seed.Now = time.Now().UTC()
 	continuityService := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return seed.Now })
-	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
-	monitoringService := monitoring.NewService(monitoring.NewPostgresRepository(pool), evidenceService)
+	evidenceRepo := evidence.NewPostgresRepository(pool)
+	evidenceService := evidence.NewService(evidenceRepo, evidence.NewMemoryObjectStore())
+	monitoringRepo := monitoring.NewPostgresRepository(pool)
+	monitoringService := monitoring.NewService(monitoringRepo, evidenceService)
 	installer := bankverticals.NewService(continuityService, evidenceService)
 	installer.ConfigureMonitoring(monitoringService)
 	installer.ConfigureReferenceTimeline(func(at time.Time) *continuity.Service {
@@ -84,6 +86,19 @@ func main() {
 	}
 	journeys, err = installer.List(ctx, seed.TenantID)
 	fatalIf(err)
+
+	scoring, err := seedScoringAcceptanceResponses(ctx, cfg, pool, seed, journeys, monitoringRepo, evidenceRepo)
+	fatalIf(err)
+	fatalIf(ensureAcceptanceExecutionAuthority(ctx, pool, seed))
+	policySeed := seed
+	policySeed.ActorID = seed.ContributorPrincipalID
+	policySeed.SignatoryPrincipalID = seed.ActorID
+	policy, err := seedFormPolicyAcceptance(ctx, cfg, pool, policySeed, monitoringRepo, evidenceRepo, scoring)
+	fatalIf(err)
+	if !policy.ExactlyOnceMatter {
+		fatalIf(fmt.Errorf("response-policy acceptance did not prove exactly-once Matter execution"))
+	}
+
 	fatalIf(json.NewEncoder(os.Stdout).Encode(map[string]any{
 		"installed_at":                seed.Now,
 		"tenant_id":                   seed.TenantID,
@@ -93,6 +108,8 @@ func main() {
 		"oversight_population":        oversightSnapshot.Coverage.Population,
 		"oversight_resolution_ranges": len(oversightSnapshot.Estimates),
 		"oversight_source_high_water": oversightSnapshot.SourceHighWater,
+		"scoring_acceptance":          scoring,
+		"form_policy_acceptance":      policy,
 	}))
 }
 
