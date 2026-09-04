@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
 
@@ -27,6 +28,14 @@ func (s *Service) EnsureReferenceVendor(ctx context.Context, config SeedConfig, 
 	config = normalizeSeedConfig(config)
 	if err := validateSeedConfig(config); err != nil {
 		return thirdparty.Aggregate{}, err
+	}
+	if s.continuity != nil {
+		entityCtx := continuity.WithTrustedSystemEntityScope(ctx, config.TenantID, config.LegalEntityID)
+		canonicalEntityID, err := s.continuity.ResolveLegalEntity(entityCtx, config.TenantID, config.LegalEntityID)
+		if err != nil {
+			return thirdparty.Aggregate{}, fmt.Errorf("resolve reference vendor legal entity: %w", err)
+		}
+		config.LegalEntityID = canonicalEntityID
 	}
 
 	actor := thirdparty.Actor{
