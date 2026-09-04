@@ -22,6 +22,7 @@ import type {
   VendorAssessmentApplicationResult,
   ApplyVendorAssessmentResponseInput,
 } from "../vendorAssessmentTypes";
+import { ApiError } from "../http";
 import { VendorResponseReview } from "./forms/VendorResponseReview";
 import { Notice, StatusBadge, type StatusTone } from "./ui";
 import "./vendor-due-diligence.css";
@@ -253,10 +254,10 @@ export function VendorDueDiligence({
       setLocalOutcomeKind("initial");
       setPanel(null);
       if (outcome.state === "DELIVERED") setNotice(`The request was sent. The response is due ${formatDate(outcome.request.deadline)}.`);
-    } catch {
+    } catch (error) {
       setRecipient("");
       setPanel(null);
-      setError("The request was not sent. Re-enter the vendor contact email before trying again.");
+      setError(sendRequestError(error));
     } finally {
       setBusy(false);
     }
@@ -526,6 +527,13 @@ export function VendorDueDiligence({
 
     {!availableForms.length && !effectiveAssessment && <p className="vdd-limitation">No active due-diligence form was found in this legal entity. Create a new form draft or open Forms to review and approve an existing template before starting this vendor review.</p>}
   </section>;
+}
+
+function sendRequestError(error: unknown): string {
+  if (error instanceof ApiError && error.kind === "forbidden") return "The request was not sent because your signed-in role is not approved to send vendor assessments for this legal entity. Switch to the accountable Program Owner or ask an authorized reviewer to send it.";
+  if (error instanceof ApiError && error.kind === "unavailable") return "The request was not sent because email delivery is unavailable. Confirm the SMTP service and worker are running, then retry; no vendor request was created.";
+  if (error instanceof ApiError && error.kind === "validation") return `The request was not sent because the server rejected the request: ${error.message}`;
+  return "The request was not sent because the service could not complete it. Check the vendor email, response deadline and delivery status, then retry.";
 }
 
 function CancelAssessmentPanel({ reason, busy, onReason, onCancel, onSubmit }: { reason: string; busy: boolean; onReason: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
