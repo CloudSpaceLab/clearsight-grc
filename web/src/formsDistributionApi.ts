@@ -238,41 +238,28 @@ function queryString(values: Record<string, string | number | undefined>) {
 }
 
 function normalizeDistribution(raw: Record<string, unknown>): Distribution {
-  const pick = <T>(snake: string, pascal: string) => (raw[snake] ?? raw[pascal]) as T;
   return {
-    id: pick<string>("id", "ID"),
-    legal_entity_id: pick<string | undefined>("legal_entity_id", "LegalEntityID"),
-    form_template_id: pick<string>("form_template_id", "FormTemplateID"),
-    form_template_version: pick<number>("form_template_version", "FormTemplateVersion"),
-    subject_type: pick<string>("subject_type", "SubjectType"),
-    subject_id: pick<string>("subject_id", "SubjectID"),
-    title: pick<string>("title", "Title"),
-    purpose: pick<string>("purpose", "Purpose"),
-    access_policy: pick<DistributionAccessPolicy>("access_policy", "AccessPolicy"),
-    status: pick<DistributionStatus>("status", "Status"),
-    deadline: pick<string>("deadline", "Deadline"),
-    route_expires_at: pick<string>("route_expires_at", "RouteExpiresAt"),
-    reminder_policy: pick<Record<string, unknown> | undefined>("reminder_policy", "ReminderPolicy"),
-    created_by: pick<string | undefined>("created_by", "CreatedBy"),
-    version: pick<number>("version", "Version"),
-    created_at: pick<string>("created_at", "CreatedAt"),
-    updated_at: pick<string>("updated_at", "UpdatedAt"),
+    id: raw.id as string, legal_entity_id: raw.legal_entity_id as string | undefined,
+    form_template_id: raw.form_template_id as string, form_template_version: raw.form_template_version as number,
+    subject_type: raw.subject_type as string, subject_id: raw.subject_id as string, title: raw.title as string,
+    purpose: raw.purpose as string, access_policy: raw.access_policy as DistributionAccessPolicy, status: raw.status as DistributionStatus,
+    deadline: raw.deadline as string, route_expires_at: raw.route_expires_at as string,
+    reminder_policy: raw.reminder_policy as Record<string, unknown> | undefined, created_by: raw.created_by as string | undefined,
+    version: raw.version as number, created_at: raw.created_at as string, updated_at: raw.updated_at as string,
   };
 }
 
 function normalizeRecipient(raw: Record<string, unknown>): DistributionRecipient {
-  const pick = <T>(snake: string, pascal: string) => (raw[snake] ?? raw[pascal]) as T;
   return {
-    id: pick<string>("id", "ID"), role: pick<DistributionRecipientRole>("role", "Role"), type: pick<DistributionRecipientType>("type", "Type"),
-    principal_id: pick<string | undefined>("principal_id", "PrincipalID"), request_id: pick<string | undefined>("request_id", "RequestID"),
-    audience_hint: pick<string | undefined>("audience_hint", "AudienceHint"), contact_label: pick<string | undefined>("contact_label", "ContactLabel"),
-    state: pick<DistributionRecipientState>("state", "State"), version: pick<number>("version", "Version"),
+    id: raw.id as string, role: raw.role as DistributionRecipientRole, type: raw.type as DistributionRecipientType,
+    principal_id: raw.principal_id as string | undefined, request_id: raw.request_id as string | undefined,
+    audience_hint: raw.audience_hint as string | undefined, contact_label: raw.contact_label as string | undefined,
+    state: raw.state as DistributionRecipientState, version: raw.version as number,
   };
 }
 
 function normalizeWorkspace(raw: Record<string, unknown>): DistributionWorkspace {
-  const pick = <T>(snake: string, pascal: string) => (raw[snake] ?? raw[pascal]) as T;
-  return { id: pick<string>("id", "ID"), status: pick<DistributionWorkspace["status"]>("status", "Status"), version: pick<number>("version", "Version"), updated_at: pick<string>("updated_at", "UpdatedAt") };
+  return { id: raw.id as string, status: raw.status as DistributionWorkspace["status"], version: raw.version as number, updated_at: raw.updated_at as string };
 }
 
 function normalizeScore(raw: unknown): ResponseScore | undefined {
@@ -296,30 +283,23 @@ function normalizeScore(raw: unknown): ResponseScore | undefined {
 }
 
 function normalizeResponseRevision(raw: Record<string, unknown>): ResponseRevision {
-  const pick = <T>(snake: string, pascal: string) => (raw[snake] ?? raw[pascal]) as T;
   return {
-    id: pick<string>("id", "ID"), revision: pick<number>("revision", "Revision"),
-    supersedes_revision_id: pick<string | undefined>("supersedes_revision_id", "SupersedesRevisionID"),
-    achieved_assurance: pick<ResponseRevision["achieved_assurance"]>("achieved_assurance", "AchievedAssurance"),
-    signoff_summary: pick<Record<string, unknown> | undefined>("signoff_summary", "SignoffSummary"),
-    compliance_score: pick<number | undefined>("compliance_score", "ComplianceScore"),
-    scored_weight_coverage: pick<number>("scored_weight_coverage", "ScoredWeightCoverage") ?? 0,
-    state: pick<ResponseRevision["state"]>("state", "State"),
-    critical_field_results: pick<Array<Record<string, unknown>> | undefined>("critical_field_results", "CriticalFieldResults"),
-    scoring_policy_version: pick<string | undefined>("scoring_policy_version", "ScoringPolicyVersion"),
-    current: pick<boolean>("current", "Current"), created_at: pick<string>("created_at", "CreatedAt"),
-    score: normalizeScore(raw.score ?? raw.Score),
+    id: raw.id as string, revision: raw.revision as number, supersedes_revision_id: raw.supersedes_revision_id as string | undefined,
+    achieved_assurance: raw.achieved_assurance as ResponseRevision["achieved_assurance"], signoff_summary: raw.signoff_summary as Record<string, unknown> | undefined,
+    compliance_score: raw.compliance_score as number | undefined, scored_weight_coverage: (raw.scored_weight_coverage as number | undefined) ?? 0,
+    state: raw.state as ResponseRevision["state"], critical_field_results: raw.critical_field_results as Array<Record<string, unknown>> | undefined,
+    scoring_policy_version: raw.scoring_policy_version as string | undefined, current: raw.current as boolean, created_at: raw.created_at as string,
+    score: normalizeScore(raw.score),
   };
 }
 
 function normalizeCompletedResponse(raw: Record<string, unknown>): CompletedResponseSummary {
-  const pick = <T>(snake: string, pascal: string) => (raw[snake] ?? raw[pascal]) as T;
   return {
-    id: pick<string>("id", "ID"), distribution_id: pick<string>("distribution_id", "DistributionID"),
-    form_template_id: pick<string>("form_template_id", "FormTemplateID"), form_template_version: pick<number>("form_template_version", "FormTemplateVersion"),
-    title: pick<string>("title", "Title"), subject_type: pick<string>("subject_type", "SubjectType"), subject_id: pick<string>("subject_id", "SubjectID"),
-    revision: pick<number>("revision", "Revision"), current: pick<boolean>("current", "Current"), state: pick<CompletedResponseSummary["state"]>("state", "State"),
-    score: normalizeScore(raw.score ?? raw.Score), completed_at: pick<string>("completed_at", "CompletedAt"),
+    id: raw.id as string, distribution_id: raw.distribution_id as string,
+    form_template_id: raw.form_template_id as string, form_template_version: raw.form_template_version as number,
+    title: raw.title as string, subject_type: raw.subject_type as string, subject_id: raw.subject_id as string,
+    revision: raw.revision as number, current: raw.current as boolean, state: raw.state as CompletedResponseSummary["state"],
+    score: normalizeScore(raw.score), completed_at: raw.completed_at as string,
   };
 }
 
