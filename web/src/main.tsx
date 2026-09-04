@@ -1,6 +1,6 @@
 import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { consumeCaptureInvitation, purgeLegacyCaptureSession } from "./captureInvitationBrowser";
+import { consumeCaptureInvitation } from "./captureInvitationBrowser";
 import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
 import { DisplayPreferencesRoot } from "./components/DisplayPreferences";
 import { SessionGate } from "./components/SessionGate";
@@ -29,7 +29,6 @@ const App = lazy(() => import("./App"));
 bootstrapApplication();
 
 function bootstrapApplication() {
-  purgeLegacyCaptureSession(sessionStorage);
   const invitationToken = consumeCaptureInvitation(window);
   const root = document.getElementById("root");
   if (!root) throw new Error("Application root is missing");

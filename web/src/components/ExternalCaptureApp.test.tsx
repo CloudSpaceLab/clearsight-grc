@@ -10,7 +10,7 @@ import {
   type RedeemedFormAccessSession,
   verifyFormAccessOTP,
 } from "../captureApi";
-import { consumeCaptureInvitation, purgeLegacyCaptureSession } from "../captureInvitationBrowser";
+import { consumeCaptureInvitation } from "../captureInvitationBrowser";
 import { ApiError } from "../http";
 import type { CaptureRequest } from "../types";
 import { ExternalCaptureApp } from "./ExternalCaptureApp";
@@ -122,21 +122,12 @@ describe("ExternalCaptureApp", () => {
     expect(window.history.state).toEqual({ returnTo: "request" });
   });
 
-  it("consumes legacy query invitations while preserving unrelated URL state", () => {
+  it("ignores retired query invitations without altering URL state", () => {
     window.history.replaceState({}, "", "/capture?fixture=external&capture_invite=legacy-token#response");
 
-    expect(consumeCaptureInvitation(window)).toBe("legacy-token");
-    expect(window.location.search).toBe("?fixture=external");
+    expect(consumeCaptureInvitation(window)).toBeNull();
+    expect(window.location.search).toBe("?fixture=external&capture_invite=legacy-token");
     expect(window.location.hash).toBe("#response");
-  });
-
-  it("purges bearer material written by the legacy browser-session flow", () => {
-    sessionStorage.setItem("clearsight.capture.active-session", "opaque-locator");
-    sessionStorage.setItem("clearsight.capture.session.opaque-locator", "legacy-session-secret");
-
-    purgeLegacyCaptureSession(sessionStorage);
-
-    expect(Object.keys(sessionStorage)).toEqual([]);
   });
 
   it("opens a direct magic-link request without audience typing or persistent bearer storage", async () => {
