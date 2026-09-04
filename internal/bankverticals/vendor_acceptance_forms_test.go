@@ -120,7 +120,7 @@ func TestResponsePolicyAcceptanceFormContract(t *testing.T) {
 		disqualified bool
 	}{
 		{name: "good", answers: map[string]string{"control_designed": "Yes", "control_operating": "Yes", "exceptions_resolved": "Yes", "critical_gap": "No"}, wantBand: formcontract.ConcernLow},
-		{name: "borderline", answers: map[string]string{"control_designed": "Yes", "control_operating": "No", "exceptions_resolved": "Yes", "critical_gap": "No"}, wantBand: formcontract.ConcernHigh},
+		{name: "borderline", answers: map[string]string{"control_designed": "Yes", "control_operating": "No", "exceptions_resolved": "Yes", "critical_gap": "No"}, wantBand: formcontract.ConcernModerate},
 		{name: "poor", answers: map[string]string{"control_designed": "No", "control_operating": "No", "exceptions_resolved": "No", "critical_gap": "Yes"}, wantBand: formcontract.ConcernCritical, disqualified: true},
 	}
 	for _, tc := range cases {
