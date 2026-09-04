@@ -69,9 +69,12 @@ func TestEnsureReferenceVendorDoesNotReuseUnrelatedVendor(t *testing.T) {
 	vendors := thirdparty.NewService(thirdparty.NewMemoryRepository())
 	actor := thirdparty.Actor{TenantID: config.TenantID, LegalEntityID: config.LegalEntityID, PrincipalID: config.OwnerPrincipalID}
 	unrelated, err := vendors.CreateRelationship(ctx, actor, thirdparty.CreateRelationshipInput{
-		LegalName: "Independent Reference Supplier Limited", ServiceName: "Independent service",
-		Criticality: thirdparty.CriticalityStandard, PrivacyRole: thirdparty.PrivacyNone,
-		SourceID: "external_registry", ExternalRef: "vendor:independent-supplier",
+		LegalName:   "Independent Reference Supplier Limited",
+		ServiceName: "Independent service",
+		Criticality: thirdparty.CriticalityStandard,
+		PrivacyRole: thirdparty.PrivacyNone,
+		SourceID:    "external_registry",
+		ExternalRef: "vendor:independent-supplier",
 	})
 	if err != nil {
 		t.Fatal(err)
