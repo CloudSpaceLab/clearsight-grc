@@ -1,7 +1,7 @@
 import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import "./staticDemoBootstrap";
-import { consumeCaptureInvitation, purgeLegacyCaptureSession } from "./captureInvitationBrowser";
+import { consumeCaptureInvitation } from "./captureInvitationBrowser";
 import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
 import { LifecycleTodayEvidencePage } from "./components/LifecycleTodayEvidencePage";
 import { OperatingMutationsEvidencePage } from "./components/OperatingMutationsEvidencePage";
@@ -30,7 +30,6 @@ import "./enterprise-shell.css";
 const UIComponentGallery = lazy(() => import("./components/ui-gallery/UIComponentGallery").then((module) => ({ default: module.UIComponentGallery })));
 const App = lazy(() => import("./App"));
 
-purgeLegacyCaptureSession(sessionStorage);
 const invitationToken = consumeCaptureInvitation(window);
 const root = document.getElementById("root");
 if (!root) throw new Error("Application root is missing");

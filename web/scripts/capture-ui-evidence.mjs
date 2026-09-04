@@ -364,7 +364,7 @@ async function captureZoomProxy() {
 }
 
 async function captureFieldVisit() {
-  const capture = { name: "29-field-visit-entry-light-390x844", route: "?capture_invite=field-agent-demo", title: "Verify ATM location after your visit", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true };
+  const capture = { name: "29-field-visit-entry-light-390x844", route: "#form_access=field-agent-demo", title: "Verify ATM location after your visit", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true };
   const context = await browser.newContext({ viewport: capture.viewport, colorScheme: capture.theme, hasTouch: true, reducedMotion: "reduce", locale: "en-NG", timezoneId: "Africa/Lagos" });
   await context.addInitScript(() => {
     localStorage.setItem("clearsight.theme", "light");
@@ -372,7 +372,7 @@ async function captureFieldVisit() {
   });
   const page = await context.newPage();
   try {
-    await page.goto(`${baseURL}/?capture_invite=field-agent-demo`, { waitUntil: "networkidle" });
+    await page.goto(`${baseURL}/${capture.route}`, { waitUntil: "networkidle" });
     await page.getByRole("heading", { name: capture.title }).waitFor();
     await page.getByText("12 Admiralty Way, Lekki Phase 1, Lagos", { exact: true }).waitFor();
     if (await page.getByRole("textbox", { name: /address/i }).count()) throw new Error("Field visit asks the agent to re-enter the known address");
