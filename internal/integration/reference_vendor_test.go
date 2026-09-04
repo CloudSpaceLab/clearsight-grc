@@ -81,6 +81,11 @@ func TestReferenceVendorPersistsAcrossFreshServiceComposition(t *testing.T) {
 	if first.Relationship.LegalEntityID != entityID {
 		t.Fatalf("reference vendor entity=%q, want canonical %q", first.Relationship.LegalEntityID, entityID)
 	}
+	firstEventCount := referenceVendorCount(t, pool, tenantID, "third_party_events")
+	firstOutboxCount := referenceVendorOutboxCount(t, pool, tenantID)
+	if firstEventCount == 0 || firstOutboxCount == 0 {
+		t.Fatalf("reference vendor creation did not emit canonical history: events=%d outbox=%d", firstEventCount, firstOutboxCount)
+	}
 
 	freshContinuity := continuity.NewServiceWithClock(continuity.NewPostgresRepository(pool), func() time.Time { return config.Now.Add(time.Hour) })
 	freshInstaller := bankverticals.NewService(freshContinuity, nil)
@@ -99,15 +104,11 @@ func TestReferenceVendorPersistsAcrossFreshServiceComposition(t *testing.T) {
 	if got := referenceVendorCount(t, pool, tenantID, "third_party_relationships"); got != 1 {
 		t.Fatalf("persisted reference relationships=%d, want 1", got)
 	}
-	if got := referenceVendorCount(t, pool, tenantID, "third_party_events"); got != 1 {
-		t.Fatalf("reference relationship events=%d, want 1", got)
+	if got := referenceVendorCount(t, pool, tenantID, "third_party_events"); got != firstEventCount {
+		t.Fatalf("fresh-service rerun added relationship history: before=%d after=%d", firstEventCount, got)
 	}
-	var outboxCount int
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND aggregate_type='VENDOR_RELATIONSHIP'`, tenantID).Scan(&outboxCount); err != nil {
-		t.Fatal(err)
-	}
-	if outboxCount != 1 {
-		t.Fatalf("reference relationship outbox events=%d, want 1", outboxCount)
+	if got := referenceVendorOutboxCount(t, pool, tenantID); got != firstOutboxCount {
+		t.Fatalf("fresh-service rerun added relationship outbox events: before=%d after=%d", firstOutboxCount, got)
 	}
 }
 
@@ -123,6 +124,15 @@ func referenceVendorCount(t *testing.T, pool *pgxpool.Pool, tenantID, table stri
 	}
 	var count int
 	if err := pool.QueryRow(context.Background(), `SELECT count(*) FROM `+table+` WHERE tenant_id=$1::uuid`, tenantID).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	return count
+}
+
+func referenceVendorOutboxCount(t *testing.T, pool *pgxpool.Pool, tenantID string) int {
+	t.Helper()
+	var count int
+	if err := pool.QueryRow(context.Background(), `SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND aggregate_type='VENDOR_RELATIONSHIP'`, tenantID).Scan(&count); err != nil {
 		t.Fatal(err)
 	}
 	return count
