@@ -1,7 +1,6 @@
 package formcontract
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -309,22 +308,7 @@ func (value AnswerValue) Answered() bool {
 	return len(value.Values) > 0 || len(value.ArtifactIDs) > 0 || value.Document != nil
 }
 
-// UnmarshalJSON accepts legacy scalar answers while all newly written answers use
-// the structured representation. This keeps exact historical submissions readable.
 func (value *AnswerValue) UnmarshalJSON(data []byte) error {
-	data = bytes.TrimSpace(data)
-	if bytes.Equal(data, []byte("null")) {
-		*value = AnswerValue{}
-		return nil
-	}
-	if len(data) > 0 && data[0] == '"' {
-		var text string
-		if err := json.Unmarshal(data, &text); err != nil {
-			return err
-		}
-		*value = TextAnswer(text)
-		return nil
-	}
 	type answerValue AnswerValue
 	var decoded answerValue
 	if err := json.Unmarshal(data, &decoded); err != nil {

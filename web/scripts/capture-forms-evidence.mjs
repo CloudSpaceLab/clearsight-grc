@@ -106,7 +106,7 @@ async function seedRecoveryEnvelope(page) {
 
 function scenarioURL(scenario) {
   const fixture = encodeURIComponent(scenario.fixture);
-  if (scenario.route === "/capture") return `${baseURL}/capture?fixture=${fixture}&capture_invite=task22-${fixture}`;
+  if (scenario.route === "/capture") return `${baseURL}/capture?fixture=${fixture}#form_access=task22-${fixture}`;
   return `${baseURL}/?tour=off&fixture=${fixture}${scenario.route}`;
 }
 

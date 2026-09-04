@@ -1,17 +1,34 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { CreateFormResponsePolicyInput, FormPolicyRollout } from "../../formPoliciesApi";
 import { Button, CheckboxField, Notice, SelectField, TextArea, TextField } from "../ui";
 
-type Props = { onCancel: () => void; onCreate: (input: CreateFormResponsePolicyInput) => void | Promise<void>; busy?: boolean };
+export type PolicyFormChoice = { id: string; name: string; code: string; version: number };
 
-export function FormPolicyEditor({ onCancel, onCreate, busy = false }: Props) {
-  const [value, setValue] = useState<CreateFormResponsePolicyInput>(defaultInput);
+type Props = {
+  onCancel: () => void;
+  onCreate: (input: CreateFormResponsePolicyInput) => void | Promise<void>;
+  forms: PolicyFormChoice[];
+  formsLoading?: boolean;
+  formsError?: string;
+  onRetryForms?: () => void;
+  busy?: boolean;
+};
+
+export function FormPolicyEditor({ onCancel, onCreate, forms, formsLoading = false, formsError = "", onRetryForms, busy = false }: Props) {
+  const [value, setValue] = useState<CreateFormResponsePolicyInput>(() => selectDefaultForm(defaultInput, forms));
   const [error, setError] = useState("");
   function patch<K extends keyof CreateFormResponsePolicyInput>(key: K, next: CreateFormResponsePolicyInput[K]) { setValue((current) => ({ ...current, [key]: next })); setError(""); }
+  useEffect(() => {
+    setValue((current) => forms.some((form) => form.id === current.eligibility.form_template_id && form.version === current.eligibility.form_template_version)
+      ? current
+      : selectDefaultForm(current, forms));
+  }, [forms]);
   function submit(event: FormEvent) {
     event.preventDefault();
     const missing = requiredFields(value).find((item) => !item.value.trim());
     if (missing) { setError(`${missing.label} is required before this policy draft can be created.`); return; }
+    const selected = forms.find((form) => form.id === value.eligibility.form_template_id && form.version === value.eligibility.form_template_version);
+    if (!selected) { setError("Choose a currently available approved scoring form revision before creating this policy draft."); return; }
     const effectiveFrom = toISOString(value.effective_from);
     const effectiveUntil = toISOString(value.effective_until);
     if (effectiveFrom && effectiveUntil && effectiveUntil <= effectiveFrom) {
@@ -20,6 +37,7 @@ export function FormPolicyEditor({ onCancel, onCreate, busy = false }: Props) {
     }
     void onCreate({ ...value, code: normalizedCode(value.code), name: value.name.trim(), purpose: value.purpose.trim(), effective_from: effectiveFrom, effective_until: effectiveUntil });
   }
+  const selectedForm = formRefKey(value.eligibility.form_template_id, value.eligibility.form_template_version);
   return <form className="forms-policy-editor" noValidate onSubmit={submit}>
     <header><p>New response policy</p><h2>Create a response policy</h2><span>Define which completed responses create an issue. Activation requires a current simulation and independent approval.</span></header>
     {error && <Notice tone="error">{error}</Notice>}
@@ -28,9 +46,14 @@ export function FormPolicyEditor({ onCancel, onCreate, busy = false }: Props) {
       <TextField label="Policy code" description="Use a stable lowercase code; spaces become hyphens." value={value.code} onChange={(code) => patch("code", code)} maxLength={64}/>
       <div className="forms-policy-control-grid__full"><TextArea label="Purpose" value={value.purpose} onChange={(purpose) => patch("purpose", purpose)} rows={3} maxLength={1000}/></div>
     </div></section>
-    <section aria-labelledby="policy-population-title"><h3 id="policy-population-title">Response population</h3><p>Choose one approved form version and the subject types this policy covers.</p><div className="forms-policy-control-grid">
-      <TextField label="Form template ID" value={value.eligibility.form_template_id} onChange={(form_template_id) => patch("eligibility", { ...value.eligibility, form_template_id })}/>
-      <NumberField label="Form revision" value={value.eligibility.form_template_version} min={1} max={1_000_000} onChange={(form_template_version) => patch("eligibility", { ...value.eligibility, form_template_version })}/>
+    <section aria-labelledby="policy-population-title"><h3 id="policy-population-title">Response population</h3><p>Choose one approved active scored form revision and the subject types this policy covers.</p><div className="forms-policy-control-grid">
+      {formsLoading ? <div className="forms-policy-control-grid__full"><Notice>Loading approved scoring forms…</Notice></div>
+        : formsError ? <div className="forms-policy-control-grid__full"><Notice tone="error">{formsError}</Notice>{onRetryForms && <Button variant="quiet" type="button" onPress={onRetryForms}>Retry form choices</Button>}</div>
+          : forms.length === 0 ? <div className="forms-policy-control-grid__full"><Notice tone="warning">No active approved scoring forms are available. Approve and activate a scored form before creating a response policy.</Notice></div>
+            : <SelectField label="Approved form revision" value={selectedForm} placeholder="Choose approved scored form" allowsEmpty={false} options={forms.map((form) => ({ id: formRefKey(form.id, form.version), label: `${form.name} · ${form.code} · revision ${form.version}` }))} onChange={(next) => {
+                const selected = forms.find((form) => formRefKey(form.id, form.version) === next);
+                if (selected) patch("eligibility", { ...value.eligibility, form_template_id: selected.id, form_template_version: selected.version });
+              }}/>} 
       <TextField label="Subject types" description="Comma-separated stored subject types, for example VENDOR." value={value.eligibility.subject_types.join(", ")} onChange={(raw) => patch("eligibility", { ...value.eligibility, subject_types: raw.split(",").map((item) => item.trim().toUpperCase()).filter(Boolean) })}/>
       <NumberField label="Minimum answer coverage (%)" value={Math.round(value.eligibility.minimum_coverage * 100)} min={0} max={100} onChange={(minimum_coverage) => patch("eligibility", { ...value.eligibility, minimum_coverage: minimum_coverage / 100 })}/>
     </div><div className="forms-policy-checks"><CheckboxField label="Use only the current response revision" description="Earlier response revisions remain reconstructable but cannot trigger this policy." isSelected={value.eligibility.current_only} onChange={(current_only) => patch("eligibility", { ...value.eligibility, current_only })}/>{(["HIGH", "CRITICAL"] as const).map((band) => <CheckboxField key={band} label={`${title(band)} concern responses`} isSelected={value.eligibility.bands?.includes(band) ?? false} onChange={(selected) => patch("eligibility", { ...value.eligibility, bands: selected ? [...(value.eligibility.bands ?? []), band] : (value.eligibility.bands ?? []).filter((item) => item !== band) })}/>)}</div></section>
@@ -53,7 +76,7 @@ export function FormPolicyEditor({ onCancel, onCreate, busy = false }: Props) {
       <NumberField label="Check outcome after (minutes)" value={value.outcome_contract.check_after_minutes} min={1} max={525_600} onChange={(check_after_minutes) => patch("outcome_contract", { ...value.outcome_contract, check_after_minutes })}/>
       <SelectField label="If the outcome is not achieved" value={value.outcome_contract.failure_response} placeholder="Choose follow-up" allowsEmpty={false} options={[{ id: "ESCALATE", label: "Escalate using the current hierarchy" }, { id: "REOPEN", label: "Reopen the issue for handling" }, { id: "REVIEW", label: "Create a review task" }]} onChange={(failure_response) => { if (failure_response) patch("outcome_contract", { ...value.outcome_contract, failure_response }); }}/>
     </div></section>
-    <footer><Button variant="primary" type="submit" isLoading={busy}>Create policy draft</Button><Button variant="quiet" type="button" onPress={onCancel} isDisabled={busy}>Cancel</Button></footer>
+    <footer><Button variant="primary" type="submit" isLoading={busy} isDisabled={formsLoading || Boolean(formsError) || forms.length === 0}>Create policy draft</Button><Button variant="quiet" type="button" onPress={onCancel} isDisabled={busy}>Cancel</Button></footer>
   </form>;
 }
 
@@ -63,8 +86,10 @@ const defaultInput: CreateFormResponsePolicyInput = {
   action: { type: "VENDOR_DEFICIENCY", priority: 2, title_template: "", summary_template: "A completed response met the approved concern threshold.", requested_handling: "" },
   blast_radius: { per_run: 10, per_day: 50 }, outcome_contract: { expected_outcome: "", check_after_minutes: 1440, failure_response: "ESCALATE" }, rollout: "SHADOW",
 };
-function requiredFields(value: CreateFormResponsePolicyInput) { return [{ label: "Policy name", value: value.name }, { label: "Policy code", value: value.code }, { label: "Purpose", value: value.purpose }, { label: "Form template ID", value: value.eligibility.form_template_id }, { label: "Automation policy ID", value: value.automation_policy_id }, { label: "Issue title", value: value.action.title_template }, { label: "Required handling", value: value.action.requested_handling }, { label: "Expected outcome", value: value.outcome_contract.expected_outcome }]; }
+function requiredFields(value: CreateFormResponsePolicyInput) { return [{ label: "Policy name", value: value.name }, { label: "Policy code", value: value.code }, { label: "Purpose", value: value.purpose }, { label: "Approved form revision", value: value.eligibility.form_template_id }, { label: "Automation policy ID", value: value.automation_policy_id }, { label: "Issue title", value: value.action.title_template }, { label: "Required handling", value: value.action.requested_handling }, { label: "Expected outcome", value: value.outcome_contract.expected_outcome }]; }
 function NumberField({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) { return <TextField label={label} type="number" value={String(value)} min={min} max={max} onChange={(raw) => onChange(Math.min(max, Math.max(min, Number(raw) || min)))}/>; }
+function selectDefaultForm(value: CreateFormResponsePolicyInput, forms: PolicyFormChoice[]): CreateFormResponsePolicyInput { const form = forms[0]; return { ...value, eligibility: { ...value.eligibility, form_template_id: form?.id ?? "", form_template_version: form?.version ?? 1 } }; }
+function formRefKey(id: string, version: number) { return id ? `${id}@${version}` : ""; }
 function normalizedCode(value: string) { return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
 function title(value: string) { return value.charAt(0) + value.slice(1).toLowerCase(); }
 function toISOString(value?: string) { return value ? new Date(value).toISOString() : undefined; }
