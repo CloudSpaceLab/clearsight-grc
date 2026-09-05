@@ -20,12 +20,16 @@ func (a *API) getEvidenceReviewSubmission(w http.ResponseWriter, r *http.Request
 		return
 	}
 	request, err := service.GetRequestForEntity(r.Context(), actor.TenantID, actor.LegalEntityID, r.PathValue("id"))
-	if evidenceRequestUnavailable(err) || !a.canReadEvidenceRequest(r.Context(), request) || !evidence.RequestReviewableBy(request, actor.PrincipalID) {
+	if evidenceRequestUnavailable(err) {
 		httpx.WriteError(w, http.StatusNotFound, "not_found", "Submitted evidence response not found.")
 		return
 	}
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "submission_failed", "The submitted evidence response could not be loaded.")
+		return
+	}
+	if !a.canReadEvidenceRequest(r.Context(), request) || !evidence.RequestReviewableBy(request, actor.PrincipalID) {
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "Submitted evidence response not found.")
 		return
 	}
 	submission, err := service.GetSubmissionForRequest(r.Context(), actor.TenantID, request.ID)

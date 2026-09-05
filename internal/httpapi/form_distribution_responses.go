@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 )
 
@@ -36,34 +35,9 @@ func (a *API) listFormDistributionResponses(w http.ResponseWriter, r *http.Reque
 		writeFormDistributionError(w, err)
 		return
 	}
-	items := make([]map[string]any, 0, len(values))
+	items := make([]responseRevisionResponse, 0, len(values))
 	for _, value := range values {
 		items = append(items, responseRevisionJSON(value))
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": items})
-}
-
-func responseRevisionJSON(value evidence.ResponseRevision) map[string]any {
-	item := map[string]any{
-		"id":                     value.ID,
-		"revision":               value.Revision,
-		"achieved_assurance":     value.AchievedAssurance,
-		"signoff_summary":        value.SignoffSummary,
-		"scored_weight_coverage": value.ScoredWeightCoverage,
-		"state":                  value.State,
-		"critical_field_results": value.CriticalFieldResults,
-		"scoring_policy_version": value.ScoringPolicyVersion,
-		"current":                value.Current,
-		"created_at":             value.CreatedAt,
-	}
-	if value.SupersedesRevisionID != "" {
-		item["supersedes_revision_id"] = value.SupersedesRevisionID
-	}
-	if value.ComplianceScore != nil {
-		item["compliance_score"] = *value.ComplianceScore
-	}
-	if value.Score != nil {
-		item["score"] = responseScoreJSON(value.Score, true)
-	}
-	return item
 }

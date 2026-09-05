@@ -100,6 +100,8 @@ The enterprise identity/access sequence **EIA-0 through EIA-5 is implemented on 
 
 Current execution truth is maintained in [`implementation-plan.md`](implementation-plan.md). The premium first-run and vendor-branding tranche is implemented in code but remains in verification until its rendered browser evidence and final exact-HEAD gates are recorded. Do not infer capability from historical issue text, a durable table name, a descriptive API schema, or an older branch.
 
+The operator-paused [3 September remaining-issue closure plan](superpowers/plans/2026-09-03-remaining-issue-closure.md) and [all-open-issue audit](evidence/2026-09-03-open-issue-audit.md) record the latest follow-on sequence, local unmerged safety correction and evidence still required before issue closure.
+
 Remaining productization is outside generic IAM: non-`OVERDUE` escalation adapters when real domain events exist, broader enterprise operator surfaces where backend capability already exists, production storage/security/recovery/scale evidence, and representative bank-user acceptance.
 
 ## Semantic guardrails

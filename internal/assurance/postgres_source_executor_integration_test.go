@@ -29,14 +29,21 @@ func TestAssuranceConsumesReusableSourceBindingWithLegacyParity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer setup.Close()
+	t.Cleanup(setup.Close)
 	_, _ = setup.Exec(ctx, `DROP TABLE IF EXISTS `+assuranceSourceFixture)
 	_, _ = setup.Exec(ctx, `DROP OWNED BY `+assuranceSourceRole)
 	_, _ = setup.Exec(ctx, `DROP ROLE IF EXISTS `+assuranceSourceRole)
 	t.Cleanup(func() {
-		_, _ = setup.Exec(context.Background(), `DROP TABLE IF EXISTS `+assuranceSourceFixture)
-		_, _ = setup.Exec(context.Background(), `DROP OWNED BY `+assuranceSourceRole)
-		_, _ = setup.Exec(context.Background(), `DROP ROLE IF EXISTS `+assuranceSourceRole)
+		cleanupCtx := context.Background()
+		if _, err := setup.Exec(cleanupCtx, `DROP TABLE IF EXISTS `+assuranceSourceFixture); err != nil {
+			t.Errorf("drop assurance source fixture: %v", err)
+		}
+		if _, err := setup.Exec(cleanupCtx, `DROP OWNED BY `+assuranceSourceRole); err != nil {
+			t.Errorf("drop assurance source role ownership: %v", err)
+		}
+		if _, err := setup.Exec(cleanupCtx, `DROP ROLE IF EXISTS `+assuranceSourceRole); err != nil {
+			t.Errorf("drop assurance source role: %v", err)
+		}
 	})
 	if _, err := setup.Exec(ctx, `CREATE TABLE `+assuranceSourceFixture+` (
 		id uuid PRIMARY KEY,

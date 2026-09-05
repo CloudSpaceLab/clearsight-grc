@@ -5,8 +5,9 @@ import {
   rollbackFormResponsePolicy, simulateFormResponsePolicy, submitFormResponsePolicy, suspendFormResponsePolicy,
   type CreateFormResponsePolicyInput, type FormPolicySimulation, type FormResponsePolicy,
 } from "../../formPoliciesApi";
+import { loadFormTemplates } from "../../monitoringApi";
 import { Button, EmptyState, FocusedDialog, Notice, SelectableRecord, StatusBadge, Surface } from "../ui";
-import { FormPolicyEditor } from "./FormPolicyEditor";
+import { FormPolicyEditor, type PolicyFormChoice } from "./FormPolicyEditor";
 import "./form-policies.css";
 
 type LoadState = "loading" | "live" | "sign-in-required" | "error";
@@ -20,6 +21,9 @@ export function FormPoliciesView() {
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState("");
   const [simulations, setSimulations] = useState<Record<string, FormPolicySimulation>>({});
+  const [forms, setForms] = useState<PolicyFormChoice[]>([]);
+  const [formsLoading, setFormsLoading] = useState(true);
+  const [formsError, setFormsError] = useState("");
   const selected = items.find((item) => item.id === selectedID) ?? items[0];
   const rollbackTarget = selected ? items.filter((item) => item.code === selected.code && item.version < selected.version).sort((left, right) => right.version - left.version)[0] : undefined;
 
@@ -33,7 +37,21 @@ export function FormPoliciesView() {
       setState(apiErrorKind(cause) === "unauthorized" ? "sign-in-required" : items.length ? "live" : "error");
     }
   }
-  useEffect(() => { void refresh(); }, []);
+  async function refreshForms() {
+    setFormsLoading(true); setFormsError("");
+    try {
+      const values = await loadFormTemplates();
+      setForms(values.filter((form) => form.status === "ACTIVE" && form.scoring_mode !== undefined && form.scoring_mode !== "NONE").map((form) => ({
+        id: form.id, name: form.name, code: form.code, version: form.version,
+      })));
+    } catch (cause) {
+      setForms([]);
+      setFormsError(message(cause, "Approved scoring forms cannot be checked right now."));
+    } finally {
+      setFormsLoading(false);
+    }
+  }
+  useEffect(() => { void refresh(); void refreshForms(); }, []);
 
   async function create(input: CreateFormResponsePolicyInput) {
     setBusy("create"); setError("");
@@ -80,7 +98,7 @@ export function FormPoliciesView() {
         <PolicyDetail policy={selected} simulation={simulations[selected.id]} rollbackTarget={rollbackTarget} busy={busy === selected.id} onAction={() => void act(selected, rollbackTarget?.id)}/>
       )}
     </div>}
-    {creating && <FocusedDialog label="Create response policy" size="wide" onClose={() => setCreating(false)}><FormPolicyEditor onCancel={() => setCreating(false)} onCreate={create} busy={busy === "create"}/></FocusedDialog>}
+    {creating && <FocusedDialog label="Create response policy" size="wide" onClose={() => setCreating(false)}><FormPolicyEditor forms={forms} formsLoading={formsLoading} formsError={formsError} onRetryForms={() => void refreshForms()} onCancel={() => setCreating(false)} onCreate={create} busy={busy === "create"}/></FocusedDialog>}
   </section>;
 }
 
