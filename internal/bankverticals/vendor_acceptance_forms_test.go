@@ -93,3 +93,47 @@ func TestVendorCertificationRefreshFormContract(t *testing.T) {
 		t.Fatalf("invalid vendor attestation: %#v", attestation)
 	}
 }
+
+func TestResponsePolicyAcceptanceFormContract(t *testing.T) {
+	form := responsePolicyAcceptanceFormInput("program-a", "entity-a")
+	if form.Code != responsePolicyAcceptanceFormCode || form.ScoringMode != formcontract.ScoringCompliance || form.ScoreProfile == nil {
+		t.Fatalf("acceptance form identity/scoring=%#v", form)
+	}
+	if form.ScoreProfile.Version != "response-policy-acceptance-v1" || len(form.ScoreProfile.Contributions) != 3 || len(form.ScoreProfile.Rules) != 1 {
+		t.Fatalf("acceptance score profile=%#v", form.ScoreProfile)
+	}
+	weights := map[string]int{}
+	for _, contribution := range form.ScoreProfile.Contributions {
+		weights[contribution.ID] = contribution.Weight
+	}
+	if weights["control-designed"] != 40 || weights["control-operating"] != 40 || weights["exceptions-resolved"] != 20 {
+		t.Fatalf("acceptance weights=%#v", weights)
+	}
+	if rule := form.ScoreProfile.Rules[0]; rule.ID != "critical-gap-open" || rule.Effect.Kind != formcontract.EffectDisqualify {
+		t.Fatalf("acceptance critical rule=%#v", rule)
+	}
+
+	cases := []struct {
+		name         string
+		answers      map[string]string
+		wantBand     formcontract.ConcernBand
+		disqualified bool
+	}{
+		{name: "good", answers: map[string]string{"control_designed": "Yes", "control_operating": "Yes", "exceptions_resolved": "Yes", "critical_gap": "No"}, wantBand: formcontract.ConcernLow},
+		{name: "borderline", answers: map[string]string{"control_designed": "Yes", "control_operating": "No", "exceptions_resolved": "Yes", "critical_gap": "No"}, wantBand: formcontract.ConcernModerate},
+		{name: "poor", answers: map[string]string{"control_designed": "No", "control_operating": "No", "exceptions_resolved": "No", "critical_gap": "Yes"}, wantBand: formcontract.ConcernCritical, disqualified: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := formcontract.EvaluateScoreProfile(*form.ScoreProfile, formcontract.Contract{
+				Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile, Sections: form.Sections, Fields: form.Fields,
+			}, formcontract.TextAnswers(tc.answers))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Band != tc.wantBand || result.Disqualified != tc.disqualified || !result.Final {
+				t.Fatalf("%s acceptance score=%#v", tc.name, result)
+			}
+		})
+	}
+}

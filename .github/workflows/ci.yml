@@ -67,12 +67,42 @@ jobs:
         env:
           PGPASSWORD: clearsight
           DATABASE_URL: postgres://clearsight:clearsight@localhost:5432/clearsight_deploy_test?sslmode=disable
+          CLEARSIGHT_RECIPIENT_KEYRING: '{"ci-v1":"ERERERERERERERERERERERERERERERERERERERERERE="}'
+          CLEARSIGHT_RECIPIENT_ACTIVE_KEY_ID: ci-v1
+          CLEARSIGHT_DISTRIBUTION_ACCESS_HMAC_KEY: IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=
         run: |
           createdb -h localhost -U clearsight clearsight_deploy_test
           bash deploy/scripts/migrate.sh migrations
           bash deploy/scripts/migrate.sh migrations
           bash deploy/scripts/seed-demo-foundation.sh
           bash deploy/scripts/seed-demo-foundation.sh
+          go run -tags postgres ./cmd/seed-bank-reference \
+            -tenant 00000000-0000-4000-8000-000000000001 \
+            -legal-entity 00000000-0000-4000-8000-000000000002 \
+            -actor 00000000-0000-4000-8000-000000000101 \
+            -owner 00000000-0000-4000-8000-000000000107 \
+            -contributor 00000000-0000-4000-8000-000000000108 \
+            -reviewer 00000000-0000-4000-8000-000000000106 \
+            -signatory 00000000-0000-4000-8000-000000000102 >/tmp/reference-acceptance.json
+          # A second run must reconcile the same persisted acceptance state rather than duplicate it.
+          go run -tags postgres ./cmd/seed-bank-reference \
+            -tenant 00000000-0000-4000-8000-000000000001 \
+            -legal-entity 00000000-0000-4000-8000-000000000002 \
+            -actor 00000000-0000-4000-8000-000000000101 \
+            -owner 00000000-0000-4000-8000-000000000107 \
+            -contributor 00000000-0000-4000-8000-000000000108 \
+            -reviewer 00000000-0000-4000-8000-000000000106 \
+            -signatory 00000000-0000-4000-8000-000000000102 >/tmp/reference-acceptance-rerun.json
+          python3 - <<'PY'
+          import json
+          for path in ("/tmp/reference-acceptance.json", "/tmp/reference-acceptance-rerun.json"):
+              with open(path, encoding="utf-8") as handle:
+                  payload = json.load(handle)
+              acceptance = payload["form_policy_acceptance"]
+              assert acceptance["exactly_once_matter"] is True, payload
+              assert acceptance["matter_id"], payload
+              assert acceptance["poor_execution_state"] in ("APPLIED", "REUSED"), payload
+          PY
           psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM routing_policies WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND legal_entity_id='00000000-0000-4000-8000-000000000002' AND code='CLEARSIGHT-DEMO-AUTHORITY'" | grep -qx 1
           psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM routing_policy_versions WHERE policy_id='00000000-0000-4000-8000-000000000201' AND legal_entity_id='00000000-0000-4000-8000-000000000002' AND version=1" | grep -qx 1
           psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM effective_authority_routes WHERE source_policy_id='00000000-0000-4000-8000-000000000201'" | grep -qx 11
