@@ -235,7 +235,7 @@ func policyAcceptanceInput(scoring scoringAcceptanceResult) formpolicy.CreateInp
 		Outcome: formpolicy.OutcomeContract{
 			ExpectedOutcome:   "The control concern is remediated or an approved treatment is recorded.",
 			CheckAfterMinutes: 60,
-			FailureResponse:   "REVIEW",
+			FailureResponse:   "ESCALATE",
 		},
 	}
 }
