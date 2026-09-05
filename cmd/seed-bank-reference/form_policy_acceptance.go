@@ -222,7 +222,7 @@ func policyAcceptanceInput(scoring scoringAcceptanceResult) formpolicy.CreateInp
 			SubjectTypes:        []string{"PROGRAM"},
 			CurrentOnly:         true,
 			MinimumCoverage:     1,
-			Bands:               []formcontract.ConcernBand{formcontract.ConcernHigh, formcontract.ConcernCritical},
+			Bands:               []formcontract.ConcernBand{formcontract.ConcernCritical, formcontract.ConcernHigh},
 		},
 		Action: formpolicy.MatterAction{
 			Type:              "CONTROL_GAP",
