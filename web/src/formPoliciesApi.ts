@@ -9,7 +9,7 @@ export type FormPolicyEligibility = { form_template_id: string; form_template_ve
 export type FormPolicyMatterType = "RISK_SITUATION" | "CONTROL_GAP" | "AUDIT_FINDING" | "EXCEPTION" | "VENDOR_REVIEW" | "VENDOR_DEFICIENCY" | "FAILED_VERIFICATION" | "EVIDENCE_CONTRADICTION" | "KRI_BREACH";
 export type FormPolicyAction = { type: FormPolicyMatterType; priority: number; title_template: string; summary_template: string; requested_handling: string };
 export type FormPolicyBlastRadius = { per_run: number; per_day: number };
-export type FormPolicyOutcome = { expected_outcome: string; check_after_minutes: number; failure_response: "ESCALATE" | "REOPEN" | "REVIEW" };
+export type FormPolicyOutcome = { expected_outcome: string; check_after_minutes: number; failure_response: "ESCALATE" | "REOPEN" | "CREATE_MATTER" | "BLOCK_CLOSE" };
 export type CreateFormResponsePolicyInput = {
   code: string; name: string; purpose: string; automation_policy_id: string; automation_policy_version: number;
   eligibility: FormPolicyEligibility; action: FormPolicyAction; blast_radius: FormPolicyBlastRadius;
