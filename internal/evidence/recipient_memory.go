@@ -81,7 +81,7 @@ func (r *MemoryRepository) ListManageableRequests(_ context.Context, tenant, pri
 	defer r.mu.RUnlock()
 	values := make([]Request, 0, limit)
 	for _, value := range r.requests {
-		if value.TenantID != tenant || !RequestManageableBy(value, principalID) {
+		if value.TenantID != tenant || (!RequestManageableBy(value, principalID) && !RequestReviewableBy(value, principalID)) {
 			continue
 		}
 		values = append(values, cloneRequest(value))
@@ -114,7 +114,7 @@ func (r *MemoryRepository) ListManageableRequestsForEntity(_ context.Context, te
 	defer r.mu.RUnlock()
 	values := make([]Request, 0, limit)
 	for _, value := range r.requests {
-		if value.TenantID == tenant && value.LegalEntityID == legalEntityID && RequestManageableBy(value, principalID) {
+		if value.TenantID == tenant && value.LegalEntityID == legalEntityID && (RequestManageableBy(value, principalID) || RequestReviewableBy(value, principalID)) {
 			values = append(values, cloneRequest(value))
 		}
 	}

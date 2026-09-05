@@ -46,6 +46,7 @@ type Repository interface {
 
 type SubmissionReader interface {
 	GetSubmission(context.Context, string, string) (Submission, error)
+	GetSubmissionForRequest(context.Context, string, string) (Submission, error)
 }
 
 type DraftStore interface {

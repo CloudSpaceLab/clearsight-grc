@@ -101,6 +101,14 @@ func RequestManageableBy(request Request, principalID string) bool {
 	return principalID != "" && (RequestAssignedTo(request, principalID) || strings.TrimSpace(request.CreatedBy) == principalID)
 }
 
+// RequestReviewableBy identifies the reviewer frozen into an issued request.
+// Review access starts only after submission and never grants respondent or
+// recipient-administration actions.
+func RequestReviewableBy(request Request, principalID string) bool {
+	principalID = strings.TrimSpace(principalID)
+	return principalID != "" && request.Status == RequestSubmitted && strings.TrimSpace(request.KnownFacts["reviewer"]) == principalID
+}
+
 func externalAudienceMatches(request Request, audience string) bool {
 	if !recipientIsAssigned(request.Recipient) || request.Recipient.Type != RecipientExternalAudience || len(request.Recipient.AudienceHash) != sha256.Size {
 		return false

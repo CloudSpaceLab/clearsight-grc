@@ -56,6 +56,33 @@ func TestAssessmentSubmissionConsumerIgnoresRequestWithoutAssessmentOrigin(t *te
 	}
 }
 
+func TestAssessmentSubmissionConsumerAcceptsTenantAliasFromScopedRequestRead(t *testing.T) {
+	consumer, _, requests, resolver, reactions := assessmentSubmissionConsumerFixture()
+	event := assessmentSubmissionEvent()
+	event.TenantID = "00000000-0000-4000-8000-000000000001"
+	requests.request.TenantID = "bank-a"
+	resolver.target.TenantID = event.TenantID
+
+	if err := consumer.Publish(context.Background(), event); err != nil {
+		t.Fatal(err)
+	}
+	if requests.tenant != event.TenantID || resolver.calls != 1 || reactions.calls != 1 {
+		t.Fatalf("tenant alias handling request tenant=%q resolver=%d reaction=%d", requests.tenant, resolver.calls, reactions.calls)
+	}
+}
+
+func TestAssessmentSubmissionConsumerRejectsWrongRequestFromScopedRead(t *testing.T) {
+	consumer, inbox, requests, resolver, reactions := assessmentSubmissionConsumerFixture()
+	requests.request.ID = "request-other"
+
+	if err := consumer.Publish(context.Background(), assessmentSubmissionEvent()); err == nil {
+		t.Fatal("wrong request identity was accepted")
+	}
+	if resolver.calls != 0 || reactions.calls != 0 || inbox.records != 0 {
+		t.Fatalf("wrong request caused effects: resolver=%d reaction=%d inbox=%d", resolver.calls, reactions.calls, inbox.records)
+	}
+}
+
 func TestAssessmentSubmissionConsumerRejectsMalformedOrUnsafePayload(t *testing.T) {
 	cases := []json.RawMessage{
 		json.RawMessage(`{`),

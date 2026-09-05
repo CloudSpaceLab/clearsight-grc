@@ -30,14 +30,21 @@ func TestPostgresSessionIsolationReusableOperationsAndReceipts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer setup.Close()
+	t.Cleanup(setup.Close)
 	_, _ = setup.Exec(ctx, `DROP TABLE IF EXISTS `+sourceAccessFixture)
 	_, _ = setup.Exec(ctx, `DROP OWNED BY `+sourceAccessRole)
 	_, _ = setup.Exec(ctx, `DROP ROLE IF EXISTS `+sourceAccessRole)
 	t.Cleanup(func() {
-		_, _ = setup.Exec(context.Background(), `DROP TABLE IF EXISTS `+sourceAccessFixture)
-		_, _ = setup.Exec(context.Background(), `DROP OWNED BY `+sourceAccessRole)
-		_, _ = setup.Exec(context.Background(), `DROP ROLE IF EXISTS `+sourceAccessRole)
+		cleanupCtx := context.Background()
+		if _, err := setup.Exec(cleanupCtx, `DROP TABLE IF EXISTS `+sourceAccessFixture); err != nil {
+			t.Errorf("drop source-access fixture: %v", err)
+		}
+		if _, err := setup.Exec(cleanupCtx, `DROP OWNED BY `+sourceAccessRole); err != nil {
+			t.Errorf("drop source-access role ownership: %v", err)
+		}
+		if _, err := setup.Exec(cleanupCtx, `DROP ROLE IF EXISTS `+sourceAccessRole); err != nil {
+			t.Errorf("drop source-access role: %v", err)
+		}
 	})
 	if _, err := setup.Exec(ctx, `CREATE TABLE `+sourceAccessFixture+` (
 		id uuid PRIMARY KEY,

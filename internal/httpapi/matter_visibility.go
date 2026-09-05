@@ -47,7 +47,7 @@ func filterMatterSummaries(ctx context.Context, values []continuity.MatterSummar
 
 func (a *API) canReadEvidenceRequest(ctx context.Context, request evidence.Request) bool {
 	actor, ok := identity.FromContext(ctx)
-	if !ok || request.TenantID != actor.TenantID || !evidence.RequestManageableBy(request, actor.PrincipalID) {
+	if !ok || request.TenantID != actor.TenantID || (!evidence.RequestManageableBy(request, actor.PrincipalID) && !evidence.RequestReviewableBy(request, actor.PrincipalID)) {
 		return false
 	}
 	if !strings.EqualFold(request.SubjectType, "MATTER") {

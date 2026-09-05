@@ -326,6 +326,25 @@ func (r *MemoryRepository) GetSubmission(_ context.Context, tenant, id string) (
 	return value, nil
 }
 
+func (r *MemoryRepository) GetSubmissionForRequest(_ context.Context, tenant, requestID string) (Submission, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var latest Submission
+	found := false
+	for _, value := range r.submissions {
+		if value.TenantID != tenant || value.RequestID != requestID || (found && !value.SubmittedAt.After(latest.SubmittedAt)) {
+			continue
+		}
+		latest, found = value, true
+	}
+	if !found {
+		return Submission{}, ErrNotFound
+	}
+	latest.Answers = cloneAnswerValues(latest.Answers)
+	latest.AnswerProvenance = cloneAnswerProvenance(latest.AnswerProvenance)
+	return latest, nil
+}
+
 func (r *MemoryRepository) ExpireRequests(_ context.Context, now time.Time, limit int) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

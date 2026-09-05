@@ -103,10 +103,10 @@ func ensureAcceptanceAutomationPolicy(
 				rollout_mode,maker_id,checker_id,checksum,approved_at,activated_at,record_version
 			)
 			SELECT
-				md5('clearsight:'||tenant.id::text||':'||$3||':'||$4::text)::uuid,
+				md5('clearsight:'||tenant.id::text||':'||$3||':'||$4::bigint::text)::uuid,
 				tenant.id,$3,$5,'FORM_RESPONSE_CREATE_MATTER',$6::jsonb,$7::jsonb,$8::jsonb,
-				'ACTIVE',clock_timestamp()-interval '1 minute',$4,'{}'::jsonb,$9,$10::uuid,$11::uuid,
-				md5($3||':'||$4::text||':'||$9),clock_timestamp(),clock_timestamp(),1
+				'ACTIVE',clock_timestamp()-interval '1 minute',$4::bigint,'{}'::jsonb,$9,$10::uuid,$11::uuid,
+				md5($3||':'||$4::bigint::text||':'||$9),clock_timestamp(),clock_timestamp(),1
 			FROM tenant
 			JOIN legal_entity ON legal_entity.tenant_id=tenant.id
 			ON CONFLICT DO NOTHING
@@ -117,7 +117,7 @@ func ensureAcceptanceAutomationPolicy(
 		SELECT policy.id::text
 		FROM automation_policies policy
 		JOIN tenant ON tenant.id=policy.tenant_id
-		WHERE policy.code=$3 AND policy.version=$4
+		WHERE policy.code=$3 AND policy.version=$4::bigint
 		LIMIT 1`,
 		seed.TenantID,
 		seed.LegalEntityID,
