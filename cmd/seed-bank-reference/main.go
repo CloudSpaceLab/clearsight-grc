@@ -51,8 +51,10 @@ func main() {
 	continuityRepo := continuity.NewPostgresRepository(pool)
 	seed.Now = time.Now().UTC()
 	continuityService := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return seed.Now })
-	evidenceService := evidence.NewService(evidence.NewPostgresRepository(pool), evidence.NewMemoryObjectStore())
-	monitoringService := monitoring.NewService(monitoring.NewPostgresRepository(pool), evidenceService)
+	evidenceRepo := evidence.NewPostgresRepository(pool)
+	evidenceService := evidence.NewService(evidenceRepo, evidence.NewMemoryObjectStore())
+	monitoringRepo := monitoring.NewPostgresRepository(pool)
+	monitoringService := monitoring.NewService(monitoringRepo, evidenceService)
 	thirdPartyService := thirdparty.NewService(thirdparty.NewPostgresRepository(pool))
 	installer := bankverticals.NewService(continuityService, evidenceService)
 	installer.ConfigureMonitoring(monitoringService)
@@ -61,8 +63,12 @@ func main() {
 		service.ConfigureEvidenceSourceValidator(evidenceService)
 		return service
 	})
-	journeys, err := installer.InstallSample(ctx, seed)
+	installedJourneys, err := installer.InstallSample(ctx, seed)
 	fatalIf(err)
+	programID := referenceProgramID(installedJourneys)
+	if programID == "" {
+		fatalIf(fmt.Errorf("response-policy acceptance requires an installed Program subject"))
+	}
 	referenceVendor, err := installer.EnsureReferenceVendor(ctx, seed, thirdPartyService)
 	fatalIf(err)
 
@@ -86,8 +92,22 @@ func main() {
 	if oversightSnapshot.SourceHighWater["matters"].IsZero() || oversightSnapshot.SourceHighWater["continuity_events"].IsZero() {
 		fatalIf(fmt.Errorf("oversight snapshot is missing authoritative Matter or event high-water marks"))
 	}
-	journeys, err = installer.List(ctx, seed.TenantID)
+	journeys, err := installer.List(ctx, seed.TenantID)
 	fatalIf(err)
+
+	fatalIf(installer.EnsureResponsePolicyAcceptanceForm(ctx, seed, programID))
+	scoring, err := seedScoringAcceptanceResponses(ctx, cfg, pool, seed, installedJourneys, monitoringRepo, evidenceRepo)
+	fatalIf(err)
+	fatalIf(ensureAcceptanceExecutionAuthority(ctx, pool, seed))
+	policySeed := seed
+	policySeed.ActorID = seed.ContributorPrincipalID
+	policySeed.SignatoryPrincipalID = seed.ActorID
+	policy, err := seedFormPolicyAcceptance(ctx, cfg, pool, policySeed, monitoringRepo, evidenceRepo, scoring)
+	fatalIf(err)
+	if !policy.ExactlyOnceMatter {
+		fatalIf(fmt.Errorf("response-policy acceptance did not prove exactly-once Matter execution"))
+	}
+
 	fatalIf(json.NewEncoder(os.Stdout).Encode(map[string]any{
 		"installed_at":                     seed.Now,
 		"tenant_id":                        seed.TenantID,
@@ -99,6 +119,8 @@ func main() {
 		"oversight_population":             oversightSnapshot.Coverage.Population,
 		"oversight_resolution_ranges":      len(oversightSnapshot.Estimates),
 		"oversight_source_high_water":      oversightSnapshot.SourceHighWater,
+		"scoring_acceptance":               scoring,
+		"form_policy_acceptance":           policy,
 	}))
 }
 

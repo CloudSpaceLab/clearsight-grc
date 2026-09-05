@@ -63,7 +63,7 @@ func normalizeCreateInput(input *CreateInput, now time.Time) error {
 	if input.BlastRadius.PerRun < 1 || input.BlastRadius.PerRun > 1000 || input.BlastRadius.PerDay < input.BlastRadius.PerRun || input.BlastRadius.PerDay > 10000 {
 		return fmt.Errorf("%w: blast radius is invalid", ErrInvalid)
 	}
-	if !bounded(input.Outcome.ExpectedOutcome, 1, 2000) || input.Outcome.CheckAfterMinutes < 1 || input.Outcome.CheckAfterMinutes > 525600 || !slices.Contains([]string{"ESCALATE", "REOPEN", "REVIEW"}, input.Outcome.FailureResponse) {
+	if !bounded(input.Outcome.ExpectedOutcome, 1, 2000) || input.Outcome.CheckAfterMinutes < 1 || input.Outcome.CheckAfterMinutes > 525600 || !slices.Contains([]string{"ESCALATE", "REOPEN", "CREATE_MATTER", "BLOCK_CLOSE"}, input.Outcome.FailureResponse) {
 		return fmt.Errorf("%w: outcome check is invalid", ErrInvalid)
 	}
 	if input.Rollout != RolloutShadow && input.Rollout != RolloutEnforce {
