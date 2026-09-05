@@ -268,6 +268,7 @@ func (a *API) routes() []routeSpec {
 		read("/api/v1/evidence/requests", a.listEvidenceRequests),
 		write(http.MethodPost, "/api/v1/evidence/requests", a.createEvidenceRequest, bindJSONIdentity(true, "created_by")),
 		read("/api/v1/evidence/requests/{id}", a.getEvidenceRequest),
+		read("/api/v1/evidence/requests/{id}/review-submission", a.getEvidenceReviewSubmission),
 		read("/api/v1/evidence/requests/{id}/recipient-candidates", a.listEvidenceRecipientCandidates),
 		write(http.MethodPost, "/api/v1/evidence/requests/{id}/wrong-recipient", a.declareEvidenceWrongRecipient, bindJSONIdentity(true, "actor_principal_id")),
 		write(http.MethodPut, "/api/v1/evidence/requests/{id}/recipient", a.reassignEvidenceRecipient, bindJSONIdentity(true, "actor_principal_id")),

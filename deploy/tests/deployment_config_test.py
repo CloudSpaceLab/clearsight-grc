@@ -168,6 +168,10 @@ class DeploymentConfigTest(unittest.TestCase):
                       "d315abab6729fac5611327a56aa0f3d4ed07aad2ba160106beb0ce7a3f99e91e",
                       "157b7a984f7930c08002715ebc320f7dd1b0f2eb986cc03c18c7ff346065ce9f",
                       '"kind":"ROLE","ref":"EVIDENCE_RESPONDENT"',
+                      "CLEARSIGHT-DEMO-MONITORING-COLLECTION",
+                      "demo-monitoring-collection-performer",
+                      "program.monitoring.collect",
+                      "00000000-0000-4000-8000-000000000108",
                       "demo performer route does not resolve both governed assignees",
                       "definition IS DISTINCT FROM expected_definition"):
             self.assertIn(value, foundation)

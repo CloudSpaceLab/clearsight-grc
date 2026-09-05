@@ -462,5 +462,59 @@ BEGIN
   END IF;
 END
 $authority_v2$;
+
+INSERT INTO routing_policies(
+  id, tenant_id, legal_entity_id, code, name, status, current_version,
+  maker_id, checker_id, submitted_at, approved_at, version
+)
+VALUES (
+  '00000000-0000-4000-8000-000000000204',
+  '00000000-0000-4000-8000-000000000001',
+  '00000000-0000-4000-8000-000000000002',
+  'CLEARSIGHT-DEMO-MONITORING-COLLECTION', 'ClearSight demo monitoring collection route', 'ACTIVE', 1,
+  '00000000-0000-4000-8000-000000000104',
+  '00000000-0000-4000-8000-000000000106',
+  clock_timestamp(), clock_timestamp(), 1
+)
+ON CONFLICT (id) DO UPDATE
+SET status = 'ACTIVE', current_version = 1, checker_id = EXCLUDED.checker_id,
+    submitted_at = EXCLUDED.submitted_at, approved_at = EXCLUDED.approved_at,
+    updated_at = clock_timestamp();
+
+INSERT INTO routing_policy_versions(
+  id, policy_id, legal_entity_id, version, definition, checksum, effective_from,
+  created_by, approved_by, approved_at
+)
+VALUES (
+  '00000000-0000-4000-8000-000000000205',
+  '00000000-0000-4000-8000-000000000204',
+  '00000000-0000-4000-8000-000000000002',
+  1,
+  $definition${"rules":[{"id":"demo-monitoring-collection-performer","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"FORM_TEMPLATE","object_id":"*","responsibility":"PERFORMER","decision_type":"program.monitoring.collect","min_materiality":0,"priority":300,"selector":{"kind":"PRINCIPAL","ref":"00000000-0000-4000-8000-000000000108"}}]}$definition$::jsonb,
+  '111623ccf5b657fdf348f2294016dbbae5809e3454863259c32e996d2cf478f8',
+  '2020-01-01T00:00:00Z'::timestamptz,
+  '00000000-0000-4000-8000-000000000104',
+  '00000000-0000-4000-8000-000000000106',
+  clock_timestamp()
+)
+ON CONFLICT (policy_id, version) DO NOTHING;
+
+SELECT refresh_effective_authority_routes('00000000-0000-4000-8000-000000000001');
+
+DO $monitoring_collection_authority$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM effective_authority_routes
+    WHERE tenant_id = '00000000-0000-4000-8000-000000000001'
+      AND source_rule_id = 'demo-monitoring-collection-performer'
+      AND policy_version = 'CLEARSIGHT-DEMO-MONITORING-COLLECTION:v1'
+      AND decision_type = 'program.monitoring.collect'
+      AND selector_kind = 'PRINCIPAL'
+      AND selector_ref = '00000000-0000-4000-8000-000000000108'
+  ) THEN
+    RAISE EXCEPTION 'demo monitoring collection route was not projected';
+  END IF;
+END
+$monitoring_collection_authority$;
 COMMIT;
 SQL
