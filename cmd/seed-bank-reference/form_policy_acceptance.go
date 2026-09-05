@@ -21,17 +21,20 @@ import (
 const responsePolicyAcceptanceCode = "reference-poor-control-response"
 
 type formPolicyAcceptanceResult struct {
-	PolicyID           string `json:"policy_id"`
-	PolicyVersion      int64  `json:"policy_version"`
-	GoodResponseID     string `json:"good_response_id"`
-	PoorResponseID     string `json:"poor_response_id"`
-	GoodExecutionState string `json:"good_execution_state"`
-	PoorExecutionState string `json:"poor_execution_state"`
-	MatterID           string `json:"matter_id"`
-	CreatedMatter      bool   `json:"created_matter"`
-	ReplayExecutionID  string `json:"replay_execution_id"`
-	ExactlyOnceMatter  bool   `json:"exactly_once_matter"`
-	AlreadySeeded      bool   `json:"already_seeded"`
+	PolicyID                  string `json:"policy_id"`
+	PolicyVersion             int64  `json:"policy_version"`
+	GoodResponseID            string `json:"good_response_id"`
+	PoorResponseID            string `json:"poor_response_id"`
+	SameEpisodeResponseID     string `json:"same_episode_response_id"`
+	GoodExecutionState        string `json:"good_execution_state"`
+	PoorExecutionState        string `json:"poor_execution_state"`
+	SameEpisodeExecutionState string `json:"same_episode_execution_state"`
+	MatterID                  string `json:"matter_id"`
+	CreatedMatter             bool   `json:"created_matter"`
+	ReplayExecutionID         string `json:"replay_execution_id"`
+	ExactlyOnceMatter         bool   `json:"exactly_once_matter"`
+	SameEpisodeReusedMatter   bool   `json:"same_episode_reused_matter"`
+	AlreadySeeded             bool   `json:"already_seeded"`
 }
 
 type seedFormReader struct {
@@ -67,9 +70,11 @@ func seedFormPolicyAcceptance(
 	evidenceRepo *evidence.PostgresRepository,
 	scoring scoringAcceptanceResult,
 ) (formPolicyAcceptanceResult, error) {
-	if existing, ok, err := existingAcceptanceExecution(ctx, pool, seed); err != nil {
+	existing, hasExisting, err := existingAcceptanceExecution(ctx, pool, seed)
+	if err != nil {
 		return formPolicyAcceptanceResult{}, err
-	} else if ok {
+	}
+	if hasExisting && existing.SameEpisodeReusedMatter {
 		existing.AlreadySeeded = true
 		return existing, nil
 	}
@@ -141,6 +146,45 @@ func seedFormPolicyAcceptance(
 		return formPolicyAcceptanceResult{}, fmt.Errorf("activate enforce response policy: %w", err)
 	}
 
+	executor := formpolicy.NewExecutor(
+		policyRepo,
+		distributions,
+		formpolicy.ExecutionAuthorityResolver{Automation: automation, Authority: authorityService, Subjects: evidenceRepo},
+	)
+	publisher := formpolicy.ScoredResponsePublisher{Handler: executor}
+
+	if hasExisting {
+		if existing.PolicyID != enforce.ID || existing.PolicyVersion != enforce.Version || existing.MatterID == "" || existing.PoorResponseID == "" {
+			return formPolicyAcceptanceResult{}, fmt.Errorf("existing response-policy acceptance does not match the active policy revision")
+		}
+		sameEpisodePoor, err := submitScoringAcceptanceResponse(ctx, distributions, access, seed, form, scoring.SubjectID, scoringResponseFixture{label: "post-policy-poor-same-episode-reconcile", answers: scoringResponseFixtures[2].answers}, time.Now().UTC())
+		if err != nil {
+			return formPolicyAcceptanceResult{}, fmt.Errorf("submit same-episode poor response: %w", err)
+		}
+		event, err := scoredOutboxEvent(ctx, pool, seed.TenantID, sameEpisodePoor.ID)
+		if err != nil {
+			return formPolicyAcceptanceResult{}, err
+		}
+		if err := publisher.Publish(ctx, event); err != nil {
+			return formPolicyAcceptanceResult{}, fmt.Errorf("execute same-episode poor scored response: %w", err)
+		}
+		execution, err := executionForResponse(ctx, pool, enforce.ID, sameEpisodePoor.ID)
+		if err != nil {
+			return formPolicyAcceptanceResult{}, err
+		}
+		if execution.State != string(formpolicy.ExecutionReused) || execution.MatterID != existing.MatterID || execution.CreatedMatter {
+			return formPolicyAcceptanceResult{}, fmt.Errorf("same-episode poor response did not reuse the existing governed Matter: %#v", execution)
+		}
+		reused, err := verifySameEpisodeMatterReuse(ctx, pool, seed.TenantID, seed.LegalEntityID, enforce.ID, existing.PoorResponseID, sameEpisodePoor.ID, existing.MatterID)
+		if err != nil {
+			return formPolicyAcceptanceResult{}, err
+		}
+		existing.SameEpisodeResponseID = sameEpisodePoor.ID
+		existing.SameEpisodeExecutionState = execution.State
+		existing.SameEpisodeReusedMatter = reused
+		return existing, nil
+	}
+
 	now := time.Now().UTC()
 	good, err := submitScoringAcceptanceResponse(ctx, distributions, access, seed, form, scoring.SubjectID, scoringResponseFixture{label: "post-policy-good", answers: scoringResponseFixtures[0].answers}, now)
 	if err != nil {
@@ -150,18 +194,20 @@ func seedFormPolicyAcceptance(
 	if err != nil {
 		return formPolicyAcceptanceResult{}, fmt.Errorf("submit post-policy poor response: %w", err)
 	}
+	sameEpisodePoor, err := submitScoringAcceptanceResponse(ctx, distributions, access, seed, form, scoring.SubjectID, scoringResponseFixture{label: "post-policy-poor-same-episode", answers: scoringResponseFixtures[2].answers}, now.Add(2*time.Second))
+	if err != nil {
+		return formPolicyAcceptanceResult{}, fmt.Errorf("submit same-episode poor response: %w", err)
+	}
 
-	executor := formpolicy.NewExecutor(
-		policyRepo,
-		distributions,
-		formpolicy.ExecutionAuthorityResolver{Automation: automation, Authority: authorityService, Subjects: evidenceRepo},
-	)
-	publisher := formpolicy.ScoredResponsePublisher{Handler: executor}
 	goodEvent, err := scoredOutboxEvent(ctx, pool, seed.TenantID, good.ID)
 	if err != nil {
 		return formPolicyAcceptanceResult{}, err
 	}
 	poorEvent, err := scoredOutboxEvent(ctx, pool, seed.TenantID, poor.ID)
+	if err != nil {
+		return formPolicyAcceptanceResult{}, err
+	}
+	sameEpisodeEvent, err := scoredOutboxEvent(ctx, pool, seed.TenantID, sameEpisodePoor.ID)
 	if err != nil {
 		return formPolicyAcceptanceResult{}, err
 	}
@@ -193,21 +239,38 @@ func seedFormPolicyAcceptance(
 	if err != nil {
 		return formPolicyAcceptanceResult{}, err
 	}
+	if err := publisher.Publish(ctx, sameEpisodeEvent); err != nil {
+		return formPolicyAcceptanceResult{}, fmt.Errorf("execute same-episode poor scored response: %w", err)
+	}
+	sameEpisodeExecution, err := executionForResponse(ctx, pool, enforce.ID, sameEpisodePoor.ID)
+	if err != nil {
+		return formPolicyAcceptanceResult{}, err
+	}
+	if sameEpisodeExecution.State != string(formpolicy.ExecutionReused) || sameEpisodeExecution.MatterID != poorExecution.MatterID || sameEpisodeExecution.CreatedMatter {
+		return formPolicyAcceptanceResult{}, fmt.Errorf("same-episode poor response did not reuse the governed Matter: %#v", sameEpisodeExecution)
+	}
 	exactlyOnce, err := verifyExactlyOnceMatter(ctx, pool, seed.TenantID, seed.LegalEntityID, enforce.ID, poor.ID, poorExecution)
 	if err != nil {
 		return formPolicyAcceptanceResult{}, err
 	}
+	sameEpisodeReused, err := verifySameEpisodeMatterReuse(ctx, pool, seed.TenantID, seed.LegalEntityID, enforce.ID, poor.ID, sameEpisodePoor.ID, poorExecution.MatterID)
+	if err != nil {
+		return formPolicyAcceptanceResult{}, err
+	}
 	return formPolicyAcceptanceResult{
-		PolicyID:           enforce.ID,
-		PolicyVersion:      enforce.Version,
-		GoodResponseID:     good.ID,
-		PoorResponseID:     poor.ID,
-		GoodExecutionState: goodExecution.State,
-		PoorExecutionState: poorExecution.State,
-		MatterID:           poorExecution.MatterID,
-		CreatedMatter:      poorExecution.CreatedMatter,
-		ReplayExecutionID:  replayed.ID,
-		ExactlyOnceMatter:  exactlyOnce && replayed.ID == poorExecution.ID && replayed.MatterID == poorExecution.MatterID,
+		PolicyID:                  enforce.ID,
+		PolicyVersion:             enforce.Version,
+		GoodResponseID:            good.ID,
+		PoorResponseID:            poor.ID,
+		SameEpisodeResponseID:     sameEpisodePoor.ID,
+		GoodExecutionState:        goodExecution.State,
+		PoorExecutionState:        poorExecution.State,
+		SameEpisodeExecutionState: sameEpisodeExecution.State,
+		MatterID:                  poorExecution.MatterID,
+		CreatedMatter:             poorExecution.CreatedMatter,
+		ReplayExecutionID:         replayed.ID,
+		ExactlyOnceMatter:         exactlyOnce && replayed.ID == poorExecution.ID && replayed.MatterID == poorExecution.MatterID,
+		SameEpisodeReusedMatter:   sameEpisodeReused,
 	}, nil
 }
 

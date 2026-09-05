@@ -102,6 +102,10 @@ jobs:
               assert acceptance["exactly_once_matter"] is True, payload
               assert acceptance["matter_id"], payload
               assert acceptance["poor_execution_state"] in ("APPLIED", "REUSED"), payload
+              assert acceptance["same_episode_reused_matter"] is True, payload
+              assert acceptance["same_episode_response_id"], payload
+              assert acceptance["same_episode_response_id"] != acceptance["poor_response_id"], payload
+              assert acceptance["same_episode_execution_state"] == "REUSED", payload
           PY
           psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM routing_policies WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND legal_entity_id='00000000-0000-4000-8000-000000000002' AND code='CLEARSIGHT-DEMO-AUTHORITY'" | grep -qx 1
           psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM routing_policy_versions WHERE policy_id='00000000-0000-4000-8000-000000000201' AND legal_entity_id='00000000-0000-4000-8000-000000000002' AND version=1" | grep -qx 1

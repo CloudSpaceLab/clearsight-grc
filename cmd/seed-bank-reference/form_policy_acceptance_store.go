@@ -216,6 +216,46 @@ func verifyExactlyOnceMatter(
 	return executionCount == 1 && matterCount == 1 && episodeCount == 1, nil
 }
 
+func verifySameEpisodeMatterReuse(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	tenantID string,
+	legalEntityID string,
+	policyID string,
+	firstResponseID string,
+	secondResponseID string,
+	matterID string,
+) (bool, error) {
+	var executionCount, distinctMatterCount, createdMatterCount, episodeCount int
+	err := pool.QueryRow(ctx, `
+		SELECT
+			(SELECT count(*) FROM form_response_policy_executions
+			 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid
+			   AND policy_id=$3::uuid AND response_revision_id IN ($4::uuid,$5::uuid)
+			   AND state IN ('APPLIED','REUSED')),
+			(SELECT count(DISTINCT matter_id) FROM form_response_policy_executions
+			 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid
+			   AND policy_id=$3::uuid AND response_revision_id IN ($4::uuid,$5::uuid)),
+			(SELECT count(*) FROM form_response_policy_executions
+			 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid
+			   AND policy_id=$3::uuid AND response_revision_id IN ($4::uuid,$5::uuid)
+			   AND created_matter),
+			(SELECT count(*) FROM form_response_policy_adverse_episodes
+			 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid
+			   AND policy_id=$3::uuid AND state='OPEN' AND matter_id=$6::uuid)`,
+		tenantID,
+		legalEntityID,
+		policyID,
+		firstResponseID,
+		secondResponseID,
+		matterID,
+	).Scan(&executionCount, &distinctMatterCount, &createdMatterCount, &episodeCount)
+	if err != nil {
+		return false, fmt.Errorf("verify same-episode Matter reuse: %w", err)
+	}
+	return executionCount == 2 && distinctMatterCount == 1 && createdMatterCount == 1 && episodeCount == 1, nil
+}
+
 func existingAcceptanceExecution(ctx context.Context, pool *pgxpool.Pool, seed bankverticals.SeedConfig) (formPolicyAcceptanceResult, bool, error) {
 	var result formPolicyAcceptanceResult
 	err := pool.QueryRow(ctx, `
@@ -237,8 +277,9 @@ func existingAcceptanceExecution(ctx context.Context, pool *pgxpool.Pool, seed b
 		  AND policy.code=$3
 		  AND policy.rollout_mode='ENFORCE'
 		  AND policy.status='ACTIVE'
-		  AND execution.state IN ('APPLIED','REUSED')
-		ORDER BY policy.version DESC,execution.created_at DESC
+		  AND execution.state='APPLIED'
+		  AND execution.created_matter
+		ORDER BY policy.version DESC,execution.created_at ASC
 		LIMIT 1`, seed.TenantID, seed.LegalEntityID, responsePolicyAcceptanceCode).Scan(
 		&result.PolicyID,
 		&result.PolicyVersion,
@@ -267,6 +308,42 @@ func existingAcceptanceExecution(ctx context.Context, pool *pgxpool.Pool, seed b
 			MatterID:      result.MatterID,
 			CreatedMatter: result.CreatedMatter,
 		},
+	)
+	if err != nil {
+		return formPolicyAcceptanceResult{}, false, err
+	}
+
+	var sameEpisode storedExecution
+	err = pool.QueryRow(ctx, `
+		SELECT response_revision_id::text,id::text,state,COALESCE(matter_id::text,''),created_matter
+		FROM form_response_policy_executions
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid
+		  AND policy_id=$3::uuid AND response_revision_id<>$4::uuid
+		  AND state='REUSED' AND matter_id=$5::uuid AND NOT created_matter
+		ORDER BY created_at ASC,id ASC
+		LIMIT 1`, seed.TenantID, seed.LegalEntityID, result.PolicyID, result.PoorResponseID, result.MatterID).Scan(
+		&result.SameEpisodeResponseID,
+		&sameEpisode.ID,
+		&sameEpisode.State,
+		&sameEpisode.MatterID,
+		&sameEpisode.CreatedMatter,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return result, true, nil
+	}
+	if err != nil {
+		return formPolicyAcceptanceResult{}, false, fmt.Errorf("load same-episode response-policy acceptance: %w", err)
+	}
+	result.SameEpisodeExecutionState = sameEpisode.State
+	result.SameEpisodeReusedMatter, err = verifySameEpisodeMatterReuse(
+		ctx,
+		pool,
+		seed.TenantID,
+		seed.LegalEntityID,
+		result.PolicyID,
+		result.PoorResponseID,
+		result.SameEpisodeResponseID,
+		result.MatterID,
 	)
 	return result, true, err
 }
