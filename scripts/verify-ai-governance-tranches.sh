@@ -26,8 +26,8 @@ required=(
   migrations/000076_ai_governance_baseline_attribution.down.sql
   migrations/000078_ai_governance_gateway_transport.up.sql
   migrations/000078_ai_governance_gateway_transport.down.sql
-  migrations/000079_ai_gateway_emergency_control.up.sql
-  migrations/000079_ai_gateway_emergency_control.down.sql
+  migrations/000079_ai_governance_gateway_emergency_control.up.sql
+  migrations/000079_ai_governance_gateway_emergency_control.down.sql
   docs/architecture/durable-schema-ownership.d/ai-gateway-transport.md
   docs/acceptance/t4-governed-ai-enforcement.md
   docs/acceptance/t5-ai-governance-receipts-approval.md
@@ -42,7 +42,7 @@ ai_governance_migrations=(
   migrations/000036_ai_governance_receipts_grants.up.sql
   migrations/000076_ai_governance_baseline_attribution.up.sql
   migrations/000078_ai_governance_gateway_transport.up.sql
-  migrations/000079_ai_gateway_emergency_control.up.sql
+  migrations/000079_ai_governance_gateway_emergency_control.up.sql
 )
 if grep -nE '(prompt|response_body|source_payload|provider_secret|authorization_header)' "${ai_governance_migrations[@]}"; then
   echo "AI governance durable schema contains prohibited raw-content or credential field names" >&2
