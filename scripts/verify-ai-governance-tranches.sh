@@ -4,6 +4,7 @@ set -Eeuo pipefail
 mode="${1:-auto}"
 required=(
   internal/aigateway/governance.go
+  internal/aigateway/security_facts.go
   internal/aigateway/transport_config.go
   internal/aigateway/transport_runtime.go
   internal/aigateway/operations_client.go
@@ -11,6 +12,7 @@ required=(
   internal/aigovernance/service.go
   internal/aigovernance/runtime.go
   internal/aigovernance/retention.go
+  internal/aigovernance/gateway_simulation.go
   internal/aigovernance/gateway_transport_service.go
   internal/aigovernance/gateway_emergency_model.go
   internal/aigovernance/gateway_emergency_service.go
@@ -18,6 +20,7 @@ required=(
   internal/httpapi/ai_governance_handlers.go
   internal/httpapi/ai_gateway_transport_handlers.go
   internal/httpapi/ai_gateway_transport_routes.go
+  web/src/components/configure/AIGatewaySimulationPanel.tsx
   migrations/000035_ai_governance_enforcement.up.sql
   migrations/000035_ai_governance_enforcement.down.sql
   migrations/000036_ai_governance_receipts_grants.up.sql
@@ -75,6 +78,18 @@ if ! grep -q 'AI_GATEWAY_OUTBOUND_FROZEN' internal/aigovernance/gateway_emergenc
   echo "AI gateway emergency freeze must be auditable and fail closed at runtime" >&2
   exit 1
 fi
+if ! grep -q 'GatewaySecurityFacts' internal/aigateway/security_facts.go || \
+   ! grep -q 'SimulateGateway' internal/aigovernance/gateway_simulation.go || \
+   ! grep -q 'provider_call_would_occur' internal/aigovernance/gateway_simulation.go || \
+   ! grep -q 'instruction_precedence' internal/aigovernance/gateway_simulation.go || \
+   ! grep -q 'simulate_fixture' internal/httpapi/ai_gateway_transport_handlers.go; then
+  echo "AI gateway deterministic simulation or effective instruction preview is incomplete" >&2
+  exit 1
+fi
+if grep -nE '(RecordReceipt|IngestReceipt|ResolveSecret|CompleteGoverned|StreamGoverned)' internal/aigovernance/gateway_simulation.go; then
+  echo "AI gateway simulation must not record normal receipts, resolve provider secrets or invoke provider execution paths" >&2
+  exit 1
+fi
 
 gofmt_files="$(gofmt -l $(find internal/aigateway internal/aigovernance cmd/ai-gateway -name '*.go' -type f))"
 if [[ -n "$gofmt_files" ]]; then
@@ -91,4 +106,4 @@ if [[ "$mode" == "postgres" || ( "$mode" == "auto" && -n "${TEST_DATABASE_URL:-}
   go test -tags 'postgres postgresintegration' ./internal/aigovernance
 fi
 
-echo "AI governance acceptance passed, including organization baseline, tenant gateway transport and emergency outbound control."
+echo "AI governance acceptance passed, including organization baseline, tenant gateway transport, emergency outbound control and deterministic pre-activation simulation."
