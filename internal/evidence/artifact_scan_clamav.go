@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"io"
 	"net"
 	"strings"
@@ -77,6 +78,9 @@ func (s *ClamAVScanner) Scan(ctx context.Context, reader io.Reader, size int64) 
 		_ = conn.Close()
 	}
 	response := <-reply
+	if errors.Is(streamErr, ErrArtifactScanIntegrity) {
+		return unavailable, streamErr
+	}
 	if streamErr != nil || response.err != nil || ctx.Err() != nil {
 		return unavailable, ErrArtifactScannerUnavailable
 	}
@@ -113,7 +117,7 @@ func streamClamAV(conn io.Writer, reader io.Reader, size int64) error {
 		if n > 0 {
 			total += int64(n)
 			if total > size {
-				return ErrArtifactTooLarge
+				return ErrArtifactScanIntegrity
 			}
 			if err := binary.Write(conn, binary.BigEndian, uint32(n)); err != nil {
 				return err
@@ -133,7 +137,7 @@ func streamClamAV(conn io.Writer, reader io.Reader, size int64) error {
 		}
 	}
 	if total != size {
-		return io.ErrUnexpectedEOF
+		return ErrArtifactScanIntegrity
 	}
 	return binary.Write(conn, binary.BigEndian, uint32(0))
 }

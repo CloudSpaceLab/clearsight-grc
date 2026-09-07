@@ -15,6 +15,7 @@ const artifactScanLease = time.Minute
 
 var ErrArtifactScanLease = errors.New("artifact inspection lease is no longer current")
 var ErrArtifactScannerUnavailable = errors.New("artifact inspection is unavailable")
+var ErrArtifactScanIntegrity = errors.New("artifact bytes do not match the recorded size")
 
 type ArtifactScanResult struct {
 	Verdict string

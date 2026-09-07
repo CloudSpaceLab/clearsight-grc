@@ -91,6 +91,10 @@ func (w *ArtifactScanWorker) inspect(ctx context.Context, job ArtifactScanJob) A
 	limited := &io.LimitedReader{R: reader, N: a.SizeBytes + 1}
 	digest := sha256.New()
 	result, err := w.scanner.Scan(ctx, io.TeeReader(limited, digest), a.SizeBytes)
+	if errors.Is(err, ErrArtifactScanIntegrity) {
+		receipt.FailureCode = "INTEGRITY_MISMATCH"
+		return receipt
+	}
 	if err != nil || ctx.Err() != nil {
 		return receipt
 	}
