@@ -3,7 +3,6 @@ package aigovernance
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigateway"
@@ -33,13 +32,4 @@ func (r *MemoryRepository) ActiveGatewayBaselineExceptions(_ context.Context, te
 		}
 	}
 	return out, nil
-}
-
-func containsFold(values []string, value string) bool {
-	for _, candidate := range values {
-		if strings.EqualFold(candidate, value) {
-			return true
-		}
-	}
-	return false
 }
