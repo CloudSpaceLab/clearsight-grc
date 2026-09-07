@@ -15,7 +15,7 @@ function routeText(value: string) {
 it("shows the published stable proxy and executable workload ingress", () => {
   render(<AIGatewayProxyCard
     proxy={{ configured: true, base_url: "https://ai.bank.example/proxy", ingress }}
-    runtimeStatus={{ configured: true, available: true, tenant_id: "bank", environment: "PRODUCTION", desired_revision: 4, applied_revision: 4, degraded: false }}
+    runtimeStatus={{ configured: true, available: true, tenant_id: "bank", environment: "PRODUCTION", desired_revision: 4, applied_revision: 4, emergency_supported: true, emergency_revision: 2, outbound_frozen: false, degraded: false }}
     loading={false}
   />);
 
@@ -29,7 +29,7 @@ it("shows the published stable proxy and executable workload ingress", () => {
 it("does not imply runtime health when no public proxy URL is published", () => {
   render(<AIGatewayProxyCard
     proxy={{ configured: false, ingress }}
-    runtimeStatus={{ configured: false, available: false, tenant_id: "bank", environment: "PRODUCTION", desired_revision: 0, applied_revision: 0, degraded: false }}
+    runtimeStatus={{ configured: false, available: false, tenant_id: "bank", environment: "PRODUCTION", desired_revision: 0, applied_revision: 0, emergency_supported: false, emergency_revision: 0, outbound_frozen: false, degraded: false }}
     loading={false}
   />);
 
