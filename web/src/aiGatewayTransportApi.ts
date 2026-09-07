@@ -2,6 +2,7 @@ import { requestJSON } from "./http";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 const basePath = "/api/v1/ai-governance/gateway-configs";
+const emergencyPath = "/api/v1/ai-governance/gateway-emergency-control";
 
 export type GatewayEnvironment = "PRODUCTION" | "TEST" | "DEVELOPMENT";
 export type GatewayProviderKind = "OPENAI" | "ANTHROPIC";
@@ -167,7 +168,7 @@ export async function setGatewayEmergencyControl(input: {
   reason: string;
   expectedVersion: number;
 }): Promise<GatewayEmergencyControl> {
-  return requestJSON<GatewayEmergencyControl>(apiBase, `${basePath}/emergency`, {
+  return requestJSON<GatewayEmergencyControl>(apiBase, emergencyPath, {
     method: "POST",
     body: JSON.stringify({
       environment: input.environment,
