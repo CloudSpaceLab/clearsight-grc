@@ -12,6 +12,9 @@ required=(
   internal/aigovernance/runtime.go
   internal/aigovernance/retention.go
   internal/aigovernance/gateway_transport_service.go
+  internal/aigovernance/gateway_emergency_model.go
+  internal/aigovernance/gateway_emergency_service.go
+  internal/aigovernance/gateway_emergency_runtime.go
   internal/httpapi/ai_governance_handlers.go
   internal/httpapi/ai_gateway_transport_handlers.go
   internal/httpapi/ai_gateway_transport_routes.go
@@ -23,6 +26,8 @@ required=(
   migrations/000076_ai_governance_baseline_attribution.down.sql
   migrations/000078_ai_governance_gateway_transport.up.sql
   migrations/000078_ai_governance_gateway_transport.down.sql
+  migrations/000079_ai_gateway_emergency_control.up.sql
+  migrations/000079_ai_gateway_emergency_control.down.sql
   docs/architecture/durable-schema-ownership.d/ai-gateway-transport.md
   docs/acceptance/t4-governed-ai-enforcement.md
   docs/acceptance/t5-ai-governance-receipts-approval.md
@@ -37,6 +42,7 @@ ai_governance_migrations=(
   migrations/000036_ai_governance_receipts_grants.up.sql
   migrations/000076_ai_governance_baseline_attribution.up.sql
   migrations/000078_ai_governance_gateway_transport.up.sql
+  migrations/000079_ai_gateway_emergency_control.up.sql
 )
 if grep -nE '(prompt|response_body|source_payload|provider_secret|authorization_header)' "${ai_governance_migrations[@]}"; then
   echo "AI governance durable schema contains prohibited raw-content or credential field names" >&2
@@ -49,14 +55,24 @@ if ! grep -q 'json:"secret_ref"' internal/aigateway/transport_config.go || \
 fi
 if ! grep -q "ai_gateway_decision_receipts" docs/architecture/durable-schema-ownership.md || \
    ! grep -q "ai_execution_grants" docs/architecture/durable-schema-ownership.md || \
-   ! grep -q "ai_gateway_config_revisions" docs/architecture/durable-schema-ownership.d/ai-gateway-transport.md; then
+   ! grep -q "ai_gateway_config_revisions" docs/architecture/durable-schema-ownership.d/ai-gateway-transport.md || \
+   ! grep -q "ai_gateway_emergency_controls" docs/architecture/durable-schema-ownership.d/ai-gateway-transport.md; then
   echo "AI governance durable tables are missing schema ownership classification" >&2
   exit 1
 fi
 if ! grep -q 'gateway-configs' internal/httpapi/ai_gateway_transport_routes.go || \
+   ! grep -q 'gateway-emergency-control' internal/httpapi/ai_gateway_transport_routes.go || \
    ! grep -q 'runtime_status' internal/httpapi/ai_gateway_transport_handlers.go || \
+   ! grep -q 'emergency_control' internal/httpapi/ai_gateway_transport_handlers.go || \
    ! grep -q '/health/config' api/ai-gateway.openapi.json; then
-  echo "AI gateway control-plane routes or runtime apply projection are incomplete" >&2
+  echo "AI gateway control-plane routes, emergency control or runtime apply projection are incomplete" >&2
+  exit 1
+fi
+if ! grep -q 'AI_GATEWAY_OUTBOUND_FROZEN' internal/aigovernance/gateway_emergency_postgres.go || \
+   ! grep -q 'AI_GATEWAY_OUTBOUND_UNFROZEN' internal/aigovernance/gateway_emergency_postgres.go || \
+   ! grep -q 'ErrOutboundFrozen' internal/aigateway/transport_runtime.go || \
+   ! grep -q 'ErrEmergencyControlUnavailable' internal/aigateway/transport_runtime.go; then
+  echo "AI gateway emergency freeze must be auditable and fail closed at runtime" >&2
   exit 1
 fi
 
@@ -75,4 +91,4 @@ if [[ "$mode" == "postgres" || ( "$mode" == "auto" && -n "${TEST_DATABASE_URL:-}
   go test -tags 'postgres postgresintegration' ./internal/aigovernance
 fi
 
-echo "AI governance acceptance passed, including organization baseline and tenant gateway transport control plane."
+echo "AI governance acceptance passed, including organization baseline, tenant gateway transport and emergency outbound control."
