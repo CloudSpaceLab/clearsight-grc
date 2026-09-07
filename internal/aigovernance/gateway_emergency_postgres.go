@@ -62,8 +62,8 @@ RETURNING c.id::text,t.slug,c.environment,c.frozen,c.reason,c.actor_id::text,c.u
 		eventType = "AI_GATEWAY_OUTBOUND_FROZEN"
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO outbox_events(id,tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at)
-VALUES(uuidv7(),(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'AI_GATEWAY_EMERGENCY_CONTROL',$2::uuid,$3,
-       jsonb_build_object('actor_id',$4,'environment',$5,'frozen',$6,'reason',$7,'record_version',$8),$9,$9,$9)`,
+VALUES(uuidv7(),(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'AI_GATEWAY_EMERGENCY_CONTROL',$2::uuid,$3::text,
+       jsonb_build_object('actor_id',$4::text,'environment',$5::text,'frozen',$6::boolean,'reason',$7::text,'record_version',$8::bigint),$9::timestamptz,$9::timestamptz,$9::timestamptz)`,
 		stored.TenantID, stored.ID, eventType, stored.ActorID, stored.Environment, stored.Frozen, stored.Reason, stored.RecordVersion, stored.UpdatedAt); err != nil {
 		return GatewayEmergencyControl{}, err
 	}
