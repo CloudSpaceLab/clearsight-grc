@@ -54,7 +54,7 @@ Current workload ingress is `/v1/models`, `/v1/chat/completions` and `/v1/respon
 
 Emergency freeze is a separate authority from transport revision suspension. Suspending a transport revision cannot be treated as a kill switch because a gateway may still retain a prior known-good router.
 
-- `ai_gateway_emergency_controls` stores one optimistic-versioned state per tenant/environment with only frozen state, reason, actor, timestamp and record version;
+- `ai_gateway_emergency_controls` stores one optimistic-versioned state per tenant/environment with only frozen state, reason, actor, timestamp and record version; its governance-owned schema is migration `000079_ai_governance_gateway_emergency_control`;
 - `POST /api/v1/ai-governance/gateway-emergency-control` is `CONFIG_WRITE`, derives tenant and actor from authenticated server identity and requires a non-empty bounded reason;
 - freeze/unfreeze persists the control and appends `AI_GATEWAY_OUTBOUND_FROZEN` / `AI_GATEWAY_OUTBOUND_UNFROZEN` to the canonical outbox in the same PostgreSQL transaction;
 - gateway database transport checks the emergency state before cached known-good routing can be used and refreshes it on a bounded fast cadence of at most one second;
