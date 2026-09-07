@@ -73,7 +73,7 @@ func documentInventorySQL() string {
  artifact.size_bytes,artifact.sha256,artifact.status AS artifact_status,artifact.created_at AS uploaded_at,artifact.created_by::text AS uploaded_by,
  submission.submitted_at,submission.submitted_by::text AS submitted_by,
  COALESCE(review.expires_on::text,submission.answers->(field->>'id')->'document'->>'expires_on','') AS expires_on,
- COALESCE(r.is_current,assessment.current_request_id=req.id,work.current_request_id=req.id,false) AS current,
+ ` + documentCurrentSQL() + ` AS current,
  CASE WHEN review.id IS NOT NULL THEN jsonb_build_object('id',review.id::text,'status',review.status,'reviewed_by',review.validated_by_principal_id::text,'reviewed_at',review.validated_at,'source','VENDOR_ASSESSMENT') END AS review,
  artifact.request_id::text AS artifact_request_id
  FROM capture_submissions submission
@@ -84,7 +84,7 @@ func documentInventorySQL() string {
  LEFT JOIN third_party_assessment_request_links assessment_link ON assessment_link.request_id=req.id AND assessment_link.tenant_id=req.tenant_id AND assessment_link.legal_entity_id=req.legal_entity_id AND req.origin_type=assessment_link.origin_type AND req.origin_id=assessment_link.origin_id::text AND req.origin_version=assessment_link.origin_sequence
  LEFT JOIN third_party_assessments assessment ON assessment.id=assessment_link.assessment_id AND assessment.tenant_id=req.tenant_id AND assessment.legal_entity_id=req.legal_entity_id AND req.subject_type='VENDOR_RELATIONSHIP' AND req.subject_id=assessment.relationship_id::text AND req.form_template_id=assessment.form_template_id AND req.form_template_version=assessment.form_template_version
  LEFT JOIN third_party_work_capture_links work_link ON work_link.request_id=req.id AND work_link.tenant_id=req.tenant_id AND work_link.legal_entity_id=req.legal_entity_id AND req.origin_type=work_link.origin_type AND req.origin_id=work_link.origin_id::text AND req.origin_version=work_link.origin_version
- LEFT JOIN third_party_work_requests work ON work.id=work_link.work_request_id AND work.tenant_id=req.tenant_id AND work.legal_entity_id=req.legal_entity_id AND req.subject_type='VENDOR_RELATIONSHIP' AND req.subject_id=work.relationship_id::text
+ LEFT JOIN third_party_work_requests work ON work.id=work_link.work_request_id AND work.tenant_id=req.tenant_id AND work.legal_entity_id=req.legal_entity_id AND req.subject_type='VENDOR_RELATIONSHIP' AND req.subject_id=work.relationship_id::text AND req.form_template_id=work.form_template_id AND req.form_template_version=work.form_template_version
  LEFT JOIN third_party_relationships relationship ON relationship.id=COALESCE(assessment.relationship_id,work.relationship_id) AND relationship.tenant_id=req.tenant_id AND relationship.legal_entity_id=req.legal_entity_id
  JOIN LATERAL jsonb_array_elements(req.fields) field ON field->>'type' IN ('file','photo','vendor_document')
  JOIN LATERAL (
@@ -114,6 +114,30 @@ func documentInventorySQL() string {
  AND ($10='' OR strpos(lower(file_name),lower($10))>0)
  AND ($12='' OR (submitted_at,id)<($11::timestamptz,$12))
  ORDER BY submitted_at DESC,id DESC LIMIT $16`
+}
+
+// Capture currency follows submitted field replacement, including an omitted
+// answer for a requested field. Pending captures cannot retire prior evidence.
+// Separate workflow distributions therefore do not use their local is_current
+// flags to classify the merged work/assessment response.
+func documentCurrentSQL() string {
+	return `CASE WHEN req.origin_type IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK') THEN NOT EXISTS (
+ SELECT 1 FROM capture_requests newer
+ JOIN capture_submissions newer_submission ON newer_submission.request_id=newer.id AND newer_submission.tenant_id=newer.tenant_id
+ LEFT JOIN capture_response_revisions newer_revision ON newer_revision.submission_id=newer_submission.id AND newer_revision.tenant_id=newer.tenant_id AND newer_revision.legal_entity_id=newer.legal_entity_id
+ LEFT JOIN capture_form_distributions newer_distribution ON newer_distribution.id=newer_revision.distribution_id AND newer_distribution.tenant_id=newer.tenant_id AND newer_distribution.legal_entity_id=newer.legal_entity_id
+ WHERE newer.tenant_id=req.tenant_id AND newer.legal_entity_id=req.legal_entity_id
+ AND newer.origin_type=req.origin_type AND newer.origin_id=req.origin_id
+ AND newer.subject_type=req.subject_type AND newer.subject_id=req.subject_id
+ AND newer.form_template_id=req.form_template_id AND newer.form_template_version=req.form_template_version
+ AND (newer_revision.id IS NULL OR (newer.distribution_id=newer_revision.distribution_id AND newer.subject_type=newer_distribution.subject_type AND newer.subject_id=newer_distribution.subject_id::text AND newer.form_template_id=newer_distribution.form_template_id AND newer.form_template_version=newer_distribution.form_template_version))
+ AND (newer.origin_version,COALESCE(newer_revision.revision,0),newer_submission.submitted_at,newer_submission.id) > (req.origin_version,COALESCE(r.revision,0),submission.submitted_at,submission.id)
+ AND EXISTS (SELECT 1 FROM jsonb_array_elements(newer.fields) newer_field WHERE newer_field->>'id'=field->>'id')
+ AND CASE req.origin_type
+ WHEN 'THIRD_PARTY_WORK' THEN EXISTS (SELECT 1 FROM third_party_work_capture_links link WHERE link.tenant_id=newer.tenant_id AND link.legal_entity_id=newer.legal_entity_id AND link.work_request_id=work.id AND link.request_id=newer.id AND link.origin_type=newer.origin_type AND link.origin_id::text=newer.origin_id AND link.origin_version=newer.origin_version)
+ WHEN 'THIRD_PARTY_ASSESSMENT' THEN EXISTS (SELECT 1 FROM third_party_assessment_request_links link WHERE link.tenant_id=newer.tenant_id AND link.legal_entity_id=newer.legal_entity_id AND link.assessment_id=assessment.id AND link.request_id=newer.id AND link.origin_type=newer.origin_type AND link.origin_id::text=newer.origin_id AND link.origin_sequence=newer.origin_version)
+ ELSE false END
+ ) ELSE COALESCE(r.is_current,false) END`
 }
 
 func documentKindSQL(column string) string {

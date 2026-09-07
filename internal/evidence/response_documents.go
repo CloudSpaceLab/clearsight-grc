@@ -40,11 +40,11 @@ func DocumentKindForMediaType(value string) DocumentFileKind {
 }
 
 type DocumentReview struct {
-	ID         string    `json:"id"`
-	Status     string    `json:"status"`
-	ReviewedBy string    `json:"reviewed_by"`
-	ReviewedAt time.Time `json:"reviewed_at"`
-	Source     string    `json:"source"`
+	ID         string     `json:"id"`
+	Status     string     `json:"status"`
+	ReviewedBy string     `json:"reviewed_by"`
+	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
+	Source     string     `json:"source"`
 }
 type DocumentOccurrence struct {
 	ID                  string           `json:"id"`

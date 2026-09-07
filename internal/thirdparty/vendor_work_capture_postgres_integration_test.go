@@ -183,6 +183,71 @@ func TestPostgresVendorWorkUsesCanonicalOTPRouteAndSubmitsAfterAutosave(t *testi
 	if err != nil || len(files.Items) != 1 || files.Items[0].WorkRequestID != work.ID {
 		t.Fatalf("work document inventory = %#v, %v", files, err)
 	}
+	// A successor capture has its own distribution. Currency belongs to the
+	// merged work response, not the per-distribution revision flag.
+	if _, err := pool.Exec(ctx, `
+ UPDATE capture_requests SET fields=fields||'[{"id":"photo","label":"Site","type":"photo"}]'::jsonb WHERE id=$1::uuid;
+ UPDATE capture_submissions SET answers=answers||jsonb_build_object('photo',jsonb_build_object('artifact_ids',jsonb_build_array(md5('work-photo')::uuid::text))) WHERE id=$2::uuid;
+ INSERT INTO capture_artifacts SELECT (jsonb_populate_record(NULL::capture_artifacts,to_jsonb(a)||jsonb_build_object('id',md5('work-photo')::uuid,'file_name','site.png','media_type','image/png','storage_key','work-photo'))).* FROM capture_artifacts a WHERE id=md5('work-file')::uuid;
+ INSERT INTO third_party_work_capture_links SELECT (jsonb_populate_record(NULL::third_party_work_capture_links,to_jsonb(c)||jsonb_build_object('id',md5('work-successor-link')::uuid,'request_id',$3::uuid,'sequence',2,'origin_version',2,'submission_id',NULL,'invitation_id',NULL))).* FROM third_party_work_capture_links c WHERE id=$4::uuid;
+ UPDATE third_party_work_requests SET current_request_id=$3::uuid,current_invitation_id=NULL WHERE id=$5::uuid;
+ UPDATE capture_requests SET fields='[{"id":"policy","label":"Policy","type":"file"}]' WHERE id=$3::uuid;
+ `, pgx.QueryExecModeSimpleProtocol, dispatched.Request.ID, result.Submission.SubmissionID, mismatched.Request.ID, captureID, work.ID); err != nil {
+		t.Fatal(err)
+	}
+	query := evidence.DocumentQuery{TenantID: thirdPartyTenantID, LegalEntityID: thirdPartyEntityA, PrincipalID: thirdPartyPrincipal, RelationshipID: relationship.Relationship.ID, CurrentOnly: true, Limit: 100}
+	assertCurrent := func(stage string, expected int, replacement bool) {
+		t.Helper()
+		page, err := distributionStore.ListDocuments(ctx, query)
+		if err != nil || len(page.Items) != expected {
+			t.Fatalf("%s current documents: %+v %v", stage, page, err)
+		}
+		for _, file := range page.Items {
+			if replacement && file.FieldID == "policy" && file.RequestID != mismatched.Request.ID {
+				t.Fatalf("%s retained replaced policy: %+v", stage, file)
+			}
+		}
+	}
+	assertCurrent("pending successor", 2, false)
+	if _, err := pool.Exec(ctx, `
+ INSERT INTO capture_submissions SELECT (jsonb_populate_record(NULL::capture_submissions,to_jsonb(s)||jsonb_build_object('id',md5('work-successor-submission')::uuid,'request_id',$2::uuid,'distribution_id',(SELECT distribution_id FROM capture_requests WHERE id=$2::uuid),'answers',jsonb_build_object('policy',jsonb_build_object('artifact_ids',jsonb_build_array(md5('work-replacement')::uuid::text))),'submitted_at',s.submitted_at+interval '1 minute'))).* FROM capture_submissions s WHERE id=$1::uuid;
+ INSERT INTO capture_artifacts SELECT (jsonb_populate_record(NULL::capture_artifacts,to_jsonb(a)||jsonb_build_object('id',md5('work-replacement')::uuid,'request_id',$2::uuid,'submission_id',md5('work-successor-submission')::uuid,'storage_key','work-replacement'))).* FROM capture_artifacts a WHERE id=md5('work-file')::uuid;
+ INSERT INTO capture_response_revisions SELECT (jsonb_populate_record(NULL::capture_response_revisions,to_jsonb(r)||jsonb_build_object('id',md5('work-successor-revision')::uuid,'distribution_id',(SELECT distribution_id FROM capture_requests WHERE id=$2::uuid),'workspace_id',(SELECT id FROM capture_response_workspaces WHERE distribution_id=(SELECT distribution_id FROM capture_requests WHERE id=$2::uuid)),'submission_id',md5('work-successor-submission')::uuid,'supersedes_revision_id',NULL))).* FROM capture_response_revisions r WHERE submission_id=$1::uuid;
+ `, pgx.QueryExecModeSimpleProtocol, result.Submission.SubmissionID, mismatched.Request.ID); err != nil {
+		t.Fatal(err)
+	}
+	assertCurrent("submitted replacement", 2, true)
+	query.CurrentOnly = false
+	all, err := distributionStore.ListDocuments(ctx, query)
+	if err != nil || len(all.Items) != 3 {
+		t.Fatalf("replacement history: %+v %v", all, err)
+	}
+	query.CurrentOnly = true
+	// A work/form mismatch must deny otherwise-valid captures, not merely fail
+	// the independent request/distribution equality check.
+	if _, err := pool.Exec(ctx, `
+ INSERT INTO monitoring_form_templates SELECT (jsonb_populate_record(NULL::monitoring_form_templates,to_jsonb(f)||jsonb_build_object('revision_id',md5('work-form-v4')::uuid,'version',4,'is_current',false,'status','DRAFT','effective_from',NULL,'effective_until',NULL))).* FROM monitoring_form_templates f WHERE tenant_id=$2::uuid AND id=$3::uuid AND version=3;
+ INSERT INTO monitoring_form_templates SELECT (jsonb_populate_record(NULL::monitoring_form_templates,to_jsonb(f)||jsonb_build_object('revision_id',md5('wrong-work-form-revision')::uuid,'id',md5('wrong-work-form')::uuid,'code','WRONG-WORK-FORM','is_current',false,'status','DRAFT','effective_from',NULL,'effective_until',NULL))).* FROM monitoring_form_templates f WHERE tenant_id=$2::uuid AND id=$3::uuid AND version=3;
+ UPDATE third_party_work_requests SET form_template_version=4 WHERE id=$1::uuid`, pgx.QueryExecModeSimpleProtocol, work.ID, thirdPartyTenantID, assessmentTemplateID); err != nil {
+		t.Fatal(err)
+	}
+	assertCurrent("wrong work form version", 0, false)
+	if _, err := pool.Exec(ctx, `UPDATE third_party_work_requests SET form_template_version=3,form_template_id=md5('wrong-work-form')::uuid WHERE id=$1::uuid`, work.ID); err != nil {
+		t.Fatal(err)
+	}
+	assertCurrent("wrong work form ID", 0, false)
+	if _, err := pool.Exec(ctx, `UPDATE third_party_work_requests SET form_template_version=3,form_template_id=$3::uuid WHERE id=$1::uuid; DELETE FROM capture_response_revisions WHERE submission_id IN ($2::uuid,md5('work-successor-submission')::uuid)`, pgx.QueryExecModeSimpleProtocol, work.ID, result.Submission.SubmissionID, assessmentTemplateID); err != nil {
+		t.Fatal(err)
+	}
+	assertCurrent("legacy replacement", 2, true)
+	if _, err := pool.Exec(ctx, `UPDATE capture_submissions SET answers='{}' WHERE id=md5('work-successor-submission')::uuid`); err != nil {
+		t.Fatal(err)
+	}
+	assertCurrent("omitted replacement answer", 1, true)
+	if _, err := pool.Exec(ctx, `DELETE FROM capture_artifacts WHERE id=md5('work-replacement')::uuid; DELETE FROM capture_submissions WHERE id=md5('work-successor-submission')::uuid`, pgx.QueryExecModeSimpleProtocol); err != nil {
+		t.Fatal(err)
+	}
+	assertCurrent("legacy pending successor", 2, false)
 }
 
 func TestPostgresAttachVendorWorkCapturePersistsIntegerSequenceAndBigintOriginVersion(t *testing.T) {

@@ -49,7 +49,7 @@ func (reader DocumentContextReader) ResolveDocumentContext(ctx context.Context, 
 		if !found {
 			return evidence.DocumentContext{}, evidence.ErrNotFound
 		}
-		result := evidence.DocumentContext{RelationshipID: assessment.RelationshipID, AssessmentID: assessment.ID, Current: assessment.CurrentRequestID == request.ID, Reviews: map[string]evidence.DocumentReview{}, Expiries: map[string]string{}}
+		result := evidence.DocumentContext{RelationshipID: assessment.RelationshipID, AssessmentID: assessment.ID, Current: true, Reviews: map[string]evidence.DocumentReview{}, Expiries: map[string]string{}}
 		if documents, ok := service.links.(AssessmentReviewDocumentReader); ok {
 			values, err := documents.ListAssessmentDocuments(ctx, scope, assessment.ID, assessmentReviewMaxArtifacts+1)
 			if err != nil {
@@ -60,7 +60,11 @@ func (reader DocumentContextReader) ResolveDocumentContext(ctx context.Context, 
 			}
 			for _, doc := range values {
 				if doc.RequestID == request.ID && doc.RelationshipID == assessment.RelationshipID {
-					result.Reviews[doc.ArtifactID] = evidence.DocumentReview{ID: doc.ID, Status: string(doc.Status), ReviewedBy: doc.ValidatedByPrincipalID, ReviewedAt: doc.ValidatedAt, Source: "VENDOR_ASSESSMENT"}
+					reviewedAt := &doc.ValidatedAt
+					if doc.ValidatedAt.IsZero() {
+						reviewedAt = nil
+					}
+					result.Reviews[doc.ArtifactID] = evidence.DocumentReview{ID: doc.ID, Status: string(doc.Status), ReviewedBy: doc.ValidatedByPrincipalID, ReviewedAt: reviewedAt, Source: "VENDOR_ASSESSMENT"}
 					result.Expiries[doc.ArtifactID] = assessmentDocumentDateString(doc.ExpiresOn)
 				}
 			}
@@ -78,7 +82,7 @@ func (reader DocumentContextReader) ResolveDocumentContext(ctx context.Context, 
 		if err := service.authorizeRead(ctx, actor, work); err != nil {
 			return evidence.DocumentContext{}, evidence.ErrNotFound
 		}
-		if request.SubjectType != "VENDOR_RELATIONSHIP" || request.SubjectID != work.RelationshipID {
+		if request.SubjectType != "VENDOR_RELATIONSHIP" || request.SubjectID != work.RelationshipID || request.FormTemplateID != work.FormTemplateID || request.FormTemplateVersion != work.FormTemplateVersion {
 			return evidence.DocumentContext{}, evidence.ErrNotFound
 		}
 		links, err := service.repo.ListVendorWorkCaptures(ctx, scope, work.ID)
@@ -87,7 +91,7 @@ func (reader DocumentContextReader) ResolveDocumentContext(ctx context.Context, 
 		}
 		for _, link := range links {
 			if link.TenantID == q.TenantID && link.LegalEntityID == q.LegalEntityID && link.RequestID == request.ID && link.OriginVersion == request.Origin.Version {
-				return evidence.DocumentContext{RelationshipID: work.RelationshipID, WorkRequestID: work.ID, Current: work.CurrentRequestID == request.ID}, nil
+				return evidence.DocumentContext{RelationshipID: work.RelationshipID, WorkRequestID: work.ID, Current: true}, nil
 			}
 		}
 	}

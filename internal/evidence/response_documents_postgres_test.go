@@ -4,6 +4,8 @@ package evidence
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -80,4 +82,85 @@ func TestPostgresDocumentInventoryScopesBeforeLimitAndPaginates(t *testing.T) {
 	if err != nil || len(denied.Items) != 0 {
 		t.Fatalf("cross-entity documents %+v %v", denied, err)
 	}
+	// Two immutable revisions reuse both an original artifact and a file
+	// uploaded under another contributor request in the same distribution.
+	source := page.Items[0]
+	_, err = pool.Exec(ctx, `
+ INSERT INTO capture_requests SELECT (jsonb_populate_record(NULL::capture_requests,to_jsonb(req)||jsonb_build_object('id',md5('document-contributor')::uuid))).* FROM capture_requests req WHERE id=$1::uuid;
+ INSERT INTO capture_artifacts SELECT (jsonb_populate_record(NULL::capture_artifacts,to_jsonb(a)||jsonb_build_object('id',md5('contributor-artifact')::uuid,'request_id',md5('document-contributor')::uuid,'submission_id',NULL,'storage_key','contributor-file','file_name','contributor.pdf'))).* FROM capture_artifacts a WHERE id=$2::uuid;
+ UPDATE capture_submissions SET answers=jsonb_build_object('file',jsonb_build_object('artifact_ids',jsonb_build_array($2::text,md5('contributor-artifact')::uuid::text))) WHERE id=$3::uuid;
+ INSERT INTO capture_submissions SELECT (jsonb_populate_record(NULL::capture_submissions,to_jsonb(s)||jsonb_build_object('id',md5('document-amendment')::uuid,'submitted_at',s.submitted_at+interval '1 minute'))).* FROM capture_submissions s WHERE id=$3::uuid;
+ UPDATE capture_response_revisions SET is_current=false WHERE id=$4::uuid;
+ INSERT INTO capture_response_revisions SELECT (jsonb_populate_record(NULL::capture_response_revisions,to_jsonb(r)||jsonb_build_object('id',md5('document-amendment-revision')::uuid,'submission_id',md5('document-amendment')::uuid,'revision',2,'is_current',true,'supersedes_revision_id',r.id))).* FROM capture_response_revisions r WHERE id=$4::uuid;
+ `, pgx.QueryExecModeSimpleProtocol, source.RequestID, source.ArtifactID, source.SubmissionID, source.ResponseRevisionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q = DocumentQuery{TenantID: tenant, LegalEntityID: entity, PrincipalID: actor, ResponseRevisionID: source.ResponseRevisionID, Limit: 100}
+	history, err := store.ListDocuments(ctx, q)
+	if err != nil || len(history.Items) != 2 {
+		t.Fatalf("original reused occurrences: %+v %v", history, err)
+	}
+	var amendmentID string
+	if err := pool.QueryRow(ctx, `SELECT md5('document-amendment-revision')::uuid::text`).Scan(&amendmentID); err != nil {
+		t.Fatal(err)
+	}
+	q.ResponseRevisionID = amendmentID
+	current, err := store.ListDocuments(ctx, q)
+	if err != nil || len(current.Items) != 2 {
+		t.Fatalf("amended reused occurrences: %+v %v", current, err)
+	}
+	for _, old := range history.Items {
+		if old.Current {
+			t.Fatalf("superseded occurrence current: %+v", old)
+		}
+		found := false
+		for _, newer := range current.Items {
+			if newer.ArtifactID == old.ArtifactID {
+				found = true
+				if !newer.Current || newer.SubmissionID == old.SubmissionID || newer.RequestID != source.RequestID {
+					t.Fatalf("reused occurrence lost immutable scope: %+v", newer)
+				}
+			}
+		}
+		if !found {
+			t.Fatalf("reused artifact missing: %+v", old)
+		}
+		if old.FileName == "contributor.pdf" && old.ArtifactRequestID == old.RequestID {
+			t.Fatal("contributor upload request replaced by submission request")
+		}
+	}
+	// Inspect the executable query, including scope predicates and keyset bound,
+	// rather than a simplified surrogate. This is a representative small-fixture
+	// plan, explicitly not the separate 200,000-occurrence release benchmark.
+	var planJSON []byte
+	err = pool.QueryRow(ctx, `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) `+documentInventorySQL(), tenant, entity, actor, now, "", "", amendmentID, false, "", "", time.Time{}, "", "", "", "", 3).Scan(&planJSON)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var plans []map[string]any
+	if err = json.Unmarshal(planJSON, &plans); err != nil {
+		t.Fatal(err)
+	}
+	plan := plans[0]["Plan"].(map[string]any)
+	if plan["Node Type"] != "Limit" || plan["Actual Rows"].(float64) != 2 {
+		t.Fatalf("unexpected bounded plan: %s", planJSON)
+	}
+	indexes := []string{}
+	var walk func(map[string]any)
+	walk = func(node map[string]any) {
+		if name, ok := node["Index Name"].(string); ok {
+			indexes = append(indexes, name)
+		}
+		if children, ok := node["Plans"].([]any); ok {
+			for _, child := range children {
+				walk(child.(map[string]any))
+			}
+		}
+	}
+	walk(plan)
+	if len(indexes) == 0 {
+		t.Fatal("representative exact-response plan has no index access")
+	}
+	t.Logf("submitted document exact-response EXPLAIN: rows=%v execution_ms=%v shared_hit_blocks=%v indexes=%s", plan["Actual Rows"], plans[0]["Execution Time"], plan["Shared Hit Blocks"], strings.Join(indexes, ","))
 }

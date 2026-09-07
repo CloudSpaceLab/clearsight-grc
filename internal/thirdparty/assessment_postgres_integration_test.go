@@ -290,6 +290,9 @@ func TestPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox
 	if err != nil || len(files.Items) != 1 || files.Items[0].AssessmentID != assessment.ID || files.Items[0].Review == nil || files.Items[0].Review.ID != document.ID {
 		t.Fatalf("assessment document inventory = %#v, %v", files, err)
 	}
+	if files.Items[0].Review.ReviewedAt == nil || !files.Items[0].Review.ReviewedAt.Equal(now.Add(time.Minute).Truncate(time.Microsecond)) {
+		t.Fatalf("performed review timestamp lost: %+v", files.Items[0].Review)
+	}
 	const documentReviewer = "33333333-3333-7333-8333-333333333399"
 	if _, err := pool.Exec(ctx, `
 	 INSERT INTO principals(id,tenant_id,kind,external_ref,display_name,status,valid_from)
@@ -320,13 +323,13 @@ func TestPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox
 	}
 	query.PrincipalID = thirdPartyPrincipal
 	files, err = fileStore.ListDocuments(ctx, query)
-	if err != nil || len(files.Items) != 1 || files.Items[0].Current || files.Items[0].Review.Status != "REJECTED" || files.Items[0].ExpiresOn != "2026-07-01" {
-		t.Fatalf("historical rejected file = %#v, %v", files, err)
+	if err != nil || len(files.Items) != 1 || !files.Items[0].Current || files.Items[0].Review.Status != "REJECTED" || files.Items[0].ExpiresOn != "2026-07-01" {
+		t.Fatalf("unreplaced rejected file = %#v, %v", files, err)
 	}
 	query.CurrentOnly = true
 	files, err = fileStore.ListDocuments(ctx, query)
-	if err != nil || len(files.Items) != 0 {
-		t.Fatalf("history in current files = %#v, %v", files, err)
+	if err != nil || len(files.Items) != 1 {
+		t.Fatalf("rejection without replacement hid current file = %#v, %v", files, err)
 	}
 }
 

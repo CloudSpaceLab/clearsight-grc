@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"strings"
+	"time"
 )
 
 func (s *MemoryDistributionStore) ListDocuments(ctx context.Context, q DocumentQuery) (DocumentPage, error) {
@@ -33,6 +34,7 @@ func (s *MemoryDistributionStore) ListDocuments(ctx context.Context, q DocumentQ
 		}
 	}
 	values := []DocumentOccurrence{}
+	latestFields := map[string]documentFieldSource{}
 	for _, submission := range submissions {
 		request, err := s.repo.GetRequest(ctx, q.TenantID, submission.RequestID)
 		if err != nil || request.LegalEntityID != q.LegalEntityID {
@@ -49,9 +51,6 @@ func (s *MemoryDistributionStore) ListDocuments(ctx context.Context, q DocumentQ
 			dc, err = s.documentContexts.ResolveDocumentContext(ctx, q, request, submission)
 			if err != nil {
 				continue
-			}
-			if revision.ID != "" {
-				dc.Current = revision.Current
 			}
 		} else {
 			if revision.ID == "" || d.TenantID != q.TenantID || d.LegalEntityID != q.LegalEntityID {
@@ -81,6 +80,13 @@ func (s *MemoryDistributionStore) ListDocuments(ctx context.Context, q DocumentQ
 			prefix = "legacy"
 		}
 		for _, field := range request.Fields {
+			if legacy {
+				key := documentFieldKey(dc.WorkRequestID, dc.AssessmentID, field.ID)
+				source := documentFieldSource{submission.ID, request.Origin.Version, revision.Revision, submission.SubmittedAt}
+				if current, ok := latestFields[key]; !ok || source.after(current) {
+					latestFields[key] = source
+				}
+			}
 			if field.Type != "file" && field.Type != "photo" && field.Type != "vendor_document" {
 				continue
 			}
@@ -116,12 +122,20 @@ func (s *MemoryDistributionStore) ListDocuments(ctx context.Context, q DocumentQ
 						v.ExpiresOn = expiry
 					}
 				}
-				if documentMatches(v, q, cursor) {
-					values = append(values, v)
-				}
+				values = append(values, v)
 			}
 		}
 	}
+	filtered := values[:0]
+	for _, value := range values {
+		if value.WorkRequestID != "" || value.AssessmentID != "" {
+			value.Current = latestFields[documentFieldKey(value.WorkRequestID, value.AssessmentID, value.FieldID)].SubmissionID == value.SubmissionID
+		}
+		if documentMatches(value, q, cursor) {
+			filtered = append(filtered, value)
+		}
+	}
+	values = filtered
 	sort.Slice(values, func(i, j int) bool {
 		if !values[i].SubmittedAt.Equal(values[j].SubmittedAt) {
 			return values[i].SubmittedAt.After(values[j].SubmittedAt)
@@ -129,6 +143,28 @@ func (s *MemoryDistributionStore) ListDocuments(ctx context.Context, q DocumentQ
 		return values[i].ID > values[j].ID
 	})
 	return documentPage(values, q.Limit), nil
+}
+
+type documentFieldSource struct {
+	SubmissionID       string
+	Sequence, Revision int64
+	SubmittedAt        time.Time
+}
+
+func (s documentFieldSource) after(other documentFieldSource) bool {
+	if s.Sequence != other.Sequence {
+		return s.Sequence > other.Sequence
+	}
+	if s.Revision != other.Revision {
+		return s.Revision > other.Revision
+	}
+	if !s.SubmittedAt.Equal(other.SubmittedAt) {
+		return s.SubmittedAt.After(other.SubmittedAt)
+	}
+	return s.SubmissionID > other.SubmissionID
+}
+func documentFieldKey(work, assessment, field string) string {
+	return work + "\x00" + assessment + "\x00" + field
 }
 func documentMatches(v DocumentOccurrence, q DocumentQuery, c documentCursor) bool {
 	return (!q.CurrentOnly || v.Current) && (q.FileKind == "" || v.FileKind == q.FileKind) && (q.Query == "" || strings.Contains(strings.ToLower(v.FileName), strings.ToLower(q.Query))) && (q.FormTemplateID == "" || v.FormTemplateID == q.FormTemplateID) && (q.RelationshipID == "" || v.RelationshipID == q.RelationshipID) && (q.ResponseRevisionID == "" || v.ResponseRevisionID == q.ResponseRevisionID) && (q.SubmissionID == "" || v.SubmissionID == q.SubmissionID) && (q.FieldID == "" || v.FieldID == q.FieldID) && (q.ArtifactID == "" || v.ArtifactID == q.ArtifactID) && (c.ID == "" || v.SubmittedAt.Before(c.SubmittedAt) || v.SubmittedAt.Equal(c.SubmittedAt) && v.ID < c.ID)

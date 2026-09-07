@@ -2,6 +2,9 @@ package evidence
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,6 +25,24 @@ func TestDocumentFileKindUsesValidatedNormalizedMediaType(t *testing.T) {
 		if got := DocumentKindForMediaType(tt.media); got != tt.want {
 			t.Errorf("%q: %s, want %s", tt.media, got, tt.want)
 		}
+	}
+}
+
+func TestDocumentReviewOmitsUnperformedReviewTime(t *testing.T) {
+	raw, err := json.Marshal(DocumentReview{Status: "SUBMITTED"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), "reviewed_at") || strings.Contains(string(raw), "0001-") {
+		t.Fatalf("invented review timestamp %s", raw)
+	}
+	at := time.Date(2026, 9, 7, 12, 0, 0, 0, time.UTC)
+	raw, err = json.Marshal(DocumentReview{Status: "VALIDATED", ReviewedAt: &at})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"reviewed_at":"2026-09-07T12:00:00Z"`) {
+		t.Fatalf("lost performed review timestamp %s", raw)
 	}
 }
 
@@ -154,5 +175,68 @@ func TestDocumentInventoryIncludesPhotoAndVendorDocumentAcrossContributors(t *te
 	files, err = store.ListDocuments(context.Background(), q)
 	if err != nil || len(files.Items) != 0 {
 		t.Fatalf("other distribution artifact %+v %v", files, err)
+	}
+}
+
+func TestWorkDocumentCurrencyFollowsSubmittedFieldReplacements(t *testing.T) {
+	for _, revisionBacked := range []bool{false, true} {
+		t.Run(fmt.Sprint(revisionBacked), func(t *testing.T) {
+			store, q := documentMemoryFixture()
+			q.Limit = 100
+			q.CurrentOnly = true
+			delete(store.repo.submissions, "older")
+			req := store.repo.requests["request"]
+			req.Origin = RequestOrigin{Type: "THIRD_PARTY_WORK", ID: "work", Version: 1}
+			store.repo.requests[req.ID] = req
+			original := store.repo.submissions["newer"]
+			original.Answers["photo"] = formcontract.AnswerValue{ArtifactIDs: []string{"photo"}}
+			store.repo.submissions[original.ID] = original
+			store.repo.artifacts["photo"] = Artifact{ID: "photo", TenantID: q.TenantID, RequestID: req.ID, MediaType: "image/png", FileName: "site.png"}
+			successor := req
+			successor.ID = "successor"
+			successor.Origin.Version = 2
+			successor.Fields = successor.Fields[:1]
+			store.repo.requests[successor.ID] = successor
+			store.documentContexts = documentContextFunc(func(context.Context, DocumentQuery, Request, Submission) (DocumentContext, error) {
+				return DocumentContext{WorkRequestID: "work", RelationshipID: "relationship", Current: false}, nil
+			})
+			if !revisionBacked {
+				store.responseRevisions = map[string][]ResponseRevision{}
+			}
+			files, err := store.ListDocuments(context.Background(), q)
+			if err != nil || len(files.Items) != 2 {
+				t.Fatalf("pending successor hid submitted files %+v %v", files, err)
+			}
+			replacement := Submission{ID: "replacement", TenantID: q.TenantID, RequestID: successor.ID, SubmittedAt: original.SubmittedAt.Add(time.Hour), Answers: map[string]formcontract.AnswerValue{"file": {ArtifactIDs: []string{"replacement-file"}}}}
+			store.repo.submissions[replacement.ID] = replacement
+			store.repo.artifacts["replacement-file"] = Artifact{ID: "replacement-file", TenantID: q.TenantID, RequestID: successor.ID, MediaType: "application/pdf", FileName: "updated.pdf"}
+			if revisionBacked {
+				d := store.distributions["distribution"]
+				d.ID = "successor-distribution"
+				store.distributions[d.ID] = d
+				store.responseRevisions[d.ID] = []ResponseRevision{{ID: "successor-revision", TenantID: q.TenantID, LegalEntityID: q.LegalEntityID, DistributionID: d.ID, SubmissionID: replacement.ID, Current: true}}
+			}
+			files, err = store.ListDocuments(context.Background(), q)
+			if err != nil || len(files.Items) != 2 {
+				t.Fatalf("replacement and retained field %+v %v", files, err)
+			}
+			for _, file := range files.Items {
+				if file.ArtifactID == "artifact" {
+					t.Fatal("replaced file remains current")
+				}
+			}
+			q.CurrentOnly = false
+			files, err = store.ListDocuments(context.Background(), q)
+			if err != nil || len(files.Items) != 3 {
+				t.Fatalf("history lost %+v %v", files, err)
+			}
+			replacement.Answers = map[string]formcontract.AnswerValue{}
+			store.repo.submissions[replacement.ID] = replacement
+			q.CurrentOnly = true
+			files, err = store.ListDocuments(context.Background(), q)
+			if err != nil || len(files.Items) != 1 || files.Items[0].FieldID != "photo" {
+				t.Fatalf("omitted answer did not clear requested field %+v %v", files, err)
+			}
+		})
 	}
 }
