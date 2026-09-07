@@ -75,8 +75,22 @@ export type GatewayRuntimeStatus = {
   desired_checksum?: string;
   applied_revision: number;
   applied_checksum?: string;
+  emergency_supported: boolean;
+  emergency_revision: number;
+  outbound_frozen: boolean;
   degraded: boolean;
   error_code?: string;
+};
+
+export type GatewayEmergencyControl = {
+  id?: string;
+  tenant_id: string;
+  environment: GatewayEnvironment | "";
+  frozen: boolean;
+  reason?: string;
+  actor_id?: string;
+  updated_at?: string;
+  record_version: number;
 };
 
 export type GatewayProxyIngress = {
@@ -94,6 +108,7 @@ export type GatewayTransportControlState = {
   revisions: GatewayTransportRevision[];
   runtimeStatus: GatewayRuntimeStatus;
   proxy: GatewayProxyInfo;
+  emergencyControl: GatewayEmergencyControl;
 };
 
 export async function loadGatewayTransportState(environment: GatewayEnvironment): Promise<GatewayTransportControlState> {
@@ -101,11 +116,13 @@ export async function loadGatewayTransportState(environment: GatewayEnvironment)
     items: GatewayTransportRevision[];
     runtime_status: GatewayRuntimeStatus;
     proxy: GatewayProxyInfo;
+    emergency_control: GatewayEmergencyControl;
   }>(apiBase, `${basePath}?environment=${environment}&limit=100`);
   return {
     revisions: response.items.sort((left, right) => right.version - left.version),
     runtimeStatus: response.runtime_status,
     proxy: response.proxy,
+    emergencyControl: response.emergency_control,
   };
 }
 
@@ -141,5 +158,22 @@ export async function transitionGatewayTransport(
   return requestJSON<GatewayTransportRevision>(apiBase, `${basePath}/${encodeURIComponent(revisionId)}/${action}`, {
     method: "POST",
     body: JSON.stringify({ expected_version: expectedVersion }),
+  });
+}
+
+export async function setGatewayEmergencyControl(input: {
+  environment: GatewayEnvironment;
+  frozen: boolean;
+  reason: string;
+  expectedVersion: number;
+}): Promise<GatewayEmergencyControl> {
+  return requestJSON<GatewayEmergencyControl>(apiBase, `${basePath}/emergency`, {
+    method: "POST",
+    body: JSON.stringify({
+      environment: input.environment,
+      frozen: input.frozen,
+      reason: input.reason.trim(),
+      expected_version: input.expectedVersion,
+    }),
   });
 }
