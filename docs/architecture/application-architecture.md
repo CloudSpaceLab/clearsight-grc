@@ -38,6 +38,7 @@ Claims durable jobs for:
 - signal normalization and drift assessment;
 - readiness snapshot generation;
 - ingestion, extraction, matching and reconciliation;
+- capture artifact inspection through the bounded ClamAV adapter, with leased jobs and transactional result receipts;
 - bounded vendor website-icon discovery and orphaned upload-reservation cleanup;
 - AI recommendations and report/package generation;
 - external execution and outcome verification.

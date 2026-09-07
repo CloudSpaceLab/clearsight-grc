@@ -586,6 +586,8 @@ A flow that misses the target requires documented cause, product review, and rem
 
 ### Controlled hosted email acceptance
 
+Capture artifact inspection acceptance is separate from receipt and evidence review. `internal/evidence/artifact_scan_test.go`, `artifact_scan_clamav_test.go` and `artifact_scan_postgres_test.go` exercise clean and infected results, unavailable/unknown replies, timeout, incomplete/oversize streams, digest mismatch, cancellation, bounded retries, expired leases, replay, and transactional rollback if outbox persistence fails. The PostgreSQL transaction test and the full Evidence `postgres postgresintegration` suite passed against isolated PostgreSQL 18.6 on 7 September 2026. These tests use scanner protocol fixtures; they do not prove a deployed ClamAV service, current signatures or bank-approved scan limits. Hosted acceptance requires a configured scanner to inspect the actual uploaded artifact before preview, download or evidence acceptance becomes available.
+
 Run this only against the exact deployed commit with the approved test recipients. Record redacted delivery receipts and timestamps; never copy recipient addresses, credentials, OTPs or invitation selectors into logs or evidence artifacts.
 
 1. Start vendor onboarding and confirm the vendor receives one registration email whose secure link opens the expected registration task.
