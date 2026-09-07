@@ -68,11 +68,13 @@ type DocumentOccurrence = {
 
 Files: new `web/src/components/documents/` components/types/styles/tests; `FormsWorkspace.tsx`, `forms/ResponsesView.tsx`, vendor workspace/document components, relevant API clients, fixtures, DESIGN.md.
 
-- [ ] Add component tests for same document from both interfaces, one-click opening, historical states, loading/failure/retry, authorized downloads, no-byte preview states and keyboard focus restoration.
-- [ ] Build one reusable Finder-style file browser using existing table/selection, FocusedSheet, button and notice contracts. Use recognizable file icons and easy All files / PDF / Images / Word / Spreadsheets / Other filters, a compact filename search and selected-file details. Advanced search and validation stay secondary. PDF/images preview inline in Quick Look; unsupported formats show accurate metadata/download. Preserve source question, timestamp, filter/selection and next/previous navigation.
-- [ ] Test file-type normalization, keyboard single-selection, Space/Enter preview outside editable fields, Escape/restored focus, and browser-pane replacement at narrow widths. Do not claim Word/spreadsheet page previews without a real safe renderer. Do not create more mockups: render the actual production component with labelled state fixtures.
-- [ ] Mount in Forms Documents, exact Forms response and Vendor relationship Documents. Use exact IDs/relationships; no email/name matching. Do not put respondent draft uploads into bank review lists.
-- [ ] Render desktop, narrow viewport, both themes and 200% reflow with required fixtures; fix highest-impact defects. Run affected tests, copy-quality, typecheck, build and UI contracts. Review and commit.
+- [x] Add component tests for same document from both interfaces, one-click opening, historical states, loading/failure/retry, authorized downloads, no-byte preview states and keyboard focus restoration.
+- [x] Build one reusable Finder-style file browser using existing table/selection, FocusedSheet, button and notice contracts. Use recognizable file icons and easy All files / PDF / Images / Word / Spreadsheets / Other filters, a compact filename search and selected-file details. Advanced search and validation stay secondary. PDF/images preview inline in Quick Look; unsupported formats show accurate metadata/download. Preserve source question, timestamp, filter/selection and next/previous navigation.
+- [x] Test file-type normalization, keyboard single-selection, Space/Enter preview outside editable fields, Escape/restored focus, and browser-pane replacement at narrow widths. Do not claim Word/spreadsheet page previews without a real safe renderer. Do not create more mockups: render the actual production component with labelled state fixtures.
+- [x] Mount in Forms Documents, exact Forms response and Vendor relationship Documents. Use exact IDs/relationships; no email/name matching. Do not put respondent draft uploads into bank review lists.
+- [x] Render desktop, narrow viewport, both themes and 200% reflow with required fixtures; fix highest-impact defects. Run affected tests, copy-quality, typecheck, build and UI contracts. Review and commit.
+
+Frontend completion does not close Task 2 backend findings or Task 7 release gates. Next/previous navigation here means bounded file-list pages; document-to-document viewer traversal is not claimed.
 
 ## Task 4 — document acceptance and rejection (DOC-04)
 

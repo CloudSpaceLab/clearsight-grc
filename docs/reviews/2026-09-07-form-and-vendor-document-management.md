@@ -4,7 +4,9 @@ Date: 7 September 2026. Status: approved by the user; implementation tracked in 
 
 Evaluated revision: `831b009d8eea743898b7c10ea3858edd25b35e2f`.
 
-7 September extension: the user requested premium focused viewing, advanced search and sophisticated automated document-validation rulesets, and asked to review an interactive mockup. The [proposed extension and DOC-08–DOC-15 tracker](../superpowers/specs/2026-09-07-document-review-and-validation-design.md) are awaiting design review; the original approved foundation remains in scope.
+7 September extension: the user requested premium focused viewing, advanced search and sophisticated automated document-validation rulesets. The user subsequently rejected the mockup and directed actual implementation of a familiar macOS Finder-style browser with easy file-type filters and previews, with no more mockups. The actual shared browser is implemented and reviewed locally; backend corrections and release checks remain open. See the [implementation decision and rendered proof](../design/2026-09-07-submitted-document-browser.md) and [DOC-08–DOC-15 extension tracker](../superpowers/specs/2026-09-07-document-review-and-validation-design.md). Advanced validation remains future work, not a completed capability.
+
+The capability assessment below records the evaluated baseline. The execution ledger records subsequent changes. The latest browser decision supersedes the earlier proposed sheet layout and navigation details; it does not claim that all lifecycle actions below are implemented.
 
 ## Recommendation
 
