@@ -51,6 +51,7 @@ func documentMemoryFixture() (*MemoryDistributionStore, DocumentQuery) {
 	repo.candidates["reader"] = RecipientCandidate{PrincipalID: "reader", TenantID: "tenant", Kind: "PERSON", Active: true, ReadableSubjects: map[string]bool{"PROGRAM:program": true}}
 	store := NewMemoryDistributionStore(repo, nil, nil)
 	store.distributions["distribution"] = FormDistribution{ID: "distribution", TenantID: "tenant", LegalEntityID: "entity", SubjectType: "PROGRAM", SubjectID: "program", Title: "Annual review", FormTemplateID: "form", FormTemplateVersion: 1}
+	store.requestDistribution["request"] = "distribution"
 	repo.requests["request"] = Request{ID: "request", TenantID: "tenant", LegalEntityID: "entity", SubjectType: "PROGRAM", SubjectID: "program", Title: "Annual review", FormTemplateID: "form", FormTemplateVersion: 1, Fields: []Field{{ID: "file", Label: "Policy", Type: "file"}, {ID: "photo", Label: "Site", Type: "photo"}}}
 	now := time.Date(2026, 9, 7, 12, 0, 0, 0, time.UTC)
 	for i, id := range []string{"older", "newer"} {
@@ -138,8 +139,8 @@ func TestCompletedResponseScalarAnswersRequireOwningWorkflowAuthority(t *testing
 			candidate.ReadableSubjects["VENDOR_RELATIONSHIP:relationship"] = true
 			store.repo.candidates[q.PrincipalID] = candidate
 			service := NewDistributionService(store)
-			if _, _, err := service.GetCompletedResponse(context.Background(), q.TenantID, q.LegalEntityID, q.PrincipalID, "revision-older"); err != nil {
-				t.Fatal(err)
+			if _, _, err := service.GetCompletedResponse(context.Background(), q.TenantID, q.LegalEntityID, q.PrincipalID, "revision-older"); err != ErrNotFound {
+				t.Fatalf("workflow summary exposed with missing authority: %v", err)
 			}
 			if _, err := service.GetCompletedResponseAnswers(context.Background(), q.TenantID, q.LegalEntityID, q.PrincipalID, "revision-older"); err == nil {
 				t.Fatal("scalar answers exposed with missing workflow authority")

@@ -8,9 +8,12 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
@@ -32,6 +35,7 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 		t.Fatal(err)
 	}
 	evidenceRepository := newScopedVendorEvidenceRepository("bank", "entity-a", "relationship-1")
+	evidenceRepository.MemoryRepository = evidence.NewMemoryRepositoryWithRecipientCandidates(nil, nil, []evidence.RecipientCandidate{{PrincipalID: "verified-owner", TenantID: "bank", Active: true, Kind: "PERSON", ReadableSubjects: map[string]bool{"VENDOR_RELATIONSHIP:relationship-1": true}}})
 	evidenceService := evidence.NewService(evidenceRepository, evidence.NewMemoryObjectStore())
 	workService, err := thirdparty.NewVendorWorkService(thirdparty.NewMemoryVendorWorkRepository(), links, evidenceService, forms, nil, "https://capture.example.test/respond", "production")
 	if err != nil {
@@ -47,7 +51,8 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 	}
 	distributionStore := evidence.NewMemoryDistributionStore(evidenceRepository.MemoryRepository, vendorWorkHandlerFormReader{forms: forms}, keyring)
 	distributions := evidence.NewDistributionService(distributionStore)
-	access, err := evidence.NewDistributionAccessService(evidence.NewMemoryDistributionAccessStore(distributionStore), keyring, nil, accessKey, 20*time.Minute)
+	otp := &summaryOTPDelivery{}
+	access, err := evidence.NewDistributionAccessService(evidence.NewMemoryDistributionAccessStore(distributionStore), keyring, otp, accessKey, 20*time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +63,8 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 		t.Fatal(err)
 	}
 	workService.ConfigureRelationshipReader(relationships)
-	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory", Identity: identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"), ThirdPartyWork: workService})
+	distributions.ConfigureDocumentContexts(thirdparty.DocumentContextReader{Work: workService})
+	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory", Identity: identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"), ThirdPartyWork: workService, FormDistributions: distributions})
 	due := time.Now().UTC().Add(48 * time.Hour).Format(time.RFC3339)
 	body := `{"relationship_link_id":"` + link.ID + `","request_kind":"CERTIFICATION_REFRESH","purpose":"Collect current certification evidence for this Program.","instructions":"Provide the current ISO 27001 and PCI DSS evidence that applies to this service.","form_template_id":"form-1","form_template_version":1,"presentation":"WIZARD","vendor_audience":"security@vendor.example","due_at":"` + due + `"}`
 	response := httptest.NewRecorder()
@@ -93,6 +99,82 @@ func TestVendorWorkHandlersUseVerifiedRelationshipAndReturnTruthfulDeliveryState
 	if list.Code != http.StatusOK {
 		t.Fatalf("list status=%d body=%s", list.Code, list.Body.String())
 	}
+	parsed, err := url.Parse(outcome.CaptureURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fragment, err := url.ParseQuery(parsed.Fragment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selector := fragment.Get("form_access")
+	start, err := access.StartDistributionAccess(context.Background(), selector)
+	if err != nil {
+		t.Fatal(err)
+	}
+	challenge, err := access.SendOTP(context.Background(), selector, start.Recipients[0].SelectorID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	verified, err := access.VerifyOTP(context.Background(), selector, challenge.ChallengeID, otp.code)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspace, err := access.GetResponseWorkspace(context.Background(), verified.SessionToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspace, err = access.SaveResponseWorkspace(context.Background(), verified.SessionToken, evidence.SaveWorkspaceInput{ExpectedVersion: workspace.Workspace.Version, Edits: []evidence.FieldEdit{{FieldID: "current", Value: formcontract.TextAnswer("Yes"), BaseSequence: workspace.FieldSequences["current"]}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := access.SubmitResponseWorkspace(context.Background(), verified.SessionToken, evidence.SubmitWorkspaceInput{ExpectedVersion: workspace.Workspace.Version}); err != nil {
+		t.Fatal(err)
+	}
+	target := &summaryTargetReader{allowed: true}
+	workService.ConfigureTargetReader(target)
+	var revisionID string
+	for _, allowed := range []bool{true, false, true} {
+		target.allowed = allowed
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/v1/forms/responses?limit=1", nil))
+		var page evidence.CompletedResponsePage
+		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &page) != nil {
+			t.Fatalf("work summaries: %d %s", w.Code, w.Body.String())
+		}
+		if allowed {
+			if len(page.Items) != 1 {
+				t.Fatalf("authorized work response omitted: %s", w.Body.String())
+			}
+			revisionID = page.Items[0].ID
+		} else if len(page.Items) != 0 || page.NextCursor != "" || strings.Contains(w.Body.String(), prepared.Purpose) {
+			t.Fatalf("restricted work metadata leaked: %s", w.Body.String())
+		}
+		w = httptest.NewRecorder()
+		handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/v1/forms/responses/"+revisionID, nil))
+		if allowed && w.Code != 200 || !allowed && w.Code != 404 {
+			t.Fatalf("work exact response: %d %s", w.Code, w.Body.String())
+		}
+	}
+}
+
+type summaryOTPDelivery struct{ code string }
+
+func (d *summaryOTPDelivery) DeliverDistributionOTP(_ context.Context, value evidence.DistributionOTPDelivery) error {
+	d.code = value.Code
+	return nil
+}
+
+type summaryTargetReader struct{ allowed bool }
+
+func (r *summaryTargetReader) GetProgram(context.Context, string, string) (continuity.ProgramAggregate, error) {
+	if !r.allowed {
+		return continuity.ProgramAggregate{}, continuity.ErrNotFound
+	}
+	return continuity.ProgramAggregate{Program: continuity.Program{ID: "program-1", TenantID: "bank", LegalEntityID: "entity-a"}}, nil
+}
+func (*summaryTargetReader) GetMatter(context.Context, string, string) (continuity.MatterAggregate, error) {
+	return continuity.MatterAggregate{}, continuity.ErrNotFound
 }
 
 func TestVendorWorkAcceptanceBlockedReturnsActionableConflict(t *testing.T) {

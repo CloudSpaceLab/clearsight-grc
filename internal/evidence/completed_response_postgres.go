@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/jackc/pgx/v5"
@@ -31,7 +32,7 @@ func (s *PostgresDistributionStore) ListCompletedResponses(ctx context.Context, 
 		query.TenantID, query.LegalEntityID, strings.TrimSpace(query.FormTemplateID), query.FormTemplateVersion,
 		strings.TrimSpace(query.SubjectType), strings.TrimSpace(query.SubjectID), modes, bands, states,
 		query.RawMinimum, query.RawMaximum, query.AdverseMinimum, query.AdverseMaximum,
-		query.CompletedFrom, query.CompletedUntil, query.CurrentOnly, query.PrincipalID,
+		query.CompletedFrom, query.CompletedUntil, query.CurrentOnly, query.PrincipalID, time.Now().UTC(),
 	}
 	cursorSQL, orderSQL := postgresCompletedResponseOrder(query.Sort, cursor, &args)
 	currentIndexSQL := ""
@@ -47,6 +48,7 @@ func (s *PostgresDistributionStore) ListCompletedResponses(ctx context.Context, 
 		JOIN tenants t ON t.id=r.tenant_id
 		JOIN capture_form_distributions d
 		  ON d.id=r.distribution_id AND d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id
+		`+completedResponseRequestJoinsSQL()+`
 		WHERE (t.id::text=$1 OR t.slug=$1) AND r.legal_entity_id=$2::uuid
 		  AND ($3='' OR d.form_template_id::text=$3) AND ($4=0 OR d.form_template_version=$4)
 		  AND ($5='' OR d.subject_type=$5) AND ($6='' OR d.subject_id::text=$6)
@@ -57,7 +59,7 @@ func (s *PostgresDistributionStore) ListCompletedResponses(ctx context.Context, 
 		  AND ($12::numeric IS NULL OR r.adverse_score >= $12) AND ($13::numeric IS NULL OR r.adverse_score <= $13)
 		  AND ($14::timestamptz IS NULL OR r.created_at >= $14) AND ($15::timestamptz IS NULL OR r.created_at <= $15)
 		  AND (NOT $16::boolean OR r.is_current)`+currentIndexSQL+scoreStateIndexSQL+`
-		  AND (`+completedResponseSubjectVisibilitySQL("$17")+`)
+		  AND (`+completedResponseVisibilitySQL(17, 18)+`)
 		  AND (`+cursorSQL+`)
 		ORDER BY `+orderSQL+`
 		LIMIT `+limitPlaceholder, args...)
@@ -99,9 +101,10 @@ func (s *PostgresDistributionStore) GetCompletedResponse(ctx context.Context, te
 		JOIN tenants t ON t.id=r.tenant_id
 		JOIN capture_form_distributions d
 		  ON d.id=r.distribution_id AND d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id
+		`+completedResponseRequestJoinsSQL()+`
 		WHERE (t.id::text=$1 OR t.slug=$1) AND r.legal_entity_id=$2::uuid AND r.id::text=$3
-		  AND (`+completedResponseSubjectVisibilitySQL("$4")+`)`,
-		tenantID, legalEntityID, revisionID, principalID), &formID, &formVersion, &title, &subjectType, &subjectID)
+		  AND (`+completedResponseVisibilitySQL(4, 5)+`)`,
+		tenantID, legalEntityID, revisionID, principalID, time.Now().UTC()), &formID, &formVersion, &title, &subjectType, &subjectID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return CompletedResponseSummary{}, ResponseRevision{}, ErrNotFound
@@ -225,6 +228,18 @@ func completedResponseSubjectVisibilitySQL(principalPlaceholder string) string {
 		)
 		ELSE true
 	END`
+}
+
+func completedResponseRequestJoinsSQL() string {
+	return `LEFT JOIN capture_submissions submission ON submission.id=r.submission_id AND submission.tenant_id=r.tenant_id
+	LEFT JOIN capture_requests req ON req.id=submission.request_id AND req.tenant_id=r.tenant_id AND req.legal_entity_id=r.legal_entity_id
+	` + documentWorkflowJoinsSQL()
+}
+
+func completedResponseVisibilitySQL(principal, at int) string {
+	return `submission.id IS NOT NULL AND req.id IS NOT NULL AND CASE WHEN req.origin_type IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK')
+	THEN ` + documentRevisionScopeSQL() + ` AND (` + documentReadAuthoritySQLAt(principal, at) + `)
+	ELSE (` + completedResponseSubjectVisibilitySQL(fmt.Sprintf("$%d", principal)) + `) END`
 }
 
 func scoringModeStrings(values []formcontract.ScoringMode) []string {

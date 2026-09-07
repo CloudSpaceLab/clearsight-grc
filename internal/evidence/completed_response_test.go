@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -96,5 +97,86 @@ func completedRevision(id, tenantID, entityID, distributionID string, completedA
 		ID: id, TenantID: tenantID, LegalEntityID: entityID, DistributionID: distributionID,
 		Revision: 1, State: ResponseRevisionFinal, Current: true, CreatedAt: completedAt,
 		Score: &ResponseScoreResult{Mode: formcontract.ScoringRisk, Direction: formcontract.DirectionHighIsPoor, RawScore: &raw, AdverseScore: &adverse, Band: band, Coverage: 1, Final: true, State: ResponseScoreFinal, CalculatedAt: completedAt},
+	}
+}
+
+func TestMemoryCompletedResponseSummariesFilterWorkflowAuthorityBeforePagination(t *testing.T) {
+	ctx := context.Background()
+	store, scope := documentMemoryFixture()
+	store.responseRevisions = map[string][]ResponseRevision{}
+	for index, id := range []string{"generic-old", "work-allowed", "work-denied", "generic-new"} {
+		d := FormDistribution{ID: id, TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, FormTemplateID: "form", FormTemplateVersion: 1, SubjectType: "VENDOR_RELATIONSHIP", SubjectID: "relationship", Title: id}
+		store.distributions[id] = d
+		request := Request{ID: id, TenantID: d.TenantID, LegalEntityID: d.LegalEntityID, SubjectType: d.SubjectType, SubjectID: d.SubjectID, FormTemplateID: d.FormTemplateID, FormTemplateVersion: d.FormTemplateVersion}
+		store.requestDistribution[id] = id
+		if strings.HasPrefix(id, "work-") {
+			request.Origin = RequestOrigin{Type: "THIRD_PARTY_WORK", ID: id, Version: 1}
+		}
+		store.repo.requests[id] = request
+		store.repo.submissions[id] = Submission{ID: id, TenantID: d.TenantID, RequestID: id}
+		revision := completedRevision(id, d.TenantID, d.LegalEntityID, id, time.Unix(int64(index), 0), float64(index), formcontract.ConcernLow)
+		revision.SubmissionID = id
+		store.responseRevisions[id] = []ResponseRevision{revision}
+	}
+	candidate := store.repo.candidates[scope.PrincipalID]
+	candidate.ReadableSubjects["VENDOR_RELATIONSHIP:relationship"] = true
+	store.repo.candidates[scope.PrincipalID] = candidate
+	allowed := true
+	store.documentContexts = documentContextFunc(func(_ context.Context, q DocumentQuery, r Request, s Submission) (DocumentContext, error) {
+		if !allowed || r.ID != "work-allowed" || q.PrincipalID != scope.PrincipalID {
+			return DocumentContext{}, ErrNotFound
+		}
+		return DocumentContext{WorkRequestID: r.ID}, nil
+	})
+	query := CompletedResponseQuery{TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, PrincipalID: scope.PrincipalID, Sort: ResponseSortNewest, Limit: 2}
+	first, err := store.ListCompletedResponses(ctx, query)
+	if err != nil || len(first.Items) != 2 || first.Items[0].ID != "generic-new" || first.Items[1].ID != "work-allowed" || first.NextCursor == "" {
+		t.Fatalf("authorized first page: %+v %v", first, err)
+	}
+	query.Cursor = first.NextCursor
+	second, err := store.ListCompletedResponses(ctx, query)
+	if err != nil || len(second.Items) != 1 || second.Items[0].ID != "generic-old" || second.NextCursor != "" {
+		t.Fatalf("authorized second page: %+v %v", second, err)
+	}
+	if _, _, err := store.GetCompletedResponse(ctx, scope.TenantID, scope.LegalEntityID, scope.PrincipalID, "work-denied"); err != ErrNotFound {
+		t.Fatalf("denied exact summary: %v", err)
+	}
+	for _, change := range []func(*Request){
+		func(r *Request) { r.LegalEntityID = "other-entity" },
+		func(r *Request) { r.FormTemplateID = "other-form" },
+		func(r *Request) { r.FormTemplateVersion++ },
+		func(r *Request) { r.SubjectID = "other-relationship" },
+	} {
+		original := store.repo.requests["work-allowed"]
+		probe := original
+		change(&probe)
+		store.repo.requests[probe.ID] = probe
+		if _, _, err := store.GetCompletedResponse(ctx, scope.TenantID, scope.LegalEntityID, scope.PrincipalID, probe.ID); err != ErrNotFound {
+			t.Fatalf("mismatched submitted request exposed: %+v %v", probe, err)
+		}
+		store.repo.requests[original.ID] = original
+	}
+	originalSubmission := store.repo.submissions["work-allowed"]
+	delete(store.repo.submissions, "work-allowed")
+	query.Cursor = ""
+	missing, err := store.ListCompletedResponses(ctx, query)
+	if err != nil || len(missing.Items) != 2 || missing.Items[0].ID != "generic-new" || missing.Items[1].ID != "generic-old" {
+		t.Fatalf("missing submission did not fail closed before page: %+v %v", missing, err)
+	}
+	store.repo.submissions["work-allowed"] = originalSubmission
+	// Existing workflow authority can read without generic relationship ownership.
+	delete(candidate.ReadableSubjects, "VENDOR_RELATIONSHIP:relationship")
+	store.repo.candidates[scope.PrincipalID] = candidate
+	if _, _, err := store.GetCompletedResponse(ctx, scope.TenantID, scope.LegalEntityID, scope.PrincipalID, "work-allowed"); err != nil {
+		t.Fatalf("workflow route denied: %v", err)
+	}
+	allowed = false
+	query.Cursor = ""
+	page, err := store.ListCompletedResponses(ctx, query)
+	if err != nil || len(page.Items) != 0 {
+		t.Fatalf("revoked route exposed summaries: %+v %v", page, err)
+	}
+	if _, _, err := store.GetCompletedResponse(ctx, scope.TenantID, scope.LegalEntityID, scope.PrincipalID, "work-allowed"); err != ErrNotFound {
+		t.Fatalf("revoked exact summary: %v", err)
 	}
 }

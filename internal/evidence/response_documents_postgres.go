@@ -5,6 +5,7 @@ package evidence
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -117,8 +118,11 @@ func documentSubmissionJoinsSQL() string {
  JOIN tenants t ON t.id=submission.tenant_id
  JOIN capture_requests req ON req.id=submission.request_id AND req.tenant_id=submission.tenant_id
  LEFT JOIN capture_response_revisions r ON r.submission_id=submission.id AND r.tenant_id=req.tenant_id AND r.legal_entity_id=req.legal_entity_id
- LEFT JOIN capture_form_distributions d ON d.id=r.distribution_id AND d.tenant_id=req.tenant_id AND d.legal_entity_id=req.legal_entity_id
- LEFT JOIN third_party_assessment_request_links assessment_link ON assessment_link.request_id=req.id AND assessment_link.tenant_id=req.tenant_id AND assessment_link.legal_entity_id=req.legal_entity_id AND req.origin_type=assessment_link.origin_type AND req.origin_id=assessment_link.origin_id::text AND req.origin_version=assessment_link.origin_sequence
+ LEFT JOIN capture_form_distributions d ON d.id=r.distribution_id AND d.tenant_id=req.tenant_id AND d.legal_entity_id=req.legal_entity_id` + documentWorkflowJoinsSQL()
+}
+
+func documentWorkflowJoinsSQL() string {
+	return ` LEFT JOIN third_party_assessment_request_links assessment_link ON assessment_link.request_id=req.id AND assessment_link.tenant_id=req.tenant_id AND assessment_link.legal_entity_id=req.legal_entity_id AND req.origin_type=assessment_link.origin_type AND req.origin_id=assessment_link.origin_id::text AND req.origin_version=assessment_link.origin_sequence
  LEFT JOIN third_party_assessments assessment ON assessment.id=assessment_link.assessment_id AND assessment.tenant_id=req.tenant_id AND assessment.legal_entity_id=req.legal_entity_id AND req.subject_type='VENDOR_RELATIONSHIP' AND req.subject_id=assessment.relationship_id::text AND req.form_template_id=assessment.form_template_id AND req.form_template_version=assessment.form_template_version
  LEFT JOIN third_party_work_capture_links work_link ON work_link.request_id=req.id AND work_link.tenant_id=req.tenant_id AND work_link.legal_entity_id=req.legal_entity_id AND req.origin_type=work_link.origin_type AND req.origin_id=work_link.origin_id::text AND req.origin_version=work_link.origin_version
  LEFT JOIN third_party_work_requests work ON work.id=work_link.work_request_id AND work.tenant_id=req.tenant_id AND work.legal_entity_id=req.legal_entity_id AND req.subject_type='VENDOR_RELATIONSHIP' AND req.subject_id=work.relationship_id::text AND req.form_template_id=work.form_template_id AND req.form_template_version=work.form_template_version
@@ -130,18 +134,23 @@ func documentRevisionScopeSQL() string {
 }
 
 func documentReadAuthoritySQL() string {
-	assessmentRoute := authority.PostgresReadRouteSQL("assessment", "id", "THIRD_PARTY_ASSESSMENT", "THIRDPARTY.ASSESSMENT.REVIEW", "REVIEWER", 3, 4)
-	workReviewer := authority.PostgresReadRouteSQL("work", "relationship_id", "VENDOR_RELATIONSHIP", "THIRDPARTY.WORK.REVIEW", "REVIEWER", 3, 4)
-	workOwner := authority.PostgresReadRouteSQL("work", "relationship_id", "VENDOR_RELATIONSHIP", "THIRDPARTY.WORK.SEND", "OWNER", 3, 4)
-	subjectVisibility := strings.ReplaceAll(completedResponseSubjectVisibilitySQL("$3"), "ELSE true", "ELSE false")
+	return documentReadAuthoritySQLAt(3, 4)
+}
+
+func documentReadAuthoritySQLAt(principal, at int) string {
+	assessmentRoute := authority.PostgresReadRouteSQL("assessment", "id", "THIRD_PARTY_ASSESSMENT", "THIRDPARTY.ASSESSMENT.REVIEW", "REVIEWER", principal, at)
+	workReviewer := authority.PostgresReadRouteSQL("work", "relationship_id", "VENDOR_RELATIONSHIP", "THIRDPARTY.WORK.REVIEW", "REVIEWER", principal, at)
+	workOwner := authority.PostgresReadRouteSQL("work", "relationship_id", "VENDOR_RELATIONSHIP", "THIRDPARTY.WORK.SEND", "OWNER", principal, at)
+	principalSQL := fmt.Sprintf("$%d", principal)
+	subjectVisibility := strings.ReplaceAll(completedResponseSubjectVisibilitySQL(principalSQL), "ELSE true", "ELSE false")
 	return `CASE
- WHEN req.origin_type='THIRD_PARTY_ASSESSMENT' THEN assessment.id IS NOT NULL AND (assessment.started_by_principal_id::text=$3 OR relationship.business_owner_principal_id::text=$3 OR ` + assessmentRoute + `)
+ WHEN req.origin_type='THIRD_PARTY_ASSESSMENT' THEN assessment.id IS NOT NULL AND (assessment.started_by_principal_id::text=` + principalSQL + ` OR relationship.business_owner_principal_id::text=` + principalSQL + ` OR ` + assessmentRoute + `)
  WHEN req.origin_type='THIRD_PARTY_WORK' THEN work.id IS NOT NULL
  AND CASE work.target_type
- WHEN 'PROGRAM' THEN EXISTS(SELECT 1 FROM programs target WHERE target.id=work.target_id AND target.tenant_id=req.tenant_id AND target.legal_entity_id=req.legal_entity_id AND ` + recipientSubjectVisibilityPredicate("target", "$3") + `)
- WHEN 'MATTER' THEN EXISTS(SELECT 1 FROM matters target WHERE target.id=work.target_id AND target.tenant_id=req.tenant_id AND target.legal_entity_id=req.legal_entity_id AND ` + recipientSubjectVisibilityPredicate("target", "$3") + `)
+ WHEN 'PROGRAM' THEN EXISTS(SELECT 1 FROM programs target WHERE target.id=work.target_id AND target.tenant_id=req.tenant_id AND target.legal_entity_id=req.legal_entity_id AND ` + recipientSubjectVisibilityPredicate("target", principalSQL) + `)
+ WHEN 'MATTER' THEN EXISTS(SELECT 1 FROM matters target WHERE target.id=work.target_id AND target.tenant_id=req.tenant_id AND target.legal_entity_id=req.legal_entity_id AND ` + recipientSubjectVisibilityPredicate("target", principalSQL) + `)
  ELSE false END
- AND (work.owner_principal_id::text=$3 OR work.reviewer_principal_id::text=$3 OR relationship.business_owner_principal_id::text=$3 OR ` + workReviewer + ` OR ` + workOwner + `)
+ AND (work.owner_principal_id::text=` + principalSQL + ` OR work.reviewer_principal_id::text=` + principalSQL + ` OR relationship.business_owner_principal_id::text=` + principalSQL + ` OR ` + workReviewer + ` OR ` + workOwner + `)
  ELSE r.id IS NOT NULL AND (` + subjectVisibility + `) END`
 }
 

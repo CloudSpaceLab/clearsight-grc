@@ -2,15 +2,18 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 )
 
 func TestListCompletedFormResponsesUsesVerifiedScopeAndRejectsInvalidFilters(t *testing.T) {
@@ -96,6 +99,48 @@ func TestCompletedResponseRoutesAreAuthenticatedReads(t *testing.T) {
 	for path, valid := range want {
 		if !valid {
 			t.Fatalf("completed response route %s is missing or not an authenticated read", path)
+		}
+	}
+}
+
+func TestCompletedResponseSummaryHTTPUsesCurrentAssessmentReadRoute(t *testing.T) {
+	fixture := newReviewHTTPFixture(t)
+	reviews := thirdparty.NewAssessmentReviewService(fixture.base.service, fixture.base.repository, fixture.base.evidence, nil)
+	fixture.base.distributions.ConfigureDocumentContexts(thirdparty.DocumentContextReader{Assessments: reviews})
+	api := &API{deps: Dependencies{FormDistributions: fixture.base.distributions}}
+	now := time.Now()
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "summary-reviewer", Kind: "PERSON", AuthenticationMethod: "TEST", AssuranceLevel: "HIGH", SessionID: "session", IssuedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour)}
+	var revisionID string
+	for _, allowed := range []bool{false, true, false} {
+		rules := []authority.Rule{}
+		if allowed {
+			rules = append(rules, authority.Rule{ID: "response-review", TenantID: "bank", LegalEntityID: "entity-a", ObjectType: "THIRD_PARTY_ASSESSMENT", ObjectID: fixture.assessment.ID, Responsibility: authority.ResponsibilityReviewer, DecisionType: thirdparty.AssessmentReviewCommand, MinMateriality: 3, Principal: authority.Principal{ID: actor.PrincipalID, Kind: "PERSON"}, Priority: 1})
+		}
+		reviews.ConfigureAuthority(authority.NewResolver("summary-test", rules))
+		r := httptest.NewRequest(http.MethodGet, "/api/v1/forms/responses?limit=1&principal_id=verified-owner", nil).WithContext(identity.WithActor(context.Background(), actor))
+		w := httptest.NewRecorder()
+		api.listCompletedFormResponses(w, r)
+		var page evidence.CompletedResponsePage
+		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &page) != nil {
+			t.Fatalf("summary HTTP: %d %s", w.Code, w.Body.String())
+		}
+		if !allowed && (len(page.Items) != 0 || page.NextCursor != "") {
+			t.Fatalf("denied summary metadata: %s", w.Body.String())
+		}
+		if allowed {
+			if len(page.Items) != 1 {
+				t.Fatalf("authorized route omitted response: %s", w.Body.String())
+			}
+			revisionID = page.Items[0].ID
+		}
+		if revisionID != "" {
+			r = httptest.NewRequest(http.MethodGet, "/api/v1/forms/responses/"+revisionID, nil).WithContext(identity.WithActor(context.Background(), actor))
+			r.SetPathValue("revision_id", revisionID)
+			w = httptest.NewRecorder()
+			api.getCompletedFormResponse(w, r)
+			if allowed && w.Code != 200 || !allowed && w.Code != 404 {
+				t.Fatalf("exact response HTTP: %d %s", w.Code, w.Body.String())
+			}
 		}
 	}
 }

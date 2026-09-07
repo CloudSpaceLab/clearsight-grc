@@ -100,6 +100,28 @@ func TestPostgresCompletedResponsesUseBoundedScoreIndexAndEntityScope(t *testing
 			t.Fatalf("stable keyset pagination returned %s twice", item.ID)
 		}
 	}
+	// A high-ranked workflow response with no exact work link must not occupy
+	// a slot or contribute the cursor. Ordinary Forms rows keep their access.
+	deniedID := first.Items[0].ID
+	if _, err := pool.Exec(ctx, `UPDATE capture_requests SET origin_type='THIRD_PARTY_WORK',origin_id=$1,origin_version=1 WHERE id=(SELECT s.request_id FROM capture_submissions s JOIN capture_response_revisions r ON r.submission_id=s.id WHERE r.id=$1::uuid)`, deniedID); err != nil {
+		t.Fatal(err)
+	}
+	query.Cursor = ""
+	mixed, err := store.ListCompletedResponses(ctx, query)
+	if err != nil || len(mixed.Items) != query.Limit || mixed.Items[0].ID != first.Items[1].ID || mixed.Items[query.Limit-1].ID != second.Items[0].ID || mixed.NextCursor == "" {
+		t.Fatalf("mixed authorized/denied page: %+v %v", mixed, err)
+	}
+	if _, _, err := store.GetCompletedResponse(ctx, tenantID, entityID, actorID, deniedID); err != ErrNotFound {
+		t.Fatalf("missing work link exact summary: %v", err)
+	}
+	if _, _, err := store.GetCompletedResponse(ctx, tenantID, entityID, actorID, first.Items[1].ID); err != nil {
+		t.Fatalf("generic Forms access changed: %v", err)
+	}
+	query.Cursor = mixed.NextCursor
+	mixedNext, err := store.ListCompletedResponses(ctx, query)
+	if err != nil || len(mixedNext.Items) != query.Limit || mixedNext.Items[0].ID != second.Items[1].ID {
+		t.Fatalf("mixed next page: %+v %v", mixedNext, err)
+	}
 }
 
 func seedCompletedResponseRows(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, entityID, actorID, formID, prefix string, count int, now time.Time) {
