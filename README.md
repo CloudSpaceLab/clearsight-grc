@@ -41,7 +41,7 @@ The repository contains a working application foundation for ongoing Programs an
 - mechanically verified main API and isolated AI gateway route/access contracts, Docker Compose, CI and PostgreSQL integration tests;
 - OpenAI-compatible Chat/Responses text-and-function transport with OpenAI/Anthropic adapters, truthful SSE, workload authentication, budgets, routing/fallback, circuit state and content-free telemetry.
 
-The default build uses in-memory repositories for local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage, malware scanning and OCR are not implemented. Searchable PDFs are extracted automatically by the durable worker through bounded Poppler utilities.
+The default build uses in-memory repositories for local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage and OCR are not implemented. Capture artifacts have a durable fail-closed inspection worker and a bounded ClamAV adapter; an approved, configured scanner deployment is still required. Searchable PDFs are extracted automatically by the durable worker through bounded Poppler utilities.
 
 ## Product model
 

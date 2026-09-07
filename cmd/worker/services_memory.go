@@ -32,6 +32,9 @@ func buildWorker(_ context.Context, cfg config.Config, logger *slog.Logger) (wor
 	publisher := workflowruntime.NewCompositePublisher(assessmentSubmission, assessmentCancellation, vendorWorkSubmission, workflowruntime.LogPublisher{Logger: logger})
 	service := workflowruntime.NewService(repository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
+	if err := configureArtifactScanWorker(service, cfg, logger, evidenceRepository, objectStore); err != nil {
+		return workerSet{}, err
+	}
 
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
 	monitoringRepository := monitoring.NewMemoryRepository()

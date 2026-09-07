@@ -22,6 +22,8 @@ type MemoryRepository struct {
 	sessions     map[string]Session
 	drafts       map[string]ResponseDraft
 	artifacts    map[string]Artifact
+	scanJobs     map[string]ArtifactScanJob
+	scanReceipts []ArtifactScanReceipt
 	candidates   map[string]RecipientCandidate
 }
 
@@ -630,7 +632,16 @@ func (r *MemoryRepository) CreateArtifact(_ context.Context, artifact Artifact) 
 	if !requestOpenAt(request, artifact.CreatedAt) {
 		return Artifact{}, ErrRequestClosed
 	}
+	if _, exists := r.artifacts[artifact.ID]; exists {
+		return Artifact{}, ErrVersionConflict
+	}
 	r.artifacts[artifact.ID] = artifact
+	if artifact.Status == ArtifactStoredUnscanned {
+		if r.scanJobs == nil {
+			r.scanJobs = map[string]ArtifactScanJob{}
+		}
+		r.scanJobs[artifact.ID] = ArtifactScanJob{Artifact: artifact, State: "PENDING", NextAttemptAt: artifact.CreatedAt}
+	}
 	return artifact, nil
 }
 

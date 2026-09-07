@@ -2,6 +2,14 @@ import axe from "axe-core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ResponsesView } from "./ResponsesView";
+vi.mock("../documents/DocumentBrowser", () => ({ DocumentBrowser: ({ responseRevisionID }: { responseRevisionID?: string }) => <section aria-label={`Documents for ${responseRevisionID}`}/> }));
+
+it("opens documents belonging to the selected submitted version", async () => {
+  render(<ResponsesView/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Review Vendor certification refresh response" }));
+  fireEvent.click(await screen.findByRole("button", { name: "View submitted documents" }));
+  expect(screen.getByRole("region", { name: "Documents for response-a" })).toBeTruthy();
+});
 
 const distributionApi = vi.hoisted(() => ({
   loadCompletedResponses: vi.fn(),

@@ -29,6 +29,7 @@ type MemoryDistributionStore struct {
 	workspaces          map[string]ResponseWorkspace
 	requestDistribution map[string]string
 	responseRevisions   map[string][]ResponseRevision
+	documentContexts    DocumentContextReader
 	events              []distributionEvent
 	outbox              []distributionEvent
 }

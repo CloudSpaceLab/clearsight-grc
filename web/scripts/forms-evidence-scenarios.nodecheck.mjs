@@ -5,6 +5,7 @@ import { formsEvidenceScenarios, requiredFormsCapabilities } from "./forms-evide
 
 const task22Capabilities = [
   "library-empty", "library-list", "library-search", "library-saved-filter", "library-context-detail", "library-bulk-action",
+  "library-filter-picker", "library-advanced-filter", "library-status-scopes",
   "creation-blank", "creation-template", "creation-ai", "creation-import",
   "template-draft", "template-pending", "template-active", "template-retired", "weights-invalid", "weights-valid",
   "import-pending", "import-partial", "import-truncated", "import-failed", "import-proposal",
@@ -14,11 +15,12 @@ const task22Capabilities = [
   "recovery-server-saved", "recovery-device-only", "recovery-conflict", "recovery-recovered", "recovery-file-reselection",
   "response-first", "response-amended",
   "vendor-confirm", "vendor-correct", "vendor-replace", "vendor-review", "vendor-conflict", "vendor-applied",
-  "library-mobile-records", "builder-mobile-actions", "builder-pointer-reorder", "builder-large-performance",
+  "library-mobile-records", "builder-mobile-actions", "builder-pointer-reorder", "builder-large-performance", "builder-themed-select",
   "viewport-desktop", "viewport-mobile", "viewport-reflow-320", "zoom-200", "theme-light", "theme-dark",
   "foundation-component-variants", "select-themed-open", "focus-visible", "density-comfortable", "density-compact",
   "sent-empty-replacement", "sent-populated-table", "sent-responsive-sheet", "sent-partial-page", "sent-lifecycle-feedback",
   "forced-colors", "reduced-motion",
+  "documents-file-types", "documents-quick-look", "documents-keyboard-return", "documents-vendor-launcher",
 ];
 
 test("Forms scenarios cover every Task 22 capability", () => {
@@ -28,7 +30,7 @@ test("Forms scenarios cover every Task 22 capability", () => {
   assert.equal(new Set(formsEvidenceScenarios.map(({ name }) => name)).size, formsEvidenceScenarios.length);
   const allowedRoutes = new Set(["#forms", "#imports", "#vendors", "#ui-components", "/capture"]);
   for (const scenario of formsEvidenceScenarios) {
-    assert.match(scenario.name, /^\d{2,3}-forms-/);
+    assert.match(scenario.name, /^\d{2,3}[a-z]?-forms-/);
     assert.ok(allowedRoutes.has(scenario.route), scenario.route);
     assert.ok(scenario.fixture);
     assert.ok(scenario.state);

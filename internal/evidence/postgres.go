@@ -639,6 +639,11 @@ func (r *PostgresRepository) CreateArtifact(ctx context.Context, value Artifact)
 	if err := row.Scan(&created.ID, &created.TenantID, &created.RequestID, &created.SubmissionID, &created.FileName, &created.MediaType, &created.SizeBytes, &created.SHA256, &created.StorageKey, &created.Status, &created.CreatedBy, &created.CreatedAt); err != nil {
 		return Artifact{}, err
 	}
+	if created.Status == ArtifactStoredUnscanned {
+		if _, err := tx.Exec(ctx, `INSERT INTO capture_artifact_scan_jobs(artifact_id,tenant_id,sha256,size_bytes,next_attempt_at) SELECT id,tenant_id,sha256,size_bytes,created_at FROM capture_artifacts WHERE id=$1::uuid`, created.ID); err != nil {
+			return Artifact{}, err
+		}
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return Artifact{}, err
 	}

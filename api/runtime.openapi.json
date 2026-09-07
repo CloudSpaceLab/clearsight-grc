@@ -210,6 +210,8 @@
     },
     "/api/v1/forms/responses": { "get": { "operationId": "listCompletedFormResponses", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/forms/responses/{revision_id}": { "get": { "operationId": "getCompletedFormResponse", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/forms/documents": { "get": { "operationId": "listFormDocuments", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/forms/documents/{submission_id}/{field_id}/{artifact_id}/content": { "get": { "operationId": "openFormDocument", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/config/form-response-policies": {
       "get": { "operationId": "listFormResponsePolicies", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" },
       "post": { "operationId": "createFormResponsePolicy", "x-clearsight-route-class": "MATERIAL_COMMAND", "x-clearsight-permission": "CONFIG_WRITE" }

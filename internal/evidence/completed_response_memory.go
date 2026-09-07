@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -22,12 +23,12 @@ func (s *MemoryDistributionStore) ListCompletedResponses(ctx context.Context, qu
 		if !ok || distribution.TenantID != query.TenantID || distribution.LegalEntityID != query.LegalEntityID {
 			continue
 		}
-		if allowed, accessErr := s.completedResponseSubjectVisible(ctx, query.TenantID, query.PrincipalID, distribution.SubjectType, distribution.SubjectID); accessErr != nil {
-			return CompletedResponsePage{}, accessErr
-		} else if !allowed {
-			continue
-		}
 		for _, revision := range revisions {
+			if allowed, accessErr := s.completedResponseVisible(ctx, query.PrincipalID, distribution, revision); accessErr != nil {
+				return CompletedResponsePage{}, accessErr
+			} else if !allowed {
+				continue
+			}
 			value := completedResponseSummary(distribution, revision)
 			if completedResponseMatches(value, query) {
 				values = append(values, value)
@@ -65,18 +66,56 @@ func (s *MemoryDistributionStore) GetCompletedResponse(ctx context.Context, tena
 		if distribution.TenantID != tenantID || distribution.LegalEntityID != legalEntityID {
 			continue
 		}
-		if allowed, accessErr := s.completedResponseSubjectVisible(ctx, tenantID, principalID, distribution.SubjectType, distribution.SubjectID); accessErr != nil {
-			return CompletedResponseSummary{}, ResponseRevision{}, accessErr
-		} else if !allowed {
-			continue
-		}
 		for _, revision := range revisions {
 			if revision.ID == revisionID {
+				if allowed, accessErr := s.completedResponseVisible(ctx, principalID, distribution, revision); accessErr != nil {
+					return CompletedResponseSummary{}, ResponseRevision{}, accessErr
+				} else if !allowed {
+					return CompletedResponseSummary{}, ResponseRevision{}, ErrNotFound
+				}
 				return completedResponseSummary(distribution, revision), cloneResponseRevision(revision), nil
 			}
 		}
 	}
 	return CompletedResponseSummary{}, ResponseRevision{}, ErrNotFound
+}
+
+// Workflow summaries carry the same protected context as answers. Resolve the
+// exact revision's request before applying the owning workflow's read route.
+func (s *MemoryDistributionStore) completedResponseVisible(ctx context.Context, principal string, d FormDistribution, revision ResponseRevision) (bool, error) {
+	if revision.SubmissionID != "" {
+		if s.repo == nil {
+			return false, nil
+		}
+		submission, err := s.repo.GetSubmission(ctx, d.TenantID, revision.SubmissionID)
+		if errors.Is(err, ErrNotFound) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		request, err := s.repo.GetRequest(ctx, d.TenantID, submission.RequestID)
+		if errors.Is(err, ErrNotFound) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		if request.LegalEntityID != d.LegalEntityID {
+			return false, nil
+		}
+		if request.Origin.Type == "THIRD_PARTY_WORK" || request.Origin.Type == "THIRD_PARTY_ASSESSMENT" {
+			if s.documentContexts == nil || request.LegalEntityID != d.LegalEntityID || s.requestDistribution[request.ID] != d.ID || request.SubjectType != d.SubjectType || request.SubjectID != d.SubjectID || request.FormTemplateID != d.FormTemplateID || request.FormTemplateVersion != d.FormTemplateVersion {
+				return false, nil
+			}
+			_, err := s.documentContexts.ResolveDocumentContext(ctx, DocumentQuery{TenantID: d.TenantID, LegalEntityID: d.LegalEntityID, PrincipalID: principal}, request, submission)
+			if errors.Is(err, ErrNotFound) {
+				return false, nil
+			}
+			return err == nil, err
+		}
+	}
+	return s.completedResponseSubjectVisible(ctx, d.TenantID, principal, d.SubjectType, d.SubjectID)
 }
 
 func (s *MemoryDistributionStore) GetCompletedResponseForExecution(_ context.Context, tenantID, revisionID string) (CompletedResponseSummary, error) {

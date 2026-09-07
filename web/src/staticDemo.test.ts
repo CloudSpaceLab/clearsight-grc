@@ -21,6 +21,14 @@ beforeEach(() => {
 });
 
 describe("static stakeholder demo transport", () => {
+  it("filters sample submitted documents by file type and exact response scope", async () => {
+    window.history.replaceState(null, "", "/?fixture=forms-documents");
+    const module = await demo();
+    const page = await module.staticDemoRequest<{ items: Array<{ file_kind: string; file_name: string }> }>("/api/v1/forms/documents?file_kind=WORD&query=continuity");
+    expect(page.items).toHaveLength(1);
+    expect(page.items[0]?.file_kind).toBe("WORD");
+    expect(await module.staticDemoRequest("/api/v1/forms/documents?response_revision_id=not-this-response")).toEqual({ items: [] });
+  });
   it("cannot enable fixture-backed transport outside the UI evidence runtime", async () => {
     vi.resetModules();
     vi.stubEnv("VITE_STATIC_DEMO", "true");

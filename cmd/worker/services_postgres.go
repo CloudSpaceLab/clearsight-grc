@@ -115,6 +115,10 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	)
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
+	if err := configureArtifactScanWorker(service, cfg, logger, evidenceRepository, store); err != nil {
+		pool.Close()
+		return workerSet{}, err
+	}
 	// Matter events update immediately through the outbox publisher. This slower
 	// reconciliation pass exists for restart/backfill and authority/delegation/
 	// routing-policy convergence rather than continuously scanning all Matters.

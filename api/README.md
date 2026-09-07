@@ -4,7 +4,7 @@ ClearSight deliberately has one executable route/access inventory.
 
 ## Executable contract
 
-`internal/httpapi/route_registry.go` is the canonical runtime route inventory. `runtime.openapi.json` is the mechanically verified projection of that registry and records the route, HTTP method, access mode and permission contract used by the running server.
+`internal/httpapi/route_registry.go` is the canonical runtime route inventory. `runtime.openapi.json` is the mechanically verified projection of that registry and records the route, HTTP method, access mode and permission contract used by the running server. The scoped [submitted-document read contract](submitted-documents.md) describes the shared Forms and Vendors file inventory and protected content routes.
 
 A route is not executable merely because it appears in a design document or a domain-specific schema file. Authorization truth comes from the route registry and the command/access guards used by the registered handler.
 

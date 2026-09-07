@@ -172,6 +172,18 @@ Artifact admission derives the media type from bounded file contents rather than
 
 Image preview is appropriate for image evidence. For PDFs, Office files and other documents, show trustworthy metadata before upload; do not fabricate a document preview before extraction/rendering has actually succeeded.
 
+### Submitted document browser
+
+Forms Documents, the completed-response document action and the selected vendor document action share a Finder-style file browser. A labelled file-type rail offers All files, PDF, Images, Word documents, Spreadsheets and Other files. Filename search and version filters query the authorized server population; displayed counts identify only the bounded current page. Source form/question and submission details belong in the selected-file inspector, not repeated paragraphs in every file row.
+
+DataTable now supports opt-in single selection and row activation: click selects, Up/Down move focus and selection, and Enter/Space or double-click opens the row. Nested buttons, links and editable controls retain their own actions. Non-selectable tables retain their existing keyboard behavior. The component gallery exercises this contract.
+
+Quick Look reuses the centered wide FocusedDialog, with the existing restrained blur, focus containment, Escape and focus restoration. File browsers launched from a vendor or response use FocusedSheet. At narrow widths the file-type rail becomes a horizontally scrollable labelled strip, table rows become existing stacked data cards, the side inspector is replaced by preview details, and Quick Look fills the viewport. No new theme, density mode, overlay implementation or token family is introduced.
+
+Only AVAILABLE documents can return bytes. PDF and supported raster images render from protected fetched content; a MIME/size mismatch or failed fetch shows recovery, not a successful preview. Office and unsupported types show metadata and a download action without pretending to provide page previews. Safety status is not authenticity, document acceptance, response acceptance or compliance. Uploaded-by and submitted-by facts remain distinct and unknown attribution is labelled Not recorded. Document decisions, replacement, disposal and AI validation are separate implementation tranches and must not appear as enabled no-op controls.
+
+Required fixtures: populated/mixed types, exact response, exact vendor, current/history, no results, unavailable inventory, pending inspection, quarantined file, unsupported preview, content failure/retry, keyboard row navigation and focus restoration; render light/dark at desktop and 390/320px, with 720px reflow. See `docs/design/2026-09-07-submitted-document-browser.md` for implementation evidence and limitations.
+
 ### Vendor due diligence
 
 The Vendors workspace uses one dominant action for the current assessment state: start or restart onboarding, start a scheduled or event-driven reassessment, send the request, review collection status, begin bank review or record the conclusion. A reassessment requires the bank's schedule, change or event reference so a retry reuses the same episode. The selected vendor, service, accountable owner, exact form version and review deadline remain visible around that action.

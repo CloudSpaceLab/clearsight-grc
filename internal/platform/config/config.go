@@ -32,6 +32,10 @@ type Config struct {
 	VendorRefreshFactConfirmationInterval time.Duration
 	ArtifactRoot                          string
 	MaxArtifactBytes                      int64
+	ArtifactScanner                       string
+	ArtifactScannerNetwork                string
+	ArtifactScannerAddress                string
+	ArtifactScannerTimeout                time.Duration
 	CaptureSessionTTL                     time.Duration
 	CapturePublicBaseURL                  string
 	RecipientSecurity                     RecipientSecurityConfig
@@ -241,6 +245,9 @@ func Load() (Config, error) {
 	}
 	if strings.EqualFold(env("CLEARSIGHT_LOG_LEVEL", "info"), "debug") {
 		cfg.LogLevel = slog.LevelDebug
+	}
+	if err := loadArtifactScannerConfig(&cfg); err != nil {
+		return Config{}, err
 	}
 	return cfg, nil
 }

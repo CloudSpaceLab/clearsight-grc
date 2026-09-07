@@ -15,6 +15,7 @@ The schema includes:
 - workflow instances, tasks, timers and append-only workflow events;
 - Source Registry, source observations and health;
 - capture requests, submissions, invitations, sessions and artifact manifests;
+- capture artifact inspection jobs and immutable attempt receipts;
 - Programs, Requirements and applicability decisions;
 - Control Objectives, scoped Control Implementations and requirement mappings;
 - Evidence Contracts and evidence assessments;
@@ -84,3 +85,4 @@ Signals, observations, evidence assessments, audit events, workflow events and c
 - `000006_evidence_session_guard` — request-state guard for session creation;
 - `000007_capture_tenant_integrity` — composite tenant integrity for evidence and capture;
 - `000008_programs_matters` — Programs, Requirements, controls, evidence checks, status snapshots, typed Matters and continuity events.
+- `000080_capture_artifact_inspection` — capture manifest-bound scan jobs, attempt receipts, due/lease/health indexes and backfill for existing unscanned artifacts. Receipts and jobs prevent artifact deletion through foreign keys; disposal and retention authorization are separate work. One job and at most five completed-attempt receipts per artifact bound current cardinality. Claim uses indexed due/expired states and `SKIP LOCKED`; health excludes completed jobs through a partial index. Representative production load/retention/partition evidence remains outstanding.

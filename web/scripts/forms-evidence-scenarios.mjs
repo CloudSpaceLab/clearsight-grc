@@ -15,6 +15,7 @@ export const requiredFormsCapabilities = Object.freeze([
   "foundation-component-variants", "select-themed-open", "focus-visible", "density-comfortable", "density-compact",
   "sent-empty-replacement", "sent-populated-table", "sent-responsive-sheet", "sent-partial-page", "sent-lifecycle-feedback",
   "forced-colors", "reduced-motion",
+  "documents-file-types", "documents-quick-look", "documents-keyboard-return", "documents-vendor-launcher",
 ]);
 
 const desktop = Object.freeze({ width: 1440, height: 900 });
@@ -534,6 +535,40 @@ async function verifyMobileBuilder(page) {
   if (!dragBounds || dragBounds.height < 44 || dragBounds.width < 44) throw new Error("The pointer reorder handle must retain a 44px target.");
   await page.getByLabel("Question 1 actions").click();
   await page.getByRole("button", { name: "Move down" }).waitFor({ state: "visible" });
+}
+
+for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"], ["vendors", "forms-vendor-review-conflict", "#vendors"]]) {
+  for (const [theme, viewport] of [["light", desktop], ["dark", reflow]]) {
+    scenarios.push({
+      name: `${125 + (surface === "vendors" ? 2 : 0) + (theme === "dark" ? 1 : 0)}-forms-documents-${surface}-${theme}-${viewport.width}`, fixture, route,
+      state: "submitted-document-browser", theme, viewport, zoom: 1, reducedMotion: "reduce",
+      capabilities: ["documents-file-types", "documents-quick-look", "documents-keyboard-return", ...(surface === "vendors" ? ["documents-vendor-launcher"] : [])],
+      run: async (page) => {
+        if (surface === "forms") await page.getByRole("tab", { name: "Documents", exact: true }).click();
+        else {
+          await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
+          await page.getByRole("button", { name: "View vendor documents" }).click();
+        }
+        await page.getByRole("row", { name: /Sample security certification/ }).waitFor();
+        await page.getByRole("button", { name: "Word documents", exact: true }).click();
+        await page.getByRole("row", { name: /Sample security certification/ }).waitFor({ state: "hidden" });
+        const row = page.getByRole("row", { name: /Sample business continuity plan/ });
+        await row.focus();
+        await page.keyboard.press("Space");
+        const preview = page.getByRole("dialog", { name: "Preview Sample business continuity plan.docx" });
+        await preview.waitFor();
+        await preview.getByRole("link", { name: "Download file", exact: true }).waitFor();
+        await assertSheetRecoveryVisible(page, preview);
+        await page.keyboard.press("Escape");
+        await preview.waitFor({ state: "hidden" });
+        if (!await row.evaluate((element) => element === document.activeElement)) throw new Error("Closing document preview must return focus to its selected file.");
+        await page.getByRole("searchbox", { name: "Search file names" }).fill("no matching file");
+        await page.getByRole("heading", { name: "No matching documents" }).waitFor();
+        await page.getByRole("searchbox", { name: "Search file names" }).fill("");
+        await row.waitFor();
+      },
+    });
+  }
 }
 
 export const formsEvidenceScenarios = Object.freeze(scenarios.map((scenario) => Object.freeze({

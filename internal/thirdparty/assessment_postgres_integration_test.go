@@ -286,6 +286,51 @@ func TestPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox
 	if eventCount != 1 || outboxCount != 1 {
 		t.Fatalf("document review audit transaction event=%d outbox=%d", eventCount, outboxCount)
 	}
+	files, err := evidence.NewPostgresDistributionStore(evidence.NewPostgresRepository(pool), nil).ListDocuments(ctx, evidence.DocumentQuery{TenantID: thirdPartyTenantID, LegalEntityID: thirdPartyEntityA, PrincipalID: thirdPartyPrincipal, RelationshipID: relationship.Relationship.ID, Limit: 1})
+	if err != nil || len(files.Items) != 1 || files.Items[0].AssessmentID != assessment.ID || files.Items[0].Review == nil || files.Items[0].Review.ID != document.ID {
+		t.Fatalf("assessment document inventory = %#v, %v", files, err)
+	}
+	if files.Items[0].Review.ReviewedAt == nil || !files.Items[0].Review.ReviewedAt.Equal(now.Add(time.Minute).Truncate(time.Microsecond)) {
+		t.Fatalf("performed review timestamp lost: %+v", files.Items[0].Review)
+	}
+	const documentReviewer = "33333333-3333-7333-8333-333333333399"
+	if _, err := pool.Exec(ctx, `
+	 INSERT INTO principals(id,tenant_id,kind,external_ref,display_name,status,valid_from)
+	 VALUES($1::uuid,$2::uuid,'PERSON','document-reviewer','Document reviewer','ACTIVE',$3);
+	 INSERT INTO responsibility_assignments(tenant_id,legal_entity_id,principal_id,responsibility,object_type,object_id,priority,valid_from,policy_version,decision_type)
+	 VALUES($2::uuid,$4::uuid,$1::uuid,'REVIEWER','THIRD_PARTY_ASSESSMENT',$5::uuid,100,$3,'document-read-v1','thirdparty.assessment.review');
+	`, pgx.QueryExecModeSimpleProtocol, documentReviewer, thirdPartyTenantID, now.Add(-time.Hour), thirdPartyEntityA, assessment.ID); err != nil {
+		t.Fatal(err)
+	}
+	fileStore := evidence.NewPostgresDistributionStore(evidence.NewPostgresRepository(pool), nil)
+	query := evidence.DocumentQuery{TenantID: thirdPartyTenantID, LegalEntityID: thirdPartyEntityA, PrincipalID: documentReviewer, RelationshipID: relationship.Relationship.ID, Limit: 1}
+	files, err = fileStore.ListDocuments(ctx, query)
+	if err != nil || len(files.Items) != 1 {
+		t.Fatalf("routed reviewer files = %#v, %v", files, err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE responsibility_assignments SET valid_until=$1 WHERE tenant_id=$2::uuid AND policy_version='document-read-v1'`, now.Add(-time.Second), thirdPartyTenantID); err != nil {
+		t.Fatal(err)
+	}
+	files, err = fileStore.ListDocuments(ctx, query)
+	if err != nil || len(files.Items) != 0 {
+		t.Fatalf("revoked reviewer files = %#v, %v", files, err)
+	}
+	if _, err := pool.Exec(ctx, `
+	 UPDATE third_party_documents SET status='REJECTED',expires_on='2026-07-01' WHERE id=$1::uuid;
+	 UPDATE third_party_assessments SET current_request_id=NULL,submission_id=NULL WHERE id=$2::uuid;
+	`, pgx.QueryExecModeSimpleProtocol, document.ID, assessment.ID); err != nil {
+		t.Fatal(err)
+	}
+	query.PrincipalID = thirdPartyPrincipal
+	files, err = fileStore.ListDocuments(ctx, query)
+	if err != nil || len(files.Items) != 1 || !files.Items[0].Current || files.Items[0].Review.Status != "REJECTED" || files.Items[0].ExpiresOn != "2026-07-01" {
+		t.Fatalf("unreplaced rejected file = %#v, %v", files, err)
+	}
+	query.CurrentOnly = true
+	files, err = fileStore.ListDocuments(ctx, query)
+	if err != nil || len(files.Items) != 1 {
+		t.Fatalf("rejection without replacement hid current file = %#v, %v", files, err)
+	}
 }
 
 func evidenceAssessmentPresentation() formcontract.Presentation {

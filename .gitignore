@@ -32,4 +32,5 @@ Thumbs.db
 /tmp/
 /var/
 .worktrees/
+.superpowers/
 *.log

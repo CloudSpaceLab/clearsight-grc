@@ -101,7 +101,15 @@ bounded upload stream
 → AVAILABLE or QUARANTINED
 ```
 
-Artifacts in `STORED_UNSCANNED` are not downloadable or eligible for evidence conclusions. The local filesystem adapter is limited to development and integration testing. Production object storage, encryption policy, malware scanning, content disarm, legal hold and retention workers are not implemented.
+Artifacts in `STORED_UNSCANNED` are not downloadable or eligible for evidence conclusions. The local filesystem adapter is limited to development and integration testing. Capture artifact inspection is implemented through the existing runtime maintainer and a bounded ClamAV `IDSESSION` / `INSTREAM` adapter. Production object storage, encryption policy, content disarm, legal hold and retention workers remain unimplemented; actual scanner deployment and acceptance evidence are also required.
+
+The manifest transaction creates one `capture_artifact_scan_jobs` record. Migration `000080_capture_artifact_inspection` schedules existing unscanned manifests without creating clean receipts. The worker claims one due job per pass using a one-minute lease and an incrementing attempt fence; repository claims are capped at ten. Network inspection has a maximum twenty-second deadline and streams at most the expected size plus one byte. It verifies complete scanner consumption, exact byte count and SHA-256 before recording any clean result. Only explicit `CLEAN` makes bytes `AVAILABLE`; `INFECTED` makes them `QUARANTINED`. Neither result accepts evidence or changes a parent conclusion.
+
+Each completed attempt appends a receipt tied to artifact ID, digest, byte count, attempt and time. Clean and infected receipts also identify the scanner and its reported engine/database version. Receipt, manifest inspection metadata, job transition and `ArtifactInspectionRecorded` outbox event commit together. Completion rejects an expired or replaced lease, replay, or changed manifest. Failures retain safe reason codes rather than raw scanner responses, paths or document contents. Unavailable scans retry at one-minute multiples of the attempt, up to five attempts. Integrity mismatch stops immediately; exhausted attempts remain unavailable and appear in runtime queue health. Retained failed jobs require operator investigation; an operator requeue command is not part of this tranche.
+
+`CLEARSIGHT_ARTIFACT_SCANNER` accepts `unavailable` (default) or `clamav`; no clean-result bypass exists. `clamav` requires `CLEARSIGHT_ARTIFACT_SCANNER_ADDRESS`, `CLEARSIGHT_ARTIFACT_SCANNER_NETWORK=tcp|unix` and a positive `CLEARSIGHT_ARTIFACT_SCANNER_TIMEOUT` no greater than 20s (default 15s). Missing scanner configuration produces a startup warning and unavailable attempt receipts. Unsupported modes and malformed endpoints fail configuration loading. Clamd TCP is unauthenticated and unencrypted: operators must use an isolated trusted endpoint or protected local socket, keep signatures current, enable VERSION/INSTREAM, and configure scan/archive/stream limits and limit-exceeded alerts to avoid incomplete scans being reported clean. See the [official ClamD protocol](https://docs.clamav.net/manual/Usage/ClamdProtocol.html).
+
+This lifecycle covers `capture_artifacts`. The separate document-import artifact store and its development-only unscanned-analysis option do not become approved scanning paths through this change. Protocol fixtures prove client behavior, not a deployed scanner's malware detection, signature currency or production storage integrity.
 
 ## Consistency and performance
 
@@ -150,6 +158,6 @@ External source reads use adapter-specific sessions rather than ClearSight's app
 - Source catalog API routes and administration UI are not implemented.
 - Connection-, View- and Binding-level health reconciliation is not implemented.
 - REST/JSON, tabular-file, event and non-PostgreSQL database adapters are not implemented.
-- Production object storage, malware inspection, legal hold and retention orchestration are not implemented.
+- Production object storage, deployed malware-inspection acceptance, legal hold and retention orchestration are not complete.
 - Federation and stronger external identity assurance beyond configured email OTP are not implemented.
 - Evidence contracts, sufficiency evaluation and reusable evidence matching remain separate work.

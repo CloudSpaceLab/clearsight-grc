@@ -362,6 +362,8 @@ func cleanupResponseWorkspaceTenant(ctx context.Context, pool *pgxpool.Pool, ten
 		`DELETE FROM capture_distribution_sessions WHERE tenant_id=$1::uuid`,
 		`DELETE FROM capture_access_routes WHERE tenant_id=$1::uuid`,
 		`DELETE FROM capture_submissions WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_artifact_scan_receipts WHERE tenant_id=$1::uuid`,
+		`DELETE FROM capture_artifact_scan_jobs WHERE tenant_id=$1::uuid`,
 		`DELETE FROM capture_artifacts WHERE tenant_id=$1::uuid`,
 		`DELETE FROM capture_distribution_recipients WHERE tenant_id=$1::uuid`,
 		`DELETE FROM capture_response_workspaces WHERE tenant_id=$1::uuid`,

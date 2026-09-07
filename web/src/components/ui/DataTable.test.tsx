@@ -14,6 +14,42 @@ const columns: readonly DataColumn<Row>[] = [
 ];
 
 describe("DataTable", () => {
+  it("selects file rows and opens them with Enter or Space without stealing nested controls", () => {
+    const select = vi.fn();
+    const open = vi.fn();
+    render(<DataTable ariaLabel="Documents" rows={rows} rowKey={(row) => row.id} rowName={(row) => row.title}
+      columns={[...columns, { id: "action", header: "Action", render: () => <button>Download</button>, accessibleText: () => "Download" }]}
+      onSelectionChange={select} onRowAction={open}/>);
+    const row = screen.getByRole("row", { name: rows[0]!.title });
+    row.focus(); // A real pointer press focuses the row before dispatching click.
+    fireEvent.click(row);
+    expect(select).toHaveBeenLastCalledWith(rows[0]);
+    expect(select).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(row, { key: " " });
+    fireEvent.keyDown(row, { key: "Enter" });
+    fireEvent.doubleClick(row);
+    expect(open).toHaveBeenCalledTimes(3);
+    const download = screen.getAllByRole("button", { name: "Download" })[0]!;
+    fireEvent.keyDown(download, { key: "Enter" });
+    fireEvent.doubleClick(download);
+    expect(open).toHaveBeenCalledTimes(3);
+  });
+
+  it("moves keyboard focus and selection between file rows with the arrow keys", () => {
+    const select = vi.fn();
+    render(<DataTable ariaLabel="Documents" rows={rows} rowKey={(row) => row.id} rowName={(row) => row.title}
+      columns={columns} onSelectionChange={select}/>);
+    const first = screen.getByRole("row", { name: rows[0]!.title });
+    const second = screen.getByRole("row", { name: rows[1]!.title });
+    expect(first.tabIndex).toBe(0);
+    expect(second.tabIndex).toBe(-1);
+    fireEvent.keyDown(first, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(second);
+    expect(select).toHaveBeenLastCalledWith(rows[1]);
+    fireEvent.keyDown(second, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(first);
+  });
+
   it("renders labelled cells and a complete accessible row name", () => {
     render(<DataTable ariaLabel="Sent-form distributions" rows={rows} rowKey={(row) => row.id} rowName={(row) => `${row.title}, ${row.status}, ${row.recipients} recipients`} columns={columns}/>);
     const row = screen.getByRole("row", { name: "Vendor annual review, Open, 3 recipients" });

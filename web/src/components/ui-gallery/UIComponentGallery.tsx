@@ -55,6 +55,8 @@ export function UIComponentGallery() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [busySheetOpen, setBusySheetOpen] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState("request-1");
+  const [openedRequest, setOpenedRequest] = useState<SampleRow>();
 
   return <main className="ui-gallery">
     <header className="ui-gallery__header">
@@ -108,7 +110,7 @@ export function UIComponentGallery() {
     <GalleryGroup title="Data">
       <Contract family="FilterBar" job="Groups filters, result count and reset handling." keyboard="Tab follows the visible field order." prohibited="Do not compress fields below their usable width."><FilterBar label="Sample request filters" fields={<><TextField label="Sample owner" value="" onChange={() => undefined}/><SelectField label="Sample state" placeholder="All sample states" options={selections} onChange={() => undefined}/></>} resultCount={2} onClear={() => undefined}/></Contract>
       <Contract family="FilterChip" job="Names and removes one applied filter or reopens advanced logic." keyboard="Enter or Space runs its named action." prohibited="Do not use a chip for a lifecycle status."><FilterChip label="Status" value="Responses open" onRemove={() => undefined}/></Contract>
-      <Contract family="DataTable" job="Presents comparable populated records and page handling." keyboard="Tab reaches each focusable row and action." prohibited="Do not keep an empty horizontal scroll region."><DataTable ariaLabel="Sample requests" rows={sampleRows} rowKey={(row) => row.id} rowName={(row) => `${row.request}, ${row.status}, owned by ${row.owner}`} columns={sampleColumns} selectedKey="request-1" pagination={{ label: "Sample request pages", nextLabel: "Load next sample page", onNext: () => undefined }}/></Contract>
+      <Contract family="DataTable" job="Presents comparable populated records and page handling." keyboard="Tab reaches the selected row and actions. Arrow keys select rows; Enter or Space opens the selected request." prohibited="Do not keep an empty horizontal scroll region."><DataTable ariaLabel="Sample requests" rows={sampleRows} rowKey={(row) => row.id} rowName={(row) => `${row.request}, ${row.status}, owned by ${row.owner}`} columns={sampleColumns} selectedKey={selectedRequest} onSelectionChange={(row) => setSelectedRequest(row.id)} onRowAction={setOpenedRequest}/>{openedRequest && <Notice tone="info">{openedRequest.request} · {openedRequest.status} · {openedRequest.owner}</Notice>}</Contract>
     </GalleryGroup>
 
     <GalleryGroup title="Overlays">
