@@ -58,13 +58,30 @@ func (a *API) listAIGatewayTransports(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	w.Header().Set("Cache-Control", "no-store")
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{
+	response := map[string]any{
 		"items":             items,
 		"runtime_status":    a.aiGatewayRuntimeStatus(r.Context(), actor.TenantID, environment),
 		"proxy":             a.aiGatewayProxyInfo(),
 		"emergency_control": emergency,
-	})
+	}
+	if fixture := strings.TrimSpace(r.URL.Query().Get("simulate_fixture")); fixture != "" {
+		simulation, simErr := a.deps.AIGovernance.SimulateGateway(r.Context(), aigovernance.GatewaySimulationInput{
+			TenantID:         actor.TenantID,
+			Environment:      environment,
+			Fixture:          fixture,
+			WorkloadRecordID: strings.TrimSpace(r.URL.Query().Get("simulate_workload_id")),
+			BaselinePolicyID: strings.TrimSpace(r.URL.Query().Get("simulate_baseline_policy_id")),
+			TransportID:      strings.TrimSpace(r.URL.Query().Get("simulate_transport_id")),
+			ModelAlias:       strings.TrimSpace(r.URL.Query().Get("simulate_model_alias")),
+		})
+		if simErr != nil {
+			writeAIGovernanceResult(w, map[string]any{}, simErr, http.StatusOK)
+			return
+		}
+		response["simulation"] = simulation
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	httpx.WriteJSON(w, http.StatusOK, response)
 }
 
 func (a *API) aiGatewayProxyInfo() aiGatewayProxyInfo {
