@@ -1,0 +1,108 @@
+.ai-gateway-proxy {
+  display: grid;
+  gap: .8rem;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: .95rem;
+  padding: .9rem;
+}
+
+.ai-gateway-proxy__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .8rem;
+}
+
+.ai-gateway-proxy__heading h4 {
+  margin: .12rem 0;
+}
+
+.ai-gateway-proxy__heading p,
+.ai-gateway-proxy__note {
+  margin: .2rem 0 0;
+  line-height: 1.45;
+  opacity: .72;
+}
+
+.ai-gateway-proxy__state {
+  flex: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  padding: .34rem .58rem;
+  font-size: .74rem;
+  font-weight: 700;
+}
+
+.ai-gateway-proxy__endpoint {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .65rem;
+  align-items: center;
+}
+
+.ai-gateway-proxy__endpoint > code {
+  overflow-wrap: anywhere;
+  border-radius: .72rem;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  padding: .7rem .78rem;
+  font-size: .82rem;
+}
+
+.ai-gateway-proxy__empty {
+  display: grid;
+  gap: .2rem;
+  border-radius: .72rem;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  padding: .72rem .78rem;
+  font-size: .8rem;
+}
+
+.ai-gateway-proxy__empty span,
+.ai-gateway-proxy__capabilities span,
+.ai-gateway-proxy__copy-result {
+  font-size: .75rem;
+  opacity: .7;
+}
+
+.ai-gateway-proxy__capabilities {
+  display: grid;
+  gap: .55rem;
+}
+
+.ai-gateway-proxy__capabilities > div:first-child {
+  display: grid;
+  gap: .12rem;
+}
+
+.ai-gateway-proxy__routes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+
+.ai-gateway-proxy__routes code {
+  border-radius: .58rem;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  padding: .42rem .52rem;
+  font-size: .74rem;
+}
+
+.ai-gateway-proxy__routes b {
+  font-size: .68rem;
+}
+
+.ai-gateway-proxy__note {
+  font-size: .76rem;
+}
+
+@media (max-width: 680px) {
+  .ai-gateway-proxy__heading,
+  .ai-gateway-proxy__endpoint {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .ai-gateway-proxy__state {
+    justify-self: start;
+  }
+}
