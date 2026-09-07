@@ -36,11 +36,26 @@ The gateway operations endpoint `GET /health/config` exposes only desired/applie
 
 The ClearSight API may be configured with `CLEARSIGHT_AI_GATEWAY_OPERATIONS_URL` and `CLEARSIGHT_AI_GATEWAY_OPERATIONS_TOKEN`. This is a server-to-server bridge only: Configure receives the projected runtime status together with the governed revision list; the operations credential is never exposed to the browser. Missing bridge configuration is represented as **not connected**, while a configured but unreachable gateway is represented as **unavailable/degraded**.
 
+## Stable application proxy
+
+`CLEARSIGHT_AI_GATEWAY_PUBLIC_BASE_URL` is optional deployment metadata for the application-facing governed proxy. It is deliberately separate from the internal operations URL and credential.
+
+- production public proxy URLs require HTTPS;
+- loopback HTTP is allowed only in local development;
+- embedded URL credentials, query strings and fragments are rejected;
+- the API projects only the configured public base URL plus routes whose executable gateway access class is `WORKLOAD_AUTHENTICATED`;
+- health and metrics endpoints are never projected as application ingress;
+- the ingress list comes from `aigateway.GatewayRoutes()` so Configure cannot drift from the executable gateway contract;
+- publishing the base URL does not imply that the gateway runtime or an upstream provider is healthy. Desired/applied runtime state remains a separate truth signal.
+
+Current workload ingress is `/v1/models`, `/v1/chat/completions` and `/v1/responses` according to the executable gateway route registry.
+
 ## Configure UX
 
 `Configure → AI governance → Organization AI proxy` provides:
 
 - environment selection;
+- stable public proxy base URL and executable workload ingress capability inventory;
 - governed provider connection metadata;
 - fixed provider origin and adapter kind;
 - opaque secret reference, region and enabled/suspended state;
@@ -49,7 +64,7 @@ The ClearSight API may be configured with `CLEARSIGHT_AI_GATEWAY_OPERATIONS_URL`
 - maker/checker submit, approve, activate, suspend and retire lifecycle;
 - desired database authority and actual gateway applied-state distinction.
 
-The UI must never describe database activation alone as proof that a gateway process has applied the revision.
+The UI must never describe database activation alone, or publication of the base URL alone, as proof that a gateway process has applied the revision or that a provider request will succeed.
 
 ## Required regression proof
 
@@ -66,4 +81,5 @@ Repository CI must continue to prove:
 - successful atomic swap to a later valid revision;
 - caller-controlled unknown model aliases do not enter telemetry label cardinality;
 - operations client rejects redirects and mismatched tenant/environment status;
+- public proxy configuration rejects unsafe URLs and does not expose metrics/health routes as application capabilities;
 - Configure typecheck, rendered accessibility tests, production build and deterministic Chromium review.
