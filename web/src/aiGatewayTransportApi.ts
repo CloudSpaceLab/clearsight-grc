@@ -9,6 +9,13 @@ export type GatewayProviderKind = "OPENAI" | "ANTHROPIC";
 export type GatewayProviderState = "ENABLED" | "SUSPENDED";
 export type GatewayTransportStatus = "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "ACTIVE" | "SUSPENDED" | "RETIRED";
 export type GatewayTransportTransition = "submit" | "approve" | "activate" | "suspend" | "retire";
+export type GatewaySimulationFixture =
+  | "SAFE"
+  | "INSTRUCTION_EXFILTRATION"
+  | "HOSTILE_UNTRUSTED_CONTENT"
+  | "UNAVAILABLE_PROVIDER"
+  | "FORBIDDEN_RESIDENCY_FALLBACK"
+  | "UNKNOWN_WORKLOAD";
 
 export type GatewayProviderConfig = {
   id: string;
@@ -105,6 +112,89 @@ export type GatewayProxyInfo = {
   ingress: GatewayProxyIngress[];
 };
 
+export type GatewaySimulationFact = {
+  key: string;
+  value?: string;
+  state: string;
+  source?: string;
+  observed_at?: string;
+};
+
+export type GatewaySimulationPolicyRef = {
+  id: string;
+  code: string;
+  version: number;
+  status: string;
+  rollout_mode: string;
+};
+
+export type GatewaySimulationWorkloadRef = {
+  id: string;
+  workload_id: string;
+  name: string;
+  state: string;
+};
+
+export type GatewaySimulationTransportRef = {
+  id: string;
+  version: number;
+  status: string;
+  environment: string;
+  checksum: string;
+};
+
+export type GatewaySimulationInstruction = {
+  rule_id: string;
+  reason_code: string;
+  content: string;
+  matched: boolean;
+  applied: boolean;
+};
+
+export type GatewaySimulationRoute = {
+  id: string;
+  provider_id: string;
+  model: string;
+  weight: number;
+  regions?: string[];
+};
+
+export type GatewaySimulationDecision = {
+  policy_id: string;
+  policy_code: string;
+  policy_version: number;
+  rollout_mode: string;
+  action: string;
+  proposed_action?: string;
+  route_id?: string;
+  reason_codes?: string[];
+  baseline_policy_id?: string;
+  baseline_policy_code?: string;
+  baseline_policy_version?: number;
+  baseline_rollout_mode?: string;
+  baseline_action?: string;
+  baseline_proposed_action?: string;
+  baseline_reason_codes?: string[];
+};
+
+export type GatewaySimulationResult = {
+  fixture: GatewaySimulationFixture;
+  environment: GatewayEnvironment;
+  workload?: GatewaySimulationWorkloadRef;
+  workload_policy?: GatewaySimulationPolicyRef;
+  baseline_policy?: GatewaySimulationPolicyRef;
+  transport?: GatewaySimulationTransportRef;
+  decision: GatewaySimulationDecision;
+  detector_facts: GatewaySimulationFact[];
+  source_facts: GatewaySimulationFact[];
+  instruction_precedence: string[];
+  organization_instructions: GatewaySimulationInstruction[];
+  model_alias: string;
+  eligible_routes: GatewaySimulationRoute[];
+  provider_call_would_occur: boolean;
+  provider_call_blocked_reason?: string;
+};
+
 export type GatewayTransportControlState = {
   revisions: GatewayTransportRevision[];
   runtimeStatus: GatewayRuntimeStatus;
@@ -125,6 +215,24 @@ export async function loadGatewayTransportState(environment: GatewayEnvironment)
     proxy: response.proxy,
     emergencyControl: response.emergency_control,
   };
+}
+
+export async function simulateGateway(input: {
+  environment: GatewayEnvironment;
+  fixture: GatewaySimulationFixture;
+  workloadId?: string;
+  baselinePolicyId?: string;
+  transportId?: string;
+  modelAlias?: string;
+}): Promise<GatewaySimulationResult> {
+  const params = new URLSearchParams({ environment: input.environment, limit: "100", simulate_fixture: input.fixture });
+  if (input.workloadId) params.set("simulate_workload_id", input.workloadId);
+  if (input.baselinePolicyId) params.set("simulate_baseline_policy_id", input.baselinePolicyId);
+  if (input.transportId) params.set("simulate_transport_id", input.transportId);
+  if (input.modelAlias) params.set("simulate_model_alias", input.modelAlias);
+  const response = await requestJSON<{ simulation?: GatewaySimulationResult }>(apiBase, `${basePath}?${params.toString()}`);
+  if (!response.simulation) throw new Error("Gateway simulation result was not returned.");
+  return response.simulation;
 }
 
 export async function loadActiveGatewayTransport(environment: GatewayEnvironment): Promise<GatewayTransportRevision | null> {
