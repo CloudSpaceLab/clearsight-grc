@@ -52,5 +52,5 @@ it("does not claim propagation when ClearSight is newer than the gateway", () =>
 
   expect(screen.getByText("Propagating")).toBeTruthy();
   expect(screen.queryByText("Frozen · applied")).toBeNull();
-  expect(screen.getByText(/already in-flight provider calls are not canceled/i)).toBeNull();
+  expect(screen.queryByText(/already in-flight provider calls are not canceled/i)).toBeNull();
 });
