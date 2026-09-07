@@ -19,7 +19,7 @@ type CompletedResponseAnswers struct {
 	formVersion                    int64
 }
 type completedResponseAnswerStore interface {
-	ReadCompletedResponseAnswers(context.Context, string, string, string) (CompletedResponseAnswers, error)
+	ReadCompletedResponseAnswers(context.Context, string, string, string, string) (CompletedResponseAnswers, error)
 }
 
 func (s *DistributionService) GetCompletedResponseAnswers(ctx context.Context, tenant, entity, principal, revisionID string) (CompletedResponseAnswers, error) {
@@ -36,7 +36,7 @@ func (s *DistributionService) GetCompletedResponseAnswers(ctx context.Context, t
 	if !ok {
 		return CompletedResponseAnswers{}, ErrNotFound
 	}
-	result, err := reader.ReadCompletedResponseAnswers(ctx, tenant, entity, revision.SubmissionID)
+	result, err := reader.ReadCompletedResponseAnswers(ctx, tenant, entity, principal, revision.SubmissionID)
 	if err != nil {
 		return CompletedResponseAnswers{}, err
 	}
@@ -45,7 +45,7 @@ func (s *DistributionService) GetCompletedResponseAnswers(ctx context.Context, t
 	}
 	return result, nil
 }
-func readCompletedResponseAnswers(ctx context.Context, repo Repository, tenant, entity, submissionID string) (CompletedResponseAnswers, error) {
+func readCompletedResponseAnswers(ctx context.Context, repo Repository, tenant, entity, submissionID string, authorize func(Request, Submission) error) (CompletedResponseAnswers, error) {
 	reader, ok := repo.(SubmissionReader)
 	if !ok {
 		return CompletedResponseAnswers{}, ErrNotFound
@@ -58,12 +58,30 @@ func readCompletedResponseAnswers(ctx context.Context, repo Repository, tenant, 
 	if err != nil || request.LegalEntityID != entity {
 		return CompletedResponseAnswers{}, ErrNotFound
 	}
+	if authorize == nil {
+		return CompletedResponseAnswers{}, ErrNotFound
+	}
+	if err := authorize(request, submission); err != nil {
+		return CompletedResponseAnswers{}, err
+	}
 	result := CompletedResponseAnswers{SubmissionID: submission.ID, Answers: []CompletedResponseAnswer{}, subjectType: request.SubjectType, subjectID: request.SubjectID, formID: request.FormTemplateID, formVersion: request.FormTemplateVersion}
 	for _, field := range request.Fields {
 		result.Answers = append(result.Answers, CompletedResponseAnswer{FieldID: field.ID, Label: field.Label, Type: field.Type, Value: submission.Answers[field.ID]})
 	}
 	return result, nil
 }
-func (s *MemoryDistributionStore) ReadCompletedResponseAnswers(ctx context.Context, tenant, entity, submission string) (CompletedResponseAnswers, error) {
-	return readCompletedResponseAnswers(ctx, s.repo, tenant, entity, submission)
+func (s *MemoryDistributionStore) ReadCompletedResponseAnswers(ctx context.Context, tenant, entity, principal, submission string) (CompletedResponseAnswers, error) {
+	return readCompletedResponseAnswers(ctx, s.repo, tenant, entity, submission, func(request Request, value Submission) error {
+		if principal == "" {
+			return ErrNotFound
+		}
+		if request.Origin.Type != "THIRD_PARTY_WORK" && request.Origin.Type != "THIRD_PARTY_ASSESSMENT" {
+			return nil
+		}
+		if s.documentContexts == nil {
+			return ErrNotFound
+		}
+		_, err := s.documentContexts.ResolveDocumentContext(ctx, DocumentQuery{TenantID: tenant, LegalEntityID: entity, PrincipalID: principal}, request, value)
+		return err
+	})
 }

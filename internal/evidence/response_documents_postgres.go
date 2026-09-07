@@ -12,8 +12,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func (s *PostgresDistributionStore) ReadCompletedResponseAnswers(ctx context.Context, tenant, entity, submission string) (CompletedResponseAnswers, error) {
-	return readCompletedResponseAnswers(ctx, s.repo, tenant, entity, submission)
+func (s *PostgresDistributionStore) ReadCompletedResponseAnswers(ctx context.Context, tenant, entity, principal, submissionID string) (CompletedResponseAnswers, error) {
+	return readCompletedResponseAnswers(ctx, s.repo, tenant, entity, submissionID, func(Request, Submission) error {
+		if principal == "" {
+			return ErrNotFound
+		}
+		var allowed bool
+		err := s.repo.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 `+documentSubmissionJoinsSQL()+`
+ WHERE (t.id::text=$1 OR t.slug=$1) AND req.legal_entity_id=$2::uuid AND submission.id=$5::uuid
+ AND `+documentRevisionScopeSQL()+` AND (`+documentReadAuthoritySQL()+`))`, tenant, entity, principal, time.Now().UTC(), submissionID).Scan(&allowed)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return ErrNotFound
+		}
+		return nil
+	})
 }
 
 // ListDocuments resolves the immutable submitted occurrence first. Artifact's
@@ -57,10 +72,6 @@ func (s *PostgresDistributionStore) ListDocuments(ctx context.Context, q Documen
 }
 
 func documentInventorySQL() string {
-	assessmentRoute := authority.PostgresReadRouteSQL("assessment", "id", "THIRD_PARTY_ASSESSMENT", "THIRDPARTY.ASSESSMENT.REVIEW", "REVIEWER", 3, 4)
-	workReviewer := authority.PostgresReadRouteSQL("work", "relationship_id", "VENDOR_RELATIONSHIP", "THIRDPARTY.WORK.REVIEW", "REVIEWER", 3, 4)
-	workOwner := authority.PostgresReadRouteSQL("work", "relationship_id", "VENDOR_RELATIONSHIP", "THIRDPARTY.WORK.SEND", "OWNER", 3, 4)
-	subjectVisibility := strings.ReplaceAll(completedResponseSubjectVisibilitySQL("$3"), "ELSE true", "ELSE false")
 	return `WITH occurrences AS (
  SELECT COALESCE(r.id::text,'legacy')||':'||submission.id::text||':'||(field->>'id')||':'||artifact.id::text AS id,
  artifact.id::text AS artifact_id,req.id::text AS request_id,submission.id::text AS submission_id,field->>'id' AS field_id,
@@ -76,16 +87,7 @@ func documentInventorySQL() string {
  ` + documentCurrentSQL() + ` AS current,
  CASE WHEN review.id IS NOT NULL THEN jsonb_build_object('id',review.id::text,'status',review.status,'reviewed_by',review.validated_by_principal_id::text,'reviewed_at',review.validated_at,'source','VENDOR_ASSESSMENT') END AS review,
  artifact.request_id::text AS artifact_request_id
- FROM capture_submissions submission
- JOIN tenants t ON t.id=submission.tenant_id
- JOIN capture_requests req ON req.id=submission.request_id AND req.tenant_id=submission.tenant_id
- LEFT JOIN capture_response_revisions r ON r.submission_id=submission.id AND r.tenant_id=req.tenant_id AND r.legal_entity_id=req.legal_entity_id
- LEFT JOIN capture_form_distributions d ON d.id=r.distribution_id AND d.tenant_id=req.tenant_id AND d.legal_entity_id=req.legal_entity_id
- LEFT JOIN third_party_assessment_request_links assessment_link ON assessment_link.request_id=req.id AND assessment_link.tenant_id=req.tenant_id AND assessment_link.legal_entity_id=req.legal_entity_id AND req.origin_type=assessment_link.origin_type AND req.origin_id=assessment_link.origin_id::text AND req.origin_version=assessment_link.origin_sequence
- LEFT JOIN third_party_assessments assessment ON assessment.id=assessment_link.assessment_id AND assessment.tenant_id=req.tenant_id AND assessment.legal_entity_id=req.legal_entity_id AND req.subject_type='VENDOR_RELATIONSHIP' AND req.subject_id=assessment.relationship_id::text AND req.form_template_id=assessment.form_template_id AND req.form_template_version=assessment.form_template_version
- LEFT JOIN third_party_work_capture_links work_link ON work_link.request_id=req.id AND work_link.tenant_id=req.tenant_id AND work_link.legal_entity_id=req.legal_entity_id AND req.origin_type=work_link.origin_type AND req.origin_id=work_link.origin_id::text AND req.origin_version=work_link.origin_version
- LEFT JOIN third_party_work_requests work ON work.id=work_link.work_request_id AND work.tenant_id=req.tenant_id AND work.legal_entity_id=req.legal_entity_id AND req.subject_type='VENDOR_RELATIONSHIP' AND req.subject_id=work.relationship_id::text AND req.form_template_id=work.form_template_id AND req.form_template_version=work.form_template_version
- LEFT JOIN third_party_relationships relationship ON relationship.id=COALESCE(assessment.relationship_id,work.relationship_id) AND relationship.tenant_id=req.tenant_id AND relationship.legal_entity_id=req.legal_entity_id
+ ` + documentSubmissionJoinsSQL() + `
  JOIN LATERAL jsonb_array_elements(req.fields) field ON field->>'type' IN ('file','photo','vendor_document')
  JOIN LATERAL (
  SELECT DISTINCT value AS artifact_id FROM jsonb_array_elements_text(
@@ -97,10 +99,42 @@ func documentInventorySQL() string {
  AND (artifact.request_id=req.id OR (r.id IS NOT NULL AND artifact_request.distribution_id=r.distribution_id))
  LEFT JOIN third_party_documents review ON review.tenant_id=req.tenant_id AND review.legal_entity_id=req.legal_entity_id AND review.assessment_id=assessment.id AND review.request_id=req.id AND review.artifact_id=artifact.id AND artifact.submission_id=submission.id
  WHERE (t.id::text=$1 OR t.slug=$1) AND req.legal_entity_id=$2::uuid
- AND (r.id IS NULL OR (req.distribution_id=r.distribution_id AND req.subject_type=d.subject_type AND req.subject_id=d.subject_id::text AND req.form_template_id=d.form_template_id AND req.form_template_version=d.form_template_version))
+ AND ` + documentRevisionScopeSQL() + `
  AND ($5='' OR req.form_template_id=NULLIF($5,'')::uuid) AND ($7='' OR r.id=NULLIF($7,'')::uuid)
  AND ($13='' OR submission.id=NULLIF($13,'')::uuid) AND ($14='' OR field->>'id'=$14) AND ($15='' OR artifact.id=NULLIF($15,'')::uuid)
- AND CASE
+ AND (` + documentReadAuthoritySQL() + `)
+ ) SELECT to_jsonb(o)-'artifact_request_id',artifact_request_id FROM occurrences o
+ WHERE ($6='' OR relationship_id=$6) AND (NOT $8::boolean OR current) AND ($9='' OR file_kind=$9)
+ AND ($10='' OR strpos(lower(file_name),lower($10))>0)
+ AND ($12='' OR (submitted_at,id)<($11::timestamptz,$12))
+ ORDER BY submitted_at DESC,id DESC LIMIT $16`
+}
+
+// Shared submission scope deliberately contains no file/answer joins: scalar
+// answers require the same workflow permission even when the file list is empty.
+func documentSubmissionJoinsSQL() string {
+	return `FROM capture_submissions submission
+ JOIN tenants t ON t.id=submission.tenant_id
+ JOIN capture_requests req ON req.id=submission.request_id AND req.tenant_id=submission.tenant_id
+ LEFT JOIN capture_response_revisions r ON r.submission_id=submission.id AND r.tenant_id=req.tenant_id AND r.legal_entity_id=req.legal_entity_id
+ LEFT JOIN capture_form_distributions d ON d.id=r.distribution_id AND d.tenant_id=req.tenant_id AND d.legal_entity_id=req.legal_entity_id
+ LEFT JOIN third_party_assessment_request_links assessment_link ON assessment_link.request_id=req.id AND assessment_link.tenant_id=req.tenant_id AND assessment_link.legal_entity_id=req.legal_entity_id AND req.origin_type=assessment_link.origin_type AND req.origin_id=assessment_link.origin_id::text AND req.origin_version=assessment_link.origin_sequence
+ LEFT JOIN third_party_assessments assessment ON assessment.id=assessment_link.assessment_id AND assessment.tenant_id=req.tenant_id AND assessment.legal_entity_id=req.legal_entity_id AND req.subject_type='VENDOR_RELATIONSHIP' AND req.subject_id=assessment.relationship_id::text AND req.form_template_id=assessment.form_template_id AND req.form_template_version=assessment.form_template_version
+ LEFT JOIN third_party_work_capture_links work_link ON work_link.request_id=req.id AND work_link.tenant_id=req.tenant_id AND work_link.legal_entity_id=req.legal_entity_id AND req.origin_type=work_link.origin_type AND req.origin_id=work_link.origin_id::text AND req.origin_version=work_link.origin_version
+ LEFT JOIN third_party_work_requests work ON work.id=work_link.work_request_id AND work.tenant_id=req.tenant_id AND work.legal_entity_id=req.legal_entity_id AND req.subject_type='VENDOR_RELATIONSHIP' AND req.subject_id=work.relationship_id::text AND req.form_template_id=work.form_template_id AND req.form_template_version=work.form_template_version
+ LEFT JOIN third_party_relationships relationship ON relationship.id=COALESCE(assessment.relationship_id,work.relationship_id) AND relationship.tenant_id=req.tenant_id AND relationship.legal_entity_id=req.legal_entity_id`
+}
+
+func documentRevisionScopeSQL() string {
+	return `(r.id IS NULL OR (req.distribution_id=r.distribution_id AND req.subject_type=d.subject_type AND req.subject_id=d.subject_id::text AND req.form_template_id=d.form_template_id AND req.form_template_version=d.form_template_version))`
+}
+
+func documentReadAuthoritySQL() string {
+	assessmentRoute := authority.PostgresReadRouteSQL("assessment", "id", "THIRD_PARTY_ASSESSMENT", "THIRDPARTY.ASSESSMENT.REVIEW", "REVIEWER", 3, 4)
+	workReviewer := authority.PostgresReadRouteSQL("work", "relationship_id", "VENDOR_RELATIONSHIP", "THIRDPARTY.WORK.REVIEW", "REVIEWER", 3, 4)
+	workOwner := authority.PostgresReadRouteSQL("work", "relationship_id", "VENDOR_RELATIONSHIP", "THIRDPARTY.WORK.SEND", "OWNER", 3, 4)
+	subjectVisibility := strings.ReplaceAll(completedResponseSubjectVisibilitySQL("$3"), "ELSE true", "ELSE false")
+	return `CASE
  WHEN req.origin_type='THIRD_PARTY_ASSESSMENT' THEN assessment.id IS NOT NULL AND (assessment.started_by_principal_id::text=$3 OR relationship.business_owner_principal_id::text=$3 OR ` + assessmentRoute + `)
  WHEN req.origin_type='THIRD_PARTY_WORK' THEN work.id IS NOT NULL
  AND CASE work.target_type
@@ -108,12 +142,7 @@ func documentInventorySQL() string {
  WHEN 'MATTER' THEN EXISTS(SELECT 1 FROM matters target WHERE target.id=work.target_id AND target.tenant_id=req.tenant_id AND target.legal_entity_id=req.legal_entity_id AND ` + recipientSubjectVisibilityPredicate("target", "$3") + `)
  ELSE false END
  AND (work.owner_principal_id::text=$3 OR work.reviewer_principal_id::text=$3 OR relationship.business_owner_principal_id::text=$3 OR ` + workReviewer + ` OR ` + workOwner + `)
- ELSE r.id IS NOT NULL AND (` + subjectVisibility + `) END
- ) SELECT to_jsonb(o)-'artifact_request_id',artifact_request_id FROM occurrences o
- WHERE ($6='' OR relationship_id=$6) AND (NOT $8::boolean OR current) AND ($9='' OR file_kind=$9)
- AND ($10='' OR strpos(lower(file_name),lower($10))>0)
- AND ($12='' OR (submitted_at,id)<($11::timestamptz,$12))
- ORDER BY submitted_at DESC,id DESC LIMIT $16`
+ ELSE r.id IS NOT NULL AND (` + subjectVisibility + `) END`
 }
 
 // Capture currency follows submitted field replacement, including an omitted

@@ -117,6 +117,52 @@ func TestCompletedResponseAnswersComeFromExactHistoricalSubmission(t *testing.T)
 	}
 }
 
+func TestCompletedResponseScalarAnswersRequireOwningWorkflowAuthority(t *testing.T) {
+	for _, origin := range []string{"THIRD_PARTY_WORK", "THIRD_PARTY_ASSESSMENT"} {
+		t.Run(origin, func(t *testing.T) {
+			store, q := documentMemoryFixture()
+			d := store.distributions["distribution"]
+			d.SubjectType = "VENDOR_RELATIONSHIP"
+			d.SubjectID = "relationship"
+			store.distributions[d.ID] = d
+			req := store.repo.requests["request"]
+			req.SubjectType = d.SubjectType
+			req.SubjectID = d.SubjectID
+			req.Origin = RequestOrigin{Type: origin, ID: "workflow", Version: 1}
+			req.Fields = []Field{{ID: "secret", Type: "text", Label: "Control details"}}
+			store.repo.requests[req.ID] = req
+			sub := store.repo.submissions["older"]
+			sub.Answers = map[string]formcontract.AnswerValue{"secret": formcontract.TextAnswer("restricted control detail")}
+			store.repo.submissions[sub.ID] = sub
+			candidate := store.repo.candidates[q.PrincipalID]
+			candidate.ReadableSubjects["VENDOR_RELATIONSHIP:relationship"] = true
+			store.repo.candidates[q.PrincipalID] = candidate
+			service := NewDistributionService(store)
+			if _, _, err := service.GetCompletedResponse(context.Background(), q.TenantID, q.LegalEntityID, q.PrincipalID, "revision-older"); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := service.GetCompletedResponseAnswers(context.Background(), q.TenantID, q.LegalEntityID, q.PrincipalID, "revision-older"); err == nil {
+				t.Fatal("scalar answers exposed with missing workflow authority")
+			}
+			allowed := false
+			store.documentContexts = documentContextFunc(func(_ context.Context, actual DocumentQuery, _ Request, _ Submission) (DocumentContext, error) {
+				if actual.PrincipalID != q.PrincipalID || !allowed {
+					return DocumentContext{}, ErrNotFound
+				}
+				return DocumentContext{RelationshipID: "relationship"}, nil
+			})
+			if _, err := service.GetCompletedResponseAnswers(context.Background(), q.TenantID, q.LegalEntityID, q.PrincipalID, "revision-older"); err == nil {
+				t.Fatal("scalar answers exposed despite denied workflow target")
+			}
+			allowed = true
+			answers, err := service.GetCompletedResponseAnswers(context.Background(), q.TenantID, q.LegalEntityID, q.PrincipalID, "revision-older")
+			if err != nil || len(answers.Answers) != 1 || answers.Answers[0].Value.Text == nil || *answers.Answers[0].Value.Text != "restricted control detail" {
+				t.Fatalf("permitted scalar answers %+v %v", answers, err)
+			}
+		})
+	}
+}
+
 type documentContextFunc func(context.Context, DocumentQuery, Request, Submission) (DocumentContext, error)
 
 func (f documentContextFunc) ResolveDocumentContext(ctx context.Context, q DocumentQuery, r Request, s Submission) (DocumentContext, error) {

@@ -12,4 +12,6 @@ Each occurrence contains `id`, `artifact_id`, `request_id`, `submission_id`, `fi
 
 `GET /api/v1/forms/responses/{revision_id}` adds `submission_id`, `answers` (`field_id`, `label`, `type`, `value`), `documents` (first 100 exact occurrences) and `documents_next_cursor`. All answers come from that exact immutable submission and form snapshot. Answer content is returned only for supported, authorized subjects whose request scope matches the response. Existing response metadata and revision DTOs are retained.
 
+For assessment and vendor-work origins, answer reads additionally require the exact stored workflow capture link, form revision, and owning workflow read authority, including the work's Program or Matter target visibility. This applies to scalar-only submissions; an empty document inventory is never evidence of permission to read answers. Missing workflow authority denies the response detail before any answers are returned.
+
 The API exposes no storage key, access selector, session token, draft answer or invented review decision. It does not authorize accept/reject, replacement or disposal commands. The read contract and deployment limits are described in [submitted-document architecture](../docs/architecture/submitted-document-reads.md).

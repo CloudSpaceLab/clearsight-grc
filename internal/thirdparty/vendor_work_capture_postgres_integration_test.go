@@ -169,6 +169,36 @@ func TestPostgresVendorWorkUsesCanonicalOTPRouteAndSubmitsAfterAutosave(t *testi
 	if legacyInvitations != 0 {
 		t.Fatalf("vendor-work canonical request created %d legacy invitations", legacyInvitations)
 	}
+	// The relationship owner may see response metadata, but scalar answers
+	// require the owning work's target authority even when there are no files.
+	var scalarRevisionID string
+	if err := pool.QueryRow(ctx, `SELECT id::text FROM capture_response_revisions WHERE submission_id=$1::uuid`, result.Submission.SubmissionID).Scan(&scalarRevisionID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE programs SET scope='{"access":"RESTRICTED","allowed_principal_ids":[]}' WHERE id=$1::uuid`, programID); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := distributions.GetCompletedResponse(ctx, thirdPartyTenantID, thirdPartyEntityA, thirdPartyPrincipal, scalarRevisionID); err != nil {
+		t.Fatalf("relationship owner response metadata: %v", err)
+	}
+	if answers, err := distributions.GetCompletedResponseAnswers(ctx, thirdPartyTenantID, thirdPartyEntityA, thirdPartyPrincipal, scalarRevisionID); err == nil {
+		t.Fatalf("restricted work scalar answers exposed: %+v", answers)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE programs SET scope='{}' WHERE id=$1::uuid`, programID); err != nil {
+		t.Fatal(err)
+	}
+	if answers, err := distributions.GetCompletedResponseAnswers(ctx, thirdPartyTenantID, thirdPartyEntityA, thirdPartyPrincipal, scalarRevisionID); err != nil || len(answers.Answers) != 1 {
+		t.Fatalf("permitted work scalar answers: %+v %v", answers, err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE third_party_work_capture_links SET origin_version=3,sequence=3 WHERE id=$1::uuid`, captureID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := distributions.GetCompletedResponseAnswers(ctx, thirdPartyTenantID, thirdPartyEntityA, thirdPartyPrincipal, scalarRevisionID); err == nil {
+		t.Fatal("scalar answers exposed through mismatched work capture link")
+	}
+	if _, err := pool.Exec(ctx, `UPDATE third_party_work_capture_links SET origin_version=1,sequence=1 WHERE id=$1::uuid`, captureID); err != nil {
+		t.Fatal(err)
+	}
 	// Add one submitted file fixture and its exact capture receipt. The file
 	// inventory must follow the relationship capture, then the work target ACL.
 	if _, err := pool.Exec(ctx, `
