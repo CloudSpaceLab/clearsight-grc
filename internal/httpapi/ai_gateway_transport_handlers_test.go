@@ -68,3 +68,32 @@ func TestListAIGatewayTransportsReportsOperationsBridgeAvailabilityTruthfully(t 
 		t.Fatalf("unavailable response = %d %s", response.Code, response.Body.String())
 	}
 }
+
+func TestListAIGatewayTransportsProjectsOnlyPublicProxyAndWorkloadIngress(t *testing.T) {
+	service := aigovernance.NewService(aigovernance.NewMemoryRepository(), nil, nil, nil)
+	api := &API{deps: Dependencies{
+		AIGovernance:           service,
+		AIGatewayPublicBaseURL: "https://ai.bank.example/proxy",
+	}}
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/ai-governance/gateway-configs?environment=PRODUCTION", nil)
+	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{TenantID: "bank", PrincipalID: "admin"}))
+	response := httptest.NewRecorder()
+	api.listAIGatewayTransports(response, request)
+	body := response.Body.String()
+	for _, expected := range []string{
+		`"proxy":{"configured":true`,
+		`"base_url":"https://ai.bank.example/proxy"`,
+		`"path":"/v1/models"`,
+		`"path":"/v1/chat/completions"`,
+		`"path":"/v1/responses"`,
+	} {
+		if !strings.Contains(body, expected) {
+			t.Fatalf("response missing %s: %s", expected, body)
+		}
+	}
+	for _, prohibited := range []string{"/metrics", "/health/config", "/health/live", "/health/ready"} {
+		if strings.Contains(body, prohibited) {
+			t.Fatalf("response exposed non-workload route %q: %s", prohibited, body)
+		}
+	}
+}
