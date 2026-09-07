@@ -25,6 +25,6 @@ export function Tabs<T extends string>({ ariaLabel, items, selectedKey, onSelect
         </>}
       </Tab>}
     </TabList>
-    <TabPanel id={selectedKey} className="cs-tabs__panel">{children(selectedKey)}</TabPanel>
+    <TabPanel key={selectedKey} id={selectedKey} className="cs-tabs__panel">{children(selectedKey)}</TabPanel>
   </AriaTabs>;
 }

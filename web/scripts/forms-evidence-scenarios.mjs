@@ -544,7 +544,11 @@ for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"],
       state: "submitted-document-browser", theme, viewport, zoom: 1, reducedMotion: "reduce",
       capabilities: ["documents-file-types", "documents-quick-look", "documents-keyboard-return", ...(surface === "vendors" ? ["documents-vendor-launcher"] : [])],
       run: async (page) => {
-        if (surface === "forms") await page.getByRole("tab", { name: "Documents", exact: true }).click();
+        if (surface === "forms") {
+          const tab = page.getByRole("tab", { name: "Documents", exact: true });
+          await tab.click();
+          if (await tab.getAttribute("aria-controls") !== await page.getByRole("tabpanel").getAttribute("id")) throw new Error("The Documents tab must control its mounted panel after switching.");
+        }
         else {
           await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
           await page.getByRole("button", { name: "View vendor documents" }).click();

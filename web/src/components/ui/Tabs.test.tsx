@@ -45,4 +45,15 @@ describe("Tabs", () => {
     expect(selected.querySelectorAll(".cs-tabs__indicator")).toHaveLength(1);
     expect(document.querySelectorAll(".cs-tabs__indicator")).toHaveLength(1);
   });
+
+  it("keeps the selected tab linked to its mounted panel after switching", () => {
+    render(<Harness/>);
+    for (const name of ["Sent forms", "Responses", "Templates"]) {
+      const tab = screen.getByRole("tab", { name });
+      fireEvent.click(tab);
+      const panel = screen.getByRole("tabpanel");
+      expect(document.getElementById(tab.getAttribute("aria-controls") ?? "")).toBe(panel);
+      expect(panel.getAttribute("aria-labelledby")).toBe(tab.id);
+    }
+  });
 });
