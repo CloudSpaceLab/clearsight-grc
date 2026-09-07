@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/aigateway"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
@@ -23,6 +24,17 @@ type aiGatewayRuntimeStatus struct {
 	ErrorCode       string `json:"error_code,omitempty"`
 }
 
+type aiGatewayIngressRoute struct {
+	Method string `json:"method"`
+	Path   string `json:"path"`
+}
+
+type aiGatewayProxyInfo struct {
+	Configured bool                    `json:"configured"`
+	BaseURL    string                  `json:"base_url,omitempty"`
+	Ingress    []aiGatewayIngressRoute `json:"ingress"`
+}
+
 func (a *API) listAIGatewayTransports(w http.ResponseWriter, r *http.Request) {
 	actor, err := identity.Require(r.Context())
 	if err != nil {
@@ -39,7 +51,23 @@ func (a *API) listAIGatewayTransports(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"items":          items,
 		"runtime_status": a.aiGatewayRuntimeStatus(r.Context(), actor.TenantID, environment),
+		"proxy":          a.aiGatewayProxyInfo(),
 	})
+}
+
+func (a *API) aiGatewayProxyInfo() aiGatewayProxyInfo {
+	ingress := make([]aiGatewayIngressRoute, 0, 3)
+	for _, route := range aigateway.GatewayRoutes() {
+		if route.Access != aigateway.RouteWorkload {
+			continue
+		}
+		ingress = append(ingress, aiGatewayIngressRoute{Method: route.Method, Path: route.Path})
+	}
+	return aiGatewayProxyInfo{
+		Configured: strings.TrimSpace(a.deps.AIGatewayPublicBaseURL) != "",
+		BaseURL:    strings.TrimRight(strings.TrimSpace(a.deps.AIGatewayPublicBaseURL), "/"),
+		Ingress:    ingress,
+	}
 }
 
 func (a *API) aiGatewayRuntimeStatus(ctx context.Context, tenantID, environment string) aiGatewayRuntimeStatus {

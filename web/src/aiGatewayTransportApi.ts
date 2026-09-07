@@ -79,16 +79,33 @@ export type GatewayRuntimeStatus = {
   error_code?: string;
 };
 
+export type GatewayProxyIngress = {
+  method: string;
+  path: string;
+};
+
+export type GatewayProxyInfo = {
+  configured: boolean;
+  base_url?: string;
+  ingress: GatewayProxyIngress[];
+};
+
 export type GatewayTransportControlState = {
   revisions: GatewayTransportRevision[];
   runtimeStatus: GatewayRuntimeStatus;
+  proxy: GatewayProxyInfo;
 };
 
 export async function loadGatewayTransportState(environment: GatewayEnvironment): Promise<GatewayTransportControlState> {
-  const response = await requestJSON<{ items: GatewayTransportRevision[]; runtime_status: GatewayRuntimeStatus }>(apiBase, `${basePath}?environment=${environment}&limit=100`);
+  const response = await requestJSON<{
+    items: GatewayTransportRevision[];
+    runtime_status: GatewayRuntimeStatus;
+    proxy: GatewayProxyInfo;
+  }>(apiBase, `${basePath}?environment=${environment}&limit=100`);
   return {
     revisions: response.items.sort((left, right) => right.version - left.version),
     runtimeStatus: response.runtime_status,
+    proxy: response.proxy,
   };
 }
 
