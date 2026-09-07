@@ -5,15 +5,18 @@ import {
   loadGatewayTransportState,
   transitionGatewayTransport,
   type GatewayEnvironment,
+  type GatewayProxyInfo,
   type GatewayRuntimeStatus,
   type GatewayTransportDefinition,
   type GatewayTransportRevision,
   type GatewayTransportTransition,
 } from "../../aiGatewayTransportApi";
+import { AIGatewayProxyCard } from "./AIGatewayProxyCard";
 import { AIGatewayTransportDraftForm } from "./AIGatewayTransportDraftForm";
 import "./AIGatewayTransportControl.css";
 
 const environments: GatewayEnvironment[] = ["PRODUCTION", "TEST", "DEVELOPMENT"];
+const emptyProxy: GatewayProxyInfo = { configured: false, ingress: [] };
 
 export function AIGatewayTransportControl() {
   const [environment, setEnvironment] = useState<GatewayEnvironment>("PRODUCTION");
@@ -21,6 +24,7 @@ export function AIGatewayTransportControl() {
   const [canConfigure, setCanConfigure] = useState(false);
   const [revisions, setRevisions] = useState<GatewayTransportRevision[]>([]);
   const [runtimeStatus, setRuntimeStatus] = useState<GatewayRuntimeStatus | null>(null);
+  const [proxy, setProxy] = useState<GatewayProxyInfo>(emptyProxy);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -33,9 +37,11 @@ export function AIGatewayTransportControl() {
       setCanConfigure(Boolean(context.capabilities?.config_write));
       setRevisions(state.revisions);
       setRuntimeStatus(state.runtimeStatus);
+      setProxy(state.proxy);
     } catch (error) {
       setRevisions([]);
       setRuntimeStatus(null);
+      setProxy(emptyProxy);
       setMessage(error instanceof Error ? error.message : "Gateway routing configuration could not be loaded.");
     } finally {
       setLoading(false);
@@ -100,6 +106,8 @@ export function AIGatewayTransportControl() {
       <Status label="Logical models" value={active ? String(active.definition.models.length) : "—"} note="Applications use aliases rather than raw upstream providers."/>
       <Status label="Runtime apply" value={runtimeValue(runtimeStatus, active, loading)} note={runtimeNote(runtimeStatus, active)}/>
     </div>
+
+    <AIGatewayProxyCard proxy={proxy} runtimeStatus={runtimeStatus} loading={loading}/>
 
     {latest && <section className="ai-gateway-transport__revision" aria-label="Latest gateway routing revision">
       <div><span className="eyebrow">Latest revision</span><h4>v{latest.version} · {title(latest.status)}</h4><p>{latest.change_reason}</p></div>
