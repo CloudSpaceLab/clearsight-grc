@@ -16,7 +16,7 @@ func (r *PostgresRepository) ListScoped(ctx context.Context, tenant, legalEntity
 	}
 	rows, err := r.pool.Query(ctx, `
 		SELECT di.id::text,t.slug,COALESCE(di.legal_entity_id::text,''),di.file_name,di.media_type,di.purpose,di.source_type,
-		       di.size_bytes,di.sha256,di.artifact_status,di.extraction_status,di.analysis_status,
+		       di.size_bytes,di.sha256,di.artifact_status,di.extraction_status,di.extraction_method,di.analysis_status,
 		       di.sections_total,di.sections_omitted,di.proposals_total,di.proposals_omitted,
 		       COALESCE((SELECT count(*)::int FROM jsonb_array_elements(di.proposals) p WHERE p->>'status'='PENDING_REVIEW'),0),
 		       GREATEST(jsonb_array_length(di.proposals)-COALESCE((SELECT count(*)::int FROM jsonb_array_elements(di.proposals) p WHERE p->>'status'='PENDING_REVIEW'),0),0),
