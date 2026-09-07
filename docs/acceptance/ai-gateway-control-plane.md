@@ -64,6 +64,22 @@ Emergency freeze is a separate authority from transport revision suspension. Sus
 - `GET /health/config` reports `emergency_supported`, `emergency_revision` and `outbound_frozen` so Configure distinguishes desired state from gateway-applied state;
 - the control does not claim to cancel provider calls that were already in flight when a freeze was issued.
 
+## Deterministic pre-activation simulation
+
+Gateway simulation is a read-only validation projection over the existing `GET /api/v1/ai-governance/gateway-configs` control-plane route. It is not a second gateway, a second policy engine or a synthetic provider invocation.
+
+- administrators choose from bounded server-owned fixtures rather than supplying arbitrary prompt text;
+- simulation can evaluate an exact candidate organization-baseline revision, exact workload/policy revision and exact transport revision before activation;
+- policy evaluation reuses the production detector facts and baseline/workload composition semantics;
+- route eligibility is calculated from the selected governed transport definition and excludes suspended or otherwise ineligible providers;
+- `SAFE`, instruction-exfiltration, hostile-untrusted-content, provider-unavailable, forbidden-residency-fallback and unknown-workload fixtures cover the current deterministic boundary;
+- provider-unavailable, residency-failure and unknown-workload fixtures fail closed and explicitly report that a provider call would not occur;
+- simulation never resolves a provider credential, opens an upstream provider request, records a normal gateway decision receipt, or persists fixture content;
+- connected-source `LIVE_LOOKUP` facts are deliberately represented as unavailable in deterministic simulation rather than performing a real external lookup under the guise of a fixture test;
+- tenant identity comes only from the authenticated actor. Candidate IDs from another tenant cannot be inspected or simulated.
+
+The effective-instruction preview exposes only governed organization overlay content plus the structural precedence boundary `organization baseline → workload system/developer → user/retrieved content`. It does not return hidden workload messages, user text, retrieved fixture content or provider-bound request bodies. Shadow overlays are clearly preview-only; an enforcing overlay is marked applied only when its rule matches and the request would proceed past policy enforcement.
+
 ## Configure UX
 
 `Configure → AI governance → Organization AI proxy` provides:
@@ -78,9 +94,10 @@ Emergency freeze is a separate authority from transport revision suspension. Sus
 - maker/checker submit, approve, activate, suspend and retire lifecycle;
 - desired database authority and actual gateway applied-state distinction;
 - emergency freeze/unfreeze as a separate incident control requiring an explicit reason and acknowledgement;
-- propagation state until the gateway reports the exact emergency-control revision, never a false claim that outbound AI has already stopped.
+- propagation state until the gateway reports the exact emergency-control revision, never a false claim that outbound AI has already stopped;
+- bounded deterministic simulation with exact candidate revision attribution, route eligibility, detector facts and effective organization-instruction preview.
 
-The UI must never describe database activation alone, publication of the base URL alone, or an emergency write that the gateway has not yet observed as proof of runtime state.
+The UI must never describe database activation alone, publication of the base URL alone, or an emergency write that the gateway has not yet observed as proof of runtime state. It must also never describe a simulation result as runtime health or as proof that an upstream provider was contacted.
 
 ## Required regression proof
 
@@ -101,4 +118,8 @@ Repository CI must continue to prove:
 - emergency freeze overrides a cached known-good router and emergency-control read failure fails closed;
 - stale emergency writes are rejected and no-op freeze/unfreeze transitions are rejected;
 - PostgreSQL freeze/unfreeze state and its canonical outbox audit event commit atomically;
+- deterministic simulation uses exact candidate baseline/workload/transport revisions and does not create receipts or provider calls;
+- simulation rejects cross-tenant candidate selection and does not return built-in fixture prompt text;
+- enforcing vs Shadow instruction-overlay preview is truthful;
+- provider-unavailable, forbidden-residency-fallback and unknown-workload fixtures report no provider call;
 - Configure typecheck, rendered accessibility tests, production build and deterministic Chromium review.
