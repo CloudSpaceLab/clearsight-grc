@@ -9,14 +9,29 @@ import (
 )
 
 type mutableTransportSource struct {
-	snapshot TransportSnapshot
-	err      error
+	snapshot     TransportSnapshot
+	err          error
+	emergency    EmergencyControlState
+	emergencyErr error
 }
 
 func (source *mutableTransportSource) ActiveTransportSnapshot(context.Context, string, string) (TransportSnapshot, error) {
 	return source.snapshot, source.err
 }
 func (source *mutableTransportSource) Ready() bool { return true }
+func (source *mutableTransportSource) GatewayEmergencyControl(_ context.Context, tenantID, environment string) (EmergencyControlState, error) {
+	if source.emergencyErr != nil {
+		return EmergencyControlState{}, source.emergencyErr
+	}
+	state := source.emergency
+	if state.TenantID == "" {
+		state.TenantID = tenantID
+	}
+	if state.Environment == "" {
+		state.Environment = environment
+	}
+	return state, nil
+}
 
 type mapSecretResolver map[string]string
 
@@ -44,16 +59,22 @@ func transportSnapshot(version int64, routeID, secretRef string) TransportSnapsh
 	}
 }
 
-func TestTransportManagerKeepsKnownGoodSnapshotWhenRefreshFails(t *testing.T) {
-	now := time.Date(2026, 9, 3, 11, 0, 0, 0, time.UTC)
-	source := &mutableTransportSource{snapshot: transportSnapshot(1, "route-v1", "env:PROVIDER_V1")}
+func newTestTransportManager(t *testing.T, source *mutableTransportSource, resolver mapSecretResolver) *transportManager {
+	t.Helper()
 	manager, err := newTransportManager(RuntimeConfig{
 		Environment: "production", RequestTimeout: 2 * time.Minute, GovernanceRefresh: time.Second,
 		MaxProviderBodyBytes: defaultMaxProviderBodyBytes, MaxSSEEventBytes: defaultMaxSSEEventBytes,
-	}, source, mapSecretResolver{"env:PROVIDER_V1": "12345678"})
+	}, source, resolver)
 	if err != nil {
 		t.Fatal(err)
 	}
+	return manager
+}
+
+func TestTransportManagerKeepsKnownGoodSnapshotWhenRefreshFails(t *testing.T) {
+	now := time.Date(2026, 9, 3, 11, 0, 0, 0, time.UTC)
+	source := &mutableTransportSource{snapshot: transportSnapshot(1, "route-v1", "env:PROVIDER_V1")}
+	manager := newTestTransportManager(t, source, mapSecretResolver{"env:PROVIDER_V1": "12345678"})
 	manager.now = func() time.Time { return now }
 	workload := Workload{TenantID: "tenant-a", Environment: "production", AllowedModels: map[string]struct{}{"safe-chat": {}}}
 	first, err := manager.routerFor(context.Background(), workload)
@@ -88,13 +109,7 @@ func TestTransportManagerAtomicallyAppliesNewValidRevision(t *testing.T) {
 	now := time.Date(2026, 9, 3, 11, 0, 0, 0, time.UTC)
 	source := &mutableTransportSource{snapshot: transportSnapshot(1, "route-v1", "env:PROVIDER_V1")}
 	resolver := mapSecretResolver{"env:PROVIDER_V1": "12345678", "env:PROVIDER_V2": "abcdefgh"}
-	manager, err := newTransportManager(RuntimeConfig{
-		Environment: "production", RequestTimeout: 2 * time.Minute, GovernanceRefresh: time.Second,
-		MaxProviderBodyBytes: defaultMaxProviderBodyBytes, MaxSSEEventBytes: defaultMaxSSEEventBytes,
-	}, source, resolver)
-	if err != nil {
-		t.Fatal(err)
-	}
+	manager := newTestTransportManager(t, source, resolver)
 	manager.now = func() time.Time { return now }
 	workload := Workload{TenantID: "tenant-a", Environment: "production", AllowedModels: map[string]struct{}{"safe-chat": {}}}
 	if _, err := manager.routerFor(context.Background(), workload); err != nil {
@@ -120,13 +135,7 @@ func TestTransportManagerRejectsAliasWithoutEnabledRoute(t *testing.T) {
 	snapshot := transportSnapshot(1, "route-v1", "env:PROVIDER_V1")
 	snapshot.Definition.Providers[0].State = ProviderStateSuspended
 	source := &mutableTransportSource{snapshot: snapshot}
-	manager, err := newTransportManager(RuntimeConfig{
-		Environment: "production", RequestTimeout: 2 * time.Minute,
-		MaxProviderBodyBytes: defaultMaxProviderBodyBytes, MaxSSEEventBytes: defaultMaxSSEEventBytes,
-	}, source, mapSecretResolver{"env:PROVIDER_V1": "12345678"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	manager := newTestTransportManager(t, source, mapSecretResolver{"env:PROVIDER_V1": "12345678"})
 	workload := Workload{TenantID: "tenant-a", Environment: "production", AllowedModels: map[string]struct{}{"safe-chat": {}}}
 	if _, err := manager.routerFor(context.Background(), workload); err == nil {
 		t.Fatal("transport with no enabled route unexpectedly applied")
@@ -134,5 +143,62 @@ func TestTransportManagerRejectsAliasWithoutEnabledRoute(t *testing.T) {
 	status := manager.status("tenant-a", "PRODUCTION")
 	if !status.Degraded || status.DesiredRevision != 1 || status.AppliedRevision != 0 || status.ErrorCode != "TRANSPORT_APPLY_FAILED" {
 		t.Fatalf("failed first apply status = %#v", status)
+	}
+}
+
+func TestTransportManagerEmergencyFreezeOverridesKnownGoodRouter(t *testing.T) {
+	now := time.Date(2026, 9, 7, 12, 0, 0, 0, time.UTC)
+	source := &mutableTransportSource{snapshot: transportSnapshot(1, "route-v1", "env:PROVIDER_V1")}
+	manager := newTestTransportManager(t, source, mapSecretResolver{"env:PROVIDER_V1": "12345678"})
+	manager.now = func() time.Time { return now }
+	workload := Workload{TenantID: "tenant-a", Environment: "production", AllowedModels: map[string]struct{}{"safe-chat": {}}}
+	first, err := manager.routerFor(context.Background(), workload)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	now = now.Add(2 * time.Second)
+	source.emergency = EmergencyControlState{Frozen: true, RecordVersion: 1, UpdatedAt: now}
+	if _, err := manager.routerFor(context.Background(), workload); !errors.Is(err, ErrOutboundFrozen) {
+		t.Fatalf("freeze error = %v", err)
+	}
+	status := manager.status("tenant-a", "PRODUCTION")
+	if !status.EmergencySupported || !status.OutboundFrozen || status.EmergencyRevision != 1 || status.AppliedRevision != 1 {
+		t.Fatalf("frozen status = %#v", status)
+	}
+
+	now = now.Add(2 * time.Second)
+	source.emergency = EmergencyControlState{Frozen: false, RecordVersion: 2, UpdatedAt: now}
+	restored, err := manager.routerFor(context.Background(), workload)
+	if err != nil {
+		t.Fatalf("unfreeze error = %v", err)
+	}
+	if restored != first {
+		t.Fatal("unfreeze rebuilt or displaced the known-good router")
+	}
+	status = manager.status("tenant-a", "PRODUCTION")
+	if status.OutboundFrozen || status.EmergencyRevision != 2 || status.Degraded {
+		t.Fatalf("restored status = %#v", status)
+	}
+}
+
+func TestTransportManagerFailsClosedWhenEmergencyStateCannotRefresh(t *testing.T) {
+	now := time.Date(2026, 9, 7, 12, 0, 0, 0, time.UTC)
+	source := &mutableTransportSource{snapshot: transportSnapshot(1, "route-v1", "env:PROVIDER_V1")}
+	manager := newTestTransportManager(t, source, mapSecretResolver{"env:PROVIDER_V1": "12345678"})
+	manager.now = func() time.Time { return now }
+	workload := Workload{TenantID: "tenant-a", Environment: "production", AllowedModels: map[string]struct{}{"safe-chat": {}}}
+	if _, err := manager.routerFor(context.Background(), workload); err != nil {
+		t.Fatal(err)
+	}
+
+	now = now.Add(2 * time.Second)
+	source.emergencyErr = errors.New("database unavailable")
+	if _, err := manager.routerFor(context.Background(), workload); !errors.Is(err, ErrEmergencyControlUnavailable) {
+		t.Fatalf("control outage error = %v", err)
+	}
+	status := manager.status("tenant-a", "PRODUCTION")
+	if !status.Degraded || status.ErrorCode != "EMERGENCY_CONTROL_UNAVAILABLE" || status.AppliedRevision != 1 {
+		t.Fatalf("control outage status = %#v", status)
 	}
 }
