@@ -43,11 +43,11 @@ type ArtifactScanner interface {
 
 Files: `internal/evidence/completed_response*.go`, new `response_documents*.go`; `internal/httpapi/form_responses.go`, new document handlers, route registry and API contract; vendor document handlers/tests.
 
-- [ ] Add failing read tests for ordinary file/photo/vendor_document fields, historical revisions, reused artifacts, multiple recipients, guessed IDs and cross-entity/restricted subject reads.
-- [ ] Add a bounded document query returning safe metadata, source field/response, uploader vs submitter attribution, security state and canonical review source. Filter scope before LIMIT; cursor order must be stable.
-- [ ] Extend completed-response detail with immutable answers and document occurrences after the existing exact response authorization. Historical detail resolves its own submission.
-- [ ] Add protected preview/download routes using the same authorization and exact membership. Permit business-rejected/expired historical evidence when bytes are AVAILABLE; enforce `private, no-store`, media type, nosniff and bounded delivery. Never expose keys or bearer tokens.
-- [ ] Test both memory and PostgreSQL stores, including current-only vs history and bounded query plans. Update executable route contract and commit after review.
+- [x] Add failing read tests for ordinary file/photo/vendor_document fields, historical revisions, reused artifacts, multiple recipients, guessed IDs and cross-entity/restricted subject reads.
+- [x] Add a bounded document query returning safe metadata, source field/response, uploader vs submitter attribution, security state and canonical review source. Filter scope before LIMIT; cursor order must be stable.
+- [x] Extend completed-response detail with immutable answers and document occurrences after the existing exact response authorization and the owning workflow's exact link/target/read authorization, including scalar-only submissions. Historical detail resolves its own submission.
+- [x] Add protected preview/download routes using the same authorization and exact membership. Permit business-rejected/expired historical evidence when bytes are AVAILABLE; enforce `private, no-store`, media type, nosniff and bounded delivery. Never expose keys or bearer tokens.
+- [x] Test both memory and PostgreSQL stores, including current-only vs history and bounded query plans. Update executable route contract and commit after review.
 
 UI data must identify an occurrence, not merely a filename:
 
@@ -74,7 +74,7 @@ Files: new `web/src/components/documents/` components/types/styles/tests; `Forms
 - [x] Mount in Forms Documents, exact Forms response and Vendor relationship Documents. Use exact IDs/relationships; no email/name matching. Do not put respondent draft uploads into bank review lists.
 - [x] Render desktop, narrow viewport, both themes and 200% reflow with required fixtures; fix highest-impact defects. Run affected tests, copy-quality, typecheck, build and UI contracts. Review and commit.
 
-Frontend completion does not close Task 2 backend findings or Task 7 release gates. Next/previous navigation here means bounded file-list pages; document-to-document viewer traversal is not claimed.
+Frontend completion does not close Task 7 release gates. Next/previous navigation here means bounded file-list pages; document-to-document viewer traversal is not claimed.
 
 ## Task 4 — document acceptance and rejection (DOC-04)
 
@@ -114,6 +114,10 @@ Files: shared document disposition service/repository/migration; existing object
 - [ ] Perform specification review, then code-quality/security review, repair findings and repeat affected checks.
 - [ ] Integrate without overwriting unrelated changes. Verify CI and deployment when releasing; do not claim production readiness without storage/scanner/retention/provider evidence.
 
+### Additional release gate — existing response-summary visibility (DOC-16)
+
+The pre-existing `/forms/responses` list permits vendor relationship owners without checking a vendor-work target's restricted scope. Titles, identifiers, timestamps and summary scores can therefore disclose linked work metadata even though the newly protected detail endpoint now denies its answers. Before production release, apply owning-workflow link and target visibility to summary queries before pagination, add memory/PostgreSQL/HTTP denial and authorized-route regressions, and verify that unrelated generic Forms access remains unchanged. This is separate from the fixed Task 2 raw-answer exposure.
+
 ## Execution log
 
 - 7 September: proposal approved, signature requirement confirmed, current main fetched; no remote divergence. Focused baseline Go suites and 52 web tests passed during evaluation. Feature branch created in the existing worktree.
@@ -125,3 +129,5 @@ Files: shared document disposition service/repository/migration; existing object
 - 7 September: frontend specification and quality reviews now pass with no remaining findings. Stable full web run passed all 153 files / 976 tests using two workers; the earlier stale six-tab assertion was updated for Documents, and the realistic focus-then-click regression passed. Canonical vendor review status labels now match VALIDATED/REJECTED/EXPIRED/SUBMITTED/SUPERSEDED. Backend Task 2 committed as `01f44002`, but spec review found legacy/work document currency and exact work-form binding gaps plus missing real-PostgreSQL contributor/reuse/query-plan proof. Those corrections and the schema ownership documentation regression are in progress; Task 2 and end-to-end release remain open.
 - 7 September: native Chromium PDF rendering verified with a generated one-page sample file through the actual protected-preview component. Visual inspection confirmed readable page content. Disabled browser PDF support exposed a blank-viewer case; a regression test and explicit download fallback now cover it. Focused preview/copy tests (7) and evidence build passed, and the disabled-browser fallback was verified in the browser. No production evidence was used.
 - 7 September: full web rerun passed 153 files / 977 tests after the PDF fallback; independent quality re-review approved it. The client now permits an absent review timestamp for awaiting-review records (typecheck RED before correction, 16 affected tests and production build GREEN afterward); independent quality review approved that contract/test correction. Backend correction and re-review remain in progress.
+- 7 September: Task 2 corrections committed as `7dcc15be`; specification re-review passed. Memory and real-PostgreSQL tests now cover pending/replacement/retained/omitted fields, exact work-form binding, contributor uploads and reused artifacts. Small-fixture EXPLAIN returned two rows in 2.325 ms with indexed lookups; this does not close the 200,000-occurrence release benchmark. Latest upstream `cbd9ee49` (scoped document-import summary fix) merged cleanly. Independent quality/security review identified a new immutable-answer authorization gap: generic vendor relationship visibility did not enforce the linked work target's restricted access. The document inventory was already scoped, but an empty document list did not prevent returning raw answers. This P1 is being corrected with scalar-only, memory, PostgreSQL and HTTP regressions before release; no push or deployment has occurred.
+- 7 September: raw-answer authorization correction `14ab785f` passed independent quality/security re-review with no remaining Task 2 findings. Full default Go tests, PostgreSQL composition tests, and both vet modes passed on the merged branch. Serial real-PostgreSQL Evidence, ThirdParty, HTTP, Authority and API suites passed; root independently repeated the vendor-work restricted scalar-answer journey and inventory/reuse/query-plan regression without skips (latest small fixture: two rows, 2.965 ms, 44 shared hits). Node 24.19.0 full web suite passed all 153 files / 978 tests and production build. Task 1–3 implementation is complete; production release, later lifecycle/validation tasks and DOC-16 remain open.
