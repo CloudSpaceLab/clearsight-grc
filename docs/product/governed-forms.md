@@ -52,6 +52,10 @@ The active reference contracts are `VENDOR-ADDRESS-VERIFICATION` and `VENDOR-CER
 
 ## Boundaries and release evidence
 
+Submitted file, photo and vendor-document answers are available through one scoped document inventory for Forms and Vendors. Each row identifies its immutable submission and source question; ordinary files and typed vendor documents use the same read contract. Filename and file-type filters, exact form/vendor/response scope and current/history pagination operate over authorized submitted occurrences. Draft uploads are excluded. Uploader and submitter attribution remain distinct, and missing historical attribution remains unknown.
+
+Completed-response detail returns its own immutable answers and document occurrences. Available PDF and raster-image bytes can be opened; unsupported preview formats can be downloaded. Complete size and SHA-256 verification precedes byte delivery from the development store. Unscanned, quarantined, missing or changed bytes remain unavailable. Expiry or business rejection alone does not hide authorized history. Existing assessment decisions retain their original submitted occurrence; later reuse does not inherit acceptance. This tranche adds no review, replacement or disposal command. See the [submitted-document API](../../api/submitted-documents.md) and [read-model ownership and deployment bounds](../architecture/durable-schema-ownership.d/submitted-documents.md).
+
 - A vendor assessment created from the Vendors workspace remains assessment-scoped; a generic distribution cannot impersonate that origin or silently advance its review.
 - Protected addresses, OTP material and route selectors are not returned in list projections or logged.
 - Template and distribution lists use legal-entity-scoped keyset pagination with bounded page sizes.

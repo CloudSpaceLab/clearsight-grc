@@ -1,0 +1,169 @@
+package evidence
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"mime"
+	"strings"
+	"time"
+)
+
+type DocumentFileKind string
+
+const (
+	DocumentPDF         DocumentFileKind = "PDF"
+	DocumentImage       DocumentFileKind = "IMAGE"
+	DocumentWord        DocumentFileKind = "WORD"
+	DocumentSpreadsheet DocumentFileKind = "SPREADSHEET"
+	DocumentOther       DocumentFileKind = "OTHER"
+)
+
+// DocumentKindForMediaType classifies validated MIME types, never file extensions.
+func DocumentKindForMediaType(value string) DocumentFileKind {
+	media, _, err := mime.ParseMediaType(strings.ToLower(strings.TrimSpace(value)))
+	if err != nil {
+		return DocumentOther
+	}
+	switch media {
+	case "application/pdf":
+		return DocumentPDF
+	case "image/png", "image/jpeg", "image/gif", "image/webp", "image/tiff", "image/bmp":
+		return DocumentImage
+	case "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+		return DocumentWord
+	case "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv":
+		return DocumentSpreadsheet
+	default:
+		return DocumentOther
+	}
+}
+
+type DocumentReview struct {
+	ID         string    `json:"id"`
+	Status     string    `json:"status"`
+	ReviewedBy string    `json:"reviewed_by"`
+	ReviewedAt time.Time `json:"reviewed_at"`
+	Source     string    `json:"source"`
+}
+type DocumentOccurrence struct {
+	ID                  string           `json:"id"`
+	ArtifactID          string           `json:"artifact_id"`
+	RequestID           string           `json:"request_id"`
+	SubmissionID        string           `json:"submission_id"`
+	FieldID             string           `json:"field_id"`
+	ResponseRevisionID  string           `json:"response_revision_id,omitempty"`
+	DistributionID      string           `json:"distribution_id,omitempty"`
+	RelationshipID      string           `json:"relationship_id,omitempty"`
+	AssessmentID        string           `json:"assessment_id,omitempty"`
+	WorkRequestID       string           `json:"work_request_id,omitempty"`
+	FormTemplateID      string           `json:"form_template_id,omitempty"`
+	FormTemplateVersion int64            `json:"form_template_version"`
+	FormTitle           string           `json:"form_title"`
+	FieldLabel          string           `json:"field_label"`
+	FileName            string           `json:"file_name"`
+	MediaType           string           `json:"media_type"`
+	FileKind            DocumentFileKind `json:"file_kind"`
+	SizeBytes           int64            `json:"size_bytes"`
+	SHA256              string           `json:"sha256"`
+	ArtifactStatus      ArtifactStatus   `json:"artifact_status"`
+	UploadedAt          time.Time        `json:"uploaded_at"`
+	UploadedBy          string           `json:"uploaded_by,omitempty"`
+	SubmittedAt         time.Time        `json:"submitted_at"`
+	SubmittedBy         string           `json:"submitted_by,omitempty"`
+	ExpiresOn           string           `json:"expires_on,omitempty"`
+	Current             bool             `json:"current"`
+	Review              *DocumentReview  `json:"review,omitempty"`
+	ArtifactRequestID   string           `json:"-"`
+}
+type DocumentQuery struct {
+	TenantID, LegalEntityID, PrincipalID                      string
+	FileKind                                                  DocumentFileKind
+	Query, FormTemplateID, RelationshipID, ResponseRevisionID string
+	CurrentOnly                                               bool
+	Cursor                                                    string
+	Limit                                                     int
+	// Exact selectors are set only by the protected content handler.
+	SubmissionID, FieldID, ArtifactID string
+}
+type DocumentPage struct {
+	Items      []DocumentOccurrence `json:"items"`
+	NextCursor string               `json:"next_cursor,omitempty"`
+}
+type documentCursor struct {
+	SubmittedAt time.Time `json:"at"`
+	ID          string    `json:"id"`
+}
+type documentStore interface {
+	ListDocuments(context.Context, DocumentQuery) (DocumentPage, error)
+}
+
+// DocumentContextReader delegates memory-mode legacy reads to their owning
+// workflow's exact link checks and read authority. PostgreSQL does this in SQL.
+type DocumentContextReader interface {
+	ResolveDocumentContext(context.Context, DocumentQuery, Request, Submission) (DocumentContext, error)
+}
+type DocumentContext struct {
+	RelationshipID, AssessmentID, WorkRequestID string
+	Current                                     bool
+	Reviews                                     map[string]DocumentReview
+	Expiries                                    map[string]string
+}
+
+func (s *DistributionService) ConfigureDocumentContexts(reader DocumentContextReader) {
+	if s != nil {
+		if store, ok := s.store.(*MemoryDistributionStore); ok {
+			store.documentContexts = reader
+		}
+	}
+}
+
+func normalizeDocumentQuery(q *DocumentQuery) (documentCursor, error) {
+	if q == nil || strings.TrimSpace(q.TenantID) == "" || strings.TrimSpace(q.LegalEntityID) == "" || q.LegalEntityID == "*" || strings.TrimSpace(q.PrincipalID) == "" || q.Limit < 1 || q.Limit > 100 || len(q.Query) > 200 || len(q.Cursor) > 2048 {
+		return documentCursor{}, ErrDistributionInvalid
+	}
+	switch q.FileKind {
+	case "", DocumentPDF, DocumentImage, DocumentWord, DocumentSpreadsheet, DocumentOther:
+	default:
+		return documentCursor{}, ErrDistributionInvalid
+	}
+	q.Query = strings.TrimSpace(q.Query)
+	if q.Cursor == "" {
+		return documentCursor{}, nil
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(q.Cursor)
+	if err != nil {
+		return documentCursor{}, ErrDistributionInvalid
+	}
+	var c documentCursor
+	if json.Unmarshal(raw, &c) != nil || c.ID == "" || c.SubmittedAt.IsZero() {
+		return documentCursor{}, ErrDistributionInvalid
+	}
+	return c, nil
+}
+func documentPage(values []DocumentOccurrence, limit int) DocumentPage {
+	page := DocumentPage{Items: values}
+	if page.Items == nil {
+		page.Items = []DocumentOccurrence{}
+	}
+	if len(values) > limit {
+		page.Items = values[:limit]
+		last := page.Items[limit-1]
+		raw, _ := json.Marshal(documentCursor{last.SubmittedAt, last.ID})
+		page.NextCursor = base64.RawURLEncoding.EncodeToString(raw)
+	}
+	return page
+}
+func (s *DistributionService) ListDocuments(ctx context.Context, q DocumentQuery) (DocumentPage, error) {
+	if _, err := normalizeDocumentQuery(&q); err != nil {
+		return DocumentPage{}, err
+	}
+	if s == nil || s.store == nil {
+		return DocumentPage{}, ErrDistributionInvalid
+	}
+	reader, ok := s.store.(documentStore)
+	if !ok {
+		return DocumentPage{}, ErrDistributionInvalid
+	}
+	return reader.ListDocuments(ctx, q)
+}

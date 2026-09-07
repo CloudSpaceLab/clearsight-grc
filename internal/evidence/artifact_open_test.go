@@ -36,3 +36,29 @@ func TestOpenArtifactRequiresExactAvailableArtifactAndHidesStorageKey(t *testing
 		t.Fatalf("expected unavailable artifact not found, got %v", err)
 	}
 }
+
+func TestOpenArtifactVerifiesAllBytesBeforeReturningReader(t *testing.T) {
+	for _, value := range []string{"changed bytes", "short", "original bytes plus extra"} {
+		t.Run(value, func(t *testing.T) {
+			repo := NewMemoryRepository(nil, nil)
+			store := NewMemoryObjectStore()
+			service := NewService(repo, store)
+			original, err := store.Put(context.Background(), "mutable", bytes.NewBufferString("original bytes"), 1024)
+			if err != nil {
+				t.Fatal(err)
+			}
+			repo.artifacts["a"] = Artifact{ID: "a", TenantID: "t", RequestID: "r", StorageKey: original.Key, SizeBytes: original.SizeBytes, SHA256: original.SHA256, Status: ArtifactAvailable}
+			if _, err := store.Put(context.Background(), "mutable", bytes.NewBufferString(value), 1024); err != nil {
+				t.Fatal(err)
+			}
+			_, reader, err := service.OpenArtifact(context.Background(), "t", "r", "a")
+			if reader != nil {
+				reader.Close()
+				t.Fatal("returned bytes before integrity verification")
+			}
+			if err == nil {
+				t.Fatal("accepted changed content")
+			}
+		})
+	}
+}

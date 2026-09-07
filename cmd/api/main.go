@@ -91,6 +91,7 @@ func main() {
 	vendorWorkService.ConfigureReadAuthority(services.Authority)
 	vendorWorkService.ConfigureTargetReader(services.Continuity)
 	vendorWorkService.ConfigureLogger(logger)
+	services.FormDistributions.ConfigureDocumentContexts(thirdparty.DocumentContextReader{Assessments: assessmentReviewService, Work: vendorWorkService})
 	linkCoordinator := &thirdparty.RelationshipLinkCoordinator{}
 	vendorWorkService.ConfigureCoordinator(linkCoordinator)
 	services.ThirdPartyRelationshipLinks.ConfigureCoordinator(linkCoordinator)

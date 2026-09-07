@@ -50,6 +50,7 @@ func (a *API) listCompletedFormResponses(w http.ResponseWriter, r *http.Request)
 }
 
 func (a *API) getCompletedFormResponse(w http.ResponseWriter, r *http.Request) {
+	documentProtection(w)
 	service, ok := a.formDistributionService(w)
 	if !ok {
 		return
@@ -71,7 +72,17 @@ func (a *API) getCompletedFormResponse(w http.ResponseWriter, r *http.Request) {
 		writeCompletedResponseError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{"response": completedResponseSummaryJSON(summary), "revision": responseRevisionJSON(revision)})
+	answers, err := service.GetCompletedResponseAnswers(r.Context(), actor.TenantID, legalEntityID, actor.PrincipalID, revision.ID)
+	if err != nil {
+		writeCompletedResponseError(w, err)
+		return
+	}
+	documents, err := service.ListDocuments(r.Context(), evidence.DocumentQuery{TenantID: actor.TenantID, LegalEntityID: legalEntityID, PrincipalID: actor.PrincipalID, ResponseRevisionID: revision.ID, Limit: 100})
+	if err != nil {
+		writeDocumentError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"response": completedResponseSummaryJSON(summary), "revision": responseRevisionJSON(revision), "submission_id": answers.SubmissionID, "answers": answers.Answers, "documents": documents.Items, "documents_next_cursor": documents.NextCursor})
 }
 
 func completedResponseQueryFromRequest(r *http.Request) (evidence.CompletedResponseQuery, error) {

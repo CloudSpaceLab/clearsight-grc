@@ -169,6 +169,20 @@ func TestPostgresVendorWorkUsesCanonicalOTPRouteAndSubmitsAfterAutosave(t *testi
 	if legacyInvitations != 0 {
 		t.Fatalf("vendor-work canonical request created %d legacy invitations", legacyInvitations)
 	}
+	// Add one submitted file fixture and its exact capture receipt. The file
+	// inventory must follow the relationship capture, then the work target ACL.
+	if _, err := pool.Exec(ctx, `
+	 UPDATE capture_requests SET fields=fields||'[{"id":"policy","label":"Policy","type":"file"}]'::jsonb WHERE id=$1::uuid;
+	 UPDATE capture_submissions SET answers=answers||jsonb_build_object('policy',jsonb_build_object('artifact_ids',jsonb_build_array(md5('work-file')::uuid::text))) WHERE id=$2::uuid;
+	 INSERT INTO capture_artifacts(id,tenant_id,request_id,submission_id,file_name,media_type,size_bytes,sha256,storage_key,status,created_at)
+	 VALUES(md5('work-file')::uuid,$3::uuid,$1::uuid,$2::uuid,'policy.pdf','application/pdf',4,repeat('a',64),'work-file','STORED_UNSCANNED',$4);
+	`, pgx.QueryExecModeSimpleProtocol, dispatched.Request.ID, result.Submission.SubmissionID, thirdPartyTenantID, now); err != nil {
+		t.Fatal(err)
+	}
+	files, err := distributionStore.ListDocuments(ctx, evidence.DocumentQuery{TenantID: thirdPartyTenantID, LegalEntityID: thirdPartyEntityA, PrincipalID: thirdPartyPrincipal, RelationshipID: relationship.Relationship.ID, Limit: 1})
+	if err != nil || len(files.Items) != 1 || files.Items[0].WorkRequestID != work.ID {
+		t.Fatalf("work document inventory = %#v, %v", files, err)
+	}
 }
 
 func TestPostgresAttachVendorWorkCapturePersistsIntegerSequenceAndBigintOriginVersion(t *testing.T) {

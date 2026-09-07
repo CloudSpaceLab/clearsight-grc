@@ -1,0 +1,17 @@
+# Submitted document reads
+
+Evidence/Capture owns the shared submitted-document read model. It adds no document table: an occurrence is an immutable response revision (when present), submission, field and artifact. `capture_artifacts.submission_id` records first use and is not later-revision membership. Files uploaded by another contributor must belong to the same exact distribution and legal entity.
+
+Migration `000081_submitted_document_reads` adds reverse submission/revision, submitted-time and assessment-request-link indexes. Existing request/entity/form, artifact primary-key, work-capture and relationship indexes remain authoritative. The shared authority predicate is extracted from the existing vendor-work list and remains a read predicate, not command authorization.
+
+PostgreSQL joins the verified tenant and exact legal entity, immutable submissions, form fields, artifact IDs and subject access before LIMIT. Program and Matter access uses the existing subject predicate. Unknown subject types fail closed. Assessment and vendor-work captures use their stored request links and exact origin/version; their relationship, read routes and target access are checked before pagination. Request links permit reading submitted history even before a third-party response reaction is processed. Draft artifacts have no submission occurrence. The memory adapter delegates legacy access to the owning workflow services and applies the same occurrence filter.
+
+Assessment review metadata comes only from `third_party_documents`. It is shown for its original submitted occurrence; reuse in a later revision does not transfer acceptance. Business rejection and expiry do not deny historical read access when the stored bytes are AVAILABLE. No document mutation or AI validation rule is introduced.
+
+## Bounds and retention
+
+List limits are 1–100 (default 25), filename search is at most 200 bytes, and cursors are at most 2048 bytes. Pagination orders by submitted time and stable occurrence ID descending. Exact content queries reuse the same scoped inventory with submission/field/artifact selectors and an optional response revision. UUID selectors remain bound, and artifact joins use the UUID primary key after validating the submitted reference.
+
+The inventory retains no derived document content, tokens or storage keys. Original manifests and submitted answers retain their existing retention obligations. No deletion, retention period or partition policy is added by these indexes. Deployment sizing should budget for 10,000 submissions × 20 file occurrences per entity as an initial 200,000-occurrence scenario; tenant/entity filtering and exact form/vendor scope reduce the working set. Production-scale p95 and concurrency benchmarks for that scenario remain a release gate; the integration checks in this tranche prove exact access, pagination and linked legacy reads, not a completed high-volume benchmark.
+
+OpenArtifact buffers at most the configured upload size, checks exact size and SHA-256, and only then returns content. This protects reads from mutable development storage. The API delivers PDF and supported raster images inline; other formats use attachment disposition. Every content response uses private/no-store, nosniff and a sandbox content policy. Missing, changed, unscanned, quarantined and unknown artifacts return no bytes. Production object-storage deployment remains separate work.
