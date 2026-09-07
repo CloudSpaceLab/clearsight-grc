@@ -14,6 +14,7 @@ type MemoryRepository struct {
 	policies          map[string]Policy
 	workloads         map[string]Workload
 	gatewayTransports map[string]GatewayTransportRevision
+	gatewayEmergency  map[string]GatewayEmergencyControl
 	receipts          map[string]DecisionReceipt
 	grants            map[string]ExecutionGrant
 	grantDigests      map[string][sha256.Size]byte
@@ -21,7 +22,7 @@ type MemoryRepository struct {
 
 func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
-		policies: map[string]Policy{}, workloads: map[string]Workload{}, gatewayTransports: map[string]GatewayTransportRevision{},
+		policies: map[string]Policy{}, workloads: map[string]Workload{}, gatewayTransports: map[string]GatewayTransportRevision{}, gatewayEmergency: map[string]GatewayEmergencyControl{},
 		receipts: map[string]DecisionReceipt{}, grants: map[string]ExecutionGrant{}, grantDigests: map[string][sha256.Size]byte{},
 	}
 }

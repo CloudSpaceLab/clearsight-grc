@@ -62,6 +62,42 @@ func TestPostgresGovernanceLifecycleReceiptAndGrant(t *testing.T) {
 	now := time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
 
+	freeze, err := service.SetGatewayEmergencyControl(ctx, SetGatewayEmergencyControlInput{
+		TenantID: "ai-governance-integration", Environment: "PRODUCTION", Frozen: true,
+		Reason: "Integration incident containment", ActorID: aiGovernanceIntegrationMakerID, ExpectedVersion: 0,
+	})
+	if err != nil {
+		t.Fatalf("freeze emergency control: %v", err)
+	}
+	if !freeze.Frozen || freeze.RecordVersion != 1 {
+		t.Fatalf("freeze state = %#v", freeze)
+	}
+	var frozenEvents int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND aggregate_id=$2::uuid AND event_type='AI_GATEWAY_OUTBOUND_FROZEN'`, aiGovernanceIntegrationTenantID, freeze.ID).Scan(&frozenEvents); err != nil || frozenEvents != 1 {
+		t.Fatalf("freeze audit events=%d err=%v", frozenEvents, err)
+	}
+	unfreeze, err := service.SetGatewayEmergencyControl(ctx, SetGatewayEmergencyControlInput{
+		TenantID: freeze.TenantID, Environment: freeze.Environment, Frozen: false,
+		Reason: "Provider boundary verified safe", ActorID: aiGovernanceIntegrationCheckID, ExpectedVersion: freeze.RecordVersion,
+	})
+	if err != nil {
+		t.Fatalf("unfreeze emergency control: %v", err)
+	}
+	if unfreeze.Frozen || unfreeze.RecordVersion != 2 {
+		t.Fatalf("unfreeze state = %#v", unfreeze)
+	}
+	var controlVersion, eventCount int
+	var frozen bool
+	if err := pool.QueryRow(ctx, `SELECT frozen,record_version FROM ai_gateway_emergency_controls WHERE tenant_id=$1::uuid AND environment='PRODUCTION'`, aiGovernanceIntegrationTenantID).Scan(&frozen, &controlVersion); err != nil {
+		t.Fatal(err)
+	}
+	if frozen || controlVersion != 2 {
+		t.Fatalf("persisted emergency state frozen=%v version=%d", frozen, controlVersion)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND aggregate_id=$2::uuid AND event_type IN ('AI_GATEWAY_OUTBOUND_FROZEN','AI_GATEWAY_OUTBOUND_UNFROZEN')`, aiGovernanceIntegrationTenantID, freeze.ID).Scan(&eventCount); err != nil || eventCount != 2 {
+		t.Fatalf("emergency audit event count=%d err=%v", eventCount, err)
+	}
+
 	policy, err := service.CreatePolicy(ctx, CreatePolicyInput{
 		TenantID: "ai-governance-integration", Code: "AI-PG", Name: "AI PostgreSQL policy", ActionClass: "MODEL_REQUEST",
 		Definition: aigateway.PolicyDefinition{DefaultAction: aigateway.DecisionAllow}, RolloutMode: aigateway.RolloutShadow,
@@ -173,6 +209,7 @@ func cleanupAIGovernanceFixture(t *testing.T, pool *pgxpool.Pool) {
 	for _, statement := range []string{
 		`DELETE FROM ai_execution_grants WHERE tenant_id=$1::uuid`,
 		`DELETE FROM ai_gateway_decision_receipts WHERE tenant_id=$1::uuid`,
+		`DELETE FROM ai_gateway_emergency_controls WHERE tenant_id=$1::uuid`,
 		`DELETE FROM ai_workloads WHERE tenant_id=$1::uuid`,
 		`DELETE FROM automation_policies WHERE tenant_id=$1::uuid`,
 		`DELETE FROM outbox_events WHERE tenant_id=$1::uuid`,

@@ -72,6 +72,7 @@
     "/api/v1/ai-governance/gateway-configs/{id}/activate": {"post": {"operationId": "activateAIGatewayTransport", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}},
     "/api/v1/ai-governance/gateway-configs/{id}/suspend": {"post": {"operationId": "suspendAIGatewayTransport", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}},
     "/api/v1/ai-governance/gateway-configs/{id}/retire": {"post": {"operationId": "retireAIGatewayTransport", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}},
+    "/api/v1/ai-governance/gateway-emergency-control": {"post": {"operationId": "setAIGatewayEmergencyControl", "x-clearsight-route-class": "AUTHENTICATED_WRITE", "x-clearsight-permission": "CONFIG_WRITE"}},
     "/api/v1/program-summaries": { "get": { "operationId": "listProgramSummaries", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/programs": {
       "get": { "operationId": "listPrograms", "x-clearsight-route-class": "AUTHENTICATED_READ" },

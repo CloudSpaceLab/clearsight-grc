@@ -9,69 +9,104 @@ import (
 )
 
 type transportManager struct {
-	config   RuntimeConfig
-	source   TransportSnapshotSource
-	resolver SecretResolver
-	refresh  time.Duration
-	now      func() time.Time
-	slots    sync.Map
+	config           RuntimeConfig
+	source           TransportSnapshotSource
+	emergency        EmergencyControlSource
+	resolver         SecretResolver
+	refresh          time.Duration
+	emergencyRefresh time.Duration
+	now              func() time.Time
+	slots            sync.Map
 }
 
 type transportSlot struct {
-	mu              sync.Mutex
-	router          *router
-	appliedChecksum string
-	appliedRevision int64
-	desiredChecksum string
-	desiredRevision int64
-	expiresAt       time.Time
-	lastError       string
+	mu                 sync.Mutex
+	router             *router
+	appliedChecksum    string
+	appliedRevision    int64
+	desiredChecksum    string
+	desiredRevision    int64
+	expiresAt          time.Time
+	lastError          string
+	emergencyExpiresAt time.Time
+	emergencyFrozen    bool
+	emergencyRevision  int64
+	emergencyError     string
 }
 
 type TransportApplyStatus struct {
-	TenantID        string `json:"tenant_id"`
-	Environment     string `json:"environment"`
-	DesiredRevision int64  `json:"desired_revision"`
-	DesiredChecksum string `json:"desired_checksum,omitempty"`
-	AppliedRevision int64  `json:"applied_revision"`
-	AppliedChecksum string `json:"applied_checksum,omitempty"`
-	Degraded        bool   `json:"degraded"`
-	ErrorCode       string `json:"error_code,omitempty"`
+	TenantID           string `json:"tenant_id"`
+	Environment        string `json:"environment"`
+	DesiredRevision    int64  `json:"desired_revision"`
+	DesiredChecksum    string `json:"desired_checksum,omitempty"`
+	AppliedRevision    int64  `json:"applied_revision"`
+	AppliedChecksum    string `json:"applied_checksum,omitempty"`
+	EmergencySupported bool   `json:"emergency_supported"`
+	EmergencyRevision  int64  `json:"emergency_revision"`
+	OutboundFrozen     bool   `json:"outbound_frozen"`
+	Degraded           bool   `json:"degraded"`
+	ErrorCode          string `json:"error_code,omitempty"`
 }
 
 func newTransportManager(config RuntimeConfig, source TransportSnapshotSource, resolver SecretResolver) (*transportManager, error) {
 	if source == nil || resolver == nil {
 		return nil, fmt.Errorf("gateway transport control plane is incomplete")
 	}
+	emergency, ok := source.(EmergencyControlSource)
+	if !ok || emergency == nil {
+		return nil, fmt.Errorf("gateway emergency control source is incomplete")
+	}
 	refresh := config.GovernanceRefresh
 	if refresh <= 0 {
 		refresh = defaultGovernanceRefresh
 	}
-	return &transportManager{config: config, source: source, resolver: resolver, refresh: refresh, now: time.Now}, nil
+	emergencyRefresh := defaultEmergencyRefresh
+	if refresh < emergencyRefresh {
+		emergencyRefresh = refresh
+	}
+	return &transportManager{
+		config: config, source: source, emergency: emergency, resolver: resolver,
+		refresh: refresh, emergencyRefresh: emergencyRefresh, now: time.Now,
+	}, nil
 }
 
 func (m *transportManager) ready() bool {
 	return m != nil && m.source != nil && m.source.Ready()
 }
 
+func (m *transportManager) ensureOutboundAllowed(ctx context.Context, workload Workload) error {
+	if m == nil || m.emergency == nil {
+		return ErrEmergencyControlUnavailable
+	}
+	tenantID := strings.TrimSpace(workload.TenantID)
+	environment := m.environmentFor(workload)
+	key := tenantID + "|" + environment
+	raw, _ := m.slots.LoadOrStore(key, &transportSlot{})
+	slot := raw.(*transportSlot)
+	slot.mu.Lock()
+	defer slot.mu.Unlock()
+	return m.checkEmergencyLocked(ctx, slot, tenantID, environment, m.now().UTC())
+}
+
 func (m *transportManager) routerFor(ctx context.Context, workload Workload) (*router, error) {
 	if m == nil || m.source == nil {
 		return nil, ErrUnavailable
 	}
-	environment := strings.ToUpper(strings.TrimSpace(workload.Environment))
-	if environment == "" {
-		environment = strings.ToUpper(strings.TrimSpace(m.config.Environment))
-	}
-	key := workload.TenantID + "|" + environment
+	tenantID := strings.TrimSpace(workload.TenantID)
+	environment := m.environmentFor(workload)
+	key := tenantID + "|" + environment
 	raw, _ := m.slots.LoadOrStore(key, &transportSlot{})
 	slot := raw.(*transportSlot)
 	slot.mu.Lock()
 	defer slot.mu.Unlock()
 	now := m.now().UTC()
+	if err := m.checkEmergencyLocked(ctx, slot, tenantID, environment, now); err != nil {
+		return nil, err
+	}
 	if slot.router != nil && now.Before(slot.expiresAt) {
 		return slot.router, nil
 	}
-	snapshot, err := m.source.ActiveTransportSnapshot(ctx, workload.TenantID, environment)
+	snapshot, err := m.source.ActiveTransportSnapshot(ctx, tenantID, environment)
 	if err != nil {
 		slot.expiresAt = now.Add(m.refresh)
 		slot.lastError = "TRANSPORT_REFRESH_FAILED"
@@ -80,7 +115,7 @@ func (m *transportManager) routerFor(ctx context.Context, workload Workload) (*r
 		}
 		return nil, withCause(ErrUnavailable, err)
 	}
-	if snapshot.Version < 1 || snapshot.Checksum == "" || snapshot.TenantID != workload.TenantID || !strings.EqualFold(snapshot.Environment, environment) {
+	if snapshot.Version < 1 || snapshot.Checksum == "" || snapshot.TenantID != tenantID || !strings.EqualFold(snapshot.Environment, environment) {
 		slot.expiresAt = now.Add(m.refresh)
 		slot.lastError = "TRANSPORT_SNAPSHOT_INVALID"
 		if slot.router != nil {
@@ -112,14 +147,46 @@ func (m *transportManager) routerFor(ctx context.Context, workload Workload) (*r
 	return candidate, nil
 }
 
+func (m *transportManager) checkEmergencyLocked(ctx context.Context, slot *transportSlot, tenantID, environment string, now time.Time) error {
+	if now.Before(slot.emergencyExpiresAt) {
+		if slot.emergencyError != "" {
+			return ErrEmergencyControlUnavailable
+		}
+		if slot.emergencyFrozen {
+			return ErrOutboundFrozen
+		}
+		return nil
+	}
+	state, err := m.emergency.GatewayEmergencyControl(ctx, tenantID, environment)
+	slot.emergencyExpiresAt = now.Add(m.emergencyRefresh)
+	if err != nil {
+		slot.emergencyError = "EMERGENCY_CONTROL_UNAVAILABLE"
+		return withCause(ErrEmergencyControlUnavailable, err)
+	}
+	if state.TenantID != tenantID || !strings.EqualFold(state.Environment, environment) || state.RecordVersion < 0 || (state.Frozen && state.RecordVersion < 1) {
+		slot.emergencyError = "EMERGENCY_CONTROL_INVALID"
+		return ErrEmergencyControlUnavailable
+	}
+	slot.emergencyFrozen = state.Frozen
+	slot.emergencyRevision = state.RecordVersion
+	slot.emergencyError = ""
+	if state.Frozen {
+		return ErrOutboundFrozen
+	}
+	return nil
+}
+
 func (m *transportManager) status(tenantID, environment string) TransportApplyStatus {
-	status := TransportApplyStatus{TenantID: tenantID, Environment: strings.ToUpper(strings.TrimSpace(environment))}
+	status := TransportApplyStatus{
+		TenantID: strings.TrimSpace(tenantID), Environment: strings.ToUpper(strings.TrimSpace(environment)),
+		EmergencySupported: m != nil && m.emergency != nil,
+	}
 	if m == nil {
 		status.Degraded = true
 		status.ErrorCode = "TRANSPORT_CONTROL_UNAVAILABLE"
 		return status
 	}
-	key := tenantID + "|" + status.Environment
+	key := status.TenantID + "|" + status.Environment
 	raw, ok := m.slots.Load(key)
 	if !ok {
 		return status
@@ -131,9 +198,23 @@ func (m *transportManager) status(tenantID, environment string) TransportApplySt
 	status.DesiredChecksum = slot.desiredChecksum
 	status.AppliedRevision = slot.appliedRevision
 	status.AppliedChecksum = slot.appliedChecksum
-	status.Degraded = slot.lastError != "" || (slot.desiredRevision > 0 && slot.desiredRevision != slot.appliedRevision)
-	status.ErrorCode = slot.lastError
+	status.EmergencyRevision = slot.emergencyRevision
+	status.OutboundFrozen = slot.emergencyFrozen
+	status.Degraded = slot.lastError != "" || slot.emergencyError != "" || (slot.desiredRevision > 0 && slot.desiredRevision != slot.appliedRevision)
+	if slot.emergencyError != "" {
+		status.ErrorCode = slot.emergencyError
+	} else {
+		status.ErrorCode = slot.lastError
+	}
 	return status
+}
+
+func (m *transportManager) environmentFor(workload Workload) string {
+	environment := strings.ToUpper(strings.TrimSpace(workload.Environment))
+	if environment == "" {
+		environment = strings.ToUpper(strings.TrimSpace(m.config.Environment))
+	}
+	return environment
 }
 
 func (m *transportManager) buildRouter(ctx context.Context, snapshot TransportSnapshot) (*router, error) {

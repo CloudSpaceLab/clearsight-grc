@@ -4,6 +4,7 @@ import {
   createGatewayTransportRevision,
   loadGatewayTransportState,
   transitionGatewayTransport,
+  type GatewayEmergencyControl,
   type GatewayEnvironment,
   type GatewayProxyInfo,
   type GatewayRuntimeStatus,
@@ -11,12 +12,14 @@ import {
   type GatewayTransportRevision,
   type GatewayTransportTransition,
 } from "../../aiGatewayTransportApi";
+import { AIGatewayEmergencyControl } from "./AIGatewayEmergencyControl";
 import { AIGatewayProxyCard } from "./AIGatewayProxyCard";
 import { AIGatewayTransportDraftForm } from "./AIGatewayTransportDraftForm";
 import "./AIGatewayTransportControl.css";
 
 const environments: GatewayEnvironment[] = ["PRODUCTION", "TEST", "DEVELOPMENT"];
 const emptyProxy: GatewayProxyInfo = { configured: false, ingress: [] };
+const emptyEmergency = (environment: GatewayEnvironment): GatewayEmergencyControl => ({ tenant_id: "", environment, frozen: false, record_version: 0 });
 
 export function AIGatewayTransportControl() {
   const [environment, setEnvironment] = useState<GatewayEnvironment>("PRODUCTION");
@@ -25,6 +28,7 @@ export function AIGatewayTransportControl() {
   const [revisions, setRevisions] = useState<GatewayTransportRevision[]>([]);
   const [runtimeStatus, setRuntimeStatus] = useState<GatewayRuntimeStatus | null>(null);
   const [proxy, setProxy] = useState<GatewayProxyInfo>(emptyProxy);
+  const [emergencyControl, setEmergencyControl] = useState<GatewayEmergencyControl>(() => emptyEmergency("PRODUCTION"));
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -38,10 +42,12 @@ export function AIGatewayTransportControl() {
       setRevisions(state.revisions);
       setRuntimeStatus(state.runtimeStatus);
       setProxy(state.proxy);
+      setEmergencyControl(state.emergencyControl);
     } catch (error) {
       setRevisions([]);
       setRuntimeStatus(null);
       setProxy(emptyProxy);
+      setEmergencyControl(emptyEmergency(environment));
       setMessage(error instanceof Error ? error.message : "Gateway routing configuration could not be loaded.");
     } finally {
       setLoading(false);
@@ -108,6 +114,7 @@ export function AIGatewayTransportControl() {
     </div>
 
     <AIGatewayProxyCard proxy={proxy} runtimeStatus={runtimeStatus} loading={loading}/>
+    <AIGatewayEmergencyControl environment={environment} control={emergencyControl} runtimeStatus={runtimeStatus} canConfigure={canConfigure} loading={loading} onChanged={load}/>
 
     {latest && <section className="ai-gateway-transport__revision" aria-label="Latest gateway routing revision">
       <div><span className="eyebrow">Latest revision</span><h4>v{latest.version} · {title(latest.status)}</h4><p>{latest.change_reason}</p></div>

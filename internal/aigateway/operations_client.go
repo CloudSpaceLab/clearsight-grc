@@ -85,11 +85,14 @@ func (client *OperationsClient) TransportStatus(ctx context.Context, tenantID, e
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		return TransportApplyStatus{}, fmt.Errorf("AI gateway operations status contains trailing data")
 	}
-	if status.TenantID != strings.TrimSpace(tenantID) || !strings.EqualFold(status.Environment, environment) || status.DesiredRevision < 0 || status.AppliedRevision < 0 {
+	if status.TenantID != strings.TrimSpace(tenantID) || !strings.EqualFold(status.Environment, environment) || status.DesiredRevision < 0 || status.AppliedRevision < 0 || status.EmergencyRevision < 0 {
 		return TransportApplyStatus{}, fmt.Errorf("AI gateway operations status scope is invalid")
 	}
 	if !validStatusChecksum(status.DesiredChecksum, status.DesiredRevision) || !validStatusChecksum(status.AppliedChecksum, status.AppliedRevision) {
 		return TransportApplyStatus{}, fmt.Errorf("AI gateway operations status checksum is invalid")
+	}
+	if status.OutboundFrozen && (!status.EmergencySupported || status.EmergencyRevision < 1) {
+		return TransportApplyStatus{}, fmt.Errorf("AI gateway operations emergency status is invalid")
 	}
 	status.Environment = environment
 	return status, nil
