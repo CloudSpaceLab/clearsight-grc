@@ -8,6 +8,10 @@ const ingress = [
   { method: "POST", path: "/v1/responses" },
 ];
 
+function routeText(value: string) {
+  return (_: string, element: Element | null) => element?.tagName === "CODE" && element.textContent === value;
+}
+
 it("shows the published stable proxy and executable workload ingress", () => {
   render(<AIGatewayProxyCard
     proxy={{ configured: true, base_url: "https://ai.bank.example/proxy", ingress }}
@@ -16,8 +20,8 @@ it("shows the published stable proxy and executable workload ingress", () => {
   />);
 
   expect(screen.getByText("https://ai.bank.example/proxy")).toBeTruthy();
-  expect(screen.getByText(/POST \/v1\/chat\/completions/)).toBeTruthy();
-  expect(screen.getByText(/POST \/v1\/responses/)).toBeTruthy();
+  expect(screen.getByText(routeText("POST /v1/chat/completions"))).toBeTruthy();
+  expect(screen.getByText(routeText("POST /v1/responses"))).toBeTruthy();
   expect(screen.queryByText(/metrics/)).toBeNull();
   expect(screen.getByText("Published")).toBeTruthy();
 });
