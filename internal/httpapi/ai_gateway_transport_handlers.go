@@ -12,19 +12,19 @@ import (
 )
 
 type aiGatewayRuntimeStatus struct {
-	Configured          bool   `json:"configured"`
-	Available           bool   `json:"available"`
-	TenantID            string `json:"tenant_id"`
-	Environment         string `json:"environment"`
-	DesiredRevision     int64  `json:"desired_revision"`
-	DesiredChecksum     string `json:"desired_checksum,omitempty"`
-	AppliedRevision     int64  `json:"applied_revision"`
-	AppliedChecksum     string `json:"applied_checksum,omitempty"`
+	Configured         bool   `json:"configured"`
+	Available          bool   `json:"available"`
+	TenantID           string `json:"tenant_id"`
+	Environment        string `json:"environment"`
+	DesiredRevision    int64  `json:"desired_revision"`
+	DesiredChecksum    string `json:"desired_checksum,omitempty"`
+	AppliedRevision    int64  `json:"applied_revision"`
+	AppliedChecksum    string `json:"applied_checksum,omitempty"`
 	EmergencySupported bool   `json:"emergency_supported"`
 	EmergencyRevision  int64  `json:"emergency_revision"`
 	OutboundFrozen     bool   `json:"outbound_frozen"`
-	Degraded            bool   `json:"degraded"`
-	ErrorCode           string `json:"error_code,omitempty"`
+	Degraded           bool   `json:"degraded"`
+	ErrorCode          string `json:"error_code,omitempty"`
 }
 
 type aiGatewayIngressRoute struct {
