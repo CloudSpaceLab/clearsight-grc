@@ -5,11 +5,12 @@ import { DocumentDownload, DocumentFacts, FileIcon, fileKindLabel, fileSize } fr
 
 export function DocumentPreview({ file, onClose }: { file: DocumentOccurrence; onClose: () => void }) {
   const kind = previewKind(file);
+  const pdfUnavailable = kind === "pdf" && navigator.pdfViewerEnabled === false;
   const [url, setURL] = useState<string>();
   const [failed, setFailed] = useState(false);
   const [reload, setReload] = useState(0);
   useEffect(() => {
-    if (!kind) return;
+    if (!kind || pdfUnavailable) return;
     const controller = new AbortController();
     let objectURL: string | undefined;
     setURL(undefined); setFailed(false);
@@ -22,12 +23,13 @@ export function DocumentPreview({ file, onClose }: { file: DocumentOccurrence; o
         objectURL = URL.createObjectURL(blob); setURL(objectURL);
       }).catch(() => { if (!controller.signal.aborted) setFailed(true); });
     return () => { controller.abort(); if (objectURL) URL.revokeObjectURL(objectURL); };
-  }, [file, kind, reload]);
+  }, [file, kind, pdfUnavailable, reload]);
   return <FocusedDialog label={`Preview ${file.file_name}`} closeLabel="Close preview" size="wide" onClose={onClose} panelClassName="document-quick-look">
     <header className="document-preview-heading"><FileIcon kind={file.file_kind}/><div><h2>{file.file_name}</h2><p>{fileKindLabel(file.file_kind)} · {fileSize(file.size_bytes)}</p></div></header>
     <div className="document-preview-actions"><DocumentDownload file={file}/></div>
     <div className="document-preview-body"><div className="document-preview-canvas">
       {file.artifact_status !== "AVAILABLE" ? <Notice tone="warning">{file.artifact_status === "QUARANTINED" ? "This file is quarantined. It cannot be previewed or downloaded." : file.artifact_status === "STORED_UNSCANNED" ? "The file safety check has not completed. Preview and download are unavailable until it passes." : "This file is unavailable. Its submission details remain visible below."}</Notice>
+        : pdfUnavailable ? <div className="document-preview-fallback"><FileIcon kind={file.file_kind}/><p>This browser cannot preview PDFs. Download the file to view it in a PDF application.</p></div>
         : !kind ? <div className="document-preview-fallback"><FileIcon kind={file.file_kind}/><p>Inline preview is not available for this file type. Download the file to view it in its application.</p></div>
         : failed ? <Notice tone="error">The document preview could not be loaded. Your access or the file may have changed. <Button onPress={() => setReload((value) => value + 1)}>Retry preview</Button></Notice>
         : !url ? <p role="status">Loading document preview…</p>

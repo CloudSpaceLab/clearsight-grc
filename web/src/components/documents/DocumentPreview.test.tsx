@@ -8,6 +8,17 @@ const imageFile: DocumentOccurrence = { id: "image", artifact_id: "a", request_i
   sha256: "sample", artifact_status: "AVAILABLE", uploaded_at: "2026-09-01", submitted_at: "2026-09-02", current: true };
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 describe("protected document preview", () => {
+  it("offers download instead of a blank frame when PDF viewing is disabled", async () => {
+    const prior = Object.getOwnPropertyDescriptor(navigator, "pdfViewerEnabled");
+    Object.defineProperty(navigator, "pdfViewerEnabled", { configurable: true, value: false });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("pdf", { headers: { "Content-Type": "application/pdf" } })));
+    try {
+      render(<DocumentPreview file={{ ...imageFile, file_name: "certificate.pdf", media_type: "application/pdf", file_kind: "PDF" }} onClose={() => undefined}/>);
+      expect(screen.getByText("This browser cannot preview PDFs. Download the file to view it in a PDF application.")).toBeTruthy();
+      expect(document.querySelector("iframe")).toBeNull();
+      expect(fetch).not.toHaveBeenCalled();
+    } finally { if (prior) Object.defineProperty(navigator, "pdfViewerEnabled", prior); else Reflect.deleteProperty(navigator, "pdfViewerEnabled"); }
+  });
   it("uses the existing centered Quick Look dialog contract", () => {
     render(<DocumentPreview file={{ ...imageFile, artifact_status: "QUARANTINED" }} onClose={() => undefined}/>);
     expect(screen.getByRole("dialog").closest(".cs-dialog--wide")).not.toBeNull();
