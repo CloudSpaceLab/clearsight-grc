@@ -66,8 +66,9 @@ it("simulates exact candidate revisions and previews only the governed instructi
   });
 
   render(<AIGatewaySimulationPanel workloads={[workload]} workloadState="live"/>);
-  await waitFor(() => expect(screen.getByRole("button", { name: "Run deterministic test" })).toBeEnabled());
-  fireEvent.click(screen.getByRole("button", { name: "Run deterministic test" }));
+  const runButton = screen.getByRole("button", { name: "Run deterministic test" }) as HTMLButtonElement;
+  await waitFor(() => expect(runButton.disabled).toBe(false));
+  fireEvent.click(runButton);
 
   await waitFor(() => expect(mocks.simulateGateway).toHaveBeenCalledWith({
     environment: "PRODUCTION",
@@ -95,8 +96,8 @@ it("can exercise the explicit unknown-workload fail-closed fixture without selec
 
   render(<AIGatewaySimulationPanel workloads={[]} workloadState="live"/>);
   fireEvent.change(await screen.findByRole("combobox", { name: "Fixture" }), { target: { value: "UNKNOWN_WORKLOAD" } });
-  const button = screen.getByRole("button", { name: "Run deterministic test" });
-  expect(button).toBeEnabled();
+  const button = screen.getByRole("button", { name: "Run deterministic test" }) as HTMLButtonElement;
+  expect(button.disabled).toBe(false);
   fireEvent.click(button);
 
   await waitFor(() => expect(mocks.simulateGateway).toHaveBeenCalledWith(expect.objectContaining({ fixture: "UNKNOWN_WORKLOAD", workloadId: undefined })));
