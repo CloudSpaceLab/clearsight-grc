@@ -148,7 +148,7 @@ func simulationFixtureService(t *testing.T, baselineMode aigateway.RolloutMode, 
 		ID: "transport", TenantID: "tenant-a", Environment: "PRODUCTION", Status: transportStatus, Version: 5, RecordVersion: 1, Checksum: "transport-checksum",
 		Definition: aigateway.TransportDefinition{
 			Providers: []aigateway.TransportProviderConfig{{ID: "provider-primary", Name: "Primary", Kind: "OPENAI", BaseURL: "https://example.test", SecretRef: "env:TEST_PROVIDER", Regions: []string{"EU"}, State: aigateway.ProviderStateEnabled}},
-			Models: []aigateway.ModelConfig{{Alias: "safe-chat", Routes: []aigateway.RouteConfig{{ID: "route-primary", ProviderID: "provider-primary", Model: "provider-model", Weight: 1}}}},
+			Models:    []aigateway.ModelConfig{{Alias: "safe-chat", Routes: []aigateway.RouteConfig{{ID: "route-primary", ProviderID: "provider-primary", Model: "provider-model", Weight: 1}}}},
 		},
 	}
 	for _, value := range []Policy{workloadPolicy, baseline} {
