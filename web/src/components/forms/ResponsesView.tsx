@@ -14,6 +14,7 @@ import {
   type ResponseRevision,
 } from "../../formsDistributionApi";
 import { ApiError } from "../../http";
+import { DocumentBrowser } from "../documents/DocumentBrowser";
 import {
   ActionLink,
   Button,
@@ -215,6 +216,7 @@ function ConcernBadge({ score }: { score?: ResponseScore }) {
 }
 
 function ResponseReview({ state, detail, error, revisions, revisionsError }: { state: DetailState; detail?: CompletedResponseDetail; error?: string; revisions: ResponseRevision[]; revisionsError?: string }) {
+  const [documentsOpen, setDocumentsOpen] = useState(false);
   if (state === "loading") return <p role="status">Loading the completed response and score explanation…</p>;
   if (state === "error") return <EmptyState population="The selected completed response" title="Response details could not be loaded" description={error ?? "Select the response again to retry."}/>;
   if (state !== "live" || !detail) return null;
@@ -241,6 +243,8 @@ function ResponseReview({ state, detail, error, revisions, revisionsError }: { s
       {revisions.length > 0 && <ol>{revisions.map((revision) => <li key={revision.id}><strong>Revision {revision.revision}{revision.current ? " · Current" : ""}</strong><span>{assuranceLabel(revision.achieved_assurance)} · {formatDateTime(revision.created_at)}</span></li>)}</ol>}
     </section>
     <ScoreExplanation score={score}/>
+    <Button onPress={() => setDocumentsOpen(true)}>View submitted documents</Button>
+    {documentsOpen && <FocusedSheet label="Submitted documents" size="wide" onClose={() => setDocumentsOpen(false)}><DocumentBrowser key={detail.response.id} scopeLabel={`${detail.response.title} · Revision ${detail.response.revision}`} responseRevisionID={detail.response.id}/></FocusedSheet>}
     <Notice tone="info">This submitted version cannot be changed. Send an amended form when the subject must provide updated information.</Notice>
   </div>;
 }

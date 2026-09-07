@@ -15,7 +15,8 @@ import { VendorBrandIcon, vendorBrandLabel } from "./VendorBrandIcon";
 import { VendorActivationPanel } from "./VendorActivationPanel";
 import { VendorIdentityEditor } from "./VendorIdentityEditor";
 import { VendorFormReadiness } from "./VendorFormReadiness";
-import { Notice } from "./ui";
+import { Button, FocusedSheet, Notice } from "./ui";
+import { DocumentBrowser } from "./documents/DocumentBrowser";
 
 type Props = {
   organizationName: string;
@@ -683,12 +684,14 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   onActivated: (relationship: VendorRelationshipAggregate["relationship"]) => void;
 }) {
   const { vendor, relationship } = record;
+  const [documentsFor, setDocumentsFor] = useState<string>();
   const effectiveAssessmentState = assessmentState === "live" && !assessment && formState === "loading" ? "loading" : assessmentState;
   const setupFailure = assessmentSetup?.state === "FAILED" ? setupFailureText(assessmentSetup.failure_code) : undefined;
   return <>
   <article className="vendor-detail">
     <button type="button" className="text-button vendor-mobile-back" onClick={onBack}>← Back to vendor register</button>
     <div className="vendor-detail-heading"><div className="vendor-detail-identity"><VendorBrandIcon vendorID={vendor.id} legalName={vendor.legal_name} brand={record.brand} size="detail"/><div><span className="eyebrow">{humanize(relationship.status)} relationship</span><h2>{vendor.legal_name}</h2><p>{vendor.trading_name ? `Trading as ${vendor.trading_name}` : "No trading name recorded"}</p><small className="vendor-brand-label">{vendorBrandLabel(record.brand)}</small></div></div><div className="vendor-detail-actions"><button type="button" className="secondary-button" onClick={onEditIdentity}>Edit vendor details</button><button type="button" className="secondary-button" onClick={onEdit}>Edit vendor relationship</button></div></div>
+    <Button onPress={() => setDocumentsFor(relationship.id)}>View vendor documents</Button>
     <div className="vendor-service-callout"><span>Service supplied</span><strong>{relationship.service_name}</strong><small>{humanize(relationship.criticality)} criticality · {privacyLabel(relationship.privacy_role)}</small></div>
     <dl className="vendor-facts">
       <Fact label="Current accountable owner" value={accountableOwnerLabel}/><Fact label="Jurisdiction" value={vendor.jurisdiction || "Not recorded"}/>
@@ -733,6 +736,9 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   />}
   <VendorActivationPanel relationship={relationship} onActivated={onActivated}/>
   <VendorWorkPanel relationshipID={relationship.id} onOpenRequest={onOpenRequest}/>
+  {documentsFor === relationship.id && <FocusedSheet label={`${vendor.legal_name} documents`} size="wide" onClose={() => setDocumentsFor(undefined)}>
+    <DocumentBrowser key={relationship.id} scopeLabel={`${vendor.legal_name} · ${relationship.service_name}`} relationshipID={relationship.id}/>
+  </FocusedSheet>}
   </>;
 }
 

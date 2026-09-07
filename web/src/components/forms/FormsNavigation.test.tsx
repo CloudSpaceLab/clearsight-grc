@@ -4,14 +4,15 @@ import { describe, expect, it, vi } from "vitest";
 import { FormsNavigation, type FormsTab } from "./FormsNavigation";
 
 describe("FormsNavigation", () => {
-  it("uses one automatically activated tab contract for all five peer sections", () => {
+  it("uses one automatically activated tab contract for all seven peer sections", () => {
     const changed = vi.fn();
     function Harness() {
       const [active, setActive] = useState<FormsTab>("Templates");
       return <FormsNavigation activeTab={active} onChange={(tab) => { changed(tab); setActive(tab); }}><p>{active} workspace</p></FormsNavigation>;
     }
     render(<Harness/>);
-    expect(screen.getAllByRole("tab")).toHaveLength(6);
+    expect(screen.getAllByRole("tab")).toHaveLength(7);
+    expect(screen.getByRole("tab", { name: "Documents" })).toBeTruthy();
     const templates = screen.getByRole("tab", { name: "Templates" });
     templates.focus();
     fireEvent.keyDown(templates, { key: "ArrowRight" });

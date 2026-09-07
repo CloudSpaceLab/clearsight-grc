@@ -23,6 +23,9 @@
     "src/components/ui/TextField.tsx",
     "src/components/ui-gallery/UIComponentGallery.tsx",
     "src/components/FormsWorkspace.tsx",
+    "src/components/documents/DocumentBrowser.tsx",
+    "src/components/documents/DocumentPreview.tsx",
+    "src/components/documents/DocumentFile.tsx",
     "src/components/forms/FormsEmptyState.tsx",
     "src/components/forms/FormsTabContent.tsx",
     "src/components/forms/SentFormsView.tsx",
@@ -60,6 +63,7 @@
     "src/forms-filter-bar.css",
     "src/components/forms/form-policies.css",
     "src/document-import.css",
+    "src/components/documents/documents.css",
     "src/oversight.css"
   ],
   "nativeControlExceptions": [
@@ -114,7 +118,7 @@
     "EmptyState": ["population", "next-action"],
     "FilterBar": ["result-count", "clear", "stacked-compact"],
     "FilterChip": ["removable", "action", "accent"],
-    "DataTable": ["populated", "selected", "loading", "pagination", "stacked-mobile"],
+    "DataTable": ["populated", "selected", "keyboard-selection", "row-action", "loading", "pagination", "stacked-mobile"],
     "FocusedSheet": ["dismissable", "non-dismissible-in-flight", "focus-contained", "default", "wide", "full-height-mobile"],
     "FocusedDialog": ["centered-desktop", "full-height-mobile", "dismissable", "focus-contained", "default", "wide"],
     "PopoverDialog": ["anchored", "dismissable", "focus-contained"]

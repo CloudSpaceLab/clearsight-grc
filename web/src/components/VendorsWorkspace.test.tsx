@@ -10,6 +10,13 @@ import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAsse
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { createVendorRelationship, loadVendorActivation, loadVendorIdentity, loadVendorRelationship, loadVendorRelationships, removeApprovedVendorLogo, updateVendorIdentity, updateVendorRelationship, uploadApprovedVendorLogo } from "../vendorApi";
 import { VendorsWorkspace } from "./VendorsWorkspace";
+vi.mock("./documents/DocumentBrowser", () => ({ DocumentBrowser: ({ relationshipID }: { relationshipID?: string }) => <section aria-label={`Documents for ${relationshipID}`}/> }));
+
+it("opens the shared document browser for the selected vendor relationship", async () => {
+  render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" targetID="relationship-1"/>);
+  fireEvent.click(await screen.findByRole("button", { name: "View vendor documents" }));
+  expect(await screen.findByRole("region", { name: "Documents for relationship-1" })).toBeTruthy();
+});
 
 vi.mock("../api", async (importOriginal) => ({
   ...await importOriginal<typeof import("../api")>(),

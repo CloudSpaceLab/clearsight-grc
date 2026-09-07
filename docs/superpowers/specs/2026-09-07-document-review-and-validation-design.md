@@ -1,6 +1,6 @@
 # Focused document review and validation rules
 
-Date: 7 September 2026. Status: proposed extension awaiting review of the interactive concept. This is not an implemented validation capability.
+Date: 7 September 2026. Status: implementation direction revised by the user: use a familiar macOS Finder-style file browser, easy file-type filters and previews. The standalone mockup was rejected; do not produce further mockups. Validation capabilities below remain implementation requirements, not shipped capabilities.
 
 Extends the approved [shared document management proposal](../../reviews/2026-09-07-form-and-vendor-document-management.md) and its [implementation plan](../plans/2026-09-07-shared-document-management.md). Existing secure inspection work can proceed; new validation behavior must follow approval of this extension.
 
@@ -21,6 +21,14 @@ Extends the approved [shared document management proposal](../../reviews/2026-09
 **A separate document-automation platform** adds storage, workflow and configuration surfaces beyond this need. Reuse Evidence/Capture, document extraction, the AI gateway, source access and existing configuration/automation controls instead.
 
 ## Focused interface
+
+### User-directed replacement of the concept
+
+Implement the real application rather than another concept. Everyday navigation uses a familiar file browser: a compact file-type sidebar (All files, PDF, Images, Word, Spreadsheets, Other), a filename search/toolbar, recognizable file icons and list rows, single selection, an optional details pane and Quick Look-style preview. Enter opens preview; Space previews the focused file without hijacking typing or nested actions; Escape closes and restores selection. Scope navigation and history remain explicit. File-type filters use validated media types with a shared normalization contract, not trusting filename extensions to decide content safety.
+
+Keep advanced filters and ruleset configuration progressively disclosed. They must not dominate document access or force the reviewer through dashboard metrics. Preserve real document-management actions and validation findings in the selected file's context. Use the existing ClearSight theme, typography, focus, overlay and component contracts, not a literal imitation of the operating system or a private token system. PDF/image previews are inline after inspection; Word/spreadsheets expose accurate format-specific metadata and download until a safe renderer is actually available. A file extension icon is not a preview.
+
+The older interface text and prototype receipt below are historical design exploration; this user-directed file-browser contract takes precedence wherever they differ.
 
 ### Documents
 

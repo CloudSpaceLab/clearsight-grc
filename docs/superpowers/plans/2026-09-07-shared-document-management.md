@@ -23,11 +23,11 @@ Approved design and detailed gap tracker: `../../reviews/2026-09-07-form-and-ven
 
 Files: new focused `internal/evidence/artifact_scan*.go` files and tests; additive migration numbered after current main; `cmd/worker/services_postgres.go`, worker config/composition; relevant storage docs.
 
-- [ ] Write failing tests for clean, infected, unavailable, truncated/oversize, wrong digest, expired lease and replayed completion.
-- [ ] Implement a bounded scanner interface over an `io.Reader`; a clean scan is a receipt tied to artifact ID, exact digest, scanner/version and time. An actual scanner adapter must distinguish malware from timeout/service failure.
-- [ ] Persist due scan jobs transactionally with artifact manifests. Claim with bounded batches/leases; complete manifest state, scan receipt and event atomically. Retry is bounded and terminal failure remains visible.
-- [ ] Wire the scanner through explicit configuration in the existing worker. Keep unavailable configuration observable. Do not add a permissive scan bypass.
-- [ ] Run `go test ./internal/evidence ./cmd/worker ./internal/platform/config` and `go test -tags postgres ./internal/evidence ./cmd/worker`; inspect changed migration and retention ownership. Review and commit only task files.
+- [x] Write failing tests for clean, infected, unavailable, truncated/oversize, wrong digest, expired lease and replayed completion.
+- [x] Implement a bounded scanner interface over an `io.Reader`; a clean scan is a receipt tied to artifact ID, exact digest, scanner/version and time. An actual scanner adapter must distinguish malware from timeout/service failure.
+- [x] Persist due scan jobs transactionally with artifact manifests. Claim with bounded batches/leases; complete manifest state, scan receipt and event atomically. Retry is bounded and terminal failure remains visible.
+- [x] Wire the scanner through explicit configuration in the existing worker. Keep unavailable configuration observable. Do not add a permissive scan bypass.
+- [x] Run `go test ./internal/evidence ./cmd/worker ./internal/platform/config` and `go test -tags postgres ./internal/evidence ./cmd/worker`; inspect changed migration and retention ownership. Review and commit only task files.
 
 Contract shape:
 
@@ -64,12 +64,13 @@ type DocumentOccurrence = {
 };
 ```
 
-## Task 3 — shared inventory and preview (DOC-03)
+## Task 3 — Finder-style shared file browser and Quick Look (DOC-03)
 
 Files: new `web/src/components/documents/` components/types/styles/tests; `FormsWorkspace.tsx`, `forms/ResponsesView.tsx`, vendor workspace/document components, relevant API clients, fixtures, DESIGN.md.
 
 - [ ] Add component tests for same document from both interfaces, one-click opening, historical states, loading/failure/retry, authorized downloads, no-byte preview states and keyboard focus restoration.
-- [ ] Build one reusable document list and focused sheet using existing DataTable, FocusedSheet, tabs, buttons and notices. PDF/images preview inline; unsupported formats show metadata/download. Preserve source question, timestamp, filter/selection and next/previous navigation.
+- [ ] Build one reusable Finder-style file browser using existing table/selection, FocusedSheet, button and notice contracts. Use recognizable file icons and easy All files / PDF / Images / Word / Spreadsheets / Other filters, a compact filename search and selected-file details. Advanced search and validation stay secondary. PDF/images preview inline in Quick Look; unsupported formats show accurate metadata/download. Preserve source question, timestamp, filter/selection and next/previous navigation.
+- [ ] Test file-type normalization, keyboard single-selection, Space/Enter preview outside editable fields, Escape/restored focus, and browser-pane replacement at narrow widths. Do not claim Word/spreadsheet page previews without a real safe renderer. Do not create more mockups: render the actual production component with labelled state fixtures.
 - [ ] Mount in Forms Documents, exact Forms response and Vendor relationship Documents. Use exact IDs/relationships; no email/name matching. Do not put respondent draft uploads into bank review lists.
 - [ ] Render desktop, narrow viewport, both themes and 200% reflow with required fixtures; fix highest-impact defects. Run affected tests, copy-quality, typecheck, build and UI contracts. Review and commit.
 
@@ -116,3 +117,7 @@ Files: shared document disposition service/repository/migration; existing object
 - 7 September: proposal approved, signature requirement confirmed, current main fetched; no remote divergence. Focused baseline Go suites and 52 web tests passed during evaluation. Feature branch created in the existing worktree.
 - 7 September: Task 1 implemented in `d916a018`; independent specification review passed, code-quality/security review remains pending. Portable PostgreSQL 18.6 was initialized on loopback with sample-only data. All migrations applied in ordinal filename order; focused scan transaction tests and the complete Evidence `postgres,postgresintegration` suite executed successfully against this database. No production scanner or storage configuration has been changed. Failed-job operator requeue remains a release recovery gap, alongside provider setup and immutable/digest-verified content delivery.
 - 7 September: user extended the scope to focused premium viewing, advanced filters and AI-assisted validation rulesets, and requested a browser mockup before implementation. See the proposed [extension](../specs/2026-09-07-document-review-and-validation-design.md). New validation behavior awaits design review; no automatic acceptance authority is assumed. The sample concept passed browser interaction checks at 1440, 720 and 390px, with light/dark visual inspection and corrections. This is not application UI completion.
+- 7 September: user rejected that mockup and directed implementation of a familiar macOS Finder-style browser with easy file-type filters/previews and no further mockups. Task 3 and the extension now record that superseding instruction. Original scanner specification and independent quality review passed; a nonblocking adapter/worker integrity-error classification finding is being corrected before the next tranche.
+- 7 September: scanner integrity-error fix `03b2be03` passed independent re-review and real PostgreSQL checks. Task 1 implementation is complete; production scanner setup and exhausted-job requeue remain explicit release gaps, not clean-scan claims.
+- 7 September: actual shared file browser implemented in Forms Documents and vendor/response document launchers. Specification review passed after preserving full upload/submission/review timestamps and distinct actors. Quality review found no critical/important issues; its minor duplicate-selection emission was reproduced and fixed. Both builds, runtime isolation and UI-contract checks pass. Ten Forms/Vendor browser combinations include light/dark desktop, 720px reflow, 390px and 320px, with no scoped axe violations or page overflow and confirmed Escape/focus restoration. A real PNG decoded in the browser using labelled sample transport. Full-suite rerun and final backend reviews are pending; no new production deployment has occurred.
+- 7 September: frontend specification and quality reviews now pass with no remaining findings. Stable full web run passed all 153 files / 976 tests using two workers; the earlier stale six-tab assertion was updated for Documents, and the realistic focus-then-click regression passed. Canonical vendor review status labels now match VALIDATED/REJECTED/EXPIRED/SUBMITTED/SUPERSEDED. Backend Task 2 committed as `01f44002`, but spec review found legacy/work document currency and exact work-form binding gaps plus missing real-PostgreSQL contributor/reuse/query-plan proof. Those corrections and the schema ownership documentation regression are in progress; Task 2 and end-to-end release remain open.

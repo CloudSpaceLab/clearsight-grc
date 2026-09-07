@@ -8,6 +8,7 @@ import { normalizeRegisteredAddress, normalizeWebsiteDomain } from "./vendorIden
 import type { VendorRelationshipLink } from "./vendorLinkTypes";
 import type { VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "./vendorTypes";
 import type { VendorWorkRequest, VendorWorkResponseView, VendorWorkSendOutcome } from "./vendorWorkTypes";
+import type { DocumentOccurrence } from "./submittedDocumentApi";
 
 // Static transport is an isolated review fixture, never a deployable demo API.
 export const staticDemoEnabled = import.meta.env.VITE_STATIC_DEMO === "true" && import.meta.env.VITE_UI_EVIDENCE === "true";
@@ -924,6 +925,18 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     score: { mode: "COMPLIANCE", direction: "LOW_IS_POOR", raw_score: 86, adverse_score: 14, band: "LOW", coverage: 1, final: true, state: "FINAL", profile_version: "vendor-review-2026", profile_checksum: "sample-checksum", evaluator_version: "advanced-v1", calculated_at: "2026-08-27T13:15:00Z", contribution_results: [], rule_results: [] },
     completed_at: "2026-08-27T13:15:00Z",
   };
+  if (pathname === "/api/v1/forms/documents" && method === "GET") {
+    if (fixture === "forms-documents-error") throw new StaticDemoHTTPError(503, "documents_unavailable", "Submitted documents are temporarily unavailable.");
+    const available = ["forms-documents", "forms-response-history", "forms-vendor-review-conflict"].includes(fixture ?? "");
+    const filter = new URLSearchParams(path.split("?")[1]);
+    const items = available ? sampleSubmittedDocuments().filter((file) =>
+      (!filter.get("file_kind") || file.file_kind === filter.get("file_kind")) &&
+      (!filter.get("query") || file.file_name.toLowerCase().includes(filter.get("query")!.toLowerCase())) &&
+      (!filter.get("relationship_id") || file.relationship_id === filter.get("relationship_id")) &&
+      (!filter.get("response_revision_id") || file.response_revision_id === filter.get("response_revision_id")) &&
+      (filter.get("current_only") === "false" || file.current)) : [];
+    return clone({ items }) as T;
+  }
   if (pathname === "/api/v1/forms/responses" && method === "GET") return clone({ items: fixture === "forms-response-history" ? [completedResponse] : [] }) as T;
   const completedResponseMatch = pathname.match(/^\/api\/v1\/forms\/responses\/([^/]+)$/);
   if (completedResponseMatch && method === "GET") {
@@ -1108,3 +1121,17 @@ function matchesMatterSummary(url: URL) {
 function parseBody(init?: RequestInit) { if (typeof init?.body !== "string") return {}; try { return JSON.parse(init.body) as unknown; } catch { return {}; } }
 function maskEmail(value: string) { const [local, domain] = value.split("@"); return `${local?.slice(0, 1) || "*"}***@${domain || "vendor"}`; }
 function clone<T>(value: T): T { return typeof structuredClone === "function" ? structuredClone(value) : JSON.parse(JSON.stringify(value)) as T; }
+
+function sampleSubmittedDocuments(): DocumentOccurrence[] {
+  const sample: Array<Pick<DocumentOccurrence, "file_name" | "file_kind" | "media_type" | "field_label" | "artifact_status">> = [
+    { file_name: "Sample security certification.pdf", file_kind: "PDF", media_type: "application/pdf", field_label: "Security certification", artifact_status: "AVAILABLE" },
+    { file_name: "Sample registered office.png", file_kind: "IMAGE", media_type: "image/png", field_label: "Registered office photo", artifact_status: "AVAILABLE" },
+    { file_name: "Sample business continuity plan.docx", file_kind: "WORD", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", field_label: "Business continuity plan", artifact_status: "AVAILABLE" },
+    { file_name: "Sample subprocessor register.xlsx", file_kind: "SPREADSHEET", media_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", field_label: "Subprocessor register", artifact_status: "AVAILABLE" },
+    { file_name: "Sample service records.zip", file_kind: "OTHER", media_type: "application/zip", field_label: "Supporting records", artifact_status: "QUARANTINED" },
+    { file_name: "Sample updated insurance.pdf", file_kind: "PDF", media_type: "application/pdf", field_label: "Insurance certificate", artifact_status: "STORED_UNSCANNED" },
+  ];
+  return sample.map((file, index) => ({ ...file, id: `sample-document-${index}`, artifact_id: `sample-artifact-${index}`, request_id: "sample-vendor-request", submission_id: "sample-vendor-submission", field_id: `sample-field-${index}`,
+    response_revision_id: "response-revision-acme-2", relationship_id: vendorRelationshipID, form_template_id: "form-vendor-due-diligence", form_template_version: 2, form_title: "Vendor due diligence review",
+    size_bytes: (index + 1) * 128000, sha256: "sample-digest-not-production-evidence", uploaded_at: "2026-08-26T10:00:00Z", submitted_at: "2026-08-27T13:15:00Z", expires_on: index === 0 ? "2027-08-27" : undefined, current: true }));
+}
