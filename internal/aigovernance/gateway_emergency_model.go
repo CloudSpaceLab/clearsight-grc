@@ -1,6 +1,9 @@
 package aigovernance
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type GatewayEmergencyControl struct {
 	ID            string    `json:"id,omitempty"`
