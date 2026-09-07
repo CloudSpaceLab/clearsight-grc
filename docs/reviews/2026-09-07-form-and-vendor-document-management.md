@@ -4,6 +4,8 @@ Date: 7 September 2026. Status: approved by the user; implementation tracked in 
 
 Evaluated revision: `831b009d8eea743898b7c10ea3858edd25b35e2f`.
 
+7 September extension: the user requested premium focused viewing, advanced search and sophisticated automated document-validation rulesets, and asked to review an interactive mockup. The [proposed extension and DOC-08–DOC-15 tracker](../superpowers/specs/2026-09-07-document-review-and-validation-design.md) are awaiting design review; the original approved foundation remains in scope.
+
 ## Recommendation
 
 Provide one shared document list and document review panel in Vendors and Forms, using existing Evidence/Capture artifacts, immutable submissions, authority routes and delivery workflows. The document should open with its source question, submission, respondent, reviewer and next valid action already in context.
