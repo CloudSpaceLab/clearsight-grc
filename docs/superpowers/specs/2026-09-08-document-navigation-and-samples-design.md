@@ -25,3 +25,13 @@ Each has its own implementation tasks and verification receipt. Document disposi
 ## Required proof
 
 Preserve before screenshots. Test desktop and 720/390/320px, light/dark, 200% reflow, keyboard, slow/error/empty states and resize while editing/previewing. Run copy-quality, affected workflows, UI contracts, runtime fixture isolation, full web/Go and rendered review gates. Inspect renders and repair the highest-impact finding. For samples additionally test production refusal, exact scope/access denial, repeat/partial runs, response/artifact membership, integrity and actual preview/download. Merge/deploy only green exact-head code, verify the hosted revision, and retain wider #139/#147/#200 limitations.
+
+## Operator amendment: demo scan simulation
+
+The user initially authorized configuring local ClamAV, then chose a decorated demo scan experience after the host capacity check. On 8 September the shared Rocky Linux host had approximately 1.9 GiB available RAM, no swap and 11 GiB free disk. ClamAV was not installed or configured; no server services were changed. Live antivirus enablement is deferred, not completed.
+
+The demo must say **Demo scan** / **Demo check complete**, with **No antivirus scan was performed**. It must never say that a real antivirus product scanned the file. Do not create a CLEAN receipt, change scan jobs or mark artifacts AVAILABLE to decorate a demo.
+
+For usable fictional-file previews, use a narrow demo-only allowlist of shipped sample bytes, identified by actual digest, size and media type. Reuse the normal protected occurrence/content routes and full stored-byte integrity verification; do not serve a different asset while claiming it is the submitted original. Only an unscanned known sample can use this exception, and its pending antivirus status remains stored. Quarantined/deleted/changed/unknown files remain blocked. The exception is disabled outside demo mode, and existing production refusal of demo mode remains mandatory. Review acceptance still requires its existing real inspection and authority gates; previewing a fictional sample does not change them.
+
+No ClamAV package, scanner process, synthetic scanner receipt, database status migration or artificial waiting timer is needed for this simulated presentation. Add automated tests for arbitrary-byte rejection, matching-name/different-content rejection, quarantine, scope revocation and non-demo/production refusal. This amendment replaces only live scanner installation, not realistic sample data, navigation or genuine-upload security requirements.
