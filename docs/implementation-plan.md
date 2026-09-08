@@ -9,6 +9,10 @@ The operator authorized gap closure on 8 September 2026 following the evidence-b
 
 #128 is closed as **superseded, not completed**. Its residual acceptance is explicitly transferred in #200 and the [closure receipt](https://github.com/CloudSpaceLab/clearsight-grc/issues/128#issuecomment-5580653813). Existing execution owners #137–143 and #147 remain open. Narrow merged foundations do not complete their wider acceptance; real recipient journeys, independent review, outcome checks, exact-head deployment and recovery evidence remain separately required. No production bank configuration, provider processing or real email is needed for this first slice.
 
+## Deployment recovery — SMTP availability boundary
+
+The #201 merge passed main CI/UI but its SMTP probe timeout caused deployment rollback handling to stop the new containers. Operator recovery restored the schema-compatible prior release; that recovery does not count as deployment of #201. On 8 September the operator approved making SMTP connectivity advisory for application deployment while retaining security configuration, recipient protection, API and worker checks as blocking. The [focused design](superpowers/specs/2026-09-08-smtp-advisory-deployment-design.md) and [plan](superpowers/plans/2026-09-08-smtp-advisory-deployment.md) track the correction under #147/#200. Standalone email readiness remains strict, and actual inbox/recipient acceptance remains required separately. Exact release and recovery receipts belong in #147; broader workstreams stay open.
+
 ## Historical pause — remaining V1 issue closure
 
 The operator paused further implementation on 3 September 2026. The [remaining-issue closure plan](superpowers/plans/2026-09-03-remaining-issue-closure.md) records the earlier sequence for #137–143, #147 and #128; the [open-issue audit](evidence/2026-09-03-open-issue-audit.md) separates delivered foundations from missing outcomes at that checkpoint. The resumed execution above supersedes that pause and consolidates the umbrella without discarding child acceptance. #144, #145 and #146 are already closed with hosted evidence, and #124 is closed.

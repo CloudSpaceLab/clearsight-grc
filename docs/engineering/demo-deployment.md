@@ -12,6 +12,18 @@ This environment deliberately uses development identity, demo sessions, audit-mo
 
 PostgreSQL lookups may accept either the demo tenant slug or UUID, but actor-facing continuity, evidence and workflow records return the canonical tenant UUID. Deployment also runs the idempotent demo foundation fixture: it maintains one active `CLEARSIGHT-DEMO-AUTHORITY` policy, records GRC Administrator as maker and Internal Auditor as the independent checker, and projects direct routes for the material workflow responsibilities. Incompatible stable-ID or policy-code collisions fail the deployment instead of overwriting unrelated governance data.
 
+## Application readiness and SMTP availability
+
+Deployment requires the expected API revision, PostgreSQL readiness, web health, the owned worker running at the expected revision, authenticated demo reads and safe denial of invalid form access. These checks remain blocking. When `VERIFY_EMAIL_READINESS=true`, required email configuration, recipient encryption/HMAC keys, HTTPS capture origin and STARTTLS configuration also remain blocking.
+
+Only the external SMTP TCP and certificate-validated STARTTLS probes are advisory during hosted deployment verification. A failed probe prints a redacted warning and `smtp_connectivity=unavailable`; it does not stop containers, roll back or prevent release-state promotion after the required checks pass. Probe time is bounded to 10 seconds for TCP and 15 seconds for STARTTLS, with STARTTLS skipped if TCP fails. A successful probe reports `smtp_connectivity=available`, not successful authentication, delivery or inbox receipt.
+
+For explicit email acceptance, run `deploy/scripts/verify-email-readiness.sh <sha>` with the protected configuration loaded and shell tracing off. Its default remains strict. The hosted verifier supplies `--smtp-advisory` explicitly; that option cannot suppress configuration, security, API or worker failures. There is no catch-all ignored verification error and no change to runtime transport security.
+
+An application deployment receipt is not an email acceptance receipt. Review actual delivery failures through existing Forms communications and system operations. Existing workers retain bounded retries for eligible failures; terminal and unknown post-acceptance outcomes require operator reconciliation and are not automatically replayed by deployment. Do not send test messages, disclose protected values or mark failed jobs resolved merely because a connectivity probe recovers.
+
+This boundary follows the [approved SMTP advisory design](../superpowers/specs/2026-09-08-smtp-advisory-deployment-design.md). The executable regression suite is `python3 -m unittest discover -s deploy/tests -p '*test.py'` and runs in the existing backend CI job.
+
 ## GitHub Actions secrets
 
 - `CLEARSIGHT_DEPLOY_KEY`: the dedicated Ed25519 private key whose public half is forced to `/usr/local/sbin/clearsight-ci-entrypoint` on the server.
