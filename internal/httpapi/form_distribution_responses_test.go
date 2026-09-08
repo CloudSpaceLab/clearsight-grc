@@ -36,3 +36,24 @@ func TestResponseRevisionJSONOmitsInternalScopeAndSubmissionIdentifiers(t *testi
 		}
 	}
 }
+
+func TestResponseWorkspaceSubmissionJSONUsesClientFieldNames(t *testing.T) {
+	value := evidence.WorkspaceSubmissionResult{
+		Workspace:  evidence.ResponseWorkspace{ID: "workspace-1", Version: 4},
+		Revision:   evidence.ResponseRevision{ID: "revision-1", Revision: 2, Current: true, State: evidence.ResponseRevisionFinal},
+		Submission: evidence.SubmissionReceipt{SubmissionID: "submission-1", RequestID: "request-1"},
+	}
+	encoded, err := json.Marshal(responseWorkspaceSubmissionJSON(value))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(encoded)
+	for _, required := range []string{`"workspace"`, `"version":4`, `"revision"`, `"current":true`, `"submission"`, `"submission_id":"submission-1"`} {
+		if !strings.Contains(body, required) {
+			t.Fatalf("submission response missing %s: %s", required, body)
+		}
+	}
+	if strings.Contains(body, `"Current"`) || strings.Contains(body, `"Revision"`) {
+		t.Fatalf("submission response used Go field names: %s", body)
+	}
+}

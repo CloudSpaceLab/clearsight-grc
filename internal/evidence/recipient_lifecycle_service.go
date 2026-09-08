@@ -67,13 +67,6 @@ func (s *Service) ReassignRecipient(ctx context.Context, input ReassignRecipient
 	if !ok {
 		return Request{}, ErrRecipientInvalid
 	}
-	requesterCanRead, err := checker.CanReadSubject(ctx, input.TenantID, input.ActorPrincipalID, request.SubjectType, request.SubjectID)
-	if err != nil {
-		return Request{}, err
-	}
-	if !requesterCanRead {
-		return Request{}, ErrRecipientMismatch
-	}
 	next, err := buildRecipient(ctx, s.repo, input.TenantID, request.AudienceType, input.Recipient)
 	if err != nil {
 		return Request{}, err

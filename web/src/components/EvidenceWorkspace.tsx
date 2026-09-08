@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadEvidenceReviewSubmission } from "../api";
 import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "../captureApi";
+import { ApiError } from "../http";
 import { canRespondToEvidenceRequest } from "../evidenceAuthorization";
 import type { CaptureAnswerValue, EvidenceRequest, EvidenceReviewSubmission, EvidenceSource } from "../types";
 import { EmptyState } from "./EmptyState";
@@ -182,9 +183,12 @@ export function EvidenceWorkspace({ sources, requests, sourceState, requestState
       }
       setOverrides((current) => ({ ...current, [request.id]: updated }));
       updateEdit(request.id, { busy: false, reason: "", recipient: "" });
-    } catch {
+    } catch (error) {
       if (currentScopeToken.current !== evidenceScopeToken) return;
-      updateEdit(request.id, { busy: false, error: "The recipient could not be changed. Check the current request and recipient, then try again." });
+      const message = error instanceof ApiError && error.status === 403
+        ? "Only the verified request creator can change this recipient. Ask the request creator to make the change."
+        : error instanceof ApiError ? error.message : "The recipient could not be changed. Reload the request and try again.";
+      updateEdit(request.id, { busy: false, error: message });
     }
   }
 

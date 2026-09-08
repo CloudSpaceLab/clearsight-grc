@@ -376,7 +376,7 @@ func (a *API) submitFormResponseWorkspace(w http.ResponseWriter, r *http.Request
 		writeGenericFormSessionFailure(w)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusCreated, value)
+	httpx.WriteJSON(w, http.StatusCreated, responseWorkspaceSubmissionJSON(value))
 }
 func (a *API) distributionMutationContext(w http.ResponseWriter, r *http.Request) (*evidence.DistributionService, identity.Actor, string, bool) {
 	service, ok := a.formDistributionService(w)

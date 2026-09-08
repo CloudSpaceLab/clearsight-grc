@@ -146,7 +146,7 @@ export function EvidenceRequestAdminPanel({
     setCopyNotice("");
   }
 
-  return <section aria-labelledby="evidence-request-admin-title">
+  return <section className="evidence-invitation-panel" aria-labelledby="evidence-request-admin-title">
     <header>
       <span className="eyebrow">Evidence request access</span>
       <h2 id="evidence-request-admin-title">{requestTitle}</h2>
@@ -161,7 +161,7 @@ export function EvidenceRequestAdminPanel({
     {error && <p role="alert">{error}</p>}
     {copyNotice && <p role="status">{copyNotice}</p>}
 
-    {issued && <div role="status">
+    {issued && <div className="evidence-invitation-success" role="status">
       <strong>Invitation link — shown once</strong>
       <p>Copy this link and deliver it through the approved channel now. It is not saved in this workspace and cannot be recovered after you hide it.</p>
       <label>One-time invitation link<input readOnly value={invitationLink(issued.token)}/></label>
@@ -169,24 +169,27 @@ export function EvidenceRequestAdminPanel({
       <button className="text-button" type="button" onClick={hideIssuedLink}>Hide invitation link</button>
     </div>}
 
-    <section aria-labelledby="evidence-invitation-action">
+    <section className="evidence-invitation-form" aria-labelledby="evidence-invitation-action">
       <h3 id="evidence-invitation-action">{activeInvitation ? "Replace active invitation" : "Create an invitation"}</h3>
       <p>{activeInvitation
         ? "Replacing the invitation ends the current invitation and its external sessions before a new one is issued."
         : "Create one purpose-bound invitation, then deliver its one-time link through the approved channel."}</p>
       <form onSubmit={(event) => void submit(event)}>
+        <div className="evidence-invitation-step"><span>1</span><div><strong>Confirm recipient</strong><p>Use the approved address that should respond to this request.</p></div></div>
         <label>Recipient email or approved audience
           {recipients.length ? <select required value={audience} disabled={!mutationsEnabled || busy !== ""} onChange={(event) => setAudience(event.target.value)}>
             <option value="">Choose approved recipient</option>
             {recipients.map((recipient) => <option key={recipient.audience} value={recipient.audience}>{recipient.label} · {recipient.audience}</option>)}
           </select> : <input required type="email" value={audience} disabled={!mutationsEnabled || busy !== ""} onChange={(event) => setAudience(event.target.value)} placeholder="name@example.com"/>}
         </label>
+        <div className="evidence-invitation-step"><span>2</span><div><strong>Set invitation details</strong><p>Explain what the recipient must provide and when access should end.</p></div></div>
         <label>Invitation purpose<textarea required value={purpose} disabled={!mutationsEnabled || busy !== ""} onChange={(event) => setPurpose(event.target.value)}/></label>
         <label>Invitation expiry
           <select value={ttlMinutes} disabled={!mutationsEnabled || busy !== ""} onChange={(event) => setTTLMinutes(Number(event.target.value))}>
             {EXPIRY_OPTIONS.map((option) => <option key={option.minutes} value={option.minutes}>{option.label}</option>)}
           </select>
         </label>
+        <div className="evidence-invitation-step"><span>3</span><div><strong>Create and deliver</strong><p>The link is shown once. Copy it and send it through the approved channel.</p></div></div>
         <button className="primary-button" type="submit" disabled={!mutationsEnabled || busy !== "" || !audience || !purpose.trim()}>
           {busy === "issue" ? "Creating invitation…" : busy === "replace" ? "Replacing invitation…" : activeInvitation ? "Replace invitation" : "Create invitation"}
         </button>

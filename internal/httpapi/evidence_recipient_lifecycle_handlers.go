@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
@@ -35,6 +36,9 @@ func (a *API) reassignEvidenceRecipient(w http.ResponseWriter, r *http.Request) 
 	}
 	input.RequestID = r.PathValue("id")
 	value, err := service.ReassignRecipient(r.Context(), input)
+	if err != nil && a.deps.Logger != nil {
+		a.deps.Logger.WarnContext(r.Context(), "evidence recipient change failed", "request_id", input.RequestID, "recipient_type", input.Recipient.Type, "audience_present", strings.TrimSpace(input.Recipient.Audience) != "", "expected_version", input.ExpectedVersion, "error", err)
+	}
 	writeEvidenceRecipientLifecycleResult(w, value, err)
 }
 
