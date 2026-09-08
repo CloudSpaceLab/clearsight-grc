@@ -55,10 +55,11 @@ type Props = {
   targetID?: string;
   initialSearch?: string;
   canConfigureCommunications?: boolean;
+  navigationLocation?: { hash: string };
   onTarget?: (id?: string) => void;
 };
 
-export function FormsWorkspace({ organizationName = "Organization", legalEntityName = "Legal entity", appearanceScope, targetID, initialSearch, canConfigureCommunications = true, onTarget }: Props) {
+export function FormsWorkspace({ organizationName = "Organization", legalEntityName = "Legal entity", appearanceScope, targetID, initialSearch, canConfigureCommunications = true, navigationLocation, onTarget }: Props) {
   const appearanceKey = appearanceScope?.trim() || legalEntityName;
   const [activeTab, setActiveTab] = useState<FormsTab>(() => readFormsSection(window.location.hash));
   const [query, setQuery] = useState<FormTemplateQuery>(() => readFormsQuery(window.location.hash, initialSearch));
@@ -102,6 +103,10 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     && page.items.length <= (query.limit ?? 25);
 
   useEffect(() => setAppearance(readAppearance(appearanceKey)), [appearanceKey]);
+
+  useEffect(() => {
+    if (navigationLocation) changeSection(readFormsSection(navigationLocation.hash));
+  }, [navigationLocation]);
 
   useEffect(() => {
     const sync = () => {

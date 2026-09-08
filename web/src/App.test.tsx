@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -7,8 +7,18 @@ import { loadCaptureRequest, loadContext, loadEvidenceRequest, loadEvidenceReque
 import type { AttentionItem, EvidenceRequest } from "./types";
 import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "./captureApi";
 import { ApiError } from "./http";
+import { loadFormTemplatePage } from "./formsApi";
 
 const { listEvidenceRecipientCandidates } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn() }));
+
+vi.mock("./formsApi", () => ({
+  loadFormTemplatePage: vi.fn().mockResolvedValue({ items: [] }),
+  loadFormTemplateRevision: vi.fn(),
+  loadReusableFormTemplateRefs: vi.fn().mockResolvedValue([]),
+  loadStarterTemplates: vi.fn().mockResolvedValue([]),
+  loadSavedFormViews: vi.fn().mockResolvedValue([]),
+}));
+vi.mock("./submittedDocumentApi", () => ({ loadDocuments: vi.fn().mockResolvedValue({ items: [] }) }));
 
 vi.mock("./components/RoleAwareOnboarding", async () => {
   const React = await import("react");
@@ -155,6 +165,68 @@ beforeEach(() => {
 });
 
 describe("runtime navigation", () => {
+  it.each(["desktop", "mobile"])("opens Templates from the %s Forms navigation after a section-only change", async (surface) => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    window.history.replaceState(null, "", "#forms");
+    const app = render(<App/>);
+    await screen.findByRole("tab", { name: "Templates", selected: true }, { timeout: 5000 });
+
+    for (let visit = 0; visit < 2; visit++) {
+      fireEvent.click(screen.getByRole("tab", { name: "Documents" }));
+      expect(screen.getByRole("tabpanel", { name: "Documents" })).toBeTruthy();
+      expect(window.location.hash).toBe("#forms?section=documents");
+      const navigation = surface === "desktop"
+        ? screen.getByRole("complementary", { name: "Primary navigation" })
+        : screen.getByRole("navigation", { name: "Mobile navigation" });
+      fireEvent.click(within(navigation).getByRole("button", { name: "Forms" }));
+      expect(window.location.hash).toBe("#forms");
+      expect(screen.getByRole("tab", { name: "Templates", selected: true })).toBeTruthy();
+      expect(screen.getByRole("tabpanel", { name: "Templates" })).toBeTruthy();
+    }
+
+    app.unmount();
+    render(<App/>);
+    expect(await screen.findByRole("tab", { name: "Templates", selected: true })).toBeTruthy();
+  });
+
+  it("restores Documents when history remounts Forms after leaving through app navigation", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    window.history.replaceState(null, "", "#forms");
+    render(<App/>);
+    await screen.findByRole("tab", { name: "Templates", selected: true }, { timeout: 5000 });
+    fireEvent.click(screen.getByRole("tab", { name: "Documents" }));
+    fireEvent.click(within(screen.getByRole("complementary", { name: "Primary navigation" })).getByRole("button", { name: "Today" }));
+    expect(screen.queryByRole("tab", { name: "Documents" })).toBeNull();
+
+    window.history.replaceState(null, "", "#forms?section=documents");
+    fireEvent(window, new Event("popstate"));
+    fireEvent(window, new Event("hashchange"));
+    expect(await screen.findByRole("tab", { name: "Documents", selected: true })).toBeTruthy();
+    expect(screen.getByRole("tabpanel", { name: "Documents" })).toBeTruthy();
+  });
+
+  it("preserves template filters when app target navigation opens and closes form detail", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    vi.mocked(loadFormTemplatePage).mockResolvedValueOnce({ items: [{ template: {
+      id: "template-a", tenant_id: "bank-demo", legal_entity_id: "bank-ng", code: "VENDOR", name: "Vendor due diligence",
+      purpose: "Collect current vendor evidence.", status: "DRAFT", is_current: false, version: 1,
+      created_at: "2026-08-27T09:00:00Z", updated_at: "2026-08-27T10:00:00Z", sensitivity: "INTERNAL",
+      scoring_mode: "NONE", presentation: { default_mode: "AUTOMATIC", allow_mode_switch: true },
+      sections: [{ id: "general", title: "General" }],
+      fields: [{ id: "question_1", section_id: "general", label: "Registered name", type: "short_text", required: true }],
+    } }] });
+    window.history.replaceState(null, "", "#forms?search=vendor&limit=50");
+    render(<App/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Open Vendor due diligence" }, { timeout: 5000 }));
+    expect(await screen.findByRole("dialog", { name: "Selected form template" })).toBeTruthy();
+    expect(window.location.hash).toBe("#forms/template-a?search=vendor&limit=50");
+    fireEvent.click(screen.getByRole("button", { name: "Close form detail" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Selected form template" })).toBeNull());
+    expect(window.location.hash).toBe("#forms?search=vendor&limit=50");
+    expect((screen.getByRole("searchbox") as HTMLInputElement).value).toBe("vendor");
+    expect(screen.getByRole("tab", { name: "Templates", selected: true })).toBeTruthy();
+  });
+
   it("does not replace an unavailable actor queue with static sample work in demo presentation", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(true));
     vi.mocked(loadToday).mockRejectedValue(new Error("Today projection unavailable"));
