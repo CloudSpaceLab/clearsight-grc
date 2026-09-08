@@ -12,7 +12,7 @@
     "build:evidence": "tsc -b && vite build --config vite.evidence.config.ts",
     "typecheck": "tsc -b --pretty false",
     "check:runtime-truth": "node --test scripts/runtime-fixture-boundary.nodecheck.mjs",
-    "check:ui-contracts": "node --test scripts/ui-contract.nodecheck.mjs scripts/review-ui-flow-manifest.nodecheck.mjs",
+    "check:ui-contracts": "node --test scripts/ui-contract.nodecheck.mjs scripts/review-ui-flow-manifest.nodecheck.mjs scripts/forms-evidence-scenarios.nodecheck.mjs",
     "test": "vitest run",
     "review:ui": "node scripts/run-ui-ux-review.mjs",
     "preview": "vite preview",

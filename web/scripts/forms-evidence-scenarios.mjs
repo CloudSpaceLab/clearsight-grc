@@ -755,7 +755,7 @@ const demoDocumentMetadata = Object.freeze({
   pdf: Object.freeze({ issued_on: "2026-04-01", uploaded_at: "2026-09-08T09:00:00Z", submitted_at: "2026-09-08T09:15:00Z", expires_on: "2026-09-30" }),
 });
 
-async function installDemoDocumentScenario(page, kind = "image") {
+export async function installDemoDocumentScenario(page, kind = "image") {
   const { readFile } = await import("node:fs/promises");
   const { createHash } = await import("node:crypto");
   const filename = kind === "pdf" ? "sample-insurance-schedule.pdf" : "sample-office-statement.png";
@@ -776,7 +776,7 @@ async function installDemoDocumentScenario(page, kind = "image") {
       const source = (await response.json()).items[0];
       if (!source) throw new Error("Document scenario requires an authorized source occurrence");
       const sample = { ...source, uploaded_at: metadata.uploaded_at, submitted_at: metadata.submitted_at, expires_on: metadata.expires_on, id: "demo-sample", artifact_id: "demo-sample-artifact", form_title: "Sample vendor review", field_label: kind === "pdf" ? "Insurance schedule" : "Registered office statement", file_name: filename, media_type: kind === "pdf" ? "application/pdf" : "image/png", file_kind: kind === "pdf" ? "PDF" : "IMAGE", size_bytes: size, sha256: digest, artifact_status: "STORED_UNSCANNED", demo_preview_available: true, review: undefined };
-      const pending = { ...sample, id: "genuine-pending", artifact_id: "genuine-pending-artifact", file_name: "Supplier office statement.png", demo_preview_available: false };
+      const pending = { ...sample, id: "genuine-pending", artifact_id: "genuine-pending-artifact", file_name: kind === "pdf" ? "Supplier insurance schedule.pdf" : "Supplier office statement.png", demo_preview_available: false };
       return new Response(JSON.stringify({ items: [sample, pending] }), { headers: { "Content-Type": "application/json" } });
     };
   }, { base64: bytes.toString("base64"), size: bytes.length, digest: createHash("sha256").update(bytes).digest("hex"), filename, kind, metadata: demoDocumentMetadata[kind] });
@@ -837,6 +837,18 @@ for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"
   });
 }
 
+export async function waitForNativePDFPage(page) {
+  // The outer blob iframe can be complete while Chromium's PDF viewer is blank.
+  const isViewer = (frame) => frame.url().startsWith("chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/");
+  const viewer = page.frames().find(isViewer) ?? await page.waitForEvent("framenavigated", { predicate: isViewer, timeout: 10000 });
+  await viewer.locator("pdf-viewer").waitFor({ state: "visible", timeout: 10000 });
+  await viewer.getByRole("progressbar").waitFor({ state: "hidden", timeout: 10000 });
+  const pageNumber = Number(await viewer.getByRole("textbox", { name: "Page number", exact: true }).inputValue());
+  const pageCount = Number(await viewer.locator("#pagelength").textContent({ timeout: 10000 }));
+  if (pageNumber !== 1 || pageCount !== 1) throw new Error(`Expected the one-page insurance PDF, found page ${pageNumber} of ${pageCount}`);
+  return { page_number: pageNumber, page_count: pageCount };
+}
+
 for (const theme of ["light", "dark"]) scenarios.push({
   name: `130-forms-demo-documents-pdf-${theme}-1440`, fixture: "forms-documents", route: "#forms",
   state: "demo-document-pdf-preview", theme, viewport: desktop, zoom: 1, reducedMotion: "reduce",
@@ -851,10 +863,11 @@ for (const theme of ["light", "dark"]) scenarios.push({
     const warning = dialog.getByText(/No antivirus scan was performed/); await warning.waitFor();
     const link = dialog.getByRole("link", { name: "Download file" }); await link.waitFor();
     const nativePreview = await page.evaluate(() => navigator.pdfViewerEnabled !== false);
+    let nativePage;
     if (nativePreview) {
       const frame = dialog.getByTitle("Document preview: sample-insurance-schedule.pdf"); await frame.waitFor();
       if (!(await frame.getAttribute("src"))?.startsWith("blob:") || await page.evaluate(() => window.demoDocumentContentReads) !== 1) throw new Error("PDF sample must use protected fetch and a temporary blob");
-      await page.waitForFunction(() => document.querySelector('.document-preview-canvas iframe')?.contentDocument?.readyState === "complete");
+      nativePage = await waitForNativePDFPage(page);
     } else {
       await dialog.getByText("This browser cannot preview PDFs. Download the file to view it in a PDF application.", { exact: true }).waitFor();
       if (await page.evaluate(() => window.demoDocumentContentReads) !== 0) throw new Error("Unsupported native PDF viewing must not fetch preview content");
@@ -870,7 +883,7 @@ for (const theme of ["light", "dark"]) scenarios.push({
     });
     if (downloaded.size !== expected.size || downloaded.digest !== expected.digest || downloaded.media !== "application/pdf") throw new Error("Protected PDF download differed from the shipped sample");
     await assertSheetRecoveryVisible(page, dialog);
-    return { native_pdf_preview: nativePreview, content_reads: await page.evaluate(() => window.demoDocumentContentReads), warning_before_download: true, downloaded_bytes: downloaded.size, downloaded_sha256: downloaded.digest, document_metadata: metadata };
+    return { native_pdf_preview: nativePreview, ...(nativePage ? { native_pdf_page: nativePage } : {}), content_reads: await page.evaluate(() => window.demoDocumentContentReads), warning_before_download: true, downloaded_bytes: downloaded.size, downloaded_sha256: downloaded.digest, document_metadata: metadata };
   },
 });
 
