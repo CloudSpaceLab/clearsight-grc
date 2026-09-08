@@ -12,7 +12,7 @@ The user approved connected journeys and safe navigation recovery in #200 and as
 
 - Directly choosing a different tab adds one history entry. Choosing the active tab does not add another. Back/Forward changes the selected tab and its existing labelled panel.
 - Preserve the current template target and template query while changing peer sections. Existing template-filter writes keep their established replace behavior.
-- Returning to a section mounts its existing reader and re-fetches through the existing scoped API; the URL is navigation intent, never authorization or evidence of current access.
+- Returning to Documents mounts its existing reader and re-fetches through the existing scoped API. Templates preserves a matching pending read and its existing revalidation behavior. The URL is navigation intent, never authorization or evidence of current access.
 - Only an allowlisted section slug is newly persisted. Do not add file names, document text, respondent details, document queries, credentials, access tokens or draft contents to URLs or browser storage.
 - Actual tab changes clear the same transient editor/creation/AI/error/notice state as the existing click handler. Repeated history events for the same tab must not erase an active editor.
 - Keep current shared tab keyboard behavior, accessible selected state, panel relationship, focus styling, responsive layout and loading/error/empty content. No new tokens, copy or dependencies.

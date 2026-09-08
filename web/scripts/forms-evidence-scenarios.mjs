@@ -16,6 +16,7 @@ export const requiredFormsCapabilities = Object.freeze([
   "sent-empty-replacement", "sent-populated-table", "sent-responsive-sheet", "sent-partial-page", "sent-lifecycle-feedback",
   "forced-colors", "reduced-motion",
   "documents-file-types", "documents-quick-look", "documents-keyboard-return", "documents-vendor-launcher",
+  "forms-section-resumption",
 ]);
 
 const desktop = Object.freeze({ width: 1440, height: 900 });
@@ -538,16 +539,17 @@ async function verifyMobileBuilder(page) {
 }
 
 for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"], ["vendors", "forms-vendor-review-conflict", "#vendors"]]) {
-  for (const [theme, viewport] of [["light", desktop], ["dark", reflow]]) {
+  for (const [theme, viewport] of [["light", desktop], ["dark", reflow], ...(surface === "forms" ? [["dark", desktop], ["light", reflow], ["light", mobile], ["dark", mobile]] : [])]) {
     scenarios.push({
       name: `${125 + (surface === "vendors" ? 2 : 0) + (theme === "dark" ? 1 : 0)}-forms-documents-${surface}-${theme}-${viewport.width}`, fixture, route,
       state: "submitted-document-browser", theme, viewport, zoom: 1, reducedMotion: "reduce",
-      capabilities: ["documents-file-types", "documents-quick-look", "documents-keyboard-return", ...(surface === "vendors" ? ["documents-vendor-launcher"] : [])],
+      capabilities: ["documents-file-types", "documents-quick-look", "documents-keyboard-return", ...(surface === "vendors" ? ["documents-vendor-launcher"] : ["forms-section-resumption"])],
       run: async (page) => {
         if (surface === "forms") {
           const tab = page.getByRole("tab", { name: "Documents", exact: true });
           await tab.click();
           if (await tab.getAttribute("aria-controls") !== await page.getByRole("tabpanel").getAttribute("id")) throw new Error("The Documents tab must control its mounted panel after switching.");
+          await verifyFormsSectionResumption(page);
         }
         else {
           await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
@@ -573,6 +575,49 @@ for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"],
       },
     });
   }
+}
+
+async function verifyFormsSectionResumption(page) {
+  const selected = (name) => page.getByRole("tab", { name, exact: true, selected: true }).waitFor();
+  await page.getByRole("row", { name: /Sample security certification/ }).waitFor();
+  if (new URLSearchParams(new URL(page.url()).hash.split("?")[1]).get("section") !== "documents") throw new Error("Documents selection must be reflected in the Forms URL.");
+  await page.reload({ waitUntil: "networkidle" });
+  await selected("Documents");
+  await page.getByRole("row", { name: /Sample security certification/ }).waitFor();
+  await page.getByRole("tab", { name: "Templates", exact: true }).click();
+  await selected("Templates");
+  await page.evaluate(() => {
+    const fetch = window.fetch.bind(window);
+    window.documentResumeReads = 0;
+    window.fetch = async (...args) => {
+      const input = args[0];
+      const url = new URL(input instanceof Request ? input.url : String(input), window.location.href);
+      if (url.pathname === "/api/v1/forms/documents") window.documentResumeReads++;
+      return fetch(...args);
+    };
+  });
+  await page.goBack();
+  await selected("Documents");
+  await page.waitForFunction(() => window.documentResumeReads > 0);
+  await page.getByRole("row", { name: /Sample security certification/ }).waitFor();
+  await page.goForward();
+  await selected("Templates");
+  await page.goBack();
+  await selected("Documents");
+  const tab = page.getByRole("tab", { name: "Documents", exact: true });
+  if (await tab.getAttribute("aria-controls") !== await page.getByRole("tabpanel").getAttribute("id")) throw new Error("Restored Documents tab must control its mounted panel.");
+  const legacyHash = "#forms/form-vendor-due-diligence?search=vendor&status=ACTIVE";
+  await page.goto(`${page.url().split("#")[0]}${legacyHash}&section=documents`);
+  await selected("Documents");
+  await page.reload({ waitUntil: "networkidle" });
+  await selected("Documents");
+  await page.getByRole("tab", { name: "Templates", exact: true }).click();
+  await page.getByRole("dialog").waitFor();
+  if (new URL(page.url()).hash !== legacyHash) throw new Error("Returning to Templates must retain the template path and library filters.");
+  if (await page.getByLabel("Search templates").inputValue() !== "vendor") throw new Error("Returning to Templates must retain the library search.");
+  await page.keyboard.press("Escape");
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await tab.click();
 }
 
 export const formsEvidenceScenarios = Object.freeze(scenarios.map((scenario) => Object.freeze({
