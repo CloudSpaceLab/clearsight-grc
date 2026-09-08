@@ -39,6 +39,7 @@
   .document-preview-details > p { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
   @media (max-width: 1200px) { .document-inspector { display: none; } }
   @media (max-width: 760px) {
+    .document-browser-heading { flex-direction: column; align-items: stretch; }
     .document-browser-body { display: block; }
     .document-kinds { display: none; }
     .document-kind-selector { display: block; }

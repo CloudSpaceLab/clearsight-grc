@@ -107,6 +107,23 @@ async function assertDocumentNameWidth(page) {
   }).catch((error) => { throw new Error(`Complete document names must use the full available mobile card width: ${error.message}`); });
 }
 
+async function assertDocumentHeader(page) {
+  await page.getByRole("button", { name: "Refresh files", exact: true }).waitFor({ state: "visible" });
+  await page.waitForFunction(() => {
+    const header = document.querySelector(".document-browser-heading");
+    const heading = header?.querySelector("h2");
+    const refresh = header?.querySelector("button");
+    if (!heading || !refresh) return false;
+    const range = document.createRange();
+    range.selectNodeContents(heading);
+    const titleLines = range.getClientRects();
+    const headerBounds = header.getBoundingClientRect();
+    const refreshBounds = refresh.getBoundingClientRect();
+    return titleLines.length === 1 && titleLines[0].left >= headerBounds.left && titleLines[0].right <= headerBounds.right
+      && refreshBounds.height >= 44 && refreshBounds.left >= headerBounds.left && refreshBounds.right <= headerBounds.right;
+  }).catch((error) => { throw new Error(`The Documents heading must fit its whole word while Refresh files remains reachable: ${error.message}`); });
+}
+
 async function assertContrast(page, locator, minimum, label) {
   const result = await locator.evaluate((element) => {
     const parse = (value) => (value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
@@ -639,6 +656,7 @@ for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"],
           await page.getByRole("button", { name: "View vendor documents" }).click();
         }
         await page.getByRole("row", { name: /Sample security certification/ }).waitFor();
+        await assertDocumentHeader(page);
         await assertFileTypeSelected(page, "All files");
         await assertDocumentNameWidth(page);
         for (const kind of ["PDF files", "Images", "Spreadsheets", "Other files", "All files", "Word documents"]) await selectFileType(page, kind);
