@@ -94,6 +94,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       setAggregateState("live");
     } catch {
       if (!mounted.current || current !== loadIDs.current.aggregate || activeTarget.current !== target) return;
+      setAggregate(null);
       setAggregateState("unavailable");
     }
   }, []);

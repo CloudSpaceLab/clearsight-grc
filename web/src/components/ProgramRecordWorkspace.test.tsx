@@ -172,6 +172,25 @@ describe("Program record workspace", () => {
     expect(document.activeElement).not.toBe(screen.getByRole("region", { name: "Requirement: Retain account records" }));
   });
 
+  it.each([403, 404, 503])("removes the prior target and offers recovery when a Program reload fails with %s", async (status) => {
+    vi.mocked(loadProgram).mockResolvedValueOnce(targetAggregate).mockRejectedValueOnce(new ApiError(status, "Access to item/1 #銀行 is unavailable")).mockResolvedValue(targetAggregate);
+    vi.mocked(loadProgramOperations).mockResolvedValue({ ...operations, program_version: 3 });
+    render(<ProgramRecordWorkspace programID="program-1" section="requirements-controls" programItem={{ kind: "requirement", id: "item/1 #銀行" }} onBack={vi.fn()}/>);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("region", { name: "Requirement: Retain account records" })));
+    const back = screen.getByRole("button", { name: "Back to Programs" });
+    back.focus();
+    fireEvent.click(screen.getByRole("button", { name: "Reload Program data" }));
+    const retry = await screen.findByRole("button", { name: "Retry Program record" });
+    expect(screen.queryByRole("region", { name: /^Requirement:|^Control objective:/ })).toBeNull();
+    expect(screen.queryByText(/item\/1 #銀行/)).toBeNull();
+    expect(document.activeElement).toBe(back);
+    expect(loadProgramSummaries).not.toHaveBeenCalled();
+
+    fireEvent.click(retry);
+    await screen.findByRole("region", { name: "Requirement: Retain account records" });
+    expect(document.activeElement).toBe(back);
+  });
+
   it("keeps an unavailable Program target out of the record cards", async () => {
     vi.mocked(loadProgram).mockRejectedValue(new Error("Not found"));
     render(<ProgramRecordWorkspace programID="program-1" section="requirements-controls" programItem={{ kind: "requirement", id: "private-missing-item" }} onBack={vi.fn()}/>);
