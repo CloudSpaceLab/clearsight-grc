@@ -35,6 +35,7 @@ jobs:
         run: |
           npm run typecheck
           npm run check:runtime-truth
+          npm run check:ui-contracts
           npm test
       - name: Build customer and deterministic evidence applications
         run: |
