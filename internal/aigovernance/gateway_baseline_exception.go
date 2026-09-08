@@ -62,13 +62,15 @@ func validateGatewayBaselineExceptionPolicy(policy Policy, target Policy, worklo
 	if policy.EffectiveFrom != nil && !policy.EffectiveFrom.Before(*policy.EffectiveUntil) {
 		return errors.Join(ErrInvalid, fmt.Errorf("baseline exception validity window is invalid"))
 	}
-	ruleIDs := make(map[string]struct{}, len(target.Definition.Rules))
+	waivableRuleIDs := make(map[string]struct{}, len(target.Definition.Rules))
 	for _, rule := range target.Definition.Rules {
-		ruleIDs[strings.TrimSpace(rule.ID)] = struct{}{}
+		if aigateway.BaselineRuleWaivable(rule) {
+			waivableRuleIDs[strings.TrimSpace(rule.ID)] = struct{}{}
+		}
 	}
 	for _, ruleID := range scope.WaivedRuleIDs {
-		if _, ok := ruleIDs[ruleID]; !ok {
-			return errors.Join(ErrInvalid, fmt.Errorf("baseline exception references unknown rule %q", ruleID))
+		if _, ok := waivableRuleIDs[ruleID]; !ok {
+			return errors.Join(ErrInvalid, fmt.Errorf("baseline exception references a missing or non-waivable rule %q", ruleID))
 		}
 	}
 	workloadByID := make(map[string]Workload, len(workloads))
@@ -84,8 +86,11 @@ func validateGatewayBaselineExceptionPolicy(policy Policy, target Policy, worklo
 			return errors.Join(ErrInvalid, fmt.Errorf("baseline exception environment does not cover its workload scope"))
 		}
 	}
-	if len(policy.Definition.Bindings) != 0 || len(policy.Definition.Rules) != 0 || policy.Definition.ResponseControl.MaxBytes != 0 || len(policy.Definition.ResponseControl.DenyPatterns) != 0 || len(policy.Definition.ResponseControl.RedactPatterns) != 0 {
-		return errors.Join(ErrInvalid, fmt.Errorf("baseline exception policies cannot define independent gateway rules"))
+	control := policy.Definition.ResponseControl
+	if len(policy.Definition.Bindings) != 0 || len(policy.Definition.Rules) != 0 ||
+		(policy.Definition.DefaultAction != "" && policy.Definition.DefaultAction != aigateway.DecisionAllow) ||
+		control.MaxBytes != 0 || control.AllowStreaming || len(control.DenyPatterns) != 0 || len(control.RedactPatterns) != 0 {
+		return errors.Join(ErrInvalid, fmt.Errorf("baseline exception policies cannot define independent gateway behavior"))
 	}
 	return nil
 }
