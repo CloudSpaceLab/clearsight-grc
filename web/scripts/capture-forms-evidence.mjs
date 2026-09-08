@@ -48,9 +48,9 @@ async function captureScenario(scenario) {
       localStorage.setItem("clearsight.density", selectedDensity);
     }, { selectedTheme: scenario.theme, selectedDensity: scenario.density ?? "comfortable" });
     const page = await context.newPage();
+    if (scenario.fixture === "forms-recovery-restored") await seedRecoveryEnvelope(page);
     // The isolated evidence entry has no favicon; full Chromium requests one automatically.
     await page.route(`${new URL(baseURL).origin}/favicon.ico`, (route) => route.fulfill({ status: 204 }));
-    if (scenario.fixture === "forms-recovery-restored") await seedRecoveryEnvelope(page);
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
