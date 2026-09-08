@@ -618,6 +618,12 @@ async function verifyFormsSectionResumption(page) {
   await page.keyboard.press("Escape");
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await tab.click();
+  await page.getByRole("button", { name: "Forms", exact: true }).click();
+  await selected("Templates");
+  if (new URL(page.url()).hash !== "#forms") throw new Error("Primary Forms navigation must open the Templates root.");
+  await page.reload({ waitUntil: "networkidle" });
+  await selected("Templates");
+  await tab.click();
 }
 
 export const formsEvidenceScenarios = Object.freeze(scenarios.map((scenario) => Object.freeze({

@@ -11,6 +11,7 @@ The user approved connected journeys and safe navigation recovery in #200 and as
 ## Interaction and safety
 
 - Directly choosing a different tab adds one history entry. Choosing the active tab does not add another. Back/Forward changes the selected tab and its existing labelled panel.
+- Main desktop/mobile Forms navigation intentionally opens the Templates root, including when Forms is already mounted. Its URL and selected section must agree before and after reload.
 - Preserve the current template target and template query while changing peer sections. Existing template-filter writes keep their established replace behavior.
 - Returning to Documents mounts its existing reader and re-fetches through the existing scoped API. Templates preserves a matching pending read and its existing revalidation behavior. The URL is navigation intent, never authorization or evidence of current access.
 - Only an allowlisted section slug is newly persisted. Do not add file names, document text, respondent details, document queries, credentials, access tokens or draft contents to URLs or browser storage.
