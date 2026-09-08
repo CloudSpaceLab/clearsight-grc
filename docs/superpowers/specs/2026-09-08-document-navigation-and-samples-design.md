@@ -1,0 +1,27 @@
+# Document navigation and realistic submitted samples
+
+## Approved scope
+
+The user approved this scope on 8 September 2026, following the findings and acceptance checklist in [master #200](https://github.com/CloudSpaceLab/clearsight-grc/issues/200#issuecomment-5586374921). This is an addition to the approved vendor activation handoff/recovery work, not a replacement for it. No more mockups or new document module.
+
+## Decisions
+
+Keep desktop Forms peer tabs and the Finder-style file-type sidebar. At narrow widths replace each with a compact, visibly labelled selector so seven sections and six file types do not consume multiple rows or clip labels. Reuse existing SelectField and Tabs contracts. Preserve the selected section, query and mounted content across viewport changes; viewport changes must not discard an editor draft or document selection. Keep normal keyboard navigation, focus, accessible panel naming and URL reload/Back/Forward behavior. Document filenames use the full card width on narrow screens, with metadata underneath and Preview still reachable. Do not restyle shared component internals from feature CSS.
+
+Use a small connected fictional sample pack through the existing non-production installer and submission/artifact paths. Screenshot-only metadata cannot prove preview or persisted workflow behavior; a large synthetic population adds maintenance without closing this gap. Retain the existing scoring fixtures. Add meaningful vendor service, contact roles, typed answers, last-submitted dates, file issue/expiry dates and immutable revision links. Real readable sample files have actual media type, byte size and checksum. Every record/artifact is labelled sample, with no genuine confidential data, counterfeit certification or invented signature.
+
+Sample scenarios cover current, approaching expiry, expired, missing evidence, contradictory vendor/date, previous/replacement revision and pending inspection. Stored status must match actual completed operations: do not mark bytes inspected or evidence accepted just to make a screen look complete. Signatures are required only by a form signature field. Acceptance, submission and verified outcome remain distinct.
+
+The same stored sample occurrence must be discoverable from response detail, Forms Documents and its vendor relationship. Production installation is refused. Repeat installation is idempotent, partial installation recoverable, and genuine submissions untouched. No mail to real recipients and no external AI processing.
+
+## Delivery boundaries
+
+1. Responsive navigation and filename readability, independently testable without data mutation.
+2. Vendor activation stale-result recovery and access-filtered exact-record handoffs, preserving material authority checks.
+3. Connected sample installer and actual protected-byte browser acceptance.
+
+Each has its own implementation tasks and verification receipt. Document disposition/replacement commands and validation rulesets remain separate open work under #200; sample scenarios are acceptance inputs, not claims that those capabilities exist.
+
+## Required proof
+
+Preserve before screenshots. Test desktop and 720/390/320px, light/dark, 200% reflow, keyboard, slow/error/empty states and resize while editing/previewing. Run copy-quality, affected workflows, UI contracts, runtime fixture isolation, full web/Go and rendered review gates. Inspect renders and repair the highest-impact finding. For samples additionally test production refusal, exact scope/access denial, repeat/partial runs, response/artifact membership, integrity and actual preview/download. Merge/deploy only green exact-head code, verify the hosted revision, and retain wider #139/#147/#200 limitations.
