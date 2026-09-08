@@ -192,6 +192,7 @@ type RecordBaseline struct {
 }
 
 type Field struct {
+	Assessment         *formcontract.FieldAssessment     `json:"assessment,omitempty"`
 	ID                 string                            `json:"id"`
 	SectionID          string                            `json:"section_id"`
 	Label              string                            `json:"label"`

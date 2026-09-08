@@ -37,6 +37,11 @@ func (validator ActivationAuthorityResolver) ValidatePolicyActivation(ctx contex
 	if validator.Now != nil {
 		now = validator.Now().UTC()
 	}
+	// Contextual guardrails activate in the same transaction as their approved
+	// typed policy, after all current authority and simulation checks succeed.
+	if policy.ManagesAutomation() && automationPolicy.Status == autonomy.AutomationPolicyApproved && automationPolicy.Checksum == policy.Checksum && automationPolicy.MakerID == policy.MakerID && automationPolicy.CheckerID == policy.CheckerID {
+		automationPolicy.Status = autonomy.AutomationPolicyActive
+	}
 	if !AutomationPolicyAllows(automationPolicy, policy, now) {
 		return ErrActivationAuthority
 	}

@@ -74,7 +74,7 @@ func (repo *PostgresRepository) ClaimCompensations(ctx context.Context, workerID
 	SELECT claimed.id::text,`+postgresPolicyColumns+`,
 		e.id::text,e.tenant_id::text,e.legal_entity_id::text,e.policy_id::text,e.policy_version,
 		e.automation_policy_id::text,e.automation_policy_version,e.response_revision_id::text,e.state,
-		COALESCE(e.matter_id::text,''),e.reason_code,e.created_matter,e.created_at
+		COALESCE(e.matter_id::text,''),e.reason_code,e.created_matter,e.created_at,e.result_basis,e.assessment_version
 	FROM claimed
 	JOIN form_response_policy_definitions p ON p.id=claimed.rollback_policy_id AND p.tenant_id=claimed.tenant_id AND p.legal_entity_id=claimed.legal_entity_id AND p.version=claimed.rollback_policy_version
 	JOIN form_response_policy_executions e ON e.id=claimed.policy_execution_id AND e.tenant_id=claimed.tenant_id AND e.legal_entity_id=claimed.legal_entity_id
@@ -135,7 +135,7 @@ func (repo *PostgresRepository) ListPendingCompensations(ctx context.Context, no
 	rows, err := repo.pool.Query(ctx, `SELECT `+postgresPolicyColumns+`,
 		e.id::text,e.tenant_id::text,e.legal_entity_id::text,e.policy_id::text,e.policy_version,
 		e.automation_policy_id::text,e.automation_policy_version,e.response_revision_id::text,e.state,
-		COALESCE(e.matter_id::text,''),e.reason_code,e.created_matter,e.created_at
+		COALESCE(e.matter_id::text,''),e.reason_code,e.created_matter,e.created_at,e.result_basis,e.assessment_version
 		FROM form_response_policy_definitions p
 		JOIN form_response_policy_executions e
 		  ON e.tenant_id=p.tenant_id AND e.legal_entity_id=p.legal_entity_id
@@ -178,7 +178,7 @@ func scanPostgresCompensationCandidate(row postgresRow, includesJobID bool) (Com
 	targets = append(targets, postgresPolicyScanTargets(&policy, &eligibility, &action, &blast, &outcome, &rollout, &status)...)
 	targets = append(targets, &execution.ID, &execution.TenantID, &execution.LegalEntityID, &execution.PolicyID, &execution.PolicyVersion,
 		&execution.AutomationPolicyID, &execution.AutomationPolicyVersion, &execution.ResponseRevisionID, &execution.State,
-		&execution.MatterID, &execution.ReasonCode, &execution.CreatedMatter, &execution.CreatedAt)
+		&execution.MatterID, &execution.ReasonCode, &execution.CreatedMatter, &execution.CreatedAt, &execution.ResultBasis, &execution.AssessmentVersion)
 	if err := row.Scan(targets...); err != nil {
 		return CompensationCandidate{}, err
 	}
@@ -207,7 +207,7 @@ func (repo *PostgresRepository) SeedReconciliation(ctx context.Context, now time
 			JOIN form_response_policy_definitions p
 			  ON p.tenant_id=r.tenant_id AND p.legal_entity_id=r.legal_entity_id
 			 AND p.form_template_id=d.form_template_id AND p.form_template_version=d.form_template_version
-			 AND p.status='ACTIVE'
+			 AND p.status='ACTIVE' AND COALESCE(p.eligibility->>'result_basis','AUTOMATIC')='AUTOMATIC'
 			 AND p.activated_at IS NOT NULL AND p.activated_at<=r.created_at
 			 AND (p.effective_from IS NULL OR p.effective_from<=r.created_at)
 			 AND (p.effective_until IS NULL OR p.effective_until>r.created_at)
@@ -221,19 +221,24 @@ func (repo *PostgresRepository) SeedReconciliation(ctx context.Context, now time
 			  AND NOT EXISTS (
 				SELECT 1 FROM form_response_policy_maintenance_jobs job
 				WHERE job.tenant_id=r.tenant_id AND job.legal_entity_id=r.legal_entity_id
-				  AND job.job_type='RECONCILE' AND job.response_revision_id=r.id
+				  AND job.job_type='RECONCILE' AND job.response_revision_id=r.id AND job.assessment_version=0
 			  )
 			GROUP BY r.tenant_id,r.legal_entity_id,r.id
 			ORDER BY min(r.created_at),r.id
 			LIMIT $2
 		) candidate
-		ON CONFLICT (tenant_id,legal_entity_id,response_revision_id) WHERE job_type='RECONCILE'
+		ON CONFLICT (tenant_id,legal_entity_id,response_revision_id,assessment_version) WHERE job_type='RECONCILE'
 		DO UPDATE SET state='READY',due_at=EXCLUDED.due_at,locked_by=NULL,lease_until=NULL,last_error='',updated_at=EXCLUDED.updated_at
 		WHERE form_response_policy_maintenance_jobs.state='COMPLETED'`, now.UTC(), limit)
 	if err != nil {
 		return 0, normalizePostgresError(err)
 	}
-	return int(tag.RowsAffected()), nil
+	created := int(tag.RowsAffected())
+	if created >= limit {
+		return created, nil
+	}
+	assessed, err := repo.seedAssessedReconciliation(ctx, now, limit-created)
+	return created + assessed, err
 }
 
 func (repo *PostgresRepository) ClaimReconciliation(ctx context.Context, workerID string, now time.Time, lease time.Duration, limit int) ([]ScoredResponseEvent, error) {
@@ -250,9 +255,9 @@ func (repo *PostgresRepository) ClaimReconciliation(ctx context.Context, workerI
 			UPDATE form_response_policy_maintenance_jobs job
 			SET state='CLAIMED',locked_by=$3,lease_until=$1::timestamptz+$4::interval,attempts=attempts+1,updated_at=$1
 			FROM due WHERE job.id=due.id
-			RETURNING job.id,job.tenant_id,job.response_revision_id,job.created_at
+			RETURNING job.id,job.tenant_id,job.response_revision_id,job.created_at,job.result_basis,job.assessment_version,job.result_occurred_at
 		)
-		SELECT claimed.id::text,claimed.tenant_id::text,claimed.response_revision_id::text,claimed.created_at
+		SELECT claimed.id::text,claimed.tenant_id::text,claimed.response_revision_id::text,COALESCE(claimed.result_occurred_at,claimed.created_at),claimed.result_basis,claimed.assessment_version
 		FROM claimed ORDER BY claimed.created_at,claimed.id`, now.UTC(), limit, strings.TrimSpace(workerID), lease.String())
 	if err != nil {
 		return nil, err
@@ -261,7 +266,7 @@ func (repo *PostgresRepository) ClaimReconciliation(ctx context.Context, workerI
 	events := make([]ScoredResponseEvent, 0, limit)
 	for rows.Next() {
 		var event ScoredResponseEvent
-		if err := rows.Scan(&event.ID, &event.TenantID, &event.ResponseRevisionID, &event.OccurredAt); err != nil {
+		if err := rows.Scan(&event.ID, &event.TenantID, &event.ResponseRevisionID, &event.OccurredAt, &event.ResultBasis, &event.AssessmentVersion); err != nil {
 			return nil, err
 		}
 		events = append(events, event)

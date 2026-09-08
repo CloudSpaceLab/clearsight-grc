@@ -156,6 +156,21 @@ func seedPolicyResponse(t *testing.T, ctx context.Context, pool *pgxpool.Pool, n
 
 func cleanupPolicyFixture(t *testing.T, pool *pgxpool.Pool) {
 	t.Helper()
+	// Test-only cleanup of immutable fixtures; the setting is local to this transaction.
+	tx, err := pool.Begin(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(context.Background())
+	if _, err = tx.Exec(context.Background(), `SET LOCAL session_replication_role='replica'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = tx.Exec(context.Background(), `DELETE FROM capture_response_assessments WHERE tenant_id IN ($1::uuid,$2::uuid)`, policyTenantID, policyOtherTenant); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.Commit(context.Background()); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := pool.Exec(context.Background(), `
 		DELETE FROM outbox_events WHERE tenant_id IN ($1::uuid,$2::uuid);
 		DELETE FROM inbox_receipts WHERE tenant_id IN ($1::uuid,$2::uuid);

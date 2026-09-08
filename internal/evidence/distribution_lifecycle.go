@@ -59,9 +59,11 @@ type distributionLifecycleStore interface {
 }
 
 type DistributionService struct {
-	store             distributionLifecycleStore
-	now               func() time.Time
-	demoSamplePreview bool
+	assessmentAuthorizer        ResponseAssessmentAuthorizer
+	responseDiscoveryAuthorizer ResponseDiscoveryAuthorizer
+	store                       distributionLifecycleStore
+	now                         func() time.Time
+	demoSamplePreview           bool
 }
 
 func NewDistributionService(store distributionLifecycleStore) *DistributionService {

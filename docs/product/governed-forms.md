@@ -2,6 +2,16 @@
 
 Governed Forms is the reusable collection layer for vendor, internal-user and third-party work. It uses the existing Evidence Request, invitation, capture, artifact, authority, document-import and outbox foundations; it is not a parallel questionnaire or email system.
 
+## Bank field assessment and vendor requests
+
+Fields can carry an explicit assessment mode, required bank review, weight, named reviewer role and approved rubric. Automatic rules continue to use the existing scoring profile editor. Bank judgements are immutable corrections on an exact submitted response and field checksum; they never replace respondent answers. A bank-assessed result remains provisional until its required reviews and score coverage are complete. Automatic critical effects remain effective during combined assessment.
+
+The vendor register shows outstanding forms, overdue forms, pending bank review and highest current assessed concern for the visible, authorized population, with its observation time. A vendor's Forms and responses section opens required-field gaps, submitted evidence, exact score contributions and bank decisions. Generic vendor form requests remain separate from due-diligence approval and relationship activation. Selecting up to 50 services reuses the distribution settings with a separate recipient per vendor; per-target creation receipts prevent duplicate requests on retry.
+
+Result policies can be configured with contextual canonical automation guardrails or a named eligible existing policy. They retain simulation, maker/checker, effective dates, expiry, limits, suspension, rollback and execution history. Policies explicitly select automatic submission results or completed bank assessments. See the [decision brief](../design/2026-09-08-vendor-field-assessment.md) and [acceptance record](../acceptance/vendor-form-assessment.md).
+
+Replacing only part of a response retains its outstanding concerns and labels its score as partly replaced. An old response leaves current vendor risk only when all its submitted fields have been replaced through the same authorized workflow and form revision. History remains available; partial replacement does not recompute or silently lower an earlier assessed score.
+
 ## Template lifecycle
 
 The Forms navigation opens a searchable, filterable library. A template records its bank purpose, owner or responsible team, approved uses, tags, jurisdiction, industry, sensitivity, presentation mode, sections, typed fields and scoring policy. A field may carry a percentage weight; compliance scoring is valid only when the governed weighted population totals 100. File, date and date-time questions render their native task-appropriate controls.
@@ -39,6 +49,8 @@ Vendor refresh requests may show a current bank-held value and ask the recipient
 The Responses workspace is a bounded legal-entity portfolio read. It filters and sorts stored current or historical response revisions by form, subject, score direction, raw/adverse range, concern band, calculation state and completion time. **Needs attention first** orders by adverse score, not by an ambiguous generic number. List rows contain safe response summaries; protected addresses, route selectors and answers remain outside the portfolio projection.
 
 Assessment and vendor-work response summaries require the exact submitted request's workflow link and current read permission before pagination. Vendor-work responses also require access to the linked Program or issue. A relationship owner cannot read a restricted work response through Forms; current workflow owners and reviewers retain their authorized reads. Revoked access and missing or mismatched submitted-request links hide both summaries and exact responses. Other Forms subjects retain their existing read rules.
+
+For ordinary vendor form responses, a currently routed bank response reviewer can discover and inspect the submitted response through Forms, independently of the vendor relationship owner. The field's configured reviewer role determines which bank judgements that reviewer can save. This grant does not expose vendor drafts or widen access to the vendor profile, due-diligence work, Programs or restricted issues.
 
 A governed response policy binds one exact active form revision to a typed eligible subject population, minimum coverage, score/band conditions, Matter handling, blast-radius limits, effective window and outcome check. The maker simulates the stored response population before submitting the policy. A distinct checker approves and activates it after current automation and authority routes are revalidated. Shadow mode records decisions without creating Matters; enforced rollout requires prior shadow history.
 

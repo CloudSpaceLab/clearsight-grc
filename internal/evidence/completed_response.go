@@ -28,7 +28,15 @@ func (service *DistributionService) GetCompletedResponseForExecution(ctx context
 	if !ok {
 		return CompletedResponseSummary{}, ErrDistributionInvalid
 	}
-	return reader.GetCompletedResponseForExecution(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(revisionID))
+	value, err := reader.GetCompletedResponseForExecution(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(revisionID))
+	if err != nil {
+		return CompletedResponseSummary{}, err
+	}
+	values := []CompletedResponseSummary{value}
+	if err := service.attachAssessmentSummaries(ctx, value.TenantID, values); err != nil {
+		return CompletedResponseSummary{}, err
+	}
+	return values[0], nil
 }
 
 type ResponseSort string
@@ -64,20 +72,21 @@ type CompletedResponseQuery struct {
 }
 
 type CompletedResponseSummary struct {
-	ID                  string                `json:"id"`
-	TenantID            string                `json:"tenant_id"`
-	LegalEntityID       string                `json:"legal_entity_id"`
-	DistributionID      string                `json:"distribution_id"`
-	FormTemplateID      string                `json:"form_template_id"`
-	FormTemplateVersion int64                 `json:"form_template_version"`
-	Title               string                `json:"title"`
-	SubjectType         string                `json:"subject_type"`
-	SubjectID           string                `json:"subject_id"`
-	Revision            int64                 `json:"revision"`
-	Current             bool                  `json:"current"`
-	State               ResponseRevisionState `json:"state"`
-	Score               *ResponseScoreResult  `json:"score"`
-	CompletedAt         time.Time             `json:"completed_at"`
+	BankAssessment      *ResponseAssessmentSummary `json:"bank_assessment,omitempty"`
+	ID                  string                     `json:"id"`
+	TenantID            string                     `json:"tenant_id"`
+	LegalEntityID       string                     `json:"legal_entity_id"`
+	DistributionID      string                     `json:"distribution_id"`
+	FormTemplateID      string                     `json:"form_template_id"`
+	FormTemplateVersion int64                      `json:"form_template_version"`
+	Title               string                     `json:"title"`
+	SubjectType         string                     `json:"subject_type"`
+	SubjectID           string                     `json:"subject_id"`
+	Revision            int64                      `json:"revision"`
+	Current             bool                       `json:"current"`
+	State               ResponseRevisionState      `json:"state"`
+	Score               *ResponseScoreResult       `json:"score"`
+	CompletedAt         time.Time                  `json:"completed_at"`
 }
 
 type CompletedResponsePage struct {
@@ -104,8 +113,12 @@ func (service *DistributionService) ListCompletedResponses(ctx context.Context, 
 	if !ok {
 		return CompletedResponsePage{}, ErrDistributionInvalid
 	}
+	ctx = service.withResponseDiscovery(ctx, query.TenantID, query.LegalEntityID, query.PrincipalID)
 	page, err := reader.ListCompletedResponses(ctx, query)
 	if err != nil {
+		return CompletedResponsePage{}, err
+	}
+	if err := service.attachAssessmentSummaries(ctx, query.TenantID, page.Items); err != nil {
 		return CompletedResponsePage{}, err
 	}
 	return page, nil
@@ -119,6 +132,7 @@ func (service *DistributionService) GetCompletedResponse(ctx context.Context, te
 	if !ok {
 		return CompletedResponseSummary{}, ResponseRevision{}, ErrDistributionInvalid
 	}
+	ctx = service.withResponseDiscovery(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(legalEntityID), strings.TrimSpace(principalID))
 	return reader.GetCompletedResponse(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(legalEntityID), strings.TrimSpace(principalID), strings.TrimSpace(revisionID))
 }
 

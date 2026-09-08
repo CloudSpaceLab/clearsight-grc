@@ -85,9 +85,10 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	if err != nil {
 		return serviceSet{}, err
 	}
-	distributionService := evidence.NewDistributionService(distributionStore)
+	distributionService := evidence.NewDistributionService(distributionStore).WithAssessmentAuthorizer(formAssessmentAuthorizer(authorityService)).WithResponseDiscoveryAuthorizer(formResponseDiscoveryAuthorizer(authorityService))
 	evidence.ConfigureDemoSamplePreview(evidenceService, distributionService, cfg.DemoMode)
-	formPolicies := formpolicy.NewService(formpolicy.NewMemoryRepository(), formDistributionReader{repo: monitoringRepo}, distributionService)
+	distributionService.ConfigureVendorProgress(distributionAccessStore)
+	formPolicies := formpolicy.NewService(formpolicy.NewMemoryRepositoryWithAutomation(autonomyRepo), formDistributionReader{repo: monitoringRepo}, distributionService)
 	formPolicies.ConfigureActivationAuthority(formPolicyActivationAuthority{Automation: auto, Authority: authorityService, Subjects: evidence.CanonicalSubjectTypeRegistry{}})
 	communicationService := evidence.NewCommunicationService(evidence.NewMemoryCommunicationStore())
 	communicationBrands := evidence.NewCommunicationBrandService(evidence.NewMemoryCommunicationBrandStore(), store)

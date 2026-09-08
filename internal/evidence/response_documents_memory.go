@@ -68,7 +68,7 @@ func (s *MemoryDistributionStore) ListDocuments(ctx context.Context, q DocumentQ
 			if accessErr != nil {
 				return DocumentPage{}, accessErr
 			}
-			if !allowed {
+			if !allowed && !(q.assessmentRead && q.ResponseRevisionID == revision.ID && d.SubjectType == "VENDOR_RELATIONSHIP") {
 				continue
 			}
 			if d.SubjectType == "VENDOR_RELATIONSHIP" {

@@ -4,6 +4,8 @@ This is the fast, implementation-ready design contract for people and coding age
 
 ## Product and users
 
+Vendor form work follows the [8 September field assessment decision brief](docs/design/2026-09-08-vendor-field-assessment.md): compact vendor status links, separate completion and risk, side-by-side submitted answer/bank judgement with narrow-sheet stacking, and explicit per-vendor request confirmation. Existing tokens and variants apply; fixture and render requirements are in the brief.
+
 ClearSight is repeated-use operating software for bank executives, risk and compliance leaders, reviewers, authorizers, business owners, administrators and invited respondents. It should feel calm, exact, premium and institutional—not theatrical, playful or generic.
 
 The interface optimizes for:

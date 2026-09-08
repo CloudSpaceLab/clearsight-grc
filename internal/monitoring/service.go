@@ -539,7 +539,7 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 	}
 	fields := make([]evidence.Field, len(form.Fields))
 	for index, field := range form.Fields {
-		fields[index] = evidence.Field{ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: string(field.Type), Required: field.Required, Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...), Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring}
+		fields[index] = evidence.Field{ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: string(field.Type), Required: field.Required, Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...), Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring, Assessment: field.Assessment}
 	}
 	periodStart := input.PeriodStart.UTC()
 	periodEnd := input.PeriodEnd.UTC()

@@ -26,7 +26,7 @@ func (s *MemoryDistributionStore) ListCompletedResponses(ctx context.Context, qu
 		for _, revision := range revisions {
 			if allowed, accessErr := s.completedResponseVisible(ctx, query.PrincipalID, distribution, revision); accessErr != nil {
 				return CompletedResponsePage{}, accessErr
-			} else if !allowed {
+			} else if !allowed && !s.responseDiscoveryVisible(ctx, query.PrincipalID, distribution, revision) {
 				continue
 			}
 			value := completedResponseSummary(distribution, revision)
@@ -132,7 +132,7 @@ func (s *MemoryDistributionStore) GetCompletedResponseForExecution(_ context.Con
 		for _, revision := range revisions {
 			if revision.ID == revisionID && revision.TenantID == tenantID &&
 				(revision.State == ResponseRevisionFinal || revision.State == ResponseRevisionProvisional) && revision.Score != nil &&
-				(revision.Score.State == ResponseScoreFinal || revision.Score.State == ResponseScoreProvisional) {
+				(revision.Score.State == ResponseScoreFinal || revision.Score.State == ResponseScoreProvisional || len(s.assessments[revisionID]) > 0) {
 				return completedResponseSummary(distribution, revision), nil
 			}
 		}

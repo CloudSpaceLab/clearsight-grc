@@ -76,7 +76,7 @@ func (service *Service) simulatePopulation(ctx context.Context, actor Actor, pol
 	if highWater.ID != "" {
 		snapshot.HighWater = highWater.CompletedAt.UTC().Format(time.RFC3339Nano) + "|" + highWater.ID
 	}
-	populationPayload, _ := json.Marshal(valuesForPopulationChecksum(values))
+	populationPayload, _ := json.Marshal(valuesForPopulationChecksum(values, policy.Eligibility.Basis()))
 	populationSum := sha256.Sum256(populationPayload)
 	snapshot.PopulationChecksum = hex.EncodeToString(populationSum[:])
 	snapshot.WouldCreateCount = min(snapshot.EligibleCount, policy.BlastRadius.PerRun)
@@ -89,10 +89,13 @@ func (service *Service) simulatePopulation(ctx context.Context, actor Actor, pol
 
 func policyMatches(policy Policy, value evidence.CompletedResponseSummary) bool {
 	eligibility := policy.Eligibility
-	if value.TenantID != policy.TenantID || value.LegalEntityID != policy.LegalEntityID || value.FormTemplateID != eligibility.FormTemplateID || value.FormTemplateVersion != eligibility.FormTemplateVersion || eligibility.CurrentOnly && !value.Current || !slices.Contains(eligibility.SubjectTypes, strings.ToUpper(strings.TrimSpace(value.SubjectType))) || value.Score == nil {
+	if value.TenantID != policy.TenantID || value.LegalEntityID != policy.LegalEntityID || value.FormTemplateID != eligibility.FormTemplateID || value.FormTemplateVersion != eligibility.FormTemplateVersion || eligibility.CurrentOnly && !value.Current || !slices.Contains(eligibility.SubjectTypes, strings.ToUpper(strings.TrimSpace(value.SubjectType))) {
 		return false
 	}
-	score := value.Score
+	score := policyScore(policy, value)
+	if score == nil {
+		return false
+	}
 	if score.State != evidence.ResponseScoreFinal && score.State != evidence.ResponseScoreProvisional || score.Coverage < eligibility.MinimumCoverage {
 		return false
 	}
@@ -111,19 +114,34 @@ func policyMatches(policy Policy, value evidence.CompletedResponseSummary) bool 
 	return true
 }
 
-type populationChecksumValue struct {
-	ID          string                        `json:"id"`
-	Current     bool                          `json:"current"`
-	CompletedAt time.Time                     `json:"completed_at"`
-	SubjectType string                        `json:"subject_type"`
-	SubjectID   string                        `json:"subject_id"`
-	Score       *evidence.ResponseScoreResult `json:"score"`
+func policyScore(policy Policy, value evidence.CompletedResponseSummary) *evidence.ResponseScoreResult {
+	if policy.Eligibility.Basis() != ResultBankAssessed {
+		return value.Score
+	}
+	assessment := value.BankAssessment
+	if assessment == nil || assessment.Version < 1 || assessment.State != "ASSESSED" || assessment.ReviewedRequiredCount < assessment.RequiredCount || assessment.Score == nil || !assessment.Score.Final || assessment.Score.State != evidence.ResponseScoreFinal {
+		return nil
+	}
+	return assessment.Score
 }
 
-func valuesForPopulationChecksum(values []evidence.CompletedResponseSummary) []populationChecksumValue {
+type populationChecksumValue struct {
+	BankAssessment *evidence.ResponseAssessmentSummary `json:"bank_assessment,omitempty"`
+	ID             string                              `json:"id"`
+	Current        bool                                `json:"current"`
+	CompletedAt    time.Time                           `json:"completed_at"`
+	SubjectType    string                              `json:"subject_type"`
+	SubjectID      string                              `json:"subject_id"`
+	Score          *evidence.ResponseScoreResult       `json:"score"`
+}
+
+func valuesForPopulationChecksum(values []evidence.CompletedResponseSummary, basis ResultBasis) []populationChecksumValue {
 	result := make([]populationChecksumValue, 0, len(values))
 	for _, value := range values {
-		result = append(result, populationChecksumValue{ID: value.ID, Current: value.Current, CompletedAt: value.CompletedAt.UTC(), SubjectType: value.SubjectType, SubjectID: value.SubjectID, Score: value.Score})
+		if basis != ResultBankAssessed {
+			value.BankAssessment = nil
+		}
+		result = append(result, populationChecksumValue{BankAssessment: value.BankAssessment, ID: value.ID, Current: value.Current, CompletedAt: value.CompletedAt.UTC(), SubjectType: value.SubjectType, SubjectID: value.SubjectID, Score: value.Score})
 	}
 	return result
 }

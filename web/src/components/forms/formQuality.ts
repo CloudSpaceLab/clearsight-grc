@@ -9,6 +9,8 @@ import {
   type FormQualityIssue,
 } from "./formAuthoring";
 import { validateAdvancedScoreProfile, validateFieldContractBounds, validateSectionContractBounds } from "./formContractQuality";
+import { assessmentConfigurationErrors, needsBankReview } from "./fieldAssessment";
+import { predicateFieldIDs } from "./assessmentFieldResults";
 export type { FormQualityIssue } from "./formAuthoring";
 
 export function evaluateQuality(draft: FormDraft): FormQualityIssue[] {
@@ -39,6 +41,17 @@ export function evaluateQuality(draft: FormDraft): FormQualityIssue[] {
     if (!sectionIDs.has(field.section_id ?? "")) block(`field-section:${field.id}`, `${displayField(field, index)} references a missing section.`, { fieldID: field.id });
 
     validateFieldContractBounds(field, index, block);
+    assessmentConfigurationErrors(field).forEach((message, errorIndex) => block(`field-assessment:${field.id}:${errorIndex}`, `${displayField(field, index)}: ${message}`, { fieldID: field.id }));
+    const assessmentMode = field.assessment?.mode;
+    if (assessmentMode === "AUTOMATIC" || assessmentMode === "AUTOMATIC_REVIEW") {
+      const direct = draft.scoreProfile?.contributions.filter((rule) => rule.predicate.field_id === field.id).length ?? 0;
+      if (!draft.scoreProfile && !field.scoring) block(`assessment-rules:${field.id}`, `${displayField(field, index)} requires an automatic rule. Configure answer points or the form's advanced scoring rules.`, { fieldID: field.id });
+      if (draft.scoreProfile && (direct > 1 || assessmentMode === "AUTOMATIC_REVIEW" && direct !== 1)) block(`assessment-direct-rule:${field.id}`, `${displayField(field, index)} requires ${assessmentMode === "AUTOMATIC_REVIEW" ? "exactly one" : "at most one"} direct scoring contribution for its assessment weight.`, { fieldID: field.id });
+    }
+    if (assessmentMode === "NONE" || assessmentMode === "MANUAL") {
+      const predicates = [...(draft.scoreProfile?.contributions.map((rule) => rule.predicate) ?? []), ...(draft.scoreProfile?.rules?.filter((rule) => rule.effect.kind === "CONTRIBUTION").map((rule) => rule.predicate) ?? [])];
+      if (predicates.some((predicate) => predicateFieldIDs(predicate).includes(field.id))) block(`assessment-profile-conflict:${field.id}`, `${displayField(field, index)} is used by an automatic scoring contribution. Remove that contribution or choose an automatic assessment mode.`, { fieldID: field.id });
+    }
 
     if (isSelectionType(field.type)) {
       const options = field.type === "yes_no" ? ["Yes", "No"] : normalizeOptionText((field.options ?? []).join("\n"));
@@ -97,7 +110,8 @@ export function isTemplateApprovalReady(template: FormTemplate) {
 }
 
 function validateCompliance(draft: FormDraft, block: (id: string, message: string, extra?: Partial<FormQualityIssue>) => void) {
-  const scoredSections = draft.sections.filter((section) => draft.fields.some((field) => field.section_id === section.id && field.scoring));
+  const weight = (field: AuthoringField) => field.scoring ? (field.assessment && field.assessment.mode !== "NONE" ? field.assessment.weight : field.scoring.weight) : needsBankReview(field) ? field.assessment!.weight : 0;
+  const scoredSections = draft.sections.filter((section) => draft.fields.some((field) => field.section_id === section.id && weight(field)));
   if (draft.scoreProfile && !scoredSections.length) {
     for (const section of draft.sections) if ((section.weight ?? 0) !== 0) block(`compliance-profile-section:${section.id}`, `${section.title || "Section"} cannot carry a legacy section weight when advanced scoring is used.`, { sectionID: section.id });
     return;
@@ -108,12 +122,12 @@ function validateCompliance(draft: FormDraft, block: (id: string, message: strin
   }
   let sectionTotal = 0;
   for (const section of draft.sections) {
-    const scoredFields = draft.fields.filter((field) => field.section_id === section.id && field.scoring);
+    const scoredFields = draft.fields.filter((field) => field.section_id === section.id && weight(field));
     if (!scoredFields.length) {
       if ((section.weight ?? 0) !== 0) block(`compliance-unscored-section:${section.id}`, `${section.title || "Unscored section"} cannot carry compliance weight without scored questions.`, { sectionID: section.id });
       continue;
     }
-    const fieldTotal = scoredFields.reduce((sum, field) => sum + (field.scoring?.weight ?? 0), 0);
+    const fieldTotal = scoredFields.reduce((sum, field) => sum + weight(field), 0);
     if (fieldTotal !== 100) {
       const delta = 100 - fieldTotal;
       block(
@@ -122,9 +136,9 @@ function validateCompliance(draft: FormDraft, block: (id: string, message: strin
         { sectionID: section.id },
       );
     }
-    const weight = section.weight ?? 0;
-    if (weight === 0) block(`compliance-section:${section.id}`, `${section.title || "Scored section"} requires a section weight from 1–100%.`, { sectionID: section.id });
-    sectionTotal += weight;
+    const sectionWeight = section.weight ?? 0;
+    if (sectionWeight === 0) block(`compliance-section:${section.id}`, `${section.title || "Scored section"} requires a section weight from 1–100%.`, { sectionID: section.id });
+    sectionTotal += sectionWeight;
   }
   if (sectionTotal !== 100) {
     const delta = 100 - sectionTotal;

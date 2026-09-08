@@ -49,6 +49,7 @@ type Actor struct {
 }
 
 type Eligibility struct {
+	ResultBasis         ResultBasis                `json:"result_basis,omitempty"`
 	FormTemplateID      string                     `json:"form_template_id"`
 	FormTemplateVersion int64                      `json:"form_template_version"`
 	SubjectTypes        []string                   `json:"subject_types"`
@@ -58,6 +59,20 @@ type Eligibility struct {
 	RawBelow            *float64                   `json:"raw_below,omitempty"`
 	RawAbove            *float64                   `json:"raw_above,omitempty"`
 	AdverseAtLeast      *float64                   `json:"adverse_at_least,omitempty"`
+}
+
+type ResultBasis string
+
+const (
+	ResultAutomatic    ResultBasis = "AUTOMATIC"
+	ResultBankAssessed ResultBasis = "BANK_ASSESSED"
+)
+
+func (eligibility Eligibility) Basis() ResultBasis {
+	if eligibility.ResultBasis == "" {
+		return ResultAutomatic
+	}
+	return eligibility.ResultBasis
 }
 
 type MatterAction struct {
@@ -116,24 +131,25 @@ type Policy struct {
 }
 
 type SimulationReceipt struct {
-	ID                      string    `json:"id"`
-	TenantID                string    `json:"tenant_id"`
-	LegalEntityID           string    `json:"legal_entity_id"`
-	PolicyID                string    `json:"policy_id"`
-	PolicyVersion           int64     `json:"policy_version"`
-	PolicyChecksum          string    `json:"policy_checksum"`
-	ActorID                 string    `json:"actor_id"`
-	PopulationCount         int       `json:"population_count"`
-	EligibleCount           int       `json:"eligible_count"`
-	WouldCreateCount        int       `json:"would_create_count"`
-	WouldReuseCount         int       `json:"would_reuse_count"`
-	BlastSuppressedCount    int       `json:"blast_suppressed_count"`
-	RestrictedExcludedCount int       `json:"restricted_excluded_count"`
-	PopulationHighWater     string    `json:"population_high_water"`
-	PopulationChecksum      string    `json:"population_checksum"`
-	ImpactChecksum          string    `json:"impact_checksum"`
-	ObservedAt              time.Time `json:"observed_at"`
-	ExpiresAt               time.Time `json:"expires_at"`
+	ResultBasis             ResultBasis `json:"result_basis"`
+	ID                      string      `json:"id"`
+	TenantID                string      `json:"tenant_id"`
+	LegalEntityID           string      `json:"legal_entity_id"`
+	PolicyID                string      `json:"policy_id"`
+	PolicyVersion           int64       `json:"policy_version"`
+	PolicyChecksum          string      `json:"policy_checksum"`
+	ActorID                 string      `json:"actor_id"`
+	PopulationCount         int         `json:"population_count"`
+	EligibleCount           int         `json:"eligible_count"`
+	WouldCreateCount        int         `json:"would_create_count"`
+	WouldReuseCount         int         `json:"would_reuse_count"`
+	BlastSuppressedCount    int         `json:"blast_suppressed_count"`
+	RestrictedExcludedCount int         `json:"restricted_excluded_count"`
+	PopulationHighWater     string      `json:"population_high_water"`
+	PopulationChecksum      string      `json:"population_checksum"`
+	ImpactChecksum          string      `json:"impact_checksum"`
+	ObservedAt              time.Time   `json:"observed_at"`
+	ExpiresAt               time.Time   `json:"expires_at"`
 }
 
 type ExecutionState string
@@ -148,6 +164,8 @@ const (
 )
 
 type ExecutionReceipt struct {
+	ResultBasis             ResultBasis    `json:"result_basis"`
+	AssessmentVersion       int64          `json:"assessment_version,omitempty"`
 	ID                      string         `json:"id"`
 	TenantID                string         `json:"tenant_id"`
 	LegalEntityID           string         `json:"legal_entity_id"`
@@ -215,6 +233,7 @@ type AdverseEpisode struct {
 }
 
 type CreateInput struct {
+	CreateAutomationPolicy  bool            `json:"create_automation_policy,omitempty"`
 	Code                    string          `json:"code"`
 	Name                    string          `json:"name"`
 	Purpose                 string          `json:"purpose"`
@@ -227,4 +246,11 @@ type CreateInput struct {
 	Rollout                 RolloutMode     `json:"rollout"`
 	EffectiveFrom           *time.Time      `json:"effective_from,omitempty"`
 	EffectiveUntil          *time.Time      `json:"effective_until,omitempty"`
+}
+
+func receiptBasis(value ExecutionReceipt) ResultBasis {
+	if value.ResultBasis == "" {
+		return ResultAutomatic
+	}
+	return value.ResultBasis
 }

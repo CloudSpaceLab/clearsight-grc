@@ -3,6 +3,12 @@
 **Status date:** 2026-09-08
 **Current execution:** Document navigation, vendor recovery and fictional document samples under #138/#139/#147; consolidated scope in #200
 
+## Vendor forms and bank field assessment — implemented and locally verified
+
+The user approved this slice on 8 September after the checkout was synchronized to remote main `60a6a606`. The implementation extends existing form authoring/import, response scoring, protected distributions, vendor relationships and governed result policies. It adds immutable bank field judgements, explicit automatic/bank-assessed policy eligibility, vendor progress and concern summaries, exact response/history inspection and bounded duplicate-safe multi-vendor requests. Partly replaced responses retain labelled concerns until their submitted fields have been replaced. See the [approved plan](superpowers/plans/2026-09-08-vendor-form-assessment.md) and [acceptance record](acceptance/vendor-form-assessment.md).
+
+Migrations 000082–000084 own assessment history, distribution creation receipts and assessed-result execution references. A fresh disposable PostgreSQL database successfully applied all 97 current migrations. Local integration and rendered-fixture evidence do not establish deployed email delivery, production-volume capacity or representative bank-user task timing; those remain release acceptance steps.
+
 ## Resumed execution — integrated GRC experience
 
 The operator authorized gap closure on 8 September 2026 following the evidence-backed master [#200](https://github.com/CloudSpaceLab/clearsight-grc/issues/200). The first bounded slice follows the [result-handoff decision brief](design/2026-09-08-governed-result-handoffs.md) and [implementation plan](superpowers/plans/2026-09-08-governed-result-handoffs.md): open a stored document-analysis result in its existing Program or issue workspace, preserving review and authorization distinctions. It does not introduce another document viewer, change material authority, or claim complete IGX-00/09 acceptance.

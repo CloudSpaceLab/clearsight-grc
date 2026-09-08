@@ -31,6 +31,15 @@ export type FormScoring = {
   critical_answers?: string[];
 };
 
+export type FieldAssessmentMode = "NONE" | "MANUAL" | "AUTOMATIC" | "AUTOMATIC_REVIEW";
+export type FieldAssessment = {
+  mode: FieldAssessmentMode;
+  required: boolean;
+  weight: number;
+  reviewer_role?: string;
+  rubric?: Array<{ id: string; label: string; points: number }>;
+};
+
 export type FormTemplateSection = CaptureSection & {
   weight?: number;
   condition?: CaptureVisibilityCondition;
@@ -49,6 +58,7 @@ export type FormTemplateField = {
   constraints?: CaptureFieldConstraints;
   condition?: CaptureVisibilityCondition;
   scoring?: FormScoring;
+  assessment?: FieldAssessment;
   collection_intent?: FormCollectionIntent;
   record_target?: FormRecordTarget;
   browser_cache_policy?: FormBrowserCachePolicy;

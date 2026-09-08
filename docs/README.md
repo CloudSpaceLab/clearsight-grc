@@ -43,6 +43,8 @@ The documentation is layered so product semantics, safety, architecture, experie
 
 ## Canonical precedence
 
+The approved [vendor forms and bank assessment design](design/2026-09-08-vendor-field-assessment.md), [implementation plan](superpowers/plans/2026-09-08-vendor-form-assessment.md), and [acceptance evidence](acceptance/vendor-form-assessment.md) extend the existing governed Forms workflow with field review, vendor requests and result policies.
+
 When requirements conflict:
 
 1. safety, confidentiality, legal boundaries and tenant isolation;

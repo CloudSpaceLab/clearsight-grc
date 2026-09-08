@@ -35,6 +35,17 @@ Guide selection is server-authoritative. Signed identities and development ident
 
 Today and Vendors resolve separate guide surfaces from the verified actor. Each first eligible visit may show the same non-modal cinematic presentation component with surface-specific SVG and HTML steps. **Start guide** and **Skip for now** remain immediately available; navigation and workspace actions remain usable; saved progress can be resumed or restarted. Reduced motion displays the final panel state without entry animation.
 
+## Vendor forms and bank field assessment
+
+| State/use case | Expected result | Evidence |
+|---|---|---|
+| Outstanding vendor form | Required-field progress and deadline are visible without draft answers | Scoped vendor query and panel tests |
+| Submitted, review pending | Submission is distinct from completed bank assessment; no favourable score is inferred | Assessment evaluator and review tests |
+| Poor or partly replaced result | Exact adverse contributions and bank decisions open; partial replacement retains qualified concerns | Vendor retirement and response detail tests |
+| Multiple vendor requests | Per-service recipients, reviewable preview, partial recovery and duplicate-safe retry | Batch integration and composer tests |
+| Bank rules and policies | Field rubric and automatic rules use existing authoring; result handling retains simulation and separate approval | Builder and policy lifecycle tests |
+| Narrow, dark, empty and unavailable states | Reflow preserves primary actions, labelled status and recovery | [Acceptance evidence](../acceptance/vendor-form-assessment.md) |
+
 ## Primary navigation and routing
 
 | Interaction | Previous risk | Implemented correction | Evidence |

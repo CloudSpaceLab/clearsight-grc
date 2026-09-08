@@ -198,7 +198,7 @@ func TestPostgresDocumentInventoryScopesBeforeLimitAndPaginates(t *testing.T) {
 	// rather than a simplified surrogate. This is a representative small-fixture
 	// plan, explicitly not the separate 200,000-occurrence release benchmark.
 	var planJSON []byte
-	err = pool.QueryRow(ctx, `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) `+documentInventorySQL(), tenant, entity, actor, now, "", "", amendmentID, false, "", "", time.Time{}, "", "", "", "", 3).Scan(&planJSON)
+	err = pool.QueryRow(ctx, `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) `+documentInventorySQL(), tenant, entity, actor, now, "", "", amendmentID, false, "", "", time.Time{}, "", "", "", "", 3, false).Scan(&planJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
