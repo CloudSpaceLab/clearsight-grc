@@ -27,6 +27,13 @@ Task 1 receipts: commits `99c34e27` and `ad306e0f`; six immutable PDF/PNG/XLSX a
 
 ## Task 3: Connected persisted responses
 
+Implementation boundaries from the service audit:
+
+- Add an explicit document-sample-only invocation to the existing installer. It must not replay the unrelated reference projection maintainers or install new authority routes. Default deployment seeding remains unchanged; run document installation explicitly after the normal API/worker are ready.
+- Resolve the existing sample principals and legal-entity membership, then use current effective command authority in enforce mode. Use the governed library form commands with separate maker and checker, not the legacy form helper that lacks this guard. Recheck the exact stored contract on a partial rerun; an operator pause or changed form stops continuation.
+- Serialize sample installers with a scoped advisory lock, and bound exact artifact/revision reads to the expected fixture population plus one. Compare all stored answers and artifact membership before resuming. No direct material SQL writes, generalized seed framework, or silent overwrite of changed sample records.
+- Poll only the exact sample assessment setup result. The normal worker performs setup; the installer must not claim or run unrelated maintenance jobs on the shared host. Invitation delivery stays disabled for the `.invalid` sample audience, and route/session secrets never enter receipts.
+
 - [ ] Extend only the non-production sample installer. Require demo mode and a durable configured artifact store. Preserve existing scoring fixtures and all genuine records.
 - [ ] Use a dedicated source-marked sample vendor and governed form so reruns cannot overwrite an operator's existing vendor assessment. Establish the canonical assessment/request origin via existing services and upload through the respondent session before submitting typed answers.
 - [ ] Use exact indexed sample identifiers and existing idempotent workflow episode keys. On partial reruns inspect the exact request/workspace/revision, resume its existing route where allowed, and do not duplicate submissions or replace a person's edited answers. No SMTP delivery or logging of route/session secrets.
