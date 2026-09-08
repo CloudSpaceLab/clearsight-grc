@@ -47,6 +47,8 @@ const captures = [
 try {
   if (process.env.UI_EVIDENCE_SCOPE === "document-results") {
     await captureDocumentResultHandoffs();
+  } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-activation") {
+    await captureVendorActivationRecovery();
   } else {
   await captureVendorLinkedWorkflows();
   for (const capture of captures) await capturePage(capture);
@@ -64,6 +66,7 @@ try {
   await captureImportSelection("180-import-selected-light-mobile-390x844", "light", { width: 390, height: 844 }, true);
   await captureDocumentResultHandoffs();
   await captureVendorWorkflows();
+  await captureVendorActivationRecovery();
   }
 } catch (error) {
   failure = error instanceof Error ? error.message : String(error);
@@ -572,6 +575,91 @@ async function captureVendorWorkflows() {
     await record(page, partial, partial.state);
   } finally {
     await context.close();
+  }
+}
+
+async function captureVendorActivationRecovery() {
+  const axeSource = await readFile(path.resolve("node_modules/axe-core/axe.min.js"), "utf8");
+  for (const theme of ["light", "dark"]) for (const width of [1440, 390, 320]) {
+    const capture = { route: "#vendors", title: "Vendors", theme, density: "comfortable", viewport: { width, height: width === 1440 ? 900 : 844 }, touch: width < 800 };
+    const { context, page } = await openPage({ ...capture, route: "#today", title: "Today" });
+    try {
+      // This runner-only fixture exercises the real workspace and HTTP client.
+      // All activation results are fictional; no material server command is sent.
+      await page.evaluate(async () => {
+        const originalFetch = window.fetch.bind(window);
+        const population = await (await originalFetch("/api/v1/vendors?limit=50")).json();
+        const first = structuredClone(population.items[0]);
+        first.vendor.legal_name = "Sample · Acme Processing Limited";
+        first.relationship.version = 4;
+        const second = structuredClone(first);
+        second.vendor.id = "sample-vendor-second";
+        second.vendor.legal_name = "Sample · Meridian Technology Limited";
+        second.relationship.id = "sample-relationship-second";
+        second.relationship.vendor_id = second.vendor.id;
+        second.relationship.service_name = "Sample account reporting service";
+        const fixture = { commands: [], releaseCommand: undefined, version: 4 };
+        window.__vendorActivationRecovery = fixture;
+        const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
+        const checks = (record) => ({ eligible: true, relationship: { ...record.relationship, version: record === first ? fixture.version : 4 }, policy: { id: "sample-activation-policy", policy_number: record === first ? 2 : 9, version: 3, status: "ACTIVE", effective_from: "2026-09-01T00:00:00Z" }, gates: [
+          { code: "CURRENT_ASSESSMENT", satisfied: true, explanation: "Sample data: the completed onboarding assessment is current." },
+          { code: "DECISION_AUTHORITY", satisfied: true, explanation: "Sample data: the recorded decision makers remain in the current authority route." },
+        ] });
+        window.fetch = async (input, init) => {
+          const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url, location.origin);
+          if (url.pathname === "/api/v1/vendors" && (!init?.method || init.method === "GET")) return json({ items: [first, second] });
+          const record = [first, second].find((item) => url.pathname.startsWith(`/api/v1/vendors/${item.relationship.id}`));
+          if (record && url.pathname.endsWith("/activation")) return json(checks(record));
+          if (record && url.pathname.endsWith("/activate")) {
+            fixture.commands.push(JSON.parse(init.body));
+            if (fixture.commands.length === 1) {
+              fixture.version = 6;
+              return json({ error: { code: "version_conflict", message: "The sample relationship changed." } }, 409);
+            }
+            return new Promise((resolve) => { fixture.releaseCommand = () => resolve(json({ ...checks(record), relationship: { ...record.relationship, status: "ACTIVE", version: 7 } })); });
+          }
+          if (record && url.pathname === `/api/v1/vendors/${record.relationship.id}`) return json(record);
+          if (record === second && url.pathname.endsWith("/assessments/current")) return json({ assessment: null });
+          return originalFetch(input, init);
+        };
+      });
+      await page.getByRole("button", { name: "Vendors", exact: true }).click();
+      await page.getByRole("button", { name: /Sample · Acme Processing Limited/ }).click();
+      const panel = page.locator(".vendor-activation-panel");
+      const rationale = "Sample activation review: all current policy and evidence checks were reviewed.";
+      await panel.getByLabel("Activation rationale").fill(rationale);
+      await panel.getByRole("button", { name: "Activate vendor relationship", exact: true }).click();
+      const reload = panel.getByRole("button", { name: "Reload activation checks", exact: true });
+      await reload.waitFor({ state: "visible" });
+      if (!await reload.isEnabled() || await panel.getByText("Ready for authorization", { exact: true }).count() || await panel.getByRole("button", { name: "Activate vendor relationship", exact: true }).count()) throw new Error("Activation conflict retained stale authorization or hid reload.");
+      await page.addScriptTag({ content: axeSource });
+      const save = async (state) => {
+        const name = `vendor-activation-${state}-${theme}-${width}`;
+        await panel.scrollIntoViewIfNeeded();
+        await assertNoHorizontalOverflow(page, name);
+        const violations = await panel.evaluate(async (element) => (await window.axe.run(element, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] } })).violations);
+        if (violations.length) throw new Error(`${name} accessibility: ${JSON.stringify(violations.map(({ id, impact, nodes }) => ({ id, impact, nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })) })))}`);
+        await saveScreenshot(page, name);
+        await record(page, { ...capture, name }, `vendor-activation-${state}`);
+      };
+      await save("conflict");
+      await reload.focus();
+      await page.keyboard.press("Enter");
+      await panel.getByText("Ready for authorization", { exact: true }).waitFor();
+      if (await panel.getByLabel("Activation rationale").inputValue() !== rationale) throw new Error("Activation reload discarded the same-relationship rationale.");
+      await save("reloaded");
+      await panel.getByRole("button", { name: "Activate vendor relationship", exact: true }).click();
+      await page.waitForFunction(() => typeof window.__vendorActivationRecovery.releaseCommand === "function");
+      const commands = await page.evaluate(() => window.__vendorActivationRecovery.commands);
+      if (commands.length !== 2 || commands[0].expected_version !== 4 || commands[1].expected_version !== 6) throw new Error("Activation did not use the refreshed relationship version.");
+      if (width < 800) await page.getByRole("button", { name: "← Back to vendor register", exact: true }).click();
+      await page.getByRole("button", { name: /Sample · Meridian Technology Limited/ }).click();
+      await panel.getByText("Policy 9, version 3 applies from", { exact: false }).waitFor();
+      await page.evaluate(async () => { window.__vendorActivationRecovery.releaseCommand(); await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))); });
+      await page.getByRole("heading", { name: "Sample · Meridian Technology Limited", exact: true }).waitFor();
+      if (await panel.getByRole("heading", { name: "Vendor relationship active", exact: true }).count() || await panel.getByLabel("Activation rationale").inputValue() !== "") throw new Error("A late activation result changed the newly selected relationship.");
+      await save("late-result-isolated");
+    } finally { await context.close(); }
   }
 }
 
