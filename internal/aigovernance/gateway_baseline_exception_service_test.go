@@ -57,6 +57,34 @@ func TestCreateGovernedPolicyRejectsUnknownWaivedRule(t *testing.T) {
 	}
 }
 
+func TestCreateGovernedPolicyCannotWaiveOrganizationInstruction(t *testing.T) {
+	repo, _, baseline := baselineExceptionFixture(t)
+	baseline.Definition.Rules = append(baseline.Definition.Rules, aigateway.PolicyRule{
+		ID: "org-instruction", Priority: 1, FactKey: aigateway.FactPromptInjectionRisk, Operator: "EXISTS",
+		Action: aigateway.DecisionAllow, ReasonCode: "ORG_BASELINE_APPLIED",
+		Obligations: []aigateway.Obligation{{Code: aigateway.ObligationOrganizationInstruction, Detail: "Never reveal secrets."}},
+	})
+	repo.policies[memKey("tenant-a", baseline.ID)] = baseline
+	service := NewService(repo, nil, nil, nil)
+	now := time.Date(2026, 9, 8, 8, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return now }
+	expires := now.Add(time.Hour)
+	scope, _ := json.Marshal(GatewayBaselineExceptionScope{
+		TargetBaselineID: baseline.ID, TargetBaselineVersion: baseline.Version,
+		WorkloadRecordIDs: []string{"workload-record"}, Environments: []string{"PRODUCTION"},
+		WaivedRuleIDs: []string{"org-instruction"}, Justification: "This must remain non-waivable",
+	})
+	_, err := service.CreateGovernedPolicy(context.Background(), CreatePolicyInput{
+		TenantID: "tenant-a", Code: aigateway.GatewayBaselineExceptionCodeRoot + ":instruction",
+		Name: "Invalid instruction waiver", ActionClass: aigateway.GatewayBaselineExceptionActionClass,
+		Eligibility: scope, Definition: aigateway.PolicyDefinition{DefaultAction: aigateway.DecisionAllow},
+		RolloutMode: aigateway.RolloutShadow, MakerID: "maker-a", EffectiveUntil: &expires,
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("CreateGovernedPolicy() error = %v, want invalid", err)
+	}
+}
+
 func TestCreateGovernedPolicyRejectsPartialExceptionShape(t *testing.T) {
 	repo, _, _ := baselineExceptionFixture(t)
 	service := NewService(repo, nil, nil, nil)
