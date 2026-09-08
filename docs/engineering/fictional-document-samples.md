@@ -19,6 +19,8 @@ Use the deployment's existing protected environment and mounted artifact directo
 
 The command resolves active principals and current entity membership, canonicalizes scope, and enforces the existing effective authority routes. The maker must own vendor/form/assessment commands; the checker independently activates the form. It does not create principals, roles, authority routes or unrelated reference journeys, and it does not run shared projection or maintenance queues. Missing identity, authority, configured storage or recipient protection stops installation.
 
+The installer requires `CLEARSIGHT_DB_MAX_CONNS` of at least 2 (the application default is 20): one connection holds its scoped coordination lock while normal services use another. A single-connection pool cannot complete this command and will time out; increase the configured pool before invoking it.
+
 ## Stored scenario
 
 The dedicated source is `fictional_document_samples_v1`, vendor reference `northstar-infrastructure-documents-v1`, and unbound form code `SAMPLE-NORTHSTAR-DOCUMENTS-V1`. The service and form explicitly identify sample data. Existing `reference_data/vendor:managed-infrastructure`, scoring fixtures, operator forms and Program-bound forms sharing the code retain their separate identities.
