@@ -39,4 +39,4 @@ expect(screen.getByRole("button", { name: "Reload activation checks" })).toBeTru
 
 - [ ] Add a deterministic fixture for conflict → reload and late-result isolation using the existing browser harness; exercise light/dark desktop and 390/320px. No fake actual vendor approval or scan receipt.
 - [ ] Specification review then quality review; fix and re-review findings.
-- [ ] Run full release gates with the navigation tranche after both pass focused checks. Record exact commands, renders, head and hosted revision under #139/#147/#200. Keep exact-record handoffs and full vendor outcome acceptance open.
+- [ ] Run full release gates with the navigation tranche after both pass focused checks. Record exact commands, renders, head and hosted revision under #139/#147; keep #200 closed as instructed. Keep exact-record handoffs and full vendor outcome acceptance open.

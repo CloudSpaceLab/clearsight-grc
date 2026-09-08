@@ -9,6 +9,8 @@ The operator authorized gap closure on 8 September 2026 following the evidence-b
 
 #128 is closed as **superseded, not completed**. Its residual acceptance is explicitly transferred in #200 and the [closure receipt](https://github.com/CloudSpaceLab/clearsight-grc/issues/128#issuecomment-5580653813). Existing execution owners #137–143 and #147 remain open. Narrow merged foundations do not complete their wider acceptance; real recipient journeys, independent review, outcome checks, exact-head deployment and recovery evidence remain separately required. No production bank configuration, provider processing or real email is needed for this first slice.
 
+The operator subsequently confirmed that #200 must remain closed. Retain it as the consolidated scope reference; execute and record new receipts in the existing child issues rather than reopening it. The current slice uses #138 for persisted fictional samples, #139 for vendor integration and #147 for release acceptance. Closing the master did not satisfy those child outcomes.
+
 ## Deployment recovery — SMTP availability boundary
 
 The #201 merge passed main CI/UI but its SMTP probe timeout caused deployment rollback handling to stop the new containers. Operator recovery restored the schema-compatible prior release; that recovery does not count as deployment of #201. On 8 September the operator approved making SMTP connectivity advisory for application deployment while retaining security configuration, recipient protection, API and worker checks as blocking. The [focused design](superpowers/specs/2026-09-08-smtp-advisory-deployment-design.md) and [plan](superpowers/plans/2026-09-08-smtp-advisory-deployment.md) track the correction under #147/#200. Standalone email readiness remains strict, and actual inbox/recipient acceptance remains required separately. Exact release and recovery receipts belong in #147; broader workstreams stay open.
@@ -17,7 +19,7 @@ PR #202 subsequently deployed `af45e4dbac2c24956fd6ea57d25783090b25e609` through
 
 ## Forms section resumption — implementation and verification
 
-The next IGX-00 slice follows the [decision brief](design/2026-09-08-forms-section-resume.md) and [plan](superpowers/plans/2026-09-08-forms-section-resume.md): preserve the existing Forms peer section on reload and Back/Forward using only a validated section value. Existing template links and filters remain compatible, and section readers re-fetch through their existing scoped APIs. This does not add document query/content persistence, a new viewer or workflow. File selection/filter/page recovery and all remaining document decisions and validation acceptance stay open under #200.
+The next IGX-00 slice follows the [decision brief](design/2026-09-08-forms-section-resume.md) and [plan](superpowers/plans/2026-09-08-forms-section-resume.md): preserve the existing Forms peer section on reload and Back/Forward using only a validated section value. Existing template links and filters remain compatible, and section readers re-fetch through their existing scoped APIs. This does not add document query/content persistence, a new viewer or workflow. File selection/filter/page recovery and remaining document decisions and validation acceptance retain the scope recorded in #200 and require evidence in the relevant open child issues.
 
 ## Document navigation and vendor recovery — locally verified, release pending
 

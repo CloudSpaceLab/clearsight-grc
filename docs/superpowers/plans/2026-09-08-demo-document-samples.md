@@ -50,4 +50,4 @@ Track the workflow correction under #139/#80 separately from fictional file inst
 
 - [ ] Specification review followed by quality/security review. Run full Go/PostgreSQL and web gates, copy quality, runtime fixture isolation and browser evidence. Inspect desktop/narrow light/dark previews and blocked states.
 - [ ] Merge only exact-head green CI and use normal demo deployment. Run installer only against the owned non-production app with no real recipients. Verify stored bytes, manifest digest, demo warning, vendor/Forms access and unchanged blocked genuine-upload behavior on the hosted revision.
-- [ ] Record receipts in #147/#200 and keep live antivirus enablement, real document validation/acceptance and remaining vendor handoffs open until independently verified.
+- [ ] Record sample receipts in #138, vendor limitations in #139 and release evidence in #147. Keep #200 closed as instructed. Live antivirus enablement, real document validation/acceptance and remaining vendor handoffs remain open until independently verified.

@@ -50,7 +50,7 @@ Files: `web/scripts/forms-evidence-scenarios.mjs`, its existing nodecheck contra
 - [ ] Add browser assertions that only the correct navigation is visible at the current width, selected labels agree with state, all types remain selectable, filenames have full card width, and resizing with selected/preview content does not reset it. Retain Space/Escape focus restoration, unavailable/empty behavior and scoped API checks.
 - [ ] Preserve existing 320/390/1440px document baseline images outside the runner output directory and back up the unrelated presentation cover before running the full review; restore the exact cover bytes in a finally block.
 - [ ] Run Node 24 `npm test`, `npm run typecheck`, `npm run check:ui-contracts`, `npm run check:runtime-truth`, then `npm run review:ui` without concurrent test CPU contention. Inspect all affected light/dark renders; repair highest-impact failure and re-run. Record actual counts and limitations, not inferred visual completeness.
-- [ ] Obtain specification review, then code-quality review; fix and repeat any findings. Run relevant Go/full release gates. Push a bounded PR, verify exact-head CI, merge and verify main/deployment plus hosted navigation before recording release. Do not close #200 or the separate sample-data/vendor work on this slice.
+- [ ] Obtain specification review, then code-quality review; fix and repeat any findings. Run relevant Go/full release gates. Push a bounded PR, verify exact-head CI, merge and verify main/deployment plus hosted navigation before recording release in #147. Keep #200 closed as instructed; do not close the separate sample-data/vendor work on this slice.
 
 ## Related approved work
 
