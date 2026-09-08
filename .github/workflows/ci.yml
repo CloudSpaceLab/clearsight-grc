@@ -44,6 +44,8 @@ jobs:
           fi
       - name: Unit tests
         run: go test -race -coverprofile=coverage.out ./...
+      - name: Deployment verifier tests
+        run: python3 -m unittest discover -s deploy/tests -p '*test.py'
       - name: PostgreSQL composition
         run: go test -tags postgres ./...
       - name: Apply migrations
