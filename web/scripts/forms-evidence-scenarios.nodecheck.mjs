@@ -127,11 +127,14 @@ test("actual-file scenarios use authored expiry dates and submissions after docu
   }
 });
 
-function sheetGeometryFixture({ hidden = false, missing = false, offscreen = false } = {}) {
+function sheetGeometryFixture({ hidden = false, missing = false, offscreen = false, frameInterval = 1000, neverFrame = false } = {}) {
   const oldSheet = { x: 33, y: 33, width: 324, height: 1144 };
   const currentSheet = { x: 1, y: 1, width: 388, height: 951 };
   const currentClose = { x: offscreen ? 380 : 325, y: 21, width: 44, height: 44 };
   let elapsed = 0;
+  const timers = new Map();
+  const frames = new Set();
+  let sequence = 0;
   const element = (rect) => ({ getBoundingClientRect: () => rect, getClientRects: () => hidden ? [] : [rect] });
   const close = missing ? null : element(currentClose);
   const dialog = {
@@ -140,19 +143,38 @@ function sheetGeometryFixture({ hidden = false, missing = false, offscreen = fal
     evaluate: (callback, args) => runInNewContext(`(${callback})(sheet,args)`, {
       sheet: element(currentSheet), args, innerWidth: 390, innerHeight: 844,
       performance: { now: () => elapsed },
-      requestAnimationFrame: (callback) => { elapsed += 1000; queueMicrotask(callback); },
+      requestAnimationFrame: (callback) => {
+        const id = ++sequence; frames.add(id);
+        if (!neverFrame) queueMicrotask(() => { if (frames.delete(id)) { elapsed += frameInterval; callback(); } });
+        return id;
+      },
+      cancelAnimationFrame: (id) => frames.delete(id),
+      setTimeout: (callback, delay) => {
+        const id = ++sequence; timers.set(id, callback);
+        if (neverFrame) queueMicrotask(() => { if (timers.has(id)) { elapsed += delay; callback(); } });
+        return id;
+      },
+      clearTimeout: (id) => timers.delete(id),
       getComputedStyle: () => ({ visibility: hidden ? "hidden" : "visible" }),
     }),
   };
-  return { page: { viewportSize: () => ({ width: 390, height: 844 }) }, dialog, frames: () => elapsed / 1000 };
+  return { page: { viewportSize: () => ({ width: 390, height: 844 }) }, dialog, frames: () => elapsed / frameInterval, pending: () => timers.size + frames.size };
 }
 
 test("sheet recovery compares one layout snapshot across a responsive replacement", async () => {
   // Real Chromium resize measurements: old sheet y=33 and new Close y=21 falsely fail;
   // the simultaneous mobile sheet y=1 and Close y=21 are both inside the viewport.
-  const { page, dialog, frames } = sheetGeometryFixture();
+  const { page, dialog, frames, pending } = sheetGeometryFixture();
   await assertSheetRecoveryVisible(page, dialog);
   assert.equal(frames(), 2, "acceptance requires matching geometry in consecutive rendered frames");
+  assert.equal(pending(), 0, "completion must cancel the deadline and any pending frame");
+});
+
+for (const timing of [{ neverFrame: true }, { frameInterval: 6000 }]) test(`sheet recovery deadline rejects ${timing.neverFrame ? "missing frames" : "a second valid frame at twelve seconds"}`, async () => {
+  const { page, dialog, pending } = sheetGeometryFixture(timing);
+  const outcome = assertSheetRecoveryVisible(page, dialog);
+  await assert.rejects(Promise.race([outcome, setImmediate().then(() => { throw new Error("The independent geometry deadline did not settle"); })]), /visible viewport/);
+  assert.equal(pending(), 0, "deadline failure must clean up timers and pending frames");
 });
 
 for (const failure of ["hidden", "missing", "offscreen"]) test(`sheet recovery rejects a permanently ${failure} close control with geometry`, async () => {

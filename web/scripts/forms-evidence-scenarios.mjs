@@ -604,23 +604,35 @@ export async function assertSheetRecoveryVisible(page, dialog) {
       return { x, y, width, height, visible: node.getClientRects().length > 0 && getComputedStyle(node).visibility === "visible" };
     };
     const deadline = performance.now() + 10000;
-    let previous;
-    let snapshot;
-    do {
-      await new Promise(requestAnimationFrame);
-      // Read both controls and the browser viewport in one rendering task. Two
-      // separate protocol reads can straddle the mobile replacement after resize.
-      snapshot = { sheet: rect(element), close: rect(close), requested, actual: { width: innerWidth, height: innerHeight } };
-      const { sheet, close: button, actual } = snapshot;
-      const valid = sheet?.visible && button?.visible && sheet.width > 0 && sheet.height > 0 && button.width > 0 && button.height > 0
-        && requested?.width === actual.width && requested?.height === actual.height
-        && button.x >= Math.max(0, sheet.x) && button.y >= Math.max(0, sheet.y)
-        && button.x + button.width <= actual.width && button.y + button.height <= actual.height;
-      const serialized = JSON.stringify(snapshot);
-      if (valid && serialized === previous) return { valid: true, ...snapshot };
-      previous = serialized;
-    } while (performance.now() < deadline);
-    return { valid: false, ...snapshot };
+    const sample = () => ({ sheet: rect(element), close: rect(close), requested, actual: { width: innerWidth, height: innerHeight } });
+    return new Promise((resolve) => {
+      let previous;
+      let snapshot = sample();
+      let frame;
+      const finish = (valid) => {
+        clearTimeout(timer);
+        cancelAnimationFrame(frame);
+        resolve({ valid, ...snapshot });
+      };
+      // A paused document may deliver no animation frame; the deadline must not
+      // depend on receiving the next frame, or accept a delayed frame afterward.
+      const timer = setTimeout(() => finish(false), 10000);
+      const checkFrame = () => {
+        // Read both controls and the browser viewport in one rendering task.
+        snapshot = sample();
+        if (performance.now() >= deadline) { finish(false); return; }
+        const { sheet, close: button, actual } = snapshot;
+        const valid = sheet?.visible && button?.visible && sheet.width > 0 && sheet.height > 0 && button.width > 0 && button.height > 0
+          && requested?.width === actual.width && requested?.height === actual.height
+          && button.x >= Math.max(0, sheet.x) && button.y >= Math.max(0, sheet.y)
+          && button.x + button.width <= actual.width && button.y + button.height <= actual.height;
+        const serialized = JSON.stringify(snapshot);
+        if (valid && serialized === previous) { finish(true); return; }
+        previous = serialized;
+        frame = requestAnimationFrame(checkFrame);
+      };
+      frame = requestAnimationFrame(checkFrame);
+    });
   }, { close, requested: page.viewportSize() });
   if (!geometry.valid) throw new Error(`The responsive detail sheet must keep its close and recovery action inside the visible viewport: ${JSON.stringify(geometry)}`);
 }
