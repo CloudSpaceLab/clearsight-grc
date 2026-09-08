@@ -3,7 +3,7 @@ import test from "node:test";
 import { runInNewContext } from "node:vm";
 import { setImmediate } from "node:timers/promises";
 
-import { formsEvidenceScenarios, requiredFormsCapabilities, installDemoDocumentScenario, waitForNativePDFPage } from "./forms-evidence-scenarios.mjs";
+import { formsEvidenceScenarios, requiredFormsCapabilities, installDemoDocumentScenario, waitForNativePDFPage, assertSheetRecoveryVisible } from "./forms-evidence-scenarios.mjs";
 
 const task22Capabilities = [
   "library-empty", "library-list", "library-search", "library-saved-filter", "library-context-detail", "library-bulk-action",
@@ -125,4 +125,42 @@ test("actual-file scenarios use authored expiry dates and submissions after docu
     assert.ok(Date.parse(metadata.submitted_at) >= Date.parse(metadata.issued_on), "submission must follow the authored issue date");
     assert.ok(Date.parse(metadata.submitted_at) >= Date.parse(metadata.uploaded_at), "submission must follow upload");
   }
+});
+
+function sheetGeometryFixture({ hidden = false, missing = false, offscreen = false } = {}) {
+  const oldSheet = { x: 33, y: 33, width: 324, height: 1144 };
+  const currentSheet = { x: 1, y: 1, width: 388, height: 951 };
+  const currentClose = { x: offscreen ? 380 : 325, y: 21, width: 44, height: 44 };
+  let elapsed = 0;
+  const element = (rect) => ({ getBoundingClientRect: () => rect, getClientRects: () => hidden ? [] : [rect] });
+  const close = missing ? null : element(currentClose);
+  const dialog = {
+    boundingBox: async () => oldSheet,
+    getByRole: () => ({ count: async () => missing ? 0 : 1, boundingBox: async () => missing ? null : currentClose, elementHandle: async () => close }),
+    evaluate: (callback, args) => runInNewContext(`(${callback})(sheet,args)`, {
+      sheet: element(currentSheet), args, innerWidth: 390, innerHeight: 844,
+      performance: { now: () => elapsed },
+      requestAnimationFrame: (callback) => { elapsed += 1000; queueMicrotask(callback); },
+      getComputedStyle: () => ({ visibility: hidden ? "hidden" : "visible" }),
+    }),
+  };
+  return { page: { viewportSize: () => ({ width: 390, height: 844 }) }, dialog, frames: () => elapsed / 1000 };
+}
+
+test("sheet recovery compares one layout snapshot across a responsive replacement", async () => {
+  // Real Chromium resize measurements: old sheet y=33 and new Close y=21 falsely fail;
+  // the simultaneous mobile sheet y=1 and Close y=21 are both inside the viewport.
+  const { page, dialog, frames } = sheetGeometryFixture();
+  await assertSheetRecoveryVisible(page, dialog);
+  assert.equal(frames(), 2, "acceptance requires matching geometry in consecutive rendered frames");
+});
+
+for (const failure of ["hidden", "missing", "offscreen"]) test(`sheet recovery rejects a permanently ${failure} close control with geometry`, async () => {
+  const { page, dialog } = sheetGeometryFixture({ [failure]: true });
+  await assert.rejects(assertSheetRecoveryVisible(page, dialog), (error) => {
+    assert.match(error.message, /visible viewport/);
+    assert.match(error.message, /requested/);
+    assert.match(error.message, /actual/);
+    return true;
+  });
 });

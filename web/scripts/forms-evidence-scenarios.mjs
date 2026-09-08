@@ -594,10 +594,35 @@ async function assertStackedSentRows(page) {
   await rows.first().scrollIntoViewIfNeeded();
 }
 
-async function assertSheetRecoveryVisible(page, dialog) {
-  const [sheet, close] = await Promise.all([dialog.boundingBox(), dialog.getByRole("button", { name: "Close" }).boundingBox()]);
-  const viewport = page.viewportSize();
-  if (!sheet || !close || !viewport || close.x < sheet.x || close.y < sheet.y || close.x + close.width > viewport.width || close.y + close.height > viewport.height) throw new Error("The responsive detail sheet must keep its close and recovery action inside the visible viewport.");
+export async function assertSheetRecoveryVisible(page, dialog) {
+  const control = dialog.getByRole("button", { name: "Close" });
+  const close = await control.count() ? await control.elementHandle() : null;
+  const geometry = await dialog.evaluate(async (element, { close, requested }) => {
+    const rect = (node) => {
+      if (!node) return null;
+      const { x, y, width, height } = node.getBoundingClientRect();
+      return { x, y, width, height, visible: node.getClientRects().length > 0 && getComputedStyle(node).visibility === "visible" };
+    };
+    const deadline = performance.now() + 10000;
+    let previous;
+    let snapshot;
+    do {
+      await new Promise(requestAnimationFrame);
+      // Read both controls and the browser viewport in one rendering task. Two
+      // separate protocol reads can straddle the mobile replacement after resize.
+      snapshot = { sheet: rect(element), close: rect(close), requested, actual: { width: innerWidth, height: innerHeight } };
+      const { sheet, close: button, actual } = snapshot;
+      const valid = sheet?.visible && button?.visible && sheet.width > 0 && sheet.height > 0 && button.width > 0 && button.height > 0
+        && requested?.width === actual.width && requested?.height === actual.height
+        && button.x >= Math.max(0, sheet.x) && button.y >= Math.max(0, sheet.y)
+        && button.x + button.width <= actual.width && button.y + button.height <= actual.height;
+      const serialized = JSON.stringify(snapshot);
+      if (valid && serialized === previous) return { valid: true, ...snapshot };
+      previous = serialized;
+    } while (performance.now() < deadline);
+    return { valid: false, ...snapshot };
+  }, { close, requested: page.viewportSize() });
+  if (!geometry.valid) throw new Error(`The responsive detail sheet must keep its close and recovery action inside the visible viewport: ${JSON.stringify(geometry)}`);
 }
 
 async function verifyBuilderChromeNoOverlap(page) {
