@@ -1,6 +1,9 @@
 package aigateway
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 const (
 	GatewayBaselineExceptionCodeRoot    = "ORG_AI_BASELINE_EXCEPTION"
@@ -28,4 +31,22 @@ type BaselineException struct {
 	Environments          []string  `json:"environments"`
 	WaivedRuleIDs         []string  `json:"waived_rule_ids"`
 	ExpiresAt             time.Time `json:"expires_at"`
+}
+
+// BaselineRuleWaivable is the single authority boundary for temporary baseline
+// exceptions. Instruction overlays are never waivable, and an exception may
+// only relax an explicitly restrictive rule rather than the baseline default or
+// a passive allow/observation rule.
+func BaselineRuleWaivable(rule PolicyRule) bool {
+	for _, obligation := range rule.Obligations {
+		if strings.EqualFold(strings.TrimSpace(obligation.Code), ObligationOrganizationInstruction) {
+			return false
+		}
+	}
+	switch rule.Action {
+	case DecisionDeny, DecisionRequireApproval, DecisionModify, DecisionRoute:
+		return true
+	default:
+		return false
+	}
 }
