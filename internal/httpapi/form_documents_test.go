@@ -62,7 +62,7 @@ func TestDemoDocumentContentRequiresBothServerFlagsAndFreshAuthorizedOccurrence(
 			if _, err := repo.CreateArtifact(ctx, artifact); err != nil {
 				t.Fatal(err)
 			}
-			documents := &documentContentStore{value: evidence.DocumentOccurrence{ArtifactID: artifact.ID, ArtifactRequestID: artifact.RequestID, FileName: file.Name, MediaType: file.MediaType, SizeBytes: file.SizeBytes, SHA256: file.SHA256, ArtifactStatus: artifact.Status, DemoPreviewAvailable: true}}
+			documents := &documentContentStore{MemoryDistributionStore: evidence.NewMemoryDistributionStore(repo, nil, nil), value: evidence.DocumentOccurrence{ArtifactID: artifact.ID, ArtifactRequestID: artifact.RequestID, FileName: file.Name, MediaType: file.MediaType, SizeBytes: file.SizeBytes, SHA256: file.SHA256, ArtifactStatus: artifact.Status, DemoPreviewAvailable: true}}
 			capture := evidence.NewService(repo, store)
 			distributions := evidence.NewDistributionService(documents)
 			evidence.ConfigureDemoSamplePreview(capture, nil, test.capture)
@@ -141,7 +141,7 @@ func TestDocumentContentDeliversVerifiedBytesAndUsesUploadRequest(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	documents := &documentContentStore{value: evidence.DocumentOccurrence{ID: "occurrence", ArtifactID: artifact.ID, ArtifactRequestID: artifact.RequestID, RequestID: "submission-request", SubmissionID: "submission", FieldID: "policy", SHA256: info.SHA256, SizeBytes: info.SizeBytes, ArtifactStatus: evidence.ArtifactAvailable}}
+	documents := &documentContentStore{MemoryDistributionStore: evidence.NewMemoryDistributionStore(repo, nil, nil), value: evidence.DocumentOccurrence{ID: "occurrence", ArtifactID: artifact.ID, ArtifactRequestID: artifact.RequestID, RequestID: "submission-request", SubmissionID: "submission", FieldID: "policy", SHA256: info.SHA256, SizeBytes: info.SizeBytes, ArtifactStatus: evidence.ArtifactAvailable}}
 	api := &API{deps: Dependencies{FormDistributions: evidence.NewDistributionService(documents), Evidence: evidence.NewService(repo, store)}}
 	actor := identity.Actor{TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "reader", Kind: "PERSON", AuthenticationMethod: "TEST", AssuranceLevel: "HIGH", SessionID: "session", IssuedAt: time.Now().Add(-time.Minute), ExpiresAt: time.Now().Add(time.Hour)}
 	for _, download := range []string{"", "?download=true"} {
