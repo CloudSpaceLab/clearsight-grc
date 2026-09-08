@@ -1,7 +1,7 @@
 # ClearSight implementation ledger
 
 **Status date:** 2026-09-08
-**Current execution:** Integrated GRC closeout under #200; first slice: document-analysis result handoffs
+**Current execution:** Integrated GRC closeout under #200; current slice: Forms section resumption
 
 ## Resumed execution — integrated GRC experience
 
@@ -12,6 +12,12 @@ The operator authorized gap closure on 8 September 2026 following the evidence-b
 ## Deployment recovery — SMTP availability boundary
 
 The #201 merge passed main CI/UI but its SMTP probe timeout caused deployment rollback handling to stop the new containers. Operator recovery restored the schema-compatible prior release; that recovery does not count as deployment of #201. On 8 September the operator approved making SMTP connectivity advisory for application deployment while retaining security configuration, recipient protection, API and worker checks as blocking. The [focused design](superpowers/specs/2026-09-08-smtp-advisory-deployment-design.md) and [plan](superpowers/plans/2026-09-08-smtp-advisory-deployment.md) track the correction under #147/#200. Standalone email readiness remains strict, and actual inbox/recipient acceptance remains required separately. Exact release and recovery receipts belong in #147; broader workstreams stay open.
+
+PR #202 subsequently deployed `af45e4dbac2c24956fd6ea57d25783090b25e609` through the normal pipeline. Exact-head CI/UI and all three owned services passed; the #201 result handoffs passed 12 hosted light/dark desktop/narrow checks. The [release receipt](https://github.com/CloudSpaceLab/clearsight-grc/issues/147#issuecomment-5582894849) records this bounded release, not completion of the wider workstreams.
+
+## Forms section resumption — implementation and verification
+
+The next IGX-00 slice follows the [decision brief](design/2026-09-08-forms-section-resume.md) and [plan](superpowers/plans/2026-09-08-forms-section-resume.md): preserve the existing Forms peer section on reload and Back/Forward using only a validated section value. Existing template links and filters remain compatible, and section readers re-fetch through their existing scoped APIs. This does not add document query/content persistence, a new viewer or workflow. File selection/filter/page recovery and all remaining document decisions and validation acceptance stay open under #200.
 
 ## Historical pause — remaining V1 issue closure
 
