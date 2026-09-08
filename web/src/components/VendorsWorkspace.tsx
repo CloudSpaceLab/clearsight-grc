@@ -15,9 +15,9 @@ import { VendorBrandIcon, vendorBrandLabel } from "./VendorBrandIcon";
 import { VendorActivationPanel } from "./VendorActivationPanel";
 import { VendorIdentityEditor } from "./VendorIdentityEditor";
 import { VendorFormReadiness } from "./VendorFormReadiness";
-import { ActionLink, Button, FocusedSheet, Notice, SelectField, StatusBadge } from "./ui";
+import { ActionLink, Button, Notice, SelectField, StatusBadge, Tabs } from "./ui";
 import { DocumentBrowser } from "./documents/DocumentBrowser";
-import { VendorFormsPanel } from "./VendorFormsPanel";
+import { VendorFormsPanel, VendorResponseHistory } from "./VendorFormsPanel";
 import { VendorFormRequest, type VendorRequestTarget } from "./VendorFormRequest";
 import { loadVendorFormSummaries, type VendorFormSummary, type VendorFormsFilter } from "../vendorFormsApi";
 import "./vendor-forms.css";
@@ -36,6 +36,8 @@ type Props = {
 };
 
 type LoadState = "loading" | "live" | "unavailable";
+type VendorSection = "OVERVIEW" | "FORMS" | "DOCUMENTS" | "DUE_DILIGENCE" | "HISTORY";
+const vendorSections = [{ id: "OVERVIEW", label: "Overview" }, { id: "FORMS", label: "Forms" }, { id: "DOCUMENTS", label: "Documents" }, { id: "DUE_DILIGENCE", label: "Due diligence" }, { id: "HISTORY", label: "History" }] satisfies Array<{ id: VendorSection; label: string }>;
 
 type FormValues = {
   legalName: string;
@@ -68,7 +70,7 @@ function focusGuideTarget(target: HTMLElement | null) {
 }
 
 function isGuideTargetAvailable(target: HTMLElement | null): target is HTMLElement {
-  if (!target || target.hidden || target.closest("[hidden], [aria-hidden='true']")) return false;
+  if (!target || target.hidden || target.closest("[hidden], [inert], [aria-hidden='true']")) return false;
   if (target instanceof HTMLButtonElement && target.disabled) return false;
   const style = window.getComputedStyle?.(target);
   return style?.display !== "none" && style?.visibility !== "hidden";
@@ -96,6 +98,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const [requestTargets, setRequestTargets] = useState<VendorRequestTarget[]>();
   const [workFilter, setWorkFilter] = useState<VendorFormsFilter>();
   const [formsFocus, setFormsFocus] = useState<{ relationshipID: string; filter?: VendorFormsFilter }>();
+  const [vendorSection, setVendorSection] = useState<VendorSection>("OVERVIEW");
+  const consumedFormsFocus = useRef<typeof formsFocus>(undefined);
   const [form, setForm] = useState<FormValues>(emptyForm);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
@@ -140,10 +144,10 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   }, [recordIDs, formsRefreshKey]);
 
   useEffect(() => {
-    if (formsFocus?.relationshipID !== selected?.relationship.id) return;
+    if (!formsFocus || consumedFormsFocus.current === formsFocus || vendorSection !== "FORMS" || formsFocus.relationshipID !== selected?.relationship.id) return;
     const panel = document.querySelector<HTMLElement>(".vendor-forms-panel");
-    if (panel) focusGuideTarget(panel);
-  }, [formsFocus, selected?.relationship.id]);
+    if (panel && focusGuideTarget(panel)) consumedFormsFocus.current = formsFocus;
+  }, [formsFocus, selected?.relationship.id, vendorSection]);
 
   useEffect(() => {
     setQuery("");
@@ -166,12 +170,15 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       return;
     }
     if ((guideIntent.type === "open-vendor-due-diligence" || guideIntent.type === "open-vendor-next-action") && (assessmentState === "loading" || reviewState === "loading" || (!assessment && formState === "loading"))) return;
+    const intendedSection = guideIntent.type === "open-vendor-work" || guideIntent.type === "open-vendor-next-action" && assessment?.status === "COMPLETED" ? "FORMS" : "DUE_DILIGENCE";
+    if (vendorSection !== intendedSection && !(guideIntent.type === "open-vendor-next-action" && vendorSection === "FORMS")) { setVendorSection(intendedSection); return; }
     if (guideIntent.type === "open-vendor-next-action") {
       const workspace = document.querySelector<HTMLElement>(".vendors-workspace");
       if (!workspace) return;
       const focusNextAction = () => {
         const dueDiligenceAction = assessment?.status === "COMPLETED" ? null : firstVisiblePrimaryAction(".vdd-workspace");
         if (dueDiligenceAction && focusGuideTarget(dueDiligenceAction)) return acknowledgeGuideIntent(guideIntent.id);
+        if (vendorSection !== "FORMS") { setVendorSection("FORMS"); return true; }
         const vendorWork = workspace.querySelector<HTMLElement>(".vendor-work-panel");
         if (!vendorWork || vendorWork.getAttribute("aria-busy") === "true") return false;
         const vendorWorkAction = firstVisiblePrimaryAction(".vendor-work-panel");
@@ -190,6 +197,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           setReview(undefined);
           setReviewState("loading");
           setSelected(next);
+          setVendorSection("DUE_DILIGENCE");
           setMode("browse");
           return true;
         }
@@ -216,7 +224,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       onGuideIntentFailed?.(id);
       return true;
     }
-  }, [guideIntent, state, mode, records, selected?.relationship.id, assessment, assessmentState, reviewState, formState, onGuideIntentCompleted, onGuideIntentFailed]);
+  }, [guideIntent, state, mode, records, selected?.relationship.id, assessment, assessmentState, reviewState, formState, vendorSection, onGuideIntentCompleted, onGuideIntentFailed]);
 
   useEffect(() => {
     void refreshForms();
@@ -450,6 +458,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       setNextCursor(page.next_cursor ?? "");
       const preserved = selected ? next.find((item) => item.relationship.id === selected.relationship.id) : undefined;
       const nextSelected = exact ?? preserved ?? (intent ? next[0] : undefined);
+      if (nextSelected?.relationship.id !== selected?.relationship.id) setVendorSection("OVERVIEW");
       setSelected(nextSelected ?? null);
       if (nextSelected) setMode("browse");
       if (intent && next.length === 0) setMode("create");
@@ -489,6 +498,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   }
 
   function choose(record: VendorRelationshipAggregate) {
+    setVendorSection("OVERVIEW");
     if (mode !== "browse") return;
     setSelected(record); setMode("browse"); setNotice(""); setFormError(""); onTarget?.(record.relationship.id);
   }
@@ -619,7 +629,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const workspaceClass = `vendors-workspace${registerLocked ? " is-form" : selected ? " has-selection" : ""}`;
   const shownRecords = workFilter ? records.filter((record) => vendorSummaryMatches(formSummaries.get(record.relationship.id), workFilter)) : records;
   function requestForms(values: VendorRelationshipAggregate[]) { setRequestTargets(values.map((value) => ({ relationshipID: value.relationship.id, vendorName: value.vendor.legal_name, serviceName: value.relationship.service_name }))); }
-  function openFormWork(record: VendorRelationshipAggregate, filter?: VendorFormsFilter) { choose(record); setFormsFocus({ relationshipID: record.relationship.id, filter }); }
+  function openFormWork(record: VendorRelationshipAggregate, filter?: VendorFormsFilter) { choose(record); setVendorSection("FORMS"); setFormsFocus({ relationshipID: record.relationship.id, filter }); }
   return <div className={workspaceClass} tabIndex={-1}>
     <header className="topbar vendors-topbar">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Vendors</h1><p>Manage vendors and the services they supply to {legalEntityName}. Review each relationship&apos;s owner, criticality and due-diligence status.</p></div>
@@ -649,6 +659,9 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       <section className="vendor-focus" aria-label="Selected vendor relationship">
         {mode === "edit-identity" && selected ? <VendorIdentityEditor record={selected} onCancel={cancelForm} onIdentitySaved={(presentation) => applyVendorPresentation(presentation, "Vendor details updated.", true)} onBrandSaved={(presentation) => applyVendorPresentation(presentation)} onPresentationReloaded={(presentation) => applyVendorPresentation(presentation)}/> : (mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} existingVendor={existingVendorSource} candidates={vendorCandidates} candidateState={candidateState} onFindExisting={findExistingVendor} onUseExisting={useExistingVendor} onUseDifferent={() => { setExistingVendorSource(undefined); setForm((current) => ({ ...current, legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", websiteDomain: "", registeredAddress: "" })); }} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail
           record={selected}
+          key={selected.relationship.id}
+          section={vendorSection}
+          onSectionChange={setVendorSection}
           assessment={assessment}
           assessmentSetup={assessmentSetup}
           assessmentState={assessmentState}
@@ -702,8 +715,10 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   </div>;
 }
 
-function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter, accountableOwnerLabel, onActivated, onRefreshed, onRequestForm, onFormWorkUpdated, formsRefreshKey, formsFilter }: {
+function VendorDetail({ record, section, onSectionChange, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter, accountableOwnerLabel, onActivated, onRefreshed, onRequestForm, onFormWorkUpdated, formsRefreshKey, formsFilter }: {
   record: VendorRelationshipAggregate;
+  section: VendorSection;
+  onSectionChange: (section: VendorSection) => void;
   assessment: VendorAssessment | null;
   assessmentSetup?: CurrentVendorAssessment["setup"];
   assessmentState: LoadState;
@@ -744,24 +759,35 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   onRefreshed: (relationship: VendorRelationshipAggregate["relationship"]) => void;
 }) {
   const { vendor, relationship } = record;
-  const [documentsFor, setDocumentsFor] = useState<string>();
   const effectiveAssessmentState = assessmentState === "live" && !assessment && formState === "loading" ? "loading" : assessmentState;
   const setupFailure = assessmentSetup?.state === "FAILED" ? setupFailureText(assessmentSetup.failure_code) : undefined;
   return <>
   <article className="vendor-detail">
     <button type="button" className="text-button vendor-mobile-back" onClick={onBack}>← Back to vendor register</button>
-    <div className="vendor-detail-heading"><div className="vendor-detail-identity"><VendorBrandIcon vendorID={vendor.id} legalName={vendor.legal_name} brand={record.brand} size="detail"/><div><span className="eyebrow">{humanize(relationship.status)} relationship</span><h2>{vendor.legal_name}</h2><p>{vendor.trading_name ? `Trading as ${vendor.trading_name}` : "No trading name recorded"}</p><small className="vendor-brand-label">{vendorBrandLabel(record.brand)}</small></div></div><div className="vendor-detail-actions"><button type="button" className="secondary-button" onClick={onEditIdentity}>Edit vendor details</button><button type="button" className="secondary-button" onClick={onEdit}>Edit vendor relationship</button></div></div>
-    <div className="vendor-detail-actions vendor-detail-work-actions"><Button variant="primary" onPress={onRequestForm}>Request form</Button><Button onPress={() => setDocumentsFor(relationship.id)}>View vendor documents</Button></div>
+    <div className="vendor-detail-heading"><div className="vendor-detail-identity"><VendorBrandIcon vendorID={vendor.id} legalName={vendor.legal_name} brand={record.brand} size="detail"/><div><span className="eyebrow">{humanize(relationship.status)} relationship</span><h2>{vendor.legal_name}</h2></div></div></div>
     <div className="vendor-service-callout"><span>Service supplied</span><strong>{relationship.service_name}</strong><small>{humanize(relationship.criticality)} criticality · {privacyLabel(relationship.privacy_role)}</small></div>
+    <p className="vendor-current-owner"><span>Current accountable owner</span><strong>{accountableOwnerLabel}</strong></p>
+  </article>
+  <Tabs ariaLabel="Vendor sections" compactLabel="Vendor section" retainVisitedPanels items={vendorSections} selectedKey={section} onSelectionChange={onSectionChange}>{(current) => <>
+  {current === "OVERVIEW" && <section className="vendor-detail" aria-label="Vendor overview">
+    <div className="vendor-detail-actions"><button type="button" className="secondary-button" onClick={onEditIdentity}>Edit vendor details</button><button type="button" className="secondary-button" onClick={onEdit}>Edit vendor relationship</button></div>
+    <p>{vendor.trading_name ? `Trading as ${vendor.trading_name}` : "No trading name recorded"} · <span className="vendor-brand-label">{vendorBrandLabel(record.brand)}</span></p>
+    <div className="vendor-detail-actions vendor-detail-work-actions"><Button variant="primary" onPress={() => onSectionChange("DUE_DILIGENCE")}>Open due diligence</Button><Button onPress={() => onSectionChange("DOCUMENTS")}>View vendor documents</Button></div>
+    <dl className="vendor-facts"><Fact label="Renewal date" value={formatDate(relationship.renewal_at)}/></dl>
+    <details className="vendor-record-details"><summary>Vendor details and record history</summary>
     <dl className="vendor-facts">
-      <Fact label="Current accountable owner" value={accountableOwnerLabel}/><Fact label="Jurisdiction" value={vendor.jurisdiction || "Not recorded"}/>
+      <Fact label="Jurisdiction" value={vendor.jurisdiction || "Not recorded"}/>
       <Fact label="Registration reference" value={vendor.registration_ref || "Not recorded"}/><Fact label="Website domain" value={vendor.website_domain || "Not recorded"}/><Fact label="Registered address" value={vendor.registered_address || "Not recorded"}/><Fact label="Effective date" value={formatDate(relationship.effective_from)}/>
-      <Fact label="Renewal date" value={formatDate(relationship.renewal_at)}/><Fact label="Source" value={vendor.source_id && vendor.external_ref ? `${vendor.source_id} · ${vendor.external_ref}` : "Entered directly"}/>
+      <Fact label="Source" value={vendor.source_id && vendor.external_ref ? `${vendor.source_id} · ${vendor.external_ref}` : "Entered directly"}/>
       <Fact label="Relationship updated" value={formatDateTime(relationship.updated_at)}/><Fact label="Relationship version" value={`Version ${relationship.version}`}/><Fact label="Vendor details version" value={`Vendor version ${vendor.version}`}/>
     </dl>
-    <div className="vendor-boundary-note"><strong>Relationship status</strong><p>{humanize(relationship.status)} for {relationship.service_name}. Review the due-diligence status below before the relationship moves to its next decision.</p></div>
-  </article>
-  <VendorFormsPanel relationshipID={relationship.id} serviceName={relationship.service_name} onRequestForm={onRequestForm} onUpdated={onFormWorkUpdated} refreshKey={formsRefreshKey} initialFilter={formsFilter} onOpenRequest={onOpenRequest}/>
+    </details>
+    <div className="vendor-boundary-note"><strong>Relationship status</strong><p>{humanize(relationship.status)} for {relationship.service_name}. Open Due diligence to review the assessment and any activation decision.</p></div>
+  </section>}
+  {current === "FORMS" && <><VendorFormsPanel relationshipID={relationship.id} serviceName={relationship.service_name} onRequestForm={onRequestForm} onUpdated={onFormWorkUpdated} onOpenHistory={() => onSectionChange("HISTORY")} refreshKey={formsRefreshKey} initialFilter={formsFilter} onOpenRequest={onOpenRequest}/><VendorWorkPanel relationshipID={relationship.id} onOpenRequest={onOpenRequest}/></>}
+  {current === "DOCUMENTS" && <DocumentBrowser scopeLabel={`${vendor.legal_name} · ${relationship.service_name}`} relationshipID={relationship.id}/>}
+  {current === "HISTORY" && <VendorResponseHistory relationshipID={relationship.id} serviceName={relationship.service_name} onUpdated={onFormWorkUpdated} active={section === "HISTORY"} refreshKey={formsRefreshKey}/>}
+  {current === "DUE_DILIGENCE" && <>
   {assessmentState === "live" && !assessment && formState === "unavailable" ? <section className="vdd-workspace" aria-label="Due diligence" tabIndex={-1}><div className="vdd-state vdd-state-error" role="alert"><h2>Due-diligence forms are unavailable</h2><p>Approved collection forms could not be loaded for {relationship.service_name}. Try again before starting the assessment.</p><button type="button" className="secondary-button" onClick={() => void onRefreshForms()}>Reload forms</button></div></section> : <VendorDueDiligence
     relationship={record}
     accountableOwnerLabel={accountableOwnerLabel}
@@ -796,10 +822,8 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     onOpenMatter={onOpenMatter}
   />}
   <VendorActivationPanel relationship={relationship} onActivated={onActivated} onRefreshed={onRefreshed}/>
-  <VendorWorkPanel relationshipID={relationship.id} onOpenRequest={onOpenRequest}/>
-  {documentsFor === relationship.id && <FocusedSheet label={`${vendor.legal_name} documents`} size="wide" onClose={() => setDocumentsFor(undefined)}>
-    <DocumentBrowser key={relationship.id} scopeLabel={`${vendor.legal_name} · ${relationship.service_name}`} relationshipID={relationship.id}/>
-  </FocusedSheet>}
+  </>}
+  </>}</Tabs>
   </>;
 }
 

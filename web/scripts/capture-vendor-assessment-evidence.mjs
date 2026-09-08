@@ -34,8 +34,14 @@ try{
   const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`${base}/?tour=off&fixture=${fixture}${route}`,{waitUntil:'networkidle'});
   const checks=[];
+  if(route.startsWith('#vendors') && name!=='vendor-overview') {
+   const section=name.startsWith('vendor-history')?'History':'Forms';
+   const tab=page.getByRole('tab',{name:section,exact:true});
+   if(await tab.isVisible())await tab.click();
+   else { await page.getByRole('button',{name:/Vendor section/}).click(); await page.getByRole('option',{name:section,exact:true}).click(); }
+   checks.push(`Opened the ${section} vendor section with the viewport-appropriate navigation.`);
+  }
   if(name.startsWith('vendor-history')){
-   await page.getByRole('button',{name:'View response history',exact:true}).click();
    await page.getByRole('button',{name:'Load earlier responses',exact:true}).click();
    await page.getByRole('heading',{name:'Sample · Earlier certification review',exact:true}).waitFor();
    checks.push('Scoped history loaded current and earlier response revisions through the next-page cursor.');

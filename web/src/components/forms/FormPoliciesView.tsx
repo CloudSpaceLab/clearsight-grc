@@ -6,11 +6,13 @@ import {
   type CreateFormResponsePolicyInput, type FormPolicySimulation, type FormResponsePolicy,
 } from "../../formPoliciesApi";
 import { loadFormTemplates } from "../../monitoringApi";
+import { loadFormTemplateRevision } from "../../formsApi";
 import { Button, EmptyState, FocusedDialog, Notice, SelectableRecord, StatusBadge, Surface } from "../ui";
 import { FormPolicyEditor, type PolicyFormChoice } from "./FormPolicyEditor";
+import { PolicyExecutionResult } from "./PolicyExecutionResult";
 import "./form-policies.css";
 
-type LoadState = "loading" | "live" | "sign-in-required" | "error";
+type LoadState = "loading" | "live" | "sign-in-required" | "denied" | "error";
 
 export function FormPoliciesView() {
   const [items, setItems] = useState<FormResponsePolicy[]>([]);
@@ -40,7 +42,9 @@ export function FormPoliciesView() {
       setItems(values); setSelectedID((current) => values.some((item) => item.id === current) ? current : values[0]?.id); setState("live");
     } catch (cause) {
       setError(message(cause, "Response policies cannot be checked right now."));
-      setState(apiErrorKind(cause) === "unauthorized" ? "sign-in-required" : items.length ? "live" : "error");
+      const kind = apiErrorKind(cause);
+      if (kind === "forbidden" || kind === "unauthorized") { setItems([]); setCreating(false); }
+      setState(kind === "forbidden" ? "denied" : kind === "unauthorized" ? "sign-in-required" : items.length ? "live" : "error");
     }
   }
   async function refreshForms() {
@@ -81,7 +85,7 @@ export function FormPoliciesView() {
   }
   async function act(policy: FormResponsePolicy, rollbackTargetID?: string) {
     if (busy) return;
-    const simulation = simulations[policy.id];
+    const simulation = currentSimulation(policy, simulations[policy.id]);
     setBusy(policy.id); setError(""); setNotice("");
     try {
       if (policy.status === "DRAFT" && !simulation) {
@@ -105,6 +109,7 @@ export function FormPoliciesView() {
     {error && state === "live" && <Notice tone="error">{error} Policies already shown remain available.</Notice>}
     {notice && <Notice>{notice}</Notice>}
     {state === "loading" && <Surface><p role="status">Loading response policies for this legal entity…</p></Surface>}
+    {state === "denied" && <EmptyState population="Response policies in this legal entity" title="Policy access required" description="Your current responsibility does not allow policy administration. Ask your policy administrator to review the response policy or your access."/>}
     {state === "sign-in-required" && (
       <EmptyState population="Response policies in this legal entity" title="Sign in to review response policies" description="Your session ended before the policy population could be loaded." action={<Button onPress={() => void refresh()}>Retry loading policies</Button>}/>
     )}
@@ -113,9 +118,9 @@ export function FormPoliciesView() {
       <EmptyState population="Response policies in this legal entity" title="No response policies have been created" description="Create a draft to select the approved form, eligible subjects, issue handling and outcome check." action={<Button variant="primary" onPress={() => openEditor()}>Create policy</Button>}/>
     )}
     {state === "live" && items.length > 0 && <div className="forms-policies__layout">
-      <nav className="forms-policies__list" aria-label="Response policies">{items.map((policy) => <SelectableRecord key={policy.id} title={policy.name} metadata={`${statusLabel(policy.status)} · ${policy.code} · form revision ${policy.eligibility.form_template_version}`} description={policy.rollout === "SHADOW" ? "Shadow impact only" : "Creates governed issues"} isSelected={policy.id === selected?.id} onPress={() => setSelectedID(policy.id)}/>)}</nav>
+      <nav className="forms-policies__list" aria-label="Response policies">{items.map((policy) => <SelectableRecord key={policy.id} title={policy.name} metadata={`${statusLabel(policy.status)} · ${policy.code} · form revision ${policy.eligibility.form_template_version}`} description={policy.rollout === "SHADOW" ? "Record matches only" : "Creates issues"} isSelected={policy.id === selected?.id} onPress={() => setSelectedID(policy.id)}/>)}</nav>
       {selected && (
-        <PolicyDetail policy={selected} simulation={simulations[selected.id]} rollbackTarget={rollbackTarget} busy={busy === selected.id} onAction={() => void act(selected, rollbackTarget?.id)} onRevise={() => openEditor(selected)} forms={forms}/>
+        <PolicyDetail key={selected.id} policy={selected} simulation={simulations[selected.id]} rollbackTarget={rollbackTarget} busy={busy === selected.id} onAction={() => void act(selected, rollbackTarget?.id)} onRevise={() => openEditor(selected)} forms={forms}/>
       )}
     </div>}
     {creating && <FocusedDialog label="Create response policy" size="wide" onClose={() => setCreating(false)}><FormPolicyEditor initialInput={editingInput} automationChoices={automationChoices} automationLoading={automationLoading} automationError={automationError} onSelectForm={(id,version) => void refreshAutomation(id,version)} onRetryAutomation={() => { const form=automationForm.current; if(form) void refreshAutomation(form.id,form.version); }} forms={forms} formsLoading={formsLoading} formsError={formsError} onRetryForms={() => void refreshForms()} onCancel={() => setCreating(false)} onCreate={create} busy={busy === "create"}/></FocusedDialog>}
@@ -123,29 +128,41 @@ export function FormPoliciesView() {
 }
 
 function PolicyDetail({ policy, simulation, rollbackTarget, busy, onAction, onRevise, forms }: { forms: PolicyFormChoice[]; onRevise: () => void; policy: FormResponsePolicy; simulation?: FormPolicySimulation; rollbackTarget?: FormResponsePolicy; busy: boolean; onAction: () => void }) {
-  const action = dominantAction(policy, simulation, rollbackTarget);
+  const action = dominantAction(policy, currentSimulation(policy, simulation), rollbackTarget);
+  const matchingForm = forms.find((form) => form.id === policy.eligibility.form_template_id && form.version === policy.eligibility.form_template_version);
+  const [formName, setFormName] = useState<string>();
+  useEffect(() => {
+    if (matchingForm) return;
+    let current = true;
+    setFormName(undefined);
+    void loadFormTemplateRevision(policy.eligibility.form_template_id, policy.eligibility.form_template_version).then((form) => { if (current && form.id === policy.eligibility.form_template_id && form.version === policy.eligibility.form_template_version) setFormName(form.name); }, () => undefined);
+    return () => { current = false; };
+  }, [matchingForm, policy.eligibility.form_template_id, policy.eligibility.form_template_version]);
   const [history,setHistory]=useState<FormPolicyExecution[]>([]);
   const [historyState,setHistoryState]=useState<"loading"|"live"|"error">("loading");
   const [historyReload,setHistoryReload]=useState(0);
+  const [executionID, setExecutionID] = useState<string>();
   useEffect(() => {let current=true;setHistoryState("loading");setHistory([]);
     void listFormPolicyExecutions(policy.id).then((values) => {if(current){setHistory(values);setHistoryState("live");}},() => {if(current)setHistoryState("error");});
     return () => {current=false;};
   },[policy.id,policy.record_version,historyReload]);
   return <article className="forms-policy-detail" aria-labelledby={`policy-${policy.id}`}>
     <header><div><StatusBadge tone={statusTone(policy.status)}>{statusLabel(policy.status)}</StatusBadge><h3 id={`policy-${policy.id}`}>{policy.name}</h3><p>{policy.purpose}</p></div><Button variant="quiet" onPress={onRevise}>Revise policy</Button>{action && <Button variant="primary" isLoading={busy} onPress={onAction}>{action}</Button>}</header>
-    <dl className="forms-policy-facts"><div><dt>Form scope</dt><dd>{policy.eligibility.form_template_id} · revision {policy.eligibility.form_template_version}</dd></div><div><dt>Result used</dt><dd>{policy.eligibility.result_basis === "BANK_ASSESSED" ? "Completed bank assessment" : "Automatic submission result"}</dd></div><div><dt>Concern threshold</dt><dd>{policy.eligibility.bands?.map(statusLabel).join(", ") || "Bounded score threshold"}</dd></div><div><dt>Rollout</dt><dd>{policy.rollout === "SHADOW" ? "Shadow impact only" : "Create governed issues"}</dd></div><div><dt>Blast radius</dt><dd>{policy.blast_radius.per_run} per run · {policy.blast_radius.per_day} per day</dd></div><div><dt>Outcome check</dt><dd>After {policy.outcome_contract.check_after_minutes} minutes</dd></div><div><dt>Policy revision</dt><dd>{policy.version}</dd></div></dl>
+    <dl className="forms-policy-facts"><div><dt>Form scope</dt><dd>{matchingForm?.name ?? formName ?? "Form name unavailable"} · revision {policy.eligibility.form_template_version}</dd></div><div><dt>Result used</dt><dd>{policy.eligibility.result_basis === "BANK_ASSESSED" ? "Completed bank assessment" : "Automatic submission result"}</dd></div><div><dt>Concern threshold</dt><dd>{policy.eligibility.bands?.map(statusLabel).join(", ") || "Configured score threshold"}</dd></div><div><dt>Rollout</dt><dd>{policy.rollout === "SHADOW" ? "Record matches only" : "Create issues"}</dd></div><div><dt>New issue limits</dt><dd>{policy.blast_radius.per_run} per run · {policy.blast_radius.per_day} per day</dd></div><div><dt>Outcome check</dt><dd>After {policy.outcome_contract.check_after_minutes} minutes</dd></div><div><dt>Policy revision</dt><dd>{policy.version}</dd></div></dl>
     <section><h4>Approval and timing</h4><p>{policy.checker_id ? "Independent approval recorded." : "Independent approval is pending."} The issue owner and outcome reviewer follow the current approved responsibilities.</p><p>{policy.effective_from ? `Eligible from ${new Date(policy.effective_from).toLocaleString()}.` : "Eligible after activation."} {policy.effective_until ? `Expires ${new Date(policy.effective_until).toLocaleString()}.` : "No planned expiry."}</p></section><section><h4>Issue handling</h4><strong>{policy.action.title_template}</strong><p>{policy.action.requested_handling}</p></section>
-    {simulation ? <section className="forms-policy-impact" aria-label="Latest simulation impact"><div><strong>{simulation.would_create_count} new issues</strong><span>{(simulation.result_basis ?? policy.eligibility.result_basis) === "BANK_ASSESSED" ? "Completed bank assessments checked" : "Automatic submission results checked"}</span><span>{simulation.eligible_count} eligible responses from {simulation.population_count} checked</span></div><ul><li>{simulation.would_reuse_count} existing issues reused</li><li>{simulation.blast_suppressed_count} responses held by the blast-radius limit</li><li>{simulation.restricted_excluded_count} restricted responses excluded</li></ul><small>Observed {new Date(simulation.observed_at).toLocaleString()} · expires {new Date(simulation.expires_at).toLocaleString()}</small></section> : <section className="forms-policy-impact forms-policy-impact--empty"><h4>No current simulation</h4><p>Simulate this exact policy revision before requesting approval.</p></section>}
+    {simulation ? <section className="forms-policy-impact" aria-label="Latest simulation impact"><div><strong>{simulation.would_create_count} new issues</strong><span>{(simulation.result_basis ?? policy.eligibility.result_basis) === "BANK_ASSESSED" ? "Completed bank assessments checked" : "Automatic submission results checked"}</span><span>{simulation.eligible_count} eligible responses from {simulation.population_count} checked</span></div><ul><li>{simulation.would_reuse_count} existing issues reused</li><li>{simulation.blast_suppressed_count} responses held by the new issue limit</li><li>{simulation.restricted_excluded_count} restricted responses excluded</li></ul><small>Observed {new Date(simulation.observed_at).toLocaleString()} · expires {new Date(simulation.expires_at).toLocaleString()}</small></section> : policy.status === "DRAFT" ? <section className="forms-policy-impact forms-policy-impact--empty"><h4>Simulation needed</h4><p>Simulate this policy revision before requesting approval.</p></section> : <section className="forms-policy-impact"><h4>Approval simulation</h4><p>{policy.approved_simulation_id ? "Simulation recorded for approval. Its historical impact is not a current count of eligible responses." : "The approval simulation reference is unavailable. Review the policy approval history before changing this policy."}</p>{policy.approved_at && <p>Approved {new Date(policy.approved_at).toLocaleString()}</p>}<details><summary>Approval references</summary><p>Simulation: {policy.approved_simulation_id ?? "Not recorded"} · Policy revision {policy.version}</p></details></section>}
     <section aria-label="Policy execution history"><h4>Latest policy activity</h4>
       <p>The latest 50 execution records for this policy revision show which result was checked and what happened.</p>
       {historyState === "loading" && <p role="status">Loading policy activity...</p>}
       {historyState === "error" && <><Notice tone="warning">Policy activity could not be checked.</Notice><Button variant="quiet" onPress={() => setHistoryReload((value) => value+1)}>Retry policy activity</Button></>}
-      {historyState === "live" && (history.length ? <ul>{history.map((item) => <li key={item.id}><strong>{executionLabel(item.state)}</strong> · {item.result_basis === "BANK_ASSESSED" ? `Bank assessment revision ${item.assessment_version}` : "Automatic submission result"} · {new Date(item.created_at).toLocaleString()}</li>)}</ul> : <p>No execution records were found for this policy revision. Activate the approved policy to check new results.</p>)}
+      {historyState === "live" && (history.length ? <ul>{history.map((item) => <li key={item.id}><strong>{executionLabel(item.state)}</strong> · {item.result_basis === "BANK_ASSESSED" ? `Bank assessment revision ${item.assessment_version}` : "Automatic submission result"} · {new Date(item.created_at).toLocaleString()} <Button variant="quiet" onPress={() => setExecutionID(item.id)}>View result</Button></li>)}</ul> : <p>No execution records were found for this policy revision. New activity appears here when this policy checks a response.</p>)}
     </section>
+    {executionID && <FocusedDialog label="Policy result" onClose={() => setExecutionID(undefined)}><PolicyExecutionResult key={executionID} policyID={policy.id} executionID={executionID}/></FocusedDialog>}
     {policy.status === "SUSPENDED" && !rollbackTarget && <Notice tone="warning">No earlier version of this policy is available for rollback. Create a new policy draft instead.</Notice>}
   </article>;
 }
 function dominantAction(policy: FormResponsePolicy, simulation?: FormPolicySimulation, rollbackTarget?: FormResponsePolicy) { if (policy.status === "DRAFT") return simulation ? "Send for approval" : "Simulate impact"; if (policy.status === "PENDING_APPROVAL") return "Approve policy"; if (policy.status === "APPROVED") return "Activate policy"; if (policy.status === "ACTIVE") return "Suspend policy"; if (policy.status === "SUSPENDED" && rollbackTarget) return `Create rollback from revision ${rollbackTarget.version}`; return undefined; }
+function currentSimulation(policy: FormResponsePolicy, simulation?: FormPolicySimulation) { return simulation && simulation.policy_id === policy.id && simulation.policy_version === policy.version && (!simulation.policy_checksum || simulation.policy_checksum === policy.checksum) && new Date(simulation.expires_at).getTime() > Date.now() ? simulation : undefined; }
 function statusLabel(value: string) { return value.split("_").map((part) => part.charAt(0) + part.slice(1).toLowerCase()).join(" "); }
 function statusTone(status: string): "neutral" | "info" | "success" | "warning" { return status === "ACTIVE" ? "success" : status === "PENDING_APPROVAL" || status === "APPROVED" ? "info" : status === "SUSPENDED" ? "warning" : "neutral"; }
 function actionNotice(status: string) { return status === "PENDING_APPROVAL" ? "Policy sent for independent approval." : status === "APPROVED" ? "Policy approved. A permitted user must still activate it." : status === "ACTIVE" ? "Policy activated for its approved response population." : status === "SUSPENDED" ? "Policy suspended. No new responses will be enforced by it." : "A rollback draft was created for review."; }

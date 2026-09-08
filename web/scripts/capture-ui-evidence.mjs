@@ -96,6 +96,7 @@ async function capturePage(capture) {
     }
     if (capture.openFormReadiness) {
       await page.getByRole("button", { name: /Acme Processing Limited.*Card transaction processing/ }).click();
+      await openVendorSection(page, "Due diligence");
       await page.getByRole("heading", { name: "Due diligence" }).waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Use a starter template" }).click();
       await page.getByRole("dialog", { name: "Set up due-diligence form" }).waitFor({ state: "visible" });
@@ -546,6 +547,7 @@ async function captureVendorWorkflows() {
     const { context, page } = await openPage(capture);
     try {
       await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
+      await openVendorSection(page, "Due diligence");
       await page.getByRole("heading", { name: scenario.expectText ?? "Due diligence" }).waitFor({ state: "visible" });
       if (scenario.action) await page.getByRole("button", { name: scenario.action }).waitFor({ state: "visible" });
       if (scenario.startReview) {
@@ -564,6 +566,7 @@ async function captureVendorWorkflows() {
   const { context, page } = await openPage(partial);
   try {
     await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
+    await openVendorSection(page, "Due diligence");
     await page.getByRole("button", { name: "Send due diligence request" }).click();
     await page.getByLabel("Vendor contact email").fill("security@acme.example");
     await page.getByLabel("Response due date").fill("2026-09-10");
@@ -625,6 +628,7 @@ async function captureVendorActivationRecovery() {
       });
       await page.getByRole("button", { name: "Vendors", exact: true }).click();
       await page.getByRole("button", { name: /Sample · Acme Processing Limited/ }).click();
+      await openVendorSection(page, "Due diligence");
       const panel = page.locator(".vendor-activation-panel");
       const rationale = "Sample activation review: all current policy and evidence checks were reviewed.";
       await panel.getByLabel("Activation rationale").fill(rationale);
@@ -654,6 +658,7 @@ async function captureVendorActivationRecovery() {
       if (commands.length !== 2 || commands[0].expected_version !== 4 || commands[1].expected_version !== 6) throw new Error("Activation did not use the refreshed relationship version.");
       if (width < 800) await page.getByRole("button", { name: "← Back to vendor register", exact: true }).click();
       await page.getByRole("button", { name: /Sample · Meridian Technology Limited/ }).click();
+      await openVendorSection(page, "Due diligence");
       await panel.getByText("Policy 9, version 3 applies from", { exact: false }).waitFor();
       await page.evaluate(async () => { window.__vendorActivationRecovery.releaseCommand(); await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))); });
       await page.getByRole("heading", { name: "Sample · Meridian Technology Limited", exact: true }).waitFor();
@@ -712,6 +717,12 @@ async function fillVendorWorkCreation(page, layout) {
   await due.fill("2026-09-30");
   await page.getByText("8 fields · 8 required · 1 document upload", { exact: true }).waitFor({ state: "visible" });
   if (!(await page.getByRole("button", { name: "Prepare and send request" }).isEnabled())) throw new Error("Vendor work request remains unavailable after every required field is completed");
+}
+
+async function openVendorSection(page, section) {
+  const tab = page.getByRole("tab", { name: section, exact: true });
+  if (await tab.isVisible()) await tab.click();
+  else await chooseSharedSelectOption(page, "Vendor section", section);
 }
 
 async function chooseSharedSelectOption(page, label, option) {

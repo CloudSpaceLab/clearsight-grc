@@ -19,6 +19,42 @@ type executionHistoryReader interface {
 	ListExecutionHistory(context.Context, string, string, string, int) ([]ExecutionHistoryItem, error)
 }
 
+// ExecutionResultSource keeps unchecked target identifiers server-only.
+type ExecutionResultSource struct {
+	ExecutionHistoryItem
+	ResponseRevisionID string `json:"-"`
+	MatterID           string `json:"-"`
+}
+
+type executionResultReader interface {
+	GetExecutionResult(context.Context, string, string, string, string) (ExecutionResultSource, error)
+}
+
+func (service *Service) ExecutionResult(ctx context.Context, actor Actor, policyID, executionID string) (ExecutionResultSource, error) {
+	policy, err := service.Get(ctx, actor, policyID)
+	if err != nil {
+		return ExecutionResultSource{}, err
+	}
+	reader, ok := service.repo.(executionResultReader)
+	if !ok {
+		return ExecutionResultSource{}, ErrAuthorityUnavailable
+	}
+	return reader.GetExecutionResult(ctx, policy.TenantID, policy.LegalEntityID, policy.ID, executionID)
+}
+
+func (repo *MemoryRepository) GetExecutionResult(_ context.Context, tenant, entity, policy, execution string) (ExecutionResultSource, error) {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+	for _, receipts := range []map[string]ExecutionReceipt{repo.executions, repo.executionFailures} {
+		for _, value := range receipts {
+			if value.ID == execution && value.TenantID == tenant && value.LegalEntityID == entity && value.PolicyID == policy {
+				return ExecutionResultSource{ExecutionHistoryItem: ExecutionHistoryItem{ID: value.ID, State: value.State, ResultBasis: receiptBasis(value), AssessmentVersion: value.AssessmentVersion, CreatedAt: value.CreatedAt}, ResponseRevisionID: value.ResponseRevisionID, MatterID: value.MatterID}, nil
+			}
+		}
+	}
+	return ExecutionResultSource{}, ErrNotFound
+}
+
 func (service *Service) ExecutionHistory(ctx context.Context, actor Actor, policyID string) ([]ExecutionHistoryItem, error) {
 	policy, err := service.Get(ctx, actor, policyID)
 	if err != nil {

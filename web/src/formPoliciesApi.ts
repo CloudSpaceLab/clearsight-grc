@@ -70,6 +70,10 @@ export async function listFormPolicyAutomationChoices(formID: string, version: n
 }
 
 export type FormPolicyExecution = {id:string;state:"NOT_MATCHED"|"SHADOW"|"APPLIED"|"REUSED"|"BLAST_SUPPRESSED"|"FAILED";result_basis:"AUTOMATIC"|"BANK_ASSESSED";assessment_version?:number;created_at:string};
+export type FormPolicyExecutionResult = { execution: FormPolicyExecution; targets: Array<{ type: "MATTER" | "FORM_RESPONSE"; id: string; title: string }> };
+export function loadFormPolicyExecutionResult(policyID: string, executionID: string): Promise<FormPolicyExecutionResult> {
+  return requestJSON(apiBase, `/api/v1/config/form-response-policies/${encodeURIComponent(policyID)}/executions/${encodeURIComponent(executionID)}/result`);
+}
 export async function listFormPolicyExecutions(policyID:string):Promise<FormPolicyExecution[]> {
   return (await requestJSON<{items:FormPolicyExecution[]}>(apiBase, `/api/v1/config/form-response-policies/${encodeURIComponent(policyID)}/executions`)).items ?? [];
 }

@@ -1,14 +1,41 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { VendorFormsPanel } from "./VendorFormsPanel";
-const api = vi.hoisted(() => ({ loadVendorForms: vi.fn(), loadCompletedResponses: vi.fn() }));
+import { VendorFormsPanel, VendorResponseHistory } from "./VendorFormsPanel";
+const api = vi.hoisted(() => ({ loadVendorForms: vi.fn(), loadCompletedResponses: vi.fn(), loadCompletedResponse: vi.fn() }));
 vi.mock("../vendorFormsApi", () => api);
-vi.mock("../formsDistributionApi", async (original) => ({ ...await original<typeof import("../formsDistributionApi")>(), loadCompletedResponses: api.loadCompletedResponses }));
+vi.mock("../formsDistributionApi", async (original) => ({ ...await original<typeof import("../formsDistributionApi")>(), loadCompletedResponses: api.loadCompletedResponses, loadCompletedResponse: api.loadCompletedResponse }));
 vi.mock("./forms/ResponseAssessment", () => ({ ResponseAssessment: ({ responseID }: { responseID: string }) => <section aria-label={`Assess ${responseID}`}/> }));
 vi.mock("./documents/DocumentBrowser", () => ({ DocumentBrowser: () => null }));
 const row = { request_id: "request", relationship_id: "r1", response_id: "submitted-2", form_template_id: "form", form_template_version: 4, title: "Security evidence", response_state: "SUBMITTED", assessment_state: "AWAITING_REVIEW", required_reviews: 2, completed_reviews: 0, required_count: 3, answered_required: 3, current: true, deadline: "2099-09-08T12:00:00Z", updated_at: "2026-09-08T12:00:00Z", submitted_at: "2026-09-08T12:00:00Z", missing_fields: [] };
 beforeEach(() => { vi.clearAllMocks(); api.loadVendorForms.mockResolvedValue({ items: [row], observed_at: "2026-09-08T12:00:00Z" }); });
 describe("vendor forms and responses", () => {
+  it("refreshes retained history and selected revision currency without discarding the review", async () => {
+    const current = { id: "revision", title: "Security evidence", revision: 1, current: true, form_template_version: 4, completed_at: row.submitted_at };
+    api.loadCompletedResponses.mockResolvedValue({ items: [current] });
+    api.loadCompletedResponse.mockResolvedValue({ response: current });
+    const view = render(<VendorResponseHistory relationshipID="r1" serviceName="Payments" onUpdated={() => {}} active refreshKey={0}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Review Security evidence revision 1" }));
+    const review = screen.getByRole("region", { name: "Assess revision" });
+    view.rerender(<VendorResponseHistory relationshipID="r1" serviceName="Payments" onUpdated={() => {}} active={false} refreshKey={0}/>);
+    api.loadCompletedResponse.mockResolvedValue({ response: { ...current, current: false } });
+    api.loadCompletedResponses.mockResolvedValue({ items: [{ ...current, current: false }] });
+    view.rerender(<VendorResponseHistory relationshipID="r1" serviceName="Payments" onUpdated={() => {}} active refreshKey={1}/>);
+    expect(await screen.findByText(/Response revision 1 · Historical response/)).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Assess revision" })).toBe(review);
+    expect(api.loadCompletedResponse).toHaveBeenLastCalledWith("revision");
+    fireEvent.click(screen.getByRole("button", { name: "Back to response history" }));
+    expect(await screen.findByText(/Form revision 4 · Historical response/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Reload response history" })).toBeTruthy();
+  });
+  it("uses the workspace history section without opening a duplicate sheet", async () => {
+    const openHistory = vi.fn();
+    render(<VendorFormsPanel relationshipID="r1" serviceName="Payments" onRequestForm={() => {}} onOpenHistory={openHistory}/>);
+    await screen.findByText("Security evidence");
+    fireEvent.click(screen.getByRole("button", { name: "View response history" }));
+    expect(openHistory).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(api.loadCompletedResponses).not.toHaveBeenCalled();
+  });
   it("identifies a partly replaced response without describing its old score as current", async () => {
     api.loadVendorForms.mockResolvedValue({ items: [{ ...row, response_currency: "PARTIALLY_REPLACED" }], observed_at: row.updated_at });
     render(<VendorFormsPanel relationshipID="r1" serviceName="Payments" onRequestForm={() => {}}/>);
