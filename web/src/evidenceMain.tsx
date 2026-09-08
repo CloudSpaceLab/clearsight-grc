@@ -1,6 +1,8 @@
 import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import "./staticDemoBootstrap";
+import { PolicyAssessmentEvidence } from "./PolicyAssessmentEvidence";
+import { FieldAssessmentEvidencePage, installVendorAssessmentEvidence } from "./vendorAssessmentEvidence";
 import { consumeCaptureInvitation } from "./captureInvitationBrowser";
 import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
 import { LifecycleTodayEvidencePage } from "./components/LifecycleTodayEvidencePage";
@@ -35,8 +37,12 @@ const root = document.getElementById("root");
 if (!root) throw new Error("Application root is missing");
 
 const fixture = new URLSearchParams(window.location.search).get("fixture");
+installVendorAssessmentEvidence();
 const application = invitationToken !== null
   ? <ExternalCaptureApp invitationToken={invitationToken}/>
+  : fixture === "field-assessment-policy" ? <PolicyAssessmentEvidence/>
+  : fixture === "field-assessment-builder" || fixture === "field-assessment-review"
+    ? <FieldAssessmentEvidencePage review={fixture === "field-assessment-review"}/>
   : fixture === "oversight"
     ? <OversightEvidencePage/>
     : fixture === "ui-component-gallery"

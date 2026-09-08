@@ -3,8 +3,10 @@ import type { CaptureFieldConstraints } from "../../../types";
 import type { AuthoringField, AuthoringSection, FormDraft } from "../formAuthoring";
 import { FormFieldPropertyEditor } from "../FormFieldPropertyEditor";
 import type { BuilderSelection } from "./builderSelection";
-import { SelectField } from "../../ui";
+import { ActionLink, Button, SelectField } from "../../ui";
 import { AdvancedScoringEditor } from "./AdvancedScoringEditor";
+import { assessmentConfigurationErrors, fieldAssessmentLabel, needsBankReview } from "../fieldAssessment";
+import "../field-assessment.css";
 
 type Props = {
   draft: FormDraft;
@@ -22,6 +24,7 @@ type Props = {
   onRemoveSection: (sectionID: string) => void;
   onMoveField: (index: number, offset: -1 | 1) => void;
   onRemoveField: (index: number) => void;
+  onSelectField: (fieldID: string) => void;
 };
 
 export function FormInspector(props: Props) {
@@ -37,7 +40,7 @@ function PaneHeading({ eyebrow, title, detail }: { eyebrow: string; title: strin
   </div>;
 }
 
-function OverviewInspector({ draft, templateRevision, onPatch, onScoringMode }: Props) {
+function OverviewInspector({ draft, templateRevision, onPatch, onScoringMode, onSelectField }: Props) {
   return <aside className="form-builder-inspector" aria-label="Form settings">
     <PaneHeading eyebrow="Inspector" title="Form settings"/>
     <div className="form-inspector-content">
@@ -49,11 +52,26 @@ function OverviewInspector({ draft, templateRevision, onPatch, onScoringMode }: 
           <label className="compact-control"><input type="checkbox" aria-label="Allow respondents to switch layouts" checked={draft.allowModeSwitch} onChange={(event) => onPatch({ allowModeSwitch: event.target.checked })}/> Allow respondents to switch layouts</label>
         </div>
       </details>
+      <details open>
+        <summary>Assessment and scoring</summary>
+        <div className="form-inspector-group">
+          <ul className="assessment-summary">{draft.fields.map((field, index) => <li key={field.id}>
+            <strong>{field.label.trim() || `Question ${index + 1}`}</strong>
+            <span>{fieldAssessmentLabel(field)}{field.assessment && field.assessment.mode !== "NONE" ? ` · Weight ${field.assessment.weight}` : ""}</span>
+            {needsBankReview(field) && <span>{field.assessment?.rubric?.length ?? 0} rubric outcomes · {field.assessment?.required ? "Required review" : "Optional review"} · {field.assessment?.reviewer_role?.replaceAll("_", " ") || "Current bank review route"}</span>}
+            {field.assessment?.rubric?.map((outcome) => <small key={outcome.id}>{outcome.label || "Outcome needs a name"}: {outcome.points} points</small>)}
+            {field.condition && <small>Assessed when this question’s display condition is met.</small>}
+            {assessmentConfigurationErrors(field).map((error, errorIndex) => <small key={errorIndex}>{error}</small>)}
+            <Button variant="quiet" aria-label={`Edit assessment for ${field.label.trim() || `Question ${index + 1}`}`} onPress={() => onSelectField(field.id)}>Edit field assessment</Button>
+          </li>)}</ul>
+          <ActionLink href="#forms?section=policies">Review response policies</ActionLink>
+        </div>
+      </details>
       <details>
         <summary>Scoring</summary>
         <div className="form-inspector-group">
           <SelectField label="Scoring mode" value={draft.scoringMode} placeholder="Choose scoring" allowsEmpty={false} options={[{ id: "NONE", label: "No score" }, { id: "RISK", label: "Risk score" }, { id: "COMPLIANCE", label: "Compliance score" }]} onChange={(value) => { if (value) onScoringMode(value as FormScoringMode); }}/>
-          <p>Scoring is optional. It remains hidden from ordinary question editing until enabled.</p>
+          <p>Choose whether higher points mean more risk or stronger compliance. Save the form revision before testing its rules.</p>
           {draft.scoringMode !== "NONE" && <AdvancedScoringEditor mode={draft.scoringMode} profile={draft.scoreProfile} fields={draft.fields} templateRevision={templateRevision} onChange={(scoreProfile) => onPatch({ scoreProfile })}/>}
         </div>
       </details>

@@ -1,0 +1,218 @@
+[
+  {
+    "file": "bank-review-saved-light-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 1440,
+    "height": 900,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1."
+    ]
+  },
+  {
+    "file": "bank-review-poor-light-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 1440,
+    "height": 900,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  },
+  {
+    "file": "bank-review-saved-light-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 390,
+    "height": 900,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1."
+    ]
+  },
+  {
+    "file": "bank-review-poor-light-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 390,
+    "height": 900,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  },
+  {
+    "file": "bank-review-saved-light-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 320,
+    "height": 900,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1."
+    ]
+  },
+  {
+    "file": "bank-review-poor-light-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 320,
+    "height": 900,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  },
+  {
+    "file": "bank-review-saved-dark-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 1440,
+    "height": 900,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1."
+    ]
+  },
+  {
+    "file": "bank-review-poor-dark-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 1440,
+    "height": 900,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  },
+  {
+    "file": "bank-review-saved-dark-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 390,
+    "height": 900,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1."
+    ]
+  },
+  {
+    "file": "bank-review-poor-dark-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 390,
+    "height": 900,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  },
+  {
+    "file": "bank-review-saved-dark-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 320,
+    "height": 900,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1."
+    ]
+  },
+  {
+    "file": "bank-review-poor-dark-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 320,
+    "height": 900,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  }
+]

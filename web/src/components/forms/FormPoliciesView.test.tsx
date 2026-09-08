@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FormPoliciesView } from "./FormPoliciesView";
 
 const api = vi.hoisted(() => ({
-  listFormResponsePolicies: vi.fn(), createFormResponsePolicy: vi.fn(), simulateFormResponsePolicy: vi.fn(),
+  listFormPolicyExecutions: vi.fn(), listFormPolicyAutomationChoices: vi.fn(), listFormResponsePolicies: vi.fn(), createFormResponsePolicy: vi.fn(), simulateFormResponsePolicy: vi.fn(),
   submitFormResponsePolicy: vi.fn(), approveFormResponsePolicy: vi.fn(), activateFormResponsePolicy: vi.fn(),
   suspendFormResponsePolicy: vi.fn(), rollbackFormResponsePolicy: vi.fn(),
 }));
@@ -30,6 +30,8 @@ beforeEach(() => {
   for (const value of Object.values(api)) value.mockReset();
   monitoring.loadFormTemplates.mockReset();
   api.listFormResponsePolicies.mockResolvedValue([policy]);
+  api.listFormPolicyAutomationChoices.mockResolvedValue([]);
+  api.listFormPolicyExecutions.mockResolvedValue([]);
   monitoring.loadFormTemplates.mockResolvedValue([scoredForm]);
   api.simulateFormResponsePolicy.mockResolvedValue({ id: "simulation-1", policy_id: "policy-1", policy_version: 1, population_count: 42, eligible_count: 5, would_create_count: 3, would_reuse_count: 1, blast_suppressed_count: 1, restricted_excluded_count: 2, observed_at: "2026-09-01T10:00:00Z", expires_at: "2026-09-01T11:00:00Z" });
 });
@@ -75,4 +77,13 @@ describe("FormPoliciesView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry loading policies" }));
     expect(api.listFormResponsePolicies).toHaveBeenCalledTimes(2);
   });
+});
+
+it("offers manual-only forms with a bank review rubric", async () => {
+ monitoring.loadFormTemplates.mockResolvedValue([{...scoredForm,scoring_mode:"NONE",fields:[{id:"report",assessment:{mode:"MANUAL",weight:100,rubric:[{id:"poor",label:"Incomplete",points:90}]}}]}]);
+ render(<FormPoliciesView/>);
+ await screen.findAllByText("Review poor vendor certification scores");
+ fireEvent.click(screen.getByRole("button",{name:"Create policy"}));
+ fireEvent.click(await screen.findByRole("button",{name:/Approved form revision/}));
+ expect(await screen.findByRole("option",{name:"Vendor certification · VENDOR-CERTIFICATION · revision 4"})).toBeTruthy();
 });

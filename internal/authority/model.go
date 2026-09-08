@@ -2,6 +2,7 @@ package authority
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
@@ -25,6 +26,7 @@ type Principal struct {
 	DisplayName string `json:"display_name"`
 	Kind        string `json:"kind"`
 	Role        string `json:"role"`
+	RoleCode    string `json:"role_code,omitempty"`
 }
 
 type Rule struct {
@@ -83,6 +85,7 @@ type Resolution struct {
 // Direct candidates act for themselves; an active delegate carries the route
 // seed principal whose responsibility was delegated.
 type EffectiveOrigin struct {
+	RoleCode          string `json:"role_code,omitempty"`
 	PrincipalID       string `json:"principal_id"`
 	OriginPrincipalID string `json:"origin_principal_id"`
 }
@@ -155,4 +158,27 @@ type Service interface {
 	Simulate(context.Context, ResolveInput) (Simulation, error)
 	Integrity(context.Context, string) ([]IntegrityFinding, error)
 	Policies(context.Context, string) ([]PolicySummary, error)
+}
+
+// AllowsPrincipalWithRole checks the configured role code of the selected route,
+// including the role carried by an active delegation's origin.
+func (r Resolution) AllowsPrincipalWithRole(principalID, roleCode string) bool {
+	if !r.AllowsPrincipal(principalID) || strings.TrimSpace(roleCode) == "" {
+		return false
+	}
+	for _, origin := range r.EffectiveOrigins {
+		if origin.PrincipalID == principalID && strings.EqualFold(origin.RoleCode, roleCode) {
+			return true
+		}
+	}
+	for _, p := range append([]Principal{r.Principal}, r.CandidatePrincipals...) {
+		code := p.RoleCode
+		if code == "" {
+			code = p.Role
+		}
+		if p.ID == principalID && strings.EqualFold(code, roleCode) {
+			return true
+		}
+	}
+	return false
 }

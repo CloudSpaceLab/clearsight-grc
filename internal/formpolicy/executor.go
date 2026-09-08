@@ -19,6 +19,8 @@ const (
 )
 
 type ScoredResponseEvent struct {
+	ResultBasis        ResultBasis
+	AssessmentVersion  int64
 	ID                 string
 	TenantID           string
 	ResponseRevisionID string
@@ -34,6 +36,14 @@ type ExecutionRoute struct {
 	OwnerPrincipalID     string
 	ReviewerPrincipalID  string
 	ProgramID            string
+}
+
+type AssessedExecutionResponseReader interface {
+	GetAssessedResponseForExecution(context.Context, string, string) (evidence.CompletedResponseSummary, error)
+}
+
+type AssessedExecutionGuard interface {
+	WithAssessedResponseForExecution(context.Context, string, string, int64, func() error) error
 }
 
 type ExecutionResponseReader interface {
@@ -58,17 +68,18 @@ type ExecutionStore interface {
 }
 
 type ExecutionCommand struct {
-	EventID       string
-	Policy        Policy
-	Response      evidence.CompletedResponseSummary
-	Route         ExecutionRoute
-	Receipt       ExecutionReceipt
-	Episode       AdverseEpisode
-	Matter        continuity.Matter
-	Outcome       continuity.VerificationContract
-	Link          *continuity.MatterLink
-	FailureMatter *continuity.Matter
-	FailureAction *continuity.Action
+	EventOccurredAt time.Time
+	EventID         string
+	Policy          Policy
+	Response        evidence.CompletedResponseSummary
+	Route           ExecutionRoute
+	Receipt         ExecutionReceipt
+	Episode         AdverseEpisode
+	Matter          continuity.Matter
+	Outcome         continuity.VerificationContract
+	Link            *continuity.MatterLink
+	FailureMatter   *continuity.Matter
+	FailureAction   *continuity.Action
 }
 
 type CompensationCommand struct {
@@ -152,28 +163,67 @@ func (executor *Executor) HandleBatch(ctx context.Context, events []ScoredRespon
 		if strings.TrimSpace(event.ID) == "" || strings.TrimSpace(event.TenantID) == "" || strings.TrimSpace(event.ResponseRevisionID) == "" || event.OccurredAt.IsZero() {
 			return nil, ErrInvalid
 		}
-		response, err := executor.responses.GetCompletedResponseForExecution(ctx, strings.TrimSpace(event.TenantID), strings.TrimSpace(event.ResponseRevisionID))
+		var response evidence.CompletedResponseSummary
+		var err error
+		if event.ResultBasis == ResultBankAssessed {
+			reader, ok := executor.responses.(AssessedExecutionResponseReader)
+			if !ok {
+				return nil, ErrAuthorityUnavailable
+			}
+			response, err = reader.GetAssessedResponseForExecution(ctx, strings.TrimSpace(event.TenantID), strings.TrimSpace(event.ResponseRevisionID))
+			if errors.Is(err, evidence.ErrNotFound) {
+				continue
+			}
+		} else {
+			response, err = executor.responses.GetCompletedResponseForExecution(ctx, strings.TrimSpace(event.TenantID), strings.TrimSpace(event.ResponseRevisionID))
+		}
 		if err != nil {
 			return nil, err
 		}
+		if event.ResultBasis == ResultBankAssessed && (response.BankAssessment == nil || response.BankAssessment.Version != event.AssessmentVersion) {
+			continue
+		}
+		evaluationAt := response.CompletedAt
+		if event.ResultBasis == ResultBankAssessed {
+			evaluationAt = event.OccurredAt
+		}
+
 		if response.TenantID != event.TenantID || strings.TrimSpace(response.LegalEntityID) == "" || response.ID != event.ResponseRevisionID {
 			return nil, ErrInvalid
 		}
-		policies, err := executor.store.ListEffectivePolicies(ctx, response.TenantID, response.LegalEntityID, response.FormTemplateID, response.FormTemplateVersion, response.CompletedAt, executionPolicyLimit)
+		policies, err := executor.store.ListEffectivePolicies(ctx, response.TenantID, response.LegalEntityID, response.FormTemplateID, response.FormTemplateVersion, evaluationAt, executionPolicyLimit)
 		if err != nil {
 			return nil, err
 		}
 		for _, policy := range policies {
-			if !effectiveForResponse(policy, response, executor.currentTime()) {
+			eventBasis := event.ResultBasis
+			if eventBasis == "" {
+				eventBasis = ResultAutomatic
+			}
+			if policy.Eligibility.Basis() != eventBasis {
+				continue
+			}
+			timedResponse := response
+			timedResponse.CompletedAt = evaluationAt
+			if !effectiveForResponse(policy, timedResponse, executor.currentTime()) {
+				continue
+			}
+			if event.ResultBasis == ResultBankAssessed && policyScore(policy, response) == nil {
 				continue
 			}
 			route, err := executor.authority.ResolvePolicyExecution(ctx, policy, response)
 			if err != nil {
 				receipt, failureErr := executor.recordAuthorityFailure(ctx, event, policy, response, err)
+				if errors.Is(failureErr, evidence.ErrAssessmentConflict) {
+					continue
+				}
 				return append(receipts, receipt), failureErr
 			}
 			if !validExecutionRoute(route, policy, response) {
 				receipt, failureErr := executor.recordAuthorityFailure(ctx, event, policy, response, ErrActivationAuthority)
+				if errors.Is(failureErr, evidence.ErrAssessmentConflict) {
+					continue
+				}
 				return append(receipts, receipt), failureErr
 			}
 			state, reason := ExecutionNotMatched, "SCORE_NOT_MATCHED"
@@ -189,11 +239,16 @@ func (executor *Executor) HandleBatch(ctx context.Context, events []ScoredRespon
 					runApplied[key]++
 				}
 			}
-			command, err := executor.executionCommand(event, policy, response, route, state, reason)
+			resultResponse := response
+			resultResponse.Score = policyScore(policy, response)
+			command, err := executor.executionCommand(event, policy, resultResponse, route, state, reason)
 			if err != nil {
 				return nil, err
 			}
-			receipt, err := executor.store.ApplyExecution(ctx, command)
+			receipt, err := executor.applyExecution(ctx, command)
+			if errors.Is(err, evidence.ErrAssessmentConflict) {
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -217,7 +272,7 @@ func (executor *Executor) recordAuthorityFailure(ctx context.Context, event Scor
 	if err != nil {
 		return ExecutionReceipt{}, err
 	}
-	receipt, err := executor.store.ApplyExecution(ctx, command)
+	receipt, err := executor.applyExecution(ctx, command)
 	if err != nil {
 		return ExecutionReceipt{}, err
 	}
@@ -230,8 +285,8 @@ func (executor *Executor) failedExecutionCommand(event ScoredResponseEvent, poli
 		return ExecutionCommand{}, err
 	}
 	command := ExecutionCommand{
-		EventID: event.ID, Policy: policy, Response: response,
-		Receipt: ExecutionReceipt{
+		EventOccurredAt: event.OccurredAt, EventID: event.ID, Policy: policy, Response: response,
+		Receipt: ExecutionReceipt{ResultBasis: policy.Eligibility.Basis(), AssessmentVersion: event.AssessmentVersion,
 			ID: receiptID, TenantID: policy.TenantID, LegalEntityID: policy.LegalEntityID, PolicyID: policy.ID, PolicyVersion: policy.Version,
 			AutomationPolicyID: policy.AutomationPolicyID, AutomationPolicyVersion: policy.AutomationPolicyVersion,
 			ResponseRevisionID: response.ID, State: ExecutionFailed, ReasonCode: reason, CreatedAt: executor.currentTime(),
@@ -276,8 +331,8 @@ func (executor *Executor) executionCommand(event ScoredResponseEvent, policy Pol
 	if err != nil {
 		return ExecutionCommand{}, err
 	}
-	receipt := ExecutionReceipt{ID: receiptID, TenantID: policy.TenantID, LegalEntityID: policy.LegalEntityID, PolicyID: policy.ID, PolicyVersion: policy.Version, AutomationPolicyID: policy.AutomationPolicyID, AutomationPolicyVersion: policy.AutomationPolicyVersion, ResponseRevisionID: response.ID, State: state, ReasonCode: reason, CreatedAt: now}
-	command := ExecutionCommand{EventID: event.ID, Policy: policy, Response: response, Route: route, Receipt: receipt}
+	receipt := ExecutionReceipt{ResultBasis: policy.Eligibility.Basis(), AssessmentVersion: event.AssessmentVersion, ID: receiptID, TenantID: policy.TenantID, LegalEntityID: policy.LegalEntityID, PolicyID: policy.ID, PolicyVersion: policy.Version, AutomationPolicyID: policy.AutomationPolicyID, AutomationPolicyVersion: policy.AutomationPolicyVersion, ResponseRevisionID: response.ID, State: state, ReasonCode: reason, CreatedAt: now}
+	command := ExecutionCommand{EventOccurredAt: event.OccurredAt, EventID: event.ID, Policy: policy, Response: response, Route: route, Receipt: receipt}
 	if state != ExecutionApplied {
 		return command, nil
 	}
@@ -378,4 +433,21 @@ func (executor *Executor) currentTime() time.Time {
 		return time.Now().UTC()
 	}
 	return executor.now().UTC()
+}
+
+func (executor *Executor) applyExecution(ctx context.Context, command ExecutionCommand) (ExecutionReceipt, error) {
+	if command.Receipt.ResultBasis != ResultBankAssessed {
+		return executor.store.ApplyExecution(ctx, command)
+	}
+	guard, ok := executor.responses.(AssessedExecutionGuard)
+	if !ok {
+		return ExecutionReceipt{}, ErrAuthorityUnavailable
+	}
+	var receipt ExecutionReceipt
+	err := guard.WithAssessedResponseForExecution(ctx, command.Receipt.TenantID, command.Receipt.ResponseRevisionID, command.Receipt.AssessmentVersion, func() error {
+		var err error
+		receipt, err = executor.store.ApplyExecution(ctx, command)
+		return err
+	})
+	return receipt, err
 }

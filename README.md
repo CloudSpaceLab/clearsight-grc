@@ -18,6 +18,7 @@ The repository contains a working application foundation for ongoing Programs an
 - leased timers, transactional outbox and inbox deduplication;
 - Source Registry, source observations and freshness maintenance;
 - persisted evidence requests, reusable governed form templates, deadline-bound distributions, immutable response revisions and revocable magic-link/OTP access;
+- configurable bank field assessments, vendor form progress and concern summaries, exact response/history review, and duplicate-safe multi-vendor form requests using the existing distribution flow;
 - bounded capture sessions, invitation/session revocation and artifact manifests;
 - governed document imports with immutable original metadata, SHA-256 lineage and actor-bound review;
 - deterministic TXT, Markdown, CSV, DOCX and XLSX extraction with source-location anchors;

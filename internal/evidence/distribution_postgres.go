@@ -32,6 +32,19 @@ func (s *PostgresDistributionStore) CreateDistribution(ctx context.Context, inpu
 	if s.repo == nil || s.repo.pool == nil {
 		return DistributionBundle{}, fmt.Errorf("postgres distribution repository is required")
 	}
+	if input.IdempotencyKey != "" {
+		var existingID, checksum string
+		err := s.repo.pool.QueryRow(ctx, `SELECT receipt.distribution_id::text,receipt.payload_checksum FROM capture_distribution_creation_receipts receipt JOIN tenants t ON t.id=receipt.tenant_id JOIN legal_entities le ON le.id=receipt.legal_entity_id AND le.tenant_id=receipt.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND receipt.idempotency_key=$3`, input.TenantID, input.LegalEntityID, input.IdempotencyKey).Scan(&existingID, &checksum)
+		if err == nil {
+			if checksum != distributionCreationChecksum(input) {
+				return DistributionBundle{}, ErrDistributionConflict
+			}
+			return s.GetDistribution(ctx, input.TenantID, input.LegalEntityID, existingID)
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return DistributionBundle{}, err
+		}
+	}
 	if err := validateCreateDistributionInput(input); err != nil {
 		return DistributionBundle{}, err
 	}
@@ -59,6 +72,28 @@ func (s *PostgresDistributionStore) CreateDistribution(ctx context.Context, inpu
 		return DistributionBundle{}, err
 	}
 	defer tx.Rollback(ctx)
+	if input.IdempotencyKey != "" {
+		if len(input.IdempotencyKey) > 240 {
+			return DistributionBundle{}, ErrDistributionInvalid
+		}
+		if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, tenantID+":"+legalEntityID+":"+input.IdempotencyKey); err != nil {
+			return DistributionBundle{}, err
+		}
+		var existingID, checksum string
+		err = tx.QueryRow(ctx, `SELECT distribution_id::text,payload_checksum FROM capture_distribution_creation_receipts WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND idempotency_key=$3`, tenantID, legalEntityID, input.IdempotencyKey).Scan(&existingID, &checksum)
+		if err == nil {
+			if checksum != distributionCreationChecksum(input) {
+				return DistributionBundle{}, ErrDistributionConflict
+			}
+			if err = tx.Rollback(ctx); err != nil {
+				return DistributionBundle{}, err
+			}
+			return s.GetDistribution(ctx, tenantID, legalEntityID, existingID)
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return DistributionBundle{}, err
+		}
+	}
 
 	form, err := loadExactActiveDistributionForm(ctx, tx, input)
 	if err != nil {
@@ -105,6 +140,11 @@ func (s *PostgresDistributionStore) CreateDistribution(ctx context.Context, inpu
 		return DistributionBundle{}, err
 	}
 
+	if input.IdempotencyKey != "" {
+		if _, err = tx.Exec(ctx, `INSERT INTO capture_distribution_creation_receipts(tenant_id,legal_entity_id,idempotency_key,payload_checksum,distribution_id) VALUES($1::uuid,$2::uuid,$3,$4,$5::uuid)`, tenantID, legalEntityID, input.IdempotencyKey, distributionCreationChecksum(input), distributionID); err != nil {
+			return DistributionBundle{}, err
+		}
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return DistributionBundle{}, err
 	}

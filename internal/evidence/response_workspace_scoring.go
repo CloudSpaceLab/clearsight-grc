@@ -10,6 +10,27 @@ import (
 )
 
 func buildResponseRevision(request Request, assurance AccessAssurance, attestationFieldIDs []string, answers map[string]formcontract.AnswerValue) (ResponseRevision, error) {
+	revision, err := buildAutomaticResponseRevision(request, assurance, attestationFieldIDs, answers)
+	if err != nil {
+		return revision, err
+	}
+	if revision.Score != nil {
+		if contract, e := workspaceScoringContract(request); e == nil {
+			if fields, e := formcontract.VisibleFields(contract, answers); e == nil {
+				for _, f := range fields {
+					if f.Assessment.NeedsReview() {
+						revision.Score.AssessmentReviewCount++
+						if f.Assessment.Required {
+							revision.Score.AssessmentRequiredCount++
+						}
+					}
+				}
+			}
+		}
+	}
+	return revision, nil
+}
+func buildAutomaticResponseRevision(request Request, assurance AccessAssurance, attestationFieldIDs []string, answers map[string]formcontract.AnswerValue) (ResponseRevision, error) {
 	fieldsByID := make(map[string]Field, len(request.Fields))
 	for _, field := range request.Fields {
 		fieldsByID[field.ID] = field

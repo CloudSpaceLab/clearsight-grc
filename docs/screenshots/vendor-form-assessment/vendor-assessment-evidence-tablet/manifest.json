@@ -1,0 +1,62 @@
+[
+  {
+    "file": "field-authoring-light-1024.png",
+    "fixture": "field-assessment-builder",
+    "theme": "light",
+    "width": 1024,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1024,
+      "scrollWidth": 1024
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "policy-setup-light-1024.png",
+    "fixture": "field-assessment-policy",
+    "theme": "light",
+    "width": 1024,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1024,
+      "scrollWidth": 1024
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-partial-light-1024.png",
+    "fixture": "vendor-form-assessment-partial",
+    "theme": "light",
+    "width": 1024,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1024,
+      "scrollWidth": 1024
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "bank-review-poor-light-1024.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 1024,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1024,
+      "scrollWidth": 1024
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  }
+]

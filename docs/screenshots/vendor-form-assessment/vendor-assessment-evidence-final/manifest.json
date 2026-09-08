@@ -1,0 +1,1076 @@
+[
+  {
+    "file": "vendor-overview-light-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-forms-light-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-empty-light-1440.png",
+    "fixture": "vendor-form-assessment-empty",
+    "theme": "light",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-error-light-1440.png",
+    "fixture": "vendor-form-assessment-error",
+    "theme": "light",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "field-authoring-light-1440.png",
+    "fixture": "field-assessment-builder",
+    "theme": "light",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "bank-review-light-1440.png",
+    "fixture": "field-assessment-review",
+    "theme": "light",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "policy-setup-light-1440.png",
+    "fixture": "field-assessment-policy",
+    "theme": "light",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-partial-light-1440.png",
+    "fixture": "vendor-form-assessment-partial",
+    "theme": "light",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-history-light-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Scoped history loaded current and earlier response revisions through the next-page cursor."
+    ]
+  },
+  {
+    "file": "vendor-history-review-light-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Scoped history loaded current and earlier response revisions through the next-page cursor.",
+      "Historical response retains saved judgement and exposes no judgement input or save command."
+    ]
+  },
+  {
+    "file": "bank-review-saved-light-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1."
+    ]
+  },
+  {
+    "file": "bank-review-poor-light-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  },
+  {
+    "file": "vendor-overview-light-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-forms-light-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-empty-light-390.png",
+    "fixture": "vendor-form-assessment-empty",
+    "theme": "light",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-error-light-390.png",
+    "fixture": "vendor-form-assessment-error",
+    "theme": "light",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "field-authoring-light-390.png",
+    "fixture": "field-assessment-builder",
+    "theme": "light",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "bank-review-light-390.png",
+    "fixture": "field-assessment-review",
+    "theme": "light",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "policy-setup-light-390.png",
+    "fixture": "field-assessment-policy",
+    "theme": "light",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-partial-light-390.png",
+    "fixture": "vendor-form-assessment-partial",
+    "theme": "light",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-history-light-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Scoped history loaded current and earlier response revisions through the next-page cursor."
+    ]
+  },
+  {
+    "file": "vendor-history-review-light-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Scoped history loaded current and earlier response revisions through the next-page cursor.",
+      "Historical response retains saved judgement and exposes no judgement input or save command."
+    ]
+  },
+  {
+    "file": "bank-review-saved-light-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1."
+    ]
+  },
+  {
+    "file": "bank-review-poor-light-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  },
+  {
+    "file": "vendor-overview-light-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-forms-light-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-empty-light-320.png",
+    "fixture": "vendor-form-assessment-empty",
+    "theme": "light",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-error-light-320.png",
+    "fixture": "vendor-form-assessment-error",
+    "theme": "light",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "field-authoring-light-320.png",
+    "fixture": "field-assessment-builder",
+    "theme": "light",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "bank-review-light-320.png",
+    "fixture": "field-assessment-review",
+    "theme": "light",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "policy-setup-light-320.png",
+    "fixture": "field-assessment-policy",
+    "theme": "light",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-partial-light-320.png",
+    "fixture": "vendor-form-assessment-partial",
+    "theme": "light",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-history-light-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Scoped history loaded current and earlier response revisions through the next-page cursor."
+    ]
+  },
+  {
+    "file": "vendor-history-review-light-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Scoped history loaded current and earlier response revisions through the next-page cursor.",
+      "Historical response retains saved judgement and exposes no judgement input or save command."
+    ]
+  },
+  {
+    "file": "bank-review-saved-light-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1."
+    ]
+  },
+  {
+    "file": "bank-review-poor-light-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "light",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  },
+  {
+    "file": "vendor-overview-dark-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-forms-dark-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-empty-dark-1440.png",
+    "fixture": "vendor-form-assessment-empty",
+    "theme": "dark",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-error-dark-1440.png",
+    "fixture": "vendor-form-assessment-error",
+    "theme": "dark",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "field-authoring-dark-1440.png",
+    "fixture": "field-assessment-builder",
+    "theme": "dark",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "bank-review-dark-1440.png",
+    "fixture": "field-assessment-review",
+    "theme": "dark",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "policy-setup-dark-1440.png",
+    "fixture": "field-assessment-policy",
+    "theme": "dark",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-partial-dark-1440.png",
+    "fixture": "vendor-form-assessment-partial",
+    "theme": "dark",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-history-dark-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Scoped history loaded current and earlier response revisions through the next-page cursor."
+    ]
+  },
+  {
+    "file": "vendor-history-review-dark-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Scoped history loaded current and earlier response revisions through the next-page cursor.",
+      "Historical response retains saved judgement and exposes no judgement input or save command."
+    ]
+  },
+  {
+    "file": "bank-review-saved-dark-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1."
+    ]
+  },
+  {
+    "file": "bank-review-poor-dark-1440.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 1440,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 1440,
+      "scrollWidth": 1440
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  },
+  {
+    "file": "vendor-overview-dark-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-forms-dark-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-empty-dark-390.png",
+    "fixture": "vendor-form-assessment-empty",
+    "theme": "dark",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-error-dark-390.png",
+    "fixture": "vendor-form-assessment-error",
+    "theme": "dark",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "field-authoring-dark-390.png",
+    "fixture": "field-assessment-builder",
+    "theme": "dark",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "bank-review-dark-390.png",
+    "fixture": "field-assessment-review",
+    "theme": "dark",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "policy-setup-dark-390.png",
+    "fixture": "field-assessment-policy",
+    "theme": "dark",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-partial-dark-390.png",
+    "fixture": "vendor-form-assessment-partial",
+    "theme": "dark",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-history-dark-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Scoped history loaded current and earlier response revisions through the next-page cursor."
+    ]
+  },
+  {
+    "file": "vendor-history-review-dark-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Scoped history loaded current and earlier response revisions through the next-page cursor.",
+      "Historical response retains saved judgement and exposes no judgement input or save command."
+    ]
+  },
+  {
+    "file": "bank-review-saved-dark-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1."
+    ]
+  },
+  {
+    "file": "bank-review-poor-dark-390.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 390,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 390,
+      "scrollWidth": 390
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  },
+  {
+    "file": "vendor-overview-dark-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-forms-dark-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-empty-dark-320.png",
+    "fixture": "vendor-form-assessment-empty",
+    "theme": "dark",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-error-dark-320.png",
+    "fixture": "vendor-form-assessment-error",
+    "theme": "dark",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "field-authoring-dark-320.png",
+    "fixture": "field-assessment-builder",
+    "theme": "dark",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "bank-review-dark-320.png",
+    "fixture": "field-assessment-review",
+    "theme": "dark",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "policy-setup-dark-320.png",
+    "fixture": "field-assessment-policy",
+    "theme": "dark",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-partial-dark-320.png",
+    "fixture": "vendor-form-assessment-partial",
+    "theme": "dark",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": []
+  },
+  {
+    "file": "vendor-history-dark-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Scoped history loaded current and earlier response revisions through the next-page cursor."
+    ]
+  },
+  {
+    "file": "vendor-history-review-dark-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Scoped history loaded current and earlier response revisions through the next-page cursor.",
+      "Historical response retains saved judgement and exposes no judgement input or save command."
+    ]
+  },
+  {
+    "file": "bank-review-saved-dark-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1."
+    ]
+  },
+  {
+    "file": "bank-review-poor-dark-320.png",
+    "fixture": "vendor-form-assessment",
+    "theme": "dark",
+    "width": 320,
+    "deviceScaleFactor": 1,
+    "metrics": {
+      "viewport": 320,
+      "scrollWidth": 320
+    },
+    "errors": [],
+    "accessibility": [],
+    "checks": [
+      "Rubric judgement and rationale saved; required review count moved from 0 to 1.",
+      "Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.",
+      "Keyboard ArrowDown opens field filters; Escape closes the list without changing the selected result."
+    ]
+  }
+]

@@ -100,7 +100,7 @@ func directOrigins(principals []Principal) []EffectiveOrigin {
 	result := make([]EffectiveOrigin, 0, len(principals))
 	for _, principal := range principals {
 		if strings.TrimSpace(principal.ID) != "" {
-			result = append(result, EffectiveOrigin{PrincipalID: principal.ID, OriginPrincipalID: principal.ID})
+			result = append(result, EffectiveOrigin{PrincipalID: principal.ID, OriginPrincipalID: principal.ID, RoleCode: principal.RoleCode})
 		}
 	}
 	return result

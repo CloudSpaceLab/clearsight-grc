@@ -58,6 +58,9 @@ func (service *Service) Create(ctx context.Context, actor Actor, input CreateInp
 		Version: version, RecordVersion: 1, CreatedAt: now, UpdatedAt: now,
 	}
 	value.LastActorID = actor.PrincipalID
+	if input.CreateAutomationPolicy {
+		value.AutomationPolicyID, value.AutomationPolicyVersion = value.ID, value.Version
+	}
 	value.Checksum = policyChecksum(value)
 	return service.repo.CreatePolicy(ctx, value)
 }
@@ -99,7 +102,7 @@ func (service *Service) Simulate(ctx context.Context, actor Actor, policyID stri
 		return SimulationReceipt{}, err
 	}
 	now := service.currentTime()
-	receipt := SimulationReceipt{
+	receipt := SimulationReceipt{ResultBasis: value.Eligibility.Basis(),
 		ID: idValue, TenantID: value.TenantID, LegalEntityID: value.LegalEntityID, PolicyID: value.ID, PolicyVersion: value.Version,
 		PolicyChecksum: value.Checksum, ActorID: actor.PrincipalID, PopulationCount: snapshot.PopulationCount, EligibleCount: snapshot.EligibleCount,
 		WouldCreateCount: snapshot.WouldCreateCount, WouldReuseCount: snapshot.WouldReuseCount, BlastSuppressedCount: snapshot.BlastSuppressed,
@@ -254,6 +257,9 @@ func (service *Service) Rollback(ctx context.Context, actor Actor, policyID stri
 	rolled.SubmittedAt, rolled.ApprovedAt, rolled.ActivatedAt, rolled.SuspendedAt, rolled.RetiredAt = nil, nil, nil, nil, nil
 	rolled.CreatedAt, rolled.UpdatedAt = now, now
 	rolled.LastActorID = actor.PrincipalID
+	if target.ManagesAutomation() {
+		rolled.AutomationPolicyID, rolled.AutomationPolicyVersion = rolled.ID, rolled.Version
+	}
 	rolled.Checksum = policyChecksum(rolled)
 	return service.repo.CreatePolicy(ctx, rolled)
 }
@@ -298,7 +304,15 @@ func (service *Service) requireActiveForm(ctx context.Context, actor Actor, elig
 	if err != nil {
 		return errors.Join(ErrFormInactive, err)
 	}
-	if !form.Active || form.ID != eligibility.FormTemplateID || form.Version != eligibility.FormTemplateVersion || form.TenantID != actor.TenantID || form.LegalEntityID != actor.LegalEntityID || form.ScoringMode == "" || form.ScoringMode == "NONE" {
+	hasReviewRubric := false
+	for _, field := range form.Fields {
+		if field.Assessment.NeedsReview() && len(field.Assessment.Rubric) > 0 && field.Assessment.Weight > 0 {
+			hasReviewRubric = true
+			break
+		}
+	}
+	scoreAvailable := form.ScoringMode != "" && form.ScoringMode != "NONE" || eligibility.Basis() == ResultBankAssessed && hasReviewRubric
+	if !form.Active || form.ID != eligibility.FormTemplateID || form.Version != eligibility.FormTemplateVersion || form.TenantID != actor.TenantID || form.LegalEntityID != actor.LegalEntityID || !scoreAvailable {
 		return ErrFormInactive
 	}
 	return nil

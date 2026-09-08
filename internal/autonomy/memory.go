@@ -2,10 +2,85 @@ package autonomy
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"sort"
 	"sync"
 	"time"
 )
+
+func (r *MemoryRepository) ListFormPolicyChoices(tenant, form string, version int64, limit int) []AutomationPolicy {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	values := []AutomationPolicy{}
+	for _, value := range r.policies {
+		if value.TenantID != tenant || value.ActionClass != "FORM_RESPONSE_CREATE_MATTER" {
+			continue
+		}
+		newer := false
+		for _, candidate := range r.policies {
+			if candidate.TenantID == tenant && candidate.Code == value.Code && candidate.Version > value.Version {
+				newer = true
+				break
+			}
+		}
+		if newer {
+			continue
+		}
+		var scope struct {
+			FormID  string `json:"form_template_id"`
+			Version int64  `json:"form_template_version"`
+		}
+		if json.Unmarshal(value.Eligibility, &scope) != nil || scope.FormID != form || scope.Version != version {
+			continue
+		}
+		values = append(values, value)
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].Code == values[j].Code {
+			return values[i].Version > values[j].Version
+		}
+		return values[i].Code < values[j].Code
+	})
+	latest := []AutomationPolicy{}
+	for _, value := range values {
+		if len(latest) > 0 && latest[len(latest)-1].Code == value.Code {
+			continue
+		}
+		latest = append(latest, value)
+		if len(latest) == limit {
+			break
+		}
+	}
+	return latest
+}
+
+// CommitFormPolicy holds the canonical automation record lock while the caller
+// commits its in-memory typed extension. PostgreSQL uses one database transaction.
+func (r *MemoryRepository) CommitFormPolicy(value AutomationPolicy, expected int64, commit func()) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if value.ActionClass != "FORM_RESPONSE_CREATE_MATTER" || value.ID == "" || value.TenantID == "" || commit == nil {
+		return errors.New("invalid form automation policy")
+	}
+	index := -1
+	for i, existing := range r.policies {
+		if existing.TenantID == value.TenantID && existing.ID == value.ID {
+			index = i
+			break
+		}
+	}
+	if index < 0 && expected != 0 || index >= 0 && r.policies[index].RecordVersion != expected {
+		return errors.New("form automation policy version conflict")
+	}
+	commit()
+	if index < 0 {
+		r.policies = append(r.policies, value)
+	} else {
+		r.policies[index] = value
+	}
+	return nil
+}
 
 type MemoryRepository struct {
 	mu       sync.RWMutex

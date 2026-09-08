@@ -13,6 +13,7 @@ import {
   type AuthoringSection,
 } from "./formAuthoring";
 import { SelectField, type SelectOption } from "../ui";
+import { FieldAssessmentEditor } from "./FieldAssessmentEditor";
 
 type Props = {
   field: AuthoringField;
@@ -45,6 +46,7 @@ function InspectorEditor({ field, index, scoringMode, sections, earlierFields, o
       <EditorSelect label="Inspector response type" value={field.type} options={fieldTypes.map((type) => ({ id: type.value, label: type.label }))} onChange={(value) => onTypeChange(value as FormFieldType)}/>
     </div>
 
+    <FieldAssessmentEditor field={field} onChange={onChange} scoringMode={scoringMode}/>
     <details open className="form-inspector-disclosure">
       <summary>Validation & response options</summary>
       <div className="form-inspector-disclosure-body"><TypeSettings field={field} scoringMode={scoringMode} onChange={onChange} onConstraint={onConstraint} onScoringToggle={onScoringToggle}/></div>
@@ -82,6 +84,7 @@ function LegacyEditor({ field, index, scoringMode, sections, earlierFields, onCh
       <label className="compact-control"><input type="checkbox" checked={field.required} onChange={(event) => onChange({ required: event.target.checked })}/> Required response</label>
     </div>
     <TypeSettings field={field} scoringMode={scoringMode} onChange={onChange} onConstraint={onConstraint} onScoringToggle={onScoringToggle}/>
+    <FieldAssessmentEditor field={field} onChange={onChange} scoringMode={scoringMode}/>
     <fieldset className="builder-subpanel"><legend>Data handling</legend><CollectionSettings field={field} onChange={onChange}/></fieldset>
     <fieldset className="builder-subpanel condition-editor"><legend>Logic</legend><ConditionSettings field={field} earlierFields={earlierFields} onChange={onChange}/></fieldset>
   </article>;
@@ -118,8 +121,8 @@ function TypeSettings({ field, scoringMode, onChange, onConstraint, onScoringTog
     {type === "date" && <fieldset className="builder-subpanel"><legend>Response limits</legend><div className="builder-control-grid"><label><span>Earliest date</span><input type="date" value={field.constraints?.min_date ?? ""} onChange={(event) => onConstraint("min_date", event.target.value)}/></label><label><span>Latest date</span><input type="date" value={field.constraints?.max_date ?? ""} onChange={(event) => onConstraint("max_date", event.target.value)}/></label></div></fieldset>}
     {isSelectionType(type) && <fieldset className="builder-subpanel"><legend>Choices</legend>{type === "yes_no" ? <p className="field-note">Respondents choose Yes or No.</p> : <label><span>Choices</span><textarea aria-label="Choices" rows={4} value={(field.options ?? []).join("\n")} onChange={(event) => onChange({ options: normalizeOptionText(event.target.value) })} onPaste={(event) => { const pasted = event.clipboardData.getData("text"); if (/[\r\n\t]/.test(pasted)) { event.preventDefault(); onChange({ options: normalizeOptionText(`${(field.options ?? []).join("\n")}\n${pasted}`) }); } }}/></label>}{type === "multi_select" && <div className="builder-control-grid"><NumberInput label="Minimum selections" value={field.constraints?.min_selections} min={0} max={field.options?.length ?? 50} onChange={(value) => onConstraint("min_selections", value)}/><NumberInput label="Maximum selections" value={field.constraints?.max_selections} min={0} max={field.options?.length ?? 50} onChange={(value) => onConstraint("max_selections", value)}/></div>}</fieldset>}
     {type === "attestation" && <fieldset className="builder-subpanel"><legend>Attestation</legend><label><span>Statement to confirm</span><textarea value={field.attestation ?? ""} maxLength={1000} rows={3} onChange={(event) => onChange({ attestation: event.target.value })} required/></label></fieldset>}
-    {fileType(type) && <FileSettings field={field} onChange={onChange} onConstraint={onConstraint}/>} 
-    {isSelectionType(type) && scoringMode !== "NONE" && <ScoringSettings field={field} scoringMode={scoringMode} onChange={onChange} onToggle={onScoringToggle}/>} 
+    {fileType(type) && <FileSettings field={field} onChange={onChange} onConstraint={onConstraint}/>}
+    {isSelectionType(type) && scoringMode !== "NONE" && field.assessment?.mode !== "NONE" && field.assessment?.mode !== "MANUAL" && <ScoringSettings field={field} scoringMode={scoringMode} onChange={onChange} onToggle={onScoringToggle}/>}
     {!textType(type) && !numericType(type) && type !== "date" && !isSelectionType(type) && type !== "attestation" && !fileType(type) && <p className="field-note">This response type has no additional validation options.</p>}
   </>;
 }

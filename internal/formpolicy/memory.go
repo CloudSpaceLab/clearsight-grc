@@ -9,11 +9,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
 type MemoryRepository struct {
+	automation         *autonomy.MemoryRepository
 	mu                 sync.RWMutex
 	policies           map[string]Policy
 	simulations        map[string]SimulationReceipt
@@ -31,6 +33,26 @@ type MemoryRepository struct {
 
 func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{policies: map[string]Policy{}, simulations: map[string]SimulationReceipt{}, executions: map[string]ExecutionReceipt{}, executionFailures: map[string]ExecutionReceipt{}, episodes: map[string]AdverseEpisode{}, episodeHistory: map[string]AdverseEpisode{}, matters: map[string]continuity.Matter{}, contracts: map[string]continuity.VerificationContract{}, links: map[string]continuity.MatterLink{}, outcomes: map[string]memoryOutcomeCheck{}, compensations: map[string]CompensationReceipt{}, operationalActions: map[string]continuity.Action{}}
+}
+
+func NewMemoryRepositoryWithAutomation(automation *autonomy.MemoryRepository) *MemoryRepository {
+	repo := NewMemoryRepository()
+	repo.automation = automation
+	return repo
+}
+
+func (repo *MemoryRepository) commitManagedPolicy(value Policy, expected int64, commit func()) error {
+	if !value.ManagesAutomation() {
+		commit()
+		return nil
+	}
+	if repo.automation == nil {
+		repo.automation = autonomy.NewMemoryRepository()
+	}
+	if err := repo.automation.CommitFormPolicy(managedAutomation(value), expected, commit); err != nil {
+		return ErrConflict
+	}
+	return nil
 }
 
 type memoryOutcomeCheck struct {
@@ -51,7 +73,9 @@ func (repo *MemoryRepository) CreatePolicy(_ context.Context, value Policy) (Pol
 	if _, exists := repo.policies[key]; exists {
 		return Policy{}, ErrConflict
 	}
-	repo.policies[key] = clonePolicy(value)
+	if err := repo.commitManagedPolicy(value, 0, func() { repo.policies[key] = clonePolicy(value) }); err != nil {
+		return Policy{}, err
+	}
 	return clonePolicy(value), nil
 }
 
@@ -141,7 +165,9 @@ func (repo *MemoryRepository) UpdatePolicy(_ context.Context, value Policy, expe
 			}
 		}
 	}
-	repo.policies[key] = clonePolicy(value)
+	if err := repo.commitManagedPolicy(value, expected, func() { repo.policies[key] = clonePolicy(value) }); err != nil {
+		return Policy{}, err
+	}
 	return clonePolicy(value), nil
 }
 
@@ -180,7 +206,7 @@ func (repo *MemoryRepository) GetSimulation(_ context.Context, tenantID, legalEn
 func (repo *MemoryRepository) CreateExecution(_ context.Context, value ExecutionReceipt) (ExecutionReceipt, bool, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
-	key := value.TenantID + "|" + value.LegalEntityID + "|" + value.PolicyID + "|" + fmt.Sprint(value.PolicyVersion) + "|" + value.ResponseRevisionID
+	key := value.TenantID + "|" + value.LegalEntityID + "|" + value.PolicyID + "|" + fmt.Sprint(value.PolicyVersion) + "|" + value.ResponseRevisionID + "|" + fmt.Sprint(value.AssessmentVersion)
 	if stored, exists := repo.executions[key]; exists {
 		if executionFingerprint(stored) != executionFingerprint(value) {
 			return ExecutionReceipt{}, false, ErrConflict
@@ -207,7 +233,7 @@ func (repo *MemoryRepository) ApplyExecution(_ context.Context, command Executio
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	receipt := command.Receipt
-	key := receipt.TenantID + "|" + receipt.LegalEntityID + "|" + receipt.PolicyID + "|" + fmt.Sprint(receipt.PolicyVersion) + "|" + receipt.ResponseRevisionID
+	key := receipt.TenantID + "|" + receipt.LegalEntityID + "|" + receipt.PolicyID + "|" + fmt.Sprint(receipt.PolicyVersion) + "|" + receipt.ResponseRevisionID + "|" + fmt.Sprint(receipt.AssessmentVersion)
 	if stored, exists := repo.executions[key]; exists {
 		return stored, nil
 	}
@@ -237,6 +263,16 @@ func (repo *MemoryRepository) ApplyExecution(_ context.Context, command Executio
 		return receipt, nil
 	}
 	episodeKey := command.Episode.TenantID + "|" + command.Episode.LegalEntityID + "|" + command.Episode.PolicyCode + "|" + command.Episode.SubjectType + "|" + command.Episode.SubjectID
+	if _, exists := repo.episodes[episodeKey]; !exists {
+		for existingKey, episode := range repo.episodes {
+			matter := repo.matters[episode.MatterID]
+			prior := repo.policies[policyKey(episode.TenantID, episode.LegalEntityID, episode.PolicyID)]
+			if episode.TenantID == command.Episode.TenantID && episode.LegalEntityID == command.Episode.LegalEntityID && episode.SubjectType == command.Episode.SubjectType && episode.SubjectID == command.Episode.SubjectID && episode.State == EpisodeOpen && (prior.Code == command.Policy.Code || repo.episodeIncludesOppositeResult(episode, command)) && string(matter.Type) == command.Policy.Action.Type {
+				episodeKey = existingKey
+				break
+			}
+		}
+	}
 	if episode, exists := repo.episodes[episodeKey]; exists && episode.State == EpisodeOpen {
 		matter := repo.matters[episode.MatterID]
 		if matter.Status == continuity.MatterClosed && matter.ClosedAt != nil {
@@ -459,11 +495,21 @@ func (repo *MemoryRepository) MaintainOutcomeChecks(_ context.Context, workerID 
 }
 
 func executionFingerprint(value ExecutionReceipt) string {
-	return strings.Join([]string{value.TenantID, value.LegalEntityID, value.PolicyID, fmt.Sprint(value.PolicyVersion), value.AutomationPolicyID, fmt.Sprint(value.AutomationPolicyVersion), value.ResponseRevisionID, string(value.State), value.MatterID, value.ReasonCode, fmt.Sprint(value.CreatedMatter)}, "|")
+	return strings.Join([]string{value.TenantID, value.LegalEntityID, value.PolicyID, fmt.Sprint(value.PolicyVersion), value.AutomationPolicyID, fmt.Sprint(value.AutomationPolicyVersion), value.ResponseRevisionID, fmt.Sprint(value.AssessmentVersion), string(receiptBasis(value)), string(value.State), value.MatterID, value.ReasonCode, fmt.Sprint(value.CreatedMatter)}, "|")
 }
 
 func clonePolicy(value Policy) Policy {
 	value.Eligibility.SubjectTypes = append([]string(nil), value.Eligibility.SubjectTypes...)
 	value.Eligibility.Bands = append([]formcontract.ConcernBand(nil), value.Eligibility.Bands...)
 	return value
+}
+
+// Called with repo.mu held. Execution membership survives later responses updating an episode.
+func (repo *MemoryRepository) episodeIncludesOppositeResult(episode AdverseEpisode, command ExecutionCommand) bool {
+	for _, execution := range repo.executions {
+		if execution.TenantID == episode.TenantID && execution.LegalEntityID == episode.LegalEntityID && execution.MatterID == episode.MatterID && execution.ResponseRevisionID == command.Response.ID && receiptBasis(execution) != command.Policy.Eligibility.Basis() && (execution.State == ExecutionApplied || execution.State == ExecutionReused) {
+			return true
+		}
+	}
+	return false
 }

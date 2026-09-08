@@ -15,6 +15,7 @@ import {
 } from "../../formsDistributionApi";
 import { ApiError } from "../../http";
 import { DocumentBrowser } from "../documents/DocumentBrowser";
+import { ResponseAssessment } from "./ResponseAssessment";
 import {
   ActionLink,
   Button,
@@ -243,6 +244,7 @@ function ResponseReview({ state, detail, error, revisions, revisionsError }: { s
       {revisions.length > 0 && <ol>{revisions.map((revision) => <li key={revision.id}><strong>Revision {revision.revision}{revision.current ? " · Current" : ""}</strong><span>{assuranceLabel(revision.achieved_assurance)} · {formatDateTime(revision.created_at)}</span></li>)}</ol>}
     </section>
     <ScoreExplanation score={score}/>
+    <ResponseAssessment responseID={detail.response.id}/>
     <Button onPress={() => setDocumentsOpen(true)}>View submitted documents</Button>
     {documentsOpen && <FocusedSheet label="Submitted documents" size="wide" onClose={() => setDocumentsOpen(false)}><DocumentBrowser key={detail.response.id} scopeLabel={`${detail.response.title} · Revision ${detail.response.revision}`} responseRevisionID={detail.response.id}/></FocusedSheet>}
     <Notice tone="info">This submitted version cannot be changed. Send an amended form when the subject must provide updated information.</Notice>

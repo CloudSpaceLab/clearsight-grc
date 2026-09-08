@@ -39,7 +39,7 @@
 .vendor-detail-heading p { margin:4px 0 0; font-size:12px; }
 .vendor-brand-label { display:block; margin-top:7px; color:var(--muted); font-size:11px; }
 .vendor-service-callout { display:grid; gap:5px; margin:24px 0; padding:18px; border:1px solid color-mix(in srgb,var(--cyan) 30%,var(--border)); border-radius:14px; background:color-mix(in srgb,var(--cyan) 6%,var(--surface-2)); }
-.vendor-service-callout span,.vendor-service-callout small { color:var(--muted); font-size:11px; }
+.vendor-service-callout span,.vendor-service-callout small { color:var(--cs-text-primary); font-size:11px; }
 .vendor-service-callout strong { font-size:20px; }
 .vendor-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 24px; margin:0; }
 .vendor-facts div { padding:14px 0; border-top:1px solid var(--border); }
@@ -106,3 +106,4 @@
 .vendor-form button:disabled { opacity:.55; cursor:not-allowed; }
 @media (max-width:1000px) { .vendor-layout { grid-template-columns:1fr; } .vendor-register { position:static; } .vendor-list { max-height:430px; } }
 @media (max-width:660px) { .vendors-topbar,.vendor-detail-heading,.vendor-identity-form-heading,.vendor-activation-heading { display:grid; } .vendors-topbar .primary-button,.vendor-detail-actions,.vendor-detail-actions .secondary-button,.vendor-identity-heading-actions,.vendor-identity-heading-actions .secondary-button,.vendor-conflict-recovery,.vendor-conflict-recovery .secondary-button,.vendor-activation-action .primary-button { width:100%; } .vendor-identity-heading-actions { justify-content:flex-start; } .vendor-layout { margin-top:20px; } .vendor-register,.vendor-focus { border-radius:14px; } .vendors-workspace.has-selection .vendor-register,.vendors-workspace.is-form .vendor-register { display:none; } .vendors-workspace:not(.has-selection):not(.is-form) .vendor-focus { display:none; } .vendor-mobile-back { display:inline-flex; } .vendor-facts,.vendor-form-grid,.vendor-search,.vendor-existing-search { grid-template-columns:1fr; } .vendor-field.wide,.vendor-field-help { grid-column:auto; } .vendor-form-actions,.vendor-brand-status,.vendor-brand-actions,.vendor-brand-actions > div,.vendor-logo-staged { display:grid; } .vendor-form-actions button,.vendor-search button,.vendor-brand-actions button { width:100%; } .vendor-criticality { display:none; } .vendor-match { grid-template-columns:1fr; } .vendor-activation-panel { margin-inline:14px; padding:16px; } }
+.vendor-activation-panel > [role="status"] > p { color:var(--cs-text-primary); }

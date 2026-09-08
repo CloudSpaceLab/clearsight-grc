@@ -40,3 +40,15 @@ func TestScoredResponsePublisherConsumesOnlyBoundedScoredEvents(t *testing.T) {
 		t.Fatal("expected oversized scored event to fail closed")
 	}
 }
+
+func TestPublisherDispatchesFinalBankAssessment(t *testing.T) {
+	handler := &scoredResponseHandlerStub{}
+	publisher := ScoredResponsePublisher{Handler: handler}
+	event := workflowruntime.OutboxEvent{ID: "assessment-event", TenantID: "bank", EventType: "FORM_RESPONSE_ASSESSED", OccurredAt: time.Now(), Payload: json.RawMessage(`{"version":1,"response_revision_id":"response-a","form_template_id":"form-a","form_template_version":3,"assessment_version":2,"result_basis":"BANK_ASSESSED","score_state":"FINAL"}`)}
+	if err := publisher.Publish(t.Context(), event); err != nil {
+		t.Fatal(err)
+	}
+	if len(handler.events) != 1 {
+		t.Fatal("bank assessment event was ignored")
+	}
+}

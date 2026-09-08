@@ -11,6 +11,11 @@ func (a *API) formDistributionRoutes() []routeSpec {
 		return material(path, command, handler, commandPolicy{ObjectType: "FORM_DISTRIBUTION", ObjectIDPath: "id", Responsibility: authority.ResponsibilityOwner, Materiality: 3, ActorField: noActorField})
 	}
 	return []routeSpec{
+		material("/api/v1/vendors/form-requests", "forms.distribution.create", a.requestVendorForms, commandPolicy{ObjectType: "LEGAL_ENTITY", Responsibility: authority.ResponsibilityOwner, Materiality: 3, BindLegalEntity: true, ActorField: noActorField}),
+		read("/api/v1/vendors/form-summaries", a.summarizeVendorForms),
+		read("/api/v1/vendors/{id}/forms", a.listVendorForms),
+		read("/api/v1/forms/responses/{revision_id}/assessment", a.getResponseAssessment),
+		material("/api/v1/forms/responses/{revision_id}/assessment", "forms.response.assess", a.recordResponseAssessment, commandPolicy{ObjectType: "FORM_RESPONSE", ObjectIDPath: "revision_id", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}),
 		read("/api/v1/forms/recipient-candidates", a.listFormDistributionRecipientCandidates),
 		read("/api/v1/forms/distributions", a.listFilteredFormDistributions),
 		read("/api/v1/forms/responses", a.listCompletedFormResponses),

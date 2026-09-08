@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -59,7 +60,7 @@ func (s *PostgresDistributionStore) ListCompletedResponses(ctx context.Context, 
 		  AND ($12::numeric IS NULL OR r.adverse_score >= $12) AND ($13::numeric IS NULL OR r.adverse_score <= $13)
 		  AND ($14::timestamptz IS NULL OR r.created_at >= $14) AND ($15::timestamptz IS NULL OR r.created_at <= $15)
 		  AND (NOT $16::boolean OR r.is_current)`+currentIndexSQL+scoreStateIndexSQL+`
-		  AND (`+completedResponseVisibilitySQL(17, 18)+`)
+		  AND (`+completedResponseDiscoverySQL(17, 18)+`)
 		  AND (`+cursorSQL+`)
 		ORDER BY `+orderSQL+`
 		LIMIT `+limitPlaceholder, args...)
@@ -103,7 +104,7 @@ func (s *PostgresDistributionStore) GetCompletedResponse(ctx context.Context, te
 		  ON d.id=r.distribution_id AND d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id
 		`+completedResponseRequestJoinsSQL()+`
 		WHERE (t.id::text=$1 OR t.slug=$1) AND r.legal_entity_id=$2::uuid AND r.id::text=$3
-		  AND (`+completedResponseVisibilitySQL(4, 5)+`)`,
+		  AND (`+completedResponseDiscoverySQL(4, 5)+`)`,
 		tenantID, legalEntityID, revisionID, principalID, time.Now().UTC()), &formID, &formVersion, &title, &subjectType, &subjectID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -132,7 +133,7 @@ func (s *PostgresDistributionStore) GetCompletedResponseForExecution(ctx context
 		JOIN capture_form_distributions d
 		  ON d.id=r.distribution_id AND d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND r.id::text=$2
-		  AND r.state IN ('FINAL','PROVISIONAL') AND r.score_state IN ('FINAL','PROVISIONAL')`, tenantID, revisionID), &formID, &formVersion, &title, &subjectType, &subjectID)
+		  AND r.state IN ('FINAL','PROVISIONAL') AND (r.score_state IN ('FINAL','PROVISIONAL') OR EXISTS(SELECT 1 FROM capture_response_assessments a WHERE a.tenant_id=r.tenant_id AND a.response_revision_id=r.id))`, tenantID, revisionID), &formID, &formVersion, &title, &subjectType, &subjectID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return CompletedResponseSummary{}, ErrNotFound
 	}
@@ -264,4 +265,11 @@ func scoreStateStrings(values []ResponseScoreState) []string {
 		result[index] = string(value)
 	}
 	return result
+}
+
+func completedResponseDiscoverySQL(principal, at int) string {
+	return "(" + completedResponseVisibilitySQL(principal, at) + ") OR (" + completedResponseReviewerSQL(principal, at) + ")"
+}
+func completedResponseReviewerSQL(principal, at int) string {
+	return `submission.id IS NOT NULL AND req.id IS NOT NULL AND r.id IS NOT NULL AND r.state IN ('FINAL','PROVISIONAL') AND d.subject_type='VENDOR_RELATIONSHIP' AND COALESCE(req.origin_type,'') NOT IN ('THIRD_PARTY_WORK','THIRD_PARTY_ASSESSMENT') AND ` + documentRevisionScopeSQL() + ` AND COALESCE(submission.submitted_by::text,'')<>` + fmt.Sprintf("$%d", principal) + ` AND EXISTS(SELECT 1 FROM third_party_relationships vr WHERE vr.tenant_id=r.tenant_id AND vr.legal_entity_id=r.legal_entity_id AND vr.id=d.subject_id) AND EXISTS(SELECT 1 FROM jsonb_array_elements(req.fields) field WHERE field->'assessment'->>'mode' IN ('MANUAL','AUTOMATIC_REVIEW')) AND ` + authority.PostgresReadRouteSQL("r", "id", "FORM_RESPONSE", "FORMS.RESPONSE.ASSESS", "REVIEWER", principal, at)
 }

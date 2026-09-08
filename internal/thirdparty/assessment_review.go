@@ -527,7 +527,7 @@ func reviewContract(request evidence.Request) formcontract.Contract {
 			copy.Values = append([]string(nil), field.Condition.Values...)
 			condition = &copy
 		}
-		fields[i] = formcontract.Field{ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: formcontract.Type(field.Type), Required: field.Required, Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...), Attestation: field.Attestation, Constraints: field.Constraints, Condition: condition, Scoring: scoring}
+		fields[i] = formcontract.Field{ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: formcontract.Type(field.Type), Required: field.Required, Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...), Attestation: field.Attestation, Constraints: field.Constraints, Condition: condition, Scoring: scoring, Assessment: field.Assessment}
 	}
 	sections := append([]formcontract.Section(nil), request.Sections...)
 	return formcontract.Contract{Presentation: request.Presentation, Sections: sections, Fields: fields}

@@ -31,13 +31,14 @@ type routeGroup struct {
 type effectiveCandidate struct {
 	Principal Principal
 	OriginID  string
+	RoleCode  string
 }
 
 func (s *postgresService) Policies(ctx context.Context, tenantID string) ([]PolicySummary, error) {
 	if strings.TrimSpace(tenantID) == "" {
 		return nil, fmt.Errorf("tenant_id is required")
 	}
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.queryer(ctx).Query(ctx, `
 		SELECT rp.id::text,rp.code,rp.name,rp.status,rpv.version,
 		       COALESCE(rpv.effective_from,'epoch'::timestamptz)
 		FROM routing_policies rp
@@ -100,7 +101,7 @@ func (s *postgresService) ResolveMany(ctx context.Context, inputs []ResolveInput
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.pool.Query(ctx, batchResolveSQL, string(encoded))
+	rows, err := s.queryer(ctx).Query(ctx, batchResolveSQL, string(encoded))
 	if err != nil {
 		return nil, fmt.Errorf("batch resolve authority: %w", err)
 	}
@@ -119,8 +120,8 @@ func (s *postgresService) ResolveMany(ctx context.Context, inputs []ResolveInput
 		var index, priority int
 		var ruleID, policyVersion, strategy string
 		var ambiguous bool
-		var principalID, displayName, kind, role, originID *string
-		if err := rows.Scan(&index, &ruleID, &policyVersion, &strategy, &priority, &ambiguous, &principalID, &displayName, &kind, &role, &originID); err != nil {
+		var principalID, displayName, kind, role, originID, roleCode *string
+		if err := rows.Scan(&index, &ruleID, &policyVersion, &strategy, &priority, &ambiguous, &principalID, &displayName, &kind, &role, &originID, &roleCode); err != nil {
 			return nil, err
 		}
 		route := selected[index]
@@ -129,7 +130,7 @@ func (s *postgresService) ResolveMany(ctx context.Context, inputs []ResolveInput
 			selected[index] = route
 		}
 		if principalID != nil && originID != nil {
-			route.candidates = append(route.candidates, effectiveCandidate{Principal: Principal{ID: *principalID, DisplayName: dereference(displayName), Kind: dereference(kind), Role: dereference(role)}, OriginID: *originID})
+			route.candidates = append(route.candidates, effectiveCandidate{Principal: Principal{ID: *principalID, DisplayName: dereference(displayName), Kind: dereference(kind), Role: dereference(role)}, OriginID: *originID, RoleCode: dereference(roleCode)})
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -213,22 +214,22 @@ WITH RECURSIVE requests AS (
 	  AND (COALESCE(ra.decision_type,'')='' OR upper(ra.decision_type)=upper(r.decision_type))
 	  AND ra.valid_from <= r.at AND (ra.valid_until IS NULL OR r.at < ra.valid_until)
 ), resolved AS (
-	SELECT rd.*,p.id,p.display_name,p.kind,p.role
+	SELECT rd.*,p.id,p.display_name,p.kind,p.role,p.role_code
 	FROM route_defs rd
 	JOIN requests r USING (request_index)
 	JOIN LATERAL (
-		SELECT p.id::text AS id,p.display_name,p.kind,'' AS role
+		SELECT p.id::text AS id,p.display_name,p.kind,'' AS role,'' AS role_code
 		FROM principals p
 		WHERE rd.selector_kind IN ('PRINCIPAL','TEAM','QUEUE','COMMITTEE')
 		  AND p.tenant_id=r.tenant_uuid AND (p.id::text=rd.selector_ref OR p.external_ref=rd.selector_ref)
 		  AND p.status='ACTIVE' AND p.valid_from <= r.at AND (p.valid_until IS NULL OR r.at < p.valid_until)
 		  AND (rd.selector_kind='PRINCIPAL' OR p.kind=rd.selector_kind)
 		UNION ALL
-		SELECT p.id::text,p.display_name,p.kind,'' FROM principals p
+		SELECT p.id::text,p.display_name,p.kind,'','' FROM principals p
 		WHERE rd.selector_kind='PRINCIPAL_ID' AND p.id::text=rd.selector_ref AND p.tenant_id=r.tenant_uuid
 		  AND p.status='ACTIVE' AND p.valid_from <= r.at AND (p.valid_until IS NULL OR r.at < p.valid_until)
 		UNION ALL
-		SELECT p.id::text,p.display_name,p.kind,COALESCE(op.title,'')
+		SELECT p.id::text,p.display_name,p.kind,COALESCE(op.title,''),''
 		FROM org_positions op JOIN principals p ON p.id=op.occupant_principal_id
 		WHERE rd.selector_kind IN ('POSITION','POSITION_ID') AND op.tenant_id=r.tenant_uuid
 		  AND ((rd.selector_kind='POSITION' AND (op.code=rd.selector_ref OR op.id::text=rd.selector_ref)) OR
@@ -237,7 +238,7 @@ WITH RECURSIVE requests AS (
 		  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
 		  AND p.status='ACTIVE' AND p.valid_from <= r.at AND (p.valid_until IS NULL OR r.at < p.valid_until)
 		UNION ALL
-		SELECT p.id::text,p.display_name,p.kind,rt.name
+		SELECT p.id::text,p.display_name,p.kind,rt.name,rt.code
 		FROM role_templates rt
 		JOIN position_role_bindings prb ON prb.role_template_id=rt.id
 		JOIN org_positions op ON op.id=prb.position_id
@@ -267,13 +268,13 @@ WITH RECURSIVE requests AS (
 	FROM ranked_routes g WHERE g.route_number=1
 ), seed AS (
 	SELECT s.request_index,s.rule_id,s.policy_version,s.resolution_strategy,s.priority,s.ambiguous,
-	       rc.id::uuid AS origin_id,rc.id::uuid AS principal_id,rc.role AS seed_role,ARRAY[rc.id::uuid] AS path,0 AS depth
+	       rc.id::uuid AS origin_id,rc.id::uuid AS principal_id,rc.role AS seed_role,rc.role_code AS seed_role_code,ARRAY[rc.id::uuid] AS path,0 AS depth
 	FROM selected s JOIN resolved rc ON rc.request_index=s.request_index AND rc.rule_id=s.rule_id AND rc.policy_version=s.policy_version
-), chain(request_index,rule_id,policy_version,resolution_strategy,priority,ambiguous,origin_id,principal_id,seed_role,path,depth) AS (
-	SELECT request_index,rule_id,policy_version,resolution_strategy,priority,ambiguous,origin_id,principal_id,seed_role,path,depth FROM seed
+), chain(request_index,rule_id,policy_version,resolution_strategy,priority,ambiguous,origin_id,principal_id,seed_role,seed_role_code,path,depth) AS (
+	SELECT request_index,rule_id,policy_version,resolution_strategy,priority,ambiguous,origin_id,principal_id,seed_role,seed_role_code,path,depth FROM seed
 	UNION ALL
 	SELECT c.request_index,c.rule_id,c.policy_version,c.resolution_strategy,c.priority,c.ambiguous,
-	       c.origin_id,d.to_principal_id,c.seed_role,c.path || d.to_principal_id,c.depth+1
+	       c.origin_id,d.to_principal_id,c.seed_role,c.seed_role_code,c.path || d.to_principal_id,c.depth+1
 	FROM chain c JOIN requests r USING (request_index)
 	JOIN delegations d ON d.tenant_id=r.tenant_uuid AND d.from_principal_id=c.principal_id
 	WHERE d.responsibility=r.responsibility AND d.status='ACTIVE'
@@ -318,7 +319,7 @@ WITH RECURSIVE requests AS (
 	  AND prb.valid_from <= r.at AND (prb.valid_until IS NULL OR r.at < prb.valid_until)
 	  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
 ), effective AS (
-	SELECT DISTINCT c.request_index,c.principal_id,c.origin_id,c.seed_role
+	SELECT DISTINCT c.request_index,c.principal_id,c.origin_id,c.seed_role,c.seed_role_code
 	FROM chain c JOIN requests r USING (request_index)
 	JOIN principals p ON p.id=c.principal_id
 	WHERE p.status='ACTIVE' AND p.valid_from <= r.at AND (p.valid_until IS NULL OR r.at < p.valid_until)
@@ -331,7 +332,7 @@ WITH RECURSIVE requests AS (
 	  AND NOT EXISTS (SELECT 1 FROM blocked b WHERE b.request_index=c.request_index AND b.principal_id=c.principal_id)
 )
 SELECT s.request_index,s.rule_id,s.policy_version,s.resolution_strategy,s.priority,s.ambiguous,
-	   p.id::text,p.display_name,p.kind,CASE WHEN e.principal_id=e.origin_id THEN e.seed_role ELSE '' END AS role,e.origin_id::text
+	   p.id::text,p.display_name,p.kind,CASE WHEN e.principal_id=e.origin_id THEN e.seed_role ELSE '' END AS role,e.origin_id::text,e.seed_role_code
 FROM selected s
 LEFT JOIN effective e ON e.request_index=s.request_index
 LEFT JOIN principals p ON p.id=e.principal_id
@@ -400,7 +401,7 @@ func (s *postgresService) Simulate(ctx context.Context, input ResolveInput) (Sim
 }
 
 func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveInput) ([]routeGroup, error) {
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.queryer(ctx).Query(ctx, `
 		WITH route_defs AS (
 			SELECT
 				ear.source_rule_id AS rule_id,
@@ -467,10 +468,10 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 			  AND ra.valid_from <= $8
 			  AND (ra.valid_until IS NULL OR $8 < ra.valid_until)
 		), resolved AS (
-			SELECT rd.*, p.id, p.display_name, p.kind, p.role
+			SELECT rd.*, p.id, p.display_name, p.kind, p.role,p.role_code
 			FROM route_defs rd
 			JOIN LATERAL (
-				SELECT p.id::text AS id,p.display_name,p.kind,COALESCE(rt.name,'') AS role
+				SELECT p.id::text AS id,p.display_name,p.kind,COALESCE(rt.name,'') AS role,'' AS role_code
 				FROM principals p
 				LEFT JOIN role_templates rt ON false
 				WHERE rd.selector_kind IN ('PRINCIPAL','TEAM','QUEUE','COMMITTEE')
@@ -479,13 +480,13 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 				  AND p.status='ACTIVE' AND p.valid_from <= $8 AND (p.valid_until IS NULL OR $8 < p.valid_until)
 				  AND (rd.selector_kind='PRINCIPAL' OR p.kind=rd.selector_kind)
 				UNION ALL
-				SELECT p.id::text,p.display_name,p.kind,''
+				SELECT p.id::text,p.display_name,p.kind,'',''
 				FROM principals p
 				WHERE rd.selector_kind='PRINCIPAL_ID' AND p.id::text=rd.selector_ref
 				  AND p.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 				  AND p.status='ACTIVE' AND p.valid_from <= $8 AND (p.valid_until IS NULL OR $8 < p.valid_until)
 				UNION ALL
-				SELECT p.id::text,p.display_name,p.kind,COALESCE(op.title,'')
+				SELECT p.id::text,p.display_name,p.kind,COALESCE(op.title,''),''
 				FROM org_positions op
 				JOIN principals p ON p.id=op.occupant_principal_id
 				WHERE rd.selector_kind IN ('POSITION','POSITION_ID')
@@ -497,7 +498,7 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 				  AND op.valid_from <= $8 AND (op.valid_until IS NULL OR $8 < op.valid_until)
 				  AND p.status='ACTIVE' AND p.valid_from <= $8 AND (p.valid_until IS NULL OR $8 < p.valid_until)
 				UNION ALL
-				SELECT p.id::text,p.display_name,p.kind,rt.name
+				SELECT p.id::text,p.display_name,p.kind,rt.name,rt.code
 				FROM role_templates rt
 				JOIN position_role_bindings prb ON prb.role_template_id=rt.id
 				JOIN org_positions op ON op.id=prb.position_id
@@ -514,7 +515,7 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 				  AND p.status='ACTIVE' AND p.valid_from <= $8 AND (p.valid_until IS NULL OR $8 < p.valid_until)
 			) p ON true
 		)
-		SELECT rule_id,policy_version,resolution_strategy,priority,specificity,id,display_name,kind,role
+		SELECT rule_id,policy_version,resolution_strategy,priority,specificity,id,display_name,kind,role,role_code
 		FROM resolved
 		ORDER BY priority DESC,specificity DESC,rule_id,id`, input.TenantID, input.LegalEntityID, input.ObjectType, input.ObjectID, string(input.Responsibility), input.DecisionType, input.Materiality, input.At)
 	if err != nil {
@@ -525,9 +526,9 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 	groupsByKey := map[string]*routeGroup{}
 	order := []string{}
 	for rows.Next() {
-		var ruleID, policyVersion, strategy, id, displayName, kind, role string
+		var ruleID, policyVersion, strategy, id, displayName, kind, role, roleCode string
 		var priority, specificity int
-		if err := rows.Scan(&ruleID, &policyVersion, &strategy, &priority, &specificity, &id, &displayName, &kind, &role); err != nil {
+		if err := rows.Scan(&ruleID, &policyVersion, &strategy, &priority, &specificity, &id, &displayName, &kind, &role, &roleCode); err != nil {
 			return nil, err
 		}
 		key := ruleID + "\x00" + policyVersion
@@ -537,7 +538,7 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 			groupsByKey[key] = group
 			order = append(order, key)
 		}
-		group.Candidates = append(group.Candidates, Principal{ID: id, DisplayName: displayName, Kind: kind, Role: role})
+		group.Candidates = append(group.Candidates, Principal{ID: id, DisplayName: displayName, Kind: kind, Role: role, RoleCode: roleCode})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -563,18 +564,23 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 func (s *postgresService) expandDelegations(ctx context.Context, input ResolveInput, seeds []Principal) ([]effectiveCandidate, error) {
 	seedIDs := make([]string, 0, len(seeds))
 	seedByID := make(map[string]Principal, len(seeds))
+	seedRoles := map[string]map[string]bool{}
 	for _, principal := range seeds {
 		if principal.ID == "" {
 			continue
 		}
 		seedIDs = append(seedIDs, principal.ID)
 		seedByID[principal.ID] = principal
+		if seedRoles[principal.ID] == nil {
+			seedRoles[principal.ID] = map[string]bool{}
+		}
+		seedRoles[principal.ID][principal.RoleCode] = true
 	}
 	encoded, err := json.Marshal(seedIDs)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.queryer(ctx).Query(ctx, `
 		WITH RECURSIVE seed(origin_id,principal_id,path,depth) AS (
 			SELECT value::uuid,value::uuid,ARRAY[value::uuid],0
 			FROM jsonb_array_elements_text($3::jsonb)
@@ -617,14 +623,16 @@ func (s *postgresService) expandDelegations(ctx context.Context, input ResolveIn
 		if original, ok := seedByID[principal.ID]; ok && original.Role != "" {
 			principal.Role = original.Role
 		}
-		result = append(result, effectiveCandidate{Principal: principal, OriginID: originID})
+		for roleCode := range seedRoles[originID] {
+			result = append(result, effectiveCandidate{Principal: principal, OriginID: originID, RoleCode: roleCode})
+		}
 	}
 	return result, rows.Err()
 }
 
 func (s *postgresService) applyGrantBoundary(ctx context.Context, input ResolveInput, candidates []effectiveCandidate) ([]effectiveCandidate, error) {
 	var hasGrants bool
-	if err := s.pool.QueryRow(ctx, `
+	if err := s.queryer(ctx).QueryRow(ctx, `
 		SELECT EXISTS(
 			SELECT 1 FROM authority_grants ag
 			WHERE ag.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
@@ -648,7 +656,7 @@ func (s *postgresService) applyGrantBoundary(ctx context.Context, input ResolveI
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.queryer(ctx).Query(ctx, `
 		WITH requested(id) AS (
 			SELECT DISTINCT value::uuid FROM jsonb_array_elements_text($5::jsonb)
 		), grants AS (
@@ -711,7 +719,7 @@ func (s *postgresService) applySegregationBoundary(ctx context.Context, input Re
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.queryer(ctx).Query(ctx, `
 		WITH requested(id) AS (
 			SELECT DISTINCT value::uuid FROM jsonb_array_elements_text($4::jsonb)
 		)
@@ -757,13 +765,13 @@ func (s *postgresService) Integrity(ctx context.Context, tenantID string) ([]Int
 	}
 	findings := []IntegrityFinding{}
 	var authorizers int
-	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM effective_authority_routes WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND responsibility='AUTHORIZER' AND valid_from<=clock_timestamp() AND (valid_until IS NULL OR clock_timestamp()<valid_until)`, tenantID).Scan(&authorizers); err != nil {
+	if err := s.queryer(ctx).QueryRow(ctx, `SELECT count(*) FROM effective_authority_routes WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND responsibility='AUTHORIZER' AND valid_from<=clock_timestamp() AND (valid_until IS NULL OR clock_timestamp()<valid_until)`, tenantID).Scan(&authorizers); err != nil {
 		return nil, err
 	}
 	if authorizers == 0 {
 		findings = append(findings, IntegrityFinding{Type: "MISSING_AUTHORIZER", Severity: "CRITICAL", Summary: "No active authorizer route exists for this tenant.", RequiredAction: "Create and approve at least one scoped authorizer route."})
 	}
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.queryer(ctx).Query(ctx, `
 		SELECT a.source_rule_id,b.source_rule_id
 		FROM effective_authority_routes a
 		JOIN effective_authority_routes b ON b.tenant_id=a.tenant_id AND b.id>a.id
@@ -829,8 +837,8 @@ func uniqueEffectiveOrigins(values []effectiveCandidate) []EffectiveOrigin {
 		if value.Principal.ID == "" || value.OriginID == "" {
 			continue
 		}
-		key := value.Principal.ID + "\x00" + value.OriginID
-		seen[key] = EffectiveOrigin{PrincipalID: value.Principal.ID, OriginPrincipalID: value.OriginID}
+		key := value.Principal.ID + "\x00" + value.OriginID + "\x00" + value.RoleCode
+		seen[key] = EffectiveOrigin{PrincipalID: value.Principal.ID, OriginPrincipalID: value.OriginID, RoleCode: value.RoleCode}
 	}
 	result := make([]EffectiveOrigin, 0, len(seen))
 	for _, value := range seen {
@@ -838,6 +846,9 @@ func uniqueEffectiveOrigins(values []effectiveCandidate) []EffectiveOrigin {
 	}
 	sort.SliceStable(result, func(i, j int) bool {
 		if result[i].PrincipalID == result[j].PrincipalID {
+			if result[i].OriginPrincipalID == result[j].OriginPrincipalID {
+				return result[i].RoleCode < result[j].RoleCode
+			}
 			return result[i].OriginPrincipalID < result[j].OriginPrincipalID
 		}
 		return result[i].PrincipalID < result[j].PrincipalID

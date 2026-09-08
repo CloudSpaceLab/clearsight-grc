@@ -118,6 +118,8 @@ type DistributionRecipientInput struct {
 }
 
 type CreateDistributionInput struct {
+	// IdempotencyKey is a purpose-bound creation receipt, scoped to tenant/entity.
+	IdempotencyKey      string
 	TenantID            string
 	LegalEntityID       string
 	FormTemplateID      string
@@ -181,21 +183,23 @@ const (
 )
 
 type ResponseScoreResult struct {
-	Mode                formcontract.ScoringMode          `json:"mode,omitempty"`
-	Direction           formcontract.ScoreDirection       `json:"direction,omitempty"`
-	RawScore            *float64                          `json:"raw_score,omitempty"`
-	AdverseScore        *float64                          `json:"adverse_score,omitempty"`
-	Band                formcontract.ConcernBand          `json:"band,omitempty"`
-	Coverage            float64                           `json:"coverage"`
-	Final               bool                              `json:"final"`
-	State               ResponseScoreState                `json:"state"`
-	ProfileVersion      string                            `json:"profile_version,omitempty"`
-	ProfileChecksum     string                            `json:"profile_checksum,omitempty"`
-	EvaluatorVersion    string                            `json:"evaluator_version,omitempty"`
-	FailureCode         string                            `json:"failure_code,omitempty"`
-	CalculatedAt        time.Time                         `json:"calculated_at,omitempty"`
-	ContributionResults []formcontract.ContributionResult `json:"contribution_results,omitempty"`
-	RuleResults         []formcontract.AdvancedRuleResult `json:"rule_results,omitempty"`
+	AssessmentRequiredCount int                               `json:"assessment_required_count"`
+	AssessmentReviewCount   int                               `json:"assessment_review_count"`
+	Mode                    formcontract.ScoringMode          `json:"mode,omitempty"`
+	Direction               formcontract.ScoreDirection       `json:"direction,omitempty"`
+	RawScore                *float64                          `json:"raw_score,omitempty"`
+	AdverseScore            *float64                          `json:"adverse_score,omitempty"`
+	Band                    formcontract.ConcernBand          `json:"band,omitempty"`
+	Coverage                float64                           `json:"coverage"`
+	Final                   bool                              `json:"final"`
+	State                   ResponseScoreState                `json:"state"`
+	ProfileVersion          string                            `json:"profile_version,omitempty"`
+	ProfileChecksum         string                            `json:"profile_checksum,omitempty"`
+	EvaluatorVersion        string                            `json:"evaluator_version,omitempty"`
+	FailureCode             string                            `json:"failure_code,omitempty"`
+	CalculatedAt            time.Time                         `json:"calculated_at,omitempty"`
+	ContributionResults     []formcontract.ContributionResult `json:"contribution_results,omitempty"`
+	RuleResults             []formcontract.AdvancedRuleResult `json:"rule_results,omitempty"`
 }
 
 type DistributionBundle struct {

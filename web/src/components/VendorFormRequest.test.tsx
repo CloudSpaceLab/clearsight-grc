@@ -1,0 +1,35 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, expect, it, vi } from "vitest";
+import { VendorFormRequest } from "./VendorFormRequest";
+const api = vi.hoisted(() => ({ requestVendorForms: vi.fn(), loadVendorFormSummaries: vi.fn(), loadReusableFormTemplateRefs: vi.fn() }));
+vi.mock("../vendorFormsApi", () => api);
+vi.mock("../formsApi", () => ({ loadReusableFormTemplateRefs: api.loadReusableFormTemplateRefs }));
+const targets = [{ relationshipID: "r1", vendorName: "Acme", serviceName: "Payments" }, { relationshipID: "r2", vendorName: "Bravo", serviceName: "Hosting" }];
+beforeEach(() => {
+  vi.clearAllMocks();
+  api.loadReusableFormTemplateRefs.mockResolvedValue([{ id: "form", version: 4, name: "Security evidence", code: "SEC" }]);
+  api.loadVendorFormSummaries.mockResolvedValue({ items: [] });
+  api.requestVendorForms.mockResolvedValueOnce({ batch_id: "batch", items: [{ relationship_id: "r1", status: "CREATED", distribution_id: "d1" }, { relationship_id: "r2", status: "FAILED", error: "Delivery setup unavailable" }] }).mockResolvedValueOnce({ batch_id: "batch", items: [{ relationship_id: "r2", status: "CREATED", distribution_id: "d2" }] });
+});
+it("previews isolated recipients then retries only failed targets with the same batch identity", async () => {
+  render(<VendorFormRequest targets={targets} onClose={() => {}} onUpdated={() => {}}/>);
+  await screen.findByRole("button", { name: /Security evidence/ });
+  expect(screen.queryByLabelText("Subject identifier")).toBeNull();
+  fireEvent.change(screen.getByLabelText("Email for Acme · Payments"), { target: { value: "one@example.com" } });
+  fireEvent.change(screen.getByLabelText("Email for Bravo · Hosting"), { target: { value: "two@example.com" } });
+  fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Security refresh" } });
+  fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Refresh current evidence." } });
+  fireEvent.change(screen.getByLabelText(/Deadline/), { target: { value: "2099-09-08T12:00" } });
+  fireEvent.change(screen.getByLabelText(/Access route expiry/), { target: { value: "2099-09-08T11:00" } });
+  fireEvent.click(screen.getByRole("button", { name: "Preview vendor requests" }));
+  expect(await screen.findByRole("heading", { name: "Review vendor requests" })).toBeTruthy();
+  expect(api.requestVendorForms).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Create and dispatch vendor requests" }));
+  expect(await screen.findByText(/Delivery setup unavailable/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Retry failed vendor requests" }));
+  await waitFor(() => expect(api.requestVendorForms).toHaveBeenCalledTimes(2));
+  const first = api.requestVendorForms.mock.calls[0]![0], retry = api.requestVendorForms.mock.calls[1]![0];
+  expect(first.targets).toMatchObject([{ relationship_id: "r1", recipient: { address: "one@example.com" } }, { relationship_id: "r2", recipient: { address: "two@example.com" } }]);
+  expect(retry.batch_id).toBe(first.batch_id);
+  expect(retry.targets).toEqual([first.targets[1]]);
+});

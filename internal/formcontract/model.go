@@ -241,6 +241,7 @@ type Scoring struct {
 }
 
 type Field struct {
+	Assessment         *FieldAssessment     `json:"assessment,omitempty"`
 	ID                 string               `json:"id"`
 	SectionID          string               `json:"section_id"`
 	Label              string               `json:"label"`

@@ -92,6 +92,11 @@ func (repo *PostgresRepository) CreatePolicy(ctx context.Context, value Policy) 
 	action, _ := json.Marshal(value.Action)
 	blast, _ := json.Marshal(value.BlastRadius)
 	outcome, _ := json.Marshal(value.Outcome)
+	if value.ManagesAutomation() {
+		if err := insertManagedAutomationTx(ctx, tx, value, eligibility, blast, outcome); err != nil {
+			return Policy{}, err
+		}
+	}
 	tag, err := tx.Exec(ctx, `
 		INSERT INTO form_response_policy_definitions(
 			id,tenant_id,legal_entity_id,code,name,purpose,action_class,automation_policy_id,automation_policy_version,
@@ -198,6 +203,11 @@ func (repo *PostgresRepository) UpdatePolicy(ctx context.Context, value Policy, 
 	if tag.RowsAffected() != 1 {
 		return Policy{}, ErrConflict
 	}
+	if value.ManagesAutomation() {
+		if err := updateManagedAutomationTx(ctx, tx, value, expected); err != nil {
+			return Policy{}, err
+		}
+	}
 	if err := insertPostgresPolicyEvent(ctx, tx, value, policyEventType(value)); err != nil {
 		return Policy{}, err
 	}
@@ -223,7 +233,7 @@ func (repo *PostgresRepository) SaveSimulation(ctx context.Context, value Simula
 
 func (repo *PostgresRepository) GetSimulation(ctx context.Context, tenantID, legalEntityID, id string) (SimulationReceipt, error) {
 	var value SimulationReceipt
-	err := repo.pool.QueryRow(ctx, `SELECT s.id::text,s.tenant_id::text,s.legal_entity_id::text,s.policy_id::text,s.policy_version,s.policy_checksum,s.actor_id::text,s.population_count,s.eligible_count,s.would_create_count,s.would_reuse_count,s.blast_suppressed_count,s.restricted_excluded_count,s.population_high_water,s.population_checksum,s.impact_checksum,s.observed_at,s.expires_at FROM form_response_policy_simulations s JOIN tenants t ON t.id=s.tenant_id JOIN legal_entities le ON le.id=s.legal_entity_id AND le.tenant_id=s.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND s.id::text=$3`, tenantID, legalEntityID, id).Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.PolicyID, &value.PolicyVersion, &value.PolicyChecksum, &value.ActorID, &value.PopulationCount, &value.EligibleCount, &value.WouldCreateCount, &value.WouldReuseCount, &value.BlastSuppressedCount, &value.RestrictedExcludedCount, &value.PopulationHighWater, &value.PopulationChecksum, &value.ImpactChecksum, &value.ObservedAt, &value.ExpiresAt)
+	err := repo.pool.QueryRow(ctx, `SELECT s.id::text,s.tenant_id::text,s.legal_entity_id::text,s.policy_id::text,s.policy_version,s.policy_checksum,s.actor_id::text,s.population_count,s.eligible_count,s.would_create_count,s.would_reuse_count,s.blast_suppressed_count,s.restricted_excluded_count,s.population_high_water,s.population_checksum,s.impact_checksum,s.observed_at,s.expires_at,COALESCE(p.eligibility->>'result_basis','AUTOMATIC') FROM form_response_policy_simulations s JOIN form_response_policy_definitions p ON p.id=s.policy_id AND p.tenant_id=s.tenant_id AND p.legal_entity_id=s.legal_entity_id JOIN tenants t ON t.id=s.tenant_id JOIN legal_entities le ON le.id=s.legal_entity_id AND le.tenant_id=s.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND s.id::text=$3`, tenantID, legalEntityID, id).Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.PolicyID, &value.PolicyVersion, &value.PolicyChecksum, &value.ActorID, &value.PopulationCount, &value.EligibleCount, &value.WouldCreateCount, &value.WouldReuseCount, &value.BlastSuppressedCount, &value.RestrictedExcludedCount, &value.PopulationHighWater, &value.PopulationChecksum, &value.ImpactChecksum, &value.ObservedAt, &value.ExpiresAt, &value.ResultBasis)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return SimulationReceipt{}, ErrNotFound
 	}
@@ -231,11 +241,11 @@ func (repo *PostgresRepository) GetSimulation(ctx context.Context, tenantID, leg
 }
 
 func (repo *PostgresRepository) CreateExecution(ctx context.Context, value ExecutionReceipt) (ExecutionReceipt, bool, error) {
-	tag, err := repo.pool.Exec(ctx, `INSERT INTO form_response_policy_executions(id,tenant_id,legal_entity_id,policy_id,policy_version,automation_policy_id,automation_policy_version,response_revision_id,state,matter_id,reason_code,created_matter,created_at) SELECT $1::uuid,t.id,le.id,$4::uuid,$5,$6::uuid,$7,$8::uuid,$9,NULLIF($10,'')::uuid,$11,$12,$13 FROM tenants t JOIN legal_entities le ON le.tenant_id=t.id AND (le.id::text=$3 OR le.code=$3) WHERE t.id::text=$2 OR t.slug=$2 ON CONFLICT (tenant_id,legal_entity_id,policy_id,policy_version,response_revision_id) DO NOTHING`, value.ID, value.TenantID, value.LegalEntityID, value.PolicyID, value.PolicyVersion, value.AutomationPolicyID, value.AutomationPolicyVersion, value.ResponseRevisionID, value.State, value.MatterID, value.ReasonCode, value.CreatedMatter, value.CreatedAt)
+	tag, err := repo.pool.Exec(ctx, `INSERT INTO form_response_policy_executions(id,tenant_id,legal_entity_id,policy_id,policy_version,automation_policy_id,automation_policy_version,response_revision_id,state,matter_id,reason_code,created_matter,created_at,result_basis,assessment_version) SELECT $1::uuid,t.id,le.id,$4::uuid,$5,$6::uuid,$7,$8::uuid,$9,NULLIF($10,'')::uuid,$11,$12,$13,$14,$15 FROM tenants t JOIN legal_entities le ON le.tenant_id=t.id AND (le.id::text=$3 OR le.code=$3) WHERE t.id::text=$2 OR t.slug=$2 ON CONFLICT (tenant_id,legal_entity_id,policy_id,policy_version,response_revision_id,assessment_version) DO NOTHING`, value.ID, value.TenantID, value.LegalEntityID, value.PolicyID, value.PolicyVersion, value.AutomationPolicyID, value.AutomationPolicyVersion, value.ResponseRevisionID, value.State, value.MatterID, value.ReasonCode, value.CreatedMatter, value.CreatedAt, receiptBasis(value), value.AssessmentVersion)
 	if err != nil {
 		return ExecutionReceipt{}, false, normalizePostgresError(err)
 	}
-	stored, getErr := repo.getExecution(ctx, value.TenantID, value.LegalEntityID, value.PolicyID, value.PolicyVersion, value.ResponseRevisionID)
+	stored, getErr := repo.getExecution(ctx, value.TenantID, value.LegalEntityID, value.PolicyID, value.PolicyVersion, value.ResponseRevisionID, value.AssessmentVersion)
 	if getErr != nil {
 		return ExecutionReceipt{}, false, getErr
 	}
@@ -246,9 +256,9 @@ func (repo *PostgresRepository) CreateExecution(ctx context.Context, value Execu
 	return stored, inserted, nil
 }
 
-func (repo *PostgresRepository) getExecution(ctx context.Context, tenantID, legalEntityID, policyID string, policyVersion int64, responseID string) (ExecutionReceipt, error) {
+func (repo *PostgresRepository) getExecution(ctx context.Context, tenantID, legalEntityID, policyID string, policyVersion int64, responseID string, assessmentVersion int64) (ExecutionReceipt, error) {
 	var value ExecutionReceipt
-	err := repo.pool.QueryRow(ctx, `SELECT e.id::text,e.tenant_id::text,e.legal_entity_id::text,e.policy_id::text,e.policy_version,e.automation_policy_id::text,e.automation_policy_version,e.response_revision_id::text,e.state,COALESCE(e.matter_id::text,''),e.reason_code,e.created_matter,e.created_at FROM form_response_policy_executions e JOIN tenants t ON t.id=e.tenant_id JOIN legal_entities le ON le.id=e.legal_entity_id AND le.tenant_id=e.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND e.policy_id::text=$3 AND e.policy_version=$4 AND e.response_revision_id::text=$5`, tenantID, legalEntityID, policyID, policyVersion, responseID).Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.PolicyID, &value.PolicyVersion, &value.AutomationPolicyID, &value.AutomationPolicyVersion, &value.ResponseRevisionID, &value.State, &value.MatterID, &value.ReasonCode, &value.CreatedMatter, &value.CreatedAt)
+	err := repo.pool.QueryRow(ctx, `SELECT e.id::text,e.tenant_id::text,e.legal_entity_id::text,e.policy_id::text,e.policy_version,e.automation_policy_id::text,e.automation_policy_version,e.response_revision_id::text,e.state,COALESCE(e.matter_id::text,''),e.reason_code,e.created_matter,e.created_at,e.result_basis,e.assessment_version FROM form_response_policy_executions e JOIN tenants t ON t.id=e.tenant_id JOIN legal_entities le ON le.id=e.legal_entity_id AND le.tenant_id=e.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND e.policy_id::text=$3 AND e.policy_version=$4 AND e.response_revision_id::text=$5 AND e.assessment_version=$6`, tenantID, legalEntityID, policyID, policyVersion, responseID, assessmentVersion).Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.PolicyID, &value.PolicyVersion, &value.AutomationPolicyID, &value.AutomationPolicyVersion, &value.ResponseRevisionID, &value.State, &value.MatterID, &value.ReasonCode, &value.CreatedMatter, &value.CreatedAt, &value.ResultBasis, &value.AssessmentVersion)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ExecutionReceipt{}, ErrNotFound
 	}
@@ -274,7 +284,7 @@ func (repo *PostgresRepository) getOpenEpisode(ctx context.Context, tenantID, le
 }
 
 func insertPostgresPolicyEvent(ctx context.Context, tx pgx.Tx, value Policy, eventType string) error {
-	payload, _ := json.Marshal(map[string]any{"version": value.RecordVersion, "policy_version": value.Version, "record_version": value.RecordVersion, "status": value.Status, "rollout_mode": value.Rollout, "checksum": value.Checksum})
+	payload, _ := json.Marshal(map[string]any{"version": value.RecordVersion, "policy_version": value.Version, "record_version": value.RecordVersion, "status": value.Status, "rollout_mode": value.Rollout, "checksum": value.Checksum, "automation_policy_id": value.AutomationPolicyID, "automation_policy_version": value.AutomationPolicyVersion, "result_basis": value.Eligibility.Basis()})
 	_, err := tx.Exec(ctx, `WITH scope AS (SELECT t.id tenant_id,le.id legal_entity_id FROM tenants t JOIN legal_entities le ON le.tenant_id=t.id AND (le.id::text=$3 OR le.code=$3) WHERE t.id::text=$2 OR t.slug=$2), event AS (INSERT INTO form_response_policy_events(tenant_id,legal_entity_id,policy_id,policy_version,record_version,event_type,actor_id,payload,occurred_at) SELECT tenant_id,legal_entity_id,$1::uuid,$4,$5,$6,$7::uuid,$8::jsonb,$9 FROM scope RETURNING tenant_id) INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at) SELECT tenant_id,'FORM_RESPONSE_POLICY',$1::uuid,$6,$8::jsonb,$9,$9 FROM event`, value.ID, value.TenantID, value.LegalEntityID, value.Version, value.RecordVersion, eventType, value.LastActorID, payload, value.UpdatedAt)
 	return normalizePostgresError(err)
 }
