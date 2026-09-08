@@ -41,7 +41,7 @@ import { FormStatusScopes } from "./forms/filters/FormStatusScopes";
 import { defaultFormsAccent, loadFormsAppearance, type FormsAppearance } from "./forms/formsAppearance";
 import { preserveLibraryRevisionMetadata } from "./forms/formRevisionInput";
 import { isTemplateApprovalReady } from "./forms/formQuality";
-import { clearedFormsQuery, readFormsQuery, writeFormsLocation } from "./forms/formsLocation";
+import { clearedFormsQuery, readFormsQuery, readFormsSection, writeFormsLocation } from "./forms/formsLocation";
 import { Button, IconButton, Notice, TextField } from "./ui";
 
 const libraryRevalidationIntervalMs = 30_000;
@@ -55,12 +55,13 @@ type Props = {
   targetID?: string;
   initialSearch?: string;
   canConfigureCommunications?: boolean;
+  navigationLocation?: { hash: string };
   onTarget?: (id?: string) => void;
 };
 
-export function FormsWorkspace({ organizationName = "Organization", legalEntityName = "Legal entity", appearanceScope, targetID, initialSearch, canConfigureCommunications = true, onTarget }: Props) {
+export function FormsWorkspace({ organizationName = "Organization", legalEntityName = "Legal entity", appearanceScope, targetID, initialSearch, canConfigureCommunications = true, navigationLocation, onTarget }: Props) {
   const appearanceKey = appearanceScope?.trim() || legalEntityName;
-  const [activeTab, setActiveTab] = useState<FormsTab>("Templates");
+  const [activeTab, setActiveTab] = useState<FormsTab>(() => readFormsSection(window.location.hash));
   const [query, setQuery] = useState<FormTemplateQuery>(() => readFormsQuery(window.location.hash, initialSearch));
   const [page, setPage] = useState<FormTemplatePage>({ items: [] });
   const [state, setState] = useState<LoadState>("loading");
@@ -104,9 +105,21 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   useEffect(() => setAppearance(readAppearance(appearanceKey)), [appearanceKey]);
 
   useEffect(() => {
+    if (navigationLocation) changeSection(readFormsSection(navigationLocation.hash));
+  }, [navigationLocation]);
+
+  useEffect(() => {
     const sync = () => {
-      invalidatePagedLoad();
-      setQuery(readFormsQuery(window.location.hash, initialSearch));
+      const nextQuery = readFormsQuery(window.location.hash, initialSearch);
+      // Section-only history must not cancel a matching in-flight library read.
+      const queryChanged = Object.entries(nextQuery).some(([key, value]) =>
+        JSON.stringify(value) !== JSON.stringify(query[key as keyof FormTemplateQuery]),
+      );
+      if (queryChanged) {
+        invalidatePagedLoad();
+        setQuery(nextQuery);
+      }
+      changeSection(readFormsSection(window.location.hash));
     };
     window.addEventListener("hashchange", sync);
     window.addEventListener("popstate", sync);
@@ -114,7 +127,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       window.removeEventListener("hashchange", sync);
       window.removeEventListener("popstate", sync);
     };
-  }, [initialSearch]);
+  }, [initialSearch, activeTab, query]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => { void refresh(query); }, query.search ? 220 : 0);
@@ -228,19 +241,36 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   function replaceQuery(next: FormTemplateQuery) {
     invalidatePagedLoad();
     setQuery({ ...next, cursor: undefined });
-    writeFormsLocation(next, targetID, true);
+    writeFormsLocation(next, targetID, true, activeTab);
+  }
+
+  function changeSection(tab: FormsTab) {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setEditor(null);
+    setNewFormOpen(false);
+    setAIOpen(false);
+    setAIProposal(null);
+    setError(null);
+    setNotice(null);
+  }
+
+  function chooseSection(tab: FormsTab) {
+    if (tab === activeTab) return;
+    changeSection(tab);
+    writeFormsLocation(query, targetID, false, tab);
   }
 
   function choose(id?: string) {
     onTarget?.(id);
-    writeFormsLocation(query, id, Boolean(onTarget));
+    writeFormsLocation(query, id, Boolean(onTarget), activeTab);
   }
 
   function clearFiltersAndTarget() {
     const next = clearedFormsQuery(query);
     invalidatePagedLoad();
     setQuery(next);
-    writeFormsLocation(next, targetID, true);
+    writeFormsLocation(next, targetID, true, activeTab);
   }
 
   function openCreate() {
@@ -288,7 +318,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     };
     invalidatePagedLoad();
     setQuery(next);
-    writeFormsLocation(next, targetID, true);
+    writeFormsLocation(next, targetID, true, activeTab);
   }
 
   async function submitSavedView(event: FormEvent<HTMLFormElement>) {
@@ -409,7 +439,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         : undefined}
     />
 
-    <FormsNavigation activeTab={activeTab} onChange={(tab) => { setActiveTab(tab); setEditor(null); setNewFormOpen(false); setAIOpen(false); setAIProposal(null); setError(null); setNotice(null); }}>
+    <FormsNavigation activeTab={activeTab} onChange={chooseSection}>
     {error && <Notice tone="error">{error}</Notice>}
     {notice && <Notice><div className="forms-notice-content"><span>{notice}</span><IconButton variant="quiet" aria-label="Dismiss Forms notice" onPress={() => setNotice(null)}>×</IconButton></div></Notice>}
 

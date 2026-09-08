@@ -58,6 +58,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const [activeView, setActiveView] = useState<View>(initialRoute.view);
   const [workTab, setWorkTab] = useState<WorkTab>(initialRoute.workTab ?? "matters");
   const [target, setTarget] = useState<WorkspaceTarget>(initialRoute.target);
+  const [formsNavigationLocation, setFormsNavigationLocation] = useState(() => ({ hash: window.location.hash }));
   const [vendorGuideIntent, setVendorGuideIntent] = useState<VendorGuideIntent>();
   const vendorGuideIntentID = useRef(0);
   const vendorGuideAck = useRef<{ id: number; resolve: () => void; reject: (reason?: unknown) => void } | undefined>(undefined);
@@ -147,6 +148,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       setActiveView(route.view);
       if (route.workTab) setWorkTab(route.workTab);
       setTarget(route.target);
+      if (route.view === "forms") setFormsNavigationLocation({ hash: window.location.hash });
     };
     window.addEventListener("hashchange", syncRoute);
     window.addEventListener("popstate", syncRoute);
@@ -285,6 +287,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     setActiveView(view); setTarget(nextTarget); if (tab) setWorkTab(tab);
     const hash = routeHash(view, nextTarget, nextTab);
     if (window.location.hash !== hash) window.history.pushState(null, "", hash);
+    if (view === "forms") setFormsNavigationLocation({ hash });
   }
 
   function closePanel() { captureLoadID.current++; routingLoadID.current++; setActivePanel("none"); }
@@ -408,7 +411,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
       {activeView === "work" && <WorkView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} evidenceScopeToken={evidenceScopeEpoch.current} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} onBackMatter={() => navigate("work", {}, "matters")} sources={sources} requests={evidenceRequests} evidenceSourceState={evidenceSourceState === "idle" ? "loading" : evidenceSourceState} evidenceRequestState={evidenceRequestState === "idle" ? "loading" : evidenceRequestState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} onEvidenceRequestUpdated={updateEvidenceEntity} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
       {activeView === "vendors" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships…</div>}><VendorsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.vendorRelationshipID} guideIntent={vendorGuideIntent} onGuideIntentCompleted={completeVendorGuideIntent} onGuideIntentFailed={failVendorGuideIntent} onTarget={(id) => navigate("vendors", id ? { vendorRelationshipID: id } : {})} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} onOpenForms={() => navigate("forms")}/></Suspense>}
-      {activeView === "forms" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Forms…</div>}><FormsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} canConfigureCommunications={runtime?.capabilities?.config_write === true} targetID={target.formTemplateID} onTarget={(id) => navigate("forms", id ? { formTemplateID: id } : {})}/></Suspense>}
+      {activeView === "forms" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Forms…</div>}><FormsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} canConfigureCommunications={runtime?.capabilities?.config_write === true} targetID={target.formTemplateID} navigationLocation={formsNavigationLocation} onTarget={(id) => navigate("forms", id ? { formTemplateID: id } : {})}/></Suspense>}
       {activeView === "imports" && importsEnabled && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Import documents, compare their obligations with current Programs, controls and evidence, then review proposed updates.</p></div></header><DocumentImportWorkspace/></>}
       {activeView === "explore" && referenceJourneysEnabled && <ReferenceJourneysView organizationName={organizationName}/>}
       {activeView === "configure" && configureEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Configuration…</div>}><ConfigureWorkspace importsEnabled={importsEnabled} canReconcileProjection={runtime?.capabilities?.platform_operations_write === true} onOpenImports={() => navigate("imports")}/></Suspense>}

@@ -21,6 +21,7 @@ const task22Capabilities = [
   "sent-empty-replacement", "sent-populated-table", "sent-responsive-sheet", "sent-partial-page", "sent-lifecycle-feedback",
   "forced-colors", "reduced-motion",
   "documents-file-types", "documents-quick-look", "documents-keyboard-return", "documents-vendor-launcher",
+  "forms-section-resumption",
 ];
 
 test("Forms scenarios cover every Task 22 capability", () => {

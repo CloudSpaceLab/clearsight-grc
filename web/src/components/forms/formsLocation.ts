@@ -1,8 +1,24 @@
 import type { FormTemplateQuery } from "../../formsTypes";
 import type { LifecycleStatus } from "../../monitoringTypes";
+import type { FormsTab } from "./FormsNavigation";
 import { parseFilterExpression, serializeFilterExpression } from "./filters/filterModel";
 
 const DEFAULT_LIMIT = 25;
+const sectionSlugs: Record<FormsTab, string> = {
+  Templates: "templates",
+  "Sent forms": "sent-forms",
+  Responses: "responses",
+  Documents: "documents",
+  Policies: "policies",
+  Imports: "imports",
+  Communications: "communications",
+};
+
+export function readFormsSection(hash: string): FormsTab {
+  const raw = hash.includes("?") ? hash.slice(hash.indexOf("?") + 1) : "";
+  const section = new URLSearchParams(raw).get("section");
+  return (Object.keys(sectionSlugs) as FormsTab[]).find((tab) => sectionSlugs[tab] === section) ?? "Templates";
+}
 
 export function readFormsQuery(hash: string, fallbackSearch?: string): FormTemplateQuery {
   const raw = hash.includes("?") ? hash.slice(hash.indexOf("?") + 1) : "";
@@ -25,7 +41,7 @@ export function clearedFormsQuery(query: FormTemplateQuery): FormTemplateQuery {
   return { sort: query.sort, limit: query.limit ?? DEFAULT_LIMIT };
 }
 
-export function writeFormsLocation(query: FormTemplateQuery, targetID?: string, replace = true) {
+export function writeFormsLocation(query: FormTemplateQuery, targetID?: string, replace = true, section: FormsTab = "Templates") {
   const params = new URLSearchParams();
   if (query.search?.trim()) params.set("search", query.search.trim());
   if (query.status) params.set("status", query.status);
@@ -37,6 +53,7 @@ export function writeFormsLocation(query: FormTemplateQuery, targetID?: string, 
   const filter = serializeFilterExpression(query.filter);
   if (filter) params.set("filter", filter);
   if (query.limit && query.limit !== DEFAULT_LIMIT) params.set("limit", String(query.limit));
+  if (section !== "Templates") params.set("section", sectionSlugs[section]);
   const encoded = params.toString();
   const hash = `#forms${targetID ? `/${encodeURIComponent(targetID)}` : ""}${encoded ? `?${encoded}` : ""}`;
   if (replace) window.history.replaceState(null, "", hash); else window.history.pushState(null, "", hash);
