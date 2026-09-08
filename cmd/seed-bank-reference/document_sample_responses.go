@@ -138,9 +138,15 @@ func (i *documentSampleInstaller) checkSampleEdits(ctx context.Context, b eviden
 			Value                     formcontract.AnswerValue      `json:"value"`
 			PresentationMode          formcontract.PresentationMode `json:"presentation_mode"`
 			Assurance                 evidence.AccessAssurance      `json:"assurance"`
+			SessionID                 string                        `json:"session_id"`
+			RouteID                   string                        `json:"route_id"`
 			CarriedFromDistributionID string                        `json:"carried_from_distribution_id"`
 		}
 		if err = json.Unmarshal(raw, &patch); err != nil {
+			return 0, errDocumentSampleChanged
+		}
+		// Match the normal workspace loader's nonempty origin markers before resuming access.
+		if patch.SessionID == "" || patch.RouteID == "" {
 			return 0, errDocumentSampleChanged
 		}
 		expectedVersion := int64(n + 3)

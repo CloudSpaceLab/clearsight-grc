@@ -202,8 +202,23 @@ func TestDocumentSamplesStopOnEditedOrUnknownRecordsWithoutWrites(t *testing.T) 
 }
 
 func TestDocumentSamplesResumeInterruptedWork(t *testing.T) {
+	tests := []struct{ name, stage, originMutation string }{}
 	for _, stage := range []string{"form_draft", "form_pending", "assessment_setup", "request_prepared", "request_issued", "send_route_revoked", "three_uploads", "six_uploads", "first_saved", "first_submitted", "second_saved"} {
-		t.Run(stage, func(t *testing.T) {
+		tests = append(tests, struct{ name, stage, originMutation string }{name: stage, stage: stage})
+	}
+	for _, stage := range []string{"first_saved", "first_submitted", "second_saved", "completed"} {
+		for _, marker := range []string{"session_id", "route_id"} {
+			for _, mutation := range []struct{ name, sql string }{
+				{"missing", "patch-'" + marker + "'"},
+				{"empty", "jsonb_set(patch,'{" + marker + "}','\"\"'::jsonb)"},
+			} {
+				tests = append(tests, struct{ name, stage, originMutation string }{stage + "_" + marker + "_" + mutation.name, stage, mutation.sql})
+			}
+		}
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			stage := test.stage
 			pool, cfg, seed := sampleTestSetup(t)
 			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 			defer cancel()
@@ -295,6 +310,10 @@ func TestDocumentSamplesResumeInterruptedWork(t *testing.T) {
 				}
 				return
 			}
+			if test.originMutation != "" && stage != "completed" {
+				sampleTestRefuseInvalidEditOrigin(t, ctx, pool, cfg, seed, test.originMutation)
+				return
+			}
 			sampleTestWorker(t, pool)
 			receipt, err := installDocumentSamples(ctx, cfg, pool, seed)
 			if err != nil {
@@ -303,10 +322,29 @@ func TestDocumentSamplesResumeInterruptedWork(t *testing.T) {
 			if receipt.ArtifactCount != 6 || len(receipt.ResponseRevisionIDs) != 2 {
 				t.Fatalf("incomplete recovery: %+v", receipt)
 			}
+			if test.originMutation != "" {
+				sampleTestRefuseInvalidEditOrigin(t, ctx, pool, cfg, seed, test.originMutation)
+				return
+			}
 			if _, err = installDocumentSamples(ctx, cfg, pool, seed); err != nil {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func sampleTestRefuseInvalidEditOrigin(t *testing.T, ctx context.Context, pool *pgxpool.Pool, cfg config.Config, seed bankverticals.SeedConfig, mutation string) {
+	t.Helper()
+	result, err := pool.Exec(ctx, `UPDATE capture_response_workspace_edits SET patch=`+mutation+` WHERE id=(SELECT id FROM capture_response_workspace_edits ORDER BY result_version,id LIMIT 1)`)
+	if err != nil || result.RowsAffected() != 1 {
+		t.Fatalf("edit-origin fixture mutation: %v", err)
+	}
+	before := sampleTestSnapshot(t, pool)
+	if _, err = installDocumentSamples(ctx, cfg, pool, seed); !errors.Is(err, errDocumentSampleChanged) {
+		t.Errorf("invalid edit origin was not rejected by preflight: %v", err)
+	}
+	if before != sampleTestSnapshot(t, pool) {
+		t.Error("invalid edit origin changed respondent access or stored records")
 	}
 }
 
