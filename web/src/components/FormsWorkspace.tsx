@@ -105,8 +105,15 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
 
   useEffect(() => {
     const sync = () => {
-      invalidatePagedLoad();
-      setQuery(readFormsQuery(window.location.hash, initialSearch));
+      const nextQuery = readFormsQuery(window.location.hash, initialSearch);
+      // Section-only history must not cancel a matching in-flight library read.
+      const queryChanged = Object.entries(nextQuery).some(([key, value]) =>
+        JSON.stringify(value) !== JSON.stringify(query[key as keyof FormTemplateQuery]),
+      );
+      if (queryChanged) {
+        invalidatePagedLoad();
+        setQuery(nextQuery);
+      }
       changeSection(readFormsSection(window.location.hash));
     };
     window.addEventListener("hashchange", sync);
@@ -115,7 +122,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       window.removeEventListener("hashchange", sync);
       window.removeEventListener("popstate", sync);
     };
-  }, [initialSearch, activeTab]);
+  }, [initialSearch, activeTab, query]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => { void refresh(query); }, query.search ? 220 : 0);

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FormLibraryItem, SavedFormView } from "../formsTypes";
 import { FormsWorkspace } from "./FormsWorkspace";
@@ -67,6 +67,76 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("Forms workspace location state", () => {
+  it.each(["hashchange", "popstate"])("lets a pending library read settle after section-only %s navigation", async (event) => {
+    let finish!: (page: { items: FormLibraryItem[] }) => void;
+    api.loadFormTemplatePage.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    render(<FormsWorkspace/>);
+    await waitFor(() => expect(api.loadFormTemplatePage).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("tab", { name: "Imports" }));
+    window.history.replaceState(null, "", "#forms");
+    fireEvent(window, new Event(event));
+    await act(async () => finish({ items: [draftItem] }));
+
+    expect(await screen.findByRole("button", { name: "Open Vendor due diligence" })).toBeTruthy();
+    expect(screen.queryByText("Loading form templates…")).toBeNull();
+    expect(api.loadFormTemplatePage).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a pending advanced-filter read when section history repeats the same expression", async () => {
+    const expression = encodeURIComponent(JSON.stringify({ kind: "condition", field: "status", operator: "is", value: "ACTIVE" }));
+    const hash = `#forms?filter=${expression}`;
+    window.history.replaceState(null, "", hash);
+    let finish!: (page: { items: FormLibraryItem[] }) => void;
+    api.loadFormTemplatePage.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    render(<FormsWorkspace/>);
+    await waitFor(() => expect(api.loadFormTemplatePage).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("tab", { name: "Imports" }));
+    window.history.replaceState(null, "", hash);
+    fireEvent(window, new Event("popstate"));
+    fireEvent(window, new Event("hashchange"));
+    await act(async () => finish({ items: [draftItem] }));
+
+    expect(await screen.findByRole("button", { name: "Open Vendor due diligence" })).toBeTruthy();
+    expect(api.loadFormTemplatePage.mock.calls[0]?.[1].aborted).toBe(false);
+    expect(api.loadFormTemplatePage).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an obsolete library read when history changes the actual template query", async () => {
+    let finishOld!: (page: { items: FormLibraryItem[] }) => void;
+    const current = { ...draftItem, template: { ...draftItem.template, id: "current", name: "Current template" } };
+    api.loadFormTemplatePage.mockImplementationOnce(() => new Promise((resolve) => { finishOld = resolve; }))
+      .mockResolvedValue({ items: [current] });
+    render(<FormsWorkspace/>);
+    await waitFor(() => expect(api.loadFormTemplatePage).toHaveBeenCalledTimes(1));
+    window.history.replaceState(null, "", "#forms?search=current");
+    fireEvent(window, new Event("popstate"));
+    fireEvent(window, new Event("hashchange"));
+    expect(api.loadFormTemplatePage.mock.calls[0]?.[1].aborted).toBe(true);
+    await screen.findByRole("button", { name: "Open Current template" });
+    await act(async () => finishOld({ items: [draftItem] }));
+    expect(screen.queryByRole("button", { name: "Open Vendor due diligence" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Open Current template" })).toBeTruthy();
+  });
+
+  it("rejects an obsolete additional page when history changes the actual template query", async () => {
+    let finishPage!: (page: { items: FormLibraryItem[] }) => void;
+    const old = { ...draftItem, template: { ...draftItem.template, id: "old-page", name: "Old additional template" } };
+    const current = { ...draftItem, template: { ...draftItem.template, id: "current", name: "Current template" } };
+    api.loadFormTemplatePage.mockResolvedValueOnce({ items: [draftItem], next_cursor: "next" })
+      .mockImplementationOnce(() => new Promise((resolve) => { finishPage = resolve; }))
+      .mockResolvedValue({ items: [current] });
+    render(<FormsWorkspace/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Load more" }));
+    await waitFor(() => expect(api.loadFormTemplatePage).toHaveBeenCalledTimes(2));
+    window.history.replaceState(null, "", "#forms?search=current");
+    fireEvent(window, new Event("popstate"));
+    await screen.findByRole("button", { name: "Open Current template" });
+    await act(async () => finishPage({ items: [old] }));
+    expect(screen.queryByRole("button", { name: "Open Old additional template" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Open Current template" })).toBeTruthy();
+  });
+
   it("opens Documents from a direct section URL and re-fetches after remount", async () => {
     window.history.replaceState(null, "", "#forms?section=documents");
     const first = render(<FormsWorkspace/>);
