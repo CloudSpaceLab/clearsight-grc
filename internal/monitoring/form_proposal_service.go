@@ -76,7 +76,8 @@ func (s *FormProposalService) RequestFromDocument(ctx context.Context, documentI
 	}
 	now := s.now().UTC()
 	created, err := s.store.Create(ctx, FormTemplateProposal{
-		ID: proposalID, TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID,
+		GeneratorVersion: documentimport.FindingFollowUpVersion,
+		ID:               proposalID, TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID,
 		SourceKind: FormProposalSourceDocument, SourceDocumentID: document.ID, SourceDocumentVersion: document.Version, SourceSHA256: document.SHA256,
 		BaseTemplateID: strings.TrimSpace(input.BaseTemplateID), BaseTemplateVersion: input.BaseTemplateVersion,
 		Status: FormProposalGenerating, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now, Version: 1,
@@ -121,10 +122,41 @@ func (s *FormProposalService) Generate(ctx context.Context, tenantID, legalEntit
 	current.FieldChanges = generated.FieldChanges
 	current.UnresolvedItems = generated.UnresolvedItems
 	current.Provenance = FormProposalProvenance{FormProposalProvenance: generated.Provenance}
+	if current.AssessmentGroupID != "" {
+		ids := []string{}
+		for _, change := range current.FieldChanges {
+			if change.GroupID == current.AssessmentGroupID {
+				ids = append(ids, change.ID)
+			}
+		}
+		if len(ids) == 0 {
+			return s.failGeneration(ctx, current, "ASSESSMENT_NOT_FOUND", "The selected assessment is absent from this source revision.")
+		}
+		contract, err := applySelectedProposalChanges(FormTemplate{}, current, ids)
+		if err != nil {
+			return FormTemplateProposal{}, err
+		}
+		current.ProposedContract = contract
+		changes := current.FieldChanges[:0]
+		for _, change := range current.FieldChanges {
+			if change.GroupID == current.AssessmentGroupID {
+				changes = append(changes, change)
+			}
+		}
+		current.FieldChanges = changes
+	}
 	current.FailureCode = ""
 	current.FailureMessage = ""
 	current.UpdatedAt = now
-	return s.store.CompleteGeneration(ctx, current, current.Version)
+	completed, err := s.store.CompleteGeneration(ctx, current, current.Version)
+	if errors.Is(err, ErrConflict) {
+		// A worker and an interactive request can generate the same receipt.
+		latest, readErr := s.store.Get(ctx, current.TenantID, current.LegalEntityID, current.ID)
+		if readErr == nil && latest.Status != FormProposalGenerating {
+			return latest, nil
+		}
+	}
+	return completed, err
 }
 
 func (s *FormProposalService) Get(ctx context.Context, proposalID string) (FormTemplateProposal, error) {
@@ -205,6 +237,35 @@ func (s *FormProposalService) Accept(ctx context.Context, proposalID string, inp
 	}
 
 	var base FormTemplate
+	if err := validateFindingFollowUpSelection(proposal, changeIDs, input.AssessmentConfirmed); err != nil {
+		return FormTemplateProposal{}, err
+	}
+	if proposal.Provenance.ProposalVersion == documentimport.FindingFollowUpVersion && proposal.AssessmentGroupID == "" {
+		group := ""
+		for _, change := range proposal.FieldChanges {
+			if slices.Contains(changeIDs, change.ID) {
+				group = change.GroupID
+				break
+			}
+		}
+		childID, err := s.newID()
+		if err != nil {
+			return FormTemplateProposal{}, err
+		}
+		now := s.now().UTC()
+		child, err := s.store.Create(ctx, FormTemplateProposal{ID: childID, TenantID: proposal.TenantID, LegalEntityID: proposal.LegalEntityID, SourceKind: proposal.SourceKind, SourceDocumentID: proposal.SourceDocumentID, SourceDocumentVersion: proposal.SourceDocumentVersion, SourceSHA256: proposal.SourceSHA256, GeneratorVersion: proposal.GeneratorVersion, AssessmentGroupID: group, Status: FormProposalGenerating, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now, Version: 1})
+		if err != nil {
+			return FormTemplateProposal{}, err
+		}
+		if child.Status == FormProposalGenerating {
+			child, err = s.Generate(ctx, child.TenantID, child.LegalEntityID, child.ID)
+			if err != nil {
+				return FormTemplateProposal{}, err
+			}
+		}
+		input.ExpectedVersion = child.Version
+		return s.Accept(ctx, child.ID, input)
+	}
 	if proposal.BaseTemplateID != "" {
 		base, err = s.forms.GetLibraryForm(ctx, proposal.BaseTemplateID, proposal.BaseTemplateVersion)
 		if err != nil {
@@ -261,14 +322,17 @@ func (s *FormProposalService) failGeneration(ctx context.Context, current FormTe
 
 func proposalSourceMatchesDocument(proposal FormTemplateProposal, document documentimport.Document) bool {
 	return proposal.SourceKind == FormProposalSourceDocument &&
-		proposal.TenantID == document.TenantID && proposal.LegalEntityID == document.LegalEntityID &&
+		// Proposal reads use the tenant slug, whereas document reads retain the
+		// tenant UUID. Both reads are already scoped through the verified actor;
+		// compare the stable document revision and legal-entity scope here.
+		proposal.LegalEntityID == document.LegalEntityID &&
 		proposal.SourceDocumentID == document.ID && proposal.SourceDocumentVersion == document.Version &&
 		proposal.SourceSHA256 == document.SHA256
 }
 
 func proposalAISourceMatchesDocument(proposal FormTemplateProposal, document documentimport.Document) bool {
 	return proposal.SourceKind == FormProposalSourceAI && proposal.Provenance.AI != nil &&
-		proposal.TenantID == document.TenantID && proposal.LegalEntityID == document.LegalEntityID &&
+		proposal.LegalEntityID == document.LegalEntityID &&
 		proposal.SourceDocumentID == document.ID && proposal.SourceDocumentVersion == document.Version &&
 		proposal.Provenance.AI.SourceDocumentSHA256 == document.SHA256
 }
@@ -290,6 +354,13 @@ func proposalFormInput(base FormTemplate, document *documentimport.Document, pro
 			name = strings.TrimSpace(strings.TrimSuffix(name, extension))
 		}
 		name = boundedProposalText(name, 512)
+		code := proposalDraftCode("IMPORT", proposal.SourceSHA256)
+		if proposal.AssessmentGroupID != "" && len(proposal.FieldChanges) > 0 {
+			name = boundedProposalText(proposal.FieldChanges[0].GroupLabel+" follow-up", 512)
+			// A group fingerprint repeats when the same register is imported again.
+			// The child proposal ID is stable for retries and unique for each reviewed draft.
+			code = proposalDraftCode("FOLLOWUP", proposal.ID)
+		}
 		if name == "" {
 			name = "Imported form"
 		}
@@ -298,7 +369,7 @@ func proposalFormInput(base FormTemplate, document *documentimport.Document, pro
 			purpose = "Form template derived from an imported document."
 		}
 		return CreateFormInput{
-			Code: proposalDraftCode("IMPORT", proposal.SourceSHA256), Name: name, Purpose: purpose,
+			Code: code, Name: name, Purpose: purpose,
 			Sensitivity: "INTERNAL", ScoringMode: contract.ScoringMode,
 			Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
 		}

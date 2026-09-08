@@ -201,16 +201,16 @@ func insertFormProposal(ctx context.Context, tx pgx.Tx, value FormTemplatePropos
 	created, err := scanFormProposal(tx.QueryRow(ctx, `
 		INSERT INTO form_template_proposals AS p(
 			id,tenant_id,legal_entity_id,source_kind,source_document_id,source_document_version,source_sha256,
-			base_template_id,base_template_version,status,created_by,created_at,updated_at,version
+			base_template_id,base_template_version,status,created_by,created_at,updated_at,version,generator_version,assessment_group_id
 		) SELECT
 			$2::uuid,t.id,$3::uuid,$4,NULLIF($5,'')::uuid,NULLIF($6,0),$7,
-			NULLIF($8,'')::uuid,NULLIF($9,0),$10,$11::uuid,$12,$13,1
+			NULLIF($8,'')::uuid,NULLIF($9,0),$10,$11::uuid,$12,$13,1,$14,$15
 		FROM tenants t WHERE t.id::text=$1 OR t.slug=$1
 		ON CONFLICT DO NOTHING
 		RETURNING `+formProposalProjectionReturning,
 		value.TenantID, value.ID, value.LegalEntityID, value.SourceKind, value.SourceDocumentID,
 		value.SourceDocumentVersion, value.SourceSHA256, value.BaseTemplateID, value.BaseTemplateVersion,
-		value.Status, value.CreatedBy, value.CreatedAt.UTC(), value.UpdatedAt.UTC()))
+		value.Status, value.CreatedBy, value.CreatedAt.UTC(), value.UpdatedAt.UTC(), value.GeneratorVersion, value.AssessmentGroupID))
 	return created, err
 }
 
@@ -223,9 +223,10 @@ func selectFormProposalBySource(ctx context.Context, tx pgx.Tx, value FormTempla
 		  AND p.source_document_version IS NOT DISTINCT FROM NULLIF($5,0)
 		  AND p.source_sha256=$6
 		  AND p.base_template_id IS NOT DISTINCT FROM NULLIF($7,'')::uuid
-		  AND p.base_template_version IS NOT DISTINCT FROM NULLIF($8,0)`,
+		  AND p.base_template_version IS NOT DISTINCT FROM NULLIF($8,0)
+		  AND p.generator_version=$9 AND p.assessment_group_id=$10`,
 		value.TenantID, value.LegalEntityID, value.SourceKind, value.SourceDocumentID,
-		value.SourceDocumentVersion, value.SourceSHA256, value.BaseTemplateID, value.BaseTemplateVersion))
+		value.SourceDocumentVersion, value.SourceSHA256, value.BaseTemplateID, value.BaseTemplateVersion, value.GeneratorVersion, value.AssessmentGroupID))
 }
 
 func encodeFormProposalPayload(value FormTemplateProposal) ([]byte, []byte, []byte, []byte, error) {
@@ -255,7 +256,7 @@ const formProposalProjection = `
 	p.proposed_contract,p.field_changes,p.unresolved_items,p.provenance,p.failure_code,p.failure_message,
 	p.created_by::text,COALESCE(p.reviewed_by::text,''),p.accepted_change_ids,
 	COALESCE(p.result_template_id::text,''),COALESCE(p.result_template_version,0),
-	p.created_at,p.updated_at,p.reviewed_at,p.version`
+	p.created_at,p.updated_at,p.reviewed_at,p.version,p.generator_version,p.assessment_group_id`
 
 const formProposalProjectionReturning = `
 	p.id::text,(SELECT slug FROM tenants WHERE id=p.tenant_id),p.legal_entity_id::text,p.source_kind,
@@ -264,7 +265,7 @@ const formProposalProjectionReturning = `
 	p.proposed_contract,p.field_changes,p.unresolved_items,p.provenance,p.failure_code,p.failure_message,
 	p.created_by::text,COALESCE(p.reviewed_by::text,''),p.accepted_change_ids,
 	COALESCE(p.result_template_id::text,''),COALESCE(p.result_template_version,0),
-	p.created_at,p.updated_at,p.reviewed_at,p.version`
+	p.created_at,p.updated_at,p.reviewed_at,p.version,p.generator_version,p.assessment_group_id`
 
 type formProposalScanner interface {
 	Scan(...any) error
@@ -280,6 +281,7 @@ func scanFormProposal(row formProposalScanner) (FormTemplateProposal, error) {
 		&contract, &changes, &unresolved, &provenance, &value.FailureCode, &value.FailureMessage,
 		&value.CreatedBy, &value.ReviewedBy, &accepted, &value.ResultTemplateID, &value.ResultTemplateVersion,
 		&value.CreatedAt, &value.UpdatedAt, &value.ReviewedAt, &value.Version,
+		&value.GeneratorVersion, &value.AssessmentGroupID,
 	); err != nil {
 		return FormTemplateProposal{}, err
 	}

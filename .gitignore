@@ -12,6 +12,7 @@ coverage.out
 .tmp-go-cache
 .gocache
 .codex-test-cache
+.pnpm-store
 
 # Web
 web/node_modules/

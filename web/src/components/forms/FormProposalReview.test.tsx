@@ -47,6 +47,23 @@ beforeEach(() => {
 });
 
 describe("FormProposalReview", () => {
+  it("requires a confirmed single assessment and excludes other vendor context from the preview", async () => {
+    const grouped: FormTemplateProposal = { ...proposal,
+      provenance: { ...proposal.provenance, proposal_version: "FINDING_FOLLOW_UP_V1" },
+      proposed_contract: { ...proposal.proposed_contract, sections: [{id:"one",title:"Moneytor finding",help:"Bank rating: Medium"},{id:"two",title:"PTSP finding",help:"PTSP confidential context"}], fields: proposal.proposed_contract.fields.map((field,i)=>({...field,section_id:i ? "two":"one"})) },
+      field_changes: proposal.field_changes.map((change,i)=>({...change,group_id:i ? "two":"one",group_label:i ? "PTSP assessment":"Moneytor assessment",field:{...change.field,section_id:i ? "two":"one"}})),
+    };
+    render(<FormProposalReview proposal={grouped} onProposalChange={() => undefined}/>);
+    expect(screen.getByRole("button",{name:"Create draft from selected fields"}).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button",{name:/Assessment to include/}));
+    fireEvent.click(await screen.findByRole("option",{name:"Moneytor assessment"}));
+    expect(screen.getByText("Bank rating: Medium")).toBeTruthy();
+    expect(screen.queryByText("PTSP confidential context")).toBeNull();
+    fireEvent.click(screen.getByRole("checkbox",{name:/I checked this assessment/}));
+    fireEvent.click(screen.getByRole("button",{name:"Create draft from selected fields"}));
+    await waitFor(()=>expect(acceptFormProposal).toHaveBeenCalledWith("proposal-1",2,["change-name"],true));
+  });
+
   it("shows source anchors, confidence, unresolved decisions, and the real capture preview", () => {
     render(<FormProposalReview proposal={proposal} sourceTitle="vendor-questionnaire.docx" sourceElements={[{ ref: "p-4", kind: "FORM_CONTROL", text: "Registered name", anchor: { page: 2, paragraph: "p-4" } }]} onProposalChange={() => undefined}/>);
     expect(screen.getByRole("heading", { name: "Review proposed form fields" })).toBeTruthy();

@@ -166,8 +166,8 @@ func formProposalKey(tenantID, legalEntityID, proposalID string) string {
 }
 
 func formProposalSourceKey(value FormTemplateProposal) string {
-	return fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%d\x00%s\x00%s\x00%d",
+	return fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%d\x00%s\x00%s\x00%d\x00%s\x00%s",
 		strings.TrimSpace(value.TenantID), strings.TrimSpace(value.LegalEntityID), value.SourceKind,
 		strings.TrimSpace(value.SourceDocumentID), value.SourceDocumentVersion, strings.TrimSpace(value.SourceSHA256),
-		strings.TrimSpace(value.BaseTemplateID), value.BaseTemplateVersion)
+		strings.TrimSpace(value.BaseTemplateID), value.BaseTemplateVersion, value.GeneratorVersion, value.AssessmentGroupID)
 }

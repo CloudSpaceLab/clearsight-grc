@@ -57,7 +57,11 @@ func (s *PostgresFormProposalStore) AcceptWithDraft(ctx context.Context, mutatio
 	if current.Status != FormProposalReviewRequired {
 		return FormTemplateProposal{}, ErrFormProposalState
 	}
-	if current.TenantID != draft.TenantID || current.LegalEntityID != draft.LegalEntityID {
+	// Proposal reads use a tenant slug while the prepared draft uses the
+	// verified actor's tenant UUID. The locked proposal query and draft
+	// preparation already enforce that tenant scope; compare the stable legal
+	// entity here.
+	if current.LegalEntityID != draft.LegalEntityID {
 		return FormTemplateProposal{}, ErrFormProposalSourceChanged
 	}
 	if sourceSHA, required := proposalAcceptanceSourceSHA256(current); required {

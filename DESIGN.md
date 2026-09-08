@@ -196,6 +196,8 @@ Internal review shows only the exact scoped response, answer provenance, coverag
 
 ### Governed Forms workspace
 
+Finding-register conversion requires selecting one assessment before showing the recipient preview. The preview retains bank-provided finding context alongside typed response questions. Changing the assessment resets source confirmation; draft creation stays disabled until confirmation. Use the shared assessment select and existing narrow stacked proposal layout. Required states and source limits are documented in `docs/design/2026-09-08-register-follow-up.md`.
+
 Forms is a direct primary navigation surface. Its default view is a bounded searchable template library, not a creation wizard. The library distinguishes the latest stored revision from the active reusable revision, supports saved views and keeps filters available for banks with hundreds of Programs, Matters and vendor relationships. Template detail, editor, sender, response history, import handoff and communications remain tabs within the same visual system.
 
 The selected Forms peer section is a validated `section` hash-query value, restored on reload and browser Back/Forward. Templates remains the default for absent or unknown values; existing template IDs and library filters retain their route meaning. Tab changes add history only when the section changes. Returning to Documents re-reads the scoped inventory rather than restoring protected rows from browser storage. File filters, pagination and selected-file recovery remain separately tracked under #200. See `docs/design/2026-09-08-forms-section-resume.md`.

@@ -49,6 +49,7 @@ func validProposalSHA256(value string) bool {
 
 func sameProposalSource(left, right FormTemplateProposal) bool {
 	return left.TenantID == right.TenantID &&
+		left.GeneratorVersion == right.GeneratorVersion && left.AssessmentGroupID == right.AssessmentGroupID &&
 		left.LegalEntityID == right.LegalEntityID &&
 		left.SourceKind == right.SourceKind &&
 		left.SourceDocumentID == right.SourceDocumentID &&

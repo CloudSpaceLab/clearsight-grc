@@ -178,6 +178,23 @@ func TestFormTemplateProposalAcceptanceRejectsChangedSourceBeforeDraftMutation(t
 	}
 }
 
+func TestProposalSourceMatchUsesDocumentRevisionWhenTenantReadShapesDiffer(t *testing.T) {
+	document := proposalSourceDocument()
+	document.TenantID = "00000000-0000-4000-8000-000000000001"
+	proposal := FormTemplateProposal{
+		TenantID: "clear-bank", LegalEntityID: document.LegalEntityID,
+		SourceKind: FormProposalSourceDocument, SourceDocumentID: document.ID,
+		SourceDocumentVersion: document.Version, SourceSHA256: document.SHA256,
+	}
+	if !proposalSourceMatchesDocument(proposal, document) {
+		t.Fatal("the same document revision was rejected because storage returned a tenant slug")
+	}
+	document.Version++
+	if proposalSourceMatchesDocument(proposal, document) {
+		t.Fatal("a changed document revision was accepted")
+	}
+}
+
 func containsTemplateField(fields []TemplateField, id string) bool {
 	for _, field := range fields {
 		if field.ID == id {

@@ -85,10 +85,10 @@ export function loadFormProposal(id: string): Promise<FormTemplateProposal> {
   return requestJSON<FormTemplateProposal>(apiBase, `/api/v1/forms/proposals/${encodeURIComponent(id)}`);
 }
 
-export function acceptFormProposal(id: string, expectedVersion: number, changeIDs: string[]): Promise<FormTemplateProposal> {
+export function acceptFormProposal(id: string, expectedVersion: number, changeIDs: string[], assessmentConfirmed?: boolean): Promise<FormTemplateProposal> {
   return requestJSON<FormTemplateProposal>(apiBase, `/api/v1/forms/proposals/${encodeURIComponent(id)}/accept`, {
     method: "POST",
-    body: JSON.stringify({ expected_version: expectedVersion, change_ids: changeIDs }),
+    body: JSON.stringify({ expected_version: expectedVersion, change_ids: changeIDs, ...(assessmentConfirmed === undefined ? {} : { assessment_confirmed: assessmentConfirmed }) }),
   });
 }
 

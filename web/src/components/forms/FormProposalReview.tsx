@@ -5,6 +5,7 @@ import type { FormProposalFieldChange, FormTemplateProposal } from "../../formsT
 import { apiErrorKind } from "../../http";
 import type { CaptureFormContract } from "../../types";
 import { FormPreview } from "./FormPreview";
+import { SelectField } from "../ui";
 
 type Props = {
   proposal: FormTemplateProposal;
@@ -15,11 +16,16 @@ type Props = {
 };
 
 export function FormProposalReview({ proposal, sourceTitle, sourceElements = [], onProposalChange, onDraftCreated }: Props) {
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(proposal.field_changes.map((change) => change.id)));
+  const followUp = proposal.provenance.proposal_version === "FINDING_FOLLOW_UP_V1";
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(followUp ? [] : proposal.field_changes.map((change) => change.id)));
+  const [group, setGroup] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const groups = [...new Map(proposal.field_changes.filter((change) => change.group_id).map((change) => [change.group_id!, change.group_label!])).entries()];
   const [busy, setBusy] = useState<"accept" | "reject" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setConfirmed(false);
     const available = new Set(proposal.field_changes.map((change) => change.id));
     setSelected((current) => new Set([...current].filter((id) => available.has(id))));
   }, [proposal.id, proposal.version, proposal.field_changes]);
@@ -52,11 +58,12 @@ export function FormProposalReview({ proposal, sourceTitle, sourceElements = [],
   }
 
   async function accept() {
-    if (busy || selectedChanges.length === 0) return;
+    if (busy || selectedChanges.length === 0 || (followUp && !confirmed)) return;
     setBusy("accept");
     setError(null);
     try {
-      const accepted = await acceptFormProposal(proposal.id, proposal.version, selectedChanges.map((change) => change.id));
+      const ids = selectedChanges.map((change) => change.id);
+      const accepted = followUp ? await acceptFormProposal(proposal.id, proposal.version, ids, confirmed) : await acceptFormProposal(proposal.id, proposal.version, ids);
       onProposalChange(accepted);
       if (accepted.result_template_id && accepted.result_template_version) onDraftCreated?.(accepted.result_template_id, accepted.result_template_version);
     } catch (cause) {
@@ -89,29 +96,36 @@ export function FormProposalReview({ proposal, sourceTitle, sourceElements = [],
   if (proposal.status === "ACCEPTED") return <section className="form-proposal-state form-proposal-complete" role="status"><strong>Draft form template created</strong><p>{proposal.accepted_change_ids?.length ?? 0} selected field changes were applied to draft revision {proposal.result_template_version}.</p>{proposal.result_template_id && <a href={`#/forms/${encodeURIComponent(proposal.result_template_id)}`}>Open draft template</a>}</section>;
   if (proposal.status === "REJECTED") return <section className="form-proposal-state"><strong>Proposal rejected</strong><p>No form template was created or changed.</p></section>;
 
-  return <section className="form-proposal-review" aria-labelledby={`form-proposal-${proposal.id}`}>
+  return <section className={`form-proposal-review${followUp ? " form-proposal-follow-up" : ""}`} aria-labelledby={`form-proposal-${proposal.id}`}>
     <header className="form-proposal-heading">
       <div><span className="eyebrow">{proposal.source_kind === "AI" ? "Governed AI proposal" : "Document field proposal"}</span><h3 id={`form-proposal-${proposal.id}`}>Review proposed form fields</h3><p>{sourceTitle ? `Compare proposed fields with ${sourceTitle} before creating a draft.` : "Choose the field changes to include before creating a draft."}</p></div>
       <div className="form-proposal-count"><strong>{selected.size}</strong><span>of {proposal.field_changes.length} selected</span></div>
     </header>
     {error && <p className="error-text" role="alert">{error}</p>}
     {(proposal.provenance.extraction_status === "PARTIAL" || proposal.provenance.extraction_status === "TRUNCATED") && <p className="form-proposal-notice" role="status">Only the retained portion of this source was analyzed. Review source gaps and unresolved items before using the draft.</p>}
-    <div className="form-proposal-toolbar">
+    {followUp && <div className="form-proposal-notice">
+      <h4>Request responses to existing findings</h4>
+      <p>Choose one assessment. Its findings, recommendations, ratings and original dates are shown as bank-provided context. The vendor answers response questions and can attach evidence.</p>
+      <SelectField label="Assessment to include" value={group || undefined} placeholder="Choose an assessment" options={groups.map(([id, label]) => ({id, label}))} onChange={(value) => { const next = value ?? ""; setGroup(next); setConfirmed(false); setSelected(new Set(proposal.field_changes.filter((change) => change.group_id === next).map((change) => change.id))); }}/>
+      {group && <p>{new Set(selectedChanges.map((change) => change.field.section_id)).size} findings included. Confirm the service and assessment date against the register; placeholder vendor names are not matched automatically. Select the existing vendor when sending the approved form.</p>}
+      <label><input type="checkbox" checked={confirmed} disabled={!group} onChange={(event) => setConfirmed(event.target.checked)}/> I checked this assessment’s vendor, service, findings and dates against the original register.</label>
+    </div>}
+    {!followUp && <div className="form-proposal-toolbar">
       <label><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(proposal.field_changes.map((change) => change.id)))}/> Select all proposed fields</label>
       <span>{proposal.unresolved_items.length} decision{proposal.unresolved_items.length === 1 ? "" : "s"} need author review</span>
-    </div>
+    </div>}
     <div className="form-proposal-layout">
       <div className="form-proposal-changes" aria-label="Proposed field changes">
-        {proposal.field_changes.map((change) => <ProposalChange key={change.id} change={change} checked={selected.has(change.id)} elements={sourceElements} unresolved={proposal.unresolved_items.filter((item) => item.field_change_id === change.id)} onToggle={() => toggle(change.id)}/>)}
+        {followUp ? <div><h4>Review the selected assessment</h4><p>{group ? "Review each finding and its response questions in the preview. Required responses are proposed for your review; missing evidence or a completion date must be explained in the response." : "Choose an assessment to preview its findings and questions."}</p></div> : proposal.field_changes.map((change) => <ProposalChange key={change.id} change={change} checked={selected.has(change.id)} elements={sourceElements} unresolved={proposal.unresolved_items.filter((item) => item.field_change_id === change.id)} onToggle={() => toggle(change.id)}/>)}
       </div>
       <aside className="form-proposal-preview">
-        <FormPreview contract={preview} initialMode="CLASSIC" showModeControls={false}/>
+        {(!followUp || group) && <FormPreview key={group} contract={preview} initialMode="CLASSIC" showModeControls={false}/>}
         {proposal.proposed_contract.scoring_mode === "NONE" && <p className="form-proposal-scoring-note">Scoring weights were not inferred. Add compliance weights only after a reviewer confirms the scoring policy and the total equals 100.</p>}
       </aside>
     </div>
     <footer className="form-proposal-actions">
       <button className="secondary-button" type="button" disabled={Boolean(busy)} onClick={() => void reject()}>{busy === "reject" ? "Rejecting…" : "Reject proposal"}</button>
-      <button className="primary-button" type="button" disabled={Boolean(busy) || selected.size === 0} onClick={() => void accept()}>{busy === "accept" ? "Creating draft…" : "Create draft from selected fields"}</button>
+      <button className="primary-button" type="button" disabled={Boolean(busy) || selected.size === 0 || (followUp && !confirmed)} onClick={() => void accept()}>{busy === "accept" ? "Creating draft…" : "Create draft from selected fields"}</button>
     </footer>
   </section>;
 }
@@ -131,17 +145,17 @@ function ProposalChange({ change, checked, elements, unresolved, onToggle }: { c
 
 function previewContract(proposal: FormTemplateProposal, selected: Set<string>): CaptureFormContract {
   const changes = new Map(proposal.field_changes.map((change) => [change.field.id, change]));
-  const fields = proposal.proposed_contract.fields.filter((field) => {
+  const fields = (proposal.proposed_contract.fields ?? []).filter((field) => {
     const change = changes.get(field.id);
     return !change || (selected.has(change.id) && change.kind !== "REMOVE_FIELD");
   });
   const sectionIDs = new Set(fields.map((field) => field.section_id).filter(Boolean));
-  return { presentation: proposal.proposed_contract.presentation, sections: proposal.proposed_contract.sections.filter((section) => sectionIDs.has(section.id)), fields };
+  return { presentation: proposal.proposed_contract.presentation, sections: (proposal.proposed_contract.sections ?? []).filter((section) => sectionIDs.has(section.id)), fields };
 }
 
 function sourceExcerpt(anchor: DocumentSourceAnchor, elements: DocumentExtractedElement[]) {
   if (!anchor.page && !anchor.sheet && !anchor.paragraph && !anchor.table && !anchor.cell) return undefined;
-  return elements.find((element) => element.anchor.page === anchor.page && element.anchor.sheet === anchor.sheet && (element.anchor.paragraph === anchor.paragraph || element.anchor.cell === anchor.cell))?.text;
+  return elements.find((element) => element.anchor.page === anchor.page && element.anchor.sheet === anchor.sheet && (!anchor.row_start || element.anchor.row_start === anchor.row_start) && (!anchor.paragraph || element.anchor.paragraph === anchor.paragraph) && (!anchor.cell || element.anchor.cell === anchor.cell))?.text;
 }
 
 function anchorLabel(anchor: DocumentSourceAnchor) {

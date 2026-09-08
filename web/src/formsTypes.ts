@@ -97,6 +97,8 @@ export type FormProposalContract = {
   fields: FormTemplateField[];
 };
 export type FormProposalFieldChange = {
+	group_id?: string;
+	group_label?: string;
   id: string;
   kind: FormProposalChangeKind;
   field: FormTemplateField;

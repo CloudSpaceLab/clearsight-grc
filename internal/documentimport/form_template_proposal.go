@@ -37,6 +37,8 @@ func (p ProposalPolicy) normalized() ProposalPolicy {
 }
 
 type FormFieldChange struct {
+	GroupID    string             `json:"group_id,omitempty"`
+	GroupLabel string             `json:"group_label,omitempty"`
 	ID         string             `json:"id"`
 	Kind       string             `json:"kind"`
 	Field      formcontract.Field `json:"field"`
@@ -73,6 +75,9 @@ type FormTemplateProposal struct {
 
 func ProposeFormTemplate(document Document, policy ProposalPolicy) (FormTemplateProposal, error) {
 	policy = policy.normalized()
+	if proposal, matched, err := proposeFindingFollowUp(document, policy); matched || err != nil {
+		return proposal, err
+	}
 	if document.ExtractionStatus != ExtractionExtracted && document.ExtractionStatus != ExtractionPartial && document.ExtractionStatus != ExtractionTruncated {
 		return FormTemplateProposal{}, errors.New("form proposal requires extracted, partially extracted, or explicitly truncated source content")
 	}

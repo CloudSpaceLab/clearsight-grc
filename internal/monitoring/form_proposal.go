@@ -33,6 +33,8 @@ const (
 )
 
 type FormTemplateProposal struct {
+	GeneratorVersion      string                                  `json:"generator_version,omitempty"`
+	AssessmentGroupID     string                                  `json:"assessment_group_id,omitempty"`
 	ID                    string                                  `json:"id"`
 	TenantID              string                                  `json:"-"`
 	LegalEntityID         string                                  `json:"-"`
@@ -67,8 +69,9 @@ type RequestDocumentFormProposalInput struct {
 }
 
 type AcceptFormProposalInput struct {
-	ExpectedVersion int64    `json:"expected_version"`
-	ChangeIDs       []string `json:"change_ids"`
+	AssessmentConfirmed bool     `json:"assessment_confirmed,omitempty"`
+	ExpectedVersion     int64    `json:"expected_version"`
+	ChangeIDs           []string `json:"change_ids"`
 }
 
 type RejectFormProposalInput struct {

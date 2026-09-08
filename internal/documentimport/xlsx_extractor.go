@@ -112,6 +112,11 @@ func readSharedStrings(ctx context.Context, file *zip.File, policy ExtractionPol
 }
 
 func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheetName string, collector *sectionCollector, budget *extractionBudget) error {
+	merges, err := worksheetVerticalMerges(ctx, file, collector.policy)
+	if err != nil {
+		return err
+	}
+	mergeValues := map[string]string{}
 	stream, err := file.Open()
 	if err != nil {
 		return err
@@ -123,6 +128,7 @@ func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheet
 	inRow := false
 	rowNonEmpty := false
 	var parts []string
+	var rowValues map[int]string
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -154,6 +160,7 @@ func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheet
 				inRow = true
 				rowNonEmpty = false
 				parts = nil
+				rowValues = map[int]string{}
 				if collector.canRetain() {
 					parts = make([]string, 0, 16)
 				}
@@ -179,11 +186,35 @@ func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheet
 				}
 				rowNonEmpty = true
 				if parts != nil {
-					parts = append(parts, fmt.Sprintf("Column %d: %s", column+1, cellValue))
+					rowValues[column] = cellValue
+					for _, merged := range merges[column] {
+						if merged.start == rowNumber {
+							mergeValues[merged.source] = cellValue
+						}
+					}
 				}
 			}
 		case xml.EndElement:
 			if value.Name.Local == "row" && inRow {
+				if parts != nil && rowNonEmpty {
+					for column, ranges := range merges {
+						for _, merged := range ranges {
+							if rowNumber > merged.start && rowNumber <= merged.end && rowValues[column] == "" {
+								rowValues[column] = mergeValues[merged.source]
+							}
+						}
+					}
+					columns := make([]int, 0, len(rowValues))
+					for column := range rowValues {
+						columns = append(columns, column)
+					}
+					sort.Ints(columns)
+					for _, column := range columns {
+						if rowValues[column] != "" {
+							parts = append(parts, fmt.Sprintf("Column %d: %s", column+1, rowValues[column]))
+						}
+					}
+				}
 				collector.add(Section{Title: fmt.Sprintf("%s row %d", sheetName, rowNumber), Text: strings.Join(parts, "\n"), Sheet: sheetName, RowStart: rowNumber, RowEnd: rowNumber}, rowNonEmpty, parts == nil && rowNonEmpty)
 				inRow = false
 			}

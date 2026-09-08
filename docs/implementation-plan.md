@@ -3,6 +3,10 @@
 **Status date:** 2026-09-08
 **Current execution:** Integrated GRC closeout under #200; current slice: Forms section resumption
 
+## Finding-register conversion — local verification
+
+The user-authorized follow-up converter is in local implementation and verification. It preserves finding context, separates numbered assessments, generates typed vendor questions and retains independent draft/retry receipts through migration 82. See [decision and acceptance](design/2026-09-08-register-follow-up.md). This does not claim deployed acceptance, canonical vendor auto-matching or completion of the wider import workstream.
+
 ## Resumed execution — integrated GRC experience
 
 The operator authorized gap closure on 8 September 2026 following the evidence-backed master [#200](https://github.com/CloudSpaceLab/clearsight-grc/issues/200). The first bounded slice follows the [result-handoff decision brief](design/2026-09-08-governed-result-handoffs.md) and [implementation plan](superpowers/plans/2026-09-08-governed-result-handoffs.md): open a stored document-analysis result in its existing Program or issue workspace, preserving review and authorization distinctions. It does not introduce another document viewer, change material authority, or claim complete IGX-00/09 acceptance.
