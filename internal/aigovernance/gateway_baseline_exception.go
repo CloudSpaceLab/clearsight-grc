@@ -96,7 +96,7 @@ func projectGatewayBaselineException(policy Policy, now time.Time) (aigateway.Ba
 		return aigateway.BaselineException{}, err
 	}
 	return aigateway.BaselineException{
-		PolicyRevisionRef:      aigateway.PolicyRevisionRef{ID: policy.ID, Code: policy.Code, Version: policy.Version},
+		PolicyRevisionRef:     aigateway.PolicyRevisionRef{ID: policy.ID, Code: policy.Code, Version: policy.Version},
 		TargetBaselineID:      scope.TargetBaselineID,
 		TargetBaselineVersion: scope.TargetBaselineVersion,
 		WorkloadRecordIDs:     append([]string(nil), scope.WorkloadRecordIDs...),
