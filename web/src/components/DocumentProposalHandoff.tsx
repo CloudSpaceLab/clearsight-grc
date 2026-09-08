@@ -4,6 +4,8 @@ import { authorizeDocumentProposalHandoff, loadDocumentImport, reviewDocumentPro
 import type { DocumentImport, DocumentProposal, HandoffAuthorizationInput, HandoffReviewInput } from "../documentTypes";
 import { apiErrorKind } from "../http";
 import type { ProgramAggregate } from "../types";
+import { documentResultLink } from "../documentResultRouting";
+import { ActionLink } from "./ui";
 
 type Props = {
   documentID: string;
@@ -54,7 +56,7 @@ export function DocumentProposalHandoff({ documentID, documentVersion, legalEnti
 
   if (!handoff) {
     return currentProposal.status === "ACCEPTED"
-      ? <div className="proposal-handoff proposal-handoff-unavailable"><strong>Accepted · handoff unavailable</strong><p>This legacy acceptance has no governed handoff receipt. Reload or reconcile this import before relying on it.</p></div>
+      ? <div className="proposal-handoff proposal-handoff-unavailable"><strong>Accepted · review details unavailable</strong><p>Reload this import to check who must review or authorize the proposal before continuing.</p></div>
       : null;
   }
 
@@ -63,17 +65,19 @@ export function DocumentProposalHandoff({ documentID, documentVersion, legalEnti
   const canAct = Boolean(route?.is_current_actor) && !locked;
   const stage = handoffLabel(handoff.status);
   const assignee = routeSummary(route?.status, route?.principal_name);
+  const result = handoff.status === "APPROVED" && (handoff.result_object_type === "REQUIREMENT" || handoff.result_object_type === "CONTROL_OBJECTIVE")
+    ? documentResultLink(handoff.result_object_type, handoff.result_object_id, handoff.target_program_id) : undefined;
 
-  return <section className={`proposal-handoff handoff-${handoff.status.toLowerCase().replaceAll("_", "-")}`} aria-label={`Proposal handoff: ${stage}`}>
+  return <section className={`proposal-handoff handoff-${handoff.status.toLowerCase().replaceAll("_", "-")}`} aria-label={`Proposal review: ${stage}`}>
     <div className="proposal-handoff-head">
-      <div><span>Governed handoff</span><strong>{stage}</strong></div>
+      <div><span>Review and authorization</span><strong>{stage}</strong></div>
       {handoff.status === "AWAITING_REVIEW" || handoff.status === "AWAITING_AUTHORIZATION" ? <small>{assignee}</small> : null}
     </div>
     {error && <p className="error-text proposal-handoff-error" role="alert">{error}</p>}
 
     {handoff.status === "AWAITING_REVIEW" && canAct && <div className="proposal-handoff-form">
-      <label><span>Canonical title</span><input value={title} onChange={(event) => setTitle(event.target.value)} disabled={busy}/></label>
-      <label><span>Canonical statement</span><textarea rows={3} value={statement} onChange={(event) => setStatement(event.target.value)} disabled={busy}/></label>
+      <label><span>Proposed title</span><input value={title} onChange={(event) => setTitle(event.target.value)} disabled={busy}/></label>
+      <label><span>Proposed statement</span><textarea rows={3} value={statement} onChange={(event) => setStatement(event.target.value)} disabled={busy}/></label>
       <div className="proposal-handoff-grid">
         <label><span>Create as</span><select value={targetType} onChange={(event) => setTargetType(event.target.value as typeof targetType)} disabled={busy}><option value="REQUIREMENT">Requirement</option><option value="CONTROL_OBJECTIVE">Control objective</option></select></label>
         <label><span>Target Program</span><select value={programID} onChange={(event) => setProgramID(event.target.value)} disabled={busy || !programsLoaded}><option value="">{programsLoaded ? "Choose Program" : "Loading Programs…"}</option>{scopedPrograms.map(({ program }) => <option key={program.id} value={program.id}>{program.code} · {program.name}</option>)}</select></label>
@@ -93,10 +97,10 @@ export function DocumentProposalHandoff({ documentID, documentVersion, legalEnti
     </div>}
 
     {(handoff.status === "APPROVED" || handoff.status === "REJECTED" || handoff.status === "RETURNED" || handoff.status === "CONVERSION_FAILED") && <div className="proposal-handoff-receipt">
-      {handoff.status === "APPROVED" && <><strong>Canonical object created</strong><p>{human(handoff.result_object_type || handoff.target_type || "Object")} · <code>{handoff.result_object_id}</code></p></>}
+      {handoff.status === "APPROVED" && (result ? <><strong>{result.object} created</strong><p>{handoff.draft_title || currentProposal.title}</p><ActionLink href={result.href}>{result.label}</ActionLink></> : <><strong>Conversion approved · result details unavailable</strong><p>Reload this import to check the created record before continuing.</p></>)}
       {handoff.status === "REJECTED" && <><strong>Proposal rejected</strong><p>{handoff.authorization_note || handoff.review_note || "No further conversion is pending."}</p></>}
-      {handoff.status === "RETURNED" && <><strong>Proposal returned</strong><p>{handoff.authorization_note || handoff.review_note || "The intake requires another governed review."}</p></>}
-      {handoff.status === "CONVERSION_FAILED" && <><strong>Conversion needs attention</strong><p>No canonical object should be relied on until this handoff is reconciled.</p></>}
+      {handoff.status === "RETURNED" && <><strong>Proposal returned</strong><p>{handoff.authorization_note || handoff.review_note || "This proposal needs another independent review."}</p></>}
+      {handoff.status === "CONVERSION_FAILED" && <><strong>Conversion needs attention</strong><p>Record creation could not be confirmed. Reload this import and check the review result before continuing.</p></>}
     </div>}
   </section>;
 
@@ -167,8 +171,4 @@ function routeSummary(status?: string, principalName?: string) {
   if (status === "AMBIGUOUS_ROUTE") return "Authority route is ambiguous";
   if (status === "NO_LEGAL_ENTITY") return "Legal-entity scope is missing";
   return "Routing unavailable";
-}
-
-function human(value: string) {
-  return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }

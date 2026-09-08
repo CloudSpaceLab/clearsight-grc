@@ -143,6 +143,17 @@ export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.
   guide = clone(fixtures.guide);
   document = clone(fixtures.document);
   documentCoverage = clone(fixtures.documentCoverage);
+  if (activeFixture() === "document-result-handoffs" || activeFixture() === "document-result-incomplete") {
+    const sourceProposal = document.proposals[0]!;
+    document.proposals = [
+      { ...sourceProposal, id: "proposal-owner", status: "ACCEPTED", handoff: { id: "handoff-owner", status: "APPROVED", intake_principal_id: "role-cro", draft_title: "Maintain accountable data-processing governance", draft_statement: sourceProposal.statement, target_type: "REQUIREMENT", target_program_id: programID, result_object_type: "REQUIREMENT", result_object_id: "req-1", updated_at: now, version: 3 } },
+      { ...sourceProposal, id: "proposal-control", title: "Accountable privacy governance", status: "ACCEPTED", handoff: { id: "handoff-control", status: "APPROVED", intake_principal_id: "role-cro", draft_title: "Accountable privacy governance", draft_statement: "Responsibilities and decisions remain current and evidenced.", target_type: "CONTROL_OBJECTIVE", target_program_id: programID, result_object_type: "CONTROL_OBJECTIVE", result_object_id: "obj-1", updated_at: now, version: 3 } },
+    ];
+    documentCoverage.suggestions = documentCoverage.suggestions.map((suggestion) => ({ ...suggestion, status: "APPLIED", applied_type: "REQUIREMENT", applied_id: "req-2" }));
+    if (activeFixture() === "document-result-incomplete") {
+      for (const proposal of document.proposals) delete proposal.handoff!.result_object_id;
+    }
+  }
 }
 let guide: Record<string, any>;
 

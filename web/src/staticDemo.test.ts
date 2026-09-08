@@ -21,6 +21,25 @@ beforeEach(() => {
 });
 
 describe("static stakeholder demo transport", () => {
+  it("provides incomplete result metadata without inventing a replacement destination", async () => {
+    window.history.replaceState(null, "", "/?fixture=document-result-incomplete");
+    const { staticDemoRequest } = await demo();
+    const document = await staticDemoRequest<import("./documentTypes").DocumentImport>("/api/v1/document-imports/document-gaid");
+    expect(document.proposals[0]?.handoff).toMatchObject({ status: "APPROVED", result_object_type: "REQUIREMENT" });
+    expect(document.proposals[0]?.handoff?.result_object_id).toBeUndefined();
+  });
+  it("keeps document-result evidence links inside the same sample Program aggregate", async () => {
+    window.history.replaceState(null, "", "/?fixture=document-result-handoffs");
+    const { staticDemoRequest } = await demo();
+    const document = await staticDemoRequest<import("./documentTypes").DocumentImport>("/api/v1/document-imports/document-gaid");
+    const coverage = await staticDemoRequest<import("./documentTypes").DocumentCoverage>("/api/v1/document-imports/document-gaid/coverage");
+    const detail = await staticDemoRequest<{ requirements: Array<{ id: string }>; control_objectives: Array<{ id: string }> }>("/api/v1/programs/program-ndpa");
+    expect(document.proposals.map((proposal) => proposal.handoff?.status)).toEqual(["APPROVED", "APPROVED"]);
+    expect(document.proposals[0]?.handoff?.result_object_id).toBe(detail.requirements[0]?.id);
+    expect(document.proposals[1]?.handoff?.result_object_id).toBe(detail.control_objectives[0]?.id);
+    expect(coverage.suggestions[0]).toMatchObject({ status: "APPLIED", program_id: "program-ndpa", applied_type: "REQUIREMENT", applied_id: "req-2" });
+    expect(detail.requirements.some((item) => item.id === coverage.suggestions[0]?.applied_id)).toBe(true);
+  });
   it("filters sample submitted documents by file type and exact response scope", async () => {
     window.history.replaceState(null, "", "/?fixture=forms-documents");
     const module = await demo();
