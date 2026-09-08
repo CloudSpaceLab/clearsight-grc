@@ -45,6 +45,16 @@ class DeploymentConfigTest(unittest.TestCase):
         self.assertIn("Verify deployment migration ledger", workflow)
         self.assertIn('go test -count=1 -p 1 -tags "postgres postgresintegration" ./internal/...', workflow)
 
+    def test_forward_migrations_satisfy_deployment_transaction_boundary(self) -> None:
+        migrations = sorted(Path("migrations").glob("*.up.sql"))
+        self.assertTrue(migrations)
+        for migration in migrations:
+            with self.subTest(migration=migration.name):
+                lines = [line.strip() for line in migration.read_text(encoding="utf-8").splitlines() if line.strip()]
+                self.assertEqual(lines[0], "BEGIN;")
+                self.assertEqual(lines[-1], "COMMIT;")
+                self.assertEqual(sum(line in ("BEGIN;", "COMMIT;") for line in lines), 2)
+
     def test_forced_command_accepts_only_sha_deployments(self) -> None:
         script = self.read("deploy/scripts/ci-entrypoint.sh")
         for value in ("^deploy ([0-9a-f]{40})$", 'root=/opt/clearsight-grc', '"$root/incoming"',

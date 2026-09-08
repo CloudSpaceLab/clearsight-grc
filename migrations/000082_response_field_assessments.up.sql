@@ -1,3 +1,4 @@
+BEGIN;
 -- Bank decisions reference immutable submitted answers; current answers are never updated.
 CREATE TABLE capture_response_assessments (
  tenant_id uuid NOT NULL REFERENCES tenants(id),
@@ -37,3 +38,4 @@ CREATE FUNCTION prevent_response_assessment_mutation() RETURNS trigger LANGUAGE 
 CREATE TRIGGER capture_response_assessments_immutable BEFORE UPDATE OR DELETE ON capture_response_assessments FOR EACH ROW EXECUTE FUNCTION prevent_response_assessment_mutation();
 CREATE TRIGGER capture_field_assessments_immutable BEFORE UPDATE OR DELETE ON capture_field_assessments FOR EACH ROW EXECUTE FUNCTION prevent_response_assessment_mutation();
 CREATE UNIQUE INDEX capture_response_assessment_outbox_uq ON outbox_events(tenant_id,aggregate_id,event_type,((payload->>'version')::bigint)) WHERE aggregate_type='FORM_RESPONSE_ASSESSMENT';
+COMMIT;
