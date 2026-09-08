@@ -1,6 +1,6 @@
 # Forms section resumption
 
-Status: approved integration direction under #200; implementation and release proof pending.
+Status: implemented bounded IGX-00 slice under #200. Exact-head review and release receipts are tracked in [PR #203](https://github.com/CloudSpaceLab/clearsight-grc/pull/203) and #147; broader document acceptance remains open.
 
 ## Decision
 
