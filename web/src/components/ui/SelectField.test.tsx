@@ -46,6 +46,19 @@ describe("SelectField", () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
+  it("treats Escape captured at the browser boundary as an explicit close", async () => {
+    render(<main><SelectField label="Forms section" value="OPEN" placeholder="Forms section" options={options} onChange={() => undefined}/><div id="cs-overlay-root"/></main>);
+    const trigger = screen.getByRole("button", { name: /Forms section/ });
+
+    fireEvent.click(trigger);
+    await screen.findByRole("listbox");
+    fireEvent.scroll(document);
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+    expect(document.activeElement).toBe(trigger);
+  });
+
   it("portals the option list into the fixed workspace overlay root", async () => {
     render(<main data-testid="workspace"><main data-testid="canvas"><SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/></main><div id="cs-overlay-root" data-testid="overlay-root"/></main>);
     fireEvent.click(screen.getByRole("button", { name: /Status/ }));
