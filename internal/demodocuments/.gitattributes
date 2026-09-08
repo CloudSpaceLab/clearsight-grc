@@ -1,0 +1,4 @@
+# Manifest checks require identical bytes on Linux and Windows checkouts.
+assets/*.pdf binary
+assets/*.png binary
+assets/*.xlsx binary

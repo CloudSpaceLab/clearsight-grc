@@ -607,6 +607,15 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     : mode === "edit"
       ? "Save or cancel this vendor relationship before using the register."
       : "Save or cancel these vendor details before using the register.";
+  function synchronizeRelationship(relationship: VendorRelationshipAggregate["relationship"]) {
+    const update = (item: VendorRelationshipAggregate) => item.relationship.id === relationship.id
+      && item.relationship.tenant_id === relationship.tenant_id
+      && item.relationship.legal_entity_id === relationship.legal_entity_id
+      && item.relationship.version <= relationship.version ? { ...item, relationship } : item;
+    setSelected((current) => current ? update(current) : current);
+    setRecords((current) => current.map(update));
+  }
+
   const workspaceClass = `vendors-workspace${registerLocked ? " is-form" : selected ? " has-selection" : ""}`;
   const shownRecords = workFilter ? records.filter((record) => vendorSummaryMatches(formSummaries.get(record.relationship.id), workFilter)) : records;
   function requestForms(values: VendorRelationshipAggregate[]) { setRequestTargets(values.map((value) => ({ relationshipID: value.relationship.id, vendorName: value.vendor.legal_name, serviceName: value.relationship.service_name }))); }
@@ -676,11 +685,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           onOpenRequest={onOpenRequest}
           onOpenMatter={onOpenMatter}
           accountableOwnerLabel={accountableOwnerLabel}
-          onActivated={(relationship) => {
-            const updated = { ...selected, relationship };
-            setSelected(updated);
-            setRecords((current) => current.map((item) => item.relationship.id === relationship.id ? updated : item));
-          }}
+          onActivated={synchronizeRelationship}
+          onRefreshed={synchronizeRelationship}
         /> : records.length > 0 ? <div className="vendor-selection"><h2>Select a vendor</h2><p>Choose a relationship to review its service, accountable owner, source and current record version.</p></div> : null}
       </section>
     </div>}
@@ -696,7 +702,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   </div>;
 }
 
-function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter, accountableOwnerLabel, onActivated, onRequestForm, onFormWorkUpdated, formsRefreshKey, formsFilter }: {
+function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter, accountableOwnerLabel, onActivated, onRefreshed, onRequestForm, onFormWorkUpdated, formsRefreshKey, formsFilter }: {
   record: VendorRelationshipAggregate;
   assessment: VendorAssessment | null;
   assessmentSetup?: CurrentVendorAssessment["setup"];
@@ -735,6 +741,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   onOpenMatter?: (matterID: string) => void;
   accountableOwnerLabel: string;
   onActivated: (relationship: VendorRelationshipAggregate["relationship"]) => void;
+  onRefreshed: (relationship: VendorRelationshipAggregate["relationship"]) => void;
 }) {
   const { vendor, relationship } = record;
   const [documentsFor, setDocumentsFor] = useState<string>();
@@ -788,7 +795,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     onOpenRequest={onOpenRequest}
     onOpenMatter={onOpenMatter}
   />}
-  <VendorActivationPanel relationship={relationship} onActivated={onActivated}/>
+  <VendorActivationPanel relationship={relationship} onActivated={onActivated} onRefreshed={onRefreshed}/>
   <VendorWorkPanel relationshipID={relationship.id} onOpenRequest={onOpenRequest}/>
   {documentsFor === relationship.id && <FocusedSheet label={`${vendor.legal_name} documents`} size="wide" onClose={() => setDocumentsFor(undefined)}>
     <DocumentBrowser key={relationship.id} scopeLabel={`${vendor.legal_name} · ${relationship.service_name}`} relationshipID={relationship.id}/>

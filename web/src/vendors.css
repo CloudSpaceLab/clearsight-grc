@@ -50,7 +50,8 @@
 .vendor-boundary-note p { margin:5px 0 0; font-size:12px; }
 .vendor-activation-panel { margin:0 25px 25px; padding:20px; border:1px solid color-mix(in srgb,var(--cyan) 28%,var(--border)); border-radius:15px; background:color-mix(in srgb,var(--surface-2) 92%,var(--cyan)); }
 .vendor-activation-panel h3 { margin:7px 0 0; font-size:18px; }
-.vendor-activation-panel > p { margin:9px 0 0; color:var(--muted); font-size:12px; line-height:1.55; }
+.vendor-activation-panel > p { margin:9px 0 0; color:var(--text); font-size:12px; line-height:1.55; }
+.vendor-activation-panel [role="status"] p { color:var(--text); }
 .vendor-activation-heading { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; }
 .vendor-activation-ready,.vendor-activation-pending { padding:6px 9px; border:1px solid var(--border); border-radius:999px; font-size:10px; white-space:nowrap; }
 .vendor-activation-ready { color:var(--green); border-color:color-mix(in srgb,var(--green) 42%,var(--border)); background:color-mix(in srgb,var(--green) 8%,var(--surface)); }
@@ -61,11 +62,11 @@
 .vendor-activation-gates li > span { color:var(--amber); font-weight:800; }
 .vendor-activation-gates li[data-satisfied="true"] > span { color:var(--green); }
 .vendor-activation-gates strong { font-size:12px; }
-.vendor-activation-gates p { margin:3px 0 0; color:var(--muted); font-size:11px; line-height:1.45; }
+.vendor-activation-gates p { margin:3px 0 0; color:var(--text); font-size:11px; line-height:1.45; }
 .vendor-activation-action { display:grid; gap:8px; }
 .vendor-activation-action label { font-size:12px; font-weight:650; }
 .vendor-activation-action textarea { width:100%; min-height:84px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); resize:vertical; }
-.vendor-activation-action small { color:var(--muted); font-size:11px; }
+.vendor-activation-action small { color:var(--text); font-size:11px; }
 .vendor-activation-action .primary-button { justify-self:start; margin-top:5px; }
 .vendor-form > div:first-child p { margin:7px 0 0; font-size:13px; }
 .vendor-identity-form-heading { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; }

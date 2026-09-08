@@ -1,4 +1,5 @@
 .cs-tabs { min-inline-size: 0; }
+.cs-tabs__compact { display: none; }
 
 .cs-tabs__list {
   display: flex;
@@ -81,6 +82,11 @@
 @media (max-width: 520px) {
   .cs-tabs__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cs-tabs__tab { inline-size: 100%; }
+}
+
+@media (max-width: 760px) {
+  .cs-tabs--compact-select > .cs-tabs__list { display: none; }
+  .cs-tabs--compact-select > .cs-tabs__compact { display: block; }
 }
 
 @media (forced-colors: active) {

@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Tabs, type TabItem } from "./index";
 
 const items = [
@@ -17,8 +17,42 @@ function Harness() {
 }
 
 describe("Tabs", () => {
+  it("offers an opt-in controlled compact selector without empty or duplicate selection", async () => {
+    const change = vi.fn();
+    const { rerender } = render(<Tabs ariaLabel="Forms views" compactLabel="Forms section" items={items} selectedKey="TEMPLATES" onSelectionChange={change}>{(key) => <p>{key}</p>}</Tabs>);
+    fireEvent.click(screen.getByRole("button", { name: "Templates Forms section" }));
+    await screen.findByRole("listbox");
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(items.map((item) => item.label));
+    fireEvent.click(screen.getByRole("option", { name: "Templates" }));
+    expect(change).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Templates Forms section" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Sent forms" }));
+    expect(change).toHaveBeenCalledExactlyOnceWith("SENT");
+    rerender(<Tabs ariaLabel="Forms views" compactLabel="Forms section" items={items} selectedKey="SENT" onSelectionChange={change}>{(key) => <p>{key}</p>}</Tabs>);
+    expect(screen.getByRole("button", { name: "Sent forms Forms section" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Sent forms", selected: true })).toBeTruthy();
+  });
+
+  it("retains one editor and a named panel when compact navigation hides the tab list", async () => {
+    const { rerender } = render(<Tabs ariaLabel="Forms views" compactLabel="Forms section" items={items} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{() => <input aria-label="Draft title" defaultValue=""/>}</Tabs>);
+    const editor = screen.getByRole("textbox", { name: "Draft title" });
+    fireEvent.change(editor, { target: { value: "Unsaved review" } });
+    const panel = screen.getByRole("tabpanel", { name: "Templates" });
+    screen.getByRole("tablist").style.display = "none";
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.getByRole("button", { name: "Templates Forms section" })).toBeTruthy();
+    expect(screen.getByRole("tabpanel", { name: "Templates" })).toBe(panel);
+    fireEvent.resize(window);
+    rerender(<Tabs ariaLabel="Forms views" compactLabel="Forms section" items={items} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{() => <input aria-label="Draft title" defaultValue=""/>}</Tabs>);
+    await waitFor(() => expect(screen.getAllByRole("textbox")).toHaveLength(1));
+    expect(screen.getByRole("textbox")).toBe(editor);
+    expect((editor as HTMLInputElement).value).toBe("Unsaved review");
+    expect(screen.getByRole("tabpanel", { name: "Templates" })).toBe(panel);
+  });
+
   it("owns selected-tab and tab-panel semantics", () => {
     render(<Harness/>);
+    expect(screen.queryByRole("button", { name: /Forms section/ })).toBeNull();
     expect(screen.getByRole("tab", { name: "Templates" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getByRole("tabpanel").textContent).toContain("Template library");
   });

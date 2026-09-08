@@ -109,6 +109,7 @@ const expectedNames = [
   "178-import-selected-light-1440x900",
   "179-import-selected-dark-1440x900",
   "180-import-selected-light-mobile-390x844",
+  ...["light", "dark"].flatMap((theme) => [1440, 390, 320].flatMap((width) => ["conflict", "reloaded", "late-result-isolated"].map((state) => `vendor-activation-${state}-${theme}-${width}`))),
   ...["light", "dark"].flatMap((theme) => [1440, 390, 320].flatMap((width) => ["receipt", "requirement", "control-objective", "unavailable", "incomplete"].map((state) => `result-handoff-${state}-${theme}-${width}`))),
   ...formsEvidenceScenarios.map((scenario) => scenario.name),
 ];
@@ -151,6 +152,9 @@ const requiredStates = [
   "vendor-response-review-mobile",
   "vendor-form-source-unavailable",
   "vendor-delivery-partial",
+  "vendor-activation-conflict",
+  "vendor-activation-reloaded",
+  "vendor-activation-late-result-isolated",
   "vendor-work-program-entry",
   "vendor-work-matter-entry",
   "vendor-work-create-layouts-and-typed-fields",

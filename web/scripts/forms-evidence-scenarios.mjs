@@ -28,8 +28,100 @@ async function visible(page, text) {
 }
 
 async function openFormsTab(page, tab, heading = tab) {
-  await page.getByRole("tab", { name: tab, exact: true }).click();
+  await selectFormsSection(page, tab);
   await page.getByRole("heading", { name: heading, exact: true }).waitFor({ state: "visible" });
+}
+
+async function selectFormsSection(page, name) {
+  await page.locator(".cs-tabs--compact-select").waitFor({ state: "visible" });
+  const compact = page.getByRole("button", { name: / Forms section$/ });
+  if (await compact.isVisible()) {
+    await compact.click();
+    await page.getByRole("option", { name, exact: true }).click();
+  } else await page.getByRole("tab", { name, exact: true }).click();
+  await assertFormsSectionSelected(page, name);
+}
+
+async function assertFormsSectionSelected(page, name) {
+  await page.locator(".cs-tabs--compact-select > .cs-tabs__panel").waitFor({ state: "visible" });
+  await page.waitForFunction((expected) => document.querySelector('.cs-tabs--compact-select [role="tab"][aria-selected="true"]')?.textContent === expected, name);
+  const narrow = await page.evaluate(() => matchMedia("(max-width: 760px)").matches);
+  const compact = page.locator(".cs-tabs--compact-select > .cs-tabs__compact .cs-select-field__trigger");
+  const tabList = page.locator(".cs-tabs--compact-select > .cs-tabs__list");
+  if (await compact.isVisible() !== narrow || await tabList.isVisible() === narrow) throw new Error("Forms must expose only the navigation appropriate to the viewport width.");
+  if (await compact.locator(".cs-select-field__value").textContent() !== name) throw new Error("The compact Forms selection must match the current section.");
+  const linked = await page.locator(".cs-tabs--compact-select").evaluate((root, expected) => {
+    const tab = root.querySelector('[role="tab"][aria-selected="true"]');
+    const panel = root.querySelector(':scope > [role="tabpanel"]');
+    return tab?.textContent === expected && tab.getAttribute("aria-controls") === panel?.id && panel.getAttribute("aria-labelledby") === tab.id;
+  }, name);
+  if (!linked) throw new Error("The selected Forms section must name and control its single mounted panel in both navigation layouts.");
+}
+
+async function verifyCompactSelectDismissal(page) {
+  const trigger = page.getByRole("button", { name: "Sent forms Forms section", exact: true });
+  for (const action of ["Escape", "Tab", "outside"]) {
+    await trigger.click();
+    await page.getByRole("listbox").waitFor({ state: "visible" });
+    await page.evaluate(() => document.dispatchEvent(new Event("scroll")));
+    await page.getByRole("listbox").waitFor({ state: "visible" });
+    if (action === "outside") await page.getByRole("textbox", { name: "Subject type", exact: true }).click();
+    else await page.keyboard.press(action);
+    await page.getByRole("listbox").waitFor({ state: "hidden" }).catch((error) => { throw new Error(`Compact selector did not dismiss after ${action}: ${error.message}`); });
+  }
+}
+
+async function selectFileType(page, name) {
+  const compact = page.getByRole("button", { name: / File type$/ });
+  if (await compact.isVisible()) {
+    await compact.click();
+    await page.getByRole("option", { name, exact: true }).click();
+  } else await page.getByRole("button", { name, exact: true }).click();
+  await page.locator('.document-browser [role="status"]').waitFor({ state: "hidden" });
+  await assertFileTypeSelected(page, name);
+}
+
+async function assertFileTypeSelected(page, name) {
+  const narrow = await page.evaluate(() => matchMedia("(max-width: 760px)").matches);
+  const compact = page.getByRole("button", { name: `${name} File type`, exact: true });
+  const sidebar = page.locator(".document-kinds");
+  if (await compact.isVisible() !== narrow || await sidebar.isVisible() === narrow) throw new Error("File types must use one visible labelled navigation at the current width.");
+  if (await sidebar.locator('[aria-pressed="true"]').textContent() !== name) throw new Error("Compact and desktop file types must share the selected value.");
+}
+
+async function assertDocumentNameWidth(page) {
+  if (!await page.evaluate(() => matchMedia("(max-width: 700px)").matches)) return;
+  // Even the reduced-motion transition duration needs a rendering frame when
+  // resize changes cell padding. Wait for the exact final width contract.
+  await page.waitForFunction(() => {
+    const cells = [...document.querySelectorAll('.document-browser td[data-label="Name"]')];
+    return cells.length > 0 && cells.every((cell) => {
+      const row = cell.closest("tr");
+      const name = cell.querySelector(".document-file-name");
+      const fullName = name?.querySelector("strong");
+      const rowStyle = getComputedStyle(row);
+      const available = row.clientWidth - parseFloat(rowStyle.paddingLeft) - parseFloat(rowStyle.paddingRight);
+      return cell.getAttribute("data-mobile-layout") === "full-width" && Math.abs(cell.getBoundingClientRect().width - available) <= 2
+        && Math.abs(name.getBoundingClientRect().width - cell.getBoundingClientRect().width) <= 2 && fullName.textContent === fullName.title;
+    });
+  }).catch((error) => { throw new Error(`Complete document names must use the full available mobile card width: ${error.message}`); });
+}
+
+async function assertDocumentHeader(page) {
+  await page.getByRole("button", { name: "Refresh files", exact: true }).waitFor({ state: "visible" });
+  await page.waitForFunction(() => {
+    const header = document.querySelector(".document-browser-heading");
+    const heading = header?.querySelector("h2");
+    const refresh = header?.querySelector("button");
+    if (!heading || !refresh) return false;
+    const range = document.createRange();
+    range.selectNodeContents(heading);
+    const titleLines = range.getClientRects();
+    const headerBounds = header.getBoundingClientRect();
+    const refreshBounds = refresh.getBoundingClientRect();
+    return titleLines.length === 1 && titleLines[0].left >= headerBounds.left && titleLines[0].right <= headerBounds.right
+      && refreshBounds.height >= 44 && refreshBounds.left >= headerBounds.left && refreshBounds.right <= headerBounds.right;
+  }).catch((error) => { throw new Error(`The Documents heading must fit its whole word while Refresh files remains reachable: ${error.message}`); });
 }
 
 async function assertContrast(page, locator, minimum, label) {
@@ -440,7 +532,7 @@ const scenarios = [
     name: "123-forms-sent-light-effective-200pct", fixture: "forms-sent-zoom", route: "#forms",
     state: "forms-sent-effective-200pct-layout", theme: "light", density: "comfortable", viewport: desktop, zoom: 2,
     capabilities: ["sent-populated-table", "zoom-200", "theme-light"],
-    run: async (page) => { await openFormsTab(page, "Sent forms"); await assertSentFormsControls(page, 44); const trigger = page.getByRole("button", { name: /Status/ }); await trigger.scrollIntoViewIfNeeded(); await trigger.click(); await page.getByRole("listbox").waitFor({ state: "visible" }); },
+    run: async (page) => { await openFormsTab(page, "Sent forms"); await verifyCompactSelectDismissal(page); await assertSentFormsControls(page, 44); const trigger = page.getByRole("button", { name: /Status/ }); await trigger.scrollIntoViewIfNeeded(); await trigger.click(); await page.getByRole("listbox").waitFor({ state: "visible" }); },
   },
   {
     name: "124-forms-component-gallery-forced-colors-focus-1440x900", fixture: "ui-component-gallery", route: "#ui-components",
@@ -502,10 +594,47 @@ async function assertStackedSentRows(page) {
   await rows.first().scrollIntoViewIfNeeded();
 }
 
-async function assertSheetRecoveryVisible(page, dialog) {
-  const [sheet, close] = await Promise.all([dialog.boundingBox(), dialog.getByRole("button", { name: "Close" }).boundingBox()]);
-  const viewport = page.viewportSize();
-  if (!sheet || !close || !viewport || close.x < sheet.x || close.y < sheet.y || close.x + close.width > viewport.width || close.y + close.height > viewport.height) throw new Error("The responsive detail sheet must keep its close and recovery action inside the visible viewport.");
+export async function assertSheetRecoveryVisible(page, dialog) {
+  const control = dialog.getByRole("button", { name: "Close" });
+  const close = await control.count() ? await control.elementHandle() : null;
+  const geometry = await dialog.evaluate(async (element, { close, requested }) => {
+    const rect = (node) => {
+      if (!node) return null;
+      const { x, y, width, height } = node.getBoundingClientRect();
+      return { x, y, width, height, visible: node.getClientRects().length > 0 && getComputedStyle(node).visibility === "visible" };
+    };
+    const deadline = performance.now() + 10000;
+    const sample = () => ({ sheet: rect(element), close: rect(close), requested, actual: { width: innerWidth, height: innerHeight } });
+    return new Promise((resolve) => {
+      let previous;
+      let snapshot = sample();
+      let frame;
+      const finish = (valid) => {
+        clearTimeout(timer);
+        cancelAnimationFrame(frame);
+        resolve({ valid, ...snapshot });
+      };
+      // A paused document may deliver no animation frame; the deadline must not
+      // depend on receiving the next frame, or accept a delayed frame afterward.
+      const timer = setTimeout(() => finish(false), 10000);
+      const checkFrame = () => {
+        // Read both controls and the browser viewport in one rendering task.
+        snapshot = sample();
+        if (performance.now() >= deadline) { finish(false); return; }
+        const { sheet, close: button, actual } = snapshot;
+        const valid = sheet?.visible && button?.visible && sheet.width > 0 && sheet.height > 0 && button.width > 0 && button.height > 0
+          && requested?.width === actual.width && requested?.height === actual.height
+          && button.x >= Math.max(0, sheet.x) && button.y >= Math.max(0, sheet.y)
+          && button.x + button.width <= actual.width && button.y + button.height <= actual.height;
+        const serialized = JSON.stringify(snapshot);
+        if (valid && serialized === previous) { finish(true); return; }
+        previous = serialized;
+        frame = requestAnimationFrame(checkFrame);
+      };
+      frame = requestAnimationFrame(checkFrame);
+    });
+  }, { close, requested: page.viewportSize() });
+  if (!geometry.valid) throw new Error(`The responsive detail sheet must keep its close and recovery action inside the visible viewport: ${JSON.stringify(geometry)}`);
 }
 
 async function verifyBuilderChromeNoOverlap(page) {
@@ -521,6 +650,16 @@ async function verifyMobileBuilder(page) {
   await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
   await page.getByRole("button", { name: "Edit draft" }).click();
   await page.getByLabel("Form canvas").waitFor({ state: "visible" });
+  const formName = page.getByRole("textbox", { name: "Form name", exact: true });
+  const editor = await formName.elementHandle();
+  const originalName = await formName.inputValue();
+  const viewport = page.viewportSize();
+  await formName.fill(`${originalName} · unsaved resize check`);
+  for (const size of [desktop, { width: 720, height: 900 }, viewport]) {
+    await page.setViewportSize(size);
+    if (!await formName.evaluate((element, original) => element === original, editor) || await formName.inputValue() !== `${originalName} · unsaved resize check`) throw new Error("Resizing must retain the mounted form editor and its unsaved title.");
+  }
+  await formName.fill(originalName);
   for (const name of ["Preview", "Save draft", "Send for approval"]) {
     const control = page.getByRole("button", { name, exact: true });
     await control.waitFor({ state: "visible" });
@@ -546,9 +685,7 @@ for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"],
       capabilities: ["documents-file-types", "documents-quick-look", "documents-keyboard-return", ...(surface === "vendors" ? ["documents-vendor-launcher"] : ["forms-section-resumption"])],
       run: async (page) => {
         if (surface === "forms") {
-          const tab = page.getByRole("tab", { name: "Documents", exact: true });
-          await tab.click();
-          if (await tab.getAttribute("aria-controls") !== await page.getByRole("tabpanel").getAttribute("id")) throw new Error("The Documents tab must control its mounted panel after switching.");
+          await openFormsTab(page, "Documents");
           await verifyFormsSectionResumption(page);
         }
         else {
@@ -556,14 +693,37 @@ for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"],
           await page.getByRole("button", { name: "View vendor documents" }).click();
         }
         await page.getByRole("row", { name: /Sample security certification/ }).waitFor();
-        await page.getByRole("button", { name: "Word documents", exact: true }).click();
+        await assertDocumentHeader(page);
+        await assertFileTypeSelected(page, "All files");
+        await assertDocumentNameWidth(page);
+        for (const kind of ["PDF files", "Images", "Spreadsheets", "Other files", "All files", "Word documents"]) await selectFileType(page, kind);
         await page.getByRole("row", { name: /Sample security certification/ }).waitFor({ state: "hidden" });
         const row = page.getByRole("row", { name: /Sample business continuity plan/ });
+        await assertDocumentNameWidth(page);
+        const search = page.getByRole("searchbox", { name: "Search file names" });
+        await search.fill("business continuity");
+        await page.locator('.document-browser [role="status"]').waitFor({ state: "hidden" });
+        await row.waitFor();
         await row.focus();
+        const selectedRow = await row.elementHandle();
+        const originalViewport = page.viewportSize();
+        for (const size of [{ width: 720, height: 900 }, originalViewport.width > 760 ? mobile : desktop, originalViewport]) {
+          await page.setViewportSize(size);
+          await assertFileTypeSelected(page, "Word documents");
+          if (surface === "forms") await assertFormsSectionSelected(page, "Documents");
+          await assertDocumentNameWidth(page);
+          if (!await row.evaluate((element, original) => element === original && element.getAttribute("aria-selected") === "true", selectedRow) || await search.inputValue() !== "business continuity") throw new Error("Resizing must retain the selected document row and filename query.");
+        }
         await page.keyboard.press("Space");
         const preview = page.getByRole("dialog", { name: "Preview Sample business continuity plan.docx" });
         await preview.waitFor();
         await preview.getByRole("link", { name: "Download file", exact: true }).waitFor();
+        const mountedPreview = await preview.elementHandle();
+        for (const size of [originalViewport.width > 760 ? mobile : desktop, { width: 720, height: 900 }, originalViewport]) {
+          await page.setViewportSize(size);
+          if (!await preview.evaluate((element, original) => element === original, mountedPreview)) throw new Error("Resizing must retain the mounted document preview.");
+          await assertSheetRecoveryVisible(page, preview);
+        }
         await assertSheetRecoveryVisible(page, preview);
         await page.keyboard.press("Escape");
         await preview.waitFor({ state: "hidden" });
@@ -578,13 +738,13 @@ for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"],
 }
 
 async function verifyFormsSectionResumption(page) {
-  const selected = (name) => page.getByRole("tab", { name, exact: true, selected: true }).waitFor();
+  const selected = (name) => assertFormsSectionSelected(page, name);
   await page.getByRole("row", { name: /Sample security certification/ }).waitFor();
   if (new URLSearchParams(new URL(page.url()).hash.split("?")[1]).get("section") !== "documents") throw new Error("Documents selection must be reflected in the Forms URL.");
   await page.reload({ waitUntil: "networkidle" });
   await selected("Documents");
   await page.getByRole("row", { name: /Sample security certification/ }).waitFor();
-  await page.getByRole("tab", { name: "Templates", exact: true }).click();
+  await selectFormsSection(page, "Templates");
   await selected("Templates");
   await page.evaluate(() => {
     const fetch = window.fetch.bind(window);
@@ -604,27 +764,165 @@ async function verifyFormsSectionResumption(page) {
   await selected("Templates");
   await page.goBack();
   await selected("Documents");
-  const tab = page.getByRole("tab", { name: "Documents", exact: true });
-  if (await tab.getAttribute("aria-controls") !== await page.getByRole("tabpanel").getAttribute("id")) throw new Error("Restored Documents tab must control its mounted panel.");
+  await assertFormsSectionSelected(page, "Documents");
   const legacyHash = "#forms/form-vendor-due-diligence?search=vendor&status=ACTIVE";
   await page.goto(`${page.url().split("#")[0]}${legacyHash}&section=documents`);
   await selected("Documents");
   await page.reload({ waitUntil: "networkidle" });
   await selected("Documents");
-  await page.getByRole("tab", { name: "Templates", exact: true }).click();
+  await selectFormsSection(page, "Templates");
   await page.getByRole("dialog").waitFor();
   if (new URL(page.url()).hash !== legacyHash) throw new Error("Returning to Templates must retain the template path and library filters.");
   if (await page.getByLabel("Search templates").inputValue() !== "vendor") throw new Error("Returning to Templates must retain the library search.");
   await page.keyboard.press("Escape");
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  await tab.click();
+  await selectFormsSection(page, "Documents");
   await page.getByRole("button", { name: "Forms", exact: true }).click();
   await selected("Templates");
   if (new URL(page.url()).hash !== "#forms") throw new Error("Primary Forms navigation must open the Templates root.");
   await page.reload({ waitUntil: "networkidle" });
   await selected("Templates");
-  await tab.click();
+  await selectFormsSection(page, "Documents");
 }
+
+// This fixture is installed only by the browser evidence runner after the
+// separate evidence build loads. Customer runtime fixtures are unchanged.
+const demoDocumentMetadata = Object.freeze({
+  image: Object.freeze({ issued_on: "2026-09-02", uploaded_at: "2026-09-08T09:00:00Z", submitted_at: "2026-09-08T09:15:00Z", expires_on: "2027-09-02" }),
+  pdf: Object.freeze({ issued_on: "2026-04-01", uploaded_at: "2026-09-08T09:00:00Z", submitted_at: "2026-09-08T09:15:00Z", expires_on: "2026-09-30" }),
+});
+
+export async function installDemoDocumentScenario(page, kind = "image") {
+  const { readFile } = await import("node:fs/promises");
+  const { createHash } = await import("node:crypto");
+  const filename = kind === "pdf" ? "sample-insurance-schedule.pdf" : "sample-office-statement.png";
+  const bytes = await readFile(new URL(`../../internal/demodocuments/assets/${filename}`, import.meta.url));
+  await page.evaluate(({ base64, size, digest, filename, kind, metadata }) => {
+    const originalFetch = window.fetch.bind(window);
+    window.demoDocumentContentReads = 0;
+    window.fetch = async (...args) => {
+      const input = args[0];
+      const url = new URL(input instanceof Request ? input.url : String(input), location.href);
+      if (url.pathname.startsWith("/api/v1/forms/documents/") && url.pathname.endsWith("/content")) {
+        window.demoDocumentContentReads++;
+        if (!url.pathname.includes("demo-sample-artifact")) throw new Error("Blocked file requested content");
+        return new Response(Uint8Array.from(atob(base64), (value) => value.charCodeAt(0)), { headers: { "Content-Type": kind === "pdf" ? "application/pdf" : "image/png", "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+      }
+      const response = await originalFetch(...args);
+      if (url.pathname !== "/api/v1/forms/documents" || !response.ok) return response;
+      const source = (await response.json()).items[0];
+      if (!source) throw new Error("Document scenario requires an authorized source occurrence");
+      const sample = { ...source, uploaded_at: metadata.uploaded_at, submitted_at: metadata.submitted_at, expires_on: metadata.expires_on, id: "demo-sample", artifact_id: "demo-sample-artifact", form_title: "Sample vendor review", field_label: kind === "pdf" ? "Insurance schedule" : "Registered office statement", file_name: filename, media_type: kind === "pdf" ? "application/pdf" : "image/png", file_kind: kind === "pdf" ? "PDF" : "IMAGE", size_bytes: size, sha256: digest, artifact_status: "STORED_UNSCANNED", demo_preview_available: true, review: undefined };
+      const pending = { ...sample, id: "genuine-pending", artifact_id: "genuine-pending-artifact", file_name: kind === "pdf" ? "Supplier insurance schedule.pdf" : "Supplier office statement.png", demo_preview_available: false };
+      return new Response(JSON.stringify({ items: [sample, pending] }), { headers: { "Content-Type": "application/json" } });
+    };
+  }, { base64: bytes.toString("base64"), size: bytes.length, digest: createHash("sha256").update(bytes).digest("hex"), filename, kind, metadata: demoDocumentMetadata[kind] });
+  return { size: bytes.length, digest: createHash("sha256").update(bytes).digest("hex") };
+}
+
+async function assertDemoDocumentMetadata(dialog, expected) {
+  const actual = await dialog.locator(".document-facts").evaluate((facts) => {
+    const value = (label) => [...facts.querySelectorAll("dt")].find((element) => element.textContent === label)?.nextElementSibling;
+    return { uploaded_at: value("Uploaded")?.querySelector("time")?.getAttribute("datetime"), submitted_at: value("Last submitted")?.querySelector("time")?.getAttribute("datetime"), expires_on: value("Expiry date")?.textContent };
+  });
+  const expectedExpiry = await dialog.evaluate((_element, date) => new Date(date).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }), expected.expires_on);
+  if (actual.uploaded_at !== expected.uploaded_at || actual.submitted_at !== expected.submitted_at || actual.expires_on !== expectedExpiry) throw new Error(`Document fixture metadata does not match the authored sample: ${JSON.stringify(actual)}`);
+  return { issued_on: expected.issued_on, ...actual };
+}
+
+for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"]) for (const viewport of [desktop, mobile, reflow]) {
+  for (const state of ["preview", "blocked"]) scenarios.push({
+    name: `129-forms-demo-documents-${surface}-${state}-${theme}-${viewport.width}`,
+    fixture: surface === "forms" ? "forms-documents" : "forms-vendor-review-conflict", route: `#${surface}`,
+    state: `demo-document-${state}`, theme, viewport, zoom: 1, reducedMotion: "reduce",
+    documentMetadata: demoDocumentMetadata.image,
+    capabilities: ["documents-quick-look", "documents-keyboard-return", ...(surface === "vendors" ? ["documents-vendor-launcher"] : [])],
+    run: async (page) => {
+      await installDemoDocumentScenario(page);
+      if (surface === "forms") await openFormsTab(page, "Documents");
+      else {
+        await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
+        await page.getByRole("button", { name: "View vendor documents" }).click();
+      }
+      const filename = state === "preview" ? "sample-office-statement.png" : "Supplier office statement.png";
+      const row = page.getByRole("row", { name: new RegExp(filename.replaceAll(".", "\\.")) });
+      await row.waitFor(); await row.focus(); await page.keyboard.press("Space");
+      const dialog = page.getByRole("dialog", { name: `Preview ${filename}` });
+      await dialog.waitFor();
+      const metadata = await assertDemoDocumentMetadata(dialog, demoDocumentMetadata.image);
+      if (state === "preview") {
+        await dialog.getByText("Demo check complete", { exact: true }).waitFor();
+        const warning = dialog.getByText(/No antivirus scan was performed/);
+        await warning.waitFor();
+        const link = dialog.getByRole("link", { name: "Download file" }); await link.waitFor();
+        if (!(await link.getAttribute("href"))?.startsWith("/api/v1/forms/documents/") || !(await link.getAttribute("href"))?.includes("download=true")) throw new Error("Demo download must use protected content delivery");
+        const image = dialog.getByRole("img", { name: `Submitted document: ${filename}` }); await image.waitFor();
+        await image.evaluate((element) => { if (!element.complete || element.naturalWidth < 1 || !element.src.startsWith("blob:")) throw new Error("Sample image did not render from protected blob bytes"); });
+        const warningBox = await warning.boundingBox(); const linkBox = await link.boundingBox();
+        if (!warningBox || !linkBox || warningBox.y + warningBox.height > linkBox.y || warningBox.y < 0 || linkBox.y + linkBox.height > viewport.height) throw new Error("The demo warning must be visible before the download action");
+      } else {
+        await dialog.getByText("The file safety check has not completed. Preview and download are unavailable until it passes.", { exact: true }).waitFor();
+        if (await dialog.getByRole("link", { name: "Download file" }).count() || await dialog.locator("img, iframe").count() || await page.evaluate(() => window.demoDocumentContentReads) !== 0) throw new Error("Pending files must have no content fetch, preview or download");
+      }
+      await assertSheetRecoveryVisible(page, dialog);
+      await page.keyboard.press("Escape"); await dialog.waitFor({ state: "hidden" });
+      if (!await row.evaluate((element) => element === document.activeElement)) throw new Error("Closing sample preview must restore file focus");
+      await page.keyboard.press("Space"); await dialog.waitFor();
+      if (state === "preview") await dialog.getByRole("img").waitFor();
+      return { content_reads: await page.evaluate(() => window.demoDocumentContentReads), warning_before_download: state === "preview", blocked: state === "blocked", document_metadata: metadata };
+    },
+  });
+}
+
+export async function waitForNativePDFPage(page) {
+  // The outer blob iframe can be complete while Chromium's PDF viewer is blank.
+  const isViewer = (frame) => frame.url().startsWith("chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/");
+  const viewer = page.frames().find(isViewer) ?? await page.waitForEvent("framenavigated", { predicate: isViewer, timeout: 10000 });
+  await viewer.locator("pdf-viewer").waitFor({ state: "visible", timeout: 10000 });
+  await viewer.getByRole("progressbar").waitFor({ state: "hidden", timeout: 10000 });
+  const pageNumber = Number(await viewer.getByRole("textbox", { name: "Page number", exact: true }).inputValue());
+  const pageCount = Number(await viewer.locator("#pagelength").textContent({ timeout: 10000 }));
+  if (pageNumber !== 1 || pageCount !== 1) throw new Error(`Expected the one-page insurance PDF, found page ${pageNumber} of ${pageCount}`);
+  return { page_number: pageNumber, page_count: pageCount };
+}
+
+for (const theme of ["light", "dark"]) scenarios.push({
+  name: `130-forms-demo-documents-pdf-${theme}-1440`, fixture: "forms-documents", route: "#forms",
+  state: "demo-document-pdf-preview", theme, viewport: desktop, zoom: 1, reducedMotion: "reduce",
+  documentMetadata: demoDocumentMetadata.pdf,
+  capabilities: ["documents-quick-look", "documents-keyboard-return"],
+  run: async (page) => {
+    const expected = await installDemoDocumentScenario(page, "pdf"); await openFormsTab(page, "Documents");
+    const row = page.getByRole("row", { name: /sample-insurance-schedule\.pdf/ }); await row.waitFor(); await row.focus(); await page.keyboard.press("Space");
+    const dialog = page.getByRole("dialog", { name: "Preview sample-insurance-schedule.pdf" }); await dialog.waitFor();
+    const metadata = await assertDemoDocumentMetadata(dialog, demoDocumentMetadata.pdf);
+    await dialog.getByText("Demo check complete", { exact: true }).waitFor();
+    const warning = dialog.getByText(/No antivirus scan was performed/); await warning.waitFor();
+    const link = dialog.getByRole("link", { name: "Download file" }); await link.waitFor();
+    const nativePreview = await page.evaluate(() => navigator.pdfViewerEnabled !== false);
+    let nativePage;
+    if (nativePreview) {
+      const frame = dialog.getByTitle("Document preview: sample-insurance-schedule.pdf"); await frame.waitFor();
+      if (!(await frame.getAttribute("src"))?.startsWith("blob:") || await page.evaluate(() => window.demoDocumentContentReads) !== 1) throw new Error("PDF sample must use protected fetch and a temporary blob");
+      nativePage = await waitForNativePDFPage(page);
+    } else {
+      await dialog.getByText("This browser cannot preview PDFs. Download the file to view it in a PDF application.", { exact: true }).waitFor();
+      if (await page.evaluate(() => window.demoDocumentContentReads) !== 0) throw new Error("Unsupported native PDF viewing must not fetch preview content");
+    }
+    const warningBox = await warning.boundingBox(); const linkBox = await link.boundingBox();
+    if (!warningBox || !linkBox || warningBox.y + warningBox.height > linkBox.y) throw new Error("PDF warning must precede download");
+    const downloaded = await link.evaluate(async (element) => {
+      const url = new URL(element.href);
+      if (!url.pathname.startsWith("/api/v1/forms/documents/") || url.searchParams.get("download") !== "true") throw new Error("PDF download must use protected content delivery");
+      const response = await fetch(url.href, { credentials: "include", cache: "no-store" });
+      const content = await response.arrayBuffer();
+      return { size: content.byteLength, media: response.headers.get("Content-Type"), digest: [...new Uint8Array(await crypto.subtle.digest("SHA-256", content))].map((value) => value.toString(16).padStart(2, "0")).join("") };
+    });
+    if (downloaded.size !== expected.size || downloaded.digest !== expected.digest || downloaded.media !== "application/pdf") throw new Error("Protected PDF download differed from the shipped sample");
+    await assertSheetRecoveryVisible(page, dialog);
+    return { native_pdf_preview: nativePreview, ...(nativePage ? { native_pdf_page: nativePage } : {}), content_reads: await page.evaluate(() => window.demoDocumentContentReads), warning_before_download: true, downloaded_bytes: downloaded.size, downloaded_sha256: downloaded.digest, document_metadata: metadata };
+  },
+});
 
 export const formsEvidenceScenarios = Object.freeze(scenarios.map((scenario) => Object.freeze({
   ...scenario,

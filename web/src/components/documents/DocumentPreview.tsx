@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { documentContentURL, previewKind, type DocumentOccurrence } from "../../submittedDocumentApi";
+import { documentContentURL, documentEligibility, previewKind, type DocumentOccurrence } from "../../submittedDocumentApi";
 import { Button, FocusedDialog, Notice } from "../ui";
-import { DocumentDownload, DocumentFacts, FileIcon, fileKindLabel, fileSize } from "./DocumentFile";
+import { DocumentDemoNotice, DocumentDownload, DocumentFacts, FileIcon, fileKindLabel, fileSize } from "./DocumentFile";
 
 export function DocumentPreview({ file, onClose }: { file: DocumentOccurrence; onClose: () => void }) {
   const kind = previewKind(file);
@@ -26,9 +26,10 @@ export function DocumentPreview({ file, onClose }: { file: DocumentOccurrence; o
   }, [file, kind, pdfUnavailable, reload]);
   return <FocusedDialog label={`Preview ${file.file_name}`} closeLabel="Close preview" size="wide" onClose={onClose} panelClassName="document-quick-look">
     <header className="document-preview-heading"><FileIcon kind={file.file_kind}/><div><h2>{file.file_name}</h2><p>{fileKindLabel(file.file_kind)} · {fileSize(file.size_bytes)}</p></div></header>
+    <DocumentDemoNotice file={file}/>
     <div className="document-preview-actions"><DocumentDownload file={file}/></div>
     <div className="document-preview-body"><div className="document-preview-canvas">
-      {file.artifact_status !== "AVAILABLE" ? <Notice tone="warning">{file.artifact_status === "QUARANTINED" ? "This file is quarantined. It cannot be previewed or downloaded." : file.artifact_status === "STORED_UNSCANNED" ? "The file safety check has not completed. Preview and download are unavailable until it passes." : "This file is unavailable. Its submission details remain visible below."}</Notice>
+      {!documentEligibility(file) ? <Notice tone="warning">{file.artifact_status === "QUARANTINED" ? "This file is quarantined. It cannot be previewed or downloaded." : file.artifact_status === "STORED_UNSCANNED" ? "The file safety check has not completed. Preview and download are unavailable until it passes." : "This file is unavailable. Its submission details remain visible below."}</Notice>
         : pdfUnavailable ? <div className="document-preview-fallback"><FileIcon kind={file.file_kind}/><p>This browser cannot preview PDFs. Download the file to view it in a PDF application.</p></div>
         : !kind ? <div className="document-preview-fallback"><FileIcon kind={file.file_kind}/><p>Inline preview is not available for this file type. Download the file to view it in its application.</p></div>
         : failed ? <Notice tone="error">The document preview could not be loaded. Your access or the file may have changed. <Button onPress={() => setReload((value) => value + 1)}>Retry preview</Button></Notice>

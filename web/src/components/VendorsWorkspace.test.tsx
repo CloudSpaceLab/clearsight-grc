@@ -22,6 +22,19 @@ it("opens the shared document browser for the selected vendor relationship", asy
   expect(await screen.findByRole("region", { name: "Documents for relationship-1" })).toBeTruthy();
 });
 
+it("synchronizes an active activation-check read into the selected vendor relationship", async () => {
+  vi.mocked(loadVendorActivation).mockResolvedValue({
+    eligible: false,
+    relationship: { ...record.relationship, status: "ACTIVE", version: 6 },
+    policy: { id: "activation-policy", policy_number: 1, version: 1, status: "ACTIVE", effective_from: "2026-09-01T00:00:00Z" },
+    gates: [],
+  });
+  render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" targetID="relationship-1"/>);
+  await screen.findByRole("heading", { name: "Vendor relationship active" });
+  expect(screen.getByText("Active relationship")).toBeTruthy();
+  expect(screen.getByText("Version 6")).toBeTruthy();
+});
+
 vi.mock("../api", async (importOriginal) => ({
   ...await importOriginal<typeof import("../api")>(),
   resolveAuthority: vi.fn(),

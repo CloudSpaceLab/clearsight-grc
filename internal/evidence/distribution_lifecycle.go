@@ -63,6 +63,7 @@ type DistributionService struct {
 	responseDiscoveryAuthorizer ResponseDiscoveryAuthorizer
 	store                       distributionLifecycleStore
 	now                         func() time.Time
+	demoSamplePreview           bool
 }
 
 func NewDistributionService(store distributionLifecycleStore) *DistributionService {

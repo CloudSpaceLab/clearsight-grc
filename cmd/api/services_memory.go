@@ -86,6 +86,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		return serviceSet{}, err
 	}
 	distributionService := evidence.NewDistributionService(distributionStore).WithAssessmentAuthorizer(formAssessmentAuthorizer(authorityService)).WithResponseDiscoveryAuthorizer(formResponseDiscoveryAuthorizer(authorityService))
+	evidence.ConfigureDemoSamplePreview(evidenceService, distributionService, cfg.DemoMode)
 	distributionService.ConfigureVendorProgress(distributionAccessStore)
 	formPolicies := formpolicy.NewService(formpolicy.NewMemoryRepositoryWithAutomation(autonomyRepo), formDistributionReader{repo: monitoringRepo}, distributionService)
 	formPolicies.ConfigureActivationAuthority(formPolicyActivationAuthority{Automation: auto, Authority: authorityService, Subjects: evidence.CanonicalSubjectTypeRegistry{}})
