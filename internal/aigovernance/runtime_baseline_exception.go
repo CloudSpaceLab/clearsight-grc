@@ -60,9 +60,11 @@ func applyGatewayBaselineExceptions(baseline aigateway.PolicySnapshot, exception
 	if len(exceptions) > 8 {
 		return aigateway.PolicySnapshot{}, fmt.Errorf("too many applicable gateway baseline exceptions")
 	}
-	ruleIDs := make(map[string]struct{}, len(baseline.Definition.Rules))
+	waivableRuleIDs := make(map[string]struct{}, len(baseline.Definition.Rules))
 	for _, rule := range baseline.Definition.Rules {
-		ruleIDs[rule.ID] = struct{}{}
+		if aigateway.BaselineRuleWaivable(rule) {
+			waivableRuleIDs[rule.ID] = struct{}{}
+		}
 	}
 	waived := make(map[string]struct{})
 	attribution := make([]aigateway.Obligation, 0, len(exceptions))
@@ -71,8 +73,8 @@ func applyGatewayBaselineExceptions(baseline aigateway.PolicySnapshot, exception
 			return aigateway.PolicySnapshot{}, fmt.Errorf("gateway baseline exception target is invalid")
 		}
 		for _, ruleID := range exception.WaivedRuleIDs {
-			if _, ok := ruleIDs[ruleID]; !ok {
-				return aigateway.PolicySnapshot{}, fmt.Errorf("gateway baseline exception references unknown rule %q", ruleID)
+			if _, ok := waivableRuleIDs[ruleID]; !ok {
+				return aigateway.PolicySnapshot{}, fmt.Errorf("gateway baseline exception references a missing or non-waivable rule %q", ruleID)
 			}
 			waived[ruleID] = struct{}{}
 		}
