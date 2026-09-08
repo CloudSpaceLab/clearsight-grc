@@ -1,7 +1,7 @@
 # ClearSight implementation ledger
 
 **Status date:** 2026-09-08
-**Current execution:** Integrated GRC closeout under #200; current slice: Forms section resumption
+**Current execution:** Document navigation, vendor recovery and fictional document samples under #138/#139/#147; consolidated scope in #200
 
 ## Resumed execution — integrated GRC experience
 
@@ -18,6 +18,16 @@ PR #202 subsequently deployed `af45e4dbac2c24956fd6ea57d25783090b25e609` through
 ## Forms section resumption — implementation and verification
 
 The next IGX-00 slice follows the [decision brief](design/2026-09-08-forms-section-resume.md) and [plan](superpowers/plans/2026-09-08-forms-section-resume.md): preserve the existing Forms peer section on reload and Back/Forward using only a validated section value. Existing template links and filters remain compatible, and section readers re-fetch through their existing scoped APIs. This does not add document query/content persistence, a new viewer or workflow. File selection/filter/page recovery and all remaining document decisions and validation acceptance stay open under #200.
+
+## Document navigation and vendor recovery — locally verified, release pending
+
+The [approved navigation and sample design](superpowers/specs/2026-09-08-document-navigation-and-samples-design.md) extends the existing Forms and document workspaces. Forms sections and file types use compact labelled selectors at narrow widths while retaining desktop peer tabs and the Finder sidebar. The selected panel remains mounted across resize; complete filenames receive the mobile card width. Browser review caught and corrected a delayed opening-scroll dismissal at 200% reflow and a split vendor document heading at 320px. The [navigation plan](superpowers/plans/2026-09-08-document-navigation.md) retains final release acceptance separately.
+
+The [vendor recovery plan](superpowers/plans/2026-09-08-vendor-activation-recovery.md) now has a reviewed implementation: rejected or uncertain activation invalidates stale checks, offers an executable reload and uses the refreshed relationship version. Obsolete reads and commands cannot change another selected relationship. A read that discovers an already-active relationship synchronizes the parent without claiming a new activation command. The focused browser checks also corrected activation-panel text contrast using existing tokens; server authority and outcome gates are unchanged.
+
+At `aadfefab`, fresh local web verification passed 154 files / 1,083 tests and the Go suite passed. Separate rendered checks passed all 47 Forms scenarios and 18 vendor recovery states, with light/dark 320px heading checks. Navigation and vendor changes passed specification then code-quality review. These are local receipts, not final combined browser, PostgreSQL, CI or deployment acceptance. The hosted revision remains `60a6a606` until a later exact-head release receipt.
+
+The [fictional document plan](superpowers/plans/2026-09-08-demo-document-samples.md) has six reviewed immutable PDF/PNG/XLSX assets; protected demo previews and canonical persisted installation remain in progress. The operator replaced ClamAV installation with an explicitly labelled simulation. No antivirus service or clean scan receipt was created. Live antivirus, real document legitimacy/acceptance, Word fixture verification and the assessment-submission integration gap recorded in [#139](https://github.com/CloudSpaceLab/clearsight-grc/issues/139#issuecomment-5587146742) remain separate work. Do not infer assessment completion from a visible submitted document.
 
 ## Historical pause — remaining V1 issue closure
 
