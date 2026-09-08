@@ -47,3 +47,13 @@ test("Forms scenarios cover every Task 22 capability", () => {
     for (const capability of scenario.capabilities) assert.ok(requiredFormsCapabilities.includes(capability), capability);
   }
 });
+
+test("demo document evidence covers preview and blocked files in both workspaces and themes", () => {
+  const demo = formsEvidenceScenarios.filter((scenario) => scenario.state.startsWith("demo-document-"));
+  for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"]) for (const width of [1440, 390, 320]) {
+    for (const state of ["demo-document-preview", "demo-document-blocked"]) {
+      assert.ok(demo.some((scenario) => scenario.route === `#${surface}` && scenario.theme === theme && scenario.viewport.width === width && scenario.state === state), `${surface} ${theme} ${width} ${state}`);
+    }
+  }
+  for (const theme of ["light", "dark"]) assert.ok(demo.some((scenario) => scenario.theme === theme && scenario.viewport.width === 1440 && scenario.state === "demo-document-pdf-preview"), `PDF ${theme}`);
+});

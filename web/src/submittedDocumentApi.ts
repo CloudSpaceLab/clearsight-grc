@@ -9,6 +9,7 @@ export type DocumentOccurrence = {
   form_template_version: number; form_title: string; field_label: string;
   file_name: string; media_type: string; file_kind: FileKind; size_bytes: number;
   sha256: string; artifact_status: string; uploaded_at: string; uploaded_by?: string;
+  demo_preview_available?: boolean;
   submitted_at: string; submitted_by?: string; expires_on?: string; current: boolean;
   review?: { id: string; status: string; reviewed_by: string; reviewed_at?: string; source: "VENDOR_ASSESSMENT" };
 };
@@ -35,8 +36,15 @@ export function documentContentURL(file: ContentOccurrence, download = false) {
   return `${apiBase}/api/v1/forms/documents/${path}/content${params.size ? `?${params}` : ""}`;
 }
 
-export function previewKind(file: Pick<DocumentOccurrence, "media_type" | "artifact_status">): "pdf" | "image" | undefined {
-  if (file.artifact_status !== "AVAILABLE") return undefined;
+type DocumentAvailability = Pick<DocumentOccurrence, "artifact_status" | "demo_preview_available">;
+export function documentEligibility(file: DocumentAvailability): "available" | "demo" | undefined {
+  if (file.artifact_status === "AVAILABLE") return "available";
+  if (file.artifact_status === "STORED_UNSCANNED" && file.demo_preview_available === true) return "demo";
+  return undefined;
+}
+
+export function previewKind(file: DocumentAvailability & Pick<DocumentOccurrence, "media_type">): "pdf" | "image" | undefined {
+  if (!documentEligibility(file)) return undefined;
   if (file.media_type === "application/pdf") return "pdf";
   if (["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.media_type)) return "image";
   return undefined;

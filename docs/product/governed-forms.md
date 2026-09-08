@@ -66,4 +66,8 @@ Completed-response detail returns its own immutable answers and document occurre
 - The reference vendor-certification form is installed through ordinary draft, maker submission and distinct-checker activation. It asks whether each applicable ISO 27001 or PCI DSS record is current, requests a PDF only for a current record and retains a versioned compliance score profile.
 - The release journey proves score calculation, response filtering, policy execution, replay, adverse-episode Matter reuse, verified episode closure and a later new episode without a static API response or browser metric.
 
+### Fictional sample previews
+
+Non-production demo mode permits protected preview/download of only the exact shipped fictional samples as an explicit exception to the ordinary unscanned read gate above. Forms and Vendors show **Demo check complete** with **No antivirus scan was performed** before their content and download actions. This is a simulated demonstration treatment: the file remains `STORED_UNSCANNED`, no clean scan receipt is created, and evidence acceptance retains its existing scan and review requirements. Genuine pending uploads retain **Safety check pending**. A sample with changed stored bytes, an unknown manifest, quarantine or deletion remains unavailable; production refuses demo mode.
+
 Production acceptance still requires the tagged PostgreSQL suite, delivery-provider configuration, object scanning/storage configuration, representative bank-user timing and the hosted smoke test for the deployed commit.

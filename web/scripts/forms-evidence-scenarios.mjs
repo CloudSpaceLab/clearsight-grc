@@ -748,6 +748,113 @@ async function verifyFormsSectionResumption(page) {
   await selectFormsSection(page, "Documents");
 }
 
+// This fixture is installed only by the browser evidence runner after the
+// separate evidence build loads. Customer runtime fixtures are unchanged.
+async function installDemoDocumentScenario(page, kind = "image") {
+  const { readFile } = await import("node:fs/promises");
+  const { createHash } = await import("node:crypto");
+  const filename = kind === "pdf" ? "sample-insurance-schedule.pdf" : "sample-office-statement.png";
+  const bytes = await readFile(new URL(`../../internal/demodocuments/assets/${filename}`, import.meta.url));
+  await page.evaluate(({ base64, size, digest, filename, kind }) => {
+    const originalFetch = window.fetch.bind(window);
+    window.demoDocumentContentReads = 0;
+    window.fetch = async (...args) => {
+      const input = args[0];
+      const url = new URL(input instanceof Request ? input.url : String(input), location.href);
+      if (url.pathname.startsWith("/api/v1/forms/documents/") && url.pathname.endsWith("/content")) {
+        window.demoDocumentContentReads++;
+        if (!url.pathname.includes("demo-sample-artifact")) throw new Error("Blocked file requested content");
+        return new Response(Uint8Array.from(atob(base64), (value) => value.charCodeAt(0)), { headers: { "Content-Type": kind === "pdf" ? "application/pdf" : "image/png", "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+      }
+      const response = await originalFetch(...args);
+      if (url.pathname !== "/api/v1/forms/documents" || !response.ok) return response;
+      const source = (await response.json()).items[0];
+      if (!source) throw new Error("Document scenario requires an authorized source occurrence");
+      const sample = { ...source, id: "demo-sample", artifact_id: "demo-sample-artifact", form_title: "Sample vendor review", field_label: kind === "pdf" ? "Insurance schedule" : "Registered office statement", file_name: filename, media_type: kind === "pdf" ? "application/pdf" : "image/png", file_kind: kind === "pdf" ? "PDF" : "IMAGE", size_bytes: size, sha256: digest, artifact_status: "STORED_UNSCANNED", demo_preview_available: true, review: undefined };
+      const pending = { ...sample, id: "genuine-pending", artifact_id: "genuine-pending-artifact", file_name: "Supplier office statement.png", demo_preview_available: false };
+      return new Response(JSON.stringify({ items: [sample, pending] }), { headers: { "Content-Type": "application/json" } });
+    };
+  }, { base64: bytes.toString("base64"), size: bytes.length, digest: createHash("sha256").update(bytes).digest("hex"), filename, kind });
+  return { size: bytes.length, digest: createHash("sha256").update(bytes).digest("hex") };
+}
+
+for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"]) for (const viewport of [desktop, mobile, reflow]) {
+  for (const state of ["preview", "blocked"]) scenarios.push({
+    name: `129-forms-demo-documents-${surface}-${state}-${theme}-${viewport.width}`,
+    fixture: surface === "forms" ? "forms-documents" : "forms-vendor-review-conflict", route: `#${surface}`,
+    state: `demo-document-${state}`, theme, viewport, zoom: 1, reducedMotion: "reduce",
+    capabilities: ["documents-quick-look", "documents-keyboard-return", ...(surface === "vendors" ? ["documents-vendor-launcher"] : [])],
+    run: async (page) => {
+      await installDemoDocumentScenario(page);
+      if (surface === "forms") await openFormsTab(page, "Documents");
+      else {
+        await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
+        await page.getByRole("button", { name: "View vendor documents" }).click();
+      }
+      const filename = state === "preview" ? "sample-office-statement.png" : "Supplier office statement.png";
+      const row = page.getByRole("row", { name: new RegExp(filename.replaceAll(".", "\\.")) });
+      await row.waitFor(); await row.focus(); await page.keyboard.press("Space");
+      const dialog = page.getByRole("dialog", { name: `Preview ${filename}` });
+      await dialog.waitFor();
+      if (state === "preview") {
+        await dialog.getByText("Demo check complete", { exact: true }).waitFor();
+        const warning = dialog.getByText(/No antivirus scan was performed/);
+        await warning.waitFor();
+        const link = dialog.getByRole("link", { name: "Download file" }); await link.waitFor();
+        if (!(await link.getAttribute("href"))?.startsWith("/api/v1/forms/documents/") || !(await link.getAttribute("href"))?.includes("download=true")) throw new Error("Demo download must use protected content delivery");
+        const image = dialog.getByRole("img", { name: `Submitted document: ${filename}` }); await image.waitFor();
+        await image.evaluate((element) => { if (!element.complete || element.naturalWidth < 1 || !element.src.startsWith("blob:")) throw new Error("Sample image did not render from protected blob bytes"); });
+        const warningBox = await warning.boundingBox(); const linkBox = await link.boundingBox();
+        if (!warningBox || !linkBox || warningBox.y + warningBox.height > linkBox.y || warningBox.y < 0 || linkBox.y + linkBox.height > viewport.height) throw new Error("The demo warning must be visible before the download action");
+      } else {
+        await dialog.getByText("The file safety check has not completed. Preview and download are unavailable until it passes.", { exact: true }).waitFor();
+        if (await dialog.getByRole("link", { name: "Download file" }).count() || await dialog.locator("img, iframe").count() || await page.evaluate(() => window.demoDocumentContentReads) !== 0) throw new Error("Pending files must have no content fetch, preview or download");
+      }
+      await assertSheetRecoveryVisible(page, dialog);
+      await page.keyboard.press("Escape"); await dialog.waitFor({ state: "hidden" });
+      if (!await row.evaluate((element) => element === document.activeElement)) throw new Error("Closing sample preview must restore file focus");
+      await page.keyboard.press("Space"); await dialog.waitFor();
+      if (state === "preview") await dialog.getByRole("img").waitFor();
+      return { content_reads: await page.evaluate(() => window.demoDocumentContentReads), warning_before_download: state === "preview", blocked: state === "blocked" };
+    },
+  });
+}
+
+for (const theme of ["light", "dark"]) scenarios.push({
+  name: `130-forms-demo-documents-pdf-${theme}-1440`, fixture: "forms-documents", route: "#forms",
+  state: "demo-document-pdf-preview", theme, viewport: desktop, zoom: 1, reducedMotion: "reduce",
+  capabilities: ["documents-quick-look", "documents-keyboard-return"],
+  run: async (page) => {
+    const expected = await installDemoDocumentScenario(page, "pdf"); await openFormsTab(page, "Documents");
+    const row = page.getByRole("row", { name: /sample-insurance-schedule\.pdf/ }); await row.waitFor(); await row.focus(); await page.keyboard.press("Space");
+    const dialog = page.getByRole("dialog", { name: "Preview sample-insurance-schedule.pdf" }); await dialog.waitFor();
+    await dialog.getByText("Demo check complete", { exact: true }).waitFor();
+    const warning = dialog.getByText(/No antivirus scan was performed/); await warning.waitFor();
+    const link = dialog.getByRole("link", { name: "Download file" }); await link.waitFor();
+    const nativePreview = await page.evaluate(() => navigator.pdfViewerEnabled !== false);
+    if (nativePreview) {
+      const frame = dialog.getByTitle("Document preview: sample-insurance-schedule.pdf"); await frame.waitFor();
+      if (!(await frame.getAttribute("src"))?.startsWith("blob:") || await page.evaluate(() => window.demoDocumentContentReads) !== 1) throw new Error("PDF sample must use protected fetch and a temporary blob");
+      await page.waitForFunction(() => document.querySelector('.document-preview-canvas iframe')?.contentDocument?.readyState === "complete");
+    } else {
+      await dialog.getByText("This browser cannot preview PDFs. Download the file to view it in a PDF application.", { exact: true }).waitFor();
+      if (await page.evaluate(() => window.demoDocumentContentReads) !== 0) throw new Error("Unsupported native PDF viewing must not fetch preview content");
+    }
+    const warningBox = await warning.boundingBox(); const linkBox = await link.boundingBox();
+    if (!warningBox || !linkBox || warningBox.y + warningBox.height > linkBox.y) throw new Error("PDF warning must precede download");
+    const downloaded = await link.evaluate(async (element) => {
+      const url = new URL(element.href);
+      if (!url.pathname.startsWith("/api/v1/forms/documents/") || url.searchParams.get("download") !== "true") throw new Error("PDF download must use protected content delivery");
+      const response = await fetch(url.href, { credentials: "include", cache: "no-store" });
+      const content = await response.arrayBuffer();
+      return { size: content.byteLength, media: response.headers.get("Content-Type"), digest: [...new Uint8Array(await crypto.subtle.digest("SHA-256", content))].map((value) => value.toString(16).padStart(2, "0")).join("") };
+    });
+    if (downloaded.size !== expected.size || downloaded.digest !== expected.digest || downloaded.media !== "application/pdf") throw new Error("Protected PDF download differed from the shipped sample");
+    await assertSheetRecoveryVisible(page, dialog);
+    return { native_pdf_preview: nativePreview, content_reads: await page.evaluate(() => window.demoDocumentContentReads), warning_before_download: true, downloaded_bytes: downloaded.size, downloaded_sha256: downloaded.digest };
+  },
+});
+
 export const formsEvidenceScenarios = Object.freeze(scenarios.map((scenario) => Object.freeze({
   ...scenario,
   viewport: Object.freeze({ ...scenario.viewport }),

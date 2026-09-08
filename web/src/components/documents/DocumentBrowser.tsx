@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { loadDocuments, type DocumentOccurrence, type FileKind } from "../../submittedDocumentApi";
 import { Button, DataTable, EmptyState, Notice, SearchField, SelectField, StatusBadge, type DataColumn } from "../ui";
-import { DocumentFacts, FileIcon, fileKindLabel, fileSize, documentDate, fileStatus } from "./DocumentFile";
+import { DocumentDemoNotice, DocumentFacts, FileIcon, fileKindLabel, fileSize, documentDate, fileStatus } from "./DocumentFile";
 import { DocumentPreview } from "./DocumentPreview";
 import "./documents.css";
 
@@ -65,7 +65,7 @@ export function DocumentBrowser({ scopeLabel, relationshipID, responseRevisionID
           <footer className="document-list-footer"><span>{items.length} {items.length === 1 ? "file" : "files"} on this page{nextCursor ? " · More available" : ""}</span><span>Select a file · Press Space to preview</span></footer>
         </> : <EmptyState population={`${scopeLabel} · ${kind === "ALL" ? "All file types" : fileKindLabel(kind)}${query ? ` · “${query}”` : ""}`} title="No matching documents" description="No submitted documents were found for this view. Change the file type or search to check another view."/>)}
       </div>
-      {selected && <aside className="document-inspector" aria-label="Selected file details"><FileIcon kind={selected.file_kind}/><h3>{selected.file_name}</h3><p>{fileKindLabel(selected.file_kind)} · {fileSize(selected.size_bytes)}</p><Button onPress={() => open(selected)}>Preview file</Button><DocumentFacts file={selected}/></aside>}
+      {selected && <aside className="document-inspector" aria-label="Selected file details"><FileIcon kind={selected.file_kind}/><h3>{selected.file_name}</h3><p>{fileKindLabel(selected.file_kind)} · {fileSize(selected.size_bytes)}</p><DocumentDemoNotice file={selected}/><Button onPress={() => open(selected)}>Preview file</Button><DocumentFacts file={selected}/></aside>}
     </div>
     {preview && <DocumentPreview key={preview.id} file={preview} onClose={() => setPreviewID(undefined)}/>}
   </section>;

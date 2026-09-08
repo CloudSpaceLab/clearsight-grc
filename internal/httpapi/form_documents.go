@@ -98,7 +98,7 @@ func (a *API) openFormDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v := page.Items[0]
-	if v.ArtifactStatus != evidence.ArtifactAvailable {
+	if v.ArtifactStatus != evidence.ArtifactAvailable && !v.DemoPreviewAvailable {
 		writeDocumentError(w, evidence.ErrNotFound)
 		return
 	}
@@ -106,7 +106,11 @@ func (a *API) openFormDocument(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	artifact, reader, err := capture.OpenArtifact(r.Context(), q.TenantID, v.ArtifactRequestID, v.ArtifactID)
+	open := capture.OpenArtifact
+	if v.DemoPreviewAvailable {
+		open = capture.OpenDemoSampleArtifact
+	}
+	artifact, reader, err := open(r.Context(), q.TenantID, v.ArtifactRequestID, v.ArtifactID)
 	if err != nil {
 		writeDocumentError(w, err)
 		return

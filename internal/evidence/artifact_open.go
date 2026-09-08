@@ -12,7 +12,14 @@ import (
 // keys remain internal to the evidence service.
 func (s *Service) OpenArtifact(ctx context.Context, tenant, requestID, artifactID string) (Artifact, io.ReadCloser, error) {
 	artifact, err := s.GetArtifact(ctx, tenant, requestID, artifactID)
-	if err != nil || artifact.Status != ArtifactAvailable || s.store == nil || artifact.SizeBytes < 1 || artifact.SizeBytes > s.maxArtifactBytes {
+	if err != nil || artifact.Status != ArtifactAvailable {
+		return Artifact{}, nil, ErrNotFound
+	}
+	return s.openVerifiedArtifact(ctx, artifact)
+}
+
+func (s *Service) openVerifiedArtifact(ctx context.Context, artifact Artifact) (Artifact, io.ReadCloser, error) {
+	if s.store == nil || artifact.SizeBytes < 1 || artifact.SizeBytes > s.maxArtifactBytes {
 		return Artifact{}, nil, ErrNotFound
 	}
 	reader, err := s.store.Open(ctx, artifact.StorageKey)

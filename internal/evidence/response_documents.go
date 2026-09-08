@@ -7,6 +7,8 @@ import (
 	"mime"
 	"strings"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/demodocuments"
 )
 
 type DocumentFileKind string
@@ -47,34 +49,35 @@ type DocumentReview struct {
 	Source     string     `json:"source"`
 }
 type DocumentOccurrence struct {
-	ID                  string           `json:"id"`
-	ArtifactID          string           `json:"artifact_id"`
-	RequestID           string           `json:"request_id"`
-	SubmissionID        string           `json:"submission_id"`
-	FieldID             string           `json:"field_id"`
-	ResponseRevisionID  string           `json:"response_revision_id,omitempty"`
-	DistributionID      string           `json:"distribution_id,omitempty"`
-	RelationshipID      string           `json:"relationship_id,omitempty"`
-	AssessmentID        string           `json:"assessment_id,omitempty"`
-	WorkRequestID       string           `json:"work_request_id,omitempty"`
-	FormTemplateID      string           `json:"form_template_id,omitempty"`
-	FormTemplateVersion int64            `json:"form_template_version"`
-	FormTitle           string           `json:"form_title"`
-	FieldLabel          string           `json:"field_label"`
-	FileName            string           `json:"file_name"`
-	MediaType           string           `json:"media_type"`
-	FileKind            DocumentFileKind `json:"file_kind"`
-	SizeBytes           int64            `json:"size_bytes"`
-	SHA256              string           `json:"sha256"`
-	ArtifactStatus      ArtifactStatus   `json:"artifact_status"`
-	UploadedAt          time.Time        `json:"uploaded_at"`
-	UploadedBy          string           `json:"uploaded_by,omitempty"`
-	SubmittedAt         time.Time        `json:"submitted_at"`
-	SubmittedBy         string           `json:"submitted_by,omitempty"`
-	ExpiresOn           string           `json:"expires_on,omitempty"`
-	Current             bool             `json:"current"`
-	Review              *DocumentReview  `json:"review,omitempty"`
-	ArtifactRequestID   string           `json:"-"`
+	ID                   string           `json:"id"`
+	ArtifactID           string           `json:"artifact_id"`
+	RequestID            string           `json:"request_id"`
+	SubmissionID         string           `json:"submission_id"`
+	FieldID              string           `json:"field_id"`
+	ResponseRevisionID   string           `json:"response_revision_id,omitempty"`
+	DistributionID       string           `json:"distribution_id,omitempty"`
+	RelationshipID       string           `json:"relationship_id,omitempty"`
+	AssessmentID         string           `json:"assessment_id,omitempty"`
+	WorkRequestID        string           `json:"work_request_id,omitempty"`
+	FormTemplateID       string           `json:"form_template_id,omitempty"`
+	FormTemplateVersion  int64            `json:"form_template_version"`
+	FormTitle            string           `json:"form_title"`
+	FieldLabel           string           `json:"field_label"`
+	FileName             string           `json:"file_name"`
+	MediaType            string           `json:"media_type"`
+	FileKind             DocumentFileKind `json:"file_kind"`
+	SizeBytes            int64            `json:"size_bytes"`
+	SHA256               string           `json:"sha256"`
+	ArtifactStatus       ArtifactStatus   `json:"artifact_status"`
+	DemoPreviewAvailable bool             `json:"demo_preview_available,omitempty"`
+	UploadedAt           time.Time        `json:"uploaded_at"`
+	UploadedBy           string           `json:"uploaded_by,omitempty"`
+	SubmittedAt          time.Time        `json:"submitted_at"`
+	SubmittedBy          string           `json:"submitted_by,omitempty"`
+	ExpiresOn            string           `json:"expires_on,omitempty"`
+	Current              bool             `json:"current"`
+	Review               *DocumentReview  `json:"review,omitempty"`
+	ArtifactRequestID    string           `json:"-"`
 }
 type DocumentQuery struct {
 	TenantID, LegalEntityID, PrincipalID                      string
@@ -165,5 +168,18 @@ func (s *DistributionService) ListDocuments(ctx context.Context, q DocumentQuery
 	if !ok {
 		return DocumentPage{}, ErrDistributionInvalid
 	}
-	return reader.ListDocuments(ctx, q)
+	page, err := reader.ListDocuments(ctx, q)
+	if err != nil {
+		return DocumentPage{}, err
+	}
+	// Decorate only the repository-authorized bounded page. Recompute even false
+	// capabilities, and copy the slice so shared repository results stay unchanged.
+	items := make([]DocumentOccurrence, len(page.Items))
+	copy(items, page.Items)
+	for i := range items {
+		v := &items[i]
+		v.DemoPreviewAvailable = s.demoSamplePreview && v.ArtifactStatus == ArtifactStoredUnscanned && demodocuments.Matches(v.FileName, v.MediaType, v.SHA256, v.SizeBytes)
+	}
+	page.Items = items
+	return page, nil
 }
