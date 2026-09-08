@@ -721,7 +721,7 @@ async function fillVendorWorkCreation(page, layout) {
 
 async function openVendorSection(page, section) {
   const tab = page.getByRole("tab", { name: section, exact: true });
-  if (await tab.isVisible()) await tab.click();
+  if (await tab.waitFor({ state: "visible", timeout: 3_000 }).then(() => true, () => false)) await tab.click();
   else await chooseSharedSelectOption(page, "Vendor section", section);
 }
 

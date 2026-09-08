@@ -36,8 +36,11 @@ async function selectFormsSection(page, name) {
   await page.locator(".cs-tabs--compact-select").waitFor({ state: "visible" });
   const compact = page.getByRole("button", { name: / Forms section$/ });
   if (await compact.isVisible()) {
+    await compact.scrollIntoViewIfNeeded();
     await compact.click();
-    await page.getByRole("option", { name, exact: true }).click();
+    const listbox = page.getByRole("listbox");
+    await listbox.waitFor({ state: "visible" });
+    await listbox.getByRole("option", { name, exact: true }).click();
   } else await page.getByRole("tab", { name, exact: true }).click();
   await assertFormsSectionSelected(page, name);
 }
@@ -49,8 +52,11 @@ async function selectVendorSection(page, name) {
     return;
   }
   const compact = page.getByRole("button", { name: / Vendor section$/ });
+  await compact.scrollIntoViewIfNeeded();
   await compact.click();
-  await page.getByRole("option", { name, exact: true }).click();
+  const listbox = page.getByRole("listbox");
+  await listbox.waitFor({ state: "visible" });
+  await listbox.getByRole("option", { name, exact: true }).click();
 }
 
 async function assertFormsSectionSelected(page, name) {
