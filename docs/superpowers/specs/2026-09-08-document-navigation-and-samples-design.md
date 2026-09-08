@@ -20,11 +20,11 @@ The same stored sample occurrence must be discoverable from response detail, For
 2. Vendor activation stale-result recovery and access-filtered exact-record handoffs, preserving material authority checks.
 3. Connected sample installer and actual protected-byte browser acceptance.
 
-Each has its own implementation tasks and verification receipt. Document disposition/replacement commands and validation rulesets remain separate open work under #200; sample scenarios are acceptance inputs, not claims that those capabilities exist.
+Each has its own implementation tasks and verification receipt. Document disposition/replacement commands and validation rulesets remain separate work in the existing child issues, with scope retained in closed #200; sample scenarios are acceptance inputs, not claims that those capabilities exist.
 
 ## Required proof
 
-Preserve before screenshots. Test desktop and 720/390/320px, light/dark, 200% reflow, keyboard, slow/error/empty states and resize while editing/previewing. Run copy-quality, affected workflows, UI contracts, runtime fixture isolation, full web/Go and rendered review gates. Inspect renders and repair the highest-impact finding. For samples additionally test production refusal, exact scope/access denial, repeat/partial runs, response/artifact membership, integrity and actual preview/download. Merge/deploy only green exact-head code, verify the hosted revision, and retain wider #139/#147/#200 limitations.
+Preserve before screenshots. Test desktop and 720/390/320px, light/dark, 200% reflow, keyboard, slow/error/empty states and resize while editing/previewing. Run copy-quality, affected workflows, UI contracts, runtime fixture isolation, full web/Go and rendered review gates. Inspect renders and repair the highest-impact finding. For samples additionally test production refusal, exact scope/access denial, repeat/partial runs, response/artifact membership, integrity and actual preview/download. Merge/deploy only green exact-head code, verify the hosted revision, and record remaining sample, vendor and release limitations in #138/#139/#147. Keep #200 closed as instructed.
 
 ## Operator amendment: demo scan simulation
 

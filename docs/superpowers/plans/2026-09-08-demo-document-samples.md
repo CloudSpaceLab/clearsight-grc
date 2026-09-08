@@ -19,11 +19,13 @@ Task 1 receipts: commits `99c34e27` and `ad306e0f`; six immutable PDF/PNG/XLSX a
 
 ## Task 2: Protected demo preview and truthful presentation
 
-- [ ] Add RED tests around the evidence/content boundary: a known sample remains STORED_UNSCANNED; default/non-demo open rejects it; configured demo opening verifies every stored byte; altered/truncated/appended bytes, wrong media type, quarantine/deletion and unknown files remain unavailable. Ordinary OpenArtifact behavior is unchanged.
-- [ ] Add one explicit demo-sample opening method that reuses the existing private integrity routine; enable only through validated demo configuration. No general allow-unscanned option or alternate public file route.
-- [ ] Decorate already-authorized DocumentOccurrence results with an optional demo-preview capability using the same manifest and demo flag. Ignore any incoming/client-provided capability; recompute it at the server content boundary. Preserve exact tenant/entity/principal/revision/membership checks and protected headers.
-- [ ] Share preview eligibility between frontend preview/download components. Show “Demo check complete” and “No antivirus scan was performed” for eligible sample files. Keep unknown unscanned files pending and blocked. Do not add artificial timers or green antivirus claims. Preview does not change review acceptance.
-- [ ] Cover production/demo refusal, scope revocation, content integrity, UI warning and no-fetch/no-download on blocked documents. Update product/architecture/acceptance documentation with the simulation limitation.
+- [x] Add RED tests around the evidence/content boundary: a known sample remains STORED_UNSCANNED; default/non-demo open rejects it; configured demo opening verifies every stored byte; altered/truncated/appended bytes, wrong media type, quarantine/deletion and unknown files remain unavailable. Ordinary OpenArtifact behavior is unchanged.
+- [x] Add one explicit demo-sample opening method that reuses the existing private integrity routine; enable only through validated demo configuration. No general allow-unscanned option or alternate public file route.
+- [x] Decorate already-authorized DocumentOccurrence results with an optional demo-preview capability using the same manifest and demo flag. Ignore any incoming/client-provided capability; recompute it at the server content boundary. Preserve exact tenant/entity/principal/revision/membership checks and protected headers.
+- [x] Share preview eligibility between frontend preview/download components. Show “Demo check complete” and “No antivirus scan was performed” for eligible sample files. Keep unknown unscanned files pending and blocked. Do not add artificial timers or green antivirus claims. Preview does not change review acceptance.
+- [x] Cover production/demo refusal, scope revocation, content integrity, UI warning and no-fetch/no-download on blocked documents. Update product/architecture/acceptance documentation with the simulation limitation.
+
+Task 2 local receipts: implementation `32769b11`, authored-date regression `a6b95152`, root design correction `8f5c6c3c`. Specification and independent code/security reviews approved with no outstanding findings. Focused Go/config, frontend/copy and runtime-isolation checks passed, as did the two real PostgreSQL document scope/inventory tests. All 26 corrected-date browser scenarios passed; PNG content rendered and PDF download bytes were verified. The headless browser reports no native PDF viewer, so its fallback does not establish inline PDF rendering. See the [decision and render receipt](../../design/2026-09-08-demo-document-preview.md). Persisted installation, combined release gates and hosted acceptance remain separate.
 
 ## Task 3: Connected persisted responses
 
