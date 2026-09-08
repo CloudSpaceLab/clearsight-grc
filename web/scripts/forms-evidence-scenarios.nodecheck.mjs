@@ -57,3 +57,17 @@ test("demo document evidence covers preview and blocked files in both workspaces
   }
   for (const theme of ["light", "dark"]) assert.ok(demo.some((scenario) => scenario.theme === theme && scenario.viewport.width === 1440 && scenario.state === "demo-document-pdf-preview"), `PDF ${theme}`);
 });
+
+test("actual-file scenarios use authored expiry dates and submissions after document issue", () => {
+  for (const scenario of formsEvidenceScenarios.filter((value) => value.state.startsWith("demo-document-"))) {
+    const pdf = scenario.state === "demo-document-pdf-preview";
+    const metadata = scenario.documentMetadata;
+    assert.equal(metadata?.issued_on, pdf ? "2026-04-01" : "2026-09-02", `${scenario.name} authored issue date`);
+    assert.equal(metadata?.expires_on, pdf ? "2026-09-30" : "2027-09-02", `${scenario.name} authored expiry`);
+    assert.equal(metadata.uploaded_at, "2026-09-08T09:00:00Z", `${scenario.name} sample upload`);
+    assert.equal(metadata.submitted_at, "2026-09-08T09:15:00Z", `${scenario.name} sample submission`);
+    assert.ok(Date.parse(metadata.uploaded_at) >= Date.parse(metadata.issued_on), "upload must follow the authored issue date");
+    assert.ok(Date.parse(metadata.submitted_at) >= Date.parse(metadata.issued_on), "submission must follow the authored issue date");
+    assert.ok(Date.parse(metadata.submitted_at) >= Date.parse(metadata.uploaded_at), "submission must follow upload");
+  }
+});

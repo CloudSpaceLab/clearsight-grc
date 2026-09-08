@@ -750,12 +750,17 @@ async function verifyFormsSectionResumption(page) {
 
 // This fixture is installed only by the browser evidence runner after the
 // separate evidence build loads. Customer runtime fixtures are unchanged.
+const demoDocumentMetadata = Object.freeze({
+  image: Object.freeze({ issued_on: "2026-09-02", uploaded_at: "2026-09-08T09:00:00Z", submitted_at: "2026-09-08T09:15:00Z", expires_on: "2027-09-02" }),
+  pdf: Object.freeze({ issued_on: "2026-04-01", uploaded_at: "2026-09-08T09:00:00Z", submitted_at: "2026-09-08T09:15:00Z", expires_on: "2026-09-30" }),
+});
+
 async function installDemoDocumentScenario(page, kind = "image") {
   const { readFile } = await import("node:fs/promises");
   const { createHash } = await import("node:crypto");
   const filename = kind === "pdf" ? "sample-insurance-schedule.pdf" : "sample-office-statement.png";
   const bytes = await readFile(new URL(`../../internal/demodocuments/assets/${filename}`, import.meta.url));
-  await page.evaluate(({ base64, size, digest, filename, kind }) => {
+  await page.evaluate(({ base64, size, digest, filename, kind, metadata }) => {
     const originalFetch = window.fetch.bind(window);
     window.demoDocumentContentReads = 0;
     window.fetch = async (...args) => {
@@ -770,12 +775,22 @@ async function installDemoDocumentScenario(page, kind = "image") {
       if (url.pathname !== "/api/v1/forms/documents" || !response.ok) return response;
       const source = (await response.json()).items[0];
       if (!source) throw new Error("Document scenario requires an authorized source occurrence");
-      const sample = { ...source, id: "demo-sample", artifact_id: "demo-sample-artifact", form_title: "Sample vendor review", field_label: kind === "pdf" ? "Insurance schedule" : "Registered office statement", file_name: filename, media_type: kind === "pdf" ? "application/pdf" : "image/png", file_kind: kind === "pdf" ? "PDF" : "IMAGE", size_bytes: size, sha256: digest, artifact_status: "STORED_UNSCANNED", demo_preview_available: true, review: undefined };
+      const sample = { ...source, uploaded_at: metadata.uploaded_at, submitted_at: metadata.submitted_at, expires_on: metadata.expires_on, id: "demo-sample", artifact_id: "demo-sample-artifact", form_title: "Sample vendor review", field_label: kind === "pdf" ? "Insurance schedule" : "Registered office statement", file_name: filename, media_type: kind === "pdf" ? "application/pdf" : "image/png", file_kind: kind === "pdf" ? "PDF" : "IMAGE", size_bytes: size, sha256: digest, artifact_status: "STORED_UNSCANNED", demo_preview_available: true, review: undefined };
       const pending = { ...sample, id: "genuine-pending", artifact_id: "genuine-pending-artifact", file_name: "Supplier office statement.png", demo_preview_available: false };
       return new Response(JSON.stringify({ items: [sample, pending] }), { headers: { "Content-Type": "application/json" } });
     };
-  }, { base64: bytes.toString("base64"), size: bytes.length, digest: createHash("sha256").update(bytes).digest("hex"), filename, kind });
+  }, { base64: bytes.toString("base64"), size: bytes.length, digest: createHash("sha256").update(bytes).digest("hex"), filename, kind, metadata: demoDocumentMetadata[kind] });
   return { size: bytes.length, digest: createHash("sha256").update(bytes).digest("hex") };
+}
+
+async function assertDemoDocumentMetadata(dialog, expected) {
+  const actual = await dialog.locator(".document-facts").evaluate((facts) => {
+    const value = (label) => [...facts.querySelectorAll("dt")].find((element) => element.textContent === label)?.nextElementSibling;
+    return { uploaded_at: value("Uploaded")?.querySelector("time")?.getAttribute("datetime"), submitted_at: value("Last submitted")?.querySelector("time")?.getAttribute("datetime"), expires_on: value("Expiry date")?.textContent };
+  });
+  const expectedExpiry = await dialog.evaluate((_element, date) => new Date(date).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }), expected.expires_on);
+  if (actual.uploaded_at !== expected.uploaded_at || actual.submitted_at !== expected.submitted_at || actual.expires_on !== expectedExpiry) throw new Error(`Document fixture metadata does not match the authored sample: ${JSON.stringify(actual)}`);
+  return { issued_on: expected.issued_on, ...actual };
 }
 
 for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"]) for (const viewport of [desktop, mobile, reflow]) {
@@ -783,6 +798,7 @@ for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"
     name: `129-forms-demo-documents-${surface}-${state}-${theme}-${viewport.width}`,
     fixture: surface === "forms" ? "forms-documents" : "forms-vendor-review-conflict", route: `#${surface}`,
     state: `demo-document-${state}`, theme, viewport, zoom: 1, reducedMotion: "reduce",
+    documentMetadata: demoDocumentMetadata.image,
     capabilities: ["documents-quick-look", "documents-keyboard-return", ...(surface === "vendors" ? ["documents-vendor-launcher"] : [])],
     run: async (page) => {
       await installDemoDocumentScenario(page);
@@ -796,6 +812,7 @@ for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"
       await row.waitFor(); await row.focus(); await page.keyboard.press("Space");
       const dialog = page.getByRole("dialog", { name: `Preview ${filename}` });
       await dialog.waitFor();
+      const metadata = await assertDemoDocumentMetadata(dialog, demoDocumentMetadata.image);
       if (state === "preview") {
         await dialog.getByText("Demo check complete", { exact: true }).waitFor();
         const warning = dialog.getByText(/No antivirus scan was performed/);
@@ -815,7 +832,7 @@ for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"
       if (!await row.evaluate((element) => element === document.activeElement)) throw new Error("Closing sample preview must restore file focus");
       await page.keyboard.press("Space"); await dialog.waitFor();
       if (state === "preview") await dialog.getByRole("img").waitFor();
-      return { content_reads: await page.evaluate(() => window.demoDocumentContentReads), warning_before_download: state === "preview", blocked: state === "blocked" };
+      return { content_reads: await page.evaluate(() => window.demoDocumentContentReads), warning_before_download: state === "preview", blocked: state === "blocked", document_metadata: metadata };
     },
   });
 }
@@ -823,11 +840,13 @@ for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"
 for (const theme of ["light", "dark"]) scenarios.push({
   name: `130-forms-demo-documents-pdf-${theme}-1440`, fixture: "forms-documents", route: "#forms",
   state: "demo-document-pdf-preview", theme, viewport: desktop, zoom: 1, reducedMotion: "reduce",
+  documentMetadata: demoDocumentMetadata.pdf,
   capabilities: ["documents-quick-look", "documents-keyboard-return"],
   run: async (page) => {
     const expected = await installDemoDocumentScenario(page, "pdf"); await openFormsTab(page, "Documents");
     const row = page.getByRole("row", { name: /sample-insurance-schedule\.pdf/ }); await row.waitFor(); await row.focus(); await page.keyboard.press("Space");
     const dialog = page.getByRole("dialog", { name: "Preview sample-insurance-schedule.pdf" }); await dialog.waitFor();
+    const metadata = await assertDemoDocumentMetadata(dialog, demoDocumentMetadata.pdf);
     await dialog.getByText("Demo check complete", { exact: true }).waitFor();
     const warning = dialog.getByText(/No antivirus scan was performed/); await warning.waitFor();
     const link = dialog.getByRole("link", { name: "Download file" }); await link.waitFor();
@@ -851,7 +870,7 @@ for (const theme of ["light", "dark"]) scenarios.push({
     });
     if (downloaded.size !== expected.size || downloaded.digest !== expected.digest || downloaded.media !== "application/pdf") throw new Error("Protected PDF download differed from the shipped sample");
     await assertSheetRecoveryVisible(page, dialog);
-    return { native_pdf_preview: nativePreview, content_reads: await page.evaluate(() => window.demoDocumentContentReads), warning_before_download: true, downloaded_bytes: downloaded.size, downloaded_sha256: downloaded.digest };
+    return { native_pdf_preview: nativePreview, content_reads: await page.evaluate(() => window.demoDocumentContentReads), warning_before_download: true, downloaded_bytes: downloaded.size, downloaded_sha256: downloaded.digest, document_metadata: metadata };
   },
 });
 
