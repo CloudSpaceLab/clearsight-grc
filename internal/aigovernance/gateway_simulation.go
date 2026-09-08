@@ -76,6 +76,7 @@ type GatewaySimulationResult struct {
 	Workload                  *GatewaySimulationWorkloadRef  `json:"workload,omitempty"`
 	WorkloadPolicy            *GatewaySimulationPolicyRef    `json:"workload_policy,omitempty"`
 	BaselinePolicy            *GatewaySimulationPolicyRef    `json:"baseline_policy,omitempty"`
+	BaselineExceptions        []aigateway.PolicyRevisionRef  `json:"baseline_exceptions,omitempty"`
 	Transport                 *GatewaySimulationTransportRef `json:"transport,omitempty"`
 	Decision                  aigateway.Decision             `json:"decision"`
 	DetectorFacts             []aigateway.Fact               `json:"detector_facts"`
@@ -118,9 +119,12 @@ func (s *Service) SimulateGateway(ctx context.Context, input GatewaySimulationIn
 	if err != nil {
 		return GatewaySimulationResult{}, err
 	}
-	if baseline != nil {
-		snapshot := policySnapshot(*baseline)
-		workload.Policy.Baseline = &snapshot
+	baselineSnapshot, baselineExceptions, err := s.simulationBaselineSnapshot(ctx, input, baseline, workloadRecord)
+	if err != nil {
+		return GatewaySimulationResult{}, err
+	}
+	if baselineSnapshot != nil {
+		workload.Policy.Baseline = baselineSnapshot
 	}
 
 	modelAlias := chooseSimulationModelAlias(input.ModelAlias, workloadRecord, transport)
@@ -133,6 +137,7 @@ func (s *Service) SimulateGateway(ctx context.Context, input GatewaySimulationIn
 		Fixture: input.Fixture, Environment: input.Environment, ModelAlias: modelAlias,
 		InstructionPrecedence: []string{"ORGANIZATION_BASELINE", "WORKLOAD_SYSTEM_DEVELOPER", "USER_OR_RETRIEVED_CONTENT"},
 		DetectorFacts:         aigateway.GatewaySecurityFacts(request),
+		BaselineExceptions:    baselineExceptions,
 	}
 	if workloadRecord != nil {
 		result.Workload = &GatewaySimulationWorkloadRef{ID: workloadRecord.ID, WorkloadID: workloadRecord.WorkloadID, Name: workloadRecord.Name, State: workloadRecord.State}
