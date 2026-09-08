@@ -71,6 +71,9 @@ func normalizeScoreProfile(contract *Contract) error {
 	ids := map[string]bool{}
 	for i := range p.Contributions {
 		c := &p.Contributions[i]
+		if field, ok := fields[c.Predicate.FieldID]; ok && field.Assessment != nil && (field.Assessment.Mode == AssessmentAutomatic || field.Assessment.Mode == AssessmentAutomaticReview) {
+			c.Weight = field.Assessment.Weight
+		}
 		c.ID = strings.TrimSpace(c.ID)
 		if c.ID == "" || ids[c.ID] || c.Weight < 1 || c.Weight > 100 || c.MatchPoints < 0 || c.MatchPoints > 100 || c.NonMatchPoints < 0 || c.NonMatchPoints > 100 {
 			return invalid("score contribution is invalid")
@@ -221,15 +224,22 @@ func validateBands(b []ScoreBandRange) error {
 }
 
 func EvaluateScoreProfile(profile ScoreProfile, contract Contract, answers map[string]AnswerValue) (AdvancedScoreResult, error) {
-	contract.ScoreProfile = &profile
-	if contract.ScoringMode == "" {
-		contract.ScoringMode = profile.Mode
+	return evaluateScoreProfile(profile, contract, answers, nil, true, nil)
+}
+func evaluateScoreProfile(profile ScoreProfile, contract Contract, answers map[string]AnswerValue, extra []ContributionResult, normalize bool, effectiveWeights map[string]float64) (AdvancedScoreResult, error) {
+	if normalize {
+		contract.ScoreProfile = &profile
+		if contract.ScoringMode == "" {
+			contract.ScoringMode = profile.Mode
+		}
+		n, err := Normalize(contract)
+		if err != nil {
+			return AdvancedScoreResult{}, err
+		}
+		profile = *n.ScoreProfile
+		contract = n
 	}
-	n, err := Normalize(contract)
-	if err != nil {
-		return AdvancedScoreResult{}, err
-	}
-	profile = *n.ScoreProfile
+	n := contract
 	visible, err := VisibleFields(n, answers)
 	if err != nil {
 		return AdvancedScoreResult{}, err
@@ -239,7 +249,19 @@ func EvaluateScoreProfile(profile ScoreProfile, contract Contract, answers map[s
 		vis[f.ID] = true
 	}
 	out := AdvancedScoreResult{ContributionResults: []ContributionResult{}, RuleResults: []AdvancedRuleResult{}}
-	achieved, covered, total := 0, 0, 0
+	achieved, covered, total := 0.0, 0.0, 0.0
+	for _, contribution := range extra {
+		weight := float64(contribution.Weight)
+		if effective, ok := effectiveWeights[contribution.ID]; ok {
+			weight = effective
+		}
+		total += weight
+		if contribution.Outcome != ScoreIndeterminate {
+			covered += weight
+			achieved += float64(contribution.Points) * weight
+		}
+		out.ContributionResults = append(out.ContributionResults, contribution)
+	}
 	for _, c := range profile.Contributions {
 		if hidden(c.Predicate, vis) {
 			out.ContributionResults = append(out.ContributionResults, ContributionResult{ID: c.ID, Outcome: ScoreIndeterminate})
@@ -253,9 +275,9 @@ func EvaluateScoreProfile(profile ScoreProfile, contract Contract, answers map[s
 			if c.Missing == MissingExclude {
 				continue
 			}
-			total += c.Weight
+			total += float64(c.Weight)
 			if c.Missing == MissingZero {
-				covered += c.Weight
+				covered += float64(c.Weight)
 			}
 			out.ContributionResults = append(out.ContributionResults, ContributionResult{ID: c.ID, Outcome: ScoreIndeterminate, Weight: c.Weight})
 			continue
@@ -264,9 +286,9 @@ func EvaluateScoreProfile(profile ScoreProfile, contract Contract, answers map[s
 		if m {
 			points = c.MatchPoints
 		}
-		total += c.Weight
-		covered += c.Weight
-		achieved += points * c.Weight
+		total += float64(c.Weight)
+		covered += float64(c.Weight)
+		achieved += float64(points * c.Weight)
 		out.ContributionResults = append(out.ContributionResults, ContributionResult{ID: c.ID, Points: points, Weight: c.Weight})
 	}
 	floor, cap := -1, 101
@@ -278,15 +300,15 @@ func EvaluateScoreProfile(profile ScoreProfile, contract Contract, answers map[s
 		out.RuleResults = append(out.RuleResults, AdvancedRuleResult{ID: r.ID, Matched: m && d, Effect: r.Effect.Kind, Value: r.Effect.Value, Weight: r.Effect.Weight})
 		if !d {
 			if r.Effect.Kind == EffectContribution {
-				total += r.Effect.Weight
+				total += float64(r.Effect.Weight)
 			}
 			continue
 		}
 		if r.Effect.Kind == EffectContribution {
-			total += r.Effect.Weight
-			covered += r.Effect.Weight
+			total += float64(r.Effect.Weight)
+			covered += float64(r.Effect.Weight)
 			if m {
-				achieved += r.Effect.Value * r.Effect.Weight
+				achieved += float64(r.Effect.Value * r.Effect.Weight)
 			}
 		}
 		if m {
@@ -301,6 +323,11 @@ func EvaluateScoreProfile(profile ScoreProfile, contract Contract, answers map[s
 		}
 	}
 	if total == 0 {
+		if !normalize {
+			out.Final = true
+			out.Coverage = 1
+			return out, nil
+		}
 		return AdvancedScoreResult{}, invalid("no applicable score contribution")
 	}
 	out.Coverage = math.Round(float64(covered)/float64(total)*10000) / 10000

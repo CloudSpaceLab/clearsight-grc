@@ -77,6 +77,9 @@ type DocumentOccurrence struct {
 	ArtifactRequestID   string           `json:"-"`
 }
 type DocumentQuery struct {
+	// Set only after the service verifies the current review route for the exact
+	// generic vendor response. This never expands a relationship-wide inventory.
+	assessmentRead                                            bool
 	TenantID, LegalEntityID, PrincipalID                      string
 	FileKind                                                  DocumentFileKind
 	Query, FormTemplateID, RelationshipID, ResponseRevisionID string
@@ -164,6 +167,15 @@ func (s *DistributionService) ListDocuments(ctx context.Context, q DocumentQuery
 	reader, ok := s.store.(documentStore)
 	if !ok {
 		return DocumentPage{}, ErrDistributionInvalid
+	}
+	if q.ResponseRevisionID != "" {
+		if assessments, ok := s.store.(responseAssessmentStore); ok {
+			authorize := s.assessmentReadAuthority(ctx, q.TenantID, q.LegalEntityID, q.PrincipalID)
+			m, err := assessments.ReadResponseAssessment(ctx, q.TenantID, q.LegalEntityID, q.PrincipalID, q.ResponseRevisionID, authorize)
+			if err == nil && m.Summary.SubjectType == "VENDOR_RELATIONSHIP" && m.Request.Origin.Type != "THIRD_PARTY_WORK" && m.Request.Origin.Type != "THIRD_PARTY_ASSESSMENT" {
+				q.assessmentRead = authorize(ctx, m)
+			}
+		}
 	}
 	return reader.ListDocuments(ctx, q)
 }

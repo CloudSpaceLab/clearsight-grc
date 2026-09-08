@@ -34,12 +34,15 @@ func normalizeCreateInput(input *CreateInput, now time.Time) error {
 	input.Action.RequestedHandling = strings.TrimSpace(input.Action.RequestedHandling)
 	input.Outcome.ExpectedOutcome = strings.TrimSpace(input.Outcome.ExpectedOutcome)
 	input.Outcome.FailureResponse = strings.ToUpper(strings.TrimSpace(input.Outcome.FailureResponse))
+	if input.Eligibility.Basis() != ResultAutomatic && input.Eligibility.Basis() != ResultBankAssessed {
+		return fmt.Errorf("%w: result basis is invalid", ErrInvalid)
+	}
 	if !validSubjectTypes(input.Eligibility.SubjectTypes) || !validBands(input.Eligibility.Bands) {
 		return fmt.Errorf("%w: subject type or concern band is invalid", ErrInvalid)
 	}
 	input.Eligibility.SubjectTypes = normalizedSubjectTypes(input.Eligibility.SubjectTypes)
 	input.Eligibility.Bands = normalizedBands(input.Eligibility.Bands)
-	if !policyCodePattern.MatchString(input.Code) || !bounded(input.Name, 1, 160) || !bounded(input.Purpose, 1, 1000) || !bounded(input.AutomationPolicyID, 1, 128) || input.AutomationPolicyVersion < 1 {
+	if !policyCodePattern.MatchString(input.Code) || !bounded(input.Name, 1, 160) || !bounded(input.Purpose, 1, 1000) || !input.CreateAutomationPolicy && (!bounded(input.AutomationPolicyID, 1, 128) || input.AutomationPolicyVersion < 1) {
 		return fmt.Errorf("%w: policy identity and automation policy revision are required", ErrInvalid)
 	}
 	if input.Eligibility.FormTemplateID == "" || input.Eligibility.FormTemplateVersion < 1 || len(input.Eligibility.SubjectTypes) == 0 || len(input.Eligibility.SubjectTypes) > 20 || input.Eligibility.MinimumCoverage < 0 || input.Eligibility.MinimumCoverage > 1 {

@@ -580,7 +580,7 @@ func (s *MatterFormRemediationService) currentTime() time.Time {
 func matterRemediationRequestInput(binding MatterFormRemediationBinding, matter MatterAggregate, form monitoring.FormTemplate, recipient evidence.DistributionRecipientInput, actorID string, deadline time.Time) evidence.CreateRequestInput {
 	fields := make([]evidence.Field, len(form.Fields))
 	for index, field := range form.Fields {
-		fields[index] = evidence.Field{ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: string(field.Type), Required: field.Required, Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...), Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring, CollectionIntent: field.CollectionIntent, RecordTarget: field.RecordTarget, BrowserCachePolicy: field.BrowserCachePolicy}
+		fields[index] = evidence.Field{ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: string(field.Type), Required: field.Required, Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...), Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring, Assessment: field.Assessment, CollectionIntent: field.CollectionIntent, RecordTarget: field.RecordTarget, BrowserCachePolicy: field.BrowserCachePolicy}
 	}
 	audienceType := "INTERNAL"
 	recipientInput := evidence.RecipientInput{Type: recipient.Type, PrincipalID: recipient.PrincipalID}

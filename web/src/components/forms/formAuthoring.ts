@@ -343,6 +343,7 @@ function cleanField(field: AuthoringField, scoringMode: FormScoringMode): FormTe
     ...(constraints ? { constraints } : {}),
     ...(field.condition ? { condition: cleanCondition(field.condition) } : {}),
     ...(scoring ? { scoring } : {}),
+    ...(field.assessment ? { assessment: cloneAssessment(field.assessment) } : {}),
     ...(field.collection_intent && field.collection_intent !== "CAPTURE" ? { collection_intent: field.collection_intent } : {}),
     ...(field.record_target ? {
       record_target: {
@@ -381,6 +382,7 @@ function cloneField(field: AuthoringField): AuthoringField {
     accepted_formats: field.accepted_formats ? [...field.accepted_formats] : undefined,
     constraints: field.constraints ? { ...field.constraints } : undefined,
     condition: cloneCondition(field.condition),
+    ...(field.assessment ? { assessment: cloneAssessment(field.assessment) } : {}),
     scoring: field.scoring ? {
       ...field.scoring,
       answer_scores: { ...field.scoring.answer_scores },
@@ -388,6 +390,10 @@ function cloneField(field: AuthoringField): AuthoringField {
     } : undefined,
     record_target: field.record_target ? { ...field.record_target } : undefined,
   };
+}
+
+function cloneAssessment(assessment: NonNullable<FormTemplateField["assessment"]>) {
+  return { ...assessment, ...(assessment.rubric ? { rubric: assessment.rubric.map((outcome) => ({ ...outcome })) } : {}) };
 }
 
 function cloneCondition(condition?: CaptureVisibilityCondition) {

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -35,6 +36,11 @@ func (repo *PostgresRepository) ApplyExecution(ctx context.Context, command Exec
 	}
 	if !errors.Is(err, ErrNotFound) {
 		return ExecutionReceipt{}, err
+	}
+	if command.Receipt.ResultBasis == ResultBankAssessed {
+		if err = validateAssessedExecutionTx(ctx, tx, command); err != nil {
+			return ExecutionReceipt{}, err
+		}
 	}
 	consumer := fmt.Sprintf("%s%s:%d", formPolicyExecutorConsumerPrefix, command.Policy.ID, command.Policy.Version)
 	if _, err = tx.Exec(ctx, `INSERT INTO inbox_receipts(tenant_id,consumer,event_id,processed_at) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3,$4) ON CONFLICT DO NOTHING`, command.Receipt.TenantID, consumer, command.EventID, command.Receipt.CreatedAt); err != nil {
@@ -173,13 +179,13 @@ func appendExecutionRecoveryActionStateTx(ctx context.Context, tx pgx.Tx, action
 func applyFailedExecutionTx(ctx context.Context, tx pgx.Tx, command ExecutionCommand) (ExecutionReceipt, error) {
 	receipt := command.Receipt
 	tag, err := tx.Exec(ctx, `INSERT INTO form_response_policy_execution_failures(
-		id,tenant_id,legal_entity_id,policy_id,policy_version,automation_policy_id,automation_policy_version,response_revision_id,event_id,reason_code,created_at
-	) SELECT $1::uuid,t.id,le.id,$4::uuid,$5,$6::uuid,$7,$8::uuid,$9,$10,$11
+		id,tenant_id,legal_entity_id,policy_id,policy_version,automation_policy_id,automation_policy_version,response_revision_id,event_id,reason_code,created_at,result_basis,assessment_version
+	) SELECT $1::uuid,t.id,le.id,$4::uuid,$5,$6::uuid,$7,$8::uuid,$9,$10,$11,$12,$13
 	  FROM tenants t JOIN legal_entities le ON le.tenant_id=t.id AND (le.id::text=$3 OR le.code=$3)
 	  WHERE t.id::text=$2 OR t.slug=$2
 	  ON CONFLICT (tenant_id,legal_entity_id,policy_id,policy_version,response_revision_id,event_id) DO NOTHING`,
 		receipt.ID, receipt.TenantID, receipt.LegalEntityID, receipt.PolicyID, receipt.PolicyVersion,
-		receipt.AutomationPolicyID, receipt.AutomationPolicyVersion, receipt.ResponseRevisionID, command.EventID, receipt.ReasonCode, receipt.CreatedAt)
+		receipt.AutomationPolicyID, receipt.AutomationPolicyVersion, receipt.ResponseRevisionID, command.EventID, receipt.ReasonCode, receipt.CreatedAt, receiptBasis(receipt), receipt.AssessmentVersion)
 	if err != nil {
 		return ExecutionReceipt{}, normalizePostgresError(err)
 	}
@@ -189,7 +195,7 @@ func applyFailedExecutionTx(ctx context.Context, tx pgx.Tx, command ExecutionCom
 	if err = insertExecutionFailureOutboxTx(ctx, tx, receipt); err != nil {
 		return ExecutionReceipt{}, err
 	}
-	if err = insertExecutionRetryJobTx(ctx, tx, receipt); err != nil {
+	if err = insertExecutionRetryJobTx(ctx, tx, receipt, command.EventOccurredAt); err != nil {
 		return ExecutionReceipt{}, err
 	}
 	if command.FailureMatter != nil && command.FailureAction != nil {
@@ -202,22 +208,25 @@ func applyFailedExecutionTx(ctx context.Context, tx pgx.Tx, command ExecutionCom
 
 func getExecutionFailureTx(ctx context.Context, tx pgx.Tx, command ExecutionCommand) (ExecutionReceipt, error) {
 	var value ExecutionReceipt
-	err := tx.QueryRow(ctx, `SELECT f.id::text,f.tenant_id::text,f.legal_entity_id::text,f.policy_id::text,f.policy_version,f.automation_policy_id::text,f.automation_policy_version,f.response_revision_id::text,'FAILED',f.reason_code,f.created_at
+	err := tx.QueryRow(ctx, `SELECT f.id::text,f.tenant_id::text,f.legal_entity_id::text,f.policy_id::text,f.policy_version,f.automation_policy_id::text,f.automation_policy_version,f.response_revision_id::text,'FAILED',f.reason_code,f.created_at,f.result_basis,f.assessment_version
 		FROM form_response_policy_execution_failures f JOIN tenants t ON t.id=f.tenant_id JOIN legal_entities le ON le.id=f.legal_entity_id AND le.tenant_id=f.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND f.policy_id=$3::uuid AND f.policy_version=$4 AND f.response_revision_id=$5::uuid AND f.event_id=$6`,
 		command.Receipt.TenantID, command.Receipt.LegalEntityID, command.Receipt.PolicyID, command.Receipt.PolicyVersion, command.Receipt.ResponseRevisionID, command.EventID).
-		Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.PolicyID, &value.PolicyVersion, &value.AutomationPolicyID, &value.AutomationPolicyVersion, &value.ResponseRevisionID, &value.State, &value.ReasonCode, &value.CreatedAt)
+		Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.PolicyID, &value.PolicyVersion, &value.AutomationPolicyID, &value.AutomationPolicyVersion, &value.ResponseRevisionID, &value.State, &value.ReasonCode, &value.CreatedAt, &value.ResultBasis, &value.AssessmentVersion)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ExecutionReceipt{}, ErrNotFound
 	}
 	return value, err
 }
 
-func insertExecutionRetryJobTx(ctx context.Context, tx pgx.Tx, receipt ExecutionReceipt) error {
-	_, err := tx.Exec(ctx, `INSERT INTO form_response_policy_maintenance_jobs(tenant_id,legal_entity_id,job_type,response_revision_id,due_at,state,created_at,updated_at)
-		SELECT tenant_id,legal_entity_id,'RECONCILE',response_revision_id,$2::timestamptz+interval '30 seconds','READY',$2,$2
+func insertExecutionRetryJobTx(ctx context.Context, tx pgx.Tx, receipt ExecutionReceipt, occurredAt time.Time) error {
+	if occurredAt.IsZero() {
+		occurredAt = receipt.CreatedAt
+	}
+	_, err := tx.Exec(ctx, `INSERT INTO form_response_policy_maintenance_jobs(tenant_id,legal_entity_id,job_type,response_revision_id,due_at,state,created_at,updated_at,result_basis,assessment_version,result_occurred_at)
+		SELECT tenant_id,legal_entity_id,'RECONCILE',response_revision_id,$2::timestamptz+interval '30 seconds','READY',$2,$2,result_basis,assessment_version,$3
 		FROM form_response_policy_execution_failures WHERE id=$1::uuid
-		ON CONFLICT (tenant_id,legal_entity_id,response_revision_id) WHERE job_type='RECONCILE' DO NOTHING`, receipt.ID, receipt.CreatedAt)
+		ON CONFLICT (tenant_id,legal_entity_id,response_revision_id,assessment_version) WHERE job_type='RECONCILE' DO NOTHING`, receipt.ID, receipt.CreatedAt, occurredAt)
 	return normalizePostgresError(err)
 }
 
@@ -437,20 +446,20 @@ func insertExecutionFailureOutboxTx(ctx context.Context, tx pgx.Tx, receipt Exec
 
 func insertOutcomeCheckTx(ctx context.Context, tx pgx.Tx, command ExecutionCommand, receipt ExecutionReceipt) error {
 	dueAt := receipt.CreatedAt.Add(time.Duration(command.Policy.Outcome.CheckAfterMinutes) * time.Minute)
-	_, err := tx.Exec(ctx, `INSERT INTO form_response_policy_maintenance_jobs(tenant_id,legal_entity_id,job_type,response_revision_id,policy_execution_id,adverse_episode_id,matter_id,due_at,state,created_at,updated_at) SELECT e.tenant_id,e.legal_entity_id,'OUTCOME_CHECK',e.response_revision_id,e.id,episode.id,e.matter_id,$6,'READY',$7,$7 FROM form_response_policy_executions e JOIN form_response_policy_adverse_episodes episode ON episode.tenant_id=e.tenant_id AND episode.legal_entity_id=e.legal_entity_id AND episode.matter_id=e.matter_id AND episode.state='OPEN' WHERE e.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND e.legal_entity_id=(SELECT le.id FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2)) AND e.policy_id=$3::uuid AND e.policy_version=$4 AND e.response_revision_id=$5::uuid ON CONFLICT (tenant_id,legal_entity_id,policy_execution_id) WHERE job_type='OUTCOME_CHECK' DO NOTHING`, receipt.TenantID, receipt.LegalEntityID, receipt.PolicyID, receipt.PolicyVersion, receipt.ResponseRevisionID, dueAt, receipt.CreatedAt)
+	_, err := tx.Exec(ctx, `INSERT INTO form_response_policy_maintenance_jobs(tenant_id,legal_entity_id,job_type,response_revision_id,policy_execution_id,adverse_episode_id,matter_id,due_at,state,created_at,updated_at) SELECT e.tenant_id,e.legal_entity_id,'OUTCOME_CHECK',e.response_revision_id,e.id,episode.id,e.matter_id,$6,'READY',$7,$7 FROM form_response_policy_executions e JOIN form_response_policy_adverse_episodes episode ON episode.tenant_id=e.tenant_id AND episode.legal_entity_id=e.legal_entity_id AND episode.matter_id=e.matter_id AND episode.state='OPEN' WHERE e.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND e.legal_entity_id=(SELECT le.id FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2)) AND e.policy_id=$3::uuid AND e.policy_version=$4 AND e.response_revision_id=$5::uuid AND e.assessment_version=$8 ON CONFLICT (tenant_id,legal_entity_id,policy_execution_id) WHERE job_type='OUTCOME_CHECK' DO NOTHING`, receipt.TenantID, receipt.LegalEntityID, receipt.PolicyID, receipt.PolicyVersion, receipt.ResponseRevisionID, dueAt, receipt.CreatedAt, receipt.AssessmentVersion)
 	return normalizePostgresError(err)
 }
 
 func applyMatchedExecutionTx(ctx context.Context, tx pgx.Tx, command ExecutionCommand) (ExecutionReceipt, error) {
 	receipt := command.Receipt
-	episodeLockKey := strings.Join([]string{receipt.TenantID, receipt.LegalEntityID, command.Policy.Code, strings.ToUpper(command.Route.CanonicalSubjectType), command.Route.CanonicalSubjectID, "adverse-episode"}, "|")
+	episodeLockKey := strings.Join([]string{receipt.TenantID, receipt.LegalEntityID, strings.ToUpper(command.Route.CanonicalSubjectType), command.Route.CanonicalSubjectID, "adverse-episode"}, "|")
 	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, episodeLockKey); err != nil {
 		return ExecutionReceipt{}, err
 	}
 	var episodeID, matterID string
 	var matterStatus continuity.MatterStatus
 	var matterClosedAt *time.Time
-	err := tx.QueryRow(ctx, `SELECT e.id::text,e.matter_id::text,m.status,m.closed_at FROM form_response_policy_adverse_episodes e JOIN tenants t ON t.id=e.tenant_id JOIN legal_entities le ON le.id=e.legal_entity_id AND le.tenant_id=e.tenant_id JOIN matters m ON m.id=e.matter_id AND m.tenant_id=e.tenant_id AND m.legal_entity_id=e.legal_entity_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND e.policy_code=$3 AND e.subject_type=$4 AND e.subject_id::text=$5 AND e.state='OPEN' FOR UPDATE OF e,m`, receipt.TenantID, receipt.LegalEntityID, command.Policy.Code, command.Route.CanonicalSubjectType, command.Route.CanonicalSubjectID).Scan(&episodeID, &matterID, &matterStatus, &matterClosedAt)
+	err := tx.QueryRow(ctx, `SELECT e.id::text,e.matter_id::text,m.status,m.closed_at FROM form_response_policy_adverse_episodes e JOIN tenants t ON t.id=e.tenant_id JOIN legal_entities le ON le.id=e.legal_entity_id AND le.tenant_id=e.tenant_id JOIN matters m ON m.id=e.matter_id AND m.tenant_id=e.tenant_id AND m.legal_entity_id=e.legal_entity_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND (e.policy_code=$3 OR EXISTS(SELECT 1 FROM form_response_policy_definitions linked WHERE linked.id=e.policy_id AND linked.tenant_id=e.tenant_id AND linked.code=$3) OR (m.matter_type=$7 AND EXISTS(SELECT 1 FROM form_response_policy_executions prior WHERE prior.matter_id=e.matter_id AND prior.tenant_id=e.tenant_id AND prior.legal_entity_id=e.legal_entity_id AND prior.response_revision_id::text=$6 AND prior.result_basis<>$8 AND prior.state IN ('APPLIED','REUSED')))) AND e.subject_type=$4 AND e.subject_id::text=$5 AND e.state='OPEN' ORDER BY (e.policy_code=$3) DESC,e.opened_at,e.id LIMIT 1 FOR UPDATE OF e,m`, receipt.TenantID, receipt.LegalEntityID, command.Policy.Code, command.Route.CanonicalSubjectType, command.Route.CanonicalSubjectID, command.Response.ID, command.Policy.Action.Type, command.Policy.Eligibility.Basis()).Scan(&episodeID, &matterID, &matterStatus, &matterClosedAt)
 	if err == nil {
 		switch matterStatus {
 		case continuity.MatterClosed:
@@ -468,7 +477,7 @@ func applyMatchedExecutionTx(ctx context.Context, tx pgx.Tx, command ExecutionCo
 			if err = updateReusedMatterTx(ctx, tx, command, matterID); err != nil {
 				return ExecutionReceipt{}, err
 			}
-			if _, err = tx.Exec(ctx, `UPDATE form_response_policy_adverse_episodes SET policy_id=CASE WHEN updated_at<=$9 THEN $6::uuid ELSE policy_id END,policy_version=CASE WHEN updated_at<=$9 THEN $7 ELSE policy_version END,last_response_revision_id=CASE WHEN updated_at<=$9 THEN $8::uuid ELSE last_response_revision_id END,updated_at=GREATEST(updated_at,$9),record_version=record_version+1 WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND legal_entity_id=(SELECT le.id FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id WHERE (t.id::text=$2 OR t.slug=$2) AND (le.id::text=$3 OR le.code=$3)) AND state='OPEN' AND policy_code=$4 AND subject_id=$5::uuid`, episodeID, receipt.TenantID, receipt.LegalEntityID, command.Policy.Code, command.Route.CanonicalSubjectID, command.Policy.ID, command.Policy.Version, command.Response.ID, receipt.CreatedAt); err != nil {
+			if _, err = tx.Exec(ctx, `UPDATE form_response_policy_adverse_episodes SET policy_id=CASE WHEN updated_at<=$9 THEN $6::uuid ELSE policy_id END,policy_version=CASE WHEN updated_at<=$9 THEN $7 ELSE policy_version END,last_response_revision_id=CASE WHEN updated_at<=$9 THEN $8::uuid ELSE last_response_revision_id END,updated_at=GREATEST(updated_at,$9),record_version=record_version+1 WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND legal_entity_id=(SELECT le.id FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id WHERE (t.id::text=$2 OR t.slug=$2) AND (le.id::text=$3 OR le.code=$3)) AND state='OPEN' AND $4<>'' AND subject_id=$5::uuid`, episodeID, receipt.TenantID, receipt.LegalEntityID, command.Policy.Code, command.Route.CanonicalSubjectID, command.Policy.ID, command.Policy.Version, command.Response.ID, receipt.CreatedAt); err != nil {
 				return ExecutionReceipt{}, normalizePostgresError(err)
 			}
 			receipt.State, receipt.MatterID, receipt.CreatedMatter, receipt.ReasonCode = ExecutionReused, matterID, false, "OPEN_EPISODE_REUSED"
@@ -627,13 +636,13 @@ func closeEpisodeForVerifiedMatterTx(ctx context.Context, tx pgx.Tx, tenantID, e
 }
 
 func insertExecutionTx(ctx context.Context, tx pgx.Tx, value ExecutionReceipt) error {
-	_, err := tx.Exec(ctx, `INSERT INTO form_response_policy_executions(id,tenant_id,legal_entity_id,policy_id,policy_version,automation_policy_id,automation_policy_version,response_revision_id,state,matter_id,reason_code,created_matter,created_at) SELECT $1::uuid,t.id,le.id,$4::uuid,$5,$6::uuid,$7,$8::uuid,$9,NULLIF($10,'')::uuid,$11,$12,$13 FROM tenants t JOIN legal_entities le ON le.tenant_id=t.id AND (le.id::text=$3 OR le.code=$3) WHERE t.id::text=$2 OR t.slug=$2`, value.ID, value.TenantID, value.LegalEntityID, value.PolicyID, value.PolicyVersion, value.AutomationPolicyID, value.AutomationPolicyVersion, value.ResponseRevisionID, value.State, value.MatterID, value.ReasonCode, value.CreatedMatter, value.CreatedAt)
+	_, err := tx.Exec(ctx, `INSERT INTO form_response_policy_executions(id,tenant_id,legal_entity_id,policy_id,policy_version,automation_policy_id,automation_policy_version,response_revision_id,state,matter_id,reason_code,created_matter,created_at,result_basis,assessment_version) SELECT $1::uuid,t.id,le.id,$4::uuid,$5,$6::uuid,$7,$8::uuid,$9,NULLIF($10,'')::uuid,$11,$12,$13,$14,$15 FROM tenants t JOIN legal_entities le ON le.tenant_id=t.id AND (le.id::text=$3 OR le.code=$3) WHERE t.id::text=$2 OR t.slug=$2`, value.ID, value.TenantID, value.LegalEntityID, value.PolicyID, value.PolicyVersion, value.AutomationPolicyID, value.AutomationPolicyVersion, value.ResponseRevisionID, value.State, value.MatterID, value.ReasonCode, value.CreatedMatter, value.CreatedAt, receiptBasis(value), value.AssessmentVersion)
 	return normalizePostgresError(err)
 }
 
 func getExecutionTx(ctx context.Context, tx pgx.Tx, probe ExecutionReceipt) (ExecutionReceipt, error) {
 	var value ExecutionReceipt
-	err := tx.QueryRow(ctx, `SELECT e.id::text,e.tenant_id::text,e.legal_entity_id::text,e.policy_id::text,e.policy_version,e.automation_policy_id::text,e.automation_policy_version,e.response_revision_id::text,e.state,COALESCE(e.matter_id::text,''),e.reason_code,e.created_matter,e.created_at FROM form_response_policy_executions e JOIN tenants t ON t.id=e.tenant_id JOIN legal_entities le ON le.id=e.legal_entity_id AND le.tenant_id=e.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND e.policy_id::text=$3 AND e.policy_version=$4 AND e.response_revision_id::text=$5`, probe.TenantID, probe.LegalEntityID, probe.PolicyID, probe.PolicyVersion, probe.ResponseRevisionID).Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.PolicyID, &value.PolicyVersion, &value.AutomationPolicyID, &value.AutomationPolicyVersion, &value.ResponseRevisionID, &value.State, &value.MatterID, &value.ReasonCode, &value.CreatedMatter, &value.CreatedAt)
+	err := tx.QueryRow(ctx, `SELECT e.id::text,e.tenant_id::text,e.legal_entity_id::text,e.policy_id::text,e.policy_version,e.automation_policy_id::text,e.automation_policy_version,e.response_revision_id::text,e.state,COALESCE(e.matter_id::text,''),e.reason_code,e.created_matter,e.created_at,e.result_basis,e.assessment_version FROM form_response_policy_executions e JOIN tenants t ON t.id=e.tenant_id JOIN legal_entities le ON le.id=e.legal_entity_id AND le.tenant_id=e.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND e.policy_id::text=$3 AND e.policy_version=$4 AND e.response_revision_id::text=$5 AND e.assessment_version=$6`, probe.TenantID, probe.LegalEntityID, probe.PolicyID, probe.PolicyVersion, probe.ResponseRevisionID, probe.AssessmentVersion).Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.PolicyID, &value.PolicyVersion, &value.AutomationPolicyID, &value.AutomationPolicyVersion, &value.ResponseRevisionID, &value.State, &value.MatterID, &value.ReasonCode, &value.CreatedMatter, &value.CreatedAt, &value.ResultBasis, &value.AssessmentVersion)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ExecutionReceipt{}, ErrNotFound
 	}
@@ -661,3 +670,22 @@ func validExecutionCommand(command ExecutionCommand) bool {
 }
 
 var _ ExecutionStore = (*PostgresRepository)(nil)
+
+// The assessment writer takes this same response row lock. Reading the latest
+// immutable assessment after obtaining it makes correction and execution serial.
+func validateAssessedExecutionTx(ctx context.Context, tx pgx.Tx, command ExecutionCommand) error {
+	var current bool
+	err := tx.QueryRow(ctx, `SELECT r.is_current AND d.status NOT IN ('REVOKED','SUPERSEDED') FROM capture_response_revisions r JOIN tenants t ON t.id=r.tenant_id JOIN legal_entities le ON le.id=r.legal_entity_id AND le.tenant_id=r.tenant_id JOIN capture_form_distributions d ON d.id=r.distribution_id AND d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND r.id=$3::uuid FOR UPDATE OF r,d`, command.Receipt.TenantID, command.Receipt.LegalEntityID, command.Response.ID).Scan(&current)
+	if errors.Is(err, pgx.ErrNoRows) || err == nil && !current {
+		return evidence.ErrAssessmentConflict
+	}
+	if err != nil {
+		return err
+	}
+	var valid bool
+	err = tx.QueryRow(ctx, `SELECT version=$3 AND state='ASSESSED' AND reviewed_required_count>=required_count AND score_result->>'state'='FINAL' AND score_result->>'final'='true' FROM capture_response_assessments WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND response_revision_id=$2::uuid ORDER BY version DESC LIMIT 1`, command.Receipt.TenantID, command.Response.ID, command.Receipt.AssessmentVersion).Scan(&valid)
+	if errors.Is(err, pgx.ErrNoRows) || err == nil && !valid {
+		return evidence.ErrAssessmentConflict
+	}
+	return err
+}

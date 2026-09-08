@@ -5,13 +5,13 @@ const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export type FormPolicyStatus = "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "ACTIVE" | "SUSPENDED" | "RETIRED";
 export type FormPolicyRollout = "SHADOW" | "ENFORCE";
-export type FormPolicyEligibility = { form_template_id: string; form_template_version: number; subject_types: string[]; current_only: boolean; minimum_coverage: number; bands?: FormConcernBand[]; raw_below?: number; raw_above?: number; adverse_at_least?: number };
+export type FormPolicyEligibility = { result_basis?: "AUTOMATIC" | "BANK_ASSESSED"; form_template_id: string; form_template_version: number; subject_types: string[]; current_only: boolean; minimum_coverage: number; bands?: FormConcernBand[]; raw_below?: number; raw_above?: number; adverse_at_least?: number };
 export type FormPolicyMatterType = "RISK_SITUATION" | "CONTROL_GAP" | "AUDIT_FINDING" | "EXCEPTION" | "VENDOR_REVIEW" | "VENDOR_DEFICIENCY" | "FAILED_VERIFICATION" | "EVIDENCE_CONTRADICTION" | "KRI_BREACH";
 export type FormPolicyAction = { type: FormPolicyMatterType; priority: number; title_template: string; summary_template: string; requested_handling: string };
 export type FormPolicyBlastRadius = { per_run: number; per_day: number };
 export type FormPolicyOutcome = { expected_outcome: string; check_after_minutes: number; failure_response: "ESCALATE" | "REOPEN" | "CREATE_MATTER" | "BLOCK_CLOSE" };
 export type CreateFormResponsePolicyInput = {
-  code: string; name: string; purpose: string; automation_policy_id: string; automation_policy_version: number;
+  create_automation_policy?: boolean; code: string; name: string; purpose: string; automation_policy_id: string; automation_policy_version: number;
   eligibility: FormPolicyEligibility; action: FormPolicyAction; blast_radius: FormPolicyBlastRadius;
   outcome_contract: FormPolicyOutcome; rollout: FormPolicyRollout; effective_from?: string; effective_until?: string;
 };
@@ -23,6 +23,7 @@ export type FormResponsePolicy = CreateFormResponsePolicyInput & {
   created_at: string; updated_at: string;
 };
 export type FormPolicySimulation = {
+  result_basis?: "AUTOMATIC" | "BANK_ASSESSED";
   id: string; policy_id: string; policy_version: number; policy_checksum?: string; population_count: number;
   eligible_count: number; would_create_count: number; would_reuse_count: number; blast_suppressed_count: number;
   restricted_excluded_count: number; population_high_water?: string; population_checksum?: string; impact_checksum?: string;
@@ -61,3 +62,14 @@ export function previewFormScore(id: string, version: number, answers: Record<st
 
 function actionPath(id: string, action: string) { return `/api/v1/config/form-response-policies/${encodeURIComponent(id)}/${action}`; }
 function command(expectedVersion: number, extra: Record<string, string> = {}): RequestInit { return { method: "POST", body: JSON.stringify({ expected_version: expectedVersion, ...extra }) }; }
+
+export type FormAutomationChoice = { use_count?: number; id: string; name: string; purpose: string; status: string; version: number; eligibility: FormPolicyEligibility; blast_radius: FormPolicyBlastRadius; outcome_contract: FormPolicyOutcome; rollout: FormPolicyRollout; effective_from?: string; effective_until?: string };
+export async function listFormPolicyAutomationChoices(formID: string, version: number): Promise<FormAutomationChoice[]> {
+  const query = new URLSearchParams({form_template_id: formID, form_template_version: String(version)});
+  return (await requestJSON<{items: FormAutomationChoice[]}>(apiBase, `/api/v1/config/form-response-policies/automation-choices?${query}`)).items ?? [];
+}
+
+export type FormPolicyExecution = {id:string;state:"NOT_MATCHED"|"SHADOW"|"APPLIED"|"REUSED"|"BLAST_SUPPRESSED"|"FAILED";result_basis:"AUTOMATIC"|"BANK_ASSESSED";assessment_version?:number;created_at:string};
+export async function listFormPolicyExecutions(policyID:string):Promise<FormPolicyExecution[]> {
+  return (await requestJSON<{items:FormPolicyExecution[]}>(apiBase, `/api/v1/config/form-response-policies/${encodeURIComponent(policyID)}/executions`)).items ?? [];
+}

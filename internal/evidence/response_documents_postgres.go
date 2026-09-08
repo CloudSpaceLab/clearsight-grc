@@ -47,7 +47,7 @@ func (s *PostgresDistributionStore) ListDocuments(ctx context.Context, q Documen
 			}
 		}
 	}
-	rows, err := s.repo.pool.Query(ctx, documentInventorySQL(), q.TenantID, q.LegalEntityID, q.PrincipalID, time.Now().UTC(), q.FormTemplateID, q.RelationshipID, q.ResponseRevisionID, q.CurrentOnly, string(q.FileKind), q.Query, cursor.SubmittedAt, cursor.ID, q.SubmissionID, q.FieldID, q.ArtifactID, q.Limit+1)
+	rows, err := s.repo.pool.Query(ctx, documentInventorySQL(), q.TenantID, q.LegalEntityID, q.PrincipalID, time.Now().UTC(), q.FormTemplateID, q.RelationshipID, q.ResponseRevisionID, q.CurrentOnly, string(q.FileKind), q.Query, cursor.SubmittedAt, cursor.ID, q.SubmissionID, q.FieldID, q.ArtifactID, q.Limit+1, q.assessmentRead)
 	if err != nil {
 		return DocumentPage{}, err
 	}
@@ -103,7 +103,7 @@ func documentInventorySQL() string {
  AND ` + documentRevisionScopeSQL() + `
  AND ($5='' OR req.form_template_id=NULLIF($5,'')::uuid) AND ($7='' OR r.id=NULLIF($7,'')::uuid)
  AND ($13='' OR submission.id=NULLIF($13,'')::uuid) AND ($14='' OR field->>'id'=$14) AND ($15='' OR artifact.id=NULLIF($15,'')::uuid)
- AND (` + documentReadAuthoritySQL() + `)
+ AND ((` + documentReadAuthoritySQL() + `) OR ($17::boolean AND $7<>'' AND r.id=NULLIF($7,'')::uuid AND (` + vendorAssessmentCandidateSQL() + `)))
  ) SELECT to_jsonb(o)-'artifact_request_id',artifact_request_id FROM occurrences o
  WHERE ($6='' OR relationship_id=$6) AND (NOT $8::boolean OR current) AND ($9='' OR file_kind=$9)
  AND ($10='' OR strpos(lower(file_name),lower($10))>0)

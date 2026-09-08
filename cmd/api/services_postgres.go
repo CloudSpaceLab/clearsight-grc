@@ -83,7 +83,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		pool.Close()
 		return serviceSet{}, err
 	}
-	distributionService := evidence.NewDistributionService(distributionStore)
+	distributionService := evidence.NewDistributionService(distributionStore).WithAssessmentAuthorizer(formAssessmentAuthorizer(authorityService)).WithResponseDiscoveryAuthorizer(formResponseDiscoveryAuthorizer(authorityService))
 	formPolicies := formpolicy.NewService(formpolicy.NewPostgresRepository(pool), formDistributionReader{repo: monitoringRepo}, distributionService)
 	formPolicies.ConfigureActivationAuthority(formPolicyActivationAuthority{Automation: auto, Authority: authorityService, Subjects: evidence.CanonicalSubjectTypeRegistry{}})
 	communicationStore := evidence.NewPostgresCommunicationStore(evidenceRepo)

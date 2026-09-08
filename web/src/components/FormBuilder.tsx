@@ -451,6 +451,7 @@ export function FormBuilder({
       draft={draft}
       templateRevision={initialValue ? { id: initialValue.id, version: initialValue.version } : undefined}
       selection={selection}
+      onSelectField={(fieldID) => setSelection({ kind: "field", fieldID })}
       onPatch={patch}
       onScoringMode={setScoringMode}
       onSectionsChange={(sections) => patch({ sections })}

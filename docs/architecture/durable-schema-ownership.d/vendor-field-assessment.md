@@ -1,0 +1,9 @@
+# Vendor field assessment and request receipts
+
+<!-- schema-ownership:begin -->
+| Table | Classification | Owner | Writers | Readers | Lifecycle / valid time | Retention / deletion | Executable evidence |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `capture_field_assessments` | active authoritative state | evidence / bank assessment | authorized response assessment command | bank review and reconstruction | immutable decision on exact response, form, field checksum and rubric; correction references predecessor | retain with response and bank review history | migration 82; response assessment memory and PostgreSQL rollback/replay tests |
+| `capture_response_assessments` | active authoritative state | evidence / bank assessment | response assessment transaction | vendor summaries and response policies | immutable assessment version and scored result; independent of submitted answers | retain with response and related policy execution | migration 82; assessment conflict, finality and history tests |
+| `capture_distribution_creation_receipts` | active infrastructure ledger | evidence / form distribution | distribution creation transaction | exact batch-target retry | tenant/entity key and complete payload checksum refer to one created distribution | retain with distribution; no expiry while retries can reference the request; deletion follows the parent distribution retention decision | migration 83; memory and real PostgreSQL retry/scope tests |
+<!-- schema-ownership:end -->

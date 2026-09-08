@@ -10,6 +10,10 @@ import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAsse
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { createVendorRelationship, loadVendorActivation, loadVendorIdentity, loadVendorRelationship, loadVendorRelationships, removeApprovedVendorLogo, updateVendorIdentity, updateVendorRelationship, uploadApprovedVendorLogo } from "../vendorApi";
 import { VendorsWorkspace } from "./VendorsWorkspace";
+import { loadVendorFormSummaries } from "../vendorFormsApi";
+vi.mock("../vendorFormsApi", () => ({ loadVendorFormSummaries: vi.fn() }));
+vi.mock("./VendorFormsPanel", () => ({ VendorFormsPanel: ({ relationshipID, initialFilter, onRequestForm }: { relationshipID: string; initialFilter?: string; onRequestForm: () => void }) => <section aria-label={`Vendor form work ${relationshipID} ${initialFilter ?? "ALL"}`}><button type="button" onClick={onRequestForm}>Request form</button></section> }));
+vi.mock("./VendorFormRequest", () => ({ VendorFormRequest: ({ targets }: { targets: Array<{ relationshipID: string }> }) => <section role="dialog" aria-label="Request vendor forms">{targets.map((target) => <span key={target.relationshipID}>{target.relationshipID}</span>)}</section> }));
 vi.mock("./documents/DocumentBrowser", () => ({ DocumentBrowser: ({ relationshipID }: { relationshipID?: string }) => <section aria-label={`Documents for ${relationshipID}`}/> }));
 
 it("opens the shared document browser for the selected vendor relationship", async () => {
@@ -112,6 +116,7 @@ function deferred<T>() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(loadVendorFormSummaries).mockResolvedValue({ items: [{ relationship_id: "relationship-1", outstanding_forms: 2, overdue_forms: 1, submitted_forms: 1, awaiting_review: 1, unassessed_forms: 1, assessed_forms: 0, observed_at: "2026-09-08T12:00:00Z" }] });
   showVendorWorkAction = false;
   vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [record] });
   vi.mocked(loadVendorRelationship).mockResolvedValue(record);
@@ -123,6 +128,24 @@ beforeEach(() => {
 });
 
 describe("VendorsWorkspace", () => {
+  it("opens required bank review from the stored register summary", async () => {
+    render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria"/>);
+    fireEvent.click(await screen.findByRole("link", { name: "1 awaiting bank review for Acme Processing Limited · Card transaction processing" }));
+    expect(await screen.findByRole("region", { name: "Vendor form work relationship-1 AWAITING_REVIEW" })).toBeTruthy();
+    expect(loadVendorFormSummaries).toHaveBeenCalledWith(["relationship-1"]);
+  });
+
+  it("opens bulk requests for exactly the checked service relationships", async () => {
+    const second = { ...record, relationship: { ...record.relationship, id: "relationship-2", service_name: "Merchant reporting" } };
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [record, second] });
+    render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria"/>);
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Select Acme Processing Limited · Card transaction processing" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Acme Processing Limited · Merchant reporting" }));
+    fireEvent.click(screen.getByRole("button", { name: "Request form for 2 services" }));
+    const dialog = await screen.findByRole("dialog", { name: "Request vendor forms" });
+    expect(dialog.textContent).toContain("relationship-1");
+    expect(dialog.textContent).toContain("relationship-2");
+  });
   it("opens due diligence for the first loaded vendor when guided", async () => {
     const completed = vi.fn();
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-due-diligence" }} onGuideIntentCompleted={completed}/>);
@@ -251,9 +274,9 @@ describe("VendorsWorkspace", () => {
     const view = render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
     view.rerender(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
 
-    expect(await screen.findByRole("button", { name: /Acme Processing Limited/ })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Acme Processing Limited, Card transaction processing" })).toBeTruthy();
     rejectOlder(new Error("older request failed"));
-    await waitFor(() => expect(screen.getByRole("button", { name: /Acme Processing Limited/ })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Acme Processing Limited, Card transaction processing" })).toBeTruthy());
   });
 
   it("restores the register without completing a failed guide intent", async () => {

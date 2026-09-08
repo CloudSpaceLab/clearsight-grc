@@ -19,6 +19,9 @@ type memoryDistributionRecipient struct {
 }
 
 type MemoryDistributionStore struct {
+	creationReceipts    map[string]distributionCreationReceipt
+	assessments         map[string][]assessmentSnapshot
+	assessmentDecisions []FieldAssessmentDecision
 	mu                  sync.RWMutex
 	repo                *MemoryRepository
 	forms               DistributionFormReader
@@ -30,6 +33,7 @@ type MemoryDistributionStore struct {
 	requestDistribution map[string]string
 	responseRevisions   map[string][]ResponseRevision
 	documentContexts    DocumentContextReader
+	vendorProgress      func(string) (map[string]formcontract.AnswerValue, bool, time.Time)
 	events              []distributionEvent
 	outbox              []distributionEvent
 }
@@ -49,6 +53,20 @@ func NewMemoryDistributionStore(repo *MemoryRepository, forms DistributionFormRe
 }
 
 func (s *MemoryDistributionStore) CreateDistribution(ctx context.Context, input CreateDistributionInput) (DistributionBundle, error) {
+	if input.IdempotencyKey != "" {
+		s.mu.RLock()
+		receipt, ok := s.creationReceipts[distributionCreationKey(input)]
+		if ok {
+			if receipt.Checksum != distributionCreationChecksum(input) {
+				s.mu.RUnlock()
+				return DistributionBundle{}, ErrDistributionConflict
+			}
+			bundle := bundleFromMemory(s.distributions[receipt.ID], s.recipients[receipt.ID], s.workspaces[receipt.ID])
+			s.mu.RUnlock()
+			return bundle, nil
+		}
+		s.mu.RUnlock()
+	}
 	if s.repo == nil || s.forms == nil {
 		return DistributionBundle{}, fmt.Errorf("distribution persistence dependencies are required")
 	}
@@ -141,6 +159,14 @@ func (s *MemoryDistributionStore) CreateDistribution(ctx context.Context, input 
 	defer s.mu.Unlock()
 	s.repo.mu.Lock()
 	defer s.repo.mu.Unlock()
+	if input.IdempotencyKey != "" {
+		if receipt, ok := s.creationReceipts[distributionCreationKey(input)]; ok {
+			if receipt.Checksum != distributionCreationChecksum(input) {
+				return DistributionBundle{}, ErrDistributionConflict
+			}
+			return bundleFromMemory(s.distributions[receipt.ID], s.recipients[receipt.ID], s.workspaces[receipt.ID]), nil
+		}
+	}
 	if _, exists := s.distributions[distributionID]; exists {
 		return DistributionBundle{}, fmt.Errorf("distribution id collision")
 	}
@@ -156,6 +182,12 @@ func (s *MemoryDistributionStore) CreateDistribution(ctx context.Context, input 
 	s.distributions[distributionID] = cloneDistribution(distribution)
 	s.recipients[distributionID] = cloneMemoryDistributionRecipients(storedRecipients)
 	s.workspaces[distributionID] = workspace
+	if input.IdempotencyKey != "" {
+		if s.creationReceipts == nil {
+			s.creationReceipts = map[string]distributionCreationReceipt{}
+		}
+		s.creationReceipts[distributionCreationKey(input)] = distributionCreationReceipt{distributionID, distributionCreationChecksum(input)}
+	}
 	event := distributionEvent{DistributionID: distributionID, Version: 1, EventType: "FORM_DISTRIBUTION_CREATED", ActorID: input.CreatedBy, OccurredAt: now}
 	s.events = append(s.events, event)
 	s.outbox = append(s.outbox, event)
@@ -339,7 +371,7 @@ func requestFieldsFromContract(fields []formcontract.Field) []Field {
 		result[index] = Field{
 			ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: string(field.Type), Required: field.Required,
 			Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...),
-			Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring,
+			Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring, Assessment: field.Assessment,
 			CollectionIntent: field.CollectionIntent, RecordTarget: field.RecordTarget, BrowserCachePolicy: field.BrowserCachePolicy,
 		}
 	}

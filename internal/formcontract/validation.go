@@ -90,6 +90,9 @@ func Normalize(input Contract) (Contract, error) {
 	if err := normalizeScoreProfile(&input); err != nil {
 		return Contract{}, err
 	}
+	if err := validateAssessmentProfile(input); err != nil {
+		return Contract{}, err
+	}
 	return input, nil
 }
 
@@ -105,6 +108,9 @@ func normalizedType(value Type) Type {
 }
 
 func normalizeField(field *Field) error {
+	if err := normalizeAssessment(field); err != nil {
+		return err
+	}
 	if !slices.Contains([]Type{
 		TypeShortText, TypeLongText, TypeEmail, TypeTelephone, TypeURL,
 		TypeInteger, TypeDecimal, TypePercentage, TypeCurrency, TypeDate,
@@ -228,10 +234,18 @@ func validateScoringContract(contract Contract) error {
 	sectionsWithScoring := make(map[string]struct{}, len(contract.Sections))
 	for _, field := range contract.Fields {
 		if field.Scoring == nil {
+			if field.Assessment.NeedsReview() && contract.ScoringMode != ScoringNone {
+				sectionsWithScoring[field.SectionID] = struct{}{}
+				sectionFieldWeights[field.SectionID] += field.Assessment.Weight
+			}
 			continue
 		}
 		sectionsWithScoring[field.SectionID] = struct{}{}
-		sectionFieldWeights[field.SectionID] += field.Scoring.Weight
+		weight := field.Scoring.Weight
+		if field.Assessment != nil && field.Assessment.Mode != AssessmentNone {
+			weight = field.Assessment.Weight
+		}
+		sectionFieldWeights[field.SectionID] += weight
 	}
 
 	switch contract.ScoringMode {
