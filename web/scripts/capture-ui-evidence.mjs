@@ -1,5 +1,5 @@
 import { chromium } from "playwright";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
@@ -45,6 +45,9 @@ const captures = [
 ];
 
 try {
+  if (process.env.UI_EVIDENCE_SCOPE === "document-results") {
+    await captureDocumentResultHandoffs();
+  } else {
   await captureVendorLinkedWorkflows();
   for (const capture of captures) await capturePage(capture);
   await captureRouting();
@@ -59,7 +62,9 @@ try {
   await captureImportSelection("178-import-selected-light-1440x900", "light", { width: 1440, height: 900 });
   await captureImportSelection("179-import-selected-dark-1440x900", "dark", { width: 1440, height: 900 });
   await captureImportSelection("180-import-selected-light-mobile-390x844", "light", { width: 390, height: 844 }, true);
+  await captureDocumentResultHandoffs();
   await captureVendorWorkflows();
+  }
 } catch (error) {
   failure = error instanceof Error ? error.message : String(error);
   throw error;
@@ -215,6 +220,73 @@ async function record(page, capture, state) {
 
 async function writeManifest() {
   await writeFile(path.join(outputDir, "manifest.json"), JSON.stringify({ generatedAt: new Date().toISOString(), baseURL, failure, captures: results }, null, 2));
+}
+
+async function captureDocumentResultHandoffs() {
+  const axeSource = await readFile(path.resolve("node_modules/axe-core/axe.min.js"), "utf8");
+  for (const theme of ["light", "dark"]) {
+    for (const width of [1440, 390, 320]) {
+      const capture = { route: "#imports/document-gaid/proposal-owner", title: "Imports", fixture: "document-result-handoffs", theme, density: "comfortable", viewport: { width, height: width === 1440 ? 900 : 844 }, touch: width < 800 };
+      const { context, page } = await openPage(capture);
+      const saveState = async (state) => {
+        const name = `result-handoff-${state}-${theme}-${width}`;
+        await assertNoHorizontalOverflow(page, name);
+        await saveScreenshot(page, name);
+        const location = new URL(page.url());
+        await record(page, { ...capture, name, route: location.hash, fixture: location.searchParams.get("fixture") }, `document-result-${state}`);
+      };
+      try {
+        const requirement = page.locator("#document-proposal-proposal-owner");
+        const openRequirement = requirement.getByRole("link", { name: "Open requirement", exact: true });
+        await openRequirement.waitFor();
+        await openRequirement.scrollIntoViewIfNeeded();
+        await saveState("receipt");
+        await page.addScriptTag({ content: axeSource });
+        const receiptViolations = await page.evaluate(async () => (await globalThis.axe.run(".proposal-handoff", { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] } })).violations.map((violation) => ({ id: violation.id, nodes: violation.nodes.map((node) => node.failureSummary) })));
+        if (receiptViolations.length) throw new Error(`Document receipt accessibility failed (${theme}/${width}): ${JSON.stringify(receiptViolations)}`);
+        // Coverage matches, related issues and applied suggestions use stored destinations too.
+        for (const [label, href] of [
+          ["Open matched requirement", "#programs/program-ndpa/requirements-controls/requirement/req-1"],
+          ["Open related issue", "#work/matters/matter-gaid-change"],
+        ]) {
+          if (await page.getByRole("link", { name: label, exact: true }).first().getAttribute("href") !== href) throw new Error(`${label} has the wrong stored destination`);
+        }
+        if (!await page.locator('a[href="#programs/program-ndpa/requirements-controls/requirement/req-2"]').count()) throw new Error("Applied coverage suggestion has no requirement destination");
+        await openRequirement.click();
+        await page.waitForFunction(() => document.activeElement?.id === "program-requirement-req-1");
+        await saveState("requirement");
+        await page.goBack();
+        await openRequirement.waitFor();
+        if (new URL(page.url()).hash !== capture.route) throw new Error("Browser Back lost the source import/proposal route");
+        await page.locator("#document-proposal-proposal-control").getByRole("link", { name: "Open control objective", exact: true }).click();
+        await page.waitForFunction(() => document.activeElement?.id === "program-control-objective-obj-1");
+        if (width <= 560) {
+          const card = page.locator("#program-control-objective-obj-1");
+          const title = await card.locator(":scope > div").first().boundingBox();
+          const implementation = await card.locator(":scope > p, :scope > ul").first().boundingBox();
+          if (!title || !implementation || implementation.y < title.y + title.height || Math.abs(title.x - implementation.x) > 1) throw new Error("Narrow control objective still squeezes its title beside implementation details");
+        }
+        await saveState("control-objective");
+        if (width <= 720) await page.locator(".program-section-selector select").selectOption("overview");
+        else await page.getByRole("tab", { name: "Overview", exact: true }).click();
+        if (new URL(page.url()).hash !== "#programs/program-ndpa/overview") throw new Error("Changing Program sections retained the old item target");
+        await page.goto(`${baseURL}/?tour=off&fixture=document-result-handoffs#programs/program-ndpa/requirements-controls/requirement/unavailable-item`, { waitUntil: "networkidle" });
+        const unavailable = page.getByText("The requested requirement is unavailable in this Program.", { exact: false });
+        await unavailable.waitFor();
+        await unavailable.scrollIntoViewIfNeeded();
+        if (await page.locator("body").innerText().then((text) => text.includes("unavailable-item"))) throw new Error("Unavailable target exposed its raw identifier");
+        await saveState("unavailable");
+        await page.goto(`${baseURL}/?tour=off&fixture=document-result-incomplete#imports/document-gaid/proposal-owner`, { waitUntil: "networkidle" });
+        const incomplete = page.locator("#document-proposal-proposal-owner");
+        await incomplete.getByText("Conversion approved · result details unavailable", { exact: true }).waitFor();
+        await incomplete.scrollIntoViewIfNeeded();
+        if (await incomplete.getByRole("link").count()) throw new Error("Incomplete receipt advertises a guessed destination");
+        await saveState("incomplete");
+      } finally {
+        await context.close();
+      }
+    }
+  }
 }
 
 async function captureRouting() {

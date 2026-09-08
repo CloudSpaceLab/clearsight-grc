@@ -22,3 +22,21 @@ Approved handoff labels name the created requirement/control objective and expos
 - Render actual Imports and Program destinations in both themes at desktop and 390/320px, verify keyboard focus and no blocked actions. Use existing tokens and opaque fallback; no new density/motion/theme.
 
 No AI, schema, API, dependency or new workflow engine is needed. This is a partial closeout of IGX-00/09, not regulatory lifecycle completion or measured bank-user usability acceptance.
+
+## Verification and visual repair
+
+Implementation commits `2d488fe8` and `2a76b062` add stored-result navigation and clear a previously loaded Program if its current read fails. Spec review found that preserving the old aggregate on a failed reload concealed the unavailable state; 403/404/503 regressions failed before the repair and passed afterward. All current read/target-generation guards remain in place. Failed reads use the existing unavailable/retry screen rather than adding a second stale-data mechanism.
+
+The isolated `document-result-handoffs` and `document-result-incomplete` fixtures reuse existing sample Program items. They are evidence-only and remain unreachable from the customer entry point. Browser checks cover 30 states: approved receipt, focused requirement, focused objective, unavailable target and incomplete receipt, each in light/dark at 1440/390/320px. They assert stored destinations, browser Back, section target clearing, no guessed links, no raw missing IDs, no horizontal page overflow and receipt WCAG contrast. Narrow Program navigation exercises its actual selector replacement, not a hidden desktop tab.
+
+Rendered inspection identified three concrete repairs, using existing tokens and breakpoints:
+
+- The handoff used a hardcoded dark translucent background in light mode. Receipt text measured 1.96:1 and 2.06:1 contrast instead of 4.5:1. The receipt and review detail surfaces now follow existing document theme tokens; the focused contrast check passed in both themes.
+- Nested coverage grids expanded to 322px on a 320px viewport. Explicit shrinkable single-column tracks contain the existing filter scroller and cards without clipping content; the same measurement became 320px.
+- Control-objective cards retained two columns at 390px, leaving a narrow title column. At the existing 560px breakpoint, title/outcome and implementation details now stack in reading order. The rendered bounding-box assertion failed before this change.
+
+Before-state artifacts are retained locally in `C:/Users/Son/AppData/Local/Temp/clearsight-result-handoffs-contrast-red-20260908` (contrast) and `clearsight-result-handoffs-final-20260908` (pre-stacking objective). CI retains the reproducible release screenshots and manifest as its normal UI/UX artifact; no new mockup or customer fixture path was introduced.
+
+Limitations: fixture interaction checks are not timed bank-user acceptance, real provider/recipient evidence, production security certification or a document-authenticity conclusion. Existing 200% CSS/reflow proxies are not actual browser-zoom evidence. Complete filter/scroll resumption and the remaining IGX-00/09 lifecycle work stay open in #200.
+
+Final local verification on 8 September: `go test ./...` passed; `cd web; npm test` passed 153 files / 1,018 tests, including copy quality; typecheck, runtime isolation, 11 UI contracts and customer/evidence builds passed. Independent spec and quality review passed after the recorded repairs. The serial `npm run review:ui` run passed **176/176 flows/screenshots, 76/76 Forms capabilities, 9 behavioral scenarios and 8 general accessibility routes**, plus the new receipt-specific contrast checks. Output: `C:/Users/Son/AppData/Local/Temp/clearsight-handoffs-final-serial-20260908`. Final rendered images were inspected, including the stacked focused objective and unavailable/incomplete states. An earlier concurrent full-suite run recorded a 675ms large-form edit against the unchanged 500ms budget; the isolated full rerun passed. Do not treat that earlier failed run as release proof.

@@ -109,6 +109,7 @@ const expectedNames = [
   "178-import-selected-light-1440x900",
   "179-import-selected-dark-1440x900",
   "180-import-selected-light-mobile-390x844",
+  ...["light", "dark"].flatMap((theme) => [1440, 390, 320].flatMap((width) => ["receipt", "requirement", "control-objective", "unavailable", "incomplete"].map((state) => `result-handoff-${state}-${theme}-${width}`))),
   ...formsEvidenceScenarios.map((scenario) => scenario.name),
 ];
 const requiredStates = [

@@ -1,13 +1,19 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-09-03
-**Current execution:** Stored runtime truth, oversight history completeness and hosted vendor email acceptance
+**Status date:** 2026-09-08
+**Current execution:** Integrated GRC closeout under #200; first slice: document-analysis result handoffs
 
-## Paused follow-on — remaining V1 issue closure
+## Resumed execution — integrated GRC experience
 
-The operator paused further implementation on 3 September 2026. The [remaining-issue closure plan](superpowers/plans/2026-09-03-remaining-issue-closure.md) is the resume sequence for #137–143, #147 and #128; the [open-issue audit](evidence/2026-09-03-open-issue-audit.md) separates delivered foundations from missing outcomes across all 14 open issues. #144, #145 and #146 are already closed with hosted evidence, and #124 is closed.
+The operator authorized gap closure on 8 September 2026 following the evidence-backed master [#200](https://github.com/CloudSpaceLab/clearsight-grc/issues/200). The first bounded slice follows the [result-handoff decision brief](design/2026-09-08-governed-result-handoffs.md) and [implementation plan](superpowers/plans/2026-09-08-governed-result-handoffs.md): open a stored document-analysis result in its existing Program or issue workspace, preserving review and authorization distinctions. It does not introduce another document viewer, change material authority, or claim complete IGX-00/09 acceptance.
 
-Commit `c88c26004e1df57563a0d062f7978af69453431e` adds a narrow #141 reporting-chain/owner-fallback safety correction. At the pause checkpoint, targeted PostgreSQL and HTTP regressions had passed but independent review and full release gates remained outstanding. The operator subsequently authorized review and safe merge of those existing commits only; #141 and its linked PR carry the resulting release evidence. The correction does not complete hierarchy configuration, escalation or scoring-policy acceptance. Broader #13/#57/#74/#80/#172 scope retains its own acceptance boundaries. No unattended feature continuation is requested.
+#128 is closed as **superseded, not completed**. Its residual acceptance is explicitly transferred in #200 and the [closure receipt](https://github.com/CloudSpaceLab/clearsight-grc/issues/128#issuecomment-5580653813). Existing execution owners #137–143 and #147 remain open. Narrow merged foundations do not complete their wider acceptance; real recipient journeys, independent review, outcome checks, exact-head deployment and recovery evidence remain separately required. No production bank configuration, provider processing or real email is needed for this first slice.
+
+## Historical pause — remaining V1 issue closure
+
+The operator paused further implementation on 3 September 2026. The [remaining-issue closure plan](superpowers/plans/2026-09-03-remaining-issue-closure.md) records the earlier sequence for #137–143, #147 and #128; the [open-issue audit](evidence/2026-09-03-open-issue-audit.md) separates delivered foundations from missing outcomes at that checkpoint. The resumed execution above supersedes that pause and consolidates the umbrella without discarding child acceptance. #144, #145 and #146 are already closed with hosted evidence, and #124 is closed.
+
+Commit `c88c26004e1df57563a0d062f7978af69453431e` adds a narrow #141 reporting-chain/owner-fallback safety correction. At the pause checkpoint, targeted PostgreSQL and HTTP regressions had passed but independent review and full release gates remained outstanding. The operator subsequently authorized review and safe merge of those existing commits only; #141 and its linked PR carry the resulting release evidence. The correction does not complete hierarchy configuration, escalation or scoring-policy acceptance. Broader #13/#57/#74/#80/#172 scope retains its own acceptance boundaries.
 
 ## Stored runtime truth — implemented, integration verification in progress
 

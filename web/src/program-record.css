@@ -39,6 +39,7 @@
 .program-operation-form textarea { resize: vertical; line-height: 1.45; }
 .program-safeguard-list { display: grid; gap: 12px; margin-top: 16px; }
 .program-safeguard-card { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 16px; padding: 15px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface-2); }
+@media (max-width: 560px) { .program-safeguard-card { grid-template-columns: minmax(0, 1fr); } }
 .program-safeguard-card span, .program-safeguard-card li > span { color: var(--muted); font-size: .75rem; }
 .program-safeguard-card h3 { margin-top: 5px; font-size: 1rem; }
 .program-safeguard-card p { margin: 6px 0 0; font-size: .8rem; }
