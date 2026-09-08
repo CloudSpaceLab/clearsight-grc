@@ -34,6 +34,7 @@ Implementation boundaries from the service audit:
 - Add an explicit document-sample-only invocation to the existing installer. It must not replay the unrelated reference projection maintainers or install new authority routes. Default deployment seeding remains unchanged; run document installation explicitly after the normal API/worker are ready.
 - Resolve the existing sample principals and legal-entity membership, then use current effective command authority in enforce mode. Use the governed library form commands with separate maker and checker, not the legacy form helper that lacks this guard. Recheck the exact stored contract on a partial rerun; an operator pause or changed form stops continuation.
 - Serialize sample installers with a scoped advisory lock, and bound exact artifact/revision reads to the expected fixture population plus one. Compare all stored answers and artifact membership before resuming. No direct material SQL writes, generalized seed framework, or silent overwrite of changed sample records.
+- Add only the missing nonunique index for exact unbound form code/history lookup, with a matching bounded query. Existing reusable/current and Program-bound indexes do not cover draft/pending unbound history. Verify its query plan and reversible apply/down/reapply on the disposable database; no new table or workflow is required.
 - Poll only the exact sample assessment setup result. The normal worker performs setup; the installer must not claim or run unrelated maintenance jobs on the shared host. Invitation delivery stays disabled for the `.invalid` sample audience, and route/session secrets never enter receipts.
 
 - [ ] Extend only the non-production sample installer. Require demo mode and a durable configured artifact store. Preserve existing scoring fixtures and all genuine records.
@@ -50,6 +51,7 @@ Track the workflow correction under #139/#80 separately from fictional file inst
 
 ## Task 4: Review and deployment proof
 
+- [ ] Finish the additional native-PDF evidence check: use actual full Chromium capability, wait for its viewer to finish loading rather than only iframe readiness, and retain the default headless-shell fallback proof. Correct the browser-only pending row in the PDF scenario so its filename agrees with its PDF media type; do not change shipped sample bytes or production fixtures.
 - [ ] Specification review followed by quality/security review. Run full Go/PostgreSQL and web gates, copy quality, runtime fixture isolation and browser evidence. Inspect desktop/narrow light/dark previews and blocked states.
 - [ ] Merge only exact-head green CI and use normal demo deployment. Run installer only against the owned non-production app with no real recipients. Verify stored bytes, manifest digest, demo warning, vendor/Forms access and unchanged blocked genuine-upload behavior on the hosted revision.
 - [ ] Record sample receipts in #138, vendor limitations in #139 and release evidence in #147. Keep #200 closed as instructed. Live antivirus enablement, real document validation/acceptance and remaining vendor handoffs remain open until independently verified.
