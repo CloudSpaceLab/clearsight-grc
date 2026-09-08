@@ -8,12 +8,14 @@
 
 ## Task 1: Readable immutable sample files
 
-- [ ] Author compact fictional Northstar service documents: security self-declaration, prior declaration, insurance schedule with a deliberately different vendor name, recovery plan, registered-office statement image and subprocessor register. Use dates and named fictional contact roles, no copied confidential data, fake certification seals or signatures. Every file states that it is sample data and cannot establish real compliance.
-- [ ] Include current, approaching-expiry, expired and contradiction inputs. Keep scenario dates explicit rather than silently refreshing a document's issue date. Missing evidence is an omitted optional answer, not an empty uploaded file.
-- [ ] Use the PDF/DOCX/spreadsheet artifact workflows to render and inspect every authored page or sheet. Commit the small final assets and reproducible authoring sources, not rendering intermediates.
-- [ ] Add a pure Go embedded manifest package. Tests require actual size, digest, correct media type, no missing/extra manifest entries and rejection of changed bytes or same-name substitutions. Manifest matching is not antivirus inspection.
+- [x] Author compact fictional Northstar service documents: security self-declaration, prior declaration, insurance schedule with a deliberately different vendor name, recovery plan, registered-office statement image and subprocessor register. Use dates and named fictional contact roles, no copied confidential data, fake certification seals or signatures. Every file states that it is sample data and cannot establish real compliance.
+- [x] Include current, approaching-expiry, expired and contradiction inputs. Keep scenario dates explicit rather than silently refreshing a document's issue date. Missing evidence is an omitted optional answer, not an empty uploaded file.
+- [x] Use the PDF/DOCX/spreadsheet artifact workflows to render and inspect every shipped page or sheet, with the Word limitation below. Commit the small final assets and reproducible authoring sources, not rendering intermediates.
+- [x] Add a pure Go embedded manifest package. Tests require actual size, digest, correct media type, no missing/extra manifest entries and rejection of changed bytes or same-name substitutions. Manifest matching is not antivirus inspection.
 
 The first pack uses PDF for the recovery plan. The Windows dependency bundle has no LibreOffice executable, and `render_docx.py` failed at executable discovery. The unverified Word draft was moved to local QA storage and is not shipped or allowlisted. Word fixture verification remains open; the existing Word filter and download support are unchanged.
+
+Task 1 receipts: commits `99c34e27` and `ad306e0f`; six immutable PDF/PNG/XLSX assets, independently approved specification and quality reviews, fresh `go test ./internal/demodocuments -count=1` passed. The binary Git attributes preserve the reviewed content hashes across Windows/Linux checkouts. This foundation alone does not enable application previews or establish document legitimacy.
 
 ## Task 2: Protected demo preview and truthful presentation
 
@@ -30,6 +32,12 @@ The first pack uses PDF for the recovery plan. The Windows dependency bundle has
 - [ ] Use exact indexed sample identifiers and existing idempotent workflow episode keys. On partial reruns inspect the exact request/workspace/revision, resume its existing route where allowed, and do not duplicate submissions or replace a person's edited answers. No SMTP delivery or logging of route/session secrets.
 - [ ] Include a previous and replacement response through normal versioned response/reopen or clarification paths. Last-submitted values come from actual stored submissions; authored issue/expiry dates remain separate.
 - [ ] Test repeat and interrupted installation, production refusal, unrelated-data preservation, and the same stored occurrence from response detail, Forms Documents and vendor Documents. If an existing workflow cannot support a scenario, document the exact missing capability instead of manufacturing its completion.
+
+### Confirmed assessment-submission limitation
+
+At baseline `60a6a606`, the workspace submit transaction in `internal/evidence/response_workspace_postgres.go` emits `FORM_DISTRIBUTION / FORM_RESPONSE_REVISION_SUBMITTED`. The assessment consumer in `internal/thirdparty/assessment_consumer.go` accepts only `EVIDENCE_REQUEST / EvidenceResponseSubmitted`, emitted by the legacy submission path. No translation was found. Consequently a workspace response can be stored and visible in Documents while its linked assessment remains collecting. In addition, the assessment resolver and submitted reaction currently require `COLLECTING`, so simply forwarding an event does not safely support a second response revision.
+
+Track the workflow correction under #139/#80 separately from fictional file installation. Acceptance must cover the exact assessment/request/form link, transactional event delivery, inbox retry, out-of-order and duplicate revisions, current-versus-superseded submissions, and review/activation freshness. Do not rewrite assessment state in seed SQL, synthesize an approval, or claim the sample journey completed. The sample installer may demonstrate actual immutable responses and their documents while reporting this limitation explicitly.
 
 ## Task 4: Review and deployment proof
 
