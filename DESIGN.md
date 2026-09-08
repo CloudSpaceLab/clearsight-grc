@@ -71,7 +71,7 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | `CheckboxField` | Selected, unselected and indeterminate choices; visible or visually hidden labels; optional guidance and disabled state. |
 | `TextArea` | Multi-line responses with bounded length; disabled, read-only, invalid and loading states. |
 | `SelectField` | One selection from a bounded list with themed listbox keyboard behavior and a non-modal fixed overlay root outside sticky workspace layouts. The bounded listbox owns option scrolling. If focusing its initial selected option causes incidental document positioning, the field restores the pre-open position without closing; a later user page scroll still dismisses the list. Opening never resizes or locks the document container, and dialogs remain the dismissal boundary for their own lists. |
-| `Tabs` | Automatic peer-view navigation with one selected indicator and wrapped compact behavior. |
+| `Tabs` | Automatic peer-view navigation with one selected indicator. Optional `compactLabel` replaces the tab list with a labelled SelectField at widths up to 760px; the selected panel stays mounted and named across resize. Other tab workspaces retain wrapped compact behavior. |
 | `ScopeBar` | One selected bounded result scope with stored counts and horizontal-overflow replacement behavior. |
 | `StatusBadge` | Neutral, information, success, warning, error and unknown labelled states. |
 | `Notice` | Information, success, warning and error conditions at the point of work. |
@@ -80,7 +80,7 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | `EmptyState` | A named checked population, current empty result and next valid action. |
 | `FilterBar` | Responsive fields, result count and clear handling. |
 | `FilterChip` | A removable applied filter or named action that reopens advanced filter logic; default and accent treatments. |
-| `DataTable` | Populated, selected, loading, pagination and stacked-mobile data presentation. |
+| `DataTable` | Populated, selected, loading, pagination and stacked-mobile data presentation. Optional column `mobileLayout="full-width"` stacks the label above a full-width value at widths up to 700px; ordinary columns retain the key/value layout. |
 | `FocusedSheet` | Dismissable, focus-contained detail or action in default or wide composition, with full-height mobile replacement and shared heading, facts, form and action anatomy for governed work. Consequential in-flight submission may temporarily disable Escape, backdrop and close controls; the busy action and close control must explain that delivery is in progress. |
 | `FocusedDialog` | Centered, dismissable desktop decision or creation surface in default or wide composition, with full-height mobile replacement. |
 | `PopoverDialog` | Dismissable, focus-contained short contextual work anchored to its trigger. Long or consequential work uses `FocusedSheet`. |
@@ -178,7 +178,7 @@ Forms Documents, the completed-response document action and the selected vendor 
 
 DataTable now supports opt-in single selection and row activation: click selects, Up/Down move focus and selection, and Enter/Space or double-click opens the row. Nested buttons, links and editable controls retain their own actions. Non-selectable tables retain their existing keyboard behavior. The component gallery exercises this contract.
 
-Quick Look reuses the centered wide FocusedDialog, with the existing restrained blur, focus containment, Escape and focus restoration. File browsers launched from a vendor or response use FocusedSheet. At narrow widths the file-type rail becomes a horizontally scrollable labelled strip, table rows become existing stacked data cards, the side inspector is replaced by preview details, and Quick Look fills the viewport. No new theme, density mode, overlay implementation or token family is introduced.
+Quick Look reuses the centered wide FocusedDialog, with the existing restrained blur, focus containment, Escape and focus restoration. File browsers launched from a vendor or response use FocusedSheet. At widths up to 760px a labelled File type SelectField replaces the sidebar and shares its selected kind, query and pagination state. At widths up to 700px table rows become stacked data cards, with the complete filename using the full card width beneath its Name label and other metadata remaining key/value rows. The side inspector is replaced by preview details, and Quick Look fills the viewport. Resizing preserves selected files and open previews. No new theme, density mode, overlay implementation or token family is introduced.
 
 Only AVAILABLE documents can return bytes. PDF and supported raster images render from protected fetched content; a MIME/size mismatch or failed fetch shows recovery, not a successful preview. Office and unsupported types show metadata and a download action without pretending to provide page previews. Safety status is not authenticity, document acceptance, response acceptance or compliance. Uploaded-by and submitted-by facts remain distinct and unknown attribution is labelled Not recorded. Document decisions, replacement, disposal and AI validation are separate implementation tranches and must not appear as enabled no-op controls.
 
@@ -197,6 +197,8 @@ Internal review shows only the exact scoped response, answer provenance, coverag
 ### Governed Forms workspace
 
 Forms is a direct primary navigation surface. Its default view is a bounded searchable template library, not a creation wizard. The library distinguishes the latest stored revision from the active reusable revision, supports saved views and keeps filters available for banks with hundreds of Programs, Matters and vendor relationships. Template detail, editor, sender, response history, import handoff and communications remain tabs within the same visual system.
+
+At widths up to 760px Forms uses the shared Tabs compact variant labelled Forms section. It replaces only the navigation controls, so viewport changes preserve the current content, editor draft and document state. Both presentations use the same selected section and route history.
 
 The selected Forms peer section is a validated `section` hash-query value, restored on reload and browser Back/Forward. Templates remains the default for absent or unknown values; existing template IDs and library filters retain their route meaning. Tab changes add history only when the section changes. Returning to Documents re-reads the scoped inventory rather than restoring protected rows from browser storage. File filters, pagination and selected-file recovery remain separately tracked under #200. See `docs/design/2026-09-08-forms-section-resume.md`.
 

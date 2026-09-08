@@ -28,8 +28,66 @@ async function visible(page, text) {
 }
 
 async function openFormsTab(page, tab, heading = tab) {
-  await page.getByRole("tab", { name: tab, exact: true }).click();
+  await selectFormsSection(page, tab);
   await page.getByRole("heading", { name: heading, exact: true }).waitFor({ state: "visible" });
+}
+
+async function selectFormsSection(page, name) {
+  await page.locator(".cs-tabs--compact-select").waitFor({ state: "visible" });
+  const compact = page.getByRole("button", { name: / Forms section$/ });
+  if (await compact.isVisible()) {
+    await compact.click();
+    await page.getByRole("option", { name, exact: true }).click();
+  } else await page.getByRole("tab", { name, exact: true }).click();
+  await assertFormsSectionSelected(page, name);
+}
+
+async function assertFormsSectionSelected(page, name) {
+  await page.locator(".cs-tabs--compact-select > .cs-tabs__panel").waitFor({ state: "visible" });
+  await page.waitForFunction((expected) => document.querySelector('.cs-tabs--compact-select [role="tab"][aria-selected="true"]')?.textContent === expected, name);
+  const narrow = await page.evaluate(() => matchMedia("(max-width: 760px)").matches);
+  const compact = page.locator(".cs-tabs--compact-select > .cs-tabs__compact .cs-select-field__trigger");
+  const tabList = page.locator(".cs-tabs--compact-select > .cs-tabs__list");
+  if (await compact.isVisible() !== narrow || await tabList.isVisible() === narrow) throw new Error("Forms must expose only the navigation appropriate to the viewport width.");
+  if (await compact.locator(".cs-select-field__value").textContent() !== name) throw new Error("The compact Forms selection must match the current section.");
+  const linked = await page.locator(".cs-tabs--compact-select").evaluate((root, expected) => {
+    const tab = root.querySelector('[role="tab"][aria-selected="true"]');
+    const panel = root.querySelector(':scope > [role="tabpanel"]');
+    return tab?.textContent === expected && tab.getAttribute("aria-controls") === panel?.id && panel.getAttribute("aria-labelledby") === tab.id;
+  }, name);
+  if (!linked) throw new Error("The selected Forms section must name and control its single mounted panel in both navigation layouts.");
+}
+
+async function selectFileType(page, name) {
+  const compact = page.getByRole("button", { name: / File type$/ });
+  if (await compact.isVisible()) {
+    await compact.click();
+    await page.getByRole("option", { name, exact: true }).click();
+  } else await page.getByRole("button", { name, exact: true }).click();
+  await page.locator('.document-browser [role="status"]').waitFor({ state: "hidden" });
+  await assertFileTypeSelected(page, name);
+}
+
+async function assertFileTypeSelected(page, name) {
+  const narrow = await page.evaluate(() => matchMedia("(max-width: 760px)").matches);
+  const compact = page.getByRole("button", { name: `${name} File type`, exact: true });
+  const sidebar = page.locator(".document-kinds");
+  if (await compact.isVisible() !== narrow || await sidebar.isVisible() === narrow) throw new Error("File types must use one visible labelled navigation at the current width.");
+  if (await sidebar.locator('[aria-pressed="true"]').textContent() !== name) throw new Error("Compact and desktop file types must share the selected value.");
+}
+
+async function assertDocumentNameWidth(page) {
+  if (!await page.evaluate(() => matchMedia("(max-width: 700px)").matches)) return;
+  const valid = await page.locator('.document-browser td[data-label="Name"]').evaluateAll((cells) => cells.length > 0 && cells.every((cell) => {
+    const row = cell.closest("tr");
+    const name = cell.querySelector(".document-file-name");
+    const fullName = name?.querySelector("strong");
+    const rowStyle = getComputedStyle(row);
+    const available = row.clientWidth - parseFloat(rowStyle.paddingLeft) - parseFloat(rowStyle.paddingRight);
+    return cell.getAttribute("data-mobile-layout") === "full-width" && Math.abs(cell.getBoundingClientRect().width - available) <= 2
+      && Math.abs(name.getBoundingClientRect().width - cell.getBoundingClientRect().width) <= 2 && fullName.textContent === fullName.title;
+  }));
+  if (!valid) throw new Error("Complete document names must use the full available mobile card width.");
 }
 
 async function assertContrast(page, locator, minimum, label) {
@@ -521,6 +579,16 @@ async function verifyMobileBuilder(page) {
   await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
   await page.getByRole("button", { name: "Edit draft" }).click();
   await page.getByLabel("Form canvas").waitFor({ state: "visible" });
+  const formName = page.getByRole("textbox", { name: "Form name", exact: true });
+  const editor = await formName.elementHandle();
+  const originalName = await formName.inputValue();
+  const viewport = page.viewportSize();
+  await formName.fill(`${originalName} · unsaved resize check`);
+  for (const size of [desktop, { width: 720, height: 900 }, viewport]) {
+    await page.setViewportSize(size);
+    if (!await formName.evaluate((element, original) => element === original, editor) || await formName.inputValue() !== `${originalName} · unsaved resize check`) throw new Error("Resizing must retain the mounted form editor and its unsaved title.");
+  }
+  await formName.fill(originalName);
   for (const name of ["Preview", "Save draft", "Send for approval"]) {
     const control = page.getByRole("button", { name, exact: true });
     await control.waitFor({ state: "visible" });
@@ -546,9 +614,7 @@ for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"],
       capabilities: ["documents-file-types", "documents-quick-look", "documents-keyboard-return", ...(surface === "vendors" ? ["documents-vendor-launcher"] : ["forms-section-resumption"])],
       run: async (page) => {
         if (surface === "forms") {
-          const tab = page.getByRole("tab", { name: "Documents", exact: true });
-          await tab.click();
-          if (await tab.getAttribute("aria-controls") !== await page.getByRole("tabpanel").getAttribute("id")) throw new Error("The Documents tab must control its mounted panel after switching.");
+          await openFormsTab(page, "Documents");
           await verifyFormsSectionResumption(page);
         }
         else {
@@ -556,14 +622,36 @@ for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"],
           await page.getByRole("button", { name: "View vendor documents" }).click();
         }
         await page.getByRole("row", { name: /Sample security certification/ }).waitFor();
-        await page.getByRole("button", { name: "Word documents", exact: true }).click();
+        await assertFileTypeSelected(page, "All files");
+        await assertDocumentNameWidth(page);
+        for (const kind of ["PDF files", "Images", "Spreadsheets", "Other files", "All files", "Word documents"]) await selectFileType(page, kind);
         await page.getByRole("row", { name: /Sample security certification/ }).waitFor({ state: "hidden" });
         const row = page.getByRole("row", { name: /Sample business continuity plan/ });
+        await assertDocumentNameWidth(page);
+        const search = page.getByRole("searchbox", { name: "Search file names" });
+        await search.fill("business continuity");
+        await page.locator('.document-browser [role="status"]').waitFor({ state: "hidden" });
+        await row.waitFor();
         await row.focus();
+        const selectedRow = await row.elementHandle();
+        const originalViewport = page.viewportSize();
+        for (const size of [{ width: 720, height: 900 }, originalViewport.width > 760 ? mobile : desktop, originalViewport]) {
+          await page.setViewportSize(size);
+          await assertFileTypeSelected(page, "Word documents");
+          if (surface === "forms") await assertFormsSectionSelected(page, "Documents");
+          await assertDocumentNameWidth(page);
+          if (!await row.evaluate((element, original) => element === original && element.getAttribute("aria-selected") === "true", selectedRow) || await search.inputValue() !== "business continuity") throw new Error("Resizing must retain the selected document row and filename query.");
+        }
         await page.keyboard.press("Space");
         const preview = page.getByRole("dialog", { name: "Preview Sample business continuity plan.docx" });
         await preview.waitFor();
         await preview.getByRole("link", { name: "Download file", exact: true }).waitFor();
+        const mountedPreview = await preview.elementHandle();
+        for (const size of [originalViewport.width > 760 ? mobile : desktop, { width: 720, height: 900 }, originalViewport]) {
+          await page.setViewportSize(size);
+          if (!await preview.evaluate((element, original) => element === original, mountedPreview)) throw new Error("Resizing must retain the mounted document preview.");
+          await assertSheetRecoveryVisible(page, preview);
+        }
         await assertSheetRecoveryVisible(page, preview);
         await page.keyboard.press("Escape");
         await preview.waitFor({ state: "hidden" });
@@ -578,13 +666,13 @@ for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"],
 }
 
 async function verifyFormsSectionResumption(page) {
-  const selected = (name) => page.getByRole("tab", { name, exact: true, selected: true }).waitFor();
+  const selected = (name) => assertFormsSectionSelected(page, name);
   await page.getByRole("row", { name: /Sample security certification/ }).waitFor();
   if (new URLSearchParams(new URL(page.url()).hash.split("?")[1]).get("section") !== "documents") throw new Error("Documents selection must be reflected in the Forms URL.");
   await page.reload({ waitUntil: "networkidle" });
   await selected("Documents");
   await page.getByRole("row", { name: /Sample security certification/ }).waitFor();
-  await page.getByRole("tab", { name: "Templates", exact: true }).click();
+  await selectFormsSection(page, "Templates");
   await selected("Templates");
   await page.evaluate(() => {
     const fetch = window.fetch.bind(window);
@@ -604,26 +692,25 @@ async function verifyFormsSectionResumption(page) {
   await selected("Templates");
   await page.goBack();
   await selected("Documents");
-  const tab = page.getByRole("tab", { name: "Documents", exact: true });
-  if (await tab.getAttribute("aria-controls") !== await page.getByRole("tabpanel").getAttribute("id")) throw new Error("Restored Documents tab must control its mounted panel.");
+  await assertFormsSectionSelected(page, "Documents");
   const legacyHash = "#forms/form-vendor-due-diligence?search=vendor&status=ACTIVE";
   await page.goto(`${page.url().split("#")[0]}${legacyHash}&section=documents`);
   await selected("Documents");
   await page.reload({ waitUntil: "networkidle" });
   await selected("Documents");
-  await page.getByRole("tab", { name: "Templates", exact: true }).click();
+  await selectFormsSection(page, "Templates");
   await page.getByRole("dialog").waitFor();
   if (new URL(page.url()).hash !== legacyHash) throw new Error("Returning to Templates must retain the template path and library filters.");
   if (await page.getByLabel("Search templates").inputValue() !== "vendor") throw new Error("Returning to Templates must retain the library search.");
   await page.keyboard.press("Escape");
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  await tab.click();
+  await selectFormsSection(page, "Documents");
   await page.getByRole("button", { name: "Forms", exact: true }).click();
   await selected("Templates");
   if (new URL(page.url()).hash !== "#forms") throw new Error("Primary Forms navigation must open the Templates root.");
   await page.reload({ waitUntil: "networkidle" });
   await selected("Templates");
-  await tab.click();
+  await selectFormsSection(page, "Documents");
 }
 
 export const formsEvidenceScenarios = Object.freeze(scenarios.map((scenario) => Object.freeze({

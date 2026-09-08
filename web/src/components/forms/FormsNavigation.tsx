@@ -6,5 +6,5 @@ export type FormsTab = typeof formsTabs[number];
 const items = formsTabs.map((id) => ({ id, label: id }));
 
 export function FormsNavigation({ activeTab, onChange, children }: { activeTab: FormsTab; onChange: (tab: FormsTab) => void; children: ReactNode }) {
-  return <Tabs ariaLabel="Forms sections" items={items} selectedKey={activeTab} onSelectionChange={onChange}>{() => children}</Tabs>;
+  return <Tabs ariaLabel="Forms sections" compactLabel="Forms section" items={items} selectedKey={activeTab} onSelectionChange={onChange}>{() => children}</Tabs>;
 }

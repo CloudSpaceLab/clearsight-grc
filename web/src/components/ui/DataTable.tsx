@@ -5,6 +5,7 @@ export type DataColumn<Row> = {
   id: string;
   header: string;
   kind?: "text" | "number" | "status" | "action";
+  mobileLayout?: "full-width";
   render: (row: Row) => ReactNode;
   accessibleText: (row: Row) => string;
 };
@@ -59,7 +60,7 @@ export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, sele
                 if (target instanceof HTMLElement) target.focus();
               }
             }}>
-            {columns.map((column) => <td key={column.id} data-label={column.header} data-kind={column.kind ?? "text"} aria-label={`${column.header}: ${column.accessibleText(row)}`}>{column.render(row)}</td>)}
+            {columns.map((column) => <td key={column.id} data-label={column.header} data-kind={column.kind ?? "text"} data-mobile-layout={column.mobileLayout} aria-label={`${column.header}: ${column.accessibleText(row)}`}>{column.render(row)}</td>)}
           </tr>;
         })}</tbody>
       </table>
