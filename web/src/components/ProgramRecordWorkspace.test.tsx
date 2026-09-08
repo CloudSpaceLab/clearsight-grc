@@ -123,6 +123,63 @@ describe("Program record workspace", () => {
 	vi.mocked(transitionProgram).mockResolvedValue(aggregate);
   });
 
+  const targetAggregate: ProgramAggregate = {
+    ...aggregate,
+    requirements: [{ id: "item/1 #銀行", code: "R1", title: "Retain account records", statement: "Retain account records for five years.", status: "PROPOSED" }],
+    control_objectives: [{ id: "item/1 #銀行", code: "C1", name: "Complete account records", outcome: "Records remain available.", status: "DRAFT" }],
+  };
+
+  it("focuses a requirement only after the requested Program is loaded", async () => {
+    const pending = deferred<ProgramAggregate>();
+    vi.mocked(loadProgram).mockReturnValue(pending.promise);
+    render(<ProgramsWorkspace targetID="program-1" targetSection="requirements-controls" programItem={{ kind: "requirement", id: "item/1 #銀行" }}/>);
+    expect(screen.queryByRole("region", { name: "Requirement: Retain account records" })).toBeNull();
+    await act(async () => pending.resolve(targetAggregate));
+    const record = await screen.findByRole("region", { name: "Requirement: Retain account records" });
+    await waitFor(() => expect(document.activeElement).toBe(record));
+    expect(record.getAttribute("tabindex")).toBe("-1");
+    expect(loadProgram).toHaveBeenCalledWith("program-1");
+    expect(loadProgramSummaries).not.toHaveBeenCalled();
+  });
+
+  it("focuses a changed item target without remounting the Program", async () => {
+    vi.mocked(loadProgram).mockResolvedValue(targetAggregate);
+    const view = render(<ProgramRecordWorkspace programID="program-1" section="requirements-controls" programItem={{ kind: "requirement", id: "item/1 #銀行" }} onBack={vi.fn()}/>);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("region", { name: "Requirement: Retain account records" })));
+    view.rerender(<ProgramRecordWorkspace programID="program-1" section="requirements-controls" programItem={{ kind: "control-objective", id: "item/1 #銀行" }} onBack={vi.fn()}/>);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("region", { name: "Control objective: Complete account records" })));
+    expect(loadProgram).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not steal focus when the same item receives refreshed Program data", async () => {
+    vi.mocked(loadProgram).mockResolvedValue(targetAggregate);
+    vi.mocked(loadProgramOperations).mockResolvedValue({ ...operations, program_version: 3 });
+    render(<ProgramRecordWorkspace programID="program-1" section="requirements-controls" programItem={{ kind: "requirement", id: "item/1 #銀行" }} onBack={vi.fn()}/>);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("region", { name: "Requirement: Retain account records" })));
+    const back = screen.getByRole("button", { name: "Back to Programs" });
+    back.focus();
+    fireEvent.click(screen.getByRole("button", { name: "Reload Program data" }));
+    await waitFor(() => expect(loadProgram).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByText("Checking who can act on this Program.")).toBeNull());
+    expect(document.activeElement).toBe(back);
+  });
+
+  it("keeps a missing item private and does not focus a different record", async () => {
+    vi.mocked(loadProgram).mockResolvedValue(targetAggregate);
+    render(<ProgramRecordWorkspace programID="program-1" section="requirements-controls" programItem={{ kind: "requirement", id: "private-missing-item" }} onBack={vi.fn()}/>);
+    expect(await screen.findByText("The requested requirement is unavailable in this Program.")).toBeTruthy();
+    expect(screen.queryByText(/private-missing-item/)).toBeNull();
+    expect(document.activeElement).not.toBe(screen.getByRole("region", { name: "Requirement: Retain account records" }));
+  });
+
+  it("keeps an unavailable Program target out of the record cards", async () => {
+    vi.mocked(loadProgram).mockRejectedValue(new Error("Not found"));
+    render(<ProgramRecordWorkspace programID="program-1" section="requirements-controls" programItem={{ kind: "requirement", id: "private-missing-item" }} onBack={vi.fn()}/>);
+    expect(await screen.findByRole("button", { name: "Retry Program record" })).toBeTruthy();
+    expect(screen.queryByText(/private-missing-item/)).toBeNull();
+    expect(screen.queryByRole("region", { name: /^Requirement:/ })).toBeNull();
+  });
+
   it("shows owner, calculated-state freshness, reasons and one dominant action", async () => {
     render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
 

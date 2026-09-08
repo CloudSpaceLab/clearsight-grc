@@ -17,6 +17,7 @@ const productCommentary = [
   /\bprojection\b(?=\s+(?:version|status|data|result|health|record|update)\b|\s*\$\{)/i,
   /bounded daily digest/i,
   /current canonical/i,
+  /canonical (?:object|title|statement)/i,
   /second directory console/i,
   /governed candidate set/i,
   /without needing to know/i,

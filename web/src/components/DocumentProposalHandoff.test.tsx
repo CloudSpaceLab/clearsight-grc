@@ -76,6 +76,34 @@ describe("DocumentProposalHandoff", () => {
     fireEvent.click(screen.getByRole("button", { name: "Authorize conversion" }));
 
     await waitFor(() => expect(onDocumentUpdated).toHaveBeenCalledWith(approved));
-    expect(await screen.findByText("Canonical object created")).toBeTruthy();
+    expect(await screen.findByText("Requirement created")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open requirement" }).getAttribute("href")).toBe("#programs/program-1/requirements-controls/requirement/requirement-1");
+  });
+
+  it.each([
+    ["REQUIREMENT", "requirement", "Open requirement"],
+    ["CONTROL_OBJECTIVE", "control-objective", "Open control objective"],
+  ])("opens the stored approved %s result", (resultType, kind, label) => {
+    render(<DocumentProposalHandoff documentID="document-1" documentVersion={4} proposal={{ ...proposal, handoff: { ...approved.proposals[0]!.handoff!, target_program_id: "program/1 #銀行", result_object_type: resultType, result_object_id: "result/1 #銀行" } }} locked={false}/>);
+    expect(screen.getByRole("link", { name: label }).getAttribute("href")).toBe(`#programs/program%2F1%20%23%E9%8A%80%E8%A1%8C/requirements-controls/${kind}/result%2F1%20%23%E9%8A%80%E8%A1%8C`);
+    expect(screen.queryByText(/canonical/i)).toBeNull();
+  });
+
+  it.each([
+    { result_object_id: undefined }, { target_program_id: undefined }, { result_object_type: "UNKNOWN" },
+    { result_object_type: undefined }, { result_object_id: " " },
+    { status: "REJECTED" as const }, { status: "CONVERSION_FAILED" as const },
+  ])("does not guess a destination for incomplete or unsuccessful receipts %j", (overrides) => {
+    render(<DocumentProposalHandoff documentID="document-1" documentVersion={4} proposal={{ ...proposal, handoff: { ...approved.proposals[0]!.handoff!, ...overrides } }} locked={false}/>);
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByText(/canonical/i)).toBeNull();
+    if (!overrides.status) expect(screen.getByText(/Reload this import/)).toBeTruthy();
+  });
+
+  it("explains a missing review record without implementation narration", () => {
+    render(<DocumentProposalHandoff documentID="document-1" documentVersion={4} proposal={{ ...proposal, handoff: undefined }} locked={false}/>);
+    expect(screen.getByText("Accepted · review details unavailable")).toBeTruthy();
+    expect(screen.getByText(/Reload this import/)).toBeTruthy();
+    expect(screen.queryByRole("link")).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import type { ProgramSection } from "../appRouting";
+import type { ProgramItemTarget, ProgramSection } from "../appRouting";
 import { loadProgram, loadProgramAt } from "../api";
 import { loadProgramOperations } from "../programOperationsApi";
 import type { ProgramOperations } from "../programOperationsApi";
@@ -21,8 +21,9 @@ import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramDetailSections } from "./ProgramDetailSections";
+import { Notice } from "./ui";
 
-type Props = { programID: string; section?: ProgramSection; onSectionChange?: (section: ProgramSection) => void; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void; onOpenRequest?: (requestID: string) => void };
+type Props = { programID: string; section?: ProgramSection; programItem?: ProgramItemTarget; onSectionChange?: (section: ProgramSection) => void; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void; onOpenRequest?: (requestID: string) => void };
 type LoadState = "loading" | "live" | "unavailable";
 
 function statusLabel(value: string) {
@@ -35,7 +36,7 @@ function statusLabel(value: string) {
   }
 }
 
-export function ProgramRecordWorkspace({ programID, section = "overview", onSectionChange, onBack, actorPrincipalID = "", canConfigureSources = false, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; }, onOpenRequest }: Props) {
+export function ProgramRecordWorkspace({ programID, section = "overview", programItem, onSectionChange, onBack, actorPrincipalID = "", canConfigureSources = false, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; }, onOpenRequest }: Props) {
   const [aggregateState, setAggregateState] = useState<LoadState>("loading");
   const [operationsState, setOperationsState] = useState<LoadState>("loading");
   const [reviewState, setReviewState] = useState<LoadState>("loading");
@@ -48,6 +49,20 @@ export function ProgramRecordWorkspace({ programID, section = "overview", onSect
   const activeTarget = useRef({ id: programID, generation: 0 });
   const startedTargetID = useRef<string | null>(null);
   const mounted = useRef(false);
+  const itemFocus = useRef({ identity: "", focused: false });
+  const itemIdentity = JSON.stringify([programID, programItem?.kind, programItem?.id]);
+  const requestedItem = section === "requirements-controls" && activeSection === section ? programItem : undefined;
+  const itemAvailable = Boolean(requestedItem && aggregate?.program.id === programID && aggregateState === "live" &&
+    (requestedItem.kind === "requirement" ? aggregate.requirements : aggregate.control_objectives).some((item) => item.id === requestedItem.id));
+
+  useEffect(() => {
+    if (itemFocus.current.identity !== itemIdentity) itemFocus.current = { identity: itemIdentity, focused: false };
+    if (!itemAvailable || !requestedItem || itemFocus.current.focused) return;
+    const element = document.getElementById(`program-${requestedItem.kind}-${encodeURIComponent(requestedItem.id)}`);
+    if (!element) return;
+    element.focus();
+    itemFocus.current.focused = true;
+  }, [itemIdentity, itemAvailable, requestedItem]);
 
   useLayoutEffect(() => {
     if (activeTarget.current.id === programID) return;
@@ -223,6 +238,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", onSect
       {digest
         ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
         : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label}</h2><div className="program-position-reasons"><h3>Why this status</h3><ul>{(aggregate.current_state?.reasons ?? []).map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul></div></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
+      {requestedItem && aggregateState === "live" && !itemAvailable && <Notice><strong>The requested {requestedItem.kind === "requirement" ? "requirement" : "control objective"} is unavailable in this Program.</strong><p>Return to the import to check its result, or review the available requirements and controls below.</p></Notice>}
       {panels && <ProgramDetailSections section={activeSection} panels={panels} onSectionChange={selectSection}/>}
     </>}
   </section>;

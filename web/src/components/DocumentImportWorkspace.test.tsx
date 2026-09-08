@@ -142,6 +142,35 @@ describe("DocumentImportWorkspace", () => {
     expect(screen.queryByRole("heading", { name: "Nigeria Data Protection Act" })).toBeNull();
   });
 
+  it("opens the matched requirement and a related issue from stored identifiers", async () => {
+    vi.mocked(loadDocumentCoverage).mockResolvedValue({ ...coverageRecord, matters: [{ candidate_id: "coverage-candidate-1", matter_id: "issue/1 #銀行", reference: "ISS-1", type: "GAP", status: "OPEN", title: "Incomplete account records", summary: "Evidence is missing.", score: 1 }] });
+    render(<DocumentImportWorkspace/>);
+    expect((await screen.findByRole("link", { name: "Open matched requirement" })).getAttribute("href")).toBe("#programs/program-1/requirements-controls/requirement/requirement-1");
+    expect(screen.getByRole("link", { name: "Open related issue" }).getAttribute("href")).toBe("#work/matters/issue%2F1%20%23%E9%8A%80%E8%A1%8C");
+  });
+
+  it.each([
+    ["PROGRAM", "Open Program", "#programs/result%2F1/overview"],
+    ["REQUIREMENT", "Open requirement", "#programs/parent%2F1/requirements-controls/requirement/result%2F1"],
+    ["MATTER", "Open issue", "#work/matters/result%2F1"],
+  ])("opens an applied %s suggestion using the stored result", async (appliedType, label, href) => {
+    vi.mocked(loadDocumentCoverage).mockResolvedValue({ ...coverageRecord, suggestions: [{ ...coverageRecord.suggestions[0]!, status: "APPLIED", program_id: "parent/1", applied_type: appliedType, applied_id: "result/1" }] });
+    render(<DocumentImportWorkspace/>);
+    expect((await screen.findByRole("link", { name: label })).getAttribute("href")).toBe(href);
+  });
+
+  it.each([
+    { status: "PROPOSED" as const }, { status: "FAILED" as const },
+    { applied_type: "UNKNOWN" }, { applied_id: undefined }, { applied_id: " " },
+    { applied_type: "REQUIREMENT", program_id: undefined },
+  ])("does not invent a successful suggestion link for %j", async (overrides) => {
+    vi.mocked(loadDocumentCoverage).mockResolvedValue({ ...coverageRecord, suggestions: [{ ...coverageRecord.suggestions[0]!, status: "APPLIED", applied_type: "PROGRAM", applied_id: "result-1", ...overrides }] });
+    render(<DocumentImportWorkspace/>);
+    await screen.findByRole("heading", { name: "Coverage assessment" });
+    expect(screen.queryByRole("link", { name: /^(Open Program|Open requirement|Open issue)$/ })).toBeNull();
+    if (!overrides.status) expect(screen.getByText(/Reload this import/)).toBeTruthy();
+  });
+
   it("confirms a proposed Program match using the current assessment version", async () => {
     render(<DocumentImportWorkspace/>);
     fireEvent.click(await screen.findByRole("button", { name: "Confirm match" }));
@@ -152,7 +181,8 @@ describe("DocumentImportWorkspace", () => {
     render(<DocumentImportWorkspace/>);
     fireEvent.click(await screen.findByRole("button", { name: "Create draft Program" }));
     await waitFor(() => expect(applyDocumentCoverageSuggestion).toHaveBeenCalledWith(documentRecord.id, "suggestion-1", 1));
-    expect(await screen.findByText(/Draft Program created/i)).toBeTruthy();
+    expect(await screen.findByText("Draft Program created. It must follow the normal approval lifecycle.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open Program" }).getAttribute("href")).toBe("#programs/program-new/overview");
   });
 
   it("offers a one-step refresh when Programs changed after comparison", async () => {

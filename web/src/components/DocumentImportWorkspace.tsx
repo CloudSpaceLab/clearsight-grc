@@ -4,10 +4,12 @@ import { applyDocumentCoverageSuggestion, createDocumentFormProposal, importDocu
 import type { CoverageCandidate, CoverageDecision, CoverageSuggestion, DocumentCoverage, DocumentImport, DocumentImportSummary, DocumentProposal, ProposalStatus } from "../documentTypes";
 import type { FormTemplateProposal } from "../formsTypes";
 import { apiErrorKind } from "../http";
+import { documentResultLink } from "../documentResultRouting";
 import { DocumentProposalHandoff } from "./DocumentProposalHandoff";
 import { EmptyState } from "./EmptyState";
 import { FileDropzone } from "./FileDropzone";
 import { FormProposalReview } from "./forms/FormProposalReview";
+import { ActionLink } from "./ui";
 
 const documentAccept = ".txt,.md,.csv,.docx,.xlsx,.pdf,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const maximumDocumentBytes = 20 * 1024 * 1024;
@@ -297,7 +299,7 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
   const stateLabel = extractionLabel(document.extraction_status);
   const coveragePending = coverage?.candidates.filter((candidate) => candidate.eligible && !candidate.review).length ?? 0;
   const coverageTotal = coverage?.metrics.verified.denominator ?? 0;
-  const terminalLabel = document.extraction_status === "FAILED" ? "Extraction failed" : storedOnly ? "Text review unavailable" : handoffsPending ? `${handoffsPending} governed approval${handoffsPending === 1 ? "" : "s"} pending` : coverage ? `${coverageTotal} eligible obligation${coverageTotal === 1 ? "" : "s"}` : pending.length ? `${pending.length} to review` : "No review pending";
+  const terminalLabel = document.extraction_status === "FAILED" ? "Extraction failed" : storedOnly ? "Text review unavailable" : handoffsPending ? `${handoffsPending} awaiting review or authorization` : coverage ? `${coverageTotal} eligible obligation${coverageTotal === 1 ? "" : "s"}` : pending.length ? `${pending.length} to review` : "No review pending";
   const canProposeForm = document.extraction_status === "EXTRACTED" || document.extraction_status === "PARTIAL" || document.extraction_status === "TRUNCATED";
 
   useEffect(() => {
@@ -325,7 +327,7 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
 
   return <article className="document-import-inspector">
     <header><div><span className="eyebrow">{human(document.source_type)}</span><h2>{document.file_name}</h2><p>{document.purpose}</p></div><div className="document-state"><span>{stateLabel}</span><strong>{processing ? "Processing stored source" : terminalLabel}</strong></div></header>
-    <div className="import-review-summary" aria-label="Import review summary">{coverage ? <><span><strong>{coverage.metrics.verified.denominator}</strong> eligible obligations</span><span><strong>{coveragePending}</strong> loaded for review</span><span><strong>{handoffsPending}</strong> governed handoffs pending</span></> : <><span><strong>{pending.length}</strong> intake review</span><span><strong>{handoffsPending}</strong> governed handoffs pending</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></>}</div>
+    <div className="import-review-summary" aria-label="Import review summary">{coverage ? <><span><strong>{coverage.metrics.verified.denominator}</strong> eligible obligations</span><span><strong>{coveragePending}</strong> loaded for review</span><span><strong>{handoffsPending}</strong> awaiting review or authorization</span></> : <><span><strong>{pending.length}</strong> intake review</span><span><strong>{handoffsPending}</strong> awaiting review or authorization</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></>}</div>
     {processing && <section className="workspace-loading" aria-live="polite" aria-busy="true"><strong>Original stored successfully.</strong><p>Extraction and analysis are running in the background. This page will update when processing completes.</p></section>}
     {!processing && coverage && <CoverageAssessment coverage={coverage} actionID={coverageActionID} notice={coverageNotice} onReview={onCoverageReview} onApply={onApplySuggestion} onRecompare={onRecompare} onLoadMore={onLoadMore}/>}
     {(document.degradations?.length ?? 0) > 0 && <section className="document-degradations" aria-labelledby="document-degradations-title"><h3 id="document-degradations-title">Source recovery needed</h3>{document.degradations!.map((item, index) => <div key={`${item.code}-${index}`}><strong>{human(item.code)}</strong><p>{item.message}</p><small>{item.recoverable ? "This source gap can be corrected without replacing retained results." : "A different source may be required for the missing content."}{item.anchor?.page ? ` Page ${item.anchor.page}.` : ""}</small></div>)}</section>}
@@ -338,9 +340,9 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
       )}
     </section>}
     {!processing && <>
-      {!coverage && <section><div className="section-header"><div><h3>Review required</h3><p>Accepting a proposal starts independent governed review. It does not create or activate a Requirement or Control.</p></div></div>{pending.length ? <div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div> : <div className="calm-empty compact"><span>✓</span><div><strong>Nothing waiting for intake review</strong><p>{document.analysis_status === "UNAVAILABLE" ? "No review proposal is available from this source." : "Accepted proposals continue through their governed handoff below."}</p></div></div>}</section>}
+      {!coverage && <section><div className="section-header"><div><h3>Review required</h3><p>Accepting a proposal sends it for independent review. Creating a requirement or control objective needs authorization.</p></div></div>{pending.length ? <div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div> : <div className="calm-empty compact"><span>✓</span><div><strong>Nothing waiting for intake review</strong><p>{document.analysis_status === "UNAVAILABLE" ? "No review proposal is available from this source." : "Check the review and authorization status of accepted proposals below."}</p></div></div>}</section>}
       {coverage && pending.length > 0 && <details className="import-secondary"><summary><span>Extraction proposals</span><strong>{pending.length} unreviewed</strong></summary><div className="proposal-list">{pending.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={reviewingProposalID === proposal.id} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div></details>}
-      {reviewed.length > 0 && <details className="import-secondary" open={handoffsPending > 0 || handoffReceiptVisible}><summary><span>Proposal outcomes & handoffs</span><strong>{reviewed.length}</strong></summary><div className="proposal-list">{reviewed.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={false} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div></details>}
+      {reviewed.length > 0 && <details className="import-secondary" open={handoffsPending > 0 || handoffReceiptVisible}><summary><span>Proposal reviews and results</span><strong>{reviewed.length}</strong></summary><div className="proposal-list">{reviewed.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={false} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div></details>}
     </>}
     <details className="import-secondary"><summary><span>Original source details</span><strong>{document.sections.length} extracted</strong></summary><div><dl className="document-metadata"><div><dt>Original hash</dt><dd><code>{document.sha256}</code></dd></div><div><dt>File status</dt><dd>{human(document.artifact_status)}</dd></div><div><dt>Text extraction</dt><dd>{human(document.extraction_method)}</dd></div><div><dt>Completeness</dt><dd>{contentTruncated || sectionsOmitted ? `${document.sections.length} of ${sectionsTotal} sections extracted` : `All ${sectionsTotal} sections extracted`}</dd></div><div><dt>Version</dt><dd>{document.version}</dd></div></dl>{document.sections.length > 0 && <div className="document-sections">{document.sections.map((section) => <details key={section.id}><summary>{section.title}</summary><pre>{section.text}</pre></details>)}</div>}</div></details>
   </article>;
@@ -409,22 +411,29 @@ function CoverageCandidateCard({ candidate, suggestion, matters, busy, locked, o
   const [notApplicableOpen, setNotApplicableOpen] = useState(false);
   const [reason, setReason] = useState("");
   const match = candidate.matches[0];
+  const matchedRequirement = match ? documentResultLink("REQUIREMENT", match.requirement_id, match.program_id) : undefined;
+  const appliedResult = suggestion?.status === "APPLIED" && ["PROGRAM", "REQUIREMENT", "MATTER"].includes(suggestion.applied_type ?? "")
+    ? documentResultLink(suggestion.applied_type, suggestion.applied_id, suggestion.program_id) : undefined;
   return <article className={`coverage-candidate classification-${candidate.classification.toLowerCase().replaceAll("_", "-")}`} aria-busy={busy || undefined}>
     <div className="coverage-candidate-heading"><div><span>{sourceLabel(candidate)}</span><h5>{candidate.statement}</h5></div><mark>{classificationLabel(candidate.classification)}</mark></div>
     <blockquote>{candidate.anchor.quote}</blockquote>
     {match ? <div className="coverage-match">
       <div className="coverage-match-heading"><div><span>Best existing match · {Math.round(match.score * 100)}%</span><strong>{match.program_name}</strong><small>{match.program_code} / {match.requirement_code} · {match.requirement_title}</small></div><CoverageChain match={match}/></div>
       <p>{match.rationale}</p>
+      {matchedRequirement && <ActionLink href={matchedRequirement.href}>Open matched requirement</ActionLink>}
       <details><summary>Why this match</summary><div>{match.components.map((component) => <p key={component.name}><strong>{human(component.name)}</strong><span>{Math.round(component.score * 100)}%</span><small>{component.reason}</small></p>)}</div></details>
     </div> : <div className="coverage-no-match"><strong>No reliable requirement match</strong><p>Link this obligation to an existing requirement or create a draft Program.</p></div>}
-    {matters.map((matter) => <div className="coverage-matter" key={matter.matter_id}><span>Related issue</span><strong>{matter.reference} · {matter.title}</strong><small>{human(matter.status)}</small></div>)}
+    {matters.map((matter) => {
+      const result = documentResultLink("MATTER", matter.matter_id);
+      return <div className="coverage-matter" key={matter.matter_id}><span>Related issue</span><strong>{matter.reference} · {matter.title}</strong><small>{human(matter.status)}</small>{result && <ActionLink href={result.href}>Open related issue</ActionLink>}</div>;
+    })}
     {candidate.review ? <p className="coverage-reviewed">Reviewed: {human(candidate.review.decision)}{candidate.review.reason ? ` · ${candidate.review.reason}` : ""}</p> : <div className="coverage-actions">
       {match && <button className="primary-button" type="button" disabled={locked} onClick={() => onReview(candidate, "ACCEPT_MATCH")}>{busy ? "Recording…" : "Confirm match"}</button>}
       {match && <button className="secondary-button" type="button" disabled={locked} onClick={() => onReview(candidate, "REJECT_MATCH")}>No valid match</button>}
       <button className="text-button" type="button" disabled={locked} onClick={() => setNotApplicableOpen((value) => !value)}>Not applicable</button>
     </div>}
     {notApplicableOpen && !candidate.review && <div className="coverage-not-applicable"><label><span>Why is this obligation out of scope?</span><textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={2}/></label><button className="secondary-button" type="button" disabled={locked || !reason.trim()} onClick={() => onReview(candidate, "NOT_APPLICABLE", reason.trim())}>Record as not applicable</button></div>}
-    {suggestion && <div className="coverage-recommendation"><div><span>Recommended next step</span><strong>{suggestion.title}</strong><p>{suggestion.rationale}</p></div>{suggestion.status === "PROPOSED" ? <button className="secondary-button" type="button" disabled={locked} onClick={() => onApply(suggestion)}>{busy ? "Applying…" : suggestionButtonLabel(suggestion.type)}</button> : <small>{suggestion.status === "APPLIED" ? `${human(suggestion.applied_type || "Update")} created` : human(suggestion.status)}</small>}</div>}
+    {suggestion && <div className="coverage-recommendation"><div><span>Recommended next step</span><strong>{suggestion.title}</strong><p>{suggestion.rationale}</p></div>{suggestion.status === "PROPOSED" ? <button className="secondary-button" type="button" disabled={locked} onClick={() => onApply(suggestion)}>{busy ? "Applying…" : suggestionButtonLabel(suggestion.type)}</button> : suggestion.status === "APPLIED" ? <div>{appliedResult ? <><small>{suggestion.applied_type === "PROGRAM" || suggestion.applied_type === "REQUIREMENT" ? "Draft " : ""}{appliedResult.object.toLowerCase()} created</small><ActionLink href={appliedResult.href}>{appliedResult.label}</ActionLink></> : <p>The update was applied, but its record details are unavailable. Reload this import to check the result.</p>}</div> : <p>{suggestion.status === "FAILED" ? suggestion.failure_message || "The update could not be completed. Reload this import to check the recommendation before trying again." : human(suggestion.status)}</p>}</div>}
   </article>;
 }
 
