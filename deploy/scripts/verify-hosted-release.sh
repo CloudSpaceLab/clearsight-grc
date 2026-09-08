@@ -6,8 +6,14 @@ expected_sha="${1:?expected sha is required}"
 base_url="${2:-https://clearsight.cloudspacetechs.com}"
 [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
 if [[ "${VERIFY_EMAIL_READINESS:-false}" == "true" ]]; then
-  "$script_dir/verify-email-readiness.sh" "$expected_sha"
+  "$script_dir/verify-email-readiness.sh" "$expected_sha" --smtp-advisory
 fi
+
+# Worker readiness is required even when the optional email checks are disabled.
+worker_id="$(docker ps -q --filter label=com.cloudspacelab.clearsight=true --filter ancestor="clearsight-worker:$expected_sha")"
+[[ -n "$worker_id" ]]
+[[ "$(docker inspect -f '{{.State.Status}}' "$worker_id")" == "running" ]]
+[[ "$(docker inspect -f '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$worker_id")" == "$expected_sha" ]]
 
 cookie_jar="$(mktemp)"
 denial_body="$(mktemp)"

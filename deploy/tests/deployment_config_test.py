@@ -126,6 +126,7 @@ class DeploymentConfigTest(unittest.TestCase):
             "CLEARSIGHT_SMTP_FROM", "CLEARSIGHT_SMTP_TLS_MODE", "STARTTLS",
             "/dev/tcp/", "openssl s_client", "-starttls smtp", "-verify_hostname",
             '"$CLEARSIGHT_SMTP_HOST"', "-verify_return_error",
+            "--smtp-advisory", "smtp_connectivity=unavailable", "smtp_connectivity=available",
             "smtp_configured=true", "starttls_required=true",
             "recipient_protection_configured=true", "capture_origin_secure=true",
             "api_revision_matches=true", "worker_revision_matches=true",
@@ -138,7 +139,11 @@ class DeploymentConfigTest(unittest.TestCase):
             self.assertNotIn(forbidden, script)
         hosted = self.read("deploy/scripts/verify-hosted-release.sh")
         self.assertIn('if [[ "${VERIFY_EMAIL_READINESS:-false}" == "true" ]]', hosted)
-        self.assertIn('"$script_dir/verify-email-readiness.sh" "$expected_sha"', hosted)
+        self.assertIn('"$script_dir/verify-email-readiness.sh" "$expected_sha" --smtp-advisory', hosted)
+        self.assertIn("label=com.cloudspacelab.clearsight=true", hosted)
+        self.assertIn('ancestor="clearsight-worker:$expected_sha"', hosted)
+        ci = self.read(".github/workflows/ci.yml")
+        self.assertIn("python3 -m unittest discover -s deploy/tests -p '*test.py'", ci)
         workflow = self.read(".github/workflows/deploy-demo.yml")
         self.assertIn('install -m 0755 deploy/scripts/verify-email-readiness.sh "$release/scripts/verify-email-readiness.sh"', workflow)
 

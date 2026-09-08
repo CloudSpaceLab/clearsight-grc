@@ -37,6 +37,7 @@ The documentation is layered so product semantics, safety, architecture, experie
 31. [`superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md`](superpowers/specs/2026-08-26-premium-first-run-and-vendor-branding-design.md) — current first-run guidance and vendor identity presentation decision.
 32. [`design/capture-route-expiry-and-submit-recovery-decision-brief.md`](design/capture-route-expiry-and-submit-recovery-decision-brief.md) — canonical link-expiry truth and shared-workspace submission recovery.
 33. [`design/2026-09-08-governed-result-handoffs.md`](design/2026-09-08-governed-result-handoffs.md) and [implementation plan](superpowers/plans/2026-09-08-governed-result-handoffs.md) — first #200 integration slice: stored document-analysis results open their existing Program or issue record.
+34. [SMTP advisory deployment design](superpowers/specs/2026-09-08-smtp-advisory-deployment-design.md) and [implementation plan](superpowers/plans/2026-09-08-smtp-advisory-deployment.md) — SMTP outages warn without stopping application deployment; security and application gates remain mandatory.
 
 ## Canonical precedence
 

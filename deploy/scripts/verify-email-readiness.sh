@@ -3,6 +3,8 @@ set -Eeuo pipefail
 
 expected_sha="${1:?expected sha is required}"
 [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
+[[ $# == 1 || ( $# == 2 && "$2" == "--smtp-advisory" ) ]] || { printf 'usage: verify-email-readiness.sh SHA [--smtp-advisory]\n' >&2; exit 1; }
+smtp_advisory="${2:-}"
 
 required=(
   CLEARSIGHT_RECIPIENT_KEYRING
@@ -38,8 +40,25 @@ for value in keys.values():
 assert len(base64.b64decode(os.environ["CLEARSIGHT_DISTRIBUTION_ACCESS_HMAC_KEY"], validate=True)) == 32
 PY
 
-timeout 10 bash -c 'exec 3<>"/dev/tcp/$1/$2"' _ "$CLEARSIGHT_SMTP_HOST" "$CLEARSIGHT_SMTP_PORT" >/dev/null 2>&1
-timeout 15 openssl s_client -connect "$CLEARSIGHT_SMTP_HOST:$CLEARSIGHT_SMTP_PORT" -servername "$CLEARSIGHT_SMTP_HOST" -verify_hostname "$CLEARSIGHT_SMTP_HOST" -verify_return_error -starttls smtp </dev/null >/dev/null 2>&1
+# Only these bounded network probes may be advisory. Keep every configuration,
+# API and worker check outside conditional calls so errexit remains effective.
+smtp_probe_status=0
+if timeout 10 bash -c 'exec 3<>"/dev/tcp/$1/$2"' _ "$CLEARSIGHT_SMTP_HOST" "$CLEARSIGHT_SMTP_PORT" >/dev/null 2>&1; then
+  if timeout 15 openssl s_client -connect "$CLEARSIGHT_SMTP_HOST:$CLEARSIGHT_SMTP_PORT" -servername "$CLEARSIGHT_SMTP_HOST" -verify_hostname "$CLEARSIGHT_SMTP_HOST" -verify_return_error -starttls smtp </dev/null >/dev/null 2>&1; then
+    :
+  else
+    smtp_probe_status=$?
+  fi
+else
+  smtp_probe_status=$?
+fi
+if (( smtp_probe_status != 0 )); then
+  [[ "$smtp_advisory" == "--smtp-advisory" ]] || exit "$smtp_probe_status"
+  printf 'warning: SMTP connectivity unavailable; email delivery readiness remains unverified\n' >&2
+  printf 'smtp_connectivity=unavailable\n'
+else
+  printf 'smtp_connectivity=available\n'
+fi
 
 ready="$(curl --fail --silent --show-error http://127.0.0.1:13281/health/ready)"
 python3 -c 'import json,sys; value=json.load(sys.stdin); assert value == {"mode":"postgres","revision":sys.argv[1],"status":"ready"}' "$expected_sha" <<<"$ready"
