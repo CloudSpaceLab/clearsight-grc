@@ -194,7 +194,10 @@ async function layoutMetrics(page) {
 
 async function assertNoHorizontalOverflow(page, name) {
   const metrics = await layoutMetrics(page);
-  if (metrics.scrollWidth > metrics.clientWidth + 1) throw new Error(`${name} has horizontal overflow: ${metrics.scrollWidth}px content in ${metrics.clientWidth}px viewport`);
+  if (metrics.scrollWidth > metrics.clientWidth + 1) {
+    const overflowing = await page.evaluate(() => [...document.querySelectorAll("body *")].filter((element) => element.getBoundingClientRect().right > document.documentElement.clientWidth + 1).slice(-12).map((element) => ({ tag: element.tagName, class: element.className, right: element.getBoundingClientRect().right })));
+    throw new Error(`${name} has horizontal overflow: ${metrics.scrollWidth}px content in ${metrics.clientWidth}px viewport; ${JSON.stringify(overflowing)}`);
+  }
 }
 
 async function assertFirstActionVisible(page, viewportHeight, name, touch) {
@@ -241,6 +244,11 @@ async function captureDocumentResultHandoffs() {
         await openRequirement.waitFor();
         await openRequirement.scrollIntoViewIfNeeded();
         await saveState("receipt");
+        if (width === 320) {
+          const fontProbe = await page.addStyleTag({ content: "body { font-family: Verdana, sans-serif !important; }" });
+          await assertNoHorizontalOverflow(page, "document-result fallback-font reflow");
+          await fontProbe.evaluate((element) => element.remove());
+        }
         await page.addScriptTag({ content: axeSource });
         const receiptViolations = await page.evaluate(async () => (await globalThis.axe.run(".proposal-handoff", { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] } })).violations.map((violation) => ({ id: violation.id, nodes: violation.nodes.map((node) => node.failureSummary) })));
         if (receiptViolations.length) throw new Error(`Document receipt accessibility failed (${theme}/${width}): ${JSON.stringify(receiptViolations)}`);
