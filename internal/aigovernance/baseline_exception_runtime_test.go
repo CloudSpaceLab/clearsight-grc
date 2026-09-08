@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"strings"
 	"testing"
 	"time"
 
@@ -145,13 +144,4 @@ func baselineExceptionFixture(t *testing.T) (*MemoryRepository, string, Policy) 
 		t.Fatal(err)
 	}
 	return repo, secret, baseline
-}
-
-func containsString(values []string, target string) bool {
-	for _, value := range values {
-		if strings.EqualFold(value, target) {
-			return true
-		}
-	}
-	return false
 }
