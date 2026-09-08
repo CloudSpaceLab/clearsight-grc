@@ -1,8 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FormPoliciesView } from "./FormPoliciesView";
+import { ApiError } from "../../http";
 
 const api = vi.hoisted(() => ({
+  loadFormPolicyExecutionResult: vi.fn(),
   listFormPolicyExecutions: vi.fn(), listFormPolicyAutomationChoices: vi.fn(), listFormResponsePolicies: vi.fn(), createFormResponsePolicy: vi.fn(), simulateFormResponsePolicy: vi.fn(),
   submitFormResponsePolicy: vi.fn(), approveFormResponsePolicy: vi.fn(), activateFormResponsePolicy: vi.fn(),
   suspendFormResponsePolicy: vi.fn(), rollbackFormResponsePolicy: vi.fn(),
@@ -37,6 +39,30 @@ beforeEach(() => {
 });
 
 describe("FormPoliciesView", () => {
+  it("loads only the selected execution result and offers independently permitted exact targets", async () => {
+    api.listFormPolicyExecutions.mockResolvedValue([{ id: "execution-1", state: "APPLIED", result_basis: "AUTOMATIC", created_at: "2026-09-08T09:00:00Z" }]);
+    api.loadFormPolicyExecutionResult.mockResolvedValue({ targets: [{ type: "MATTER", id: "issue/1", title: "Review payment hosting" }, { type: "FORM_RESPONSE", id: "response/older", title: "Vendor certification" }] });
+    render(<FormPoliciesView/>);
+    const action = await screen.findByRole("button", { name: "View result" });
+    expect(api.loadFormPolicyExecutionResult).not.toHaveBeenCalled();
+    fireEvent.click(action);
+    expect((await screen.findByRole("link", { name: "Open issue" })).getAttribute("href")).toBe("#work/matters/issue%2F1");
+    expect(screen.getByRole("link", { name: "Review response" }).getAttribute("href")).toBe("#forms?section=responses&response=response%2Folder");
+    expect(api.loadFormPolicyExecutionResult).toHaveBeenCalledExactlyOnceWith("policy-1", "execution-1");
+  });
+  it("explains denied policy access without offering a futile retry", async () => {
+    api.listFormResponsePolicies.mockRejectedValue(new ApiError(403, "Forbidden"));
+    render(<FormPoliciesView/>);
+    expect(await screen.findByText("Policy access required")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Retry loading policies" })).toBeNull();
+  });
+  it("shows recorded approval context and a named form for an active policy after reload", async () => {
+    api.listFormResponsePolicies.mockResolvedValue([{ ...policy, status: "ACTIVE", checker_id: "checker", approved_simulation_id: "simulation-saved" }]);
+    render(<FormPoliciesView/>);
+    expect(await screen.findByText("Vendor certification · revision 4")).toBeTruthy();
+    expect(screen.queryByText("No current simulation")).toBeNull();
+    expect(screen.getByText(/Simulation recorded for approval/)).toBeTruthy();
+  });
   it("loads stored policies and scored form choices independently", async () => {
     render(<FormPoliciesView/>);
     expect((await screen.findAllByText("Review poor vendor certification scores")).length).toBeGreaterThan(0);

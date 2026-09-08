@@ -19,6 +19,35 @@ const assessment = {
 beforeEach(() => { vi.clearAllMocks(); api.loadResponseAssessment.mockResolvedValue(structuredClone(assessment)); });
 
 describe("submitted field bank assessment", () => {
+  it("withholds review while response currency cannot be checked without clearing its draft", async () => {
+    const view = render(<ResponseAssessment responseID="response-2"/>);
+    await screen.findByLabelText("Rationale for Vulnerability test");
+    fireEvent.change(screen.getByLabelText("Rationale for Vulnerability test"), { target: { value: "Keep this rationale" } });
+    view.rerender(<ResponseAssessment responseID="response-2" current={null}/>);
+    expect(screen.queryByRole("button", { name: "Save bank assessment" })).toBeNull();
+    expect(screen.queryByText(/Historical response\. Review/)).toBeNull();
+    expect(screen.getByText(/Response currency is unavailable/)).toBeTruthy();
+    view.rerender(<ResponseAssessment responseID="response-2" current/>);
+    expect((screen.getByLabelText("Rationale for Vulnerability test") as HTMLTextAreaElement).value).toBe("Keep this rationale");
+  });
+  it("immediately removes review controls when the parent learns this revision is historical", async () => {
+    const view = render(<ResponseAssessment responseID="response-2"/>);
+    await screen.findByLabelText("Rationale for Vulnerability test");
+    fireEvent.change(screen.getByLabelText("Rationale for Vulnerability test"), { target: { value: "Retained judgement" } });
+    view.rerender(<ResponseAssessment responseID="response-2" current={false}/>);
+    expect(screen.queryByRole("button", { name: "Save bank assessment" })).toBeNull();
+    expect(screen.queryByLabelText("Rationale for Vulnerability test")).toBeNull();
+    expect(api.loadResponseAssessment).toHaveBeenCalledTimes(1);
+  });
+  it("presents review not required without permission warnings or empty review scores", async () => {
+    api.loadResponseAssessment.mockResolvedValue({ ...assessment, state: "NOT_REQUIRED", may_review: false, required_count: 0, reviewed_required_count: 0, fields: [], automatic_score: { state: "NOT_CONFIGURED", coverage: 0 }, assessed_score: { state: "NOT_CONFIGURED", coverage: 0 } });
+    render(<ResponseAssessment responseID="response-2"/>);
+    await screen.findByText("Bank review not required");
+    expect(screen.queryByText(/Review permission is unavailable/)).toBeNull();
+    expect(screen.queryByText("0 of 0 required fields reviewed")).toBeNull();
+    expect(screen.queryByRole("region", { name: "Automatic submission result" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Bank-assessed result" })).toBeNull();
+  });
   it("requires explicit permission for the response and each field before offering judgement controls", async () => {
     api.loadResponseAssessment.mockResolvedValue({ ...assessment, fields: assessment.fields.map((item) => ({ ...item, may_review: false })) });
     const view = render(<ResponseAssessment responseID="response-2"/>);

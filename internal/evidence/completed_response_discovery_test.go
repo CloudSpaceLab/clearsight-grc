@@ -46,6 +46,9 @@ func TestRoutedReviewerDiscoversOnlyPermittedSubmittedVendorResponses(t *testing
 		t.Fatalf("first=%+v err=%v", first, err)
 	}
 	q.Cursor = first.NextCursor
+	if _, _, err := service.GetCompletedResponse(ctx, "bank", "entity", "reviewer", "response2"); err != nil {
+		t.Fatalf("permitted reviewer exact read failed: %v", err)
+	}
 	second, err := service.ListCompletedResponses(ctx, q)
 	if err != nil || len(second.Items) != 1 || second.Items[0].ID != "response1" || second.NextCursor != "" {
 		t.Fatalf("second=%+v err=%v", second, err)
@@ -74,6 +77,9 @@ func TestRoutedReviewerDiscoversOnlyPermittedSubmittedVendorResponses(t *testing
 		t.Fatalf("self-review discovery counts=%+v err=%v", summaries, err)
 	}
 	revoked = true
+	if _, _, err := service.GetCompletedResponse(ctx, "bank", "entity", "reviewer", "response1"); err == nil {
+		t.Fatal("revoked reviewer retained exact response access")
+	}
 	vq.PrincipalID = "reviewer"
 	summaries, err = service.VendorFormSummaries(ctx, vq)
 	if err != nil || summaries[0].SubmittedForms != 0 || summaries[0].OutstandingForms != 0 {

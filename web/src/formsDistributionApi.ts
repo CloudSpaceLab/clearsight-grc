@@ -192,6 +192,7 @@ export type ResponseScore = {
 };
 
 export type CompletedResponseSummary = {
+  subject_name?: string;
   id: string;
   distribution_id: string;
   form_template_id: string;

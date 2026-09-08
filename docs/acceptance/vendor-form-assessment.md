@@ -35,6 +35,16 @@ Summary requests accept 1–50 explicit vendor relationship IDs. Detail pages us
 
 This delivery has local implementation and integration evidence. It has not been deployed or sent requests to real vendor recipients. Production rollout still requires the ordinary migration/deployment gates, configured delivery and protected artifact services, representative bank-user timing and production-volume/load acceptance. No live vendor data, invitation token or recipient address appears in the rendered sample fixtures.
 
+## Forms, policies and vendor completion addendum — 8 September 2026
+
+Branch `codex/forms-vendor-completeness` extends the later Forms/Vendors completion tracker without reopening closed master issue #200. It keeps the prior vendor-field-assessment delivery history intact and adds the missing management surfaces requested for response policies, completed responses and vendor relationship workspaces.
+
+New local verification covers these behaviors: submitted vendor responses override stale open-request display state; the Responses workspace has typed subject filters and an Answers/Documents/Review/History detail sheet; no-score and no-review responses remain neutral and readable; policy access denial is shown as a denied state; approved or active policy revisions show recorded approval/simulation facts instead of asking for a new draft simulation; one selected execution resolves only the issue or response targets the current actor may read; and Vendors now uses Overview, Forms, Documents, Due diligence and History tabs with the submitted-document inventory embedded in the relationship context.
+
+Fresh local receipts: focused response/policy/vendor/tab Vitest passed 125 tests across 9 files; full Vitest passed 1,136 tests across 161 files; `npm run build` and `npm run build:evidence` passed; runtime-truth and UI-contract checks passed; `go test -p 1 ./...`, `go test -p 1 -tags postgres ./...` and `go vet ./...` passed under `GOMAXPROCS=2`; and the changed scoring sample presentation tests passed with `go test -p 1 -tags "postgres postgresintegration" ./cmd/seed-bank-reference -run TestScoring`. The full `postgresintegration` seed package still fails in the existing document-sample resume tests because those fixtures lack a current authority route; that failure is recorded separately from the scoring sample change and must be resolved before using that full package as a release gate.
+
+Rendered vendor-section evidence passed targeted 1440/390/320/720 light and dark matrices. The full UI/UX runner then passed with 224/224 flow records, 77/77 governed Forms capabilities, 224 retained screenshots, 8 accessibility/touch route states and the existing bundle budget. Hosted smoke testing remains pending for this branch. SMTP connectivity remains advisory for deployment; application, migration, authority, access-control and UI gates remain blocking.
+
 ## Frontend rendered and interaction receipts
 
 Final frontend verification used the bundled Node 24.19.0 runtime. `vitest run --maxWorkers=4 --reporter=dot` passed all 160 files and 1,086 tests; `tsc -b`, the production build and the evidence build passed. The 12 UI-contract/runtime-boundary checks passed. The full-suite receipt is [vendor-final-vitest.log](../screenshots/vendor-form-assessment/vendor-final-vitest.log).

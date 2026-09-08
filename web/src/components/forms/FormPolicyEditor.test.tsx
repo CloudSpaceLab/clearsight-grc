@@ -20,7 +20,7 @@ describe("FormPolicyEditor", () => {
     fireEvent.change(screen.getByLabelText("Effective from"), { target: { value: "2026-09-02T08:00" } });
     fireEvent.change(screen.getByLabelText("Effective until"), { target: { value: "2026-12-01T08:00" } });
     fireEvent.change(screen.getByLabelText("Issue title"), { target: { value: "Review adverse vendor response" } });
-    fireEvent.change(screen.getByLabelText("Required handling"), { target: { value: "Review the response and record treatment." } });
+    fireEvent.change(screen.getByLabelText("What needs to happen next"), { target: { value: "Review the response and record treatment." } });
     fireEvent.change(screen.getByLabelText("Expected outcome"), { target: { value: "The score is no longer adverse or treatment is accepted." } });
     fireEvent.click(screen.getByRole("button", { name: "Create policy draft" }));
 
@@ -46,7 +46,7 @@ describe("FormPolicyEditor", () => {
     for (const [label, entry] of [
       ["Policy name", "Review poor scores"], ["Policy code", "poor-score"], ["Purpose", "Create a governed review issue."],
       ["Issue title", "Review response"],
-      ["Required handling", "Review and record treatment."], ["Expected outcome", "The response concern is treated."],
+      ["What needs to happen next", "Review and record treatment."], ["Expected outcome", "The response concern is treated."],
     ] as const) fireEvent.change(screen.getByLabelText(label), { target: { value: entry } });
     fireEvent.change(screen.getByLabelText("Effective from"), { target: { value: "2026-12-01T08:00" } });
     fireEvent.change(screen.getByLabelText("Effective until"), { target: { value: "2026-09-02T08:00" } });
@@ -75,7 +75,7 @@ describe("FormPolicyEditor", () => {
     const save=vi.fn();
     const choice={id:"automation-scoped",name:"Vendor concern handling",purpose:"Review adverse vendor evidence.",status:"ACTIVE",version:3,eligibility:{form_template_id:"form-1",form_template_version:4,subject_types:["VENDOR_RELATIONSHIP"],current_only:true,minimum_coverage:0.8,bands:["HIGH" as const]},blast_radius:{per_run:5,per_day:20},outcome_contract:{expected_outcome:"Concern treated.",check_after_minutes:60,failure_response:"ESCALATE" as const},rollout:"SHADOW" as const};
     render(<FormPolicyEditor forms={forms} automationChoices={[choice]} onCancel={() => undefined} onCreate={save}/>);
-    for(const [label,value] of ([["Policy name","Vendor review"],["Policy code","vendor-review"],["Purpose","Review adverse vendor results."],["Issue title","Review vendor evidence"],["Required handling","Review and treat the concern."]] as const)) fireEvent.change(screen.getByLabelText(label),{target:{value}});
+    for(const [label,value] of ([["Policy name","Vendor review"],["Policy code","vendor-review"],["Purpose","Review adverse vendor results."],["Issue title","Review vendor evidence"],["What needs to happen next","Review and treat the concern."]] as const)) fireEvent.change(screen.getByLabelText(label),{target:{value}});
     fireEvent.click(screen.getByRole("button",{name:/Automation policy/}));
     fireEvent.click(await screen.findByRole("option",{name:/Vendor concern handling/}));
     expect(screen.getByText(/Review adverse vendor evidence\./)).toBeTruthy();

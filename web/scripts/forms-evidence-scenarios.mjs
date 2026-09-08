@@ -42,6 +42,17 @@ async function selectFormsSection(page, name) {
   await assertFormsSectionSelected(page, name);
 }
 
+async function selectVendorSection(page, name) {
+  const tab = page.getByRole("tab", { name, exact: true });
+  if (await tab.isVisible()) {
+    await tab.click();
+    return;
+  }
+  const compact = page.getByRole("button", { name: / Vendor section$/ });
+  await compact.click();
+  await page.getByRole("option", { name, exact: true }).click();
+}
+
 async function assertFormsSectionSelected(page, name) {
   await page.locator(".cs-tabs--compact-select > .cs-tabs__panel").waitFor({ state: "visible" });
   await page.waitForFunction((expected) => document.querySelector('.cs-tabs--compact-select [role="tab"][aria-selected="true"]')?.textContent === expected, name);
@@ -339,13 +350,13 @@ const scenarios = [
     name: "106-forms-response-history-light-1440x900", fixture: "forms-response-history", route: "#forms",
     state: "forms-response-first-and-amended", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["response-first", "response-amended"],
-    run: async (page) => { await openFormsTab(page, "Responses"); await page.getByRole("button", { name: "Review Vendor due diligence review response" }).click(); await visible(page, "Revision 1"); await visible(page, "Revision 2 · Current"); },
+    run: async (page) => { await openFormsTab(page, "Responses"); await page.getByRole("button", { name: "Review Vendor due diligence review response" }).click(); await page.getByRole("tab", { name: "History", exact: true }).click(); await visible(page, "Revision 1"); await visible(page, "Revision 2 · Current"); },
   },
   {
     name: "106a-forms-response-history-dark-1440x900", fixture: "forms-response-history", route: "#forms",
     state: "forms-response-first-and-amended-dark", theme: "dark", viewport: desktop, zoom: 1,
     capabilities: ["response-first", "response-amended", "theme-dark", "viewport-desktop"],
-    run: async (page) => { await openFormsTab(page, "Responses"); await page.getByRole("button", { name: "Review Vendor due diligence review response" }).click(); await page.getByLabel("Version history").waitFor({ state: "visible" }); await visible(page, "Revision 2 · Current"); },
+    run: async (page) => { await openFormsTab(page, "Responses"); await page.getByRole("button", { name: "Review Vendor due diligence review response" }).click(); await page.getByRole("tab", { name: "History", exact: true }).click(); await page.getByLabel("Version history").waitFor({ state: "visible" }); await visible(page, "Revision 2 · Current"); },
   },
   {
     name: "107-forms-vendor-held-actions-dark-mobile-390x844", fixture: "forms-vendor-held-actions", route: "/capture",
@@ -357,13 +368,13 @@ const scenarios = [
     name: "108-forms-vendor-review-conflict-light-1440x900", fixture: "forms-vendor-review-conflict", route: "#vendors",
     state: "forms-vendor-review-conflict", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["vendor-review", "vendor-conflict"],
-    run: async (page) => { await page.getByRole("button", { name: /Acme Processing Limited/ }).click(); const heading = page.getByRole("heading", { name: "Decide which vendor changes to apply" }); await heading.waitFor({ state: "visible" }); await visible(page, "1 held record has changed"); await heading.scrollIntoViewIfNeeded(); },
+    run: async (page) => { await page.getByRole("button", { name: /Acme Processing Limited/ }).click(); await selectVendorSection(page, "Due diligence"); const heading = page.getByRole("heading", { name: "Decide which vendor changes to apply" }); await heading.waitFor({ state: "visible" }); await visible(page, "1 held record has changed"); await heading.scrollIntoViewIfNeeded(); },
   },
   {
     name: "109-forms-vendor-applied-light-1440x900", fixture: "forms-vendor-applied", route: "#vendors",
     state: "forms-vendor-response-applied", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["vendor-applied"],
-    run: async (page) => { await page.getByRole("button", { name: /Acme Processing Limited/ }).click(); const heading = page.getByRole("heading", { name: "Reviewed changes recorded" }); await heading.waitFor({ state: "visible" }); await heading.scrollIntoViewIfNeeded(); },
+    run: async (page) => { await page.getByRole("button", { name: /Acme Processing Limited/ }).click(); await selectVendorSection(page, "Due diligence"); const heading = page.getByRole("heading", { name: "Reviewed changes recorded" }); await heading.waitFor({ state: "visible" }); await heading.scrollIntoViewIfNeeded(); },
   },
   {
     name: "110-forms-reflow-light-320x800", fixture: "forms-library-reflow", route: "#forms",

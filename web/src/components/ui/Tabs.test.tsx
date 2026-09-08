@@ -17,6 +17,20 @@ function Harness() {
 }
 
 describe("Tabs", () => {
+  it("lazily retains visited panels and hides inactive editors from accessibility and focus", () => {
+    const child = vi.fn((key: string) => <input aria-label={`${key} draft`} defaultValue=""/>);
+    const view = render(<Tabs retainVisitedPanels ariaLabel="Forms views" items={items} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{child}</Tabs>);
+    expect(child).not.toHaveBeenCalledWith("SENT");
+    const editor = screen.getByRole("textbox");
+    fireEvent.change(editor, { target: { value: "Unsaved judgement" } });
+    view.rerender(<Tabs retainVisitedPanels ariaLabel="Forms views" items={items} selectedKey="SENT" onSelectionChange={() => undefined}>{child}</Tabs>);
+    expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
+    expect(screen.queryByRole("textbox", { name: "TEMPLATES draft" })).toBeNull();
+    expect(editor.closest('.cs-tabs__panel')?.hasAttribute("inert")).toBe(true);
+    view.rerender(<Tabs retainVisitedPanels ariaLabel="Forms views" items={items} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{child}</Tabs>);
+    expect(screen.getByRole("textbox")).toBe(editor);
+    expect((editor as HTMLInputElement).value).toBe("Unsaved judgement");
+  });
   it("offers an opt-in controlled compact selector without empty or duplicate selection", async () => {
     const change = vi.fn();
     const { rerender } = render(<Tabs ariaLabel="Forms views" compactLabel="Forms section" items={items} selectedKey="TEMPLATES" onSelectionChange={change}>{(key) => <p>{key}</p>}</Tabs>);

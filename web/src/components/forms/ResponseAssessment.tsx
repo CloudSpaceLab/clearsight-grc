@@ -8,14 +8,14 @@ import { fieldAssessmentLabel, needsBankReview } from "./fieldAssessment";
 import { assessmentConcernPoints, assessmentConcernThreshold, automaticFieldResults } from "./assessmentFieldResults";
 import "./field-assessment.css";
 
-type Props = { responseID: string; onUpdated?: () => void };
+type Props = { responseID: string; onUpdated?: () => void; showDocumentLauncher?: boolean; answersOnly?: boolean; current?: boolean | null };
 type Judgement = { outcome_id: string; rationale: string };
 type ReviewFilter = "ALL" | "PENDING" | "POOR" | "MISSING" | "REVIEWED";
 const stateLabels = { NOT_REQUIRED: "Bank review not required", AWAITING_REVIEW: "Awaiting bank review", IN_REVIEW: "Bank review in progress", ASSESSED: "Bank assessment complete" };
 
 export function ResponseAssessment(props: Props) { return <AssessmentContent key={props.responseID} {...props}/>; }
 
-function AssessmentContent({ responseID, onUpdated }: Props) {
+function AssessmentContent({ responseID, onUpdated, showDocumentLauncher = true, answersOnly = false, current }: Props) {
   const [detail, setDetail] = useState<ResponseAssessmentDetail>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,7 +46,7 @@ function AssessmentContent({ responseID, onUpdated }: Props) {
   useEffect(() => { void reload(); return () => { sequence.current++; }; }, []);
 
   async function save() {
-    if (!detail || saving || conflict) return;
+    if (!detail || !detail.current || (current === false || current === null) || saving || conflict) return;
     const request = sequence.current;
     setSaving(true);
     setError(undefined);
@@ -70,7 +70,8 @@ function AssessmentContent({ responseID, onUpdated }: Props) {
   if (!detail) return <section aria-label="Bank assessment"><Notice tone="error">{error ?? "The bank assessment is unavailable."}</Notice><Button onPress={() => void reload()}>Reload bank assessment</Button></section>;
   const fields = detail.fields ?? [];
   const reviewable = fields.filter((item) => needsBankReview(item.field) && item.may_review === true);
-  const editable = detail.current && detail.may_review === true;
+  const currentResponse = detail.current && current !== false && current !== null;
+  const editable = currentResponse && detail.may_review === true;
   const changes = Object.entries(drafts).filter(([id, value]) => {
     const item = reviewable.find((candidate) => candidate.field.id === id);
     return item && (value.outcome_id !== item.decision?.outcome_id || value.rationale.trim() !== item.decision?.rationale);
@@ -80,14 +81,17 @@ function AssessmentContent({ responseID, onUpdated }: Props) {
   const visible = fields.filter((item) => matchesFilter(item, filter, detail));
   const hasEvidence = fields.some((item) => evidenceField(item));
 
+  if (answersOnly) return <section className="response-assessment" aria-label="Submitted answers"><h3>Submitted answers</h3><p>Form revision {detail.form_template_version}. These answers cannot be changed.</p>{fields.length === 0 ? <p>No answer fields were recorded for this submitted response.</p> : fields.map((item) => <article key={item.field.id} aria-label={item.field.label}><h4>{item.field.label}</h4><p className="response-assessment__answer">{answerText(item)}</p></article>)}</section>;
+
   return <section className="response-assessment" aria-label="Bank assessment">
     <header><h3>Bank assessment</h3><StatusBadge tone={pending > 0 ? "warning" : "neutral"}>{stateLabels[detail.state] ?? "Assessment state unavailable"}</StatusBadge></header>
-    <p>Form revision {detail.form_template_version} · Assessment version {detail.version} · {detail.current ? "Current response" : "Historical response"}</p>
-    {!detail.current && <Notice tone="info">Historical response. Review the current submission to record a new bank judgement; previous decisions remain in history.</Notice>}
-    {detail.may_review !== true && detail.current && <Notice tone="info">Review permission is unavailable for this response under your current responsibility. Reload the assessment after your responsibility changes.</Notice>}
+    <p>Form revision {detail.form_template_version} · Assessment version {detail.version} · {current === null ? "Response currency unavailable" : currentResponse ? "Current response" : "Historical response"}</p>
+    {current === null && <Notice tone="info">Response currency is unavailable. Reload response history before recording a review.</Notice>}
+    {!currentResponse && current !== null && <Notice tone="info">Historical response. Review the current submission to record a new bank judgement; previous decisions remain in history.</Notice>}
+    {detail.state !== "NOT_REQUIRED" && detail.may_review !== true && currentResponse && <Notice tone="info">Review permission is unavailable for this response under your current responsibility. Reload the assessment after your responsibility changes.</Notice>}
     {pending > 0 && <Notice tone="warning">{`${pending} required ${pending === 1 ? "field" : "fields"} awaiting bank review`}</Notice>}
-    <p>{detail.reviewed_required_count} of {detail.required_count} required fields reviewed</p>
-    <div className="response-assessment__scores"><AssessmentScore title="Automatic submission result" score={detail.automatic_score}/><AssessmentScore title="Bank-assessed result" score={detail.assessed_score} provisional={pending > 0 || detail.assessed_score?.state === "PROVISIONAL"}/></div>
+    {detail.state !== "NOT_REQUIRED" && <p>{detail.reviewed_required_count} of {detail.required_count} required fields reviewed</p>}
+    <div className="response-assessment__scores">{(detail.state !== "NOT_REQUIRED" || detail.automatic_score && detail.automatic_score.state !== "NOT_CONFIGURED") && <AssessmentScore title="Automatic submission result" score={detail.automatic_score}/>} {detail.state !== "NOT_REQUIRED" && <AssessmentScore title="Bank-assessed result" score={detail.assessed_score} provisional={pending > 0 || detail.assessed_score?.state === "PROVISIONAL"}/>}</div>
     {receipt && <Notice tone="success">{receipt}</Notice>}
     {error && <Notice tone="error">{error}</Notice>}
     {conflict && <Notice tone="warning">The response or bank assessment changed. Reload it and compare the saved decisions with your retained judgement before saving again.</Notice>}
@@ -117,7 +121,7 @@ function AssessmentContent({ responseID, onUpdated }: Props) {
         </div>
       </article>;
     })}</div>
-    {hasEvidence && <Button onPress={() => setDocumentsOpen(true)}>Review submitted evidence</Button>}
+    {showDocumentLauncher && hasEvidence && <Button onPress={() => setDocumentsOpen(true)}>Review submitted evidence</Button>}
     <RuleExplanation score={detail.automatic_score}/>
     {editable && reviewable.length > 0 && <div className="response-assessment__actions"><p>{conflict ? "Reload the assessment before saving." : changes.length === 0 ? "Choose a rubric outcome and enter a rationale to save a bank judgement." : !valid ? "Each changed judgement needs an approved outcome and a rationale." : `${changes.length} bank ${changes.length === 1 ? "judgement" : "judgements"} ready to save.`}</p><Button variant="primary" isDisabled={!valid || conflict} isLoading={saving} onPress={() => void save()}>Save bank assessment</Button></div>}
     {documentsOpen && <FocusedSheet label="Submitted assessment evidence" size="wide" onClose={() => setDocumentsOpen(false)}><DocumentBrowser responseRevisionID={responseID} scopeLabel={`Submitted evidence · form revision ${detail.form_template_version}`}/></FocusedSheet>}

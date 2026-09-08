@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { loadVendorForms, type VendorFormRow, type VendorFormsFilter, type VendorFormsPage } from "../vendorFormsApi";
-import { loadCompletedResponses, loadDistribution, transitionDistribution, type CompletedResponsePage, type CompletedResponseSummary, type DistributionDetail } from "../formsDistributionApi";
+import { loadCompletedResponse, loadCompletedResponses, loadDistribution, transitionDistribution, type CompletedResponsePage, type CompletedResponseSummary, type DistributionDetail } from "../formsDistributionApi";
 import type { ResponseScore } from "../formsDistributionApi";
 import { Button, EmptyState, FocusedSheet, Notice, SelectField, StatusBadge } from "./ui";
 import { ResponseAssessment } from "./forms/ResponseAssessment";
@@ -10,10 +10,10 @@ import { DistributionChangePanel } from "./forms/DistributionChangePanel";
 import "./vendor-forms.css";
 
 export const vendorWorkFilters = [{ id: "AWAITING_VENDOR", label: "Awaiting vendor" }, { id: "AWAITING_REVIEW", label: "Awaiting bank review" }, { id: "WITH_RISKS", label: "Submitted with risks" }, { id: "HIGH_RISK", label: "High or critical concern" }, { id: "OVERDUE", label: "Overdue" }, { id: "NOT_ASSESSED", label: "Not assessed" }] satisfies Array<{ id: VendorFormsFilter; label: string }>;
-type Props = { relationshipID: string; serviceName: string; onRequestForm: () => void; onUpdated?: () => void; onOpenRequest?: (requestID: string) => void; refreshKey?: number; initialFilter?: VendorFormsFilter };
+type Props = { relationshipID: string; serviceName: string; onRequestForm: () => void; onUpdated?: () => void; onOpenHistory?: () => void; onOpenRequest?: (requestID: string) => void; refreshKey?: number; initialFilter?: VendorFormsFilter };
 export function VendorFormsPanel(props: Props) { return <FormsForRelationship key={`${props.relationshipID}:${props.initialFilter ?? "all"}`} {...props}/>; }
 
-function FormsForRelationship({ relationshipID, serviceName, onRequestForm, onUpdated, onOpenRequest, refreshKey, initialFilter }: Props) {
+function FormsForRelationship({ relationshipID, serviceName, onRequestForm, onUpdated, onOpenHistory, onOpenRequest, refreshKey, initialFilter }: Props) {
   const [filter, setFilter] = useState<VendorFormsFilter | undefined>(initialFilter);
   const [page, setPage] = useState<VendorFormsPage>();
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,7 @@ function FormsForRelationship({ relationshipID, serviceName, onRequestForm, onUp
   }
   function updated() { void reload(); onUpdated?.(); }
   return <section className="vendor-forms-panel" aria-label={`Forms and responses for ${serviceName}`}>
-    <header><div><h2>Forms and responses</h2><p>Requests, submissions and bank reviews for {serviceName}.</p></div><div className="vendor-forms-list__actions"><Button onPress={() => setHistoryOpen(true)}>View response history</Button><Button onPress={onRequestForm}>Request form</Button></div></header>
+    <header><div><h2>Forms and responses</h2><p>Requests, submissions and bank reviews for {serviceName}.</p></div><div className="vendor-forms-list__actions"><Button onPress={() => onOpenHistory ? onOpenHistory() : setHistoryOpen(true)}>View response history</Button><Button variant="primary" onPress={onRequestForm}>Request form</Button></div></header>
     <SelectField label="Form work to show" value={filter} placeholder="All requests and responses" options={vendorWorkFilters} onChange={setFilter}/>
     {loading && <p role="status">Loading forms and responses for this vendor service…</p>}
     {error && <Notice tone="error">{error}</Notice>}
@@ -76,25 +76,37 @@ function FormsForRelationship({ relationshipID, serviceName, onRequestForm, onUp
   </section>;
 }
 
-function VendorResponseHistory({ relationshipID, serviceName, onUpdated }: { relationshipID: string; serviceName: string; onUpdated: () => void }) {
+export function VendorResponseHistory({ relationshipID, serviceName, onUpdated, active = true, refreshKey = 0 }: { relationshipID: string; serviceName: string; onUpdated: () => void; active?: boolean; refreshKey?: number }) {
   const [page, setPage] = useState<CompletedResponsePage>();
   const [selected, setSelected] = useState<CompletedResponseSummary>();
   const [documentsOpen, setDocumentsOpen] = useState(false);
+  const [currencyChecked, setCurrencyChecked] = useState(true);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const sequence = useRef(0);
   async function load(cursor?: string) {
     const request = ++sequence.current;
     setLoading(true); setError(undefined);
+    if (!cursor) { setPage(undefined); setCurrencyChecked(false); }
     try {
-      const result = await loadCompletedResponses({ subject_type: "VENDOR_RELATIONSHIP", subject_id: relationshipID, current_only: false, sort: "COMPLETED_DESC", limit: 25, cursor });
-      if (request === sequence.current) setPage((previous) => ({ ...result, items: cursor ? [...(previous?.items ?? []), ...result.items] : result.items }));
+      const selectedID = !cursor ? selectedRef.current?.id : undefined;
+      const [result, detail] = await Promise.all([
+        loadCompletedResponses({ subject_type: "VENDOR_RELATIONSHIP", subject_id: relationshipID, current_only: false, sort: "COMPLETED_DESC", limit: 25, cursor }),
+        selectedID ? loadCompletedResponse(selectedID) : undefined,
+      ]);
+      if (request === sequence.current) {
+        setPage((previous) => ({ ...result, items: cursor ? [...(previous?.items ?? []), ...result.items] : result.items }));
+        if (detail) setSelected((current) => current?.id === selectedID ? detail.response : current);
+        setCurrencyChecked(true);
+      }
     } catch (cause) { if (request === sequence.current) setError(cause instanceof Error ? cause.message : "Response history for this vendor service could not be loaded. Retry to check its submitted revisions."); }
     finally { if (request === sequence.current) setLoading(false); }
   }
-  useEffect(() => { void load(); return () => { sequence.current++; }; }, []);
-  if (selected) return <div className="vendor-forms-list"><Button onPress={() => setSelected(undefined)}>Back to response history</Button><h2>{selected.title}</h2><p>Response revision {selected.revision} · {selected.current ? "Current response" : "Historical response"}</p><ResponseAssessment responseID={selected.id} onUpdated={onUpdated}/><Button onPress={() => setDocumentsOpen(true)}>View revision documents</Button>{documentsOpen && <FocusedSheet label="Response revision documents" size="wide" onClose={() => setDocumentsOpen(false)}><DocumentBrowser responseRevisionID={selected.id} scopeLabel={`${serviceName} · Response revision ${selected.revision}`}/></FocusedSheet>}</div>;
-  return <section className="vendor-forms-list" aria-label="Submitted response history"><h2>Response history</h2><p>Current and historical submitted revisions for {serviceName}. Historical results do not describe the latest response.</p>{error && <Notice tone="error">{error}</Notice>}{loading && <p role="status">Loading submitted response revisions…</p>}{!page && !loading && <Button onPress={() => void load()}>Reload response history</Button>}{page && <><p>{page.items.length} submitted revisions loaded</p>{page.items.length === 0 && <EmptyState population={`Submitted response revisions for ${serviceName}`} title="No submitted responses found" description="Return to the vendor requests to check response progress."/>}<ul className="vendor-forms-list">{page.items.map((item) => <li key={item.id}><h3>{item.title}</h3><p>Response revision {item.revision} · Form revision {item.form_template_version} · {item.current ? "Current response" : "Historical response"}</p><p>Submitted <time dateTime={item.completed_at}>{dateTime(item.completed_at)}</time></p><VendorFormScore title="Submission result" score={item.score}/><Button aria-label={`Review ${item.title} revision ${item.revision}`} onPress={() => setSelected(item)}>Review response revision</Button></li>)}</ul>{page.next_cursor && <Button isLoading={loading} onPress={() => void load(page.next_cursor)}>Load earlier responses</Button>}</>}</section>;
+  useEffect(() => { if (active) void load(); return () => { sequence.current++; }; }, [active, refreshKey]);
+  if (selected) return <div className="vendor-forms-list"><Button onPress={() => setSelected(undefined)}>Back to response history</Button><h2>{selected.title}</h2><p>Response revision {selected.revision} · {!currencyChecked ? "Response currency not checked" : selected.current ? "Current response" : "Historical response"}</p>{error && <Notice tone="error">{error}</Notice>}<Button isDisabled={loading} onPress={() => void load()}>Reload response history</Button><ResponseAssessment responseID={selected.id} current={currencyChecked ? selected.current : null} onUpdated={onUpdated}/><Button onPress={() => setDocumentsOpen(true)}>View revision documents</Button>{documentsOpen && <FocusedSheet label="Response revision documents" size="wide" onClose={() => setDocumentsOpen(false)}><DocumentBrowser responseRevisionID={selected.id} scopeLabel={`${serviceName} · Response revision ${selected.revision}`}/></FocusedSheet>}</div>;
+  return <section className="vendor-forms-list" aria-label="Submitted response history"><h2>Response history</h2><p>Current and historical submitted revisions for {serviceName}. Historical results do not describe the latest response.</p>{error && <Notice tone="error">{error}</Notice>}{loading && <p role="status">Loading submitted response revisions…</p>}<Button isDisabled={loading} onPress={() => void load()}>Reload response history</Button>{page && <><p>{page.items.length} submitted revisions loaded</p>{page.items.length === 0 && <EmptyState population={`Submitted response revisions for ${serviceName}`} title="No submitted responses found" description="Return to the vendor requests to check response progress."/>}<ul className="vendor-forms-list">{page.items.map((item) => <li key={item.id}><h3>{item.title}</h3><p>Response revision {item.revision} · Form revision {item.form_template_version} · {item.current ? "Current response" : "Historical response"}</p><p>Submitted <time dateTime={item.completed_at}>{dateTime(item.completed_at)}</time></p><VendorFormScore title="Submission result" score={item.score}/><Button aria-label={`Review ${item.title} revision ${item.revision}`} onPress={() => setSelected(item)}>Review response revision</Button></li>)}</ul>{page.next_cursor && <Button isLoading={loading} onPress={() => void load(page.next_cursor)}>Load earlier responses</Button>}</>}</section>;
 }
 
 function VendorFormScore({ title, score, provisional }: { title: string; score?: ResponseScore; provisional?: boolean }) {

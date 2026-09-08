@@ -70,7 +70,7 @@ func (s *MemoryDistributionStore) GetCompletedResponse(ctx context.Context, tena
 			if revision.ID == revisionID {
 				if allowed, accessErr := s.completedResponseVisible(ctx, principalID, distribution, revision); accessErr != nil {
 					return CompletedResponseSummary{}, ResponseRevision{}, accessErr
-				} else if !allowed {
+				} else if !allowed && !s.responseDiscoveryVisible(ctx, principalID, distribution, revision) {
 					return CompletedResponseSummary{}, ResponseRevision{}, ErrNotFound
 				}
 				return completedResponseSummary(distribution, revision), cloneResponseRevision(revision), nil

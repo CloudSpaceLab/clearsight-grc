@@ -108,18 +108,18 @@ func submitScoringAcceptanceResponse(
 	fixture scoringResponseFixture,
 	now time.Time,
 ) (evidence.CompletedResponseSummary, error) {
-	title := "Scoring acceptance — " + fixture.label
+	title := scoringSampleTitle(fixture.label)
 	bundle, err := distributions.Create(ctx, evidence.CreateDistributionInput{
 		TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID,
 		FormTemplateID: form.ID, FormTemplateVersion: form.Version,
 		SubjectType: "PROGRAM", SubjectID: subjectID,
-		Title: title, Purpose: "Persist a governed scored response through the same respondent path used by external evidence collection.",
+		Title: title, Purpose: "Sample data: confirm whether the control is designed, operating and free of unresolved exceptions. Review any reported gaps.",
 		AccessPolicy: evidence.AccessDirectMagicLink, EstimatedMinutes: 2,
 		Deadline: now.Add(30 * 24 * time.Hour), RouteExpiresAt: now.Add(7 * 24 * time.Hour),
 		CreatedBy: seed.ActorID,
 		Recipients: []evidence.DistributionRecipientInput{{
 			Role: evidence.RecipientTo, Type: evidence.RecipientExternalAudience,
-			Address: fixture.label + "@scoring.demo.invalid", AudienceHint: fixture.label + " scoring respondent", ContactLabel: "Scoring acceptance " + fixture.label,
+			Address: fixture.label + "@scoring.demo.invalid", AudienceHint: "Sample control owner", ContactLabel: "Sample control owner",
 		}},
 	})
 	if err != nil {
@@ -155,15 +155,42 @@ func submitScoringAcceptanceResponse(
 	return distributions.GetCompletedResponseForExecution(ctx, seed.TenantID, submitted.Revision.ID)
 }
 
+func scoringSampleTitle(label string) string {
+	switch label {
+	case "good":
+		return "Sample — Quarterly control confirmation"
+	case "borderline":
+		return "Sample — Exception resolution update"
+	case "poor":
+		return "Sample — Control gap follow-up"
+	case "post-policy-good":
+		return "Sample — Control confirmation follow-up"
+	case "post-policy-poor":
+		return "Sample — Reported control gap"
+	case "post-policy-poor-same-episode":
+		return "Sample — Additional control gap evidence"
+	case "post-policy-poor-same-episode-reconcile":
+		return "Sample — Control gap reconciliation"
+	default:
+		return "Sample — Control evidence submission"
+	}
+}
+
 func scoringAcceptanceAlreadySeeded(ctx context.Context, pool *pgxpool.Pool, seed bankverticals.SeedConfig, formID string, version int64, subjectID string) (bool, error) {
 	var count int
 	err := pool.QueryRow(ctx, `
-		SELECT count(DISTINCT d.title)
+		SELECT count(DISTINCT CASE
+		  WHEN d.title=ANY($6::text[]) THEN 'good'
+		  WHEN d.title=ANY($7::text[]) THEN 'borderline'
+		  WHEN d.title=ANY($8::text[]) THEN 'poor'
+		END)
 		FROM capture_response_revisions rr
 		JOIN capture_form_distributions d ON d.id=rr.distribution_id AND d.tenant_id=rr.tenant_id AND d.legal_entity_id=rr.legal_entity_id
 		WHERE rr.tenant_id=$1::uuid AND rr.legal_entity_id=$2::uuid AND rr.is_current
-		  AND d.form_template_id=$3::uuid AND d.form_template_version=$4 AND d.subject_type='PROGRAM' AND d.subject_id=$5::uuid
-		  AND d.title IN ('Scoring acceptance — good','Scoring acceptance — borderline','Scoring acceptance — poor')`, seed.TenantID, seed.LegalEntityID, formID, version, subjectID).Scan(&count)
+		  AND d.form_template_id=$3::uuid AND d.form_template_version=$4 AND d.subject_type='PROGRAM' AND d.subject_id=$5::uuid`, seed.TenantID, seed.LegalEntityID, formID, version, subjectID,
+		[]string{"Scoring acceptance — good", scoringSampleTitle("good")},
+		[]string{"Scoring acceptance — borderline", scoringSampleTitle("borderline")},
+		[]string{"Scoring acceptance — poor", scoringSampleTitle("poor")}).Scan(&count)
 	if err != nil {
 		return false, fmt.Errorf("check scoring acceptance population: %w", err)
 	}

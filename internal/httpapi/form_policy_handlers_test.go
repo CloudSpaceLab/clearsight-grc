@@ -52,15 +52,16 @@ func (unavailableFormPolicyAuthority) Policies(context.Context, string) ([]autho
 func TestFormPolicyRoutesUseVerifiedGovernanceClasses(t *testing.T) {
 	routes := (&API{}).formPolicyRoutes()
 	want := map[string]routeClass{
-		"GET /api/v1/config/form-response-policies":                routeAuthenticatedRead,
-		"POST /api/v1/config/form-response-policies":               routeMaterialCommand,
-		"GET /api/v1/config/form-response-policies/{id}":           routeAuthenticatedRead,
-		"POST /api/v1/config/form-response-policies/{id}/simulate": routeMaterialCommand,
-		"POST /api/v1/config/form-response-policies/{id}/submit":   routeMaterialCommand,
-		"POST /api/v1/config/form-response-policies/{id}/approve":  routeMaterialCommand,
-		"POST /api/v1/config/form-response-policies/{id}/activate": routeMaterialCommand,
-		"POST /api/v1/config/form-response-policies/{id}/suspend":  routeMaterialCommand,
-		"POST /api/v1/config/form-response-policies/{id}/rollback": routeMaterialCommand,
+		"GET /api/v1/config/form-response-policies/{id}/executions/{execution_id}/result": routeAuthenticatedRead,
+		"GET /api/v1/config/form-response-policies":                                       routeAuthenticatedRead,
+		"POST /api/v1/config/form-response-policies":                                      routeMaterialCommand,
+		"GET /api/v1/config/form-response-policies/{id}":                                  routeAuthenticatedRead,
+		"POST /api/v1/config/form-response-policies/{id}/simulate":                        routeMaterialCommand,
+		"POST /api/v1/config/form-response-policies/{id}/submit":                          routeMaterialCommand,
+		"POST /api/v1/config/form-response-policies/{id}/approve":                         routeMaterialCommand,
+		"POST /api/v1/config/form-response-policies/{id}/activate":                        routeMaterialCommand,
+		"POST /api/v1/config/form-response-policies/{id}/suspend":                         routeMaterialCommand,
+		"POST /api/v1/config/form-response-policies/{id}/rollback":                        routeMaterialCommand,
 	}
 	for _, route := range routes {
 		key := route.Method + " " + route.Path
