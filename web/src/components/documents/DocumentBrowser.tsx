@@ -62,7 +62,7 @@ export function DocumentBrowser({ scopeLabel, relationshipID, responseRevisionID
           <DataTable ariaLabel={scopeLabel} rows={items} rowKey={(file) => file.id} rowName={(file) => `${file.file_name}, ${fileKindLabel(file.file_kind)}, ${fileStatus(file)}`}
             columns={columns} selectedKey={selectedID} onSelectionChange={(file) => setSelectedID(file.id)} onRowAction={open}
             pagination={{ label: "Document pages", onPrevious: pages.length ? () => setPages((value) => value.slice(0, -1)) : undefined, onNext: nextCursor ? () => setPages((value) => [...value, nextCursor]) : undefined }}/>
-          <footer className="document-list-footer"><span>{items.length} files on this page{nextCursor ? " · More available" : ""}</span><span>Select a file · Press Space to preview</span></footer>
+          <footer className="document-list-footer"><span>{items.length} {items.length === 1 ? "file" : "files"} on this page{nextCursor ? " · More available" : ""}</span><span>Select a file · Press Space to preview</span></footer>
         </> : <EmptyState population={`${scopeLabel} · ${kind === "ALL" ? "All file types" : fileKindLabel(kind)}${query ? ` · “${query}”` : ""}`} title="No matching documents" description="No submitted documents were found for this view. Change the file type or search to check another view."/>)}
       </div>
       {selected && <aside className="document-inspector" aria-label="Selected file details"><FileIcon kind={selected.file_kind}/><h3>{selected.file_name}</h3><p>{fileKindLabel(selected.file_kind)} · {fileSize(selected.size_bytes)}</p><Button onPress={() => open(selected)}>Preview file</Button><DocumentFacts file={selected}/></aside>}

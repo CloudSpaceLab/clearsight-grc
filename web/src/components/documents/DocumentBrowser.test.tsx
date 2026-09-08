@@ -13,6 +13,14 @@ const file: DocumentOccurrence = {
 beforeEach(() => { vi.mocked(loadDocuments).mockReset().mockResolvedValue({ items: [file] }); });
 
 describe("DocumentBrowser", () => {
+  it("labels the current page count in singular or plural from the returned rows", async () => {
+    render(<DocumentBrowser scopeLabel="Vendor documents" relationshipID="vendor-1"/>);
+    expect(await screen.findByText("1 file on this page")).toBeTruthy();
+    vi.mocked(loadDocuments).mockResolvedValue({ items: [file, { ...file, id: "occurrence-2" }], next_cursor: "next-page" });
+    fireEvent.click(screen.getByRole("button", { name: "Refresh files" }));
+    expect(await screen.findByText("2 files on this page · More available")).toBeTruthy();
+  });
+
   it("uses the compact type selector to reset pagination and preserve exact response scope and search", async () => {
     vi.mocked(loadDocuments).mockResolvedValue({ items: [file], next_cursor: "page-2" });
     render(<DocumentBrowser scopeLabel="Response documents" relationshipID="vendor-1" responseRevisionID="revision-1"/>);

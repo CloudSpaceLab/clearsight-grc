@@ -106,6 +106,24 @@ describe("SelectField", () => {
     }
   });
 
+  it("ignores a queued pre-open document scroll without a new position change", async () => {
+    const now = vi.spyOn(performance, "now").mockReturnValue(1_000);
+    try {
+      const change = vi.fn();
+      render(<SelectField label="Forms section" value="OPEN" placeholder="Forms section" options={options} onChange={change}/>);
+      fireEvent.click(screen.getByRole("button", { name: /Forms section/ }));
+      await screen.findByRole("listbox");
+
+      // Scrolling a trigger into view can queue its scroll event until after
+      // pointerdown opens the list. Opening has already recorded that position.
+      fireEvent.scroll(document);
+
+      expect(screen.getByRole("listbox")).toBeTruthy();
+      fireEvent.click(screen.getByRole("option", { name: "Responses locked" }));
+      expect(change).toHaveBeenCalledExactlyOnceWith("LOCKED");
+    } finally { now.mockRestore(); }
+  });
+
   it("still closes an open option list when the user scrolls after positioning completes", async () => {
     let scrollY = 0;
     let now = 1_000;

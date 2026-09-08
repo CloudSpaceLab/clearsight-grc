@@ -58,6 +58,19 @@ async function assertFormsSectionSelected(page, name) {
   if (!linked) throw new Error("The selected Forms section must name and control its single mounted panel in both navigation layouts.");
 }
 
+async function verifyCompactSelectDismissal(page) {
+  const trigger = page.getByRole("button", { name: "Sent forms Forms section", exact: true });
+  for (const action of ["Escape", "Tab", "outside"]) {
+    await trigger.click();
+    await page.getByRole("listbox").waitFor({ state: "visible" });
+    await page.evaluate(() => document.dispatchEvent(new Event("scroll")));
+    await page.getByRole("listbox").waitFor({ state: "visible" });
+    if (action === "outside") await page.getByRole("textbox", { name: "Subject type", exact: true }).click();
+    else await page.keyboard.press(action);
+    await page.getByRole("listbox").waitFor({ state: "hidden" }).catch((error) => { throw new Error(`Compact selector did not dismiss after ${action}: ${error.message}`); });
+  }
+}
+
 async function selectFileType(page, name) {
   const compact = page.getByRole("button", { name: / File type$/ });
   if (await compact.isVisible()) {
@@ -78,16 +91,20 @@ async function assertFileTypeSelected(page, name) {
 
 async function assertDocumentNameWidth(page) {
   if (!await page.evaluate(() => matchMedia("(max-width: 700px)").matches)) return;
-  const valid = await page.locator('.document-browser td[data-label="Name"]').evaluateAll((cells) => cells.length > 0 && cells.every((cell) => {
-    const row = cell.closest("tr");
-    const name = cell.querySelector(".document-file-name");
-    const fullName = name?.querySelector("strong");
-    const rowStyle = getComputedStyle(row);
-    const available = row.clientWidth - parseFloat(rowStyle.paddingLeft) - parseFloat(rowStyle.paddingRight);
-    return cell.getAttribute("data-mobile-layout") === "full-width" && Math.abs(cell.getBoundingClientRect().width - available) <= 2
-      && Math.abs(name.getBoundingClientRect().width - cell.getBoundingClientRect().width) <= 2 && fullName.textContent === fullName.title;
-  }));
-  if (!valid) throw new Error("Complete document names must use the full available mobile card width.");
+  // Even the reduced-motion transition duration needs a rendering frame when
+  // resize changes cell padding. Wait for the exact final width contract.
+  await page.waitForFunction(() => {
+    const cells = [...document.querySelectorAll('.document-browser td[data-label="Name"]')];
+    return cells.length > 0 && cells.every((cell) => {
+      const row = cell.closest("tr");
+      const name = cell.querySelector(".document-file-name");
+      const fullName = name?.querySelector("strong");
+      const rowStyle = getComputedStyle(row);
+      const available = row.clientWidth - parseFloat(rowStyle.paddingLeft) - parseFloat(rowStyle.paddingRight);
+      return cell.getAttribute("data-mobile-layout") === "full-width" && Math.abs(cell.getBoundingClientRect().width - available) <= 2
+        && Math.abs(name.getBoundingClientRect().width - cell.getBoundingClientRect().width) <= 2 && fullName.textContent === fullName.title;
+    });
+  }).catch((error) => { throw new Error(`Complete document names must use the full available mobile card width: ${error.message}`); });
 }
 
 async function assertContrast(page, locator, minimum, label) {
@@ -498,7 +515,7 @@ const scenarios = [
     name: "123-forms-sent-light-effective-200pct", fixture: "forms-sent-zoom", route: "#forms",
     state: "forms-sent-effective-200pct-layout", theme: "light", density: "comfortable", viewport: desktop, zoom: 2,
     capabilities: ["sent-populated-table", "zoom-200", "theme-light"],
-    run: async (page) => { await openFormsTab(page, "Sent forms"); await assertSentFormsControls(page, 44); const trigger = page.getByRole("button", { name: /Status/ }); await trigger.scrollIntoViewIfNeeded(); await trigger.click(); await page.getByRole("listbox").waitFor({ state: "visible" }); },
+    run: async (page) => { await openFormsTab(page, "Sent forms"); await verifyCompactSelectDismissal(page); await assertSentFormsControls(page, 44); const trigger = page.getByRole("button", { name: /Status/ }); await trigger.scrollIntoViewIfNeeded(); await trigger.click(); await page.getByRole("listbox").waitFor({ state: "visible" }); },
   },
   {
     name: "124-forms-component-gallery-forced-colors-focus-1440x900", fixture: "ui-component-gallery", route: "#ui-components",
