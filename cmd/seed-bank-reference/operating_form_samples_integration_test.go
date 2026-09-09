@@ -78,13 +78,16 @@ func TestCloudspaceRiskRegisterSampleIsSubmittedAndRepeatSafe(t *testing.T) {
 	if _, err = legacyAccess.IssueDistributionAccessRoutes(ctx, seed.TenantID, seed.LegalEntityID, legacy.Distribution.ID, seed.ActorID); err != nil {
 		t.Fatal(err)
 	}
-	draft := legacyForm
-	// Start the next revision as a valid draft, then use the normal lifecycle
-	// transitions to make it current. Copying an active revision would retain
-	// its effective dates and violate the draft lifecycle invariant.
+	retired, err := monitoringRepo.TransitionForm(ctx, monitoring.LifecycleTransition{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, ProgramID: legacyForm.ProgramID, ID: legacyForm.ID, ExpectedVersion: legacyForm.Version, To: monitoring.LifecycleRetired, ActorID: seed.OwnerPrincipalID, At: seed.Now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	draft := retired
+	// Start the successor after retiring the current revision. This matches the
+	// governed lifecycle and leaves the request tied to its historical version.
 	draft.Lifecycle = monitoring.Lifecycle{
 		Status:    monitoring.LifecycleDraft,
-		Version:   legacyForm.Version + 1,
+		Version:   retired.Version + 1,
 		CreatedBy: seed.OwnerPrincipalID,
 		CreatedAt: seed.Now,
 		UpdatedAt: seed.Now,
@@ -100,12 +103,6 @@ func TestCloudspaceRiskRegisterSampleIsSubmittedAndRepeatSafe(t *testing.T) {
 	if _, err = monitoringRepo.TransitionForm(ctx, monitoring.LifecycleTransition{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, ProgramID: pending.ProgramID, ID: pending.ID, ExpectedVersion: pending.Version, To: monitoring.LifecycleActive, ActorID: seed.ReviewerPrincipalID, At: seed.Now}); err != nil {
 		t.Fatal(err)
 	}
-	// The confirmed production request is an older revision 3. The active form above
-	// advances to revision 4; retain the historical source version on the open request.
-	if _, err = pool.Exec(ctx, `UPDATE capture_form_distributions SET form_template_version=$2 WHERE id=$1::uuid`, legacy.Distribution.ID, cloudspaceLegacyFormVersion); err != nil {
-		t.Fatal(err)
-	}
-
 	first, err := seedOperatingFormSamples(ctx, cfg, pool, seed, catalog, vendors, monitoringRepo, evidenceRepo)
 	if err != nil {
 		t.Fatal(err)
