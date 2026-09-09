@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -91,7 +92,7 @@ func seedOperatingFormSample(ctx context.Context, pool *pgxpool.Pool, distributi
 	var existingID string
 	err := pool.QueryRow(ctx, `SELECT r.distribution_id::text FROM capture_distribution_creation_receipts r JOIN tenants t ON t.id=r.tenant_id JOIN legal_entities le ON le.id=r.legal_entity_id WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2) AND r.idempotency_key=$3`, seed.TenantID, seed.LegalEntityID, idempotencyKey).Scan(&existingID)
 	if err == nil {
-		return existingOperatingFormSample(ctx, distributions, evidenceRepo, seed, existingID, spec)
+		return existingOperatingFormSample(ctx, pool, distributions, access, evidenceRepo, seed, existingID, spec)
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return "", nil, err
@@ -121,13 +122,7 @@ func seedOperatingFormSample(ctx context.Context, pool *pgxpool.Pool, distributi
 	if err != nil {
 		return "", nil, err
 	}
-	edits := make([]evidence.FieldEdit, 0, len(spec.answers))
-	for _, field := range form.Fields {
-		value, found := spec.answers[field.ID]
-		if found {
-			edits = append(edits, evidence.FieldEdit{FieldID: field.ID, Value: formcontract.TextAnswer(value), BaseSequence: workspace.FieldSequences[field.ID]})
-		}
-	}
+	edits := operatingFormSampleEdits(spec.answers, workspace.FieldSequences)
 	workspace, err = access.SaveResponseWorkspace(ctx, session.SessionToken, evidence.SaveWorkspaceInput{ExpectedVersion: workspace.Workspace.Version, Edits: edits})
 	if err != nil {
 		return "", nil, err
@@ -145,7 +140,7 @@ func seedOperatingFormSample(ctx context.Context, pool *pgxpool.Pool, distributi
 	return string(evidence.RequestSubmitted), submitted.Revision.Score, nil
 }
 
-func existingOperatingFormSample(ctx context.Context, distributions *evidence.DistributionService, evidenceRepo *evidence.PostgresRepository, seed bankverticals.SeedConfig, distributionID string, spec operatingFormSampleSpec) (string, *evidence.ResponseScoreResult, error) {
+func existingOperatingFormSample(ctx context.Context, pool *pgxpool.Pool, distributions *evidence.DistributionService, access *evidence.DistributionAccessService, evidenceRepo *evidence.PostgresRepository, seed bankverticals.SeedConfig, distributionID string, spec operatingFormSampleSpec) (string, *evidence.ResponseScoreResult, error) {
 	bundle, err := distributions.Get(ctx, seed.TenantID, seed.LegalEntityID, distributionID)
 	if err != nil {
 		return "", nil, err
@@ -171,8 +166,43 @@ func existingOperatingFormSample(ctx context.Context, distributions *evidence.Di
 		}
 		return string(evidence.RequestSubmitted), revisions[0].Score, nil
 	case "IN_PROGRESS":
+		var editCount int
+		if err := pool.QueryRow(ctx, `SELECT count(*) FROM capture_response_workspace_edits WHERE distribution_id=$1::uuid`, distributionID).Scan(&editCount); err != nil {
+			return "", nil, err
+		}
+		if editCount == 0 {
+			routes, routeErr := access.IssueDistributionAccessRoutes(ctx, seed.TenantID, seed.LegalEntityID, distributionID, seed.ActorID)
+			if routeErr != nil || len(routes) != 1 {
+				return "", nil, fmt.Errorf("repair sample response route: routes=%d err=%v", len(routes), routeErr)
+			}
+			session, routeErr := access.RedeemDirectRoute(ctx, routes[0].Selector)
+			if routeErr != nil {
+				return "", nil, routeErr
+			}
+			workspace, routeErr := access.GetResponseWorkspace(ctx, session.SessionToken)
+			if routeErr != nil {
+				return "", nil, routeErr
+			}
+			workspace, routeErr = access.SaveResponseWorkspace(ctx, session.SessionToken, evidence.SaveWorkspaceInput{ExpectedVersion: workspace.Workspace.Version, Edits: operatingFormSampleEdits(spec.answers, workspace.FieldSequences)})
+			if routeErr != nil || len(workspace.Answers) == 0 {
+				return "", nil, fmt.Errorf("repair partial sample response: answers=%d err=%v", len(workspace.Answers), routeErr)
+			}
+		}
 		return string(evidence.RequestInProgress), nil, nil
 	default:
 		return string(evidence.RequestReady), nil, nil
 	}
+}
+
+func operatingFormSampleEdits(answers map[string]string, sequences map[string]int64) []evidence.FieldEdit {
+	fieldIDs := make([]string, 0, len(answers))
+	for fieldID := range answers {
+		fieldIDs = append(fieldIDs, fieldID)
+	}
+	sort.Strings(fieldIDs)
+	edits := make([]evidence.FieldEdit, 0, len(fieldIDs))
+	for _, fieldID := range fieldIDs {
+		edits = append(edits, evidence.FieldEdit{FieldID: fieldID, Value: formcontract.TextAnswer(answers[fieldID]), BaseSequence: sequences[fieldID]})
+	}
+	return edits
 }
