@@ -1,0 +1,128 @@
+{
+  "name": "library-dark-768",
+  "state": "library",
+  "theme": "dark",
+  "width": 768,
+  "errors": [],
+  "fixture": "forms-library-lifecycle",
+  "fixtureOverrides": [
+    "active author permission"
+  ],
+  "layout": {
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": [
+      "Forms"
+    ],
+    "controls": [
+      {
+        "text": "Edit draft",
+        "disabled": false,
+        "x": 293.5,
+        "right": 389.765625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 397.765625,
+        "right": 476.765625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 293.5,
+        "right": 372.5,
+        "height": 44
+      },
+      {
+        "text": "Edit form",
+        "disabled": false,
+        "x": 293.5,
+        "right": 389.28125,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 397.28125,
+        "right": 476.28125,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 293.5,
+        "right": 372.5,
+        "height": 44
+      }
+    ]
+  },
+  "versionLabels": [
+    {
+      "text": "Not available",
+      "wrap": "normal",
+      "ellipsis": "clip"
+    },
+    {
+      "text": "Not available",
+      "wrap": "normal",
+      "ellipsis": "clip"
+    },
+    {
+      "text": "Published v3",
+      "wrap": "normal",
+      "ellipsis": "clip"
+    },
+    {
+      "text": "Not available",
+      "wrap": "normal",
+      "ellipsis": "clip"
+    }
+  ],
+  "actionRows": [
+    [
+      {
+        "y": 765.6875,
+        "height": 44
+      },
+      {
+        "y": 765.6875,
+        "height": 44
+      }
+    ],
+    [
+      {
+        "y": 1069.28125,
+        "height": 44
+      }
+    ],
+    [
+      {
+        "y": 1372.875,
+        "height": 44
+      },
+      {
+        "y": 1372.875,
+        "height": 44
+      }
+    ],
+    [
+      {
+        "y": 1676.46875,
+        "height": 44
+      }
+    ]
+  ],
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 23
+      }
+    ]
+  },
+  "status": "PASS"
+}

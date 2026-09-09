@@ -1,0 +1,82 @@
+{
+  "name": "draft-dark-1440",
+  "state": "draft",
+  "theme": "dark",
+  "width": 1440,
+  "errors": [],
+  "fixture": "forms-library-lifecycle",
+  "fixtureOverrides": [
+    "active author permission"
+  ],
+  "layout": {
+    "width": 1440,
+    "scrollWidth": 1440,
+    "heading": [
+      "Forms",
+      "Customer complaint review draft"
+    ],
+    "controls": [
+      {
+        "text": "Edit draft",
+        "disabled": false,
+        "x": 1156.140625,
+        "right": 1252.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Edit form",
+        "disabled": false,
+        "x": 1156.625,
+        "right": 1252.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Edit draft",
+        "disabled": false,
+        "x": 901,
+        "right": 997.265625,
+        "height": 44
+      },
+      {
+        "text": "Send for approval",
+        "disabled": false,
+        "x": 1007.265625,
+        "right": 1158.90625,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": []
+  },
+  "status": "PASS"
+}

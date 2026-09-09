@@ -1,10 +1,37 @@
 from pathlib import Path
+import hashlib
+import json
 import unittest
 
 
 class DeploymentConfigTest(unittest.TestCase):
     def read(self, relative: str) -> str:
         return Path(relative).read_text(encoding="utf-8")
+
+    def test_demo_forms_author_fixture_is_exact_and_has_no_general_capabilities(self) -> None:
+        fixture = self.read("deploy/scripts/seed-demo-foundation.sh").split("DO $forms_author$", 1)[1]
+        version = json.loads(fixture.split("$version$", 2)[1])
+        definition = version["definition"]
+        compact = json.dumps(definition, separators=(",", ":")).encode("utf-8")
+        self.assertEqual(version["checksum"], hashlib.sha256(compact).hexdigest())
+        entity = "00000000-0000-4000-8000-000000000002"
+        rules = definition["rules"]
+        self.assertEqual(len(rules), 3)
+        self.assertEqual({rule["decision_type"] for rule in rules}, {
+            "forms.template.create", "forms.template.revise", "forms.template.transition"})
+        for rule in rules:
+            self.assertEqual(rule["legal_entity_id"], entity)
+            self.assertEqual(rule["responsibility"], "ACCOUNTABLE_OWNER")
+            self.assertEqual(rule["selector"], {"kind": "ROLE", "ref": "DEMO_FORMS_AUTHOR"})
+            self.assertEqual(rule["object_type"], "LEGAL_ENTITY" if rule["decision_type"].endswith(".create") else "FORM_TEMPLATE")
+            self.assertEqual(rule["object_id"], entity if rule["decision_type"].endswith(".create") else "*")
+        role = json.loads(fixture.split("$role$", 2)[1])
+        self.assertEqual(role["capabilities"], [])
+        bindings = json.loads(fixture.split("$bindings$", 2)[1])
+        self.assertEqual({binding["position_id"] for binding in bindings}, {
+            "00000000-0000-4000-8000-000000000301", "00000000-0000-4000-8000-000000000307"})
+        self.assertTrue(all(binding["scope"] == {"legal_entity_id": entity} for binding in bindings))
+        self.assertNotIn("DO UPDATE", fixture)
 
     def test_compose_uses_existing_postgres_and_loopback_ports(self) -> None:
         compose = self.read("deploy/compose.demo.yaml")

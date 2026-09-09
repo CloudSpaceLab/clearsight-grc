@@ -1,0 +1,82 @@
+{
+  "name": "pending-light-320",
+  "state": "pending",
+  "theme": "light",
+  "width": 320,
+  "errors": [],
+  "fixture": "forms-library-lifecycle",
+  "fixtureOverrides": [
+    "active author permission"
+  ],
+  "layout": {
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": [
+      "Forms",
+      "Payments control owner confirmation"
+    ],
+    "controls": [
+      {
+        "text": "Edit draft",
+        "disabled": false,
+        "x": 65,
+        "right": 161.265625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 169.265625,
+        "right": 248.265625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 65,
+        "right": 144,
+        "height": 44
+      },
+      {
+        "text": "Edit form",
+        "disabled": false,
+        "x": 65,
+        "right": 160.78125,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 168.78125,
+        "right": 247.78125,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 65,
+        "right": 144,
+        "height": 44
+      },
+      {
+        "text": "Approve and activate",
+        "disabled": false,
+        "x": 20,
+        "right": 194.265625,
+        "height": 44
+      },
+      {
+        "text": "Reject",
+        "disabled": false,
+        "x": 20,
+        "right": 94.09375,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": []
+  },
+  "status": "PASS"
+}

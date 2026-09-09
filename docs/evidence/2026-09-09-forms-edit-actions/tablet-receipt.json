@@ -1,0 +1,530 @@
+{
+  "generatedAt": "2026-09-09T12:36:27.044Z",
+  "base": "http://127.0.0.1:4188",
+  "browser": "140.0.7339.16",
+  "playwright": "1.55.0",
+  "sourceSha256": {
+    "web/src/components/FormsWorkspace.tsx": "04df8cb456fafcdb16f81d0f663bbf983be301d30a98e639374829ad55f59a8c",
+    "web/src/components/forms/dashboard/TemplateLibraryTable.tsx": "592e7ada592e8e597a51b823a8437f9e9c0e9ae23d77d300f83d776c5bd0eb64",
+    "web/src/components/forms/dashboard/TemplateDetailDrawer.tsx": "ff8eb1b0060a5a8c3ad38e7dbaf88b5ab1e0f5bec052b8f1fa7f8a3acfd7fac3",
+    "web/src/components/forms/dashboard/templateActions.ts": "2a6b7ffcc1e9b1f1c49650f93b733f691bf82a33c69807f58aa43d0bc706c5ef",
+    "web/src/forms-dashboard-shell.css": "64e2e095f6114ae64b2fd73280446645e1595589cfafc75b435efe86210b913f",
+    "web/src/forms-dashboard-table.css": "700f7ad93d1c6aa41b32756ea216e43b39092da4074e6c858b9d12ad1d00e23a",
+    "web/src/form-builder-responsive.css": "2fd46588017e933e13e0b940611a77430b45256da4a4e31d49c646936c138032",
+    "web/dist-evidence/index.html": "ed34f021ecb362c3c7f1be7773208d84c6e46c7ba88447aa9fda0797f68e39dc"
+  },
+  "results": [
+    {
+      "name": "library-light-1024",
+      "state": "library",
+      "theme": "light",
+      "width": 1024,
+      "errors": [],
+      "fixture": "forms-library-lifecycle",
+      "fixtureOverrides": [
+        "active author permission"
+      ],
+      "layout": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "heading": [
+          "Forms"
+        ],
+        "controls": [
+          {
+            "text": "Edit draft",
+            "disabled": false,
+            "x": 756.78125,
+            "right": 853.046875,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 861.046875,
+            "right": 940.046875,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 861.046875,
+            "right": 940.046875,
+            "height": 44
+          },
+          {
+            "text": "Edit form",
+            "disabled": false,
+            "x": 757.265625,
+            "right": 853.046875,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 861.046875,
+            "right": 940.046875,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 861.046875,
+            "right": 940.046875,
+            "height": 44
+          }
+        ]
+      },
+      "versionLabels": [
+        {
+          "text": "Not available",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        },
+        {
+          "text": "Not available",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        },
+        {
+          "text": "Published v3",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        },
+        {
+          "text": "Not available",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        }
+      ],
+      "actionRows": [
+        [
+          {
+            "y": 527.390625,
+            "height": 44
+          },
+          {
+            "y": 527.390625,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "y": 615.390625,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "y": 703.390625,
+            "height": 44
+          },
+          {
+            "y": 703.390625,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "y": 791.390625,
+            "height": 44
+          }
+        ]
+      ],
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "library-light-768",
+      "state": "library",
+      "theme": "light",
+      "width": 768,
+      "errors": [],
+      "fixture": "forms-library-lifecycle",
+      "fixtureOverrides": [
+        "active author permission"
+      ],
+      "layout": {
+        "width": 768,
+        "scrollWidth": 768,
+        "heading": [
+          "Forms"
+        ],
+        "controls": [
+          {
+            "text": "Edit draft",
+            "disabled": false,
+            "x": 293.5,
+            "right": 389.765625,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 397.765625,
+            "right": 476.765625,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 293.5,
+            "right": 372.5,
+            "height": 44
+          },
+          {
+            "text": "Edit form",
+            "disabled": false,
+            "x": 293.5,
+            "right": 389.28125,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 397.28125,
+            "right": 476.28125,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 293.5,
+            "right": 372.5,
+            "height": 44
+          }
+        ]
+      },
+      "versionLabels": [
+        {
+          "text": "Not available",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        },
+        {
+          "text": "Not available",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        },
+        {
+          "text": "Published v3",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        },
+        {
+          "text": "Not available",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        }
+      ],
+      "actionRows": [
+        [
+          {
+            "y": 765.6875,
+            "height": 44
+          },
+          {
+            "y": 765.6875,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "y": 1069.28125,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "y": 1372.875,
+            "height": 44
+          },
+          {
+            "y": 1372.875,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "y": 1676.46875,
+            "height": 44
+          }
+        ]
+      ],
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 23
+          }
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "library-dark-1024",
+      "state": "library",
+      "theme": "dark",
+      "width": 1024,
+      "errors": [],
+      "fixture": "forms-library-lifecycle",
+      "fixtureOverrides": [
+        "active author permission"
+      ],
+      "layout": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "heading": [
+          "Forms"
+        ],
+        "controls": [
+          {
+            "text": "Edit draft",
+            "disabled": false,
+            "x": 756.78125,
+            "right": 853.046875,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 861.046875,
+            "right": 940.046875,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 861.046875,
+            "right": 940.046875,
+            "height": 44
+          },
+          {
+            "text": "Edit form",
+            "disabled": false,
+            "x": 757.265625,
+            "right": 853.046875,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 861.046875,
+            "right": 940.046875,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 861.046875,
+            "right": 940.046875,
+            "height": 44
+          }
+        ]
+      },
+      "versionLabels": [
+        {
+          "text": "Not available",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        },
+        {
+          "text": "Not available",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        },
+        {
+          "text": "Published v3",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        },
+        {
+          "text": "Not available",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        }
+      ],
+      "actionRows": [
+        [
+          {
+            "y": 527.390625,
+            "height": 44
+          },
+          {
+            "y": 527.390625,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "y": 615.390625,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "y": 703.390625,
+            "height": 44
+          },
+          {
+            "y": 703.390625,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "y": 791.390625,
+            "height": 44
+          }
+        ]
+      ],
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "library-dark-768",
+      "state": "library",
+      "theme": "dark",
+      "width": 768,
+      "errors": [],
+      "fixture": "forms-library-lifecycle",
+      "fixtureOverrides": [
+        "active author permission"
+      ],
+      "layout": {
+        "width": 768,
+        "scrollWidth": 768,
+        "heading": [
+          "Forms"
+        ],
+        "controls": [
+          {
+            "text": "Edit draft",
+            "disabled": false,
+            "x": 293.5,
+            "right": 389.765625,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 397.765625,
+            "right": 476.765625,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 293.5,
+            "right": 372.5,
+            "height": 44
+          },
+          {
+            "text": "Edit form",
+            "disabled": false,
+            "x": 293.5,
+            "right": 389.28125,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 397.28125,
+            "right": 476.28125,
+            "height": 44
+          },
+          {
+            "text": "Details",
+            "disabled": false,
+            "x": 293.5,
+            "right": 372.5,
+            "height": 44
+          }
+        ]
+      },
+      "versionLabels": [
+        {
+          "text": "Not available",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        },
+        {
+          "text": "Not available",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        },
+        {
+          "text": "Published v3",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        },
+        {
+          "text": "Not available",
+          "wrap": "normal",
+          "ellipsis": "clip"
+        }
+      ],
+      "actionRows": [
+        [
+          {
+            "y": 765.6875,
+            "height": 44
+          },
+          {
+            "y": 765.6875,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "y": 1069.28125,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "y": 1372.875,
+            "height": 44
+          },
+          {
+            "y": 1372.875,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "y": 1676.46875,
+            "height": 44
+          }
+        ]
+      ],
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 23
+          }
+        ]
+      },
+      "status": "PASS"
+    }
+  ]
+}

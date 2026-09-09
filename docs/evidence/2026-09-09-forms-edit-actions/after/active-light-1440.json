@@ -1,0 +1,89 @@
+{
+  "name": "active-light-1440",
+  "state": "active",
+  "theme": "light",
+  "width": 1440,
+  "errors": [],
+  "fixture": "forms-library-lifecycle",
+  "fixtureOverrides": [
+    "active author permission"
+  ],
+  "layout": {
+    "width": 1440,
+    "scrollWidth": 1440,
+    "heading": [
+      "Forms",
+      "Vendor security and privacy review"
+    ],
+    "controls": [
+      {
+        "text": "Edit draft",
+        "disabled": false,
+        "x": 1156.140625,
+        "right": 1252.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Edit form",
+        "disabled": false,
+        "x": 1156.625,
+        "right": 1252.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Edit form",
+        "disabled": false,
+        "x": 901,
+        "right": 996.78125,
+        "height": 44
+      },
+      {
+        "text": "Pause revision",
+        "disabled": false,
+        "x": 1006.78125,
+        "right": 1134.46875,
+        "height": 44
+      },
+      {
+        "text": "Retire revision",
+        "disabled": false,
+        "x": 1144.46875,
+        "right": 1273.046875,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": []
+  },
+  "status": "PASS"
+}

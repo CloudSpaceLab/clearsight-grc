@@ -36,6 +36,7 @@ import { FormsTabContent } from "./forms/FormsTabContent";
 import { NewFormLauncher } from "./forms/creation/NewFormLauncher";
 import { TemplateDetailDrawer } from "./forms/dashboard/TemplateDetailDrawer";
 import { TemplateLibraryTable } from "./forms/dashboard/TemplateLibraryTable";
+import { canEditTemplate } from "./forms/dashboard/templateActions";
 import { FilterBar } from "./forms/filters/FilterBar";
 import { FormStatusScopes } from "./forms/filters/FormStatusScopes";
 import { defaultFormsAccent, loadFormsAppearance, type FormsAppearance } from "./forms/formsAppearance";
@@ -71,6 +72,19 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const [savedViews, setSavedViews] = useState<SavedFormView[]>([]);
   const [selectedIDs, setSelectedIDs] = useState<Set<string>>(new Set());
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const editorRegion = useRef<HTMLDivElement>(null);
+  const editingRow = useRef<string | undefined>(undefined);
+  const returnToRow = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (editor && editingRow.current) {
+      editorRegion.current?.focus();
+      editorRegion.current?.scrollIntoView({ block: "start", behavior: "instant" });
+    }
+    if (!editor && returnToRow.current) {
+      document.getElementById(`forms-edit-${returnToRow.current}`)?.focus();
+      returnToRow.current = undefined;
+    }
+  }, [editor]);
   const [newFormOpen, setNewFormOpen] = useState(false);
   const [aiOpen, setAIOpen] = useState(false);
   const [aiProposal, setAIProposal] = useState<FormTemplateProposal | null>(null);
@@ -275,6 +289,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   }
 
   function openCreate() {
+    editingRow.current = undefined;
     setNewFormOpen(false);
     setEditor({ mode: "create" });
     setAIOpen(false);
@@ -295,7 +310,9 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     window.location.hash = "#imports";
   }
 
-  function openEdit(item: FormLibraryItem) {
+  function openEdit(item: FormLibraryItem, fromRow = false) {
+    if (busy !== null || !canEditTemplate(item)) return;
+    editingRow.current = fromRow ? item.template.id : undefined;
     const canSendForApproval = item.authority_available === true && Boolean(item.operations?.some((operation) =>
       operation.command === "forms.template.transition" && operation.can_act && operation.allowed_targets?.includes("PENDING_APPROVAL"),
     ));
@@ -387,6 +404,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   }
 
   async function editorSaved(form: MonitoringFormTemplate) {
+    editingRow.current = undefined;
     setEditor(null);
     choose(form.id);
     setNotice(form.status === "PENDING_APPROVAL" ? "Draft sent for independent approval." : "Form draft saved as a new version.");
@@ -460,14 +478,14 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     </div> : activeTab === "Templates" && aiOpen ? <div className="forms-proposal-shell">
       <FormAIComposer baseTemplate={selected ? { id: selected.template.id, name: selected.template.name, version: selected.template.version } : undefined} onProposal={(proposal) => { setAIProposal(proposal); setAIOpen(false); }}/>
       <div className="forms-authoring-recovery"><Button onPress={openCreate}>Open manual builder</Button><Button variant="quiet" onPress={() => setAIOpen(false)}>Return to form library</Button></div>
-    </div> : activeTab === "Templates" && editor ? <div className="forms-editor-shell">
+    </div> : activeTab === "Templates" && editor ? <div className="forms-editor-shell" ref={editorRegion} role="region" aria-label={editor.mode === "edit" ? `Edit ${editor.template.name}` : "Create form"} tabIndex={-1}>
       <FormBuilder
         key={editor.mode === "edit" ? `${editor.template.id}:${editor.template.version}` : "new-form"}
         initialValue={editor.mode === "edit" ? editor.template : undefined}
         saveDraft={saveEditorDraft}
         onSendForApproval={editor.mode === "create" || editor.canSendForApproval ? sendEditorForApproval : undefined}
         onSaved={(form) => { void editorSaved(form); }}
-        onCancel={() => setEditor(null)}
+        onCancel={() => { returnToRow.current = editingRow.current; editingRow.current = undefined; setEditor(null); }}
         reusableTemplates={reusableTemplates}
         loadReusableTemplate={loadFormTemplateRevision}
         allowIncompleteComplianceDraft
@@ -498,7 +516,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
             detail={query.search ? "Adjust the search or filters, or create a new form without losing your current view." : "Start with a blank form, a proven template, an AI proposal, or an existing source."}
             actions={<><Button variant="primary" onPress={() => setNewFormOpen(true)}>Create form</Button>{customView && <Button variant="quiet" onPress={clearFiltersAndTarget}>Clear filters</Button>}</>}
           />
-          : <TemplateLibraryTable items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose}/>} 
+          : <TemplateLibraryTable items={page.items} selectedIDs={selectedIDs} targetID={targetID} onToggle={(id) => toggleSelected(id, selectedIDs, setSelectedIDs)} onOpen={choose} onEdit={(item) => openEdit(item, true)} busy={busy !== null}/>}
 
         {page.next_cursor && state === "live" && <div className="forms-load-more"><Button isLoading={busy === "load-more"} onPress={() => void loadMore()}>Load more</Button></div>}
       </div>

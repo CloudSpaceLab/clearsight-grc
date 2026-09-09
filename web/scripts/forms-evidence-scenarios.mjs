@@ -194,12 +194,20 @@ const scenarios = [
       for (const value of ["Draft", "Awaiting approval", "Active", "Retired"]) await visible(page, value);
       await page.getByRole("button", { name: /^All \d+$/ }).waitFor({ state: "visible" });
       if (await page.getByLabel("Selected form template").count()) throw new Error("Forms library detail must stay closed until a template is selected.");
-      await page.getByRole("button", { name: /^Open / }).first().click();
+      await page.getByRole("button", { name: /^Details for / }).first().click();
       await page.getByLabel("Selected form template").waitFor({ state: "visible" });
-      await visible(page, "Latest stored");
-      await visible(page, "Reusable now");
+      await visible(page, "Latest version");
+      await visible(page, "Published version");
       await page.getByRole("button", { name: "Close form detail" }).click();
       await page.getByLabel("Selected form template").waitFor({ state: "detached" });
+      await page.getByRole("button", { name: "Edit draft Customer complaint review draft", exact: true }).focus();
+      await page.keyboard.press("Enter");
+      await page.getByLabel("Form canvas").waitFor({ state: "visible" });
+      await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "Edit Customer complaint review draft");
+      await page.getByRole("button", { name: "Save draft", exact: true }).waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Back to Forms", exact: true }).click();
+      await page.getByRole("button", { name: "Edit draft Customer complaint review draft", exact: true }).waitFor({ state: "visible" });
+      await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "Edit draft Customer complaint review draft");
     },
   },
   {
@@ -257,7 +265,7 @@ const scenarios = [
     state: "forms-invalid-compliance-weights", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["weights-invalid"],
     run: async (page) => {
-      await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
+      await page.getByRole("button", { name: "Details for Compliance scoring review" }).click();
       await page.getByRole("button", { name: "Edit draft" }).click();
       await page.getByLabel("Form canvas").waitFor({ state: "visible" });
       await page.getByRole("button", { name: /^Review/ }).click();
@@ -271,7 +279,7 @@ const scenarios = [
     state: "forms-valid-compliance-weights", theme: "dark", viewport: desktop, zoom: 1,
     capabilities: ["weights-valid", "theme-dark"],
     run: async (page) => {
-      await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
+      await page.getByRole("button", { name: "Details for Compliance scoring review" }).click();
       await page.getByRole("button", { name: "Edit draft" }).click();
       await page.getByLabel("Form outline").waitFor({ state: "visible" });
       await page.getByLabel("Form canvas").waitFor({ state: "visible" });
@@ -293,7 +301,7 @@ const scenarios = [
     state: "forms-builder-themed-select", theme: "dark", viewport: desktop, zoom: 1,
     capabilities: ["builder-themed-select", "select-themed-open", "theme-dark", "viewport-desktop"],
     run: async (page) => {
-      await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
+      await page.getByRole("button", { name: "Details for Compliance scoring review" }).click();
       await page.getByRole("button", { name: "Edit draft" }).click();
       let select = page.getByRole("button", { name: /Inspector response type/ });
       await select.click();
@@ -439,7 +447,7 @@ const scenarios = [
       if (presentation.display !== "grid" || presentation.width > presentation.viewport) throw new Error("Populated Forms rows must stack within the mobile viewport.");
       for (const label of ["State", "Revision", "Owner", "Updated"]) if (!presentation.labels.includes(label)) throw new Error(`Mobile Forms row is missing its ${label} label.`);
       if (presentation.factWidths.some((width) => width < presentation.width * 0.8)) throw new Error("Mobile Forms facts must span the record card instead of entering the action column.");
-      await row.getByRole("button", { name: /^Open / }).waitFor({ state: "visible" });
+      await row.getByRole("button", { name: /^Details for / }).waitFor({ state: "visible" });
     },
   },
   {
@@ -459,7 +467,7 @@ const scenarios = [
     state: "forms-builder-pointer-reorder", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["builder-pointer-reorder", "viewport-desktop", "theme-light"],
     run: async (page) => {
-      await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
+      await page.getByRole("button", { name: "Details for Compliance scoring review" }).click();
       await page.getByRole("button", { name: "Edit draft" }).click();
       const questions = page.locator(".form-canvas-question");
       await questions.nth(1).waitFor({ state: "visible" });
@@ -479,7 +487,7 @@ const scenarios = [
     capabilities: ["builder-large-performance", "viewport-desktop", "theme-light"],
     run: async (page) => {
       const openedAt = await page.evaluate(() => performance.now());
-      await page.getByRole("button", { name: "Open Large control confirmation" }).click();
+      await page.getByRole("button", { name: "Details for Large control confirmation" }).click();
       await page.getByRole("button", { name: "Edit draft" }).click();
       await page.waitForFunction(() => document.querySelectorAll(".form-canvas-question").length === 120);
       const renderedAt = await page.evaluate(() => performance.now());
@@ -692,7 +700,7 @@ async function verifyBuilderChromeNoOverlap(page) {
 }
 
 async function verifyMobileBuilder(page) {
-  await page.getByRole("button", { name: "Open Compliance scoring review" }).click();
+  await page.getByRole("button", { name: "Details for Compliance scoring review" }).click();
   await page.getByRole("button", { name: "Edit draft" }).click();
   await page.getByLabel("Form canvas").waitFor({ state: "visible" });
   const formName = page.getByRole("textbox", { name: "Form name", exact: true });

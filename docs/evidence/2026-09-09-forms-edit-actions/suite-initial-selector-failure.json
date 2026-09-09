@@ -1,0 +1,254 @@
+{
+  "generatedAt": "2026-09-09T12:33:36.678Z",
+  "baseURL": "http://127.0.0.1:4188",
+  "captures": [
+    {
+      "name": "89-forms-library-lifecycle-light-1440x900",
+      "route": "#forms",
+      "fixture": "forms-library-lifecycle",
+      "state": "forms-library-lifecycle",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "physicalViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "layoutViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "forcedColors": "none",
+      "reducedMotion": "no-preference",
+      "browser_version": "140.0.7339.16",
+      "browser_channel": "headless-shell",
+      "zoom": 1,
+      "capabilities": [
+        "library-list",
+        "library-context-detail",
+        "library-status-scopes",
+        "template-draft",
+        "template-pending",
+        "template-active",
+        "template-retired",
+        "viewport-desktop",
+        "theme-light"
+      ],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 966,
+        "scrollY": 66,
+        "theme": "light",
+        "density": "comfortable",
+        "zoom": "1"
+      }
+    },
+    {
+      "name": "90-forms-library-empty-dark-mobile-390x844",
+      "route": "#forms",
+      "fixture": "forms-library-empty",
+      "state": "forms-library-empty",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "physicalViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "layoutViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "forcedColors": "none",
+      "reducedMotion": "no-preference",
+      "browser_version": "140.0.7339.16",
+      "browser_channel": "headless-shell",
+      "zoom": 1,
+      "capabilities": [
+        "library-empty",
+        "library-search",
+        "viewport-mobile",
+        "theme-dark"
+      ],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1357,
+        "scrollY": 0,
+        "theme": "dark",
+        "density": "comfortable",
+        "zoom": "1"
+      }
+    },
+    {
+      "name": "91-forms-new-form-light-1440x900",
+      "route": "#forms",
+      "fixture": "forms-new-form",
+      "state": "forms-unified-creation",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "physicalViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "layoutViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "forcedColors": "none",
+      "reducedMotion": "no-preference",
+      "browser_version": "140.0.7339.16",
+      "browser_channel": "headless-shell",
+      "zoom": 1,
+      "capabilities": [
+        "creation-blank",
+        "creation-template",
+        "creation-ai",
+        "creation-import"
+      ],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 966,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "zoom": "1"
+      }
+    },
+    {
+      "name": "92-forms-filter-picker-dark-1440x900",
+      "route": "#forms",
+      "fixture": "forms-library-lifecycle",
+      "state": "forms-library-filter-picker",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "physicalViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "layoutViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "forcedColors": "none",
+      "reducedMotion": "no-preference",
+      "browser_version": "140.0.7339.16",
+      "browser_channel": "headless-shell",
+      "zoom": 1,
+      "capabilities": [
+        "library-filter-picker",
+        "theme-dark",
+        "viewport-desktop"
+      ],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 966,
+        "scrollY": 2,
+        "theme": "dark",
+        "density": "comfortable",
+        "zoom": "1"
+      }
+    },
+    {
+      "name": "93-forms-advanced-filter-light-1440x900",
+      "route": "#forms",
+      "fixture": "forms-library-lifecycle",
+      "state": "forms-library-advanced-filter",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "physicalViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "layoutViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "forcedColors": "none",
+      "reducedMotion": "no-preference",
+      "browser_version": "140.0.7339.16",
+      "browser_channel": "headless-shell",
+      "zoom": 1,
+      "capabilities": [
+        "library-advanced-filter",
+        "theme-light",
+        "viewport-desktop"
+      ],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 966,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "zoom": "1"
+      }
+    },
+    {
+      "name": "94-forms-saved-filter-bulk-light-1440x900",
+      "route": "#forms",
+      "fixture": "forms-library-governance",
+      "state": "forms-library-saved-filter-bulk",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "physicalViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "layoutViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "forcedColors": "none",
+      "reducedMotion": "no-preference",
+      "browser_version": "140.0.7339.16",
+      "browser_channel": "headless-shell",
+      "zoom": 1,
+      "capabilities": [
+        "library-saved-filter",
+        "library-bulk-action"
+      ],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 944,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "zoom": "1"
+      }
+    }
+  ],
+  "failure": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Open Compliance scoring review' })\u001b[22m\n"
+}

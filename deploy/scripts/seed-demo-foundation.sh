@@ -516,5 +516,93 @@ BEGIN
   END IF;
 END
 $monitoring_collection_authority$;
+-- Separate, immutable non-production fixture. The dates and maker/checker below
+-- describe sample governance, not a live bank approval. Never reactivate or
+-- overwrite an administrator's revision, revocation or changed role binding.
+DO $forms_author$
+DECLARE
+  expected_role role_templates := jsonb_populate_record(NULL::role_templates,
+    $role${"id":"00000000-0000-4000-8000-000000000409","tenant_id":"00000000-0000-4000-8000-000000000001","code":"DEMO_FORMS_AUTHOR","name":"Demo Forms author","description":"Sample authority to create, revise and manage form lifecycle; independent approval is required.","responsibilities":["ACCOUNTABLE_OWNER"],"capabilities":[],"valid_from":"2026-09-09T00:00:00Z","valid_until":null,"version":1}$role$::jsonb);
+  expected_bindings jsonb := $bindings$[{"id":"00000000-0000-4000-8000-000000000510","tenant_id":"00000000-0000-4000-8000-000000000001","position_id":"00000000-0000-4000-8000-000000000301","role_template_id":"00000000-0000-4000-8000-000000000409","scope":{"legal_entity_id":"00000000-0000-4000-8000-000000000002"},"priority":100,"valid_from":"2026-09-09T00:00:00Z","valid_until":null},{"id":"00000000-0000-4000-8000-000000000511","tenant_id":"00000000-0000-4000-8000-000000000001","position_id":"00000000-0000-4000-8000-000000000307","role_template_id":"00000000-0000-4000-8000-000000000409","scope":{"legal_entity_id":"00000000-0000-4000-8000-000000000002"},"priority":100,"valid_from":"2026-09-09T00:00:00Z","valid_until":null}]$bindings$::jsonb;
+  expected_binding position_role_bindings;
+  expected_policy routing_policies := jsonb_populate_record(NULL::routing_policies,
+    $policy${"id":"00000000-0000-4000-8000-000000000206","tenant_id":"00000000-0000-4000-8000-000000000001","legal_entity_id":"00000000-0000-4000-8000-000000000002","code":"CLEARSIGHT-DEMO-FORMS-AUTHOR","name":"ClearSight demo Forms author route","status":"ACTIVE","current_version":1,"maker_id":"00000000-0000-4000-8000-000000000104","checker_id":"00000000-0000-4000-8000-000000000106","submitted_at":"2026-09-09T00:00:00Z","approved_at":"2026-09-09T00:00:00Z","retired_at":null,"version":1}$policy$::jsonb);
+  expected_version routing_policy_versions := jsonb_populate_record(NULL::routing_policy_versions,
+    $version${"id":"00000000-0000-4000-8000-000000000207","policy_id":"00000000-0000-4000-8000-000000000206","legal_entity_id":"00000000-0000-4000-8000-000000000002","version":1,"definition":{"rules":[{"id":"demo-forms-author-create","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"LEGAL_ENTITY","object_id":"00000000-0000-4000-8000-000000000002","responsibility":"ACCOUNTABLE_OWNER","decision_type":"forms.template.create","min_materiality":0,"priority":300,"selector":{"kind":"ROLE","ref":"DEMO_FORMS_AUTHOR"}},{"id":"demo-forms-author-revise","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"FORM_TEMPLATE","object_id":"*","responsibility":"ACCOUNTABLE_OWNER","decision_type":"forms.template.revise","min_materiality":0,"priority":300,"selector":{"kind":"ROLE","ref":"DEMO_FORMS_AUTHOR"}},{"id":"demo-forms-author-transition","legal_entity_id":"00000000-0000-4000-8000-000000000002","object_type":"FORM_TEMPLATE","object_id":"*","responsibility":"ACCOUNTABLE_OWNER","decision_type":"forms.template.transition","min_materiality":0,"priority":300,"selector":{"kind":"ROLE","ref":"DEMO_FORMS_AUTHOR"}}]},"checksum":"9ae7f3f33275f4841e7dc53c321a2bda1824f6ee54c79552640b8187099f1ec9","effective_from":"2026-09-09T00:00:00Z","effective_until":null,"created_by":"00000000-0000-4000-8000-000000000104","approved_by":"00000000-0000-4000-8000-000000000106","approved_at":"2026-09-09T00:00:00Z"}$version$::jsonb);
+  installed_at timestamptz := clock_timestamp();
+  installed boolean;
+  fixture_rationale text := 'Installed sample Forms author policy v1 for CRO and Program Owner. Sample maker/checker provenance; no live bank approval.';
+BEGIN
+  -- Serialize this managed fixture, including repeat installs, within the seed
+  -- transaction. The historic foundation v1/v2 definitions are unchanged.
+  PERFORM pg_advisory_xact_lock(206, 1);
+  expected_role.recorded_at := installed_at;
+  INSERT INTO role_templates SELECT (expected_role).* ON CONFLICT DO NOTHING;
+  IF NOT EXISTS (SELECT 1 FROM role_templates actual
+    WHERE actual.id = expected_role.id
+      AND to_jsonb(actual) - 'recorded_at' = to_jsonb(expected_role) - 'recorded_at'
+    FOR UPDATE) THEN
+    RAISE EXCEPTION 'demo Forms author role differs from the managed fixture';
+  END IF;
+  FOR expected_binding IN
+    SELECT * FROM jsonb_populate_recordset(NULL::position_role_bindings, expected_bindings)
+  LOOP
+    expected_binding.recorded_at := installed_at;
+    INSERT INTO position_role_bindings SELECT (expected_binding).* ON CONFLICT DO NOTHING;
+    IF NOT EXISTS (SELECT 1 FROM position_role_bindings actual
+      WHERE actual.id = expected_binding.id
+        AND to_jsonb(actual) - 'recorded_at' = to_jsonb(expected_binding) - 'recorded_at'
+      FOR UPDATE) THEN
+      RAISE EXCEPTION 'demo Forms author binding differs from the managed fixture';
+    END IF;
+  END LOOP;
+  IF (SELECT count(*) FROM position_role_bindings WHERE role_template_id = expected_role.id) <> 2 THEN
+    RAISE EXCEPTION 'demo Forms author role has unmanaged bindings';
+  END IF;
+
+  expected_policy.created_at := installed_at;
+  expected_policy.updated_at := installed_at;
+  INSERT INTO routing_policies SELECT (expected_policy).* ON CONFLICT DO NOTHING;
+  installed := FOUND;
+  IF NOT EXISTS (SELECT 1 FROM routing_policies actual
+    WHERE actual.id = expected_policy.id
+      AND to_jsonb(actual) - ARRAY['created_at','updated_at'] =
+          to_jsonb(expected_policy) - ARRAY['created_at','updated_at']
+    FOR UPDATE) THEN
+    RAISE EXCEPTION 'demo Forms author policy differs from the managed fixture';
+  END IF;
+  expected_version.created_at := installed_at;
+  INSERT INTO routing_policy_versions SELECT (expected_version).* ON CONFLICT DO NOTHING;
+  IF NOT EXISTS (SELECT 1 FROM routing_policy_versions actual
+    WHERE actual.id = expected_version.id
+      AND to_jsonb(actual) - 'created_at' = to_jsonb(expected_version) - 'created_at'
+    FOR UPDATE) OR (SELECT count(*) FROM routing_policy_versions WHERE policy_id = expected_policy.id) <> 1 THEN
+    RAISE EXCEPTION 'demo Forms author policy version differs from the managed fixture';
+  END IF;
+
+  PERFORM refresh_effective_authority_routes(expected_policy.tenant_id);
+  IF (SELECT count(*) FROM effective_authority_routes
+    WHERE tenant_id = expected_policy.tenant_id
+      AND policy_version = 'CLEARSIGHT-DEMO-FORMS-AUTHOR:v1'
+      AND selector_kind = 'ROLE' AND selector_ref = 'DEMO_FORMS_AUTHOR'
+      AND responsibility = 'ACCOUNTABLE_OWNER'
+      AND decision_type IN ('forms.template.create','forms.template.revise','forms.template.transition')) <> 3 THEN
+    RAISE EXCEPTION 'demo Forms author routes were not projected';
+  END IF;
+  IF installed THEN
+    INSERT INTO governance_decisions(
+      tenant_id, object_type, object_id, from_state, to_state, actor_type, rationale, decided_at)
+    VALUES (expected_policy.tenant_id, 'ROUTING_POLICY', expected_policy.id,
+      'UNINSTALLED', 'ACTIVE', 'SYSTEM', fixture_rationale, installed_at);
+    INSERT INTO outbox_events(
+      tenant_id, aggregate_type, aggregate_id, event_type, payload, occurred_at, available_at)
+    VALUES (expected_policy.tenant_id, 'ROUTING_POLICY', expected_policy.id, 'RoutingPolicyStateChanged',
+      jsonb_build_object('from','UNINSTALLED','to','ACTIVE','actor_type','SYSTEM',
+        'rationale',fixture_rationale,'legal_entity_id',expected_policy.legal_entity_id,
+        'sample_fixture',true,'policy_version',1,'checksum',expected_version.checksum),
+      installed_at, installed_at);
+  END IF;
+END
+$forms_author$;
 COMMIT;
 SQL

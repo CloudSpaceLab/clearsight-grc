@@ -1,0 +1,80 @@
+{
+  "name": "editor-dark-390",
+  "state": "editor",
+  "theme": "dark",
+  "width": 390,
+  "errors": [],
+  "fixture": "forms-library-lifecycle",
+  "fixtureOverrides": [
+    "active author permission"
+  ],
+  "keyboard": {
+    "entry": "named editor region",
+    "back": "originating row Edit draft"
+  },
+  "layout": {
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": [
+      "Forms"
+    ],
+    "controls": [
+      {
+        "text": "‹ Forms",
+        "disabled": false,
+        "x": 41,
+        "right": 103.171875,
+        "height": 44
+      },
+      {
+        "text": "Preview",
+        "disabled": false,
+        "x": 41,
+        "right": 192,
+        "height": 44
+      },
+      {
+        "text": "Review",
+        "disabled": false,
+        "x": 198,
+        "right": 349,
+        "height": 44
+      },
+      {
+        "text": "Save draft",
+        "disabled": false,
+        "x": 41,
+        "right": 192,
+        "height": 44
+      },
+      {
+        "text": "Send for approval",
+        "disabled": false,
+        "x": 198,
+        "right": 349,
+        "height": 44
+      }
+    ]
+  },
+  "questionControls": {
+    "typeWidth": 276,
+    "typeHeight": 44,
+    "typeBottom": 846.6875,
+    "valueRight": 166.640625,
+    "typeRight": 333,
+    "requiredTop": 854.6875,
+    "requiredHeight": 44,
+    "promptWidth": 276,
+    "promptTextWidth": 145.7080078125
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 74
+      }
+    ]
+  },
+  "status": "PASS"
+}

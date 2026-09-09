@@ -5,6 +5,18 @@
   gap: var(--cs-primitive-space-1);
 }
 
+.forms-library-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cs-primitive-space-2);
+  justify-content: flex-end;
+}
+
+@media (min-width: 701px) {
+  .forms-library-actions { flex-wrap: nowrap; min-inline-size: max-content; }
+}
+
 .forms-library-record strong,
 .forms-library-revision strong {
   color: var(--cs-text-strong);
@@ -12,8 +24,7 @@
   line-height: var(--cs-leading-tight);
 }
 
-.forms-library-record span,
-.forms-library-revision span {
+.forms-library-record span {
   overflow: hidden;
   color: var(--cs-text-muted);
   font-size: var(--cs-font-size-caption);
@@ -22,7 +33,16 @@
   white-space: nowrap;
 }
 
+.forms-library-revision span {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  line-height: var(--cs-leading-body);
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 @media (max-width: 700px) {
+  .forms-library-actions { justify-content: flex-start; }
   .forms-library-record span,
   .forms-library-revision span {
     overflow: visible;
