@@ -46,3 +46,19 @@ func TestMappedMatterFormArtifactsMustBeAvailableBeforeApplication(t *testing.T)
 		t.Fatalf("available artifact rejected: %v", err)
 	}
 }
+
+func TestMappedMatterFormArtifactsHonorCurrentDemoAllowance(t *testing.T) {
+	request := evidence.Request{ID: "request-1", TenantID: "tenant"}
+	binding := MatterFormRemediationBinding{Mappings: []MatterFormFieldMapping{{FieldID: "certificate", MissingItem: "Certificate", FactKey: "certificate"}}}
+	answers := map[string]formcontract.AnswerValue{"certificate": {ArtifactIDs: []string{"artifact-1"}}}
+	for _, status := range []evidence.ArtifactStatus{evidence.ArtifactStoredUnscanned, evidence.ArtifactQuarantined, evidence.ArtifactDeleted} {
+		for _, enabled := range []bool{false, true, false} {
+			reader := matterFormArtifactReader{artifacts: map[string]evidence.Artifact{"artifact-1": {ID: "artifact-1", TenantID: "tenant", RequestID: "request-1", Status: status, DemoUnscannedAllowed: enabled}}}
+			err := mappedMatterFormArtifactsAvailable(t.Context(), reader, request, binding, answers)
+			want := enabled && status == evidence.ArtifactStoredUnscanned
+			if (err == nil) != want {
+				t.Fatalf("status=%s enabled=%v err=%v", status, enabled, err)
+			}
+		}
+	}
+}

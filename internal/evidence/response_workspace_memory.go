@@ -127,7 +127,7 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(ctx context.
 		if !exists || artifact.TenantID != tenantID || artifact.RequestID != requestID {
 			return Artifact{}, ErrNotFound
 		}
-		return artifact, nil
+		return withArtifactUsePolicy(artifact, repo.demoUnscannedAllowed), nil
 	}, command.Now)
 	request = refreshCollectionSourceCurrencyMemoryLocked(distributions, request)
 	request, err = refreshCollectionSourceReviews(ctx, request, repo.collectionReviews)

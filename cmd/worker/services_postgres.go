@@ -83,12 +83,14 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
 	evidenceRepository := evidence.NewPostgresRepository(pool)
 	evidenceService := evidence.NewService(evidenceRepository, store)
+	evidenceService.ConfigureDemoUnscannedArtifacts(cfg.DemoAllowUnscannedArtifacts)
 	monitoringRepository := monitoring.NewPostgresRepository(pool)
 	collectionSubmissions := &monitoring.CollectionConsumer{Inbox: runtimeRepository, Repository: monitoringRepository, Evidence: evidenceService}
 	collectionDispatcher := &monitoring.CanonicalCollectionDispatcher{Requests: evidenceService}
 	collectionRenewal := &monitoring.CollectionMaintainer{Repository: monitoringRepository, Requests: evidenceService, Dispatcher: collectionDispatcher, WorkerID: cfg.WorkerID}
 	formPolicyRepository := formpolicy.NewPostgresRepository(pool)
 	formPolicyResponses := evidence.NewDistributionService(evidence.NewPostgresDistributionStore(evidenceRepository, nil))
+	formPolicyResponses.ConfigureDemoUnscannedArtifacts(cfg.DemoAllowUnscannedArtifacts)
 	formPolicyExecutor := formpolicy.NewExecutor(formPolicyRepository, formPolicyResponses, formPolicyExecutionAuthority{Automation: autonomyService, Authority: authorityService, Subjects: evidenceRepository})
 	formCommunicationWorker, formReminderScheduler, err := buildFormCommunicationWorker(cfg, pool, evidenceRepository)
 	if err != nil {
@@ -96,6 +98,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 		return workerSet{}, err
 	}
 	assessmentRepository := thirdparty.NewPostgresRepository(pool)
+	assessmentRepository.ConfigureDemoUnscannedArtifacts(cfg.DemoAllowUnscannedArtifacts)
 	assessmentSubmission := newAssessmentSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
 	assessmentCancellation := newAssessmentCancellationConsumer(evidenceService)
 	addressVerificationSetup := thirdparty.NewAddressVerificationProvisioner(runtimeRepository, evidenceService, assessmentRepository, continuityService, evidenceService, monitoring.NewPostgresRepository(pool))

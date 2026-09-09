@@ -47,6 +47,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	store := evidence.NewMemoryObjectStore()
 	evidenceRepo := &memoryEvidenceRepository{MemoryRepository: evidence.NewMemoryRepository(nil, nil)}
 	evidenceService := evidence.NewService(evidenceRepo, store)
+	evidenceService.ConfigureDemoUnscannedArtifacts(cfg.DemoAllowUnscannedArtifacts)
 	evidenceService.Configure(cfg.CaptureSessionTTL, cfg.MaxArtifactBytes)
 	sourceScopes := []sourceaccess.SourceScope{}
 	if cfg.DemoMode {
@@ -87,6 +88,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	}
 	distributionService := evidence.NewDistributionService(distributionStore).WithAssessmentAuthorizer(formAssessmentAuthorizer(authorityService)).WithResponseDiscoveryAuthorizer(formResponseDiscoveryAuthorizer(authorityService))
 	evidence.ConfigureDemoSamplePreview(evidenceService, distributionService, cfg.DemoMode)
+	distributionService.ConfigureDemoUnscannedArtifacts(cfg.DemoAllowUnscannedArtifacts)
 	distributionService.ConfigureVendorProgress(distributionAccessStore)
 	formPolicies := formpolicy.NewService(formpolicy.NewMemoryRepositoryWithAutomation(autonomyRepo), formDistributionReader{repo: monitoringRepo}, distributionService)
 	formPolicies.ConfigureActivationAuthority(formPolicyActivationAuthority{Automation: auto, Authority: authorityService, Subjects: evidence.CanonicalSubjectTypeRegistry{}})
@@ -98,6 +100,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	}
 
 	thirdPartyRepo := thirdparty.NewMemoryAssessmentRepository()
+	thirdPartyRepo.ConfigureDemoUnscannedArtifacts(cfg.DemoAllowUnscannedArtifacts)
 	thirdPartyService := thirdparty.NewService(thirdPartyRepo)
 	thirdPartyRelationshipLinkRepo := thirdparty.RelationshipLinkRepository(thirdPartyRepo)
 	thirdPartyRelationshipLinks := thirdparty.NewRelationshipLinkService(thirdPartyRelationshipLinkRepo)

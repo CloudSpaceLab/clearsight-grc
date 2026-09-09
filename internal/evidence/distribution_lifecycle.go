@@ -64,6 +64,7 @@ type DistributionService struct {
 	store                       distributionLifecycleStore
 	now                         func() time.Time
 	demoSamplePreview           bool
+	demoUnscannedAllowed        bool
 }
 
 func NewDistributionService(store distributionLifecycleStore) *DistributionService {

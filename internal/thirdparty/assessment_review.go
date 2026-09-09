@@ -75,20 +75,21 @@ type AssessmentReviewAnswer struct {
 }
 
 type AssessmentReviewDocument struct {
-	FieldID        string                  `json:"field_id"`
-	RequestID      string                  `json:"request_id,omitempty"`
-	ArtifactID     string                  `json:"artifact_id"`
-	FileName       string                  `json:"file_name"`
-	MediaType      string                  `json:"media_type"`
-	SizeBytes      int64                   `json:"size_bytes"`
-	ArtifactStatus evidence.ArtifactStatus `json:"artifact_status"`
-	Status         string                  `json:"status"`
-	EvidenceClass  AssessmentEvidenceClass `json:"evidence_class"`
-	DocumentType   string                  `json:"document_type"`
-	Reference      string                  `json:"reference,omitempty"`
-	IssuedBy       string                  `json:"issued_by,omitempty"`
-	IssuedOn       string                  `json:"issued_on,omitempty"`
-	ExpiresOn      string                  `json:"expires_on,omitempty"`
+	DemoUnscannedAllowed bool                    `json:"demo_unscanned_allowed"`
+	FieldID              string                  `json:"field_id"`
+	RequestID            string                  `json:"request_id,omitempty"`
+	ArtifactID           string                  `json:"artifact_id"`
+	FileName             string                  `json:"file_name"`
+	MediaType            string                  `json:"media_type"`
+	SizeBytes            int64                   `json:"size_bytes"`
+	ArtifactStatus       evidence.ArtifactStatus `json:"artifact_status"`
+	Status               string                  `json:"status"`
+	EvidenceClass        AssessmentEvidenceClass `json:"evidence_class"`
+	DocumentType         string                  `json:"document_type"`
+	Reference            string                  `json:"reference,omitempty"`
+	IssuedBy             string                  `json:"issued_by,omitempty"`
+	IssuedOn             string                  `json:"issued_on,omitempty"`
+	ExpiresOn            string                  `json:"expires_on,omitempty"`
 }
 
 type AssessmentReviewMatter struct {
@@ -145,6 +146,7 @@ type AssessmentReviewRelationshipReader interface {
 }
 
 type AssessmentReviewService struct {
+	demoArtifactPolicy
 	collectionSources collectionDocumentReader
 	collectionForms   assessmentFormReader
 	assessments       *AssessmentService
@@ -207,6 +209,7 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		if _, duplicate := requests[request.ID]; duplicate {
 			return AssessmentReviewView{}, ErrNotFound
 		}
+		request = s.refreshCollectionArtifacts(ctx, request)
 		requests[request.ID] = request
 		requestStatus := request.Status
 		if request.ID == assessment.CurrentRequestID && assessment.SubmissionID != "" {
@@ -450,7 +453,7 @@ func (s *AssessmentReviewService) addSubmission(ctx context.Context, view *Asses
 					if !validAssessmentReviewText(document.DocumentType, 100) || !validOptionalAssessmentReviewText(document.Reference, 200) || !validOptionalAssessmentReviewText(document.IssuedBy, 200) || len(document.IssuedOn) > 10 || len(document.ExpiresOn) > 10 {
 						return ErrInvalid
 					}
-					view.Documents = append(view.Documents, AssessmentReviewDocument{FieldID: field.ID, ArtifactID: artifact.ID, FileName: artifact.FileName, MediaType: artifact.MediaType, SizeBytes: artifact.SizeBytes, ArtifactStatus: artifact.Status, Status: "SUBMITTED", EvidenceClass: AssessmentEvidenceVendorSupplied, DocumentType: document.DocumentType, Reference: document.Reference, IssuedBy: document.IssuedBy, IssuedOn: document.IssuedOn, ExpiresOn: document.ExpiresOn})
+					view.Documents = append(view.Documents, AssessmentReviewDocument{FieldID: field.ID, ArtifactID: artifact.ID, FileName: artifact.FileName, MediaType: artifact.MediaType, SizeBytes: artifact.SizeBytes, ArtifactStatus: artifact.Status, DemoUnscannedAllowed: s.demoUnscannedAllowed(artifact.Status), Status: "SUBMITTED", EvidenceClass: AssessmentEvidenceVendorSupplied, DocumentType: document.DocumentType, Reference: document.Reference, IssuedBy: document.IssuedBy, IssuedOn: document.IssuedOn, ExpiresOn: document.ExpiresOn})
 				}
 			}
 		}

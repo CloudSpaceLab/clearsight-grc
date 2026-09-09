@@ -4,9 +4,15 @@ package evidence
 
 // collectionNoVendorActionSQL is deliberately limited to unconditional
 // required document collections. Unknown applicability never suppresses a
-// vendor reminder or disappears from the outstanding population. Both inputs
-// are fixed SQL identifiers supplied by repository code, never request values.
-func collectionNoVendorActionSQL(request, now string) string {
+// vendor reminder or disappears from the outstanding population. The SQL
+// expressions are supplied by repository code, never request values.
+func collectionNoVendorActionSQL(request, now string, allowUnscanned bool) string {
+	// Select one fixed predicate from validated instance configuration. A receipt's
+	// stored demo flag never grants permission to suppress vendor action.
+	artifactStatus := "ca.status='AVAILABLE'"
+	if allowUnscanned {
+		artifactStatus = "ca.status IN ('AVAILABLE','STORED_UNSCANNED')"
+	}
 	return `(
 	 EXISTS (SELECT 1 FROM jsonb_array_elements(` + request + `.fields) cf WHERE cf->>'required'='true')
 	 AND NOT EXISTS (
@@ -33,7 +39,7 @@ func collectionNoVendorActionSQL(request, now string) string {
 	     WHERE ca.id=(cf->'collection_resolution'->'source'->>'artifact_id')::uuid
 	       AND ca.tenant_id=` + request + `.tenant_id
 	       AND ca.request_id=(cf->'collection_resolution'->>'source_artifact_request_id')::uuid
-	       AND ca.status='AVAILABLE'
+	       AND ` + artifactStatus + `
 	       AND ca.sha256=cf->'collection_resolution'->'source'->>'sha256'
 	       AND ca.size_bytes=(cf->'collection_resolution'->'source'->>'size_bytes')::bigint)
 	  ) IS TRUE

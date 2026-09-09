@@ -112,6 +112,7 @@ func (s *AssessmentReviewService) ReviewDocument(ctx context.Context, _ Actor, a
 		if readErr != nil {
 			return AssessmentReviewView{}, readErr
 		}
+		request = s.refreshCollectionArtifacts(ctx, request)
 		matches := []evidence.Field{}
 		for _, field := range request.Fields {
 			if field.CollectionResolution != nil && field.CollectionResolution.Source.ArtifactID == artifactID && (input.FieldID == "" || input.FieldID == field.ID) {
@@ -158,7 +159,7 @@ func (s *AssessmentReviewService) ReviewDocument(ctx context.Context, _ Actor, a
 	if submittedMetadata == nil {
 		return AssessmentReviewView{}, ErrNotFound
 	}
-	if input.Decision == AssessmentDocumentValidate && submitted.ArtifactStatus != evidence.ArtifactAvailable {
+	if input.Decision == AssessmentDocumentValidate && !s.artifactUseAllowed(submitted.ArtifactStatus) {
 		return AssessmentReviewView{}, ErrAssessmentCompletionBlocked
 	}
 	expiresOn, err := assessmentDocumentDate(input.ValidUntil)
@@ -233,7 +234,7 @@ func (s *AssessmentReviewService) CheckAssessmentCompletion(ctx context.Context,
 					return ErrAssessmentCompletionBlocked
 				}
 				for _, status := range view.artifactStatuses {
-					if status != evidence.ArtifactAvailable {
+					if !s.artifactUseAllowed(status) {
 						return ErrAssessmentCompletionBlocked
 					}
 				}
@@ -245,7 +246,7 @@ func (s *AssessmentReviewService) CheckAssessmentCompletion(ctx context.Context,
 		return ErrAssessmentCompletionBlocked
 	}
 	for _, status := range view.artifactStatuses {
-		if status != evidence.ArtifactAvailable {
+		if !s.artifactUseAllowed(status) {
 			return ErrAssessmentCompletionBlocked
 		}
 	}

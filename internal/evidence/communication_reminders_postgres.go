@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
@@ -13,11 +14,16 @@ import (
 )
 
 type PostgresCommunicationReminderRepository struct {
-	pool *pgxpool.Pool
+	demoUnscannedAllowed atomic.Bool
+	pool                 *pgxpool.Pool
 }
 
 func NewPostgresCommunicationReminderRepository(pool *pgxpool.Pool) *PostgresCommunicationReminderRepository {
 	return &PostgresCommunicationReminderRepository{pool: pool}
+}
+
+func (repository *PostgresCommunicationReminderRepository) ConfigureDemoUnscannedArtifacts(enabled bool) {
+	repository.demoUnscannedAllowed.Store(enabled)
 }
 
 func (repository *PostgresCommunicationReminderRepository) ScheduleDueCommunicationReminders(ctx context.Context, now time.Time, limit int) (int, error) {
@@ -28,7 +34,7 @@ func (repository *PostgresCommunicationReminderRepository) ScheduleDueCommunicat
 		SELECT d.id::text,d.tenant_id::text,d.deadline,d.reminder_policy
 		FROM capture_form_distributions d
 		WHERE d.status='OPEN' AND d.deadline>$1 AND d.route_expires_at>$1 AND d.reminder_policy<>'{}'::jsonb
-		  AND EXISTS (SELECT 1 FROM capture_requests collection_request WHERE collection_request.distribution_id=d.id AND collection_request.tenant_id=d.tenant_id AND collection_request.legal_entity_id=d.legal_entity_id AND NOT `+collectionNoVendorActionSQL("collection_request", "$1")+`)
+		  AND EXISTS (SELECT 1 FROM capture_requests collection_request WHERE collection_request.distribution_id=d.id AND collection_request.tenant_id=d.tenant_id AND collection_request.legal_entity_id=d.legal_entity_id AND NOT `+collectionNoVendorActionSQL("collection_request", "$1", repository.demoUnscannedAllowed.Load())+`)
 		  AND (
 			d.reminder_policy-'reminder_hours_before'-'due_soon_hours_before'<>'{}'::jsonb
 			OR (d.reminder_policy?'reminder_hours_before' AND jsonb_typeof(d.reminder_policy->'reminder_hours_before')<>'array')
@@ -122,7 +128,7 @@ func (repository *PostgresCommunicationReminderRepository) insertReminder(ctx co
 		SELECT EXISTS(
 			SELECT 1 FROM capture_form_distributions d
 			WHERE d.tenant_id=$1::uuid AND d.id=$2::uuid AND d.status='OPEN' AND d.deadline=$3 AND d.deadline>$4 AND d.route_expires_at>$4
-			 AND EXISTS (SELECT 1 FROM capture_requests collection_request WHERE collection_request.distribution_id=d.id AND collection_request.tenant_id=d.tenant_id AND collection_request.legal_entity_id=d.legal_entity_id AND NOT `+collectionNoVendorActionSQL("collection_request", "$4")+`)
+			 AND EXISTS (SELECT 1 FROM capture_requests collection_request WHERE collection_request.distribution_id=d.id AND collection_request.tenant_id=d.tenant_id AND collection_request.legal_entity_id=d.legal_entity_id AND NOT `+collectionNoVendorActionSQL("collection_request", "$4", repository.demoUnscannedAllowed.Load())+`)
 		)`, tenantID, distributionID, deadline.UTC(), now.UTC()).Scan(&eligible); err != nil {
 		return false, err
 	}

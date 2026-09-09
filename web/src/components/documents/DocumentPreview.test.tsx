@@ -8,12 +8,22 @@ const imageFile: DocumentOccurrence = { id: "image", artifact_id: "a", request_i
   sha256: "sample", artifact_status: "AVAILABLE", uploaded_at: "2026-09-01", submitted_at: "2026-09-02", current: true };
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 describe("protected document preview", () => {
+  it.each([false, true])("shows truthful demo review permission with preview-only flag %s", async (previewOnly) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("image", { headers: { "Content-Type": "image/png" } })));
+    URL.createObjectURL = vi.fn().mockReturnValue("blob:demo-allowed"); URL.revokeObjectURL = vi.fn();
+    render(<DocumentPreview file={{ ...imageFile, artifact_status: "STORED_UNSCANNED", demo_unscanned_allowed: true, demo_preview_available: previewOnly }} onClose={() => undefined}/>);
+    expect(screen.getByText("Unscanned · Demo")).toBeTruthy();
+    expect(screen.getByText("Unscanned file. Review is enabled in demo mode.")).toBeTruthy();
+    expect(screen.queryByText(/cannot support an approval|check complete/i)).toBeNull();
+    expect(screen.getByRole("link", { name: "Download file" })).toBeTruthy();
+    expect(await screen.findByRole("img", { name: "Submitted document: certificate.png" })).toBeTruthy();
+  });
   it("shows the demo limitation before protected preview and download", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("image", { headers: { "Content-Type": "image/png" } })));
     URL.createObjectURL = vi.fn().mockReturnValue("blob:demo"); URL.revokeObjectURL = vi.fn();
     render(<DocumentPreview file={{ ...imageFile, artifact_status: "STORED_UNSCANNED", demo_preview_available: true }} onClose={() => undefined}/>);
     const warning = screen.getByText(/No antivirus scan was performed/);
-    expect(screen.getByText("Demo check complete")).toBeTruthy();
+    expect(screen.getByText("Unscanned · Demo preview")).toBeTruthy();
     const download = screen.getByRole("link", { name: "Download file" });
     expect(download.getAttribute("href")).toBe("/api/v1/forms/documents/s/f/a/content?download=true");
     expect(warning.compareDocumentPosition(download) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -22,10 +32,10 @@ describe("protected document preview", () => {
   });
   it.each(["QUARANTINED", "DELETED", "UNKNOWN", "STORED_UNSCANNED"])("blocks %s files without a usable demo capability", (status) => {
     vi.stubGlobal("fetch", vi.fn());
-    render(<DocumentPreview file={{ ...imageFile, artifact_status: status, demo_preview_available: status !== "STORED_UNSCANNED" }} onClose={() => undefined}/>);
+    render(<DocumentPreview file={{ ...imageFile, artifact_status: status, demo_preview_available: status !== "STORED_UNSCANNED", demo_unscanned_allowed: status !== "STORED_UNSCANNED" }} onClose={() => undefined}/>);
     expect(fetch).not.toHaveBeenCalled();
     expect(screen.queryByRole("link", { name: "Download file" })).toBeNull();
-    expect(screen.queryByText("Demo check complete")).toBeNull();
+    expect(screen.queryByText("Unscanned · Demo preview")).toBeNull();
   });
   it("offers a protected download for demo Office files without fetching a preview", () => {
     vi.stubGlobal("fetch", vi.fn());

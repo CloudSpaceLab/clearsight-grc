@@ -18,14 +18,15 @@ import (
 )
 
 type Service struct {
-	repo              Repository
-	store             ObjectStore
-	now               func() time.Time
-	sessionTTL        time.Duration
-	maxArtifactBytes  int64
-	bindings          BindingReader
-	legalEntities     LegalEntityResolver
-	demoSamplePreview bool
+	repo                 Repository
+	store                ObjectStore
+	now                  func() time.Time
+	sessionTTL           time.Duration
+	maxArtifactBytes     int64
+	bindings             BindingReader
+	legalEntities        LegalEntityResolver
+	demoSamplePreview    bool
+	demoUnscannedAllowed bool
 }
 
 type LegalEntityResolver interface {
@@ -584,7 +585,7 @@ func (s *Service) storeArtifact(ctx context.Context, input ArtifactInput, reader
 		_ = s.store.Delete(ctx, object.Key)
 		return Artifact{}, err
 	}
-	return created, nil
+	return withArtifactUsePolicy(created, s.demoUnscannedAllowed), nil
 }
 
 func isFileFieldType(value string) bool {

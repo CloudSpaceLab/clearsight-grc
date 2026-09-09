@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { demoUnscannedAllowed, documentReviewAllowed } from "../submittedDocumentApi";
+import { DocumentDemoNotice } from "./documents/DocumentFile";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import type {
   CompleteVendorAssessmentInput,
@@ -627,6 +629,7 @@ function DeficiencyPanel({ triggerKey, title, summary, dueDate, minimumDate, bus
 function DocumentDecisionPanel({ document, decision, documentType, evidenceClass, validUntil, busy, onDecision, onDocumentType, onEvidenceClass, onValidUntil, onCancel, onSubmit }: { document: VendorAssessmentDocument; decision: "VALIDATE" | "REJECT"; documentType: string; evidenceClass: ReviewVendorAssessmentDocumentInput["evidence_class"]; validUntil: string; busy: boolean; onDecision: (value: "VALIDATE" | "REJECT") => void; onDocumentType: (value: string) => void; onEvidenceClass: (value: ReviewVendorAssessmentDocumentInput["evidence_class"]) => void; onValidUntil: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
     <div><span className="eyebrow">Document decision</span><h3>Review document</h3><p>{document.file_name}</p></div>
+    <DocumentDemoNotice file={document}/>
     <div className="vdd-form-grid">
       <SelectField label="Decision" value={decision} placeholder="Choose a decision" isDisabled={busy} allowsEmpty={false} options={[{ id: "VALIDATE", label: "Accept" }, { id: "REJECT", label: "Reject" }]} onChange={(value) => { if (value) onDecision(value); }}/>
       <div className="vdd-wide"><TextField label="Document type" value={documentType} maxLength={128} onChange={(value) => onDocumentType(value)} isRequired/></div>
@@ -685,7 +688,8 @@ function ReviewDocument({ document, assessment, requestID, onOpenDocument, onRev
     <div>
       <strong>{document.file_name}</strong>
       <span>{document.document_type.replaceAll("_", " ")} · {formatBytes(document.size_bytes)}{document.expires_on ? ` · Expires ${formatDate(document.expires_on)}` : ""}</span>
-      <span className="vdd-evidence-status">{artifactStatusLabel(document.artifact_status)} · {evidenceClassLabel(document.evidence_class)}</span>
+      <span className="vdd-evidence-status">{demoUnscannedAllowed(document) ? "Unscanned · Demo" : artifactStatusLabel(document.artifact_status)} · {evidenceClassLabel(document.evidence_class)}</span>
+      <DocumentDemoNotice file={document}/>
       {document.status && <span className="vdd-document-decision">{documentDecisionLabel(document.status)} · {evidenceClassLabel(document.evidence_class)}</span>}
       {unavailableReason && <span className="vdd-document-recovery">{unavailableReason}</span>}
     </div>
@@ -741,13 +745,14 @@ function validationLabel(validation: NonNullable<NonNullable<VendorAssessmentRev
 }
 
 function documentIsActionable(document: VendorAssessmentDocument) {
-  return document.artifact_status === "AVAILABLE" && document.status !== "REJECTED" && document.status !== "EXPIRED";
+  return documentReviewAllowed(document) && document.status !== "REJECTED" && document.status !== "EXPIRED";
 }
 
 function documentRecovery(document: VendorAssessmentDocument, requestID?: string) {
   if (!requestID) return "The submitted request could not be confirmed. Reload the vendor response before opening this document.";
   if (document.status === "REJECTED") return "This document was rejected. Request a replacement before reviewing it again.";
   if (document.status === "EXPIRED") return "This document has expired. Request a current document before using it in the review.";
+  if (demoUnscannedAllowed(document)) return "";
   switch (document.artifact_status) {
     case "STORED_UNSCANNED": return "The security scan is pending. Open and review actions will be available after the scan completes.";
     case "QUARANTINED": return "This document is quarantined. Wait for a clean replacement before reviewing it.";

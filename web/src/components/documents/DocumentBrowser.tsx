@@ -52,7 +52,7 @@ export function DocumentBrowser({ scopeLabel, relationshipID, responseRevisionID
   return <section className={`document-browser${onChoose ? " document-browser--selecting" : ""}`} aria-label={scopeLabel}>
     <header className="document-browser-heading"><div><h2>Documents</h2><p>{scopeLabel}</p></div><Button variant="quiet" onPress={() => setReload((value) => value + 1)}>Refresh files</Button></header>
     <div className="document-browser-body">
-      <nav className="document-kinds" aria-label="File types">{kinds.map((item) => <Button key={item.id} variant={kind === item.id ? "secondary" : "quiet"} aria-pressed={kind === item.id} onPress={() => selectKind(item.id)}><span className="document-kind-label"><FileIcon kind={item.id}/>{item.label}</span></Button>)}</nav>
+      <nav className="document-kinds" aria-label="File types">{kinds.map((item) => <Button key={item.id} variant={kind === item.id ? "secondary" : "quiet"} aria-pressed={kind === item.id} onPress={() => selectKind(item.id)}><span className="document-kind-label"><FileIcon kind={item.id}/><span>{item.label}</span><span aria-hidden="true">{kind === item.id ? "✓" : ""}</span></span></Button>)}</nav>
       <div className="document-browser-content">
         <div className="document-kind-selector"><SelectField label="File type" value={kind} placeholder="File type" options={kinds} allowsEmpty={false} onChange={selectKind}/></div>
         <div className="document-toolbar"><SearchField label="Search file names" placeholder="Search file names" value={query} onChange={(value) => { setQuery(value); setPages([]); }}/>{!responseRevisionID && <Button aria-expanded={filtersOpen} onPress={() => setFiltersOpen(!filtersOpen)}>Filters{includeHistory ? " · History included" : ""}</Button>}</div>

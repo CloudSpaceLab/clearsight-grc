@@ -22,6 +22,7 @@ func (r *MemoryAssessmentRepository) WriteAssessmentCollection(ctx context.Conte
 		if !ok || current.TenantID != record.TenantID || current.LegalEntityID != record.LegalEntityID {
 			return ErrNotFound
 		}
+		record.Resolution.Source.DemoUnscannedAllowed = r.demoUnscannedAllowed(record.Resolution.Source.ArtifactStatus)
 		var applyErr error
 		receipt, applyErr = applyCollectionRecord(&current, request, record)
 		if applyErr != nil {

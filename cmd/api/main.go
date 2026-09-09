@@ -60,6 +60,7 @@ func main() {
 	assessmentMatterReader := thirdparty.NewCanonicalAssessmentReviewMatterReader(services.ThirdPartyAssessmentRepo, services.Continuity)
 	assessmentReviewService := thirdparty.NewAssessmentReviewService(assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, assessmentMatterReader)
 	assessmentReviewService.ConfigureAuthority(services.Authority)
+	assessmentReviewService.ConfigureDemoUnscannedArtifacts(cfg.DemoAllowUnscannedArtifacts)
 	assessmentReviewService.ConfigureCollectionSources(services.FormDistributions, services.MonitoringRepo)
 	services.Evidence.ConfigureCollectionReviewReader(thirdparty.CollectionSourceReviewReader{Documents: services.ThirdPartyAssessmentRepo})
 	assessmentService.ConfigureCompletionReadiness(assessmentReviewService)
@@ -88,6 +89,7 @@ func main() {
 		os.Exit(1)
 	}
 	vendorWorkService.ConfigureRelationshipReader(services.ThirdPartyAssessmentRepo)
+	vendorWorkService.ConfigureDemoUnscannedArtifacts(cfg.DemoAllowUnscannedArtifacts)
 	vendorWorkService.ConfigureDistributionDispatcher(assessmentDispatcher)
 	vendorWorkService.ConfigureAuthority(guard)
 	vendorWorkService.ConfigureReadAuthority(services.Authority)

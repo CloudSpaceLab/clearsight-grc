@@ -17,7 +17,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type PostgresRepository struct{ pool *pgxpool.Pool }
+type PostgresRepository struct {
+	pool                 *pgxpool.Pool
+	demoUnscannedAllowed bool
+}
+
+func (r *PostgresRepository) ConfigureDemoUnscannedArtifacts(enabled bool) {
+	r.demoUnscannedAllowed = enabled
+}
 
 const listSourcesForEntitySQL = `SELECT es.id::text,t.id::text,COALESCE(es.legal_entity_id::text,''),es.code,es.name,es.source_type,es.authority_class,COALESCE(es.owner_principal_id::text,''),es.expected_freshness_minutes,es.last_observed_at,es.last_success_at,es.health,es.status,es.version,es.created_at,es.updated_at
 	FROM evidence_sources es JOIN tenants t ON t.id=es.tenant_id

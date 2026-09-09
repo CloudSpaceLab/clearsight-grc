@@ -15,6 +15,15 @@ import (
 )
 
 func TestPostgresCollectionReconciliationKeepsSourceAndCommitsAtomically(t *testing.T) {
+	for _, demo := range []bool{false, true} {
+		name := "scanned"
+		if demo {
+			name = "demo_unscanned"
+		}
+		t.Run(name, func(t *testing.T) { testPostgresCollectionReconciliationKeepsSourceAndCommitsAtomically(t, demo) })
+	}
+}
+func testPostgresCollectionReconciliationKeepsSourceAndCommitsAtomically(t *testing.T, demo bool) {
 	pool := assessmentPostgresPool(t)
 	ctx := evidence.WithRequestOriginAuthority(context.Background(), AssessmentRequestOrigin)
 	relationship := seedAssessmentRelationship(t, pool, "Held assurance report")
@@ -71,6 +80,16 @@ func TestPostgresCollectionReconciliationKeepsSourceAndCommitsAtomically(t *test
 		t.Fatalf("denial left receipts %d %v", receipts, err)
 	}
 	record.Authorize = func(context.Context) error { return nil }
+	if demo {
+		if _, err = pool.Exec(ctx, `UPDATE capture_artifacts SET status='STORED_UNSCANNED' WHERE id=$1::uuid`, artifact.ID); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, _, err = repo.WriteAssessmentCollection(ctx, record, nil); !errors.Is(err, ErrAssessmentCompletionBlocked) {
+			t.Fatalf("default policy accepted unscanned source: %v", err)
+		}
+		repo.ConfigureDemoUnscannedArtifacts(true)
+	}
+
 	saved, request, receipt, err := repo.WriteAssessmentCollection(ctx, record, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -78,7 +97,11 @@ func TestPostgresCollectionReconciliationKeepsSourceAndCommitsAtomically(t *test
 	if saved.Status != AssessmentUnderReview || saved.SubmissionID != "" || saved.SubmittedAt != nil || saved.CollectionCompletedAt == nil || request.Version != target.Version+1 || receipt.BankReviewState != "PENDING" {
 		t.Fatalf("false collection completion: %+v %+v", saved, receipt)
 	}
+	if demo && (!receipt.Source.DemoUnscannedAllowed || receipt.Source.ArtifactStatus != evidence.ArtifactStoredUnscanned) {
+		t.Fatalf("unscanned receipt lacks truthful exception: %+v", receipt)
+	}
 	reviewService := NewAssessmentReviewService(NewAssessmentService(repo, nil), repo, capture, nil)
+	reviewService.ConfigureDemoUnscannedArtifacts(demo)
 	if _, err := reviewService.GetReview(ctx, Actor{TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, PrincipalID: thirdPartyPrincipal}, a.ID); err != nil {
 		t.Fatalf("prepared review cannot open: %v", err)
 	}
@@ -100,7 +123,7 @@ func TestPostgresCollectionReconciliationKeepsSourceAndCommitsAtomically(t *test
 		t.Fatal(err)
 	}
 	defer tx.Rollback(ctx)
-	if err = verifyPostgresAssessmentCompletionReady(ctx, tx, thirdPartyTenantID, saved); !errors.Is(err, ErrAssessmentCompletionBlocked) {
+	if err = repo.verifyPostgresAssessmentCompletionReady(ctx, tx, thirdPartyTenantID, saved); !errors.Is(err, ErrAssessmentCompletionBlocked) {
 		t.Fatalf("pending review allowed completion: %v", err)
 	}
 	_ = tx.Rollback(ctx)
@@ -122,10 +145,33 @@ func TestPostgresCollectionReconciliationKeepsSourceAndCommitsAtomically(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = verifyPostgresAssessmentCompletionReady(ctx, tx, thirdPartyTenantID, saved); err != nil {
+	if err = repo.verifyPostgresAssessmentCompletionReady(ctx, tx, thirdPartyTenantID, saved); err != nil {
 		t.Fatalf("accepted held evidence blocked completion: %v", err)
 	}
 	_ = tx.Rollback(ctx)
+	if demo {
+		repo.ConfigureDemoUnscannedArtifacts(false)
+		tx, err = pool.Begin(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = repo.verifyPostgresAssessmentCompletionReady(ctx, tx, thirdPartyTenantID, saved); !errors.Is(err, ErrAssessmentCompletionBlocked) {
+			t.Fatalf("revoked exception allowed completion: %v", err)
+		}
+		_ = tx.Rollback(ctx)
+		repo.ConfigureDemoUnscannedArtifacts(true)
+		if _, err = pool.Exec(ctx, `UPDATE capture_artifacts SET status='QUARANTINED' WHERE id=$1::uuid`, artifact.ID); err != nil {
+			t.Fatal(err)
+		}
+		tx, err = pool.Begin(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = repo.verifyPostgresAssessmentCompletionReady(ctx, tx, thirdPartyTenantID, saved); !errors.Is(err, ErrAssessmentCompletionBlocked) {
+			t.Fatalf("quarantined source allowed completion: %v", err)
+		}
+		_ = tx.Rollback(ctx)
+	}
 	_, err = pool.Exec(ctx, `INSERT INTO third_party_documents(tenant_id,legal_entity_id,relationship_id,assessment_id,request_id,artifact_id,document_type,evidence_class,status,validated_by_principal_id,validated_at,version,created_at,updated_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,'SOC2','VENDOR_SUPPLIED','REJECTED',$7::uuid,$8,1,$8,$8)`, thirdPartyTenantID, thirdPartyEntityA, relationship.Relationship.ID, a.ID, sourceRequest.ID, artifact.ID, thirdPartyPrincipal, reviewedAt)
 	if err != nil {
 		t.Fatal(err)

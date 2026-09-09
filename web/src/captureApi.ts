@@ -12,6 +12,7 @@ import type {
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export type CaptureArtifact = {
+  demo_unscanned_allowed?: boolean;
   id: string;
   request_id: string;
   file_name: string;

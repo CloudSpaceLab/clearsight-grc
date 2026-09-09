@@ -18,5 +18,5 @@ func (r *PostgresRepository) GetArtifact(ctx context.Context, tenant, requestID,
 		}
 		return Artifact{}, err
 	}
-	return value, nil
+	return withArtifactUsePolicy(value, r.demoUnscannedAllowed), nil
 }

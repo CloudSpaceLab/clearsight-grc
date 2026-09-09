@@ -563,7 +563,7 @@ func mappedMatterFormArtifactsAvailable(ctx context.Context, requests matterForm
 		}
 		for _, artifactID := range artifactIDs {
 			artifact, err := requests.GetArtifact(ctx, request.TenantID, request.ID, strings.TrimSpace(artifactID))
-			if err != nil || artifact.Status != evidence.ArtifactAvailable {
+			if err != nil || !evidence.ArtifactUseAllowed(artifact.Status, artifact.DemoUnscannedAllowed) {
 				return ErrMatterFormResponseRejected
 			}
 		}
