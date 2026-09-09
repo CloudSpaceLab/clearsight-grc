@@ -17,6 +17,61 @@ const (
 	referenceVendorServiceName = "Managed infrastructure and recovery services"
 )
 
+type operatingVendorSpec struct {
+	externalRef, legalName, tradingName, registrationRef, serviceName string
+	criticality                                                       thirdparty.Criticality
+	privacyRole                                                       thirdparty.PrivacyRole
+}
+
+// EnsureOperatingVendors adds fictional suppliers that represent common bank
+// services. Managed source identifiers make reruns safe and preserve later edits.
+func (s *Service) EnsureOperatingVendors(ctx context.Context, config SeedConfig, vendors *thirdparty.Service) ([]thirdparty.Aggregate, error) {
+	first, err := s.EnsureReferenceVendor(ctx, config, vendors)
+	if err != nil {
+		return nil, err
+	}
+	result := []thirdparty.Aggregate{first}
+	specs := []operatingVendorSpec{
+		{externalRef: "vendor:payment-switching", legalName: "Paywave Transaction Services Limited", tradingName: "Paywave Transactions", registrationRef: "REF-NG-TP-002", serviceName: "Payment switching and terminal support", criticality: thirdparty.CriticalityCritical, privacyRole: thirdparty.PrivacyProcessor},
+		{externalRef: "vendor:records-custody", legalName: "ArchiveGuard Records Limited", tradingName: "ArchiveGuard", registrationRef: "REF-NG-TP-003", serviceName: "Secure records storage and destruction", criticality: thirdparty.CriticalityImportant, privacyRole: thirdparty.PrivacyProcessor},
+		{externalRef: "vendor:payroll-processing", legalName: "PeopleLink Payroll Services Limited", tradingName: "PeopleLink Payroll", registrationRef: "REF-NG-TP-004", serviceName: "Payroll processing", criticality: thirdparty.CriticalityImportant, privacyRole: thirdparty.PrivacyProcessor},
+		{externalRef: "vendor:collections-platform", legalName: "Sentinel Collections Technology Limited", tradingName: "Sentinel Collections", registrationRef: "REF-NG-TP-005", serviceName: "Loan collections platform", criticality: thirdparty.CriticalityImportant, privacyRole: thirdparty.PrivacyProcessor},
+	}
+	for _, spec := range specs {
+		item, ensureErr := s.ensureOperatingVendor(ctx, config, vendors, spec)
+		if ensureErr != nil {
+			return nil, ensureErr
+		}
+		result = append(result, item)
+	}
+	return result, nil
+}
+
+func (s *Service) ensureOperatingVendor(ctx context.Context, config SeedConfig, vendors *thirdparty.Service, spec operatingVendorSpec) (thirdparty.Aggregate, error) {
+	actor := thirdparty.Actor{TenantID: config.TenantID, LegalEntityID: config.LegalEntityID, PrincipalID: config.OwnerPrincipalID}
+	page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: spec.externalRef, Limit: 100})
+	if err != nil {
+		return thirdparty.Aggregate{}, fmt.Errorf("list sample vendor %s: %w", spec.externalRef, err)
+	}
+	for _, item := range page.Items {
+		if strings.EqualFold(strings.TrimSpace(item.Relationship.SourceID), referenceVendorSourceID) && strings.EqualFold(strings.TrimSpace(item.Relationship.ExternalRef), spec.externalRef) {
+			if !strings.EqualFold(strings.TrimSpace(item.Vendor.SourceID), referenceVendorSourceID) || !strings.EqualFold(strings.TrimSpace(item.Vendor.ExternalRef), spec.externalRef) {
+				return thirdparty.Aggregate{}, fmt.Errorf("sample vendor %s is bound to a different vendor identity", spec.externalRef)
+			}
+			return item, nil
+		}
+	}
+	created, err := vendors.CreateRelationship(ctx, actor, thirdparty.CreateRelationshipInput{
+		LegalName: spec.legalName, TradingName: spec.tradingName, RegistrationRef: spec.registrationRef, Jurisdiction: "Nigeria",
+		SourceID: referenceVendorSourceID, ExternalRef: spec.externalRef, RegisteredAddress: "Sample data — Lagos, Nigeria",
+		ServiceName: spec.serviceName, Criticality: spec.criticality, PrivacyRole: spec.privacyRole,
+	})
+	if err != nil {
+		return thirdparty.Aggregate{}, fmt.Errorf("create sample vendor %s: %w", spec.externalRef, err)
+	}
+	return created, nil
+}
+
 // EnsureReferenceVendor installs the persisted third-party record used by
 // reference/demo journeys through the canonical third-party service. The
 // source identity is the provenance and idempotency key: reruns reuse the

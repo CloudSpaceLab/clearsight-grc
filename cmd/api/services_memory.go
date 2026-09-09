@@ -127,6 +127,12 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		if _, err := verticals.InstallSample(ctx, seed); err != nil {
 			return serviceSet{}, err
 		}
+		if _, err := verticals.EnsureOperatingDemo(ctx, seed); err != nil {
+			return serviceSet{}, err
+		}
+		if _, err := verticals.EnsureOperatingVendors(ctx, seed, thirdPartyService); err != nil {
+			return serviceSet{}, err
+		}
 		maintainer := &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepo, WorkerID: "memory-bank-journeys"}
 		for {
 			completed, maintainErr := maintainer.Maintain(ctx, time.Now().UTC().Add(time.Hour), 50)

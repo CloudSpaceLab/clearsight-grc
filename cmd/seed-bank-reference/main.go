@@ -76,6 +76,8 @@ func main() {
 	})
 	installedJourneys, err := installer.InstallSample(ctx, seed)
 	fatalIf(err)
+	operatingDemo, err := installer.EnsureOperatingDemo(ctx, seed)
+	fatalIf(err)
 	programID := referenceProgramID(installedJourneys)
 	if programID == "" {
 		fatalIf(fmt.Errorf("response-policy acceptance requires an installed Program subject"))
@@ -85,8 +87,9 @@ func main() {
 	if upgradedVendorForm {
 		fmt.Fprintln(os.Stderr, "Reference vendor form upgraded through owner submission and independent review; prior requests retain their form revision.")
 	}
-	referenceVendor, err := installer.EnsureReferenceVendor(ctx, seed, thirdPartyService)
+	operatingVendors, err := installer.EnsureOperatingVendors(ctx, seed, thirdPartyService)
 	fatalIf(err)
+	referenceVendor := operatingVendors[0]
 
 	maintainer := &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepo, WorkerID: "reference-installer"}
 	for {
@@ -130,6 +133,8 @@ func main() {
 		"journeys":                         journeys,
 		"reference_vendor_id":              referenceVendor.Vendor.ID,
 		"reference_vendor_relationship_id": referenceVendor.Relationship.ID,
+		"operating_demo":                   operatingDemo,
+		"operating_vendor_count":           len(operatingVendors),
 		"oversight_projection":             oversightSnapshot.ProjectionVersion,
 		"oversight_generated_at":           oversightSnapshot.GeneratedAt,
 		"oversight_population":             oversightSnapshot.Coverage.Population,
