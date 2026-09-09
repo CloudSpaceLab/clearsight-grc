@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-09-09T13:13:30.839Z",
+  "baseURL": "http://127.0.0.1:4188",
+  "selection": [
+    "116-forms-builder-large-performance-light-1440x900"
+  ],
+  "captures": [
+    {
+      "name": "116-forms-builder-large-performance-light-1440x900",
+      "route": "#forms",
+      "fixture": "forms-builder-large",
+      "state": "forms-builder-120-question-performance",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "physicalViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "layoutViewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "forcedColors": "none",
+      "reducedMotion": "no-preference",
+      "scenario_metrics": {
+        "render_ms": 697,
+        "question_update_ms": 325,
+        "question_count": 120,
+        "outline_scroll_top": 7080,
+        "outline_scroll_height": 7808,
+        "outline_client_height": 728
+      },
+      "browser_version": "140.0.7339.16",
+      "browser_channel": "headless-shell",
+      "zoom": 1,
+      "capabilities": [
+        "builder-large-performance",
+        "viewport-desktop",
+        "theme-light"
+      ],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 24741,
+        "scrollY": 19981,
+        "theme": "light",
+        "density": "comfortable",
+        "zoom": "1"
+      }
+    }
+  ]
+}

@@ -38,10 +38,10 @@ func TestInstallSampleCreatesGovernedVendorFormsIdempotently(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(forms) != 3 {
-		t.Fatalf("active reusable forms=%d, want 3: %#v", len(forms), forms)
+	if len(forms) != 4 {
+		t.Fatalf("active reusable forms=%d, want 4", len(forms))
 	}
-	want := map[string]int{"VENDOR-DUE-DILIGENCE": 10, "VENDOR-ADDRESS-VERIFICATION": 6, "VENDOR-CERTIFICATION-REFRESH": 7}
+	want := map[string]int{"VENDOR-DUE-DILIGENCE": 10, "VENDOR-ADDRESS-VERIFICATION": 6, "VENDOR-CERTIFICATION-REFRESH": 7, vendorComplianceFormCode: 26}
 	for _, form := range forms {
 		fieldCount, exists := want[form.Code]
 		if !exists || form.Status != monitoring.LifecycleActive || !form.IsCurrent || len(form.Fields) != fieldCount {
@@ -63,8 +63,8 @@ func TestInstallSampleCreatesGovernedVendorFormsIdempotently(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(revisions) != 9 {
-		t.Fatalf("initial form lifecycle revisions=%d, want 9", len(revisions))
+	if len(revisions) != 12 {
+		t.Fatalf("initial form lifecycle revisions=%d, want 12", len(revisions))
 	}
 	if _, err := service.InstallSample(context.Background(), config); err != nil {
 		t.Fatal(err)

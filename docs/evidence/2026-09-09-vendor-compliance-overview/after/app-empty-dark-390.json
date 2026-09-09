@@ -1,0 +1,37 @@
+{
+  "name": "app-empty-dark-390",
+  "state": "empty",
+  "theme": "dark",
+  "width": 390,
+  "integrated": true,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 390,
+    "pageScrollWidth": 390,
+    "scrollY": 96,
+    "componentWidth": 308,
+    "componentScrollWidth": 308,
+    "buttons": [
+      {
+        "label": "Request form",
+        "x": 41,
+        "right": 349,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 29
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 371.1875,
+    "firstRequirementTop": null
+  },
+  "status": "PASS"
+}

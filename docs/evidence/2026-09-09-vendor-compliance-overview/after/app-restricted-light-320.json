@@ -1,0 +1,43 @@
+{
+  "name": "app-restricted-light-320",
+  "state": "restricted",
+  "theme": "light",
+  "width": 320,
+  "integrated": true,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 320,
+    "pageScrollWidth": 320,
+    "scrollY": 96,
+    "componentWidth": 238,
+    "componentScrollWidth": 238,
+    "buttons": [
+      {
+        "label": "Manage forms",
+        "x": 41,
+        "right": 279,
+        "height": 44
+      },
+      {
+        "label": "Review Sample · Authorized payment-service review",
+        "x": 198.328125,
+        "right": 279,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 29
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 399.78125,
+    "firstRequirementTop": null
+  },
+  "status": "PASS"
+}

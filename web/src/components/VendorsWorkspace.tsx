@@ -17,6 +17,7 @@ import { VendorBrandIcon, vendorBrandLabel } from "./VendorBrandIcon";
 import { VendorActivationPanel } from "./VendorActivationPanel";
 import { VendorIdentityEditor } from "./VendorIdentityEditor";
 import { VendorFormReadiness } from "./VendorFormReadiness";
+import { VendorComplianceOverview } from "./VendorComplianceOverview";
 import { ActionLink, Button, Notice, SelectField, StatusBadge, TextField, TextArea, Tabs } from "./ui";
 import { DocumentBrowser } from "./documents/DocumentBrowser";
 import { VendorFormsPanel, VendorResponseHistory } from "./VendorFormsPanel";
@@ -645,7 +646,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   function openFormWork(record: VendorRelationshipAggregate, filter?: VendorFormsFilter) { choose(record); setVendorSection("FORMS"); setFormsFocus({ relationshipID: record.relationship.id, filter }); }
   return <div className={workspaceClass} tabIndex={-1}>
     <header className="topbar vendors-topbar">
-      <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Vendors</h1><p>Manage vendors and the services they supply to {legalEntityName}. Review each relationship&apos;s owner, criticality and due-diligence status.</p></div>
+      <div>{!selected && <span className="eyebrow">{organizationName} · {legalEntityName}</span>}<h1>Vendors</h1></div>
       {mode === "browse" && <Button id="vendor-add-action" type="button" variant={selected ? "secondary" : "primary"} onPress={startCreate} isDisabled={state !== "live"}>Add vendor</Button>}
     </header>
 
@@ -672,6 +673,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       <section className="vendor-focus" aria-label="Selected vendor relationship">
         {mode === "edit-identity" && selected ? <VendorIdentityEditor record={selected} onCancel={cancelForm} onIdentitySaved={(presentation) => applyVendorPresentation(presentation, "Vendor details updated.", true)} onBrandSaved={(presentation) => applyVendorPresentation(presentation)} onPresentationReloaded={(presentation) => applyVendorPresentation(presentation)}/> : (mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} existingVendor={existingVendorSource} candidates={vendorCandidates} candidateState={candidateState} onFindExisting={findExistingVendor} onUseExisting={useExistingVendor} onUseDifferent={() => { setExistingVendorSource(undefined); setForm((current) => ({ ...current, legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", websiteDomain: "", registeredAddress: "" })); }} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail
           record={selected}
+          formSummary={formSummaries.get(selected.relationship.id)}
+          summaryState={summaryState}
           key={selected.relationship.id}
           section={vendorSection}
           onSectionChange={setVendorSection}
@@ -729,8 +732,10 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   </div>;
 }
 
-function VendorDetail({ record, section, onSectionChange, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onPrepareAssessmentRequest, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter, accountableOwnerLabel, onActivated, onRefreshed, onRequestForm, onFormWorkUpdated, formsRefreshKey, formsFilter }: {
+function VendorDetail({ record, formSummary, summaryState, section, onSectionChange, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onPrepareAssessmentRequest, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter, accountableOwnerLabel, onActivated, onRefreshed, onRequestForm, onFormWorkUpdated, formsRefreshKey, formsFilter }: {
   record: VendorRelationshipAggregate;
+  formSummary?: VendorFormSummary;
+  summaryState: LoadState;
   section: VendorSection;
   onSectionChange: (section: VendorSection) => void;
   assessment: VendorAssessment | null;
@@ -780,24 +785,24 @@ function VendorDetail({ record, section, onSectionChange, assessment, assessment
   <article className="vendor-detail">
     <div className="vendor-mobile-back"><Button variant="quiet" onPress={onBack}>Back to vendor register</Button></div>
     <div className="vendor-detail-heading"><div className="vendor-detail-identity"><VendorBrandIcon vendorID={vendor.id} legalName={vendor.legal_name} brand={record.brand} size="detail"/><div><span className="eyebrow">{humanize(relationship.status)} relationship</span><h2>{vendor.legal_name}</h2></div></div></div>
-    <div className="vendor-service-callout"><span>Service supplied</span><strong>{relationship.service_name}</strong><small>{humanize(relationship.criticality)} criticality · {privacyLabel(relationship.privacy_role)}</small></div>
-    <p className="vendor-current-owner"><span>Current accountable owner</span><strong>{accountableOwnerLabel}</strong></p>
+    <div className="vendor-service-summary"><strong>{relationship.service_name}</strong><span>{humanize(relationship.criticality)} criticality · {privacyLabel(relationship.privacy_role)}</span></div>
+    <p className="vendor-current-owner"><span>Accountable owner</span><strong>{accountableOwnerLabel}</strong></p>
   </article>
   <Tabs ariaLabel="Vendor sections" compactLabel="Vendor section" retainVisitedPanels items={vendorSections} selectedKey={section} onSelectionChange={onSectionChange}>{(current) => <>
   {current === "OVERVIEW" && <section className="vendor-detail" aria-label="Vendor overview">
-    <div className="vendor-detail-actions"><Button onPress={onEditIdentity}>Edit vendor details</Button><Button onPress={onEdit}>Edit vendor relationship</Button></div>
-    <p>{vendor.trading_name ? `Trading as ${vendor.trading_name}` : "No trading name recorded"} · <span className="vendor-brand-label">{vendorBrandLabel(record.brand)}</span></p>
-    <div className="vendor-detail-actions vendor-detail-work-actions"><Button variant="primary" onPress={() => onSectionChange("DUE_DILIGENCE")}>Open due diligence</Button><Button onPress={() => onSectionChange("DOCUMENTS")}>View vendor documents</Button></div>
-    <dl className="vendor-facts"><Fact label="Renewal date" value={formatDate(relationship.renewal_at)}/></dl>
+    <VendorComplianceOverview relationshipID={relationship.id} serviceName={relationship.service_name} summary={formSummary} summaryState={summaryState} assessment={assessment} assessmentState={assessmentState} refreshKey={formsRefreshKey} onOpenForms={() => onSectionChange("FORMS")} onOpenDueDiligence={() => onSectionChange("DUE_DILIGENCE")} onRequestForm={onRequestForm} onUpdated={onFormWorkUpdated} onOpenRequest={onOpenRequest}/>
     <details className="vendor-record-details"><summary>Vendor details and record history</summary>
+    <div className="vendor-detail-actions"><Button onPress={onEditIdentity}>Edit vendor details</Button><Button onPress={onEdit}>Edit vendor relationship</Button></div>
+    {vendor.trading_name && <p>Trading as {vendor.trading_name}</p>}
     <dl className="vendor-facts">
+      <Fact label="Renewal date" value={formatDate(relationship.renewal_at)}/>
+      <Fact label="Logo" value={vendorBrandLabel(record.brand)}/>
       <Fact label="Jurisdiction" value={vendor.jurisdiction || "Not recorded"}/>
       <Fact label="Registration reference" value={vendor.registration_ref || "Not recorded"}/><Fact label="Website domain" value={vendor.website_domain || "Not recorded"}/><Fact label="Registered address" value={vendor.registered_address || "Not recorded"}/><Fact label="Effective date" value={formatDate(relationship.effective_from)}/>
       <Fact label="Source" value={vendor.source_id && vendor.external_ref ? `${vendor.source_id} · ${vendor.external_ref}` : "Entered directly"}/>
       <Fact label="Relationship updated" value={formatDateTime(relationship.updated_at)}/><Fact label="Relationship version" value={`Version ${relationship.version}`}/><Fact label="Vendor details version" value={`Vendor version ${vendor.version}`}/>
     </dl>
     </details>
-    <div className="vendor-boundary-note"><strong>Relationship status</strong><p>{humanize(relationship.status)} for {relationship.service_name}. Open Due diligence to review the assessment and any activation decision.</p></div>
   </section>}
   {current === "FORMS" && <><VendorFormsPanel relationshipID={relationship.id} serviceName={relationship.service_name} onRequestForm={onRequestForm} onUpdated={onFormWorkUpdated} onOpenHistory={() => onSectionChange("HISTORY")} onOpenDueDiligence={() => onSectionChange("DUE_DILIGENCE")} refreshKey={formsRefreshKey} initialFilter={formsFilter} onOpenRequest={onOpenRequest}/><details className="vendor-linked-work"><summary>Linked vendor work</summary><VendorWorkPanel relationshipID={relationship.id} onOpenRequest={onOpenRequest}/></details></>}
   {current === "DOCUMENTS" && <DocumentBrowser scopeLabel={`${vendor.legal_name} · ${relationship.service_name}`} relationshipID={relationship.id}/>}

@@ -1,0 +1,44 @@
+{
+  "name": "incomplete-dark-390",
+  "state": "incomplete",
+  "theme": "dark",
+  "width": 390,
+  "integrated": false,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 390,
+    "pageScrollWidth": 390,
+    "scrollY": 0,
+    "componentWidth": 326,
+    "componentScrollWidth": 326,
+    "buttons": [
+      {
+        "label": "Manage forms",
+        "x": 32,
+        "right": 358,
+        "height": 44
+      },
+      {
+        "label": "Open Sample · Third Party Risk Compliance request",
+        "x": 235.375,
+        "right": 358,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 17
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 186,
+    "firstRequirementTop": 391
+  },
+  "navigation": "Opened Vendor form request from the visible action.",
+  "status": "PASS"
+}

@@ -7,6 +7,7 @@ import { installVendorCollectionEvidence } from "./vendorCollectionEvidence";
 import { installUITruthEvidence, UITruthEvidencePage } from "./uiTruthEvidence";
 import { VendorCaptureEvidencePage, type VendorCaptureEvidenceState } from "./vendorCaptureEvidence";
 import { VendorReleaseEvidencePage } from "./vendorReleaseEvidence";
+import { installVendorComplianceEvidence, VendorComplianceEvidencePage } from "./vendorComplianceEvidence";
 import { FindingFollowUpEvidence } from "./FindingFollowUpEvidence";
 import { consumeCaptureInvitation } from "./captureInvitationBrowser";
 import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
@@ -45,9 +46,11 @@ const fixture = new URLSearchParams(window.location.search).get("fixture");
 installVendorAssessmentEvidence();
 installVendorCollectionEvidence();
 installUITruthEvidence();
+installVendorComplianceEvidence();
 const application = invitationToken !== null
   ? <ExternalCaptureApp invitationToken={invitationToken}/>
   : fixture === "finding-followup" ? <FindingFollowUpEvidence/>
+  : fixture?.startsWith("vendor-compliance-") && !fixture.startsWith("vendor-compliance-app-") ? <VendorComplianceEvidencePage state={fixture.replace("vendor-compliance-", "")}/>
   : fixture?.startsWith("vendor-release-") ? <VendorReleaseEvidencePage state={fixture.replace("vendor-release-", "")}/>
   : fixture?.startsWith("ui-truth-") ? <UITruthEvidencePage state={fixture.replace("ui-truth-", "")}/>
   : fixture?.startsWith("vendor-capture-") ? <VendorCaptureEvidencePage state={fixture.replace("vendor-capture-", "") as VendorCaptureEvidenceState}/>

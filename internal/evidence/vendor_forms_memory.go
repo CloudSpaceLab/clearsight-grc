@@ -61,6 +61,12 @@ func (s *MemoryDistributionStore) vendorRows(ctx context.Context, q VendorFormsQ
 	requestSources := map[string]vendorRequestSource{}
 	latestFields := map[string]documentFieldSource{}
 	rows := []VendorFormRow{}
+	attentionInputs := map[string]struct {
+		request Request
+		answers map[string]formcontract.AnswerValue
+		known   bool
+		facts   map[string]vendorDocumentFact
+	}{}
 	now := s.now().UTC()
 	for _, req := range requests {
 		var dc DocumentContext
@@ -127,6 +133,10 @@ func (s *MemoryDistributionStore) vendorRows(ctx context.Context, q VendorFormsQ
 				known = true
 			}
 		}
+		if revision == nil && sub.ID != "" && req.Status == RequestSubmitted {
+			answers = cloneAnswerValues(sub.Answers)
+			known = true
+		}
 		if revision == nil && distributionID != "" && s.vendorProgress != nil {
 			if a, ok, at := s.vendorProgress(distributionID); ok {
 				answers = a
@@ -190,6 +200,10 @@ func (s *MemoryDistributionStore) vendorRows(ctx context.Context, q VendorFormsQ
 				row.AssessedScore = latest.Result.Score
 				row.RequiredReviews = latest.Result.RequiredCount
 				row.CompletedReviews = latest.Result.ReviewedRequiredCount
+				row.reviewedFields = map[string]bool{}
+				for fieldID := range latest.Decisions {
+					row.reviewedFields[fieldID] = true
+				}
 			}
 			s.mu.RUnlock()
 		}
@@ -202,10 +216,36 @@ func (s *MemoryDistributionStore) vendorRows(ctx context.Context, q VendorFormsQ
 			row.ResponseState = string(dist.Status)
 			row.Current = false
 		}
+		facts := map[string]vendorDocumentFact{}
+		for fieldID, answer := range answers {
+			if answer.Document == nil {
+				continue
+			}
+			fact := vendorDocumentFact{ExpiresOn: answer.Document.ExpiresOn, Source: "RESPONSE", Current: true}
+			s.repo.mu.RLock()
+			artifact := s.repo.artifacts[answer.Document.ArtifactID]
+			s.repo.mu.RUnlock()
+			if review, ok := dc.Reviews[answer.Document.ArtifactID]; ok && artifact.SubmissionID == sub.ID {
+				fact.Source = vendorDocumentSource(review.Status)
+				fact.Rejected = review.Status == "REJECTED"
+				fact.Expired = review.Status == "EXPIRED"
+				if value, ok := dc.Expiries[answer.Document.ArtifactID]; ok {
+					fact.ExpiresOn = value
+				}
+			}
+			facts[fieldID] = fact
+		}
+		attentionInputs[req.ID] = struct {
+			request Request
+			answers map[string]formcontract.AnswerValue
+			known   bool
+			facts   map[string]vendorDocumentFact
+		}{req, answers, known, facts}
 		rows = append(rows, row)
 	}
 	filtered := rows[:0]
 	for _, row := range rows {
+		attention := attentionInputs[row.RequestID]
 		if !row.Current {
 			row.ResponseCurrency = "HISTORICAL"
 		} else if source, ok := requestSources[row.RequestID]; ok {
@@ -213,6 +253,9 @@ func (s *MemoryDistributionStore) vendorRows(ctx context.Context, q VendorFormsQ
 			for _, field := range source.Request.Fields {
 				if latestFields[source.Key+"|"+field.ID].after(source.Source) {
 					replaced++
+					fact := attention.facts[field.ID]
+					fact.Current = false
+					attention.facts[field.ID] = fact
 				}
 			}
 			if replaced > 0 {
@@ -223,6 +266,7 @@ func (s *MemoryDistributionStore) vendorRows(ctx context.Context, q VendorFormsQ
 				}
 			}
 		}
+		populateVendorFormAttention(attention.request, attention.answers, attention.known, &row, attention.facts, now)
 		if vendorFormMatches(row, q, now) {
 			filtered = append(filtered, row)
 		}

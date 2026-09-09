@@ -1,0 +1,12 @@
+{
+  "recordedAt": "2026-09-09T13:09:04.355770+00:00",
+  "sourceSha256": {
+    "web/src/components/VendorComplianceOverview.tsx": "588987b43f6287c9d9219436ae9c920fdf9e660da2b5856328529632d6e14743",
+    "web/src/components/vendor-compliance-overview.css": "c8adac5580dede4fb0ba5ec36d9fae84b946b780777e1bdcd404f5a92b51dcfa",
+    "web/src/components/VendorsWorkspace.tsx": "dad3f7f3afae01c1805f28aa3e3daec70f94935466492d358a3dd11fb17c0555",
+    "web/src/vendors.css": "c179a2de1da0969d4a4b1dc8512eca1e971b3e1dc91c2f6d526dc80ffbd86146",
+    "web/scripts/forms-evidence-scenarios.mjs": "c5312d77700bf7b1f10745c59dc8d829d1114a583bb05e9b597c1adf8350b446",
+    "web/scripts/capture-forms-evidence.mjs": "ad9a754d5c4983e31120a4c168ea286e9c7fd0104d1a549bdaf1f8c111f3f607",
+    "web/dist-evidence/index.html": "a58e0fab2fa96a57373caf25b02277004097204113f61c1ef5ac7d3450e0fbf3"
+  }
+}

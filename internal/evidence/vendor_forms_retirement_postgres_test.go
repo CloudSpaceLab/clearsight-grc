@@ -76,6 +76,9 @@ func TestPostgresVendorFormsRetirementUsesExactSubmittedFieldLinks(t *testing.T)
 					if row.ResponseCurrency != tc.want || row.Current != (tc.want != "HISTORICAL") {
 						t.Fatalf("old row=%+v want %s", row, tc.want)
 					}
+					if tc.want == "PARTIALLY_REPLACED" && (row.Outdated == nil || !*row.Outdated) {
+						t.Fatalf("partial response freshness unknown: %+v", row)
+					}
 				}
 			}
 			if !found {
@@ -85,7 +88,7 @@ func TestPostgresVendorFormsRetirementUsesExactSubmittedFieldLinks(t *testing.T)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if tc.want == "PARTIALLY_REPLACED" && (summaries[0].PartiallyReplacedForms != 1 || summaries[0].HighestConcern != "HIGH") {
+			if tc.want == "PARTIALLY_REPLACED" && (summaries[0].PartiallyReplacedForms != 1 || summaries[0].OutdatedForms != 1 || summaries[0].HighestConcern != "HIGH") {
 				t.Fatalf("partial concern lost: %+v", summaries)
 			}
 		})

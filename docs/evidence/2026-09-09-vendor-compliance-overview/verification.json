@@ -1,0 +1,49 @@
+{
+  "checkedAt": "2026-09-09T13:17:51.689864+00:00",
+  "finalSourceMismatches": [],
+  "runs": {
+    "receipt.json": {
+      "cases": 84,
+      "passed": 84,
+      "reportedContrastViolations": 0
+    },
+    "integrated-receipt.json": {
+      "cases": 84,
+      "passed": 84,
+      "reportedContrastViolations": 0
+    },
+    "final-gap-receipt.json": {
+      "cases": 6,
+      "passed": 6,
+      "reportedContrastViolations": 0
+    }
+  },
+  "broaderForms": {
+    "runs": {
+      "full-forms": {
+        "captures": 30,
+        "failure": "A large-form question update took 766ms; budget is 500ms."
+      },
+      "full-forms-targeted": {
+        "captures": 1,
+        "failure": null
+      },
+      "full-forms-continuation": {
+        "captures": 44,
+        "failure": null
+      }
+    },
+    "uniquePassingScenarios": 75,
+    "duplicateCaptures": 0,
+    "performance": {
+      "baseline_update_ms": 287,
+      "initial_failed_update_ms": 766,
+      "isolated_update_ms": 325,
+      "budget_ms": 500,
+      "isolated_render_ms": 697,
+      "baseline_render_ms": 612,
+      "render_budget_ms": 3000
+    },
+    "singleUninterruptedPass": false
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "app-incomplete-dark-320",
+  "state": "incomplete",
+  "theme": "dark",
+  "width": 320,
+  "integrated": true,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 320,
+    "pageScrollWidth": 320,
+    "scrollY": 96,
+    "componentWidth": 238,
+    "componentScrollWidth": 238,
+    "buttons": [
+      {
+        "label": "Manage forms",
+        "x": 41,
+        "right": 279,
+        "height": 44
+      },
+      {
+        "label": "Open Sample · Third Party Risk Compliance request",
+        "x": 41,
+        "right": 163.625,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 34
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 399.78125,
+    "firstRequirementTop": 667.78125
+  },
+  "status": "PASS"
+}

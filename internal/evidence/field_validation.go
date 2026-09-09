@@ -42,6 +42,18 @@ func formContract(presentation formcontract.Presentation, sections []formcontrac
 	return formContractWithScoring(presentation, "", nil, sections, fields)
 }
 
+// Answer visibility and required-field validation retain advanced assessment
+// rules. Legacy collection requests may replace their scored fields with held
+// evidence, so preserve their existing field-only normalization.
+func requestAnswerContract(request Request) (formcontract.Contract, error) {
+	if request.ScoreProfile != nil {
+		if contract, err := workspaceScoringContract(request); err == nil {
+			return contract, nil
+		}
+	}
+	return formContract(request.Presentation, request.Sections, request.Fields)
+}
+
 func formContractWithScoring(presentation formcontract.Presentation, scoringMode formcontract.ScoringMode, scoreProfile *formcontract.ScoreProfile, sections []formcontract.Section, fields []Field) (formcontract.Contract, error) {
 	contractFields := make([]formcontract.Field, len(fields))
 	for index, field := range fields {
@@ -81,7 +93,7 @@ func (s *Service) validateDraftAnswers(ctx context.Context, request Request, ans
 }
 
 func (s *Service) validateAnswerSet(ctx context.Context, request Request, answers map[string]formcontract.AnswerValue, requireComplete bool) error {
-	contract, err := formContract(request.Presentation, request.Sections, request.Fields)
+	contract, err := requestAnswerContract(request)
 	if err != nil {
 		return err
 	}

@@ -45,6 +45,8 @@ The optional assessment follow-up repair has a [decision brief and plan](superpo
 
 ## Canonical precedence
 
+The [vendor compliance overview brief](design/2026-09-09-vendor-compliance-overview.md) and [implementation plan](superpowers/plans/2026-09-09-vendor-compliance-overview.md) prioritize submitted custom-form failures in the vendor overview. The [default form acceptance](acceptance/2026-09-09-third-party-compliance-form.md) documents the configurable sample and its immutable installation behavior.
+
 The approved [Forms and vendor completion brief](design/2026-09-08-forms-vendor-completeness.md) and [implementation plan](superpowers/plans/2026-09-08-forms-vendor-completeness.md) track the next bounded status, navigation and review integration under #143/#139/#138/#147. #200 stays closed.
 
 The approved [vendor forms and bank assessment design](design/2026-09-08-vendor-field-assessment.md), [implementation plan](superpowers/plans/2026-09-08-vendor-form-assessment.md), and [acceptance evidence](acceptance/vendor-form-assessment.md) extend the existing governed Forms workflow with field review, vendor requests and result policies.

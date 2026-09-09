@@ -21,34 +21,44 @@ type VendorMissingField struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
 }
+type VendorFormAttention struct {
+	FieldID string `json:"field_id,omitempty"`
+	RuleID  string `json:"rule_id,omitempty"`
+	Label   string `json:"label"`
+	State   string `json:"state"`
+	Source  string `json:"source"`
+}
 type VendorFormRow struct {
-	ResponseCurrency    string               `json:"response_currency"`
-	RequestID           string               `json:"request_id"`
-	RelationshipID      string               `json:"relationship_id"`
-	DistributionID      string               `json:"distribution_id,omitempty"`
-	ResponseID          string               `json:"response_id,omitempty"`
-	FormTemplateID      string               `json:"form_template_id"`
-	FormTemplateVersion int64                `json:"form_template_version"`
-	Title               string               `json:"title"`
-	Purpose             string               `json:"purpose,omitempty"`
-	OriginType          string               `json:"origin_type,omitempty"`
-	OriginID            string               `json:"origin_id,omitempty"`
-	ResponseState       string               `json:"response_state"`
-	RecipientHint       string               `json:"recipient_hint,omitempty"`
-	DeliveryState       string               `json:"delivery_state,omitempty"`
-	Deadline            time.Time            `json:"deadline"`
-	UpdatedAt           time.Time            `json:"updated_at"`
-	SubmittedAt         *time.Time           `json:"submitted_at,omitempty"`
-	RequiredCount       *int                 `json:"required_count"`
-	AnsweredRequired    *int                 `json:"answered_required"`
-	HeldRequired        *int                 `json:"held_required"`
-	MissingFields       []VendorMissingField `json:"missing_fields"`
-	Score               *ResponseScoreResult `json:"score,omitempty"`
-	AssessedScore       *ResponseScoreResult `json:"assessed_score,omitempty"`
-	AssessmentState     string               `json:"assessment_state,omitempty"`
-	RequiredReviews     int                  `json:"required_reviews"`
-	CompletedReviews    int                  `json:"completed_reviews"`
-	Current             bool                 `json:"current"`
+	reviewedFields      map[string]bool
+	AttentionItems      []VendorFormAttention `json:"attention_items"`
+	Outdated            *bool                 `json:"outdated"`
+	ResponseCurrency    string                `json:"response_currency"`
+	RequestID           string                `json:"request_id"`
+	RelationshipID      string                `json:"relationship_id"`
+	DistributionID      string                `json:"distribution_id,omitempty"`
+	ResponseID          string                `json:"response_id,omitempty"`
+	FormTemplateID      string                `json:"form_template_id"`
+	FormTemplateVersion int64                 `json:"form_template_version"`
+	Title               string                `json:"title"`
+	Purpose             string                `json:"purpose,omitempty"`
+	OriginType          string                `json:"origin_type,omitempty"`
+	OriginID            string                `json:"origin_id,omitempty"`
+	ResponseState       string                `json:"response_state"`
+	RecipientHint       string                `json:"recipient_hint,omitempty"`
+	DeliveryState       string                `json:"delivery_state,omitempty"`
+	Deadline            time.Time             `json:"deadline"`
+	UpdatedAt           time.Time             `json:"updated_at"`
+	SubmittedAt         *time.Time            `json:"submitted_at,omitempty"`
+	RequiredCount       *int                  `json:"required_count"`
+	AnsweredRequired    *int                  `json:"answered_required"`
+	HeldRequired        *int                  `json:"held_required"`
+	MissingFields       []VendorMissingField  `json:"missing_fields"`
+	Score               *ResponseScoreResult  `json:"score,omitempty"`
+	AssessedScore       *ResponseScoreResult  `json:"assessed_score,omitempty"`
+	AssessmentState     string                `json:"assessment_state,omitempty"`
+	RequiredReviews     int                   `json:"required_reviews"`
+	CompletedReviews    int                   `json:"completed_reviews"`
+	Current             bool                  `json:"current"`
 }
 type VendorFormsPage struct {
 	Items      []VendorFormRow `json:"items"`
@@ -56,6 +66,8 @@ type VendorFormsPage struct {
 	ObservedAt time.Time       `json:"observed_at"`
 }
 type VendorFormSummary struct {
+	FreshnessUnknownForms  int                      `json:"freshness_unknown_forms"`
+	OutdatedForms          int                      `json:"outdated_forms"`
 	PartiallyReplacedForms int                      `json:"partially_replaced_forms"`
 	RelationshipID         string                   `json:"relationship_id"`
 	OutstandingForms       int                      `json:"outstanding_forms"`
@@ -157,7 +169,7 @@ func vendorFormRow(req Request, answers map[string]formcontract.AnswerValue, kno
 		row.ResponseState = "AWAITING_RESPONSE"
 	}
 	if known {
-		contract, err := formContract(req.Presentation, req.Sections, req.Fields)
+		contract, err := requestAnswerContract(req)
 		if err == nil {
 			fields, err := formcontract.VisibleFields(contract, answers)
 			if err == nil && !collectionApplicabilityUnknown(contract, answers) {
@@ -205,6 +217,7 @@ func vendorFormRow(req Request, answers map[string]formcontract.AnswerValue, kno
 	if row.UpdatedAt.IsZero() {
 		row.UpdatedAt = now
 	}
+	populateVendorFormAttention(req, answers, known, &row, nil, now)
 	return row
 }
 
@@ -296,6 +309,9 @@ func summarizeVendorForms(id string, rows []VendorFormRow, now time.Time) Vendor
 		if r.ResponseCurrency == "PARTIALLY_REPLACED" {
 			v.PartiallyReplacedForms++
 		}
+		if r.ResponseState == "SUBMITTED" && r.Outdated != nil && *r.Outdated {
+			v.OutdatedForms++
+		}
 		if vendorFormOutstanding(r) {
 			v.OutstandingForms++
 			if r.Deadline.Before(now) {
@@ -304,6 +320,9 @@ func summarizeVendorForms(id string, rows []VendorFormRow, now time.Time) Vendor
 		}
 		if r.ResponseState == "SUBMITTED" {
 			v.SubmittedForms++
+			if r.Outdated == nil {
+				v.FreshnessUnknownForms++
+			}
 			if r.AssessmentState == "AWAITING_REVIEW" || r.AssessmentState == "IN_REVIEW" {
 				v.AwaitingReview++
 			}

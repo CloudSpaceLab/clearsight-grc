@@ -1,0 +1,43 @@
+{
+  "name": "expired-dark-320",
+  "state": "expired",
+  "theme": "dark",
+  "width": 320,
+  "integrated": false,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 320,
+    "pageScrollWidth": 320,
+    "scrollY": 0,
+    "componentWidth": 256,
+    "componentScrollWidth": 256,
+    "buttons": [
+      {
+        "label": "Review response",
+        "x": 32,
+        "right": 288,
+        "height": 44
+      },
+      {
+        "label": "Review Sample · Third Party Risk Compliance",
+        "x": 207.328125,
+        "right": 288,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 14
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 186,
+    "firstRequirementTop": 433
+  },
+  "status": "PASS"
+}

@@ -3,6 +3,8 @@ import { requestJSON } from "./http";
 export type VendorFormsFilter = "AWAITING_VENDOR" | "AWAITING_REVIEW" | "WITH_RISKS" | "HIGH_RISK" | "OVERDUE" | "NOT_ASSESSED";
 export type VendorFormsQuery = { filter?: VendorFormsFilter; form_template_id?: string; cursor?: string; limit?: number };
 export type VendorFormRow = {
+  attention_items?: Array<{ field_id?: string; rule_id?: string; label: string; state: "MISSING" | "EXPIRED" | "GAP"; source: "RESPONSE" | "REVIEW" }>;
+  outdated?: boolean | null;
   request_id: string; relationship_id: string; distribution_id?: string; response_id?: string; form_template_id: string; form_template_version: number;
   title: string; purpose?: string; origin_type?: string; origin_id?: string; response_state: string; recipient_hint?: string; delivery_state?: string;
   deadline: string; updated_at: string; submitted_at?: string; required_count: number | null; answered_required: number | null;
@@ -10,7 +12,7 @@ export type VendorFormRow = {
   missing_fields: Array<{ id: string; label: string }>; score?: ResponseScore; assessed_score?: ResponseScore; assessment_state?: string; required_reviews: number; completed_reviews: number; current: boolean; response_currency?: "CURRENT" | "PARTIALLY_REPLACED" | "HISTORICAL";
 };
 export type VendorFormsPage = { items: VendorFormRow[]; next_cursor?: string; observed_at: string };
-export type VendorFormSummary = { relationship_id: string; outstanding_forms: number; overdue_forms: number; submitted_forms: number; awaiting_review: number; unassessed_forms: number; assessed_forms: number; highest_concern?: string; observed_at: string; partially_replaced_forms?: number };
+export type VendorFormSummary = { relationship_id: string; outstanding_forms: number; overdue_forms: number; submitted_forms: number; awaiting_review: number; unassessed_forms: number; assessed_forms: number; highest_concern?: string; observed_at: string; partially_replaced_forms?: number; outdated_forms?: number; freshness_unknown_forms?: number };
 export type VendorRequestSettings = Omit<CreateDistributionInput, "subject_type" | "subject_id" | "recipients">;
 export type VendorRequestInput = VendorRequestSettings & { batch_id: string; targets: Array<{ relationship_id: string; recipient: CreateDistributionRecipient }> };
 export type VendorRequestReceipt = { batch_id: string; items: Array<{ relationship_id: string; status: "CREATED" | "PREPARED" | "FAILED"; distribution_id?: string; distribution_state?: string; error?: string }> };

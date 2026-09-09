@@ -1,0 +1,38 @@
+{
+  "name": "empty-dark-320",
+  "state": "empty",
+  "theme": "dark",
+  "width": 320,
+  "integrated": false,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 320,
+    "pageScrollWidth": 320,
+    "scrollY": 0,
+    "componentWidth": 256,
+    "componentScrollWidth": 256,
+    "buttons": [
+      {
+        "label": "Request form",
+        "x": 32,
+        "right": 288,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 12
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 186,
+    "firstRequirementTop": null
+  },
+  "navigation": "Opened Request vendor form from the visible action.",
+  "status": "PASS"
+}

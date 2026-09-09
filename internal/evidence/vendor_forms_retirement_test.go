@@ -73,6 +73,9 @@ func TestVendorFormsRetirementRequiresExactFieldReplacement(t *testing.T) {
 					if row.Current != (tc.currency != "HISTORICAL") {
 						t.Fatalf("current=%v", row.Current)
 					}
+					if tc.currency == "PARTIALLY_REPLACED" && (row.Outdated == nil || !*row.Outdated) {
+						t.Fatalf("partial response freshness unknown: %+v", row)
+					}
 					return
 				}
 			}

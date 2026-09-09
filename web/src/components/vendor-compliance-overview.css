@@ -1,0 +1,18 @@
+.vendor-compliance { display: grid; gap: var(--cs-primitive-space-3); min-inline-size: 0; }
+.vendor-compliance :is(h3,h4,p) { margin: 0; overflow-wrap: anywhere; }
+.vendor-compliance h3 { font-size: var(--cs-primitive-font-size-18); font-weight: 700; }
+.vendor-compliance__heading, .vendor-compliance__heading > div, .vendor-compliance__subheading, .vendor-compliance__form-heading, .vendor-compliance__form-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cs-primitive-space-2); }
+.vendor-compliance__heading > div { justify-content: start; }
+.vendor-compliance__scope { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+.vendor-compliance__counts { display: flex; flex-wrap: wrap; margin: 0; border-block: var(--cs-surface-border-width) solid var(--cs-border-default); padding-block: var(--cs-primitive-space-2); gap: var(--cs-primitive-space-2) var(--cs-primitive-space-4); }
+.vendor-compliance__counts > div { display: flex; align-items: baseline; gap: var(--cs-primitive-space-1); flex-wrap: wrap; }
+.vendor-compliance__counts dt, .vendor-compliance__counts small { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); overflow-wrap: anywhere; }
+.vendor-compliance__counts dd { order: -1; margin: 0; font-weight: 700; font-size: var(--cs-font-size-control); }
+.vendor-compliance__forms, .vendor-compliance__items { display: grid; list-style: none; margin: 0; padding: 0; min-inline-size: 0; }
+.vendor-compliance__forms > li { display: grid; gap: var(--cs-primitive-space-2); padding-block: var(--cs-primitive-space-3); border-block-start: var(--cs-surface-border-width) solid var(--cs-border-default); min-inline-size: 0; }
+.vendor-compliance__form-heading strong { flex: 1 1 12rem; overflow-wrap: anywhere; }
+.vendor-compliance__items { gap: var(--cs-primitive-space-2); }
+.vendor-compliance__items > li { display: grid; grid-template-columns: minmax(0,1fr) max-content; align-items: start; gap: var(--cs-primitive-space-2); }
+.vendor-compliance__items > li > span { overflow-wrap: anywhere; min-inline-size: 0; }
+.vendor-compliance__form-footer p, .vendor-compliance__review { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+@media (max-width: 400px) { .vendor-compliance__heading { align-items: stretch; flex-direction: column; } .vendor-compliance__heading > div { justify-content: space-between; } }

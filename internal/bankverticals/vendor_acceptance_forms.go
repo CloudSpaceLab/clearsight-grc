@@ -20,6 +20,7 @@ func (s *Service) ensureVendorAcceptanceForms(ctx context.Context, config SeedCo
 	}{
 		{vendorAddressVerificationFormInput(programID, config.LegalEntityID), "vendor address-verification"},
 		{vendorCertificationRefreshFormInput(programID, config.LegalEntityID), "vendor certification-refresh"},
+		{ReferenceThirdPartyRiskComplianceForm(programID, config.LegalEntityID), "third-party risk compliance"},
 	}
 	for _, form := range forms {
 		if err := s.ensureGovernedVendorForm(ctx, config, form.input, form.purpose); err != nil {

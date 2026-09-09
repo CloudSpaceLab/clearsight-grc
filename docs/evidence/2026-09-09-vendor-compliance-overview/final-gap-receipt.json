@@ -1,0 +1,292 @@
+{
+  "generatedAt": "2026-09-09T13:16:47.481Z",
+  "base": "http://127.0.0.1:4188",
+  "browser": "140.0.7339.16",
+  "sourceSha256": {
+    "web/src/components/VendorComplianceOverview.tsx": "588987b43f6287c9d9219436ae9c920fdf9e660da2b5856328529632d6e14743",
+    "web/src/components/vendor-compliance-overview.css": "c8adac5580dede4fb0ba5ec36d9fae84b946b780777e1bdcd404f5a92b51dcfa",
+    "web/src/components/VendorsWorkspace.tsx": "dad3f7f3afae01c1805f28aa3e3daec70f94935466492d358a3dd11fb17c0555",
+    "web/src/vendors.css": "c179a2de1da0969d4a4b1dc8512eca1e971b3e1dc91c2f6d526dc80ffbd86146",
+    "web/src/vendorComplianceEvidence.tsx": "24909116f59d5c076d08c2e45064bdfd34a3d39615b655eea519d44eb84642ee",
+    "web/src/vendorFormsApi.ts": "1b622ce987df135754e0e152e4818a53d0de1f521d6a7db8f0da35b603e7174b",
+    "web/dist-evidence/index.html": "5c3a830f4d479cbf346c0e94481090c74881c17eecb2eafedf619614d3baebef"
+  },
+  "results": [
+    {
+      "name": "app-gaps-light-1440",
+      "state": "gaps",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 1216.171875,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Card processing service checks",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 58
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": 579.59375,
+        "firstRequirementBottom": 605.59375,
+        "navigationTop": 0
+      },
+      "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+      "status": "PASS"
+    },
+    {
+      "name": "app-gaps-light-390",
+      "state": "gaps",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Card processing service checks",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 36
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": 576.1875,
+        "firstRequirementBottom": 602.1875,
+        "navigationTop": 771
+      },
+      "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+      "status": "PASS"
+    },
+    {
+      "name": "app-gaps-light-320",
+      "state": "gaps",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Card processing service checks",
+            "x": 41,
+            "right": 121.671875,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 36
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": 667.78125,
+        "firstRequirementBottom": 693.78125,
+        "navigationTop": 727
+      },
+      "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+      "status": "PASS"
+    },
+    {
+      "name": "app-gaps-dark-1440",
+      "state": "gaps",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 1216.171875,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Card processing service checks",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 58
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": 579.59375,
+        "firstRequirementBottom": 605.59375,
+        "navigationTop": 0
+      },
+      "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+      "status": "PASS"
+    },
+    {
+      "name": "app-gaps-dark-390",
+      "state": "gaps",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Card processing service checks",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 36
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": 576.1875,
+        "firstRequirementBottom": 602.1875,
+        "navigationTop": 771
+      },
+      "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+      "status": "PASS"
+    },
+    {
+      "name": "app-gaps-dark-320",
+      "state": "gaps",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Card processing service checks",
+            "x": 41,
+            "right": 121.671875,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 36
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": 667.78125,
+        "firstRequirementBottom": 693.78125,
+        "navigationTop": 727
+      },
+      "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+      "status": "PASS"
+    }
+  ]
+}
