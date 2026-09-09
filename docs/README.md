@@ -2,6 +2,8 @@
 
 The documentation is layered so product semantics, safety, architecture, experience and implementation remain distinct.
 
+Vendor findings migration has a [decision brief](design/2026-09-09-risk-register-migration.md), [implementation plan](superpowers/plans/2026-09-09-risk-register-migration.md) and [local acceptance record](acceptance/2026-09-09-risk-register-migration.md). It creates source-backed issues/actions after existing-vendor and internal-owner confirmation; no vendor invitations are sent.
+
 The optional assessment follow-up repair has a [decision brief and plan](superpowers/plans/2026-09-09-finding-followup-defects.md), [acceptance evidence](acceptance/2026-09-09-finding-followup-defects.md), and [proposal API contract](../api/form-proposals.md). Ordinary source-row proposals remain the default.
 
 ## Required reading

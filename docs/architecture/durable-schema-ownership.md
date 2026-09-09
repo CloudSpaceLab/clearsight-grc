@@ -126,9 +126,16 @@ No live table is currently classified as reserved, deprecated/migration-only, or
 | `document_coverage_reviews` | active authoritative state | document coverage review | authorized coverage reviewers | coverage history, current disposition reconstruction and audit | append-only reviewer decision chronology | retain with assessment traceability | optimistic-review and PostgreSQL integration tests |
 | `document_coverage_suggestions` | active authoritative state | document coverage | document-coverage worker and governed suggestion application | coverage API/UI and Continuity command bridge | proposed to dismissed/applied/failed with target result | retain suggestion and governed application outcome with assessment | suggestion service, authority and PostgreSQL tests |
 | `effective_authority_routes` | active projection | authority / governance | database projection function triggered by routing policy versions | authority resolver/integrity checks | current effective route set with valid interval | rebuild from active routing policy versions | migration 000014; authority integration |
+### Risk register migration ownership
+
+| Table | Classification | Owner | Writers | Readers | Lifecycle | Retention | Evidence |
+|---|---|---|---|---|---|---|---|
+| `risk_register_migrations` | active authoritative state | register migration | scoped migration service | migration review and duplicate-receipt lookup | versioned draft → immutable imported receipt per tenant/entity/source digest | retain with source and resulting issues; no automatic deletion | migration `000088`; registermigration unit/PostgreSQL integration tests |
+| `risk_register_migration_revisions` | active authoritative state | register migration | migration transaction only | reconstruction and audit | append-only source/version/selection/receipt snapshot; update/delete rejected | retain full migration lineage; rollback refuses to erase populated history | migration `000088` immutable trigger; PostgreSQL history test |
 <!-- schema-ownership:end -->
 
 ## Historical dispositions
+
 
 These tables are intentionally absent from the live register:
 

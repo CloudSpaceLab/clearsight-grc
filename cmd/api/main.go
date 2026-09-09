@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"log/slog"
 	"net/http"
 	"os"
@@ -122,7 +123,8 @@ func main() {
 		FormCommunications: services.FormCommunications, FormCommunicationBrands: services.FormCommunicationBrands, FormCommunicationTestDelivery: services.FormCommunicationTestDelivery,
 		FormPolicies: services.FormPolicies,
 		Monitoring:   services.Monitoring, FormProposals: services.FormProposals, ThirdParty: services.ThirdParty, VendorBrands: vendorBrandService, ThirdPartyRelationshipLinks: services.ThirdPartyRelationshipLinks, ThirdPartyWork: vendorWorkService, ThirdPartyAssessments: assessmentService, ThirdPartyActivation: activationService, ThirdPartyAssessmentReviews: assessmentReviewService, ThirdPartyAssessmentApplications: assessmentApplicationService, ThirdPartyAssessmentRequests: assessmentRequestService, ThirdPartyAssessmentDeficiencies: assessmentDeficiencyService, ThirdPartyAssessmentSetup: services.ThirdPartyAssessmentSetup, SourceCatalog: services.SourceCatalog, DocumentImports: services.DocumentImports, Coverage: services.Coverage,
-		Continuity: services.Continuity, MatterFormRemediation: matterFormRemediation, Today: services.Today, Oversight: services.Oversight, Workflow: services.Workflow, Onboarding: services.Onboarding,
+		RegisterMigrations: registermigration.New(services.RegisterMigrations, services.DocumentImports, services.ThirdParty, services.Authority),
+		Continuity:         services.Continuity, MatterFormRemediation: matterFormRemediation, Today: services.Today, Oversight: services.Oversight, Workflow: services.Workflow, Onboarding: services.Onboarding,
 		Autonomy: services.Autonomy, AIGovernance: services.AIGovernance, AIGatewayOperations: gatewayOperations, AIGatewayPublicBaseURL: gatewayPublicBaseURL, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs, Activity: services.Activity, AuditExports: services.AuditExports,
 		MaxArtifactBytes: cfg.MaxArtifactBytes,
 	})

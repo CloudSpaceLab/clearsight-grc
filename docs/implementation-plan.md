@@ -5,6 +5,10 @@
 
 ## Vendor workflow release
 
+### Risk register migration — locally implemented, not deployed
+
+The user requested intelligent import of existing vendor registers, including repeated internal names and generic vendor responsibility. The [migration acceptance record](acceptance/2026-09-09-risk-register-migration.md) covers deterministic assessment grouping, reviewed existing-vendor/internal-person mappings, source-backed deficiency issues/actions, optimistic drafts, atomic persistence and duplicate receipts. Migration `000088` is required. This change does not authorize importing live bank data, sending invitations or deploying the feature. Production routing, representative task timing and production-volume acceptance remain rollout checks.
+
 The subsequent [defect-repair plan](superpowers/plans/2026-09-09-finding-followup-defects.md) addresses the four reproduced historical-branch failures through an optional structured assessment generator, independent source-scoped proposal receipts and retained working response amendments. It intentionally replaces nested parent/child acceptance with existing ordinary draft acceptance. Current verification and release boundaries are recorded in [acceptance](acceptance/2026-09-09-finding-followup-defects.md); #80 remains the broader lifecycle tracker and #200 stays closed.
 
 The [finding follow-up branch review](reviews/2026-09-09-finding-followup-branch-salvage.md) and [selective port plan](superpowers/plans/2026-09-09-finding-followup-salvage.md) record the September 9 source comparison. This tranche adapts explicit XLSX merged ranges, exact row previews and competing generation recovery. Grouped follow-up drafts and submission-status changes remain under #80 because synthetic review probes reproduced four branch defects. #200 remains closed.
