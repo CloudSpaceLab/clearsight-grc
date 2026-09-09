@@ -79,12 +79,16 @@ func TestCloudspaceRiskRegisterSampleIsSubmittedAndRepeatSafe(t *testing.T) {
 		t.Fatal(err)
 	}
 	draft := legacyForm
-	draft.Version++
-	draft.Status = monitoring.LifecycleDraft
-	draft.IsCurrent = false
-	draft.CreatedBy = seed.OwnerPrincipalID
-	draft.SubmittedBy, draft.ApprovedBy = "", ""
-	draft.CreatedAt, draft.UpdatedAt = seed.Now, seed.Now
+	// Start the next revision as a valid draft, then use the normal lifecycle
+	// transitions to make it current. Copying an active revision would retain
+	// its effective dates and violate the draft lifecycle invariant.
+	draft.Lifecycle = monitoring.Lifecycle{
+		Status:    monitoring.LifecycleDraft,
+		Version:   legacyForm.Version + 1,
+		CreatedBy: seed.OwnerPrincipalID,
+		CreatedAt: seed.Now,
+		UpdatedAt: seed.Now,
+	}
 	draft, err = monitoringRepo.CreateFormRevision(ctx, draft)
 	if err != nil {
 		t.Fatal(err)
