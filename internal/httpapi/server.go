@@ -28,6 +28,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
@@ -80,6 +81,7 @@ type Dependencies struct {
 	}
 	SourceCatalog          *sourceaccess.CatalogService
 	DocumentImports        *documentimport.Service
+	RegisterMigrations     *registermigration.Service
 	Coverage               *documentcoverage.Service
 	Continuity             *continuity.Service
 	MatterFormRemediation  *continuity.MatterFormRemediationService

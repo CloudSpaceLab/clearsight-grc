@@ -1,0 +1,31 @@
+.risk-register { min-width: 0; margin-block: 20px; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); color: var(--text); }
+.risk-register > header { display: flex; align-items: start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.risk-register h3 { margin: 4px 0 0; font-size: 1.25rem; font-weight: 650; }
+.risk-register p { line-height: 1.55; overflow-wrap: anywhere; }
+.risk-register fieldset { min-width: 0; margin: 24px 0; padding: 0; border: 0; }
+.risk-register legend { margin-bottom: 12px; font-size: 1rem; font-weight: 650; }
+.register-vendor, .register-owner, .register-finding { min-width: 0; padding: 16px 0; border-top: 1px solid var(--border); }
+.register-vendor, .register-owner, .register-row-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; }
+.register-vendor > div, .register-vendor > p, .register-owner > div, .register-owner > p { grid-column: 1 / -1; }
+.register-owner > div { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.risk-register label { display: grid; gap: 8px; font-size: .875rem; min-width: 0; }
+.risk-register input:not([type=checkbox]), .risk-register select { width: 100%; min-width: 0; box-sizing: border-box; min-height: 44px; border: 1px solid var(--cs-border-field, var(--border)); border-radius: 8px; padding: 10px; background: var(--surface-2); color: var(--text); font: inherit; }
+.risk-register .register-check { display: flex; align-items: center; min-height: 44px; gap: 12px; cursor: pointer; line-height: 1.5; }
+.register-check input { flex: 0 0 20px; width: 20px; height: 20px; accent-color: var(--accent); }
+.register-finding > .register-check { font-weight: 650; font-size: 1rem; }
+.risk-register details { margin-top: 12px; }
+.risk-register summary { cursor: pointer; padding-block: 12px; min-height: 44px; box-sizing: border-box; }
+.risk-register dl > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 12px; padding-block: 8px; border-top: 1px solid var(--border); overflow-wrap: anywhere; }
+.risk-register dt { font-size: .8rem; font-weight: 600; }
+.risk-register dd { margin: 0; white-space: pre-wrap; }
+.risk-register footer { display: flex; gap: 12px; flex-wrap: wrap; padding-top: 12px; }
+.risk-register button { min-height: 44px; white-space: normal; }
+.risk-register :is(input, select, button, summary, a):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.risk-register button:disabled { cursor: not-allowed; }
+@media (max-width: 680px) {
+  .risk-register { padding: 16px; }
+  .register-vendor, .register-owner, .register-row-fields { grid-template-columns: minmax(0, 1fr); }
+  .risk-register dl > div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .risk-register footer > button { flex: 1 1 100%; }
+  .risk-register input:not([type=checkbox]), .risk-register select { font-size: 16px; }
+}

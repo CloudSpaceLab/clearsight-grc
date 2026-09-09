@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { applyDocumentCoverageSuggestion, createDocumentFormProposal, importDocument, loadDocumentCoverage, loadDocumentImport, loadDocumentImports, recompareDocumentCoverage, reviewDocumentCoverage, reviewDocumentProposal } from "../documentApi";
 import type { CoverageCandidate, CoverageDecision, CoverageSuggestion, DocumentCoverage, DocumentImport, DocumentImportSummary, DocumentProposal, ProposalStatus } from "../documentTypes";
 import type { FormTemplateProposal } from "../formsTypes";
@@ -10,6 +10,8 @@ import { EmptyState } from "./EmptyState";
 import { FileDropzone } from "./FileDropzone";
 import { FormProposalReview } from "./forms/FormProposalReview";
 import { ActionLink } from "./ui";
+import { RiskRegisterMigration } from "./imports/RiskRegisterMigration";
+import { isRiskRegister } from "../registerMigrationApi";
 
 const documentAccept = ".txt,.md,.csv,.docx,.xlsx,.pdf,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const maximumDocumentBytes = 20 * 1024 * 1024;
@@ -66,8 +68,9 @@ export function DocumentImportWorkspace() {
     if (!selected || !focus.proposalID) return;
     const element = window.document.getElementById(`document-proposal-${focus.proposalID}`);
     if (!element) return;
-    const disclosure = element.closest("details");
-    if (disclosure instanceof HTMLDetailsElement) disclosure.open = true;
+    for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+      if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+    }
     window.requestAnimationFrame(() => element.scrollIntoView({ block: "start" }));
   }, [selected?.id, selected?.version, focus.proposalID]);
 
@@ -327,6 +330,8 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
 
   return <article className="document-import-inspector">
     <header><div><span className="eyebrow">{human(document.source_type)}</span><h2>{document.file_name}</h2><p>{document.purpose}</p></div><div className="document-state"><span>{stateLabel}</span><strong>{processing ? "Processing stored source" : terminalLabel}</strong></div></header>
+    {isRiskRegister(document.elements) && <RiskRegisterMigration key={`${document.id}:${document.version}`} documentID={document.id} />}
+    <SourceAnalysis collapsed={isRiskRegister(document.elements)}>
     <div className="import-review-summary" aria-label="Import review summary">{coverage ? <><span><strong>{coverage.metrics.verified.denominator}</strong> eligible obligations</span><span><strong>{coveragePending}</strong> loaded for review</span><span><strong>{handoffsPending}</strong> awaiting review or authorization</span></> : <><span><strong>{pending.length}</strong> intake review</span><span><strong>{handoffsPending}</strong> awaiting review or authorization</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></>}</div>
     {processing && <section className="workspace-loading" aria-live="polite" aria-busy="true"><strong>Original stored successfully.</strong><p>Extraction and analysis are running in the background. This page will update when processing completes.</p></section>}
     {!processing && coverage && <CoverageAssessment coverage={coverage} actionID={coverageActionID} notice={coverageNotice} onReview={onCoverageReview} onApply={onApplySuggestion} onRecompare={onRecompare} onLoadMore={onLoadMore}/>}
@@ -345,7 +350,12 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
       {reviewed.length > 0 && <details className="import-secondary" open={handoffsPending > 0 || handoffReceiptVisible}><summary><span>Proposal reviews and results</span><strong>{reviewed.length}</strong></summary><div className="proposal-list">{reviewed.map((proposal) => <ProposalCard key={proposal.id} document={document} proposal={proposal} busy={false} locked={Boolean(reviewingProposalID)} onReview={onReview} onDocumentUpdated={onDocumentUpdated}/>)}</div></details>}
     </>}
     <details className="import-secondary"><summary><span>Original source details</span><strong>{document.sections.length} extracted</strong></summary><div><dl className="document-metadata"><div><dt>Original hash</dt><dd><code>{document.sha256}</code></dd></div><div><dt>File status</dt><dd>{human(document.artifact_status)}</dd></div><div><dt>Text extraction</dt><dd>{human(document.extraction_method)}</dd></div><div><dt>Completeness</dt><dd>{contentTruncated || sectionsOmitted ? `${document.sections.length} of ${sectionsTotal} sections extracted` : `All ${sectionsTotal} sections extracted`}</dd></div><div><dt>Version</dt><dd>{document.version}</dd></div></dl>{document.sections.length > 0 && <div className="document-sections">{document.sections.map((section) => <details key={section.id}><summary>{section.title}</summary><pre>{section.text}</pre></details>)}</div>}</div></details>
+    </SourceAnalysis>
   </article>;
+}
+
+function SourceAnalysis({ collapsed, children }: { collapsed: boolean; children: ReactNode }) {
+  return collapsed ? <details className="import-secondary"><summary>Review document analysis</summary>{children}</details> : <>{children}</>;
 }
 
 type CoverageFilter = "ALL" | "REVIEW" | "GAPS" | "COVERED";

@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"log/slog"
 	"strings"
 	"time"
@@ -166,7 +167,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	oversightService := oversight.NewService(oversightRepo)
 
 	return serviceSet{
-		Mode: "memory", Authority: authorityService, Governance: governance.NewService(governance.NewMemoryRepository()),
+		RegisterMigrations: registermigration.NewMemoryRepository(continuityRepo, thirdPartyRepo),
+		Mode:               "memory", Authority: authorityService, Governance: governance.NewService(governance.NewMemoryRepository()),
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		FormPolicies: formPolicies,

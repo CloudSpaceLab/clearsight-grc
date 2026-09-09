@@ -385,6 +385,9 @@
       "post": { "operationId": "createDocumentImport", "x-clearsight-route-class": "AUTHENTICATED_WRITE" }
     },
     "/api/v1/document-imports/{id}": { "get": { "operationId": "getDocumentImport", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/document-imports/{id}/risk-register": { "get": { "operationId": "getRiskRegisterMigration", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/document-imports/{id}/risk-register/save": { "post": { "operationId": "saveRiskRegisterMigration", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
+    "/api/v1/document-imports/{id}/risk-register/import": { "post": { "operationId": "commitRiskRegisterMigration", "x-clearsight-route-class": "MATERIAL_COMMAND" } },
     "/api/v1/document-imports/{id}/form-template-proposals": { "post": { "operationId": "createDocumentFormProposal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/document-imports/{id}/proposals/{proposal_id}/review": { "post": { "operationId": "reviewDocumentProposal", "x-clearsight-route-class": "AUTHENTICATED_WRITE" } },
     "/api/v1/document-imports/{id}/proposals/{proposal_id}/handoff/review": { "post": { "operationId": "reviewDocumentProposalHandoff", "x-clearsight-route-class": "MATERIAL_COMMAND" } },

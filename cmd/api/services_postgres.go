@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"log/slog"
 	"time"
 
@@ -131,7 +132,8 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	}
 	logger.Info("postgres repositories enabled", "max_connections", cfg.DatabaseMaxConns, "artifact_root", cfg.ArtifactRoot, "demo_mode", cfg.DemoMode)
 	return serviceSet{
-		Mode: "postgres", Authority: authorityService, Governance: governance.NewService(governance.NewPostgresRepository(pool)),
+		RegisterMigrations: registermigration.NewPostgresRepository(pool),
+		Mode:               "postgres", Authority: authorityService, Governance: governance.NewService(governance.NewPostgresRepository(pool)),
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		FormPolicies: formPolicies,
