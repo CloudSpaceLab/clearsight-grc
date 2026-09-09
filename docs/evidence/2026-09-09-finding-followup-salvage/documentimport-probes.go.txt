@@ -1,0 +1,43 @@
+package documentimport
+
+import (
+    "strings"
+    "testing"
+)
+
+// Synthetic review probes, deliberately outside the release checkout.
+func TestSalvageAuditColumnMarkerInsideFinding(t *testing.T) {
+    d := followUpRegisterFixture()
+    d.Sections = d.Sections[:1]
+    d.Sections[0].Text = strings.Replace(d.Sections[0].Text, "Finding 1", "Finding 1\nColumn 10: quoted example inside the finding", 1)
+    p, err := ProposeFormTemplate(d, DefaultProposalPolicy())
+    if err != nil { t.Fatal(err) }
+    if !strings.Contains(p.Contract.Sections[0].Help, "quoted example inside the finding") {
+        t.Fatal("source text inside the finding was silently interpreted as another column and lost")
+    }
+}
+
+func TestSalvageAuditAssessmentHeaderWithoutFinding(t *testing.T) {
+    d := followUpRegisterFixture()
+    first := d.Sections[0]
+    header := Section{Sheet: first.Sheet, RowStart: 3, RowEnd: 3, Text: "Column 1: 2\nColumn 4: Second sample vendor\nColumn 5: Second service\nColumn 11: 2026-02-06"}
+    next := d.Sections[1]
+    next.RowStart, next.RowEnd = 4, 4
+    d.Sections = []Section{first, header, next}
+    p, err := ProposeFormTemplate(d, DefaultProposalPolicy())
+    if err != nil { return } // Fail closed is preferable to assigning the old vendor.
+    if p.FieldChanges[0].GroupID == p.FieldChanges[5].GroupID {
+        t.Fatal("finding after a new numbered assessment header was assigned to the preceding vendor")
+    }
+}
+
+func TestSalvageAuditRowSpecificResponsibility(t *testing.T) {
+    d := followUpRegisterFixture()
+    d.Sections = d.Sections[:2]
+    d.Sections[1].Text += "\nColumn 12: Second remediation owner"
+    p, err := ProposeFormTemplate(d, DefaultProposalPolicy())
+    if err != nil { return }
+    if !strings.Contains(p.Contract.Fields[7].Description, "Second remediation owner") {
+        t.Fatal("second finding silently reused the first finding's responsibility")
+    }
+}

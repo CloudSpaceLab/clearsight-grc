@@ -16,7 +16,7 @@ export function FormPreview({ contract, initialMode }: Props) {
   }, [contract, initialMode]);
 
   return <section className="builder-preview form-preview-panel" aria-labelledby="form-preview-title">
-    <div className="section-editor-heading"><div><h5 id="form-preview-title">Response preview</h5><p>Preview the questions and answer controls recipients will use.</p></div></div>
+    <div className="section-editor-heading"><div><h4 id="form-preview-title">Response preview</h4><p>Preview the questions and answer controls recipients will use.</p></div></div>
     <div className="form-document-canvas">{reviewing
       ? <section className="form-preview-review" aria-labelledby="form-preview-review-title"><h3 id="form-preview-review-title">Response review preview</h3><p>This is a template preview. No response will be submitted.</p><dl>{contract.fields.map((field) => <div key={field.id}><dt>{field.label}</dt><dd>{previewAnswer(answers[field.id])}</dd></div>)}</dl><button className="secondary-button" type="button" onClick={() => setReviewing(false)}>Return to questions</button></section>
       : <CaptureForm contract={contract} answers={answers} attachments={{}} mode={mode} external={false} uploadingField={null} onAnswer={(fieldID, value) => setAnswers((current) => ({ ...current, [fieldID]: value }))} onUpload={() => undefined} onRemoveAttachment={() => undefined} onModeChange={setMode} onReview={() => setReviewing(true)}/>}</div>

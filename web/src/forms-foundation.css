@@ -28,3 +28,5 @@
 .form-proposal-layout .form-proposal-changes { max-height: none; overflow: visible; }
 .form-proposal-feedback { padding: 16px 24px 0; }
 @media (max-width: 650px) { .form-proposal-feedback { padding-inline: 16px; } }
+.form-proposal-unresolved{color:var(--text)}
+.form-preview-panel .section-editor-heading h4{margin:0;font-size:14px}

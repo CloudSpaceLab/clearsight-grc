@@ -162,7 +162,7 @@ func ExtractWithPolicy(ctx context.Context, fileName, mediaType string, data []b
 		}
 		err = docxErr
 	case ".xlsx":
-		method = "XLSX_XML_STREAM_V3"
+		method = "XLSX_XML_STREAM_V4"
 		err = xlsxSections(ctx, data, collector, policy)
 	case ".pdf":
 		return extractPDF(ctx, data, collector, policy)

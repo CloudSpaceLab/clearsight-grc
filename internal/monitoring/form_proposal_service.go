@@ -124,7 +124,18 @@ func (s *FormProposalService) Generate(ctx context.Context, tenantID, legalEntit
 	current.FailureCode = ""
 	current.FailureMessage = ""
 	current.UpdatedAt = now
-	return s.store.CompleteGeneration(ctx, current, current.Version)
+	completed, err := s.store.CompleteGeneration(ctx, current, current.Version)
+	if !errors.Is(err, ErrConflict) {
+		return completed, err
+	}
+	latest, readErr := s.store.Get(ctx, current.TenantID, current.LegalEntityID, current.ID)
+	if readErr != nil {
+		return FormTemplateProposal{}, readErr
+	}
+	if latest.Status != FormProposalGenerating && latest.ID == current.ID && latest.TenantID == current.TenantID && latest.LegalEntityID == current.LegalEntityID && sameProposalSource(current, latest) {
+		return latest, nil
+	}
+	return FormTemplateProposal{}, err
 }
 
 func (s *FormProposalService) Get(ctx context.Context, proposalID string) (FormTemplateProposal, error) {

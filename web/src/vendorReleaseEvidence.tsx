@@ -20,9 +20,18 @@ export function VendorReleaseEvidencePage({ state }: { state: string }) {
     proposed_contract: { ...proposal.proposed_contract, sections: null, fields: proposal.proposed_contract.fields.slice(0, 3).map((field) => ({ ...field, section_id: undefined })) },
     field_changes: proposal.field_changes.slice(0, 3),
     unresolved_items: null,
-  })) : proposal;
+  })) : state === "spreadsheet-source-rows" ? {
+    ...proposal,
+    proposed_contract: { ...proposal.proposed_contract, fields: proposal.proposed_contract.fields.slice(0, 2) },
+    field_changes: proposal.field_changes.slice(0, 2),
+    unresolved_items: proposal.unresolved_items.slice(0, 2),
+  } : proposal;
+  const sourceElements = state === "spreadsheet-source-rows" ? [
+    { kind: "TABLE" as const, text: "Sample requirement 1: Confirm access owners. Evidence: signed access register.", anchor: { sheet: "Checklist", row_start: 2, row_end: 2 } },
+    { kind: "TABLE" as const, text: "Sample requirement 2: Review recovery testing. Evidence: recovery exercise report.", anchor: { sheet: "Checklist", row_start: 3, row_end: 3 } },
+  ] : [];
   return <main style={{ maxWidth: 1400, margin: "0 auto", padding: 24 }}>
     <Notice tone="info">Sample data · Vendor workflow review. This page does not send requests.</Notice>
-    {state.startsWith("spreadsheet") ? <FormProposalReview proposal={reviewProposal} sourceTitle="Sample service checklist.xlsx" onProposalChange={setProposal}/> : <CaptureForm contract={{ ...starter, sections: starter.sections.filter((section) => section.id === "controls"), fields: starter.fields.filter((field) => field.section_id === "controls") }} answers={answers} attachments={{}} mode="CLASSIC" external uploadingField={null} onAnswer={(id, value) => setAnswers((current) => ({ ...current, [id]: value }))} onUpload={() => undefined} onRemoveAttachment={() => undefined} onModeChange={() => undefined} onReview={() => undefined}/>}
+    {state.startsWith("spreadsheet") ? <FormProposalReview proposal={reviewProposal} sourceTitle="Sample service checklist.xlsx" sourceElements={sourceElements} onProposalChange={setProposal}/> : <CaptureForm contract={{ ...starter, sections: starter.sections.filter((section) => section.id === "controls"), fields: starter.fields.filter((field) => field.section_id === "controls") }} answers={answers} attachments={{}} mode="CLASSIC" external uploadingField={null} onAnswer={(id, value) => setAnswers((current) => ({ ...current, [id]: value }))} onUpload={() => undefined} onRemoveAttachment={() => undefined} onModeChange={() => undefined} onReview={() => undefined}/>}
   </main>;
 }

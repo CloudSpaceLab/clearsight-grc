@@ -1,0 +1,62 @@
+[
+  {
+    "theme": "light",
+    "width": 1440,
+    "errors": [],
+    "baseline": false,
+    "excerpts": [
+      "Sample requirement 1: Confirm access owners. Evidence: signed access register.",
+      "Sample requirement 2: Review recovery testing. Evidence: recovery exercise report."
+    ],
+    "layout": {
+      "viewport": 1440,
+      "width": 1440
+    },
+    "accessibilityViolations": []
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "errors": [],
+    "baseline": false,
+    "excerpts": [
+      "Sample requirement 1: Confirm access owners. Evidence: signed access register.",
+      "Sample requirement 2: Review recovery testing. Evidence: recovery exercise report."
+    ],
+    "layout": {
+      "viewport": 390,
+      "width": 390
+    },
+    "accessibilityViolations": []
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "errors": [],
+    "baseline": false,
+    "excerpts": [
+      "Sample requirement 1: Confirm access owners. Evidence: signed access register.",
+      "Sample requirement 2: Review recovery testing. Evidence: recovery exercise report."
+    ],
+    "layout": {
+      "viewport": 1440,
+      "width": 1440
+    },
+    "accessibilityViolations": []
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "errors": [],
+    "baseline": false,
+    "excerpts": [
+      "Sample requirement 1: Confirm access owners. Evidence: signed access register.",
+      "Sample requirement 2: Review recovery testing. Evidence: recovery exercise report."
+    ],
+    "layout": {
+      "viewport": 390,
+      "width": 390
+    },
+    "accessibilityViolations": []
+  }
+]
