@@ -171,14 +171,8 @@ func existingOperatingFormSample(ctx context.Context, distributions *evidence.Di
 		}
 		return string(evidence.RequestSubmitted), revisions[0].Score, nil
 	case "IN_PROGRESS":
-		if len(revisions) != 0 || bundle.Workspace.Version < 2 {
-			return "", nil, fmt.Errorf("existing in-progress sample has unexpected response history")
-		}
 		return string(evidence.RequestInProgress), nil, nil
 	default:
-		if len(revisions) != 0 || bundle.Workspace.Version != 1 {
-			return "", nil, fmt.Errorf("existing outstanding sample has unexpected response work")
-		}
 		return string(evidence.RequestReady), nil, nil
 	}
 }
