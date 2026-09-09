@@ -124,7 +124,7 @@ export function FormProposalReview({ proposal: receivedProposal, sourceTitle, so
         {proposal.field_changes.map((change) => <ProposalChange key={change.id} change={change} checked={selected.has(change.id)} elements={sourceElements} unresolved={proposal.unresolved_items.filter((item) => item.field_change_id === change.id)} onToggle={() => toggle(change.id)}/>)}
       </div>
       <aside className="form-proposal-preview">
-        <FormPreview contract={preview} initialMode="CLASSIC" showModeControls={false}/>
+        <FormPreview contract={preview} initialMode="CLASSIC"/>
         {proposal.proposed_contract.scoring_mode === "NONE" && <p className="form-proposal-scoring-note">Scoring weights were not inferred. Add compliance weights only after a reviewer confirms the scoring policy and the total equals 100.</p>}
       </aside>
     </div>
