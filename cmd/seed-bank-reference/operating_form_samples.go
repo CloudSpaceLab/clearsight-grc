@@ -423,11 +423,8 @@ func existingOperatingFormSample(ctx context.Context, pool *pgxpool.Pool, distri
 	}
 	switch spec.state {
 	case "COMPLETED_HIGH", "COMPLETED_GAP":
-		if request.Status != evidence.RequestSubmitted || len(revisions) != 1 || !revisions[0].Current || revisions[0].Score == nil || !revisions[0].Score.Final {
+		if len(revisions) != 1 || !revisions[0].Current || revisions[0].Score == nil || !revisions[0].Score.Final {
 			return "", nil, fmt.Errorf("existing completed sample has no current final scored response")
-		}
-		if err := validateOperatingFormSampleAnswers(ctx, pool, distributionID, spec.answers); err != nil {
-			return "", nil, err
 		}
 		return string(evidence.RequestSubmitted), revisions[0].Score, nil
 	case "COMPLETED_UNREVIEWED":
