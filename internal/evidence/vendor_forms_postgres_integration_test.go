@@ -80,6 +80,21 @@ func TestPostgresVendorFormsSubmittedRevisionOverridesOpenRequest(t *testing.T) 
 	if err != nil || len(summary) != 1 || summary[0].SubmittedForms != 1 || summary[0].OutstandingForms != 1 || summary[0].OverdueForms != 1 || summary[0].AssessedForms != 1 || summary[0].HighestConcern != "HIGH" {
 		t.Fatalf("summary=%+v err=%v", summary, err)
 	}
+	oversight, role, position := mustResponseWorkspaceID(t), mustResponseWorkspaceID(t), mustResponseWorkspaceID(t)
+	if _, err := pool.Exec(ctx, `
+ INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($1::uuid,$2::uuid,'PERSON','Risk executive','ACTIVE',$7);
+ INSERT INTO role_templates(id,tenant_id,code,name,responsibilities,capabilities,valid_from) VALUES($3::uuid,$2::uuid,'RISK_EXECUTIVE','Risk executive',ARRAY['AUTHORIZER'],ARRAY['read:all'],$7);
+ INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id,valid_from) VALUES($4::uuid,$2::uuid,$5::uuid,'RISK-EXECUTIVE','Risk executive',$1::uuid,$7);
+ INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,scope,valid_from) VALUES($2::uuid,$4::uuid,$3::uuid,jsonb_build_object('legal_entity_id',$5::text),$7)`,
+		pgx.QueryExecModeSimpleProtocol, oversight, tenant, role, position, entity, owner, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	q.PrincipalID = oversight
+	oversightPage, err := store.ListVendorForms(ctx, q)
+	if err != nil || len(oversightPage.Items) != 2 {
+		t.Fatalf("read-all oversight page=%+v err=%v", oversightPage, err)
+	}
+	q.PrincipalID = owner
 	for _, filter := range []string{"AWAITING_VENDOR", "OVERDUE", "WITH_RISKS", "HIGH_RISK"} {
 		q.Filter = filter
 		filtered, err := store.ListVendorForms(ctx, q)
