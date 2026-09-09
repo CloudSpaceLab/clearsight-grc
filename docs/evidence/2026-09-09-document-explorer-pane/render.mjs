@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {mkdir,writeFile} from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const {chromium}=createRequire(import.meta.url)('C:/Users/Son/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const phase=process.env.PHASE??'after',out=path.join(path.dirname(fileURLToPath(import.meta.url)),phase);await mkdir(out,{recursive:true});
+const cases=[['nested',1280],['standalone',1440],['standalone',390],['standalone',320],['picker',1440]];
+const browser=await chromium.launch({headless:true}),results=[];
+try{for(const [hostKind,width] of cases)for(const theme of ['light','dark']){
+ const context=await browser.newContext({viewport:{width:1440,height:900},colorScheme:theme,reducedMotion:'reduce'});await context.addInitScript(t=>{localStorage.setItem('clearsight.theme',t);localStorage.setItem('clearsight.density','comfortable');},theme);
+ const page=await context.newPage();page.setDefaultTimeout(15000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(`http://127.0.0.1:4187/?tour=off&fixture=${hostKind==='standalone'?'forms-response-history':'vendor-collection'}#${hostKind==='standalone'?'forms':'vendors'}`,{waitUntil:'networkidle'});
+ if(hostKind==='standalone')await page.getByRole('tab',{name:'Documents',exact:true}).click();
+ else {await page.getByRole('button',{name:/Acme Processing Limited.*Card transaction processing/}).click();if(hostKind==='nested')await page.getByRole('button',{name:'View vendor documents',exact:true}).click();else {await page.getByRole('button',{name:'Open due diligence',exact:true}).click();await page.locator('.vendor-checklist').getByRole('article',{name:'Vulnerability test report',exact:true}).getByRole('button',{name:'Use existing document',exact:true}).click();}}
+ const host=page.locator('.document-browser');await host.locator('tbody tr').first().waitFor();await page.setViewportSize({width,height:900});await page.evaluate(async()=>{await document.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));});
+ const id=`${hostKind}-${theme}-${width}`;
+ async function measure(){return host.evaluate(e=>{const visible=e=>Boolean(e&&getComputedStyle(e).display!=='none'&&e.getBoundingClientRect().width>0);return{browserWidth:e.getBoundingClientRect().width,navVisible:visible(e.querySelector('.document-kinds')),selectorVisible:visible(e.querySelector('.document-kind-selector')),inspectorVisible:visible(e.querySelector('.document-inspector')),navLabelLines:[...e.querySelectorAll('.document-kind-label > span:first-of-type')].map(n=>n.getBoundingClientRect().height/parseFloat(getComputedStyle(n).lineHeight)),tableWidth:e.querySelector('.cs-data-table').getBoundingClientRect().width,rowDisplay:getComputedStyle(e.querySelector('tbody tr')).display,filenames:[...e.querySelectorAll('.document-file-name strong')].map(n=>({text:n.textContent,width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height})),documentWidth:document.documentElement.scrollWidth,viewport:innerWidth,hostScrollWidth:e.scrollWidth,hostClientWidth:e.clientWidth};});}
+ const initial=await measure();initial.styles=await host.evaluate(e=>({density:document.documentElement.dataset.density,groupToken:getComputedStyle(e).getPropertyValue('--cs-space-group'),headingPadding:getComputedStyle(e.querySelector('.document-browser-heading')).padding,border:getComputedStyle(e).border,fields:[...e.querySelectorAll('tbody tr:first-child td')].map(c=>({label:c.dataset.label,align:getComputedStyle(c,'::before').textAlign,cellWidth:c.getBoundingClientRect().width,childWidth:c.firstElementChild?.getBoundingClientRect().width,childAlign:c.firstElementChild&&getComputedStyle(c.firstElementChild).justifySelf,previewLines:c.dataset.label==='Preview'?c.querySelector('button > span').getBoundingClientRect().height/parseFloat(getComputedStyle(c.querySelector('button')).lineHeight):undefined}))}));await host.screenshot({path:path.join(out,`${id}.png`)});
+ await host.locator('tbody tr').first().focus();const selected=await measure();await host.screenshot({path:path.join(out,`${id}-selected.png`)});
+ if(phase==='after'){
+  assert.equal(initial.navVisible,hostKind==='picker'?initial.browserWidth>760&&width>760:initial.browserWidth>960&&width>760);assert.equal(initial.selectorVisible,!initial.navVisible);if(initial.navVisible)assert.ok(initial.navLabelLines.every(lines=>lines<=1.1));
+  assert.equal(initial.rowDisplay,initial.tableWidth<=700||width<=700?'grid':'table-row');if(initial.rowDisplay==='grid'){assert.ok(initial.styles.fields.every(f=>f.align==='start'));assert.ok(initial.styles.fields.filter(f=>f.label!=='Name'&&f.childAlign).every(f=>f.childAlign==='start'));assert.ok(initial.styles.fields.find(f=>f.label==='Preview').previewLines<=1.1);}
+  assert.ok(initial.filenames.every(n=>n.width>=100 && n.height<=84),`Filename space too narrow: ${JSON.stringify(initial.filenames)}`);
+  for(const state of [initial,selected]){assert.ok(state.documentWidth<=width+1);assert.ok(state.hostScrollWidth<=state.hostClientWidth+1);if(state.browserWidth<=1100)assert.equal(state.inspectorVisible,false);}
+  const row=host.locator('tbody tr').first();const selectedBefore=await row.getAttribute('aria-selected');await page.evaluate(()=>{const fetch=globalThis.fetch;globalThis.documentResizeReads=0;globalThis.fetch=(input,init)=>{const url=typeof input==='string'?input:input.url??input.toString();if(url.includes('/forms/documents'))globalThis.documentResizeReads++;return fetch(input,init)}});
+  await page.setViewportSize({width:width===320?390:320,height:900});await page.waitForTimeout(250);assert.equal(await row.getAttribute('aria-selected'),selectedBefore);assert.equal(await page.evaluate(()=>globalThis.documentResizeReads),0);
+ }
+ results.push({id,initial,selected,errors});await context.close();
+}}finally{await browser.close();await writeFile(path.join(out,'receipt.json'),JSON.stringify({generatedAt:new Date().toISOString(),phase,results},null,2));}

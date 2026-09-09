@@ -1,0 +1,766 @@
+{
+  "generatedAt": "2026-09-09T08:44:50.167Z",
+  "phase": "before",
+  "results": [
+    {
+      "id": "nested-light-1280",
+      "initial": {
+        "browserWidth": 645.28125,
+        "navVisible": true,
+        "selectorVisible": false,
+        "inspectorVisible": null,
+        "tableWidth": 437.28125,
+        "rowDisplay": "table-row",
+        "filenames": [
+          {
+            "text": "Security test report.pdf",
+            "width": 33.8125,
+            "height": 126
+          },
+          {
+            "text": "ISO 27001 certificate.pdf",
+            "width": 33.8125,
+            "height": 147
+          }
+        ],
+        "documentWidth": 1280,
+        "viewport": 1280,
+        "hostScrollWidth": 645,
+        "hostClientWidth": 645
+      },
+      "selected": {
+        "browserWidth": 645.28125,
+        "navVisible": true,
+        "selectorVisible": false,
+        "inspectorVisible": true,
+        "tableWidth": 213.28125,
+        "rowDisplay": "table-row",
+        "filenames": [
+          {
+            "text": "Security test report.pdf",
+            "width": 10.609375,
+            "height": 420
+          },
+          {
+            "text": "ISO 27001 certificate.pdf",
+            "width": 10.609375,
+            "height": 441
+          }
+        ],
+        "documentWidth": 1280,
+        "viewport": 1280,
+        "hostScrollWidth": 645,
+        "hostClientWidth": 645
+      },
+      "errors": []
+    },
+    {
+      "id": "nested-dark-1280",
+      "initial": {
+        "browserWidth": 645.28125,
+        "navVisible": true,
+        "selectorVisible": false,
+        "inspectorVisible": null,
+        "tableWidth": 437.28125,
+        "rowDisplay": "table-row",
+        "filenames": [
+          {
+            "text": "Security test report.pdf",
+            "width": 33.8125,
+            "height": 126
+          },
+          {
+            "text": "ISO 27001 certificate.pdf",
+            "width": 33.8125,
+            "height": 147
+          }
+        ],
+        "documentWidth": 1280,
+        "viewport": 1280,
+        "hostScrollWidth": 645,
+        "hostClientWidth": 645
+      },
+      "selected": {
+        "browserWidth": 645.28125,
+        "navVisible": true,
+        "selectorVisible": false,
+        "inspectorVisible": true,
+        "tableWidth": 213.28125,
+        "rowDisplay": "table-row",
+        "filenames": [
+          {
+            "text": "Security test report.pdf",
+            "width": 10.609375,
+            "height": 420
+          },
+          {
+            "text": "ISO 27001 certificate.pdf",
+            "width": 10.609375,
+            "height": 441
+          }
+        ],
+        "documentWidth": 1280,
+        "viewport": 1280,
+        "hostScrollWidth": 645,
+        "hostClientWidth": 645
+      },
+      "errors": []
+    },
+    {
+      "id": "standalone-light-1440",
+      "initial": {
+        "browserWidth": 1172.8125,
+        "navVisible": true,
+        "selectorVisible": false,
+        "inspectorVisible": null,
+        "tableWidth": 964.8125,
+        "rowDisplay": "table-row",
+        "filenames": [
+          {
+            "text": "Sample security certification.pdf",
+            "width": 213.9375,
+            "height": 21
+          },
+          {
+            "text": "Sample registered office.png",
+            "width": 189.765625,
+            "height": 21
+          },
+          {
+            "text": "Sample business continuity plan.docx",
+            "width": 246.890625,
+            "height": 21
+          },
+          {
+            "text": "Sample subprocessor register.xlsx",
+            "width": 221.6875,
+            "height": 21
+          },
+          {
+            "text": "Sample service records.zip",
+            "width": 173.765625,
+            "height": 21
+          },
+          {
+            "text": "Sample updated insurance.pdf",
+            "width": 200.609375,
+            "height": 21
+          }
+        ],
+        "documentWidth": 1440,
+        "viewport": 1440,
+        "hostScrollWidth": 1173,
+        "hostClientWidth": 1173
+      },
+      "selected": {
+        "browserWidth": 1172.8125,
+        "navVisible": true,
+        "selectorVisible": false,
+        "inspectorVisible": true,
+        "tableWidth": 740.8125,
+        "rowDisplay": "table-row",
+        "filenames": [
+          {
+            "text": "Sample security certification.pdf",
+            "width": 187.578125,
+            "height": 42
+          },
+          {
+            "text": "Sample registered office.png",
+            "width": 187.578125,
+            "height": 42
+          },
+          {
+            "text": "Sample business continuity plan.docx",
+            "width": 187.578125,
+            "height": 42
+          },
+          {
+            "text": "Sample subprocessor register.xlsx",
+            "width": 187.578125,
+            "height": 42
+          },
+          {
+            "text": "Sample service records.zip",
+            "width": 173.765625,
+            "height": 21
+          },
+          {
+            "text": "Sample updated insurance.pdf",
+            "width": 187.578125,
+            "height": 42
+          }
+        ],
+        "documentWidth": 1440,
+        "viewport": 1440,
+        "hostScrollWidth": 1173,
+        "hostClientWidth": 1173
+      },
+      "errors": []
+    },
+    {
+      "id": "standalone-dark-1440",
+      "initial": {
+        "browserWidth": 1172.8125,
+        "navVisible": true,
+        "selectorVisible": false,
+        "inspectorVisible": null,
+        "tableWidth": 964.8125,
+        "rowDisplay": "table-row",
+        "filenames": [
+          {
+            "text": "Sample security certification.pdf",
+            "width": 213.9375,
+            "height": 21
+          },
+          {
+            "text": "Sample registered office.png",
+            "width": 189.765625,
+            "height": 21
+          },
+          {
+            "text": "Sample business continuity plan.docx",
+            "width": 246.890625,
+            "height": 21
+          },
+          {
+            "text": "Sample subprocessor register.xlsx",
+            "width": 221.6875,
+            "height": 21
+          },
+          {
+            "text": "Sample service records.zip",
+            "width": 173.765625,
+            "height": 21
+          },
+          {
+            "text": "Sample updated insurance.pdf",
+            "width": 200.609375,
+            "height": 21
+          }
+        ],
+        "documentWidth": 1440,
+        "viewport": 1440,
+        "hostScrollWidth": 1173,
+        "hostClientWidth": 1173
+      },
+      "selected": {
+        "browserWidth": 1172.8125,
+        "navVisible": true,
+        "selectorVisible": false,
+        "inspectorVisible": true,
+        "tableWidth": 740.8125,
+        "rowDisplay": "table-row",
+        "filenames": [
+          {
+            "text": "Sample security certification.pdf",
+            "width": 187.578125,
+            "height": 42
+          },
+          {
+            "text": "Sample registered office.png",
+            "width": 187.578125,
+            "height": 42
+          },
+          {
+            "text": "Sample business continuity plan.docx",
+            "width": 187.578125,
+            "height": 42
+          },
+          {
+            "text": "Sample subprocessor register.xlsx",
+            "width": 187.578125,
+            "height": 42
+          },
+          {
+            "text": "Sample service records.zip",
+            "width": 173.765625,
+            "height": 21
+          },
+          {
+            "text": "Sample updated insurance.pdf",
+            "width": 187.578125,
+            "height": 42
+          }
+        ],
+        "documentWidth": 1440,
+        "viewport": 1440,
+        "hostScrollWidth": 1173,
+        "hostClientWidth": 1173
+      },
+      "errors": []
+    },
+    {
+      "id": "standalone-light-390",
+      "initial": {
+        "browserWidth": 214.8125,
+        "navVisible": false,
+        "selectorVisible": true,
+        "inspectorVisible": null,
+        "tableWidth": 214.8125,
+        "rowDisplay": "grid",
+        "filenames": [
+          {
+            "text": "Sample security certification.pdf",
+            "width": 123.21875,
+            "height": 42
+          },
+          {
+            "text": "Sample registered office.png",
+            "width": 123.21875,
+            "height": 42
+          },
+          {
+            "text": "Sample business continuity plan.docx",
+            "width": 123.21875,
+            "height": 63
+          },
+          {
+            "text": "Sample subprocessor register.xlsx",
+            "width": 123.21875,
+            "height": 63
+          },
+          {
+            "text": "Sample service records.zip",
+            "width": 123.21875,
+            "height": 42
+          },
+          {
+            "text": "Sample updated insurance.pdf",
+            "width": 123.21875,
+            "height": 42
+          }
+        ],
+        "documentWidth": 390,
+        "viewport": 390,
+        "hostScrollWidth": 215,
+        "hostClientWidth": 215
+      },
+      "selected": {
+        "browserWidth": 294,
+        "navVisible": false,
+        "selectorVisible": true,
+        "inspectorVisible": false,
+        "tableWidth": 294,
+        "rowDisplay": "grid",
+        "filenames": [
+          {
+            "text": "Sample security certification.pdf",
+            "width": 213.9375,
+            "height": 21
+          },
+          {
+            "text": "Sample registered office.png",
+            "width": 189.765625,
+            "height": 21
+          },
+          {
+            "text": "Sample business continuity plan.docx",
+            "width": 226.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample subprocessor register.xlsx",
+            "width": 221.6875,
+            "height": 21
+          },
+          {
+            "text": "Sample service records.zip",
+            "width": 173.765625,
+            "height": 21
+          },
+          {
+            "text": "Sample updated insurance.pdf",
+            "width": 200.609375,
+            "height": 21
+          }
+        ],
+        "documentWidth": 390,
+        "viewport": 390,
+        "hostScrollWidth": 294,
+        "hostClientWidth": 294
+      },
+      "errors": []
+    },
+    {
+      "id": "standalone-dark-390",
+      "initial": {
+        "browserWidth": 294,
+        "navVisible": false,
+        "selectorVisible": true,
+        "inspectorVisible": null,
+        "tableWidth": 294,
+        "rowDisplay": "grid",
+        "filenames": [
+          {
+            "text": "Sample security certification.pdf",
+            "width": 213.9375,
+            "height": 21
+          },
+          {
+            "text": "Sample registered office.png",
+            "width": 189.765625,
+            "height": 21
+          },
+          {
+            "text": "Sample business continuity plan.docx",
+            "width": 226.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample subprocessor register.xlsx",
+            "width": 221.6875,
+            "height": 21
+          },
+          {
+            "text": "Sample service records.zip",
+            "width": 173.765625,
+            "height": 21
+          },
+          {
+            "text": "Sample updated insurance.pdf",
+            "width": 200.609375,
+            "height": 21
+          }
+        ],
+        "documentWidth": 390,
+        "viewport": 390,
+        "hostScrollWidth": 294,
+        "hostClientWidth": 294
+      },
+      "selected": {
+        "browserWidth": 294,
+        "navVisible": false,
+        "selectorVisible": true,
+        "inspectorVisible": false,
+        "tableWidth": 294,
+        "rowDisplay": "grid",
+        "filenames": [
+          {
+            "text": "Sample security certification.pdf",
+            "width": 213.9375,
+            "height": 21
+          },
+          {
+            "text": "Sample registered office.png",
+            "width": 189.765625,
+            "height": 21
+          },
+          {
+            "text": "Sample business continuity plan.docx",
+            "width": 226.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample subprocessor register.xlsx",
+            "width": 221.6875,
+            "height": 21
+          },
+          {
+            "text": "Sample service records.zip",
+            "width": 173.765625,
+            "height": 21
+          },
+          {
+            "text": "Sample updated insurance.pdf",
+            "width": 200.609375,
+            "height": 21
+          }
+        ],
+        "documentWidth": 390,
+        "viewport": 390,
+        "hostScrollWidth": 294,
+        "hostClientWidth": 294
+      },
+      "errors": []
+    },
+    {
+      "id": "standalone-light-320",
+      "initial": {
+        "browserWidth": 224,
+        "navVisible": false,
+        "selectorVisible": true,
+        "inspectorVisible": null,
+        "tableWidth": 224,
+        "rowDisplay": "grid",
+        "filenames": [
+          {
+            "text": "Sample security certification.pdf",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample registered office.png",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample business continuity plan.docx",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample subprocessor register.xlsx",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample service records.zip",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample updated insurance.pdf",
+            "width": 156.40625,
+            "height": 42
+          }
+        ],
+        "documentWidth": 320,
+        "viewport": 320,
+        "hostScrollWidth": 224,
+        "hostClientWidth": 224
+      },
+      "selected": {
+        "browserWidth": 224,
+        "navVisible": false,
+        "selectorVisible": true,
+        "inspectorVisible": false,
+        "tableWidth": 224,
+        "rowDisplay": "grid",
+        "filenames": [
+          {
+            "text": "Sample security certification.pdf",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample registered office.png",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample business continuity plan.docx",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample subprocessor register.xlsx",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample service records.zip",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample updated insurance.pdf",
+            "width": 156.40625,
+            "height": 42
+          }
+        ],
+        "documentWidth": 320,
+        "viewport": 320,
+        "hostScrollWidth": 224,
+        "hostClientWidth": 224
+      },
+      "errors": []
+    },
+    {
+      "id": "standalone-dark-320",
+      "initial": {
+        "browserWidth": 224,
+        "navVisible": false,
+        "selectorVisible": true,
+        "inspectorVisible": null,
+        "tableWidth": 224,
+        "rowDisplay": "grid",
+        "filenames": [
+          {
+            "text": "Sample security certification.pdf",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample registered office.png",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample business continuity plan.docx",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample subprocessor register.xlsx",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample service records.zip",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample updated insurance.pdf",
+            "width": 156.40625,
+            "height": 42
+          }
+        ],
+        "documentWidth": 320,
+        "viewport": 320,
+        "hostScrollWidth": 224,
+        "hostClientWidth": 224
+      },
+      "selected": {
+        "browserWidth": 224,
+        "navVisible": false,
+        "selectorVisible": true,
+        "inspectorVisible": false,
+        "tableWidth": 224,
+        "rowDisplay": "grid",
+        "filenames": [
+          {
+            "text": "Sample security certification.pdf",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample registered office.png",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample business continuity plan.docx",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample subprocessor register.xlsx",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample service records.zip",
+            "width": 156.40625,
+            "height": 42
+          },
+          {
+            "text": "Sample updated insurance.pdf",
+            "width": 156.40625,
+            "height": 42
+          }
+        ],
+        "documentWidth": 320,
+        "viewport": 320,
+        "hostScrollWidth": 224,
+        "hostClientWidth": 224
+      },
+      "errors": []
+    },
+    {
+      "id": "picker-light-1440",
+      "initial": {
+        "browserWidth": 839,
+        "navVisible": true,
+        "selectorVisible": false,
+        "inspectorVisible": null,
+        "tableWidth": 839,
+        "rowDisplay": "table-row",
+        "filenames": [
+          {
+            "text": "Security test report.pdf",
+            "width": 153.765625,
+            "height": 21
+          },
+          {
+            "text": "ISO 27001 certificate.pdf",
+            "width": 163.671875,
+            "height": 21
+          }
+        ],
+        "documentWidth": 1440,
+        "viewport": 1440,
+        "hostScrollWidth": 839,
+        "hostClientWidth": 839
+      },
+      "selected": {
+        "browserWidth": 839,
+        "navVisible": true,
+        "selectorVisible": false,
+        "inspectorVisible": false,
+        "tableWidth": 839,
+        "rowDisplay": "table-row",
+        "filenames": [
+          {
+            "text": "Security test report.pdf",
+            "width": 153.765625,
+            "height": 21
+          },
+          {
+            "text": "ISO 27001 certificate.pdf",
+            "width": 163.671875,
+            "height": 21
+          }
+        ],
+        "documentWidth": 1440,
+        "viewport": 1440,
+        "hostScrollWidth": 839,
+        "hostClientWidth": 839
+      },
+      "errors": []
+    },
+    {
+      "id": "picker-dark-1440",
+      "initial": {
+        "browserWidth": 839,
+        "navVisible": true,
+        "selectorVisible": false,
+        "inspectorVisible": null,
+        "tableWidth": 839,
+        "rowDisplay": "table-row",
+        "filenames": [
+          {
+            "text": "Security test report.pdf",
+            "width": 153.765625,
+            "height": 21
+          },
+          {
+            "text": "ISO 27001 certificate.pdf",
+            "width": 163.671875,
+            "height": 21
+          }
+        ],
+        "documentWidth": 1440,
+        "viewport": 1440,
+        "hostScrollWidth": 839,
+        "hostClientWidth": 839
+      },
+      "selected": {
+        "browserWidth": 839,
+        "navVisible": true,
+        "selectorVisible": false,
+        "inspectorVisible": false,
+        "tableWidth": 839,
+        "rowDisplay": "table-row",
+        "filenames": [
+          {
+            "text": "Security test report.pdf",
+            "width": 153.765625,
+            "height": 21
+          },
+          {
+            "text": "ISO 27001 certificate.pdf",
+            "width": 163.671875,
+            "height": 21
+          }
+        ],
+        "documentWidth": 1440,
+        "viewport": 1440,
+        "hostScrollWidth": 839,
+        "hostClientWidth": 839
+      },
+      "errors": []
+    }
+  ]
+}

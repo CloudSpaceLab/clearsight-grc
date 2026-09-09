@@ -30,11 +30,12 @@ export type DataTableProps<Row> = {
   onRowAction?: (row: Row) => void;
   isLoading?: boolean;
   pagination?: DataTablePagination;
+  responsiveTo?: "viewport" | "container";
 };
 
-export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, selectedKey, onSelectionChange, onRowAction, isLoading = false, pagination }: DataTableProps<Row>) {
+export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, selectedKey, onSelectionChange, onRowAction, isLoading = false, pagination, responsiveTo = "viewport" }: DataTableProps<Row>) {
   const activeKey = rows.some((row) => rowKey(row) === selectedKey) ? selectedKey : rows[0] && rowKey(rows[0]);
-  return <div className="cs-data-table">
+  return <div className="cs-data-table" data-responsive-to={responsiveTo}>
     <div className="cs-data-table__viewport">
       <table aria-label={ariaLabel} aria-busy={isLoading || undefined}>
         <thead><tr>{columns.map((column) => <th key={column.id} scope="col" data-kind={column.kind ?? "text"}>{column.header}</th>)}</tr></thead>
