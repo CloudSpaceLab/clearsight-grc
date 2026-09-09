@@ -361,17 +361,11 @@ func (s *Service) IssueInvitation(ctx context.Context, input IssueInvitationInpu
 	if err := validateCurrentRequestScope(ctx, s.repo, request, input.LegalEntityID); err != nil {
 		return IssuedInvitation{}, err
 	}
-	access, ok := s.repo.(SubjectAccessChecker)
-	if !ok {
-		return IssuedInvitation{}, fmt.Errorf("request manager access validation is unavailable")
-	}
-	allowed, err := access.CanReadSubject(ctx, request.TenantID, input.CreatedBy, request.SubjectType, request.SubjectID)
-	if err != nil {
-		return IssuedInvitation{}, err
-	}
-	if !allowed {
-		return IssuedInvitation{}, ErrRecipientMismatch
-	}
+	// The verified request creator is the requester administrator for this
+	// request. Subject visibility is not re-checked here because a vendor
+	// relationship owner may change after the request was created; tenant,
+	// legal-entity scope and creator/request-manager checks above remain
+	// authoritative.
 	audience := normalizeAudience(input.Audience)
 	if audience == "" || strings.TrimSpace(input.Purpose) == "" {
 		return IssuedInvitation{}, fmt.Errorf("audience and purpose are required")

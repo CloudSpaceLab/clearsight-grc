@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"mime/multipart"
 	"net/http"
@@ -242,8 +243,28 @@ func (a *API) issueEvidenceInvitation(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "invitation_invalid", "The invitation could not be issued. Check the current recipient and expiry, then try again.")
 	default:
+		issued = a.attachDistributionAccessSelector(r.Context(), input.TenantID, input.LegalEntityID, input.RequestID, input.CreatedBy, issued)
 		httpx.WriteJSON(w, http.StatusCreated, issued)
 	}
+}
+
+// attachDistributionAccessSelector bridges the requester invitation UI to the
+// distribution-backed response workspace. Legacy invitation metadata remains
+// recorded for audit, while the one-time selector returned to the browser is
+// issued by the same access service used by external response forms.
+func (a *API) attachDistributionAccessSelector(ctx context.Context, tenant, legalEntity, requestID, actor string, issued evidence.IssuedInvitation) evidence.IssuedInvitation {
+	if a.deps.FormDistributions == nil || a.deps.FormDistributionAccess == nil {
+		return issued
+	}
+	bundle, err := a.deps.FormDistributions.GetForRequest(ctx, tenant, legalEntity, requestID)
+	if err != nil {
+		return issued
+	}
+	routes, err := a.deps.FormDistributionAccess.IssueDistributionAccessRoutes(ctx, tenant, legalEntity, bundle.Distribution.ID, actor)
+	if err == nil && len(routes) > 0 {
+		issued.Token = routes[0].Selector
+	}
+	return issued
 }
 
 func (a *API) redeemEvidenceInvitation(w http.ResponseWriter, r *http.Request) {

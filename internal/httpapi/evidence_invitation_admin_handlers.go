@@ -38,6 +38,7 @@ func (a *API) replaceEvidenceInvitation(w http.ResponseWriter, r *http.Request) 
 	if writeEvidenceInvitationAdminError(w, err) {
 		return
 	}
+	issued = a.attachDistributionAccessSelector(r.Context(), input.TenantID, input.LegalEntityID, input.RequestID, input.ActorPrincipalID, issued)
 	httpx.WriteJSON(w, http.StatusCreated, issued)
 }
 

@@ -518,7 +518,7 @@ func TestSendAssessmentRequestCapsInvitationAtRequestDeadline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	deadline := assessmentService.now().UTC().Add(24 * time.Hour)
+	deadline := time.Date(2026, 9, 8, 10, 0, 0, 0, time.UTC)
 	outcome, err := service.SendRequest(assessmentContext(), assessmentActor(), assessment.ID, SendAssessmentRequestInput{
 		ExpectedVersion: assessment.Version, Audience: "security@vendor.example", Deadline: deadline, InvitationTTLMinutes: 30 * 24 * 60,
 	})

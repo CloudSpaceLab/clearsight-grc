@@ -151,3 +151,11 @@ func responseRevisionJSON(value evidence.ResponseRevision) responseRevisionRespo
 		ScoringPolicyVersion: value.ScoringPolicyVersion, Current: value.Current, CreatedAt: value.CreatedAt,
 	}
 }
+
+func responseWorkspaceSubmissionJSON(value evidence.WorkspaceSubmissionResult) map[string]any {
+	return map[string]any{
+		"workspace":  responseWorkspaceDTO(value.Workspace),
+		"revision":   responseRevisionJSON(value.Revision),
+		"submission": value.Submission,
+	}
+}

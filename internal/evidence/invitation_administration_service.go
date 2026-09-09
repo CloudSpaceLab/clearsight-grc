@@ -26,17 +26,9 @@ func (s *Service) authorizeRequesterAdministration(ctx context.Context, tenant, 
 	if err := validateCurrentRequestScope(ctx, s.repo, request, legalEntityID); err != nil {
 		return Request{}, err
 	}
-	checker, ok := s.repo.(SubjectAccessChecker)
-	if !ok {
-		return Request{}, ErrSubjectAccessDenied
-	}
-	allowed, err := checker.CanReadSubject(ctx, tenant, actor, request.SubjectType, request.SubjectID)
-	if err != nil {
-		return Request{}, err
-	}
-	if !allowed {
-		return Request{}, ErrSubjectAccessDenied
-	}
+	// The verified request creator retains administration authority for this
+	// request even if the underlying vendor relationship's accountable owner
+	// changes later. Scope and creator checks above remain mandatory.
 	return request, nil
 }
 

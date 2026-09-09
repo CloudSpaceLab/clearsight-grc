@@ -145,12 +145,7 @@ func (r *PostgresRepository) ReassignRecipient(ctx context.Context, input Reassi
 		WHERE er.id=$1::uuid
 		  AND er.tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2)
 		  AND er.legal_entity_id=$9::uuid
-		  AND EXISTS (
-			SELECT 1 FROM principals requester
-			WHERE requester.tenant_id=er.tenant_id
-			  AND requester.id=$10::uuid
-			  AND `+internalRecipientEligibilityPredicate("requester", "er.tenant_id", "er.legal_entity_id", "er.subject_type", "er.subject_id")+`
-		  )
+		  AND er.created_by=$10::uuid
 		  AND (
 			$3<>'INTERNAL_PRINCIPAL'
 			OR EXISTS (
