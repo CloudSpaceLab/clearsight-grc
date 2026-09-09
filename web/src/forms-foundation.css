@@ -22,3 +22,7 @@
 @media(max-width:760px){.forms-table-wrap{max-width:100%;contain:inline-size;overflow-x:auto}}
 @media(max-width:760px){.forms-table{display:block;min-width:0}.forms-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.forms-table tbody{display:grid;gap:10px}.forms-table tr{display:grid;padding:10px;border:1px solid var(--border);border-radius:12px}.forms-table td{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border:0;overflow-wrap:anywhere}.forms-table td+td{border-top:1px solid var(--border)}}
 @media(max-width:420px){.forms-header-actions{display:grid;width:100%}.forms-header-actions button{width:100%}}
+/* Keep draft actions beside long spreadsheet reviews at every viewport. */
+.form-proposal-layout { max-height: min(720px, 65svh); overflow: auto; overscroll-behavior: contain; }
+.form-proposal-layout:focus-visible { outline: 2px solid var(--cs-focus-ring); outline-offset: -2px; }
+.form-proposal-layout .form-proposal-changes { max-height: none; overflow: visible; }

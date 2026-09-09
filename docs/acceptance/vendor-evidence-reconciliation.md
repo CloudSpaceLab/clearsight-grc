@@ -38,6 +38,6 @@ To regenerate this slice's renders, build the evidence entry, serve it locally a
 
 ## Release limits
 
-This is a local implementation with retained evidence, not a deployment. Migration 85 and the existing identity, authority, protected delivery and artifact scanning/storage services must be available in the target environment. No vendor invitations or external messages were sent during this work.
+This is a local implementation with retained evidence, not a deployment. Migration 86 and the existing identity, authority, protected delivery and artifact scanning/storage services must be available in the target environment. No vendor invitations or external messages were sent during this work.
 
 Automatic all-held transition/reminder suppression is limited to unconditional required document collections; conditional requirements still need their controlling answers. The broader spreadsheet interpretation, requirement deduplication, onboarding orchestration and expanded conditional-approval design remain in the [journey review](../reviews/2026-09-08-vendor-journeys-requirements-and-onboarding.md).

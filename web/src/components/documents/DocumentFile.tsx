@@ -1,5 +1,5 @@
-import { documentContentURL, type DocumentOccurrence, type FileKind } from "../../submittedDocumentApi";
-import { ActionLink } from "../ui";
+import { documentContentURL, documentEligibility, type DocumentOccurrence, type FileKind } from "../../submittedDocumentApi";
+import { ActionLink, Notice } from "../ui";
 
 export function FileIcon({ kind }: { kind: FileKind | "ALL" }) {
   return <svg className="document-file-icon" data-kind={kind} viewBox="0 0 32 38" aria-hidden="true"><path d="M5 1h14l8 8v27H5z"/><path d="M19 1v9h8"/>{kind === "IMAGE" ? <><circle cx="12" cy="17" r="2"/><path d="m8 29 6-7 4 4 3-3 4 6"/></> : kind === "SPREADSHEET" ? <><path d="M9 16h14v14H9zM9 23h14M16 16v14"/></> : <><path d="M10 17h12M10 22h12M10 27h8"/></>}</svg>;
@@ -7,7 +7,11 @@ export function FileIcon({ kind }: { kind: FileKind | "ALL" }) {
 export function fileKindLabel(kind: FileKind) { return ({ PDF: "PDF", IMAGE: "Image", WORD: "Word document", SPREADSHEET: "Spreadsheet", OTHER: "Other file" })[kind] ?? "Other file"; }
 export function fileSize(bytes: number) { return Number.isFinite(bytes) && bytes >= 0 ? bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB` : "Size not recorded"; }
 export function documentDate(value?: string) { return value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "Not recorded"; }
-export function fileStatus(file: DocumentOccurrence) { return ({ AVAILABLE: "Ready to view", STORED_UNSCANNED: "Safety check pending", QUARANTINED: "Quarantined", DELETED: "Removed" })[file.artifact_status] ?? "File unavailable"; }
+export function fileStatus(file: DocumentOccurrence) { return documentEligibility(file) === "demo" ? "Demo check complete" : ({ AVAILABLE: "Ready to view", STORED_UNSCANNED: "Safety check pending", QUARANTINED: "Quarantined", DELETED: "Removed" })[file.artifact_status] ?? "File unavailable"; }
+
+export function DocumentDemoNotice({ file }: { file: DocumentOccurrence }) {
+  return documentEligibility(file) === "demo" ? <Notice tone="warning"><strong>Demo check complete</strong><p>No antivirus scan was performed. This fictional sample is available for demonstration only; it is not evidence for a bank decision.</p></Notice> : null;
+}
 
 export function DocumentFacts({ file }: { file: DocumentOccurrence }) {
   return <dl className="document-facts">
@@ -25,5 +29,5 @@ function DocumentTime({ value }: { value?: string }) {
 }
 
 export function DocumentDownload({ file }: { file: DocumentOccurrence }) {
-  return file.artifact_status === "AVAILABLE" ? <ActionLink href={documentContentURL(file, true)} download={file.file_name}>Download file</ActionLink> : null;
+  return documentEligibility(file) ? <ActionLink href={documentContentURL(file, true)} download={file.file_name}>Download file</ActionLink> : null;
 }

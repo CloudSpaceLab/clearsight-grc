@@ -54,6 +54,19 @@ describe("SelectField", () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
+  it("treats Escape captured at the browser boundary as an explicit close", async () => {
+    render(<main><SelectField label="Forms section" value="OPEN" placeholder="Forms section" options={options} onChange={() => undefined}/><div id="cs-overlay-root"/></main>);
+    const trigger = screen.getByRole("button", { name: /Forms section/ });
+
+    fireEvent.click(trigger);
+    await screen.findByRole("listbox");
+    fireEvent.scroll(document);
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+    expect(document.activeElement).toBe(trigger);
+  });
+
   it("portals the option list into the fixed workspace overlay root", async () => {
     render(<main data-testid="workspace"><main data-testid="canvas"><SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/></main><div id="cs-overlay-root" data-testid="overlay-root"/></main>);
     fireEvent.click(screen.getByRole("button", { name: /Status/ }));
@@ -112,6 +125,24 @@ describe("SelectField", () => {
       if (originalScrollY) Object.defineProperty(window, "scrollY", originalScrollY);
       else Reflect.deleteProperty(window, "scrollY");
     }
+  });
+
+  it("ignores a queued pre-open document scroll without a new position change", async () => {
+    const now = vi.spyOn(performance, "now").mockReturnValue(1_000);
+    try {
+      const change = vi.fn();
+      render(<SelectField label="Forms section" value="OPEN" placeholder="Forms section" options={options} onChange={change}/>);
+      fireEvent.click(screen.getByRole("button", { name: /Forms section/ }));
+      await screen.findByRole("listbox");
+
+      // Scrolling a trigger into view can queue its scroll event until after
+      // pointerdown opens the list. Opening has already recorded that position.
+      fireEvent.scroll(document);
+
+      expect(screen.getByRole("listbox")).toBeTruthy();
+      fireEvent.click(screen.getByRole("option", { name: "Responses locked" }));
+      expect(change).toHaveBeenCalledExactlyOnceWith("LOCKED");
+    } finally { now.mockRestore(); }
   });
 
   it("still closes an open option list when the user scrolls after positioning completes", async () => {

@@ -16,7 +16,7 @@ export function concernTone(score?: ResponseScore): StatusTone {
   if (score?.state === "FAILED") return "warning";
   switch (score?.band) { case "CRITICAL": return "error"; case "HIGH": return "warning"; case "MODERATE": return "info"; case "LOW": return "success"; default: return "unknown"; }
 }
-export function coverageText(score?: ResponseScore) { return typeof score?.coverage === "number" ? `${formatNumber(score.coverage <= 1 ? score.coverage * 100 : score.coverage)}%` : "Not available"; }
+export function coverageText(score?: ResponseScore) { if (score?.state === "NOT_CONFIGURED") return "Not applicable"; return typeof score?.coverage === "number" ? `${formatNumber(score.coverage <= 1 ? score.coverage * 100 : score.coverage)}%` : "Not available"; }
 
 function formatNumber(value: number) { return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value); }
 function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (part) => part.toUpperCase()); }

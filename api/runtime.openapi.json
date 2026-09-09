@@ -420,6 +420,7 @@
     "/api/v1/vendors/form-requests": {"post": {"x-clearsight-route-class": "MATERIAL_COMMAND", "operationId": "requestVendorForms"}},
     "/api/v1/forms/responses/{revision_id}/assessment": {"post": {"x-clearsight-route-class": "MATERIAL_COMMAND", "operationId": "recordResponseAssessment"}, "get": {"x-clearsight-route-class": "AUTHENTICATED_READ", "operationId": "getResponseAssessment"}},
     "/api/v1/config/form-response-policies/automation-choices": {"get": {"x-clearsight-permission": "CONFIG_READ", "x-clearsight-route-class": "AUTHENTICATED_READ", "operationId": "listFormPolicyAutomationChoices"}},
-    "/api/v1/config/form-response-policies/{id}/executions": {"get": {"operationId": "listFormPolicyExecutions", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ"}}
+    "/api/v1/config/form-response-policies/{id}/executions": {"get": {"operationId": "listFormPolicyExecutions", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ"}},
+    "/api/v1/config/form-response-policies/{id}/executions/{execution_id}/result": {"get": {"operationId": "getFormPolicyExecutionResult", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ"}}
   }
 }

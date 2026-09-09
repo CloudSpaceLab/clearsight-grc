@@ -17,9 +17,9 @@ import { VendorBrandIcon, vendorBrandLabel } from "./VendorBrandIcon";
 import { VendorActivationPanel } from "./VendorActivationPanel";
 import { VendorIdentityEditor } from "./VendorIdentityEditor";
 import { VendorFormReadiness } from "./VendorFormReadiness";
-import { ActionLink, Button, FocusedSheet, Notice, SelectField, StatusBadge, TextField, TextArea } from "./ui";
+import { ActionLink, Button, Notice, SelectField, StatusBadge, TextField, TextArea, Tabs } from "./ui";
 import { DocumentBrowser } from "./documents/DocumentBrowser";
-import { VendorFormsPanel } from "./VendorFormsPanel";
+import { VendorFormsPanel, VendorResponseHistory } from "./VendorFormsPanel";
 import { VendorFormRequest, type VendorRequestTarget } from "./VendorFormRequest";
 import { loadVendorFormSummaries, type VendorFormSummary, type VendorFormsFilter } from "../vendorFormsApi";
 import "./vendor-forms.css";
@@ -38,6 +38,8 @@ type Props = {
 };
 
 type LoadState = "loading" | "live" | "unavailable";
+type VendorSection = "OVERVIEW" | "FORMS" | "DOCUMENTS" | "DUE_DILIGENCE" | "HISTORY";
+const vendorSections = [{ id: "OVERVIEW", label: "Overview" }, { id: "FORMS", label: "Forms" }, { id: "DOCUMENTS", label: "Documents" }, { id: "DUE_DILIGENCE", label: "Due diligence" }, { id: "HISTORY", label: "History" }] satisfies Array<{ id: VendorSection; label: string }>;
 
 type FormValues = {
   legalName: string;
@@ -47,8 +49,8 @@ type FormValues = {
   websiteDomain: string;
   registeredAddress: string;
   serviceName: string;
-  criticality: VendorCriticality;
-  privacyRole: VendorPrivacyRole;
+  criticality?: VendorCriticality;
+  privacyRole?: VendorPrivacyRole;
   sourceID: string;
   externalRef: string;
   effectiveFrom: string;
@@ -57,7 +59,7 @@ type FormValues = {
 
 const emptyForm: FormValues = {
   legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", websiteDomain: "", registeredAddress: "", serviceName: "",
-  criticality: "STANDARD", privacyRole: "NONE", sourceID: "", externalRef: "", effectiveFrom: "", renewalAt: "",
+  criticality: undefined, privacyRole: undefined, sourceID: "", externalRef: "", effectiveFrom: "", renewalAt: "",
 };
 
 function focusGuideTarget(target: HTMLElement | null) {
@@ -71,7 +73,7 @@ function focusGuideTarget(target: HTMLElement | null) {
 }
 
 function isGuideTargetAvailable(target: HTMLElement | null): target is HTMLElement {
-  if (!target || target.hidden || target.closest("[hidden], [aria-hidden='true']")) return false;
+  if (!target || target.hidden || target.closest("[hidden], [inert], [aria-hidden='true']")) return false;
   if (target instanceof HTMLButtonElement && target.disabled) return false;
   const style = window.getComputedStyle?.(target);
   return style?.display !== "none" && style?.visibility !== "hidden";
@@ -99,6 +101,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const [requestTargets, setRequestTargets] = useState<VendorRequestTarget[]>();
   const [workFilter, setWorkFilter] = useState<VendorFormsFilter>();
   const [formsFocus, setFormsFocus] = useState<{ relationshipID: string; filter?: VendorFormsFilter }>();
+  const [vendorSection, setVendorSection] = useState<VendorSection>("OVERVIEW");
+  const consumedFormsFocus = useRef<typeof formsFocus>(undefined);
   const [form, setForm] = useState<FormValues>(emptyForm);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
@@ -143,10 +147,10 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   }, [recordIDs, formsRefreshKey, assessment?.id, assessment?.version]);
 
   useEffect(() => {
-    if (formsFocus?.relationshipID !== selected?.relationship.id) return;
+    if (!formsFocus || consumedFormsFocus.current === formsFocus || vendorSection !== "FORMS" || formsFocus.relationshipID !== selected?.relationship.id) return;
     const panel = document.querySelector<HTMLElement>(".vendor-forms-panel");
-    if (panel) focusGuideTarget(panel);
-  }, [formsFocus, selected?.relationship.id]);
+    if (panel && focusGuideTarget(panel)) consumedFormsFocus.current = formsFocus;
+  }, [formsFocus, selected?.relationship.id, vendorSection]);
 
   useEffect(() => {
     setQuery("");
@@ -169,12 +173,15 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       return;
     }
     if ((guideIntent.type === "open-vendor-due-diligence" || guideIntent.type === "open-vendor-next-action") && (assessmentState === "loading" || reviewState === "loading" || (!assessment && formState === "loading"))) return;
+    const intendedSection = guideIntent.type === "open-vendor-work" || guideIntent.type === "open-vendor-next-action" && assessment?.status === "COMPLETED" ? "FORMS" : "DUE_DILIGENCE";
+    if (vendorSection !== intendedSection && !(guideIntent.type === "open-vendor-next-action" && vendorSection === "FORMS")) { setVendorSection(intendedSection); return; }
     if (guideIntent.type === "open-vendor-next-action") {
       const workspace = document.querySelector<HTMLElement>(".vendors-workspace");
       if (!workspace) return;
       const focusNextAction = () => {
         const dueDiligenceAction = assessment?.status === "COMPLETED" ? null : firstVisiblePrimaryAction(".vdd-workspace");
         if (dueDiligenceAction && focusGuideTarget(dueDiligenceAction)) return acknowledgeGuideIntent(guideIntent.id);
+        if (vendorSection !== "FORMS") { setVendorSection("FORMS"); return true; }
         const vendorWork = workspace.querySelector<HTMLElement>(".vendor-work-panel");
         if (!vendorWork || vendorWork.getAttribute("aria-busy") === "true") return false;
         const vendorWorkAction = firstVisiblePrimaryAction(".vendor-work-panel");
@@ -193,6 +200,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           setReview(undefined);
           setReviewState("loading");
           setSelected(next);
+          setVendorSection("DUE_DILIGENCE");
           setMode("browse");
           return true;
         }
@@ -219,7 +227,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       onGuideIntentFailed?.(id);
       return true;
     }
-  }, [guideIntent, state, mode, records, selected?.relationship.id, assessment, assessmentState, reviewState, formState, onGuideIntentCompleted, onGuideIntentFailed]);
+  }, [guideIntent, state, mode, records, selected?.relationship.id, assessment, assessmentState, reviewState, formState, vendorSection, onGuideIntentCompleted, onGuideIntentFailed]);
 
   useEffect(() => {
     void refreshForms();
@@ -461,6 +469,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       setNextCursor(page.next_cursor ?? "");
       const preserved = selected ? next.find((item) => item.relationship.id === selected.relationship.id) : undefined;
       const nextSelected = exact ?? preserved ?? (intent ? next[0] : undefined);
+      if (nextSelected?.relationship.id !== selected?.relationship.id) setVendorSection("OVERVIEW");
       setSelected(nextSelected ?? null);
       if (nextSelected) setMode("browse");
       if (intent && next.length === 0) setMode("create");
@@ -500,6 +509,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   }
 
   function choose(record: VendorRelationshipAggregate) {
+    setVendorSection("OVERVIEW");
     if (mode !== "browse") return;
     setSelected(record); setMode("browse"); setNotice(""); setFormError(""); onTarget?.(record.relationship.id);
   }
@@ -573,10 +583,12 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       if ([...form.registeredAddress].length > vendorIdentityLimits.registeredAddress) errors.registeredAddress = "Enter a registered address of 2,000 characters or fewer.";
     }
     if (!form.serviceName.trim()) errors.serviceName = "Enter the service supplied to this legal entity.";
+    if (!form.criticality) errors.criticality = "Select the service criticality.";
+    if (!form.privacyRole) errors.privacyRole = "Select the vendor's privacy role.";
     if ((form.sourceID.trim() && !form.externalRef.trim()) || (!form.sourceID.trim() && form.externalRef.trim())) errors.sourceID = "Enter both source system and source reference, or leave both blank.";
     if (form.effectiveFrom && form.renewalAt && form.renewalAt < form.effectiveFrom) errors.renewalAt = "Renewal date cannot be before the effective date.";
     setFieldErrors(errors);
-    if (Object.values(errors).some(Boolean)) return;
+    if (Object.values(errors).some(Boolean) || !form.criticality || !form.privacyRole) return;
 
     const relationshipInput = {
       service_name: form.serviceName.trim(), criticality: form.criticality, privacy_role: form.privacyRole,
@@ -618,10 +630,19 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     : mode === "edit"
       ? "Save or cancel this vendor relationship before using the register."
       : "Save or cancel these vendor details before using the register.";
+  function synchronizeRelationship(relationship: VendorRelationshipAggregate["relationship"]) {
+    const update = (item: VendorRelationshipAggregate) => item.relationship.id === relationship.id
+      && item.relationship.tenant_id === relationship.tenant_id
+      && item.relationship.legal_entity_id === relationship.legal_entity_id
+      && item.relationship.version <= relationship.version ? { ...item, relationship } : item;
+    setSelected((current) => current ? update(current) : current);
+    setRecords((current) => current.map(update));
+  }
+
   const workspaceClass = `vendors-workspace${registerLocked ? " is-form" : selected ? " has-selection" : ""}`;
   const shownRecords = workFilter ? records.filter((record) => vendorSummaryMatches(formSummaries.get(record.relationship.id), workFilter)) : records;
   function requestForms(values: VendorRelationshipAggregate[]) { setRequestTargets(values.map((value) => ({ relationshipID: value.relationship.id, vendorName: value.vendor.legal_name, serviceName: value.relationship.service_name }))); }
-  function openFormWork(record: VendorRelationshipAggregate, filter?: VendorFormsFilter) { choose(record); setFormsFocus({ relationshipID: record.relationship.id, filter }); }
+  function openFormWork(record: VendorRelationshipAggregate, filter?: VendorFormsFilter) { choose(record); setVendorSection("FORMS"); setFormsFocus({ relationshipID: record.relationship.id, filter }); }
   return <div className={workspaceClass} tabIndex={-1}>
     <header className="topbar vendors-topbar">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Vendors</h1><p>Manage vendors and the services they supply to {legalEntityName}. Review each relationship&apos;s owner, criticality and due-diligence status.</p></div>
@@ -651,6 +672,9 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       <section className="vendor-focus" aria-label="Selected vendor relationship">
         {mode === "edit-identity" && selected ? <VendorIdentityEditor record={selected} onCancel={cancelForm} onIdentitySaved={(presentation) => applyVendorPresentation(presentation, "Vendor details updated.", true)} onBrandSaved={(presentation) => applyVendorPresentation(presentation)} onPresentationReloaded={(presentation) => applyVendorPresentation(presentation)}/> : (mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} existingVendor={existingVendorSource} candidates={vendorCandidates} candidateState={candidateState} onFindExisting={findExistingVendor} onUseExisting={useExistingVendor} onUseDifferent={() => { setExistingVendorSource(undefined); setForm((current) => ({ ...current, legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", websiteDomain: "", registeredAddress: "" })); }} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail
           record={selected}
+          key={selected.relationship.id}
+          section={vendorSection}
+          onSectionChange={setVendorSection}
           assessment={assessment}
           assessmentSetup={assessmentSetup}
           assessmentState={assessmentState}
@@ -688,11 +712,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           onOpenRequest={onOpenRequest}
           onOpenMatter={onOpenMatter}
           accountableOwnerLabel={accountableOwnerLabel}
-          onActivated={(relationship) => {
-            const updated = { ...selected, relationship };
-            setSelected(updated);
-            setRecords((current) => current.map((item) => item.relationship.id === relationship.id ? updated : item));
-          }}
+          onActivated={synchronizeRelationship}
+          onRefreshed={synchronizeRelationship}
         /> : records.length > 0 ? <div className="vendor-selection"><h2>Select a vendor</h2><p>Choose a relationship to review its service, accountable owner, source and current record version.</p></div> : null}
       </section>
     </div>}
@@ -708,8 +729,10 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   </div>;
 }
 
-function VendorDetail({ record, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onPrepareAssessmentRequest, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter, accountableOwnerLabel, onActivated, onRequestForm, onFormWorkUpdated, formsRefreshKey, formsFilter }: {
+function VendorDetail({ record, section, onSectionChange, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onPrepareAssessmentRequest, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter, accountableOwnerLabel, onActivated, onRefreshed, onRequestForm, onFormWorkUpdated, formsRefreshKey, formsFilter }: {
   record: VendorRelationshipAggregate;
+  section: VendorSection;
+  onSectionChange: (section: VendorSection) => void;
   assessment: VendorAssessment | null;
   assessmentSetup?: CurrentVendorAssessment["setup"];
   assessmentState: LoadState;
@@ -748,25 +771,39 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
   onOpenMatter?: (matterID: string) => void;
   accountableOwnerLabel: string;
   onActivated: (relationship: VendorRelationshipAggregate["relationship"]) => void;
+  onRefreshed: (relationship: VendorRelationshipAggregate["relationship"]) => void;
 }) {
   const { vendor, relationship } = record;
-  const [documentsFor, setDocumentsFor] = useState<string>();
   const effectiveAssessmentState = assessmentState === "live" && !assessment && formState === "loading" ? "loading" : assessmentState;
   const setupFailure = assessmentSetup?.state === "FAILED" ? setupFailureText(assessmentSetup.failure_code) : undefined;
   return <>
   <article className="vendor-detail">
     <div className="vendor-mobile-back"><Button variant="quiet" onPress={onBack}>Back to vendor register</Button></div>
-    <div className="vendor-detail-heading"><div className="vendor-detail-identity"><VendorBrandIcon vendorID={vendor.id} legalName={vendor.legal_name} brand={record.brand} size="detail"/><div><span className="eyebrow">{humanize(relationship.status)} relationship</span><h2>{vendor.legal_name}</h2><p>{vendor.trading_name ? `Trading as ${vendor.trading_name}` : "No trading name recorded"}</p><small className="vendor-brand-label">{vendorBrandLabel(record.brand)}</small></div></div><div className="vendor-detail-actions"><Button type="button"  onPress={onEditIdentity}>Edit vendor details</Button><Button type="button"  onPress={onEdit}>Edit vendor relationship</Button></div></div>
-    <div className="vendor-detail-actions vendor-detail-work-actions"><Button onPress={() => setDocumentsFor(relationship.id)}>View vendor documents</Button></div>
+    <div className="vendor-detail-heading"><div className="vendor-detail-identity"><VendorBrandIcon vendorID={vendor.id} legalName={vendor.legal_name} brand={record.brand} size="detail"/><div><span className="eyebrow">{humanize(relationship.status)} relationship</span><h2>{vendor.legal_name}</h2></div></div></div>
     <div className="vendor-service-callout"><span>Service supplied</span><strong>{relationship.service_name}</strong><small>{humanize(relationship.criticality)} criticality · {privacyLabel(relationship.privacy_role)}</small></div>
-    <details><summary>Vendor details</summary><dl className="vendor-facts">
-      <Fact label="Current accountable owner" value={accountableOwnerLabel}/><Fact label="Jurisdiction" value={vendor.jurisdiction || "Not recorded"}/>
-      <Fact label="Registration reference" value={vendor.registration_ref || "Not recorded"}/><Fact label="Website domain" value={vendor.website_domain || "Not recorded"}/><Fact label="Registered address" value={vendor.registered_address || "Not recorded"}/><Fact label="Effective date" value={formatDate(relationship.effective_from)}/>
-      <Fact label="Renewal date" value={formatDate(relationship.renewal_at)}/><Fact label="Source" value={vendor.source_id && vendor.external_ref ? `${vendor.source_id} · ${vendor.external_ref}` : "Entered directly"}/>
-      <Fact label="Relationship updated" value={formatDateTime(relationship.updated_at)}/><Fact label="Relationship version" value={`Version ${relationship.version}`}/><Fact label="Vendor details version" value={`Vendor version ${vendor.version}`}/>
-    </dl></details>
+    <p className="vendor-current-owner"><span>Current accountable owner</span><strong>{accountableOwnerLabel}</strong></p>
   </article>
-  {assessmentState === "live" && !assessment && formState === "unavailable" ? <section className="vdd-workspace" aria-label="Due diligence" tabIndex={-1}><div className="vdd-state vdd-state-error" role="alert"><h2>Due-diligence forms are unavailable</h2><p>Approved collection forms could not be loaded for {relationship.service_name}. Try again before starting the assessment.</p><Button type="button"  onPress={() => void onRefreshForms()}>Reload forms</Button></div></section> : <VendorDueDiligence
+  <Tabs ariaLabel="Vendor sections" compactLabel="Vendor section" retainVisitedPanels items={vendorSections} selectedKey={section} onSelectionChange={onSectionChange}>{(current) => <>
+  {current === "OVERVIEW" && <section className="vendor-detail" aria-label="Vendor overview">
+    <div className="vendor-detail-actions"><Button onPress={onEditIdentity}>Edit vendor details</Button><Button onPress={onEdit}>Edit vendor relationship</Button></div>
+    <p>{vendor.trading_name ? `Trading as ${vendor.trading_name}` : "No trading name recorded"} · <span className="vendor-brand-label">{vendorBrandLabel(record.brand)}</span></p>
+    <div className="vendor-detail-actions vendor-detail-work-actions"><Button variant="primary" onPress={() => onSectionChange("DUE_DILIGENCE")}>Open due diligence</Button><Button onPress={() => onSectionChange("DOCUMENTS")}>View vendor documents</Button></div>
+    <dl className="vendor-facts"><Fact label="Renewal date" value={formatDate(relationship.renewal_at)}/></dl>
+    <details className="vendor-record-details"><summary>Vendor details and record history</summary>
+    <dl className="vendor-facts">
+      <Fact label="Jurisdiction" value={vendor.jurisdiction || "Not recorded"}/>
+      <Fact label="Registration reference" value={vendor.registration_ref || "Not recorded"}/><Fact label="Website domain" value={vendor.website_domain || "Not recorded"}/><Fact label="Registered address" value={vendor.registered_address || "Not recorded"}/><Fact label="Effective date" value={formatDate(relationship.effective_from)}/>
+      <Fact label="Source" value={vendor.source_id && vendor.external_ref ? `${vendor.source_id} · ${vendor.external_ref}` : "Entered directly"}/>
+      <Fact label="Relationship updated" value={formatDateTime(relationship.updated_at)}/><Fact label="Relationship version" value={`Version ${relationship.version}`}/><Fact label="Vendor details version" value={`Vendor version ${vendor.version}`}/>
+    </dl>
+    </details>
+    <div className="vendor-boundary-note"><strong>Relationship status</strong><p>{humanize(relationship.status)} for {relationship.service_name}. Open Due diligence to review the assessment and any activation decision.</p></div>
+  </section>}
+  {current === "FORMS" && <><VendorFormsPanel relationshipID={relationship.id} serviceName={relationship.service_name} onRequestForm={onRequestForm} onUpdated={onFormWorkUpdated} onOpenHistory={() => onSectionChange("HISTORY")} onOpenDueDiligence={() => onSectionChange("DUE_DILIGENCE")} refreshKey={formsRefreshKey} initialFilter={formsFilter} onOpenRequest={onOpenRequest}/><details className="vendor-linked-work"><summary>Linked vendor work</summary><VendorWorkPanel relationshipID={relationship.id} onOpenRequest={onOpenRequest}/></details></>}
+  {current === "DOCUMENTS" && <DocumentBrowser scopeLabel={`${vendor.legal_name} · ${relationship.service_name}`} relationshipID={relationship.id}/>}
+  {current === "HISTORY" && <VendorResponseHistory relationshipID={relationship.id} serviceName={relationship.service_name} onUpdated={onFormWorkUpdated} active={section === "HISTORY"} refreshKey={formsRefreshKey}/>}
+  {current === "DUE_DILIGENCE" && <>
+  {assessmentState === "live" && !assessment && formState === "unavailable" ? <section className="vdd-workspace" aria-label="Due diligence" tabIndex={-1}><div className="vdd-state vdd-state-error" role="alert"><h2>Due-diligence forms are unavailable</h2><p>Approved collection forms could not be loaded for {relationship.service_name}. Try again before starting the assessment.</p><Button onPress={() => void onRefreshForms()}>Reload forms</Button></div></section> : <VendorDueDiligence
     relationship={record}
     accountableOwnerLabel={accountableOwnerLabel}
     assessment={assessment}
@@ -800,12 +837,9 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     onOpenRequest={onOpenRequest}
     onOpenMatter={onOpenMatter}
   />}
-  <VendorActivationPanel relationship={relationship} reviewVersion={assessment?.version} onActivated={onActivated}/>
-  <VendorFormsPanel relationshipID={relationship.id} serviceName={relationship.service_name} onRequestForm={onRequestForm} onUpdated={onFormWorkUpdated} refreshKey={formsRefreshKey} initialFilter={formsFilter} onOpenRequest={onOpenRequest}/>
-  <details className="vendor-linked-work"><summary>Linked vendor work</summary><VendorWorkPanel relationshipID={relationship.id} onOpenRequest={onOpenRequest}/></details>
-  {documentsFor === relationship.id && <FocusedSheet label={`${vendor.legal_name} documents`} size="wide" onClose={() => setDocumentsFor(undefined)}>
-    <DocumentBrowser key={relationship.id} scopeLabel={`${vendor.legal_name} · ${relationship.service_name}`} relationshipID={relationship.id}/>
-  </FocusedSheet>}
+  <VendorActivationPanel relationship={relationship} reviewVersion={assessment?.version} onActivated={onActivated} onRefreshed={onRefreshed}/>
+  </>}
+  </>}</Tabs>
   </>;
 }
 
@@ -904,8 +938,8 @@ function VendorForm({ mode, form, errors, formError, saving, existingVendor, can
         <p>These details are shared across your organization and cannot be changed from this service relationship.</p>
       </div>}
       <div className="vendor-field wide"><TextField label="Service supplied" isRequired errorMessage={errors.serviceName} id="vendor-service" value={form.serviceName} onChange={(value) => onChange("serviceName", value)} isInvalid={Boolean(errors.serviceName)}/></div>
-      <SelectField<VendorCriticality> label="Criticality" isRequired allowsEmpty={false} placeholder="Select criticality" value={form.criticality} options={[{ id: "STANDARD", label: "Standard" }, { id: "IMPORTANT", label: "Important" }, { id: "CRITICAL", label: "Critical" }]} onChange={(value) => { if (value) onChange("criticality", value); }}/>
-      <SelectField<VendorPrivacyRole> label="Privacy role" isRequired allowsEmpty={false} placeholder="Select privacy role" value={form.privacyRole} options={[{ id: "NONE", label: "No processing role" }, { id: "PROCESSOR", label: "Processor" }, { id: "JOINT_CONTROLLER", label: "Joint controller" }]} onChange={(value) => { if (value) onChange("privacyRole", value); }}/>
+      <SelectField<VendorCriticality> label="Criticality" isRequired allowsEmpty={false} placeholder="Select criticality" value={form.criticality} errorMessage={errors.criticality} isInvalid={!!errors.criticality} options={[{ id: "STANDARD", label: "Standard" }, { id: "IMPORTANT", label: "Important" }, { id: "CRITICAL", label: "Critical" }]} onChange={(value) => { if (value) onChange("criticality", value); }}/>
+      <SelectField<VendorPrivacyRole> label="Privacy role" isRequired allowsEmpty={false} placeholder="Select privacy role" value={form.privacyRole} errorMessage={errors.privacyRole} isInvalid={!!errors.privacyRole} options={[{ id: "NONE", label: "No processing role" }, { id: "PROCESSOR", label: "Processor" }, { id: "JOINT_CONTROLLER", label: "Joint controller" }]} onChange={(value) => { if (value) onChange("privacyRole", value); }}/>
       {mode === "create" && !existingVendor && <><TextField label="Source system" errorMessage={errors.sourceID} id="vendor-source" value={form.sourceID} onChange={(value) => onChange("sourceID", value)} placeholder="For example, procurement"/><TextField label="Source reference" id="vendor-external-ref" value={form.externalRef} onChange={(value) => onChange("externalRef", value)}/></>}
       <TextField label="Effective date" id="vendor-effective" type="date" value={form.effectiveFrom} onChange={(value) => onChange("effectiveFrom", value)}/>
       <TextField label="Renewal date" errorMessage={errors.renewalAt} id="vendor-renewal" type="date" value={form.renewalAt} onChange={(value) => onChange("renewalAt", value)} isInvalid={Boolean(errors.renewalAt)}/>

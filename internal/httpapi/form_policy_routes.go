@@ -16,6 +16,7 @@ func (a *API) formPolicyRoutes() []routeSpec {
 	}
 	base := "/api/v1/config/form-response-policies"
 	return []routeSpec{
+		withPermission(read(base+"/{id}/executions/{execution_id}/result", a.getFormPolicyExecutionResult), identity.PermissionConfigRead),
 		withPermission(read(base+"/{id}/executions", a.listFormPolicyExecutions), identity.PermissionConfigRead),
 		withPermission(read(base+"/automation-choices", a.listFormPolicyAutomationChoices), identity.PermissionConfigRead),
 		withPermission(read(base, a.listFormPolicies), identity.PermissionConfigRead),

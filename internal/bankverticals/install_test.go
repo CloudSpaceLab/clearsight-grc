@@ -41,7 +41,7 @@ func TestInstallSampleCreatesGovernedVendorFormsIdempotently(t *testing.T) {
 	if len(forms) != 3 {
 		t.Fatalf("active reusable forms=%d, want 3: %#v", len(forms), forms)
 	}
-	want := map[string]int{"VENDOR-DUE-DILIGENCE": 8, "VENDOR-ADDRESS-VERIFICATION": 6, "VENDOR-CERTIFICATION-REFRESH": 7}
+	want := map[string]int{"VENDOR-DUE-DILIGENCE": 10, "VENDOR-ADDRESS-VERIFICATION": 6, "VENDOR-CERTIFICATION-REFRESH": 7}
 	for _, form := range forms {
 		fieldCount, exists := want[form.Code]
 		if !exists || form.Status != monitoring.LifecycleActive || !form.IsCurrent || len(form.Fields) != fieldCount {

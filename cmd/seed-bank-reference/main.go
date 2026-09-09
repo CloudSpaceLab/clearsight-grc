@@ -23,6 +23,8 @@ import (
 
 func main() {
 	var seed bankverticals.SeedConfig
+	var documentSamplesOnly bool
+	flag.BoolVar(&documentSamplesOnly, "document-samples-only", false, "install only fictional submitted document samples after the normal worker is ready")
 	flag.StringVar(&seed.TenantID, "tenant", "", "existing tenant UUID or slug")
 	flag.StringVar(&seed.LegalEntityID, "legal-entity", "", "existing legal-entity UUID or code")
 	flag.StringVar(&seed.BankName, "bank-name", "Reference Bank Nigeria", "display name used only inside reference records")
@@ -35,6 +37,9 @@ func main() {
 
 	cfg, err := config.Load()
 	fatalIf(err)
+	if documentSamplesOnly && strings.TrimSpace(os.Getenv("CLEARSIGHT_ARTIFACT_ROOT")) == "" {
+		fatalIf(fmt.Errorf("document samples require an explicitly configured CLEARSIGHT_ARTIFACT_ROOT shared with the API and worker"))
+	}
 	if strings.EqualFold(cfg.Environment, "production") {
 		fatalIf(fmt.Errorf("reference data cannot be installed while CLEARSIGHT_ENV=production"))
 	}
@@ -47,6 +52,12 @@ func main() {
 	pool, err := database.Open(ctx, cfg)
 	fatalIf(err)
 	defer pool.Close()
+	if documentSamplesOnly {
+		receipt, installErr := installDocumentSamples(ctx, cfg, pool, seed)
+		fatalIf(installErr)
+		fatalIf(json.NewEncoder(os.Stdout).Encode(receipt))
+		return
+	}
 
 	continuityRepo := continuity.NewPostgresRepository(pool)
 	seed.Now = time.Now().UTC()
@@ -68,6 +79,11 @@ func main() {
 	programID := referenceProgramID(installedJourneys)
 	if programID == "" {
 		fatalIf(fmt.Errorf("response-policy acceptance requires an installed Program subject"))
+	}
+	upgradedVendorForm, upgradeErr := upgradeReferenceVendorForm(ctx, pool, seed, programID)
+	fatalIf(upgradeErr)
+	if upgradedVendorForm {
+		fmt.Fprintln(os.Stderr, "Reference vendor form upgraded through owner submission and independent review; prior requests retain their form revision.")
 	}
 	referenceVendor, err := installer.EnsureReferenceVendor(ctx, seed, thirdPartyService)
 	fatalIf(err)

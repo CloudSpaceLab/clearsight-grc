@@ -87,6 +87,22 @@ func TestPostgresPolicyScopeConcurrencyValidationAndIdempotency(t *testing.T) {
 	if err != nil || !inserted {
 		t.Fatalf("first execution = %#v inserted=%v err=%v", first, inserted, err)
 	}
+	result, err := repo.GetExecutionResult(ctx, policyTenantID, policyEntityID, policyDefinitionID, policyExecutionID)
+	if err != nil || result.ResponseRevisionID != responseID || result.MatterID != "" {
+		t.Fatalf("exact execution result=%+v err=%v", result, err)
+	}
+	const failureID = "9f650000-0000-7650-8650-000000000021"
+	if _, err := pool.Exec(ctx, `INSERT INTO form_response_policy_execution_failures(id,tenant_id,legal_entity_id,policy_id,policy_version,automation_policy_id,automation_policy_version,response_revision_id,event_id,reason_code,created_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,1,$5::uuid,2,$6::uuid,'test-failure','AUTHORITY_UNAVAILABLE',$7)`, failureID, policyTenantID, policyEntityID, policyDefinitionID, policyAutomationID, responseID, now); err != nil {
+		t.Fatal(err)
+	}
+	if failed, err := repo.GetExecutionResult(ctx, policyTenantID, policyEntityID, policyDefinitionID, failureID); err != nil || failed.State != ExecutionFailed || failed.MatterID != "" || failed.ResponseRevisionID != responseID {
+		t.Fatalf("failure receipt=%+v err=%v", failed, err)
+	}
+	for _, scope := range [][4]string{{policyOtherTenant, policyEntityID, policyDefinitionID, policyExecutionID}, {policyTenantID, policyOtherEntity, policyDefinitionID, policyExecutionID}, {policyTenantID, policyEntityID, policyAutomationID, policyExecutionID}, {policyTenantID, policyEntityID, policyDefinitionID, "missing"}} {
+		if _, err := repo.GetExecutionResult(ctx, scope[0], scope[1], scope[2], scope[3]); !errors.Is(err, ErrNotFound) {
+			t.Fatalf("execution scope %v err=%v", scope, err)
+		}
+	}
 	replay := receipt
 	replay.ID = "9f650000-0000-7650-8650-000000000013"
 	stored, inserted, err := repo.CreateExecution(ctx, replay)

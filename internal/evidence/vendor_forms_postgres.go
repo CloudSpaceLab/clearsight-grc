@@ -30,7 +30,7 @@ func vendorFormsScopedSQL() string {
  COALESCE(bank.state,CASE WHEN COALESCE((r.score_result->>'assessment_review_count')::int,0)>0 THEN 'AWAITING_REVIEW' ELSE 'NOT_REQUIRED' END) AS assessment_state,
  COALESCE(bank.required_count,(r.score_result->>'assessment_required_count')::int,0) AS required_reviews,
  COALESCE(bank.reviewed_required_count,0) AS completed_reviews,
-	CASE WHEN d.status IN ('REVOKED','SUPERSEDED') THEN d.status WHEN req.status='SUBMITTED' THEN 'SUBMITTED' WHEN req.status='CANCELLED' THEN 'CANCELLED' WHEN ` + collectionNoVendorActionSQL("req", "$4") + ` THEN 'NO_VENDOR_ACTION' WHEN req.status='IN_PROGRESS' THEN 'IN_PROGRESS' WHEN req.status='DRAFT' THEN 'REQUEST_READY' WHEN req.status='EXPIRED' THEN req.status ELSE 'AWAITING_RESPONSE' END AS response_state,
+	CASE WHEN d.status IN ('REVOKED','SUPERSEDED') THEN d.status WHEN r.id IS NOT NULL THEN 'SUBMITTED' WHEN req.status='SUBMITTED' THEN 'SUBMITTED' WHEN req.status='CANCELLED' THEN 'CANCELLED' WHEN ` + collectionNoVendorActionSQL("req", "$4") + ` THEN 'NO_VENDOR_ACTION' WHEN req.status='IN_PROGRESS' THEN 'IN_PROGRESS' WHEN req.status='DRAFT' THEN 'REQUEST_READY' WHEN req.status='EXPIRED' THEN req.status ELSE 'AWAITING_RESPONSE' END AS response_state,
  COALESCE(d.status NOT IN ('REVOKED','SUPERSEDED'),true) AND (req.origin_type NOT IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK') OR submission.id IS NULL OR currency.total=0 OR currency.remaining>0) AS current,
  CASE WHEN d.status IN ('REVOKED','SUPERSEDED') THEN 'HISTORICAL'
  WHEN req.origin_type NOT IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK') OR submission.id IS NULL OR currency.total=0 OR currency.remaining=currency.total THEN 'CURRENT'

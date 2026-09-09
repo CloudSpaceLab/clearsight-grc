@@ -18,13 +18,14 @@ import (
 )
 
 type Service struct {
-	repo             Repository
-	store            ObjectStore
-	now              func() time.Time
-	sessionTTL       time.Duration
-	maxArtifactBytes int64
-	bindings         BindingReader
-	legalEntities    LegalEntityResolver
+	repo              Repository
+	store             ObjectStore
+	now               func() time.Time
+	sessionTTL        time.Duration
+	maxArtifactBytes  int64
+	bindings          BindingReader
+	legalEntities     LegalEntityResolver
+	demoSamplePreview bool
 }
 
 type LegalEntityResolver interface {

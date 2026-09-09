@@ -9,8 +9,72 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/demodocuments"
 	"github.com/jackc/pgx/v5"
 )
+
+func TestPostgresDemoSampleDocumentCapabilityRetainsExactScope(t *testing.T) {
+	pool, ctx := distributionTestPool(t)
+	const tenant = "9f211111-1111-7111-8111-111111111111"
+	const entity = "9f211111-1111-7111-8111-111111111112"
+	const actor = "9f211111-1111-7111-8111-111111111114"
+	const form = "9f211111-1111-7111-8111-111111111115"
+	now := time.Date(2026, 9, 8, 12, 0, 0, 0, time.UTC)
+	cleanup := func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM programs WHERE tenant_id=$1::uuid`, tenant)
+		cleanupResponseWorkspaceTenant(context.Background(), pool, tenant)
+	}
+	cleanup()
+	defer cleanup()
+	setupResponseWorkspaceFixture(t, ctx, pool, tenant, "demo-documents-test", entity, actor, form, now)
+	seedCompletedResponseRows(t, ctx, pool, tenant, entity, actor, form, "demo-documents", 1, now)
+	file := demodocuments.Files()[0]
+	_, err := pool.Exec(ctx, `
+ INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,scope,owning_function,jurisdiction,effective_from)
+ VALUES(md5('demo-documents-program')::uuid,$1::uuid,$2::uuid,'DEMO-DOCUMENTS','Sample document review','COMPLIANCE','ACTIVE',jsonb_build_object('access','RESTRICTED','allowed_principal_ids',jsonb_build_array($3::text)),'Compliance','NG',$4);
+ UPDATE capture_form_distributions SET subject_type='PROGRAM',subject_id=md5('demo-documents-program')::uuid WHERE tenant_id=$1::uuid;
+ UPDATE capture_requests SET subject_type='PROGRAM',subject_id=md5('demo-documents-program')::uuid::text,fields='[{"id":"file","label":"Policy","type":"file"}]' WHERE tenant_id=$1::uuid;
+ UPDATE capture_submissions SET answers=jsonb_build_object('file',jsonb_build_object('artifact_ids',jsonb_build_array(md5('demo-artifact:'||id::text)::uuid::text))) WHERE tenant_id=$1::uuid;
+ INSERT INTO capture_artifacts(id,tenant_id,request_id,submission_id,file_name,media_type,size_bytes,sha256,storage_key,status,created_by,created_at)
+ SELECT md5('demo-artifact:'||id::text)::uuid,tenant_id,request_id,id,$5,$6,$7,$8,'private-demo-key/'||id::text,'STORED_UNSCANNED',$3::uuid,submitted_at FROM capture_submissions WHERE tenant_id=$1::uuid;
+ `, pgx.QueryExecModeSimpleProtocol, tenant, entity, actor, now, file.Name, file.MediaType, file.SizeBytes, file.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := NewDistributionService(NewPostgresDistributionStore(NewPostgresRepository(pool), nil))
+	q := DocumentQuery{TenantID: tenant, LegalEntityID: entity, PrincipalID: actor, Limit: 1}
+	page, err := service.ListDocuments(ctx, q)
+	if err != nil || len(page.Items) != 1 || page.Items[0].DemoPreviewAvailable {
+		t.Fatalf("default page %+v %v", page, err)
+	}
+	item := page.Items[0]
+	q.SubmissionID, q.FieldID, q.ArtifactID, q.ResponseRevisionID = item.SubmissionID, item.FieldID, item.ArtifactID, item.ResponseRevisionID
+	ConfigureDemoSamplePreview(nil, service, true)
+	page, err = service.ListDocuments(ctx, q)
+	if err != nil || len(page.Items) != 1 || !page.Items[0].DemoPreviewAvailable || page.Items[0].ArtifactStatus != ArtifactStoredUnscanned {
+		t.Fatalf("demo page %+v %v", page, err)
+	}
+	for _, change := range []func(*DocumentQuery){
+		func(q *DocumentQuery) { q.LegalEntityID = "9f211111-1111-7111-8111-111111111199" },
+		func(q *DocumentQuery) { q.PrincipalID = "9f211111-1111-7111-8111-111111111199" },
+		func(q *DocumentQuery) { q.FieldID = "other" },
+		func(q *DocumentQuery) { q.ResponseRevisionID = "9f211111-1111-7111-8111-111111111199" },
+	} {
+		probe := q
+		change(&probe)
+		page, err := service.ListDocuments(ctx, probe)
+		if err != nil || len(page.Items) != 0 {
+			t.Fatalf("scope leak %+v %v", page, err)
+		}
+	}
+	if _, err := pool.Exec(ctx, `UPDATE programs SET scope=jsonb_build_object('access','RESTRICTED','allowed_principal_ids','[]'::jsonb) WHERE tenant_id=$1::uuid`, tenant); err != nil {
+		t.Fatal(err)
+	}
+	page, err = service.ListDocuments(ctx, q)
+	if err != nil || len(page.Items) != 0 {
+		t.Fatalf("revoked capability %+v %v", page, err)
+	}
+}
 
 func TestPostgresDocumentInventoryScopesBeforeLimitAndPaginates(t *testing.T) {
 	pool, ctx := distributionTestPool(t)

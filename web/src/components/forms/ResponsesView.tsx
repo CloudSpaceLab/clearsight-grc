@@ -13,9 +13,11 @@ import {
   type ResponseSort,
   type ResponseRevision,
 } from "../../formsDistributionApi";
+import { DocumentBrowser } from "../documents/DocumentBrowser";
 import { ApiError } from "../../http";
 import { concernText, concernTone, coverageText, scorePresentation } from "./responseScorePresentation";
 import { ResponseAssessment } from "./ResponseAssessment";
+import { responseSubjectName } from "./responseSubjectName";
 import {
   ActionLink,
   Button,
@@ -29,11 +31,15 @@ import {
   StatusBadge,
   Surface,
   TextField,
+  Tabs,
   type DataColumn,
 } from "../ui";
 
 type ListState = "loading" | "live" | "sign-in-required" | "error";
 type DetailState = "idle" | "loading" | "live" | "error";
+const subjectOptions = [{ id: "VENDOR_RELATIONSHIP", label: "Vendor services" }, { id: "PROGRAM", label: "Programs" }, { id: "MATTER", label: "Issues and changes" }, { id: "VENDOR", label: "Vendors (legacy)" }];
+const responseSections = [{ id: "ANSWERS", label: "Answers" }, { id: "DOCUMENTS", label: "Documents" }, { id: "REVIEW", label: "Review" }, { id: "HISTORY", label: "History" }] as const;
+function subjectLabel(type: string) { return ({ VENDOR_RELATIONSHIP: "Vendor service", VENDOR: "Vendor", PROGRAM: "Program", MATTER: "Issue or change" } as Record<string, string>)[type] ?? "Subject"; }
 
 const sortOptions = [
   { id: "CONCERN_DESC", label: "Needs attention first", description: "Highest adverse score, then most recent" },
@@ -67,6 +73,15 @@ export function ResponsesView() {
   const [revisions, setRevisions] = useState<ResponseRevision[]>([]);
   const [revisionsError, setRevisionsError] = useState<string>();
   const requestSequence = useRef(0);
+  const detailSequence = useRef(0);
+
+  useEffect(() => {
+    const sync = () => { const id = new URLSearchParams(window.location.hash.split("?")[1] ?? "").get("response"); if (id) void reviewResponse(id); };
+    sync();
+    window.addEventListener("hashchange", sync);
+    window.addEventListener("popstate", sync);
+    return () => { detailSequence.current++; window.removeEventListener("hashchange", sync); window.removeEventListener("popstate", sync); };
+  }, []);
 
   useEffect(() => {
     const sequence = ++requestSequence.current;
@@ -119,32 +134,40 @@ export function ResponsesView() {
   }
 
   async function reviewResponse(id: string) {
-    const selected = items.find((value) => value.id === id);
-    if (!selected) return;
+    const sequence = ++detailSequence.current;
     setSelectedID(id);
     setDetail(undefined);
     setDetailError(undefined);
     setRevisions([]);
     setRevisionsError(undefined);
     setDetailState("loading");
-    const [detailResult, revisionsResult] = await Promise.allSettled([
-      loadCompletedResponse(id),
-      loadResponseRevisions(selected.distribution_id),
-    ]);
-    if (revisionsResult.status === "fulfilled") setRevisions(revisionsResult.value.items);
-    else setRevisionsError(message(revisionsResult.reason, "Response version history could not be loaded."));
-    if (detailResult.status === "fulfilled") {
-      setDetail(detailResult.value);
+    try {
+      const value = await loadCompletedResponse(id);
+      if (sequence !== detailSequence.current) return;
+      setDetail(value);
       setDetailState("live");
-    } else {
-      setDetailError(message(detailResult.reason, "This submitted response could not be loaded."));
+      void responseSubjectName(value.response).then((subject_name) => {
+        if (sequence !== detailSequence.current) return;
+        setDetail({ ...value, response: { ...value.response, subject_name } });
+        setItems((current) => current.map((item) => item.id === id ? { ...item, subject_name } : item));
+      });
+      await refreshRevisions(value.response.distribution_id, sequence);
+    } catch (cause) {
+      if (sequence !== detailSequence.current) return;
+      setDetailError(message(cause, "This submitted response could not be loaded."));
       setDetailState("error");
     }
   }
 
+  async function refreshRevisions(distributionID: string, sequence = detailSequence.current) {
+    setRevisionsError(undefined);
+    try { const page = await loadResponseRevisions(distributionID); if (sequence === detailSequence.current) setRevisions(page.items); }
+    catch (cause) { if (sequence === detailSequence.current) setRevisionsError(message(cause, "Response version history could not be loaded.")); }
+  }
+
   const columns: readonly DataColumn<CompletedResponseSummary>[] = [
     { id: "form", header: "Form", render: (value) => <div className="forms-responses__form"><strong>{value.title}</strong><span>Revision {value.form_template_version}</span></div>, accessibleText: (value) => `${value.title}, form revision ${value.form_template_version}` },
-    { id: "subject", header: "Subject", render: (value) => <div className="forms-responses__subject"><strong>{humanize(value.subject_type)}</strong><span>{value.subject_id}</span></div>, accessibleText: (value) => `${humanize(value.subject_type)} ${value.subject_id}` },
+    { id: "subject", header: "Subject", render: (value) => <div className="forms-responses__subject"><strong>{subjectLabel(value.subject_type)}</strong><span>{value.subject_name ?? "Subject name unavailable"}</span></div>, accessibleText: (value) => `${subjectLabel(value.subject_type)} ${value.subject_name ?? "Subject name unavailable"}` },
     { id: "completed", header: "Submitted", render: (value) => <time dateTime={value.completed_at}>{formatDateTime(value.completed_at)}</time>, accessibleText: (value) => formatDateTime(value.completed_at) },
     { id: "score", header: "Score", render: (value) => <ScoreCell score={value.score}/>, accessibleText: (value) => scoreAccessibleText(value.score) },
     { id: "concern", header: "Concern", kind: "status", render: (value) => <ConcernBadge score={value.score}/>, accessibleText: (value) => concernText(value.score) },
@@ -168,7 +191,7 @@ export function ResponsesView() {
         <SelectField label="Score state" value={query.states?.[0]} placeholder="All score states" options={scoreStateOptions} onChange={(state) => updateQuery({ states: state ? [state as ResponseScoreState] : undefined })}/>
         <TextField label="Submitted from" type="date" value={dateInputValue(query.completed_from)} onChange={(value) => updateQuery({ completed_from: startOfDate(value) })}/>
         <TextField label="Submitted until" type="date" value={dateInputValue(query.completed_until)} onChange={(value) => updateQuery({ completed_until: endOfDate(value) })}/>
-        <TextField label="Subject type" value={query.subject_type ?? ""} placeholder="For example, Vendor" onChange={(value) => updateQuery({ subject_type: value.trim() || undefined })}/>
+        <SelectField label="Subject type" value={query.subject_type} placeholder="All subjects" options={subjectOptions} onChange={(subject_type) => updateQuery({ subject_type })}/>
       </>}
     />
 
@@ -181,7 +204,7 @@ export function ResponsesView() {
       {query.states?.[0] && <FilterChip label="Score state" value={humanize(query.states[0])} onRemove={() => updateQuery({ states: undefined })}/>}
       {query.completed_from && <FilterChip label="Submitted from" value={formatDate(query.completed_from)} onRemove={() => updateQuery({ completed_from: undefined })}/>}
       {query.completed_until && <FilterChip label="Submitted until" value={formatDate(query.completed_until)} onRemove={() => updateQuery({ completed_until: undefined })}/>}
-      {query.subject_type && <FilterChip label="Subject type" value={query.subject_type} onRemove={() => updateQuery({ subject_type: undefined })}/>}
+      {query.subject_type && <FilterChip label="Subject type" value={subjectLabel(query.subject_type)} onRemove={() => updateQuery({ subject_type: undefined })}/>}
     </div>}
 
     <div className="forms-responses__results" aria-live="polite">
@@ -193,15 +216,15 @@ export function ResponsesView() {
         ariaLabel="Submitted form responses"
         rows={items}
         rowKey={(value) => value.id}
-        rowName={(value) => `${value.title}, ${humanize(value.subject_type)} ${value.subject_id}, ${scoreAccessibleText(value.score)}, submitted ${formatDateTime(value.completed_at)}`}
+        rowName={(value) => `${value.title}, ${subjectLabel(value.subject_type)} ${value.subject_name ?? "Subject name unavailable"}, ${scoreAccessibleText(value.score)}, submitted ${formatDateTime(value.completed_at)}`}
         columns={columns}
         isLoading={listState === "loading"}
         pagination={nextCursor ? { label: "Response pages", nextLabel: "Load more responses", onNext: () => void loadMore(), isLoading: loadingMore } : undefined}
       />}
     </div>
 
-    {selectedID && <FocusedSheet label={`Review ${items.find((value) => value.id === selectedID)?.title ?? "submitted"} response`} size="wide" panelClassName="forms-response-review" onClose={() => { setSelectedID(undefined); setDetail(undefined); setDetailState("idle"); }}>
-      <ResponseReview state={detailState} detail={detail} error={detailError} revisions={revisions} revisionsError={revisionsError}/>
+    {selectedID && <FocusedSheet label={`Review ${detail?.response.title ?? items.find((value) => value.id === selectedID)?.title ?? "submitted"} response`} size="wide" panelClassName="forms-response-review" onClose={() => { detailSequence.current++; setSelectedID(undefined); setDetail(undefined); setDetailState("idle"); const [path, raw] = window.location.hash.split("?"); const params = new URLSearchParams(raw); params.delete("response"); window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}${path}${params.size ? `?${params}` : ""}`); }}>
+      <ResponseReview key={selectedID} state={detailState} detail={detail} error={detailError} revisions={revisions} revisionsError={revisionsError} onRetry={() => void reviewResponse(selectedID)} onRetryHistory={() => { if (detail) void refreshRevisions(detail.response.distribution_id); }}/>
     </FocusedSheet>}
   </section>;
 }
@@ -215,23 +238,27 @@ function ConcernBadge({ score }: { score?: ResponseScore }) {
   return <StatusBadge tone={concernTone(score)}>{concernText(score)}</StatusBadge>;
 }
 
-function ResponseReview({ state, detail, error, revisions, revisionsError }: { state: DetailState; detail?: CompletedResponseDetail; error?: string; revisions: ResponseRevision[]; revisionsError?: string }) {
+function ResponseReview({ state, detail, error, revisions, revisionsError, onRetry, onRetryHistory }: { state: DetailState; detail?: CompletedResponseDetail; error?: string; revisions: ResponseRevision[]; revisionsError?: string; onRetry: () => void; onRetryHistory: () => void }) {
+  const [section, setSection] = useState<"ANSWERS" | "DOCUMENTS" | "REVIEW" | "HISTORY">("ANSWERS");
   if (state === "loading") return <p role="status">Loading the submitted response and score explanation…</p>;
-  if (state === "error") return <EmptyState population="The selected submitted response" title="Response details could not be loaded" description={error ?? "Select the response again to retry."}/>;
+  if (state === "error") return <EmptyState population="The selected submitted response" title="Response details could not be loaded" description={error ?? "Retry to load this submitted response."} action={<Button onPress={onRetry}>Retry response</Button>}/>;
   if (state !== "live" || !detail) return null;
+  const score = detail.response.score ?? detail.revision.score;
   return <div className="forms-response-review__content">
-    <header className="cs-sheet-heading"><p>Submitted response</p><h2>{detail.response.title}</h2><p>{humanize(detail.response.subject_type)} · {detail.response.subject_id}</p></header>
+    <header className="cs-sheet-heading"><p>Submitted response</p><h2>{detail.response.title}</h2><p>{subjectLabel(detail.response.subject_type)} · {detail.response.subject_name ?? "Subject name unavailable"}</p></header>
     <dl className="cs-sheet-facts">
       <div><dt>Submitted</dt><dd>{formatDateTime(detail.response.completed_at)}</dd></div>
       <div><dt>Response revision</dt><dd>{detail.response.revision}{detail.response.current ? " · Current" : " · Historical"}</dd></div>
       <div><dt>Assurance</dt><dd>{assuranceLabel(detail.revision.achieved_assurance)}</dd></div>
     </dl>
-    <section className="forms-response-review__history" aria-label="Version history">
+    <Tabs ariaLabel="Response sections" compactLabel="Response section" retainVisitedPanels items={responseSections} selectedKey={section} onSelectionChange={setSection}>{(active) => active === "ANSWERS" ? <ResponseAssessment responseID={detail.response.id} answersOnly showDocumentLauncher={false}/> : active === "DOCUMENTS" ? <DocumentBrowser responseRevisionID={detail.response.id} scopeLabel={detail.response.title + " · Revision " + detail.response.revision}/> : active === "REVIEW" ? <ResponseAssessment responseID={detail.response.id} submissionScore={score} showResponseContext={false} showDocumentLauncher={false} current={detail.response.current}/> : <section className="forms-response-review__history" aria-label="Version history">
       <h3>Version history</h3>
       {revisionsError && <Notice tone="warning">{revisionsError} The selected response remains available.</Notice>}
+      {revisionsError && <Button onPress={onRetryHistory}>Retry version history</Button>}
       {revisions.length > 0 && <ol>{revisions.map((revision) => <li key={revision.id}><strong>Revision {revision.revision}{revision.current ? " · Current" : ""}</strong><span>{assuranceLabel(revision.achieved_assurance)} · {formatDateTime(revision.created_at)}</span></li>)}</ol>}
-    </section>
-    <ResponseAssessment responseID={detail.response.id} submissionScore={detail.response.score} showResponseContext={false}/>
+      {revisions.length === 0 && !revisionsError && <p>No version history was returned for this response.</p>}
+      <details><summary>Response references</summary><p>Subject: {detail.response.subject_id} · Response: {detail.response.id}</p><p>Scoring profile: {score?.profile_version || detail.revision.scoring_policy_version || "Not configured"}</p></details>
+    </section>}</Tabs>
     <Notice tone="info">This submitted version cannot be changed. Send an amended form when the subject must provide updated information.</Notice>
   </div>;
 }

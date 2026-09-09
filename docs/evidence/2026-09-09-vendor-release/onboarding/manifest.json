@@ -1,0 +1,186 @@
+[
+  {
+    "theme": "light",
+    "width": 1440,
+    "state": "assurance-missing",
+    "errors": [],
+    "conditionalToggle": "passed",
+    "layout": {
+      "viewport": 1440,
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "state": "assurance-available",
+    "errors": [],
+    "layout": {
+      "viewport": 1440,
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "state": "spreadsheet",
+    "errors": [],
+    "rows": 47,
+    "layout": {
+      "viewport": 1440,
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "state": "create",
+    "errors": [],
+    "layout": {
+      "viewport": 1440,
+      "width": 1440,
+      "height": 1456
+    }
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "state": "assurance-missing",
+    "errors": [],
+    "conditionalToggle": "passed",
+    "layout": {
+      "viewport": 390,
+      "width": 390,
+      "height": 1000
+    }
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "state": "assurance-available",
+    "errors": [],
+    "layout": {
+      "viewport": 390,
+      "width": 390,
+      "height": 1299
+    }
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "state": "spreadsheet",
+    "errors": [],
+    "rows": 47,
+    "layout": {
+      "viewport": 390,
+      "width": 390,
+      "height": 1279
+    }
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "state": "create",
+    "errors": [],
+    "layout": {
+      "viewport": 390,
+      "width": 390,
+      "height": 2114
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "state": "assurance-missing",
+    "errors": [],
+    "conditionalToggle": "passed",
+    "layout": {
+      "viewport": 1440,
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "state": "assurance-available",
+    "errors": [],
+    "layout": {
+      "viewport": 1440,
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "state": "spreadsheet",
+    "errors": [],
+    "rows": 47,
+    "layout": {
+      "viewport": 1440,
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "state": "create",
+    "errors": [],
+    "layout": {
+      "viewport": 1440,
+      "width": 1440,
+      "height": 1456
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "state": "assurance-missing",
+    "errors": [],
+    "conditionalToggle": "passed",
+    "layout": {
+      "viewport": 390,
+      "width": 390,
+      "height": 1000
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "state": "assurance-available",
+    "errors": [],
+    "layout": {
+      "viewport": 390,
+      "width": 390,
+      "height": 1299
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "state": "spreadsheet",
+    "errors": [],
+    "rows": 47,
+    "layout": {
+      "viewport": 390,
+      "width": 390,
+      "height": 1279
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "state": "create",
+    "errors": [],
+    "layout": {
+      "viewport": 390,
+      "width": 390,
+      "height": 2114
+    }
+  }
+]

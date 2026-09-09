@@ -29,6 +29,11 @@ func TestVendorFormProgressKeepsSubmissionSeparateAndHidesDraftValues(t *testing
 	if strings.Contains(string(raw), "private draft value") {
 		t.Fatal("draft value leaked")
 	}
+	revision := ResponseRevision{ID: "submitted-response", Current: true, CreatedAt: time.Now().UTC()}
+	row = vendorFormRow(req, answers, true, &revision, time.Now())
+	if row.ResponseState != "SUBMITTED" || row.ResponseID != revision.ID || vendorFormOutstanding(row) || req.Status != RequestInProgress {
+		t.Fatalf("submitted revision must override reusable request progress: %+v", row)
+	}
 	row = vendorFormRow(req, formcontract.TextAnswers(map[string]string{"tested": "No"}), true, nil, time.Now())
 	if *row.RequiredCount != 1 || len(row.MissingFields) != 0 {
 		t.Fatalf("hidden field counted: %+v", row)

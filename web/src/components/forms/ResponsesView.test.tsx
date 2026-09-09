@@ -9,8 +9,9 @@ vi.mock("../../formAssessmentApi", () => assessmentApi);
 it("opens documents belonging to the selected submitted version", async () => {
   render(<ResponsesView/>);
   fireEvent.click(await screen.findByRole("button", { name: "Review Vendor certification refresh response" }));
+  fireEvent.click(await screen.findByRole("tab", { name: "Review" }));
   expect(await screen.findByRole("region", { name: "Assessment" })).toBeTruthy();
-  fireEvent.click(await screen.findByRole("button", { name: "View submitted documents" }));
+  fireEvent.click(await screen.findByRole("tab", { name: "Documents" }));
   expect(screen.getByRole("region", { name: "Documents for response-a" })).toBeTruthy();
 });
 
@@ -19,6 +20,9 @@ const distributionApi = vi.hoisted(() => ({
   loadCompletedResponse: vi.fn(),
   loadResponseRevisions: vi.fn(),
 }));
+const subjects = vi.hoisted(() => ({ loadVendorRelationship: vi.fn(), loadProgram: vi.fn(), loadMatter: vi.fn() }));
+vi.mock("../../vendorApi", () => ({ loadVendorRelationship: subjects.loadVendorRelationship }));
+vi.mock("../../api", () => ({ loadProgram: subjects.loadProgram, loadMatter: subjects.loadMatter }));
 vi.mock("../../formsDistributionApi", () => distributionApi);
 
 const completedResponse = {
@@ -29,6 +33,7 @@ const completedResponse = {
 } as const;
 
 beforeEach(() => {
+  Object.values(subjects).forEach((mock) => mock.mockReset().mockRejectedValue(new Error("Subject unavailable")));
   window.history.replaceState(null, "", "/#forms");
   for (const value of Object.values(distributionApi)) value.mockReset();
   distributionApi.loadCompletedResponses.mockResolvedValue({ items: [completedResponse] });
@@ -44,13 +49,39 @@ beforeEach(() => {
 });
 
 describe("completed response portfolio", () => {
-  it("shows one automatic result and one document action within a response review", async () => {
+  it("shows one automatic result and one document section within a response review", async () => {
     render(<ResponsesView/>);
     fireEvent.click(await screen.findByRole("button", { name: "Review Vendor certification refresh response" }));
+    fireEvent.click(await screen.findByRole("tab", { name: "Review" }));
     await screen.findByRole("region", { name: "Assessment" });
     const dialog = screen.getByRole("dialog", { name: "Review Vendor certification refresh response" });
     expect(dialog.querySelectorAll('[aria-label="Automatic result"]').length).toBe(1);
-    expect(Array.from(dialog.querySelectorAll("button")).filter((button) => /submitted (documents|evidence)/i.test(button.textContent ?? ""))).toHaveLength(1);
+    expect(screen.getAllByRole("tab", { name: "Documents" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "View submitted documents" })).toBeNull();
+  });
+  it("opens an exact response outside the first page and names only its separately permitted subject", async () => {
+    window.history.replaceState(null, "", "/#forms?section=responses&response=response-a");
+    distributionApi.loadCompletedResponses.mockResolvedValue({ items: [] });
+    subjects.loadVendorRelationship.mockResolvedValue({ relationship: { id: "vendor-a", service_name: "Payment hosting" } });
+    distributionApi.loadCompletedResponse.mockResolvedValue({ response: { ...completedResponse, subject_type: "VENDOR_RELATIONSHIP" }, revision: { achieved_assurance: "EMAIL_VERIFIED" } });
+    render(<ResponsesView/>);
+    expect(await screen.findByText("Vendor service · Payment hosting")).toBeTruthy();
+    expect(subjects.loadVendorRelationship).toHaveBeenCalledExactlyOnceWith("vendor-a");
+    expect(distributionApi.loadCompletedResponse).toHaveBeenCalledExactlyOnceWith("response-a");
+    expect(subjects.loadProgram).not.toHaveBeenCalled();
+    expect(subjects.loadMatter).not.toHaveBeenCalled();
+  });
+  it("filters by familiar subject choices and keeps unconfigured coverage unavailable", async () => {
+    distributionApi.loadCompletedResponses.mockResolvedValue({ items: [{ ...completedResponse, score: { state: "NOT_CONFIGURED", coverage: 0 } }] });
+    render(<ResponsesView/>);
+    await screen.findByText("Vendor certification refresh");
+    expect(screen.queryByText("vendor-a")).toBeNull();
+    expect(screen.queryByRole("row", { name: /vendor-a/ })).toBeNull();
+    expect(screen.queryByText("0%")).toBeNull();
+    fireEvent.click(screen.getByText("Filters"));
+    fireEvent.click(screen.getByRole("button", { name: /Subject type/ }));
+    fireEvent.click(await screen.findByRole("option", { name: "Vendor services" }));
+    await waitFor(() => expect(distributionApi.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({ subject_type: "VENDOR_RELATIONSHIP" })));
   });
   it("requests completed responses by concern and explains compliance meaning", async () => {
     render(<ResponsesView/>);
@@ -91,6 +122,7 @@ describe("completed response portfolio", () => {
     expect(await screen.findByRole("dialog", { name: "Review Vendor certification refresh response" })).toBeTruthy();
     expect(screen.getByText("Email verified")).toBeTruthy();
     expect(distributionApi.loadResponseRevisions).toHaveBeenCalledWith("distribution-a");
+    fireEvent.click(screen.getByRole("tab", { name: "History" }));
     expect(screen.getByRole("region", { name: "Version history" })).toBeTruthy();
     expect(screen.getByText("Revision 1")).toBeTruthy();
     expect(screen.getByText("Revision 2 · Current")).toBeTruthy();

@@ -111,6 +111,8 @@ Each completed attempt appends a receipt tied to artifact ID, digest, byte count
 
 This lifecycle covers `capture_artifacts`. The separate document-import artifact store and its development-only unscanned-analysis option do not become approved scanning paths through this change. Protocol fixtures prove client behavior, not a deployed scanner's malware detection, signature currency or production storage integrity.
 
+The non-production demo has one explicit read-only exception for the immutable shipped fictional document pack. Protected submitted-occurrence authorization, exact manifest matching and full stored-byte integrity verification permit sample preview/download while the artifact remains `STORED_UNSCANNED`. The UI states **No antivirus scan was performed**; this path creates no inspection receipt and cannot satisfy evidence acceptance. All genuine uploads retain the ordinary lifecycle above. See [the sample preview boundary](submitted-document-reads.md#non-production-fictional-sample-preview).
+
 ## Consistency and performance
 
 Strong consistency is required for:

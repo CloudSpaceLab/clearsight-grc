@@ -1,5 +1,5 @@
 import { chromium } from "playwright";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { formsEvidenceScenarios } from "./forms-evidence-scenarios.mjs";
@@ -7,10 +7,18 @@ import { formsEvidenceScenarios } from "./forms-evidence-scenarios.mjs";
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const manifestPath = path.join(outputDir, "manifest.json");
-const browser = await chromium.launch({ headless: true });
+const demoScope = ["demo-documents", "demo-documents-pdf"].includes(process.env.UI_EVIDENCE_SCOPE);
+const selectedScenarios = process.env.UI_EVIDENCE_SCOPE === "demo-documents-pdf"
+  ? formsEvidenceScenarios.filter((scenario) => scenario.state === "demo-document-pdf-preview")
+  : demoScope ? formsEvidenceScenarios.filter((scenario) => scenario.state.startsWith("demo-document-")) : formsEvidenceScenarios;
+if (demoScope) {
+  await mkdir(outputDir, { recursive: true });
+  await writeFile(manifestPath, JSON.stringify({ generatedAt: new Date().toISOString(), baseURL, captures: [] }, null, 2));
+}
+const browser = await chromium.launch({ headless: true, ...(process.env.UI_EVIDENCE_CHROMIUM_CHANNEL === "chromium" ? { channel: "chromium" } : {}) });
 
 try {
-  for (const scenario of formsEvidenceScenarios) await captureScenario(scenario);
+  for (const scenario of selectedScenarios) await captureScenario(scenario);
 } catch (error) {
   await recordFailure(error);
   throw error;
@@ -35,11 +43,14 @@ async function captureScenario(scenario) {
   });
   try {
     await context.addInitScript(({ selectedTheme, selectedDensity }) => {
+      if (window.top !== window) return;
       localStorage.setItem("clearsight.theme", selectedTheme);
       localStorage.setItem("clearsight.density", selectedDensity);
     }, { selectedTheme: scenario.theme, selectedDensity: scenario.density ?? "comfortable" });
     const page = await context.newPage();
     if (scenario.fixture === "forms-recovery-restored") await seedRecoveryEnvelope(page);
+    // The isolated evidence entry has no favicon; full Chromium requests one automatically.
+    await page.route(`${new URL(baseURL).origin}/favicon.ico`, (route) => route.fulfill({ status: 204 }));
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
@@ -128,6 +139,8 @@ async function verifyAndCapture(page, scenario, scenarioMetrics) {
     forcedColors: scenario.forcedColors ?? "none",
     reducedMotion: scenario.reducedMotion ?? "no-preference",
     ...(scenarioMetrics ? { scenario_metrics: scenarioMetrics } : {}),
+    browser_version: browser.version(),
+    browser_channel: process.env.UI_EVIDENCE_CHROMIUM_CHANNEL === "chromium" ? "chromium" : "headless-shell",
     zoom: scenario.zoom,
     capabilities: [...scenario.capabilities],
     metrics,

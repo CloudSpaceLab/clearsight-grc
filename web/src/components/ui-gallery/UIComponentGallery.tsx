@@ -52,6 +52,8 @@ export function UIComponentGallery() {
   const [notes, setNotes] = useState("");
   const [selection, setSelection] = useState<"OPEN" | "LOCKED">("OPEN");
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
+  const [compactTab, setCompactTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
+  const [retainedTab, setRetainedTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [busySheetOpen, setBusySheetOpen] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -93,6 +95,8 @@ export function UIComponentGallery() {
 
     <GalleryGroup title="Navigation">
       <Contract family="Tabs" job="Moves between peer views in one workspace." keyboard="Arrow keys move and activate; Home and End jump." prohibited="Do not add a second selected indicator."><Tabs ariaLabel="Sample request views" items={tabs} selectedKey={tab} onSelectionChange={setTab}>{(key) => <p>{key === "PENDING" ? "Sample requests awaiting review." : "Sample requests completed in this fixture."}</p>}</Tabs></Contract>
+      <Contract family="Tabs" job="Retains each visited editor and its draft while keeping inactive panels hidden and inert." keyboard="Arrow keys or the compact selector switch sections without clearing drafts." prohibited="Do not start reads for unvisited sections or treat retained data as current authority."><Tabs retainVisitedPanels ariaLabel="Sample retained review" compactLabel="Sample review section" items={tabs} selectedKey={retainedTab} onSelectionChange={setRetainedTab}>{(key) => key === "PENDING" ? <label>Sample unsaved judgement<input defaultValue=""/></label> : <p>Sample completed review.</p>}</Tabs></Contract>
+      <Contract family="Tabs" job="Replaces peer tabs with a labelled selector at widths up to 760px, retaining the mounted view." keyboard="Compact selector: Arrow keys move, Enter selects, Escape closes." prohibited="Do not mount a second content tree for the compact view."><Tabs ariaLabel="Sample responsive request views" compactLabel="Sample request section" items={tabs} selectedKey={compactTab} onSelectionChange={setCompactTab}>{(key) => <p>{key === "PENDING" ? "Sample requests awaiting review." : "Sample requests completed in this fixture."}</p>}</Tabs></Contract>
       <Contract family="ScopeBar" job="Changes one bounded result scope and shows stored counts." keyboard="Tab reaches each scope; Enter or Space selects it." prohibited="Do not present unknown counts as zero."><ScopeBar ariaLabel="Sample request scopes" items={[{ id: "ALL", label: "All", count: 8 }, { id: "OPEN", label: "Open", count: 3 }]} selectedKey="ALL" onSelectionChange={() => undefined}/></Contract>
     </GalleryGroup>
 
@@ -111,6 +115,13 @@ export function UIComponentGallery() {
       <Contract family="FilterBar" job="Groups filters, result count and reset handling." keyboard="Tab follows the visible field order." prohibited="Do not compress fields below their usable width."><FilterBar label="Sample request filters" fields={<><TextField label="Sample owner" value="" onChange={() => undefined}/><SelectField label="Sample state" placeholder="All sample states" options={selections} onChange={() => undefined}/></>} resultCount={2} onClear={() => undefined}/></Contract>
       <Contract family="FilterChip" job="Names and removes one applied filter or reopens advanced logic." keyboard="Enter or Space runs its named action." prohibited="Do not use a chip for a lifecycle status."><FilterChip label="Status" value="Responses open" onRemove={() => undefined}/></Contract>
       <Contract family="DataTable" job="Presents comparable populated records and page handling." keyboard="Tab reaches the selected row and actions. Arrow keys select rows; Enter or Space opens the selected request." prohibited="Do not keep an empty horizontal scroll region."><DataTable ariaLabel="Sample requests" rows={sampleRows} rowKey={(row) => row.id} rowName={(row) => `${row.request}, ${row.status}, owned by ${row.owner}`} columns={sampleColumns} selectedKey={selectedRequest} onSelectionChange={(row) => setSelectedRequest(row.id)} onRowAction={setOpenedRequest}/>{openedRequest && <Notice tone="info">{openedRequest.request} · {openedRequest.status} · {openedRequest.owner}</Notice>}</Contract>
+    </GalleryGroup>
+
+    <GalleryGroup title="Document names">
+      <Contract family="DataTable" job="Gives document names the full mobile card width with metadata underneath." keyboard="Tab reaches the row." prohibited="Do not abbreviate filenames to fit a narrow value column."><DataTable ariaLabel="Sample document names" rows={[{ id: "sample-file", name: "Sample business continuity plan for annual vendor review.docx", kind: "Word document" }]} rowKey={(row) => row.id} rowName={(row) => row.name} columns={[
+        { id: "name", header: "Name", mobileLayout: "full-width", render: (row) => row.name, accessibleText: (row) => row.name },
+        { id: "kind", header: "Kind", render: (row) => row.kind, accessibleText: (row) => row.kind },
+      ]}/></Contract>
     </GalleryGroup>
 
     <GalleryGroup title="Overlays">

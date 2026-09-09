@@ -10,14 +10,14 @@ import { fieldAssessmentLabel, needsBankReview } from "./fieldAssessment";
 import { assessmentConcernPoints, assessmentConcernThreshold, automaticFieldResults } from "./assessmentFieldResults";
 import "./field-assessment.css";
 
-type Props = { responseID: string; onUpdated?: () => void; showResponseContext?: boolean; submissionScore?: ResponseScore };
+type Props = { responseID: string; onUpdated?: () => void; showResponseContext?: boolean; submissionScore?: ResponseScore; showDocumentLauncher?: boolean; answersOnly?: boolean; current?: boolean | null };
 type Judgement = { outcome_id: string; rationale: string };
 type ReviewFilter = "ALL" | "PENDING" | "POOR" | "MISSING" | "REVIEWED";
 
 
 export function ResponseAssessment(props: Props) { return <AssessmentContent key={props.responseID} {...props}/>; }
 
-function AssessmentContent({ responseID, onUpdated, showResponseContext = true, submissionScore }: Props) {
+function AssessmentContent({ responseID, onUpdated, showResponseContext = true, submissionScore, showDocumentLauncher = true, answersOnly = false, current }: Props) {
   const [detail, setDetail] = useState<ResponseAssessmentDetail>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,7 +48,7 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
   useEffect(() => { void reload(); return () => { sequence.current++; }; }, []);
 
   async function save() {
-    if (!detail || saving || conflict) return;
+    if (!detail || !detail.current || (current === false || current === null) || saving || conflict) return;
     const request = sequence.current;
     setSaving(true);
     setError(undefined);
@@ -71,12 +71,13 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
   if (!detail) return <section className="response-assessment" aria-label="Assessment">
     {loading ? <p role="status">Loading assessment…</p> : <><Notice tone="error">{error ?? "The assessment is unavailable."}</Notice><Button onPress={() => void reload()}>Reload assessment</Button></>}
     {submissionScore && <><AssessmentScore title="Automatic result" score={submissionScore}/><RuleExplanation score={submissionScore}/></>}
-    <Button onPress={() => setDocumentsOpen(true)}>View submitted documents</Button>
+    {showDocumentLauncher && <Button onPress={() => setDocumentsOpen(true)}>View submitted documents</Button>}
     {documentsOpen && <FocusedSheet label="Submitted assessment evidence" size="wide" onClose={() => setDocumentsOpen(false)}><DocumentBrowser responseRevisionID={responseID} scopeLabel="Documents for this submitted response"/></FocusedSheet>}
   </section>;
   const fields = detail.fields ?? [];
   const reviewable = fields.filter((item) => needsBankReview(item.field) && item.may_review === true);
-  const editable = detail.current && detail.may_review === true;
+  const currentResponse = detail.current && current !== false && current !== null;
+  const editable = currentResponse && detail.may_review === true;
   const changes = Object.entries(drafts).filter(([id, value]) => {
     const item = reviewable.find((candidate) => candidate.field.id === id);
     return item && (value.outcome_id !== item.decision?.outcome_id || value.rationale.trim() !== item.decision?.rationale);
@@ -86,14 +87,17 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
   const visible = fields.filter((item) => matchesFilter(item, filter, detail));
   const hasEvidence = fields.some((item) => evidenceField(item));
 
+  if (answersOnly) return <section className="response-assessment" aria-label="Submitted answers"><h3>Submitted answers</h3><p>Form revision {detail.form_template_version}. These answers cannot be changed.</p>{fields.length === 0 ? <p>No answer fields were recorded for this submitted response.</p> : fields.map((item) => <article key={item.field.id} aria-label={item.field.label}><h4>{item.field.label}</h4><p className="response-assessment__answer">{answerText(item)}</p></article>)}</section>;
+
   return <section className="response-assessment" aria-label="Assessment">
     <header><h3>Assessment</h3><StatusBadge tone={pending > 0 ? "warning" : "neutral"}>{assessmentStateLabels[detail.state] ?? "Assessment state unavailable"}</StatusBadge></header>
-    {showResponseContext && <p>Form revision {detail.form_template_version} · {detail.current ? "Current response" : "Historical response"}</p>}<p>Assessment version {detail.version}</p>
-    {!detail.current && <Notice tone="info">Historical response. Review the current submission to record a new decision; previous decisions remain in history.</Notice>}
-    {detail.state !== "NOT_REQUIRED" && detail.may_review !== true && detail.current && <Notice tone="info">Review permission is unavailable for this response under your current responsibility. Reload the assessment after your responsibility changes.</Notice>}
+    {showResponseContext && <p>Form revision {detail.form_template_version} · {current === null ? "Response currency unavailable" : currentResponse ? "Current response" : "Historical response"}</p>}<p>Assessment version {detail.version}</p>
+    {current === null && <Notice tone="info">Response currency is unavailable. Reload response history before recording a review.</Notice>}
+    {!currentResponse && current !== null && <Notice tone="info">Historical response. Review the current submission to record a new decision; previous decisions remain in history.</Notice>}
+    {detail.state !== "NOT_REQUIRED" && detail.may_review !== true && currentResponse && <Notice tone="info">Review permission is unavailable for this response under your current responsibility. Reload the assessment after your responsibility changes.</Notice>}
     {pending > 0 && <Notice tone="warning">{`${pending} required ${pending === 1 ? "field" : "fields"} awaiting review`}</Notice>}
-    <p>{detail.reviewed_required_count} of {detail.required_count} required fields reviewed</p>
-    <div className="response-assessment__scores"><AssessmentScore title="Automatic result" score={detail.automatic_score}/>{detail.state !== "NOT_REQUIRED" && <AssessmentScore title="Reviewed result" score={detail.assessed_score} provisional={pending > 0 || detail.assessed_score?.state === "PROVISIONAL"}/>}</div>
+    {detail.state !== "NOT_REQUIRED" && <p>{detail.reviewed_required_count} of {detail.required_count} required fields reviewed</p>}
+    <div className="response-assessment__scores">{(detail.state !== "NOT_REQUIRED" || detail.automatic_score && detail.automatic_score.state !== "NOT_CONFIGURED") && <AssessmentScore title="Automatic result" score={detail.automatic_score}/>} {detail.state !== "NOT_REQUIRED" && <AssessmentScore title="Reviewed result" score={detail.assessed_score} provisional={pending > 0 || detail.assessed_score?.state === "PROVISIONAL"}/>}</div>
     {receipt && <Notice tone="success">{receipt}</Notice>}
     {error && <Notice tone="error">{error}</Notice>}
     {conflict && <Notice tone="warning">The response or assessment changed. Reload it and compare the saved decisions with your retained judgement before saving again.</Notice>}
@@ -123,7 +127,7 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
         </div>
       </article>;
     })}</div>
-    {hasEvidence && <Button onPress={() => setDocumentsOpen(true)}>View submitted documents</Button>}
+    {showDocumentLauncher && hasEvidence && <Button onPress={() => setDocumentsOpen(true)}>View submitted documents</Button>}
     <RuleExplanation score={detail.automatic_score}/>
     {editable && reviewable.length > 0 && <div className="response-assessment__actions"><p>{conflict ? "Reload the assessment before saving." : changes.length === 0 ? "Choose a rubric outcome and enter a rationale to save a decision." : !valid ? "Each changed judgement needs an approved outcome and a rationale." : `${changes.length} ${changes.length === 1 ? "decision" : "decisions"} ready to save.`}</p><Button variant="primary" isDisabled={!valid || conflict} isLoading={saving} onPress={() => void save()}>Save assessment</Button></div>}
     {documentsOpen && <FocusedSheet label="Submitted assessment evidence" size="wide" onClose={() => setDocumentsOpen(false)}><DocumentBrowser responseRevisionID={responseID} scopeLabel={`Submitted evidence · form revision ${detail.form_template_version}`}/></FocusedSheet>}

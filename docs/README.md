@@ -39,8 +39,11 @@ The documentation is layered so product semantics, safety, architecture, experie
 33. [`design/2026-09-08-governed-result-handoffs.md`](design/2026-09-08-governed-result-handoffs.md) and [implementation plan](superpowers/plans/2026-09-08-governed-result-handoffs.md) — first #200 integration slice: stored document-analysis results open their existing Program or issue record.
 34. [SMTP advisory deployment design](superpowers/specs/2026-09-08-smtp-advisory-deployment-design.md) and [implementation plan](superpowers/plans/2026-09-08-smtp-advisory-deployment.md) — SMTP outages warn without stopping application deployment; security and application gates remain mandatory.
 35. [Forms section resumption](design/2026-09-08-forms-section-resume.md) and [implementation plan](superpowers/plans/2026-09-08-forms-section-resume.md) — safe peer-section reload and browser-history recovery; document-level state remains separately tracked.
+36. [Document navigation and fictional samples](superpowers/specs/2026-09-08-document-navigation-and-samples-design.md), [navigation plan](superpowers/plans/2026-09-08-document-navigation.md), [vendor recovery plan](superpowers/plans/2026-09-08-vendor-activation-recovery.md), [demo preview decision](design/2026-09-08-demo-document-preview.md), [sample implementation plan](superpowers/plans/2026-09-08-demo-document-samples.md) and [persisted sample installer](engineering/fictional-document-samples.md) — narrow-screen selectors, safe activation retries and clearly labelled persisted fictional documents with a demo-only preview exception; no antivirus or review-acceptance claim.
 
 ## Canonical precedence
+
+The approved [Forms and vendor completion brief](design/2026-09-08-forms-vendor-completeness.md) and [implementation plan](superpowers/plans/2026-09-08-forms-vendor-completeness.md) track the next bounded status, navigation and review integration under #143/#139/#138/#147. #200 stays closed.
 
 The approved [vendor forms and bank assessment design](design/2026-09-08-vendor-field-assessment.md), [implementation plan](superpowers/plans/2026-09-08-vendor-form-assessment.md), and [acceptance evidence](acceptance/vendor-form-assessment.md) extend the existing governed Forms workflow with field review, vendor requests and result policies.
 

@@ -123,6 +123,7 @@ func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheet
 	inRow := false
 	rowNonEmpty := false
 	var parts []string
+	var cells []string
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -154,6 +155,7 @@ func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheet
 				inRow = true
 				rowNonEmpty = false
 				parts = nil
+				cells = nil
 				if collector.canRetain() {
 					parts = make([]string, 0, 16)
 				}
@@ -180,11 +182,24 @@ func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheet
 				rowNonEmpty = true
 				if parts != nil {
 					parts = append(parts, fmt.Sprintf("Column %d: %s", column+1, cellValue))
+					for len(cells) <= column {
+						cells = append(cells, "")
+					}
+					cells[column] = cellValue
 				}
 			}
 		case xml.EndElement:
 			if value.Name.Local == "row" && inRow {
+				before := len(collector.sections)
 				collector.add(Section{Title: fmt.Sprintf("%s row %d", sheetName, rowNumber), Text: strings.Join(parts, "\n"), Sheet: sheetName, RowStart: rowNumber, RowEnd: rowNumber}, rowNonEmpty, parts == nil && rowNonEmpty)
+				// Only complete retained rows may supply structured proposal input.
+				// Never parse the display text: newlines inside a cell are content.
+				if len(collector.sections) > before && collector.sections[before].Text == strings.TrimSpace(strings.Join(parts, "\n")) {
+					if collector.tableValues == nil {
+						collector.tableValues = make(map[string][][]string)
+					}
+					collector.tableValues[collector.sections[before].ID] = [][]string{cells}
+				}
 				inRow = false
 			}
 		}

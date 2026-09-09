@@ -10,7 +10,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
 
-const formProposalVersion = "FORM_TEMPLATE_PROPOSAL_V1"
+const formProposalVersion = "FORM_TEMPLATE_PROPOSAL_V2"
 
 type ProposalPolicy struct {
 	MaxFields     int
@@ -97,6 +97,9 @@ func ProposeFormTemplate(document Document, policy ProposalPolicy) (FormTemplate
 		}
 	}
 	builder.consumeElements(document.Elements)
+	if err := builder.consumeSpreadsheetRows(); err != nil {
+		return FormTemplateProposal{}, err
+	}
 	builder.consumeTabular(document.Tabular)
 	if len(builder.changes) == 0 {
 		return FormTemplateProposal{}, errors.New("form proposal source contains no supported field candidates")
@@ -149,6 +152,7 @@ type formProposalBuilder struct {
 	changes          []FormFieldChange
 	unresolved       []ProposalUnresolvedItem
 	truncated        bool
+	rowSheets        map[string]bool
 }
 
 func (b *formProposalBuilder) consumeElements(elements []ExtractedElement) {
@@ -258,6 +262,9 @@ func (b *formProposalBuilder) consumeTabular(metadata *TabularMetadata) {
 		return
 	}
 	for _, resource := range metadata.Resources {
+		if b.rowSheets[resource.Name] {
+			continue
+		}
 		if len(resource.Fields) == 0 {
 			continue
 		}

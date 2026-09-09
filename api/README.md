@@ -8,6 +8,8 @@ ClearSight deliberately has one executable route/access inventory.
 
 A route is not executable merely because it appears in a design document or a domain-specific schema file. Authorization truth comes from the route registry and the command/access guards used by the registered handler.
 
+`GET /api/v1/config/form-response-policies/{id}/executions/{execution_id}/result` resolves one selected execution in the verified policy scope. The response contains the execution fact and independently permitted `MATTER` or `FORM_RESPONSE` targets. Configuration permission grants no target access: current Matter aggregate visibility and the actor-scoped exact completed-response read are checked separately. Unchecked target identifiers remain server-only; absent dependencies or failed target reads return no target, while missing or wrong-scope executions return not found. History lists do not resolve target aggregates.
+
 ## Isolated AI gateway contract
 
 `cmd/ai-gateway` is a separate process and does not register routes in the main API. Its executable route/access inventory is `internal/aigateway/routes.go`; `ai-gateway.openapi.json` is mechanically checked against that inventory. The contract is limited to workload-authenticated OpenAI-compatible model transport, separate metrics authentication and public liveness/readiness. It does not grant ClearSight application permissions or override `runtime.openapi.json`.

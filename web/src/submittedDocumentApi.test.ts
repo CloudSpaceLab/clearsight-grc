@@ -24,4 +24,11 @@ describe("submitted document access", () => {
     }
     expect(previewKind({ media_type: "application/pdf", artifact_status: "QUARANTINED" })).toBeUndefined();
   });
+  it("previews server-eligible unscanned samples but rejects blocked states even with a forged flag", () => {
+    expect(previewKind({ media_type: "application/pdf", artifact_status: "STORED_UNSCANNED", demo_preview_available: true })).toBe("pdf");
+    for (const artifact_status of ["QUARANTINED", "DELETED", "UNKNOWN"]) {
+      expect(previewKind({ media_type: "image/png", artifact_status, demo_preview_available: true })).toBeUndefined();
+    }
+    expect(previewKind({ media_type: "image/png", artifact_status: "STORED_UNSCANNED" })).toBeUndefined();
+  });
 });

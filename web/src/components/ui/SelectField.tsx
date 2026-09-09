@@ -42,7 +42,9 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
   const openScrollPosition = useRef<{ x: number; y: number } | undefined>(undefined);
   const openedAt = useRef(0);
   const restoringScroll = useRef(false);
+  const unchangedOpeningScroll = useRef<Event | undefined>(undefined);
   const allowClose = useRef(false);
+  const triggerButton = useRef<HTMLButtonElement>(null);
   const restoreReleaseTimer = useRef<number | undefined>(undefined);
   const selectRef = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
@@ -59,18 +61,41 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
   useEffect(() => () => window.clearTimeout(restoreReleaseTimer.current), []);
   useLayoutEffect(() => {
     if (!isOpen) return;
-    function restoreOpeningPosition() {
+    function restoreOpeningPosition(event: Event) {
       const position = openScrollPosition.current;
       if (!position || performance.now() - openedAt.current >= 250) return;
       const scrollShifted = Math.abs(window.scrollX - position.x) > 0.5 || Math.abs(window.scrollY - position.y) > 0.5;
+      if (event.target === document && !scrollShifted) {
+        // Scrolling the trigger into view can deliver its queued event after
+        // pointerdown opens the list. Ignore only that unchanged scroll's
+        // synchronous close callback, never a later outside press or key.
+        unchangedOpeningScroll.current = event;
+        queueMicrotask(() => { if (unchangedOpeningScroll.current === event) unchangedOpeningScroll.current = undefined; });
+      }
       if (!scrollShifted) return;
       restoringScroll.current = true;
       window.scrollTo({ left: position.x, top: position.y, behavior: "instant" });
       window.clearTimeout(restoreReleaseTimer.current);
       restoreReleaseTimer.current = window.setTimeout(() => { restoringScroll.current = false; }, 100);
     }
-    document.addEventListener("scroll", restoreOpeningPosition, true);
-    return () => document.removeEventListener("scroll", restoreOpeningPosition, true);
+    // Capture on window before the overlay's scroll-dismissal listener.
+    window.addEventListener("scroll", restoreOpeningPosition, true);
+    return () => { window.removeEventListener("scroll", restoreOpeningPosition, true); unchangedOpeningScroll.current = undefined; };
+  }, [isOpen]);
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleWindowKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        allowClose.current = true;
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        finishClose();
+        triggerButton.current?.focus();
+      } else if (event.key === "Tab") allowClose.current = true;
+    }
+    window.addEventListener("keydown", handleWindowKeyDown, true);
+    return () => window.removeEventListener("keydown", handleWindowKeyDown, true);
   }, [isOpen]);
 
   function finishClose() {
@@ -94,6 +119,7 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
       finishClose();
       return;
     }
+    if (unchangedOpeningScroll.current && unchangedOpeningScroll.current.eventPhase !== Event.NONE) return;
 
     const position = openScrollPosition.current;
     const scrollShifted = position && (Math.abs(window.scrollX - position.x) > 0.5 || Math.abs(window.scrollY - position.y) > 0.5);
@@ -131,7 +157,7 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
     onOpenChange={handleOpenChange}
   >
     <Label className="cs-select-field__label">{label}{isRequired && <span className="cs-field__required" aria-hidden="true"> *</span>}</Label>
-    <AriaButton className="cs-select-field__trigger" onPressStart={() => { if (isOpen) allowClose.current = true; }} onKeyDown={permitClose}>
+    <AriaButton ref={triggerButton} className="cs-select-field__trigger" onPressStart={() => { if (isOpen) allowClose.current = true; }} onKeyDown={permitClose}>
       <SelectValue className="cs-select-field__value">{({ isPlaceholder, selectedText }) => isPlaceholder ? placeholder : selectedText}</SelectValue>
       <span className="cs-select-field__chevron" aria-hidden="true">⌄</span>
     </AriaButton>

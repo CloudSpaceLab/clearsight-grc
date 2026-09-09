@@ -8,6 +8,34 @@ const imageFile: DocumentOccurrence = { id: "image", artifact_id: "a", request_i
   sha256: "sample", artifact_status: "AVAILABLE", uploaded_at: "2026-09-01", submitted_at: "2026-09-02", current: true };
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 describe("protected document preview", () => {
+  it("shows the demo limitation before protected preview and download", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("image", { headers: { "Content-Type": "image/png" } })));
+    URL.createObjectURL = vi.fn().mockReturnValue("blob:demo"); URL.revokeObjectURL = vi.fn();
+    render(<DocumentPreview file={{ ...imageFile, artifact_status: "STORED_UNSCANNED", demo_preview_available: true }} onClose={() => undefined}/>);
+    const warning = screen.getByText(/No antivirus scan was performed/);
+    expect(screen.getByText("Demo check complete")).toBeTruthy();
+    const download = screen.getByRole("link", { name: "Download file" });
+    expect(download.getAttribute("href")).toBe("/api/v1/forms/documents/s/f/a/content?download=true");
+    expect(warning.compareDocumentPosition(download) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(await screen.findByRole("img", { name: "Submitted document: certificate.png" })).toBeTruthy();
+    expect(fetch).toHaveBeenCalledWith("/api/v1/forms/documents/s/f/a/content", expect.objectContaining({ credentials: "include", cache: "no-store" }));
+  });
+  it.each(["QUARANTINED", "DELETED", "UNKNOWN", "STORED_UNSCANNED"])("blocks %s files without a usable demo capability", (status) => {
+    vi.stubGlobal("fetch", vi.fn());
+    render(<DocumentPreview file={{ ...imageFile, artifact_status: status, demo_preview_available: status !== "STORED_UNSCANNED" }} onClose={() => undefined}/>);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(screen.queryByRole("link", { name: "Download file" })).toBeNull();
+    expect(screen.queryByText("Demo check complete")).toBeNull();
+  });
+  it("offers a protected download for demo Office files without fetching a preview", () => {
+    vi.stubGlobal("fetch", vi.fn());
+    render(<DocumentPreview file={{ ...imageFile, artifact_status: "STORED_UNSCANNED", demo_preview_available: true,
+      file_name: "sample-register.xlsx", media_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file_kind: "SPREADSHEET" }} onClose={() => undefined}/>);
+    expect(screen.getByText(/No antivirus scan was performed/)).toBeTruthy();
+    expect(screen.getByText(/Inline preview is not available for this file type/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Download file" }).getAttribute("download")).toBe("sample-register.xlsx");
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it("offers download instead of a blank frame when PDF viewing is disabled", async () => {
     const prior = Object.getOwnPropertyDescriptor(navigator, "pdfViewerEnabled");
     Object.defineProperty(navigator, "pdfViewerEnabled", { configurable: true, value: false });

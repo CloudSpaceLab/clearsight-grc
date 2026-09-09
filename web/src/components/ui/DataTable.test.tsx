@@ -14,6 +14,17 @@ const columns: readonly DataColumn<Row>[] = [
 ];
 
 describe("DataTable", () => {
+  it("opts one column into full-width mobile cells while retaining labels and complete values", () => {
+    render(<DataTable ariaLabel="Documents" rows={rows} rowKey={(row) => row.id} rowName={(row) => row.title}
+      columns={columns.map((column) => column.id === "title" ? { ...column, mobileLayout: "full-width" } : column)}/>);
+    const cells = screen.getByRole("row", { name: rows[0]!.title }).querySelectorAll("td");
+    expect(cells[0]!.getAttribute("data-mobile-layout")).toBe("full-width");
+    expect(cells[0]!.getAttribute("aria-label")).toBe(`Distribution: ${rows[0]!.title}`);
+    expect(cells[0]!.textContent).toBe(rows[0]!.title);
+    expect(cells[1]!.hasAttribute("data-mobile-layout")).toBe(false);
+    expect(cells[2]!.hasAttribute("data-mobile-layout")).toBe(false);
+  });
+
   it("selects file rows and opens them with Enter or Space without stealing nested controls", () => {
     const select = vi.fn();
     const open = vi.fn();
