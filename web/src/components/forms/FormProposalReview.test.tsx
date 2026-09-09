@@ -4,6 +4,9 @@ import type { FormTemplateProposal } from "../../formsTypes";
 import { acceptFormProposal, loadFormProposal } from "../../formsApi";
 import { ApiError } from "../../http";
 import { FormProposalReview } from "./FormProposalReview";
+import { createDocumentFormProposal } from "../../documentApi";
+
+vi.mock("../../documentApi", () => ({ createDocumentFormProposal: vi.fn() }));
 
 vi.mock("../../formsApi", () => ({
   acceptFormProposal: vi.fn(),
@@ -47,6 +50,39 @@ beforeEach(() => {
 });
 
 describe("FormProposalReview", () => {
+  it("can return to source rows while follow-up generation is pending", async () => {
+    const changed = vi.fn();
+    vi.mocked(createDocumentFormProposal).mockResolvedValue(proposal);
+    render(<FormProposalReview proposal={{ ...proposal, status: "GENERATING", finding_assessment_id: "assessment-1" }} onProposalChange={changed}/>);
+    const back = screen.getByRole("button", { name: "Review source-row proposal" });
+    expect(back.hasAttribute("disabled")).toBe(false);
+    fireEvent.click(back);
+    await waitFor(() => expect(changed).toHaveBeenCalledWith(proposal));
+  });
+  it("requires confirmation and keeps all finding fields in the draft", async () => {
+    const grouped = { ...proposal, finding_assessment_id: "assessment-1", provenance: { ...proposal.provenance, finding_assessments: [{ id: "assessment-1", label: "Sample A — Payments — 2025-03-01", sheet: "Findings", row_start: 2, row_end: 2, finding_count: 1 }] } };
+    render(<FormProposalReview proposal={grouped} onProposalChange={() => undefined}/>);
+    const create = screen.getByRole("button", { name: "Create follow-up draft" });
+    expect(create.hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("checkbox", { name: "Include Registered name" }).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("checkbox", { name: /I have checked the vendor, service and historical assessment details/ }));
+    fireEvent.click(create);
+    await waitFor(() => expect(acceptFormProposal).toHaveBeenCalledWith("proposal-1", 2, ["change-name", "change-certificate"], true));
+  });
+
+  it("prepares only the explicitly chosen source assessment", async () => {
+    const changed = vi.fn();
+    const withChoices = { ...proposal, provenance: { ...proposal.provenance, finding_assessments: [{ id: "assessment-1", label: "Sample A — Payments — 2025-03-01", sheet: "Findings", row_start: 2, row_end: 2, finding_count: 1 }] } };
+    vi.mocked(createDocumentFormProposal).mockResolvedValue({ ...proposal, id: "followup-1", finding_assessment_id: "assessment-1" });
+    render(<FormProposalReview proposal={withChoices} onProposalChange={changed}/>);
+    fireEvent.click(screen.getByText("Prepare finding follow-up"));
+    expect(screen.getByRole("button", { name: "Prepare follow-up questions" }).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: /Source assessment/ }));
+    fireEvent.click(await screen.findByRole("option", { name: /Sample A/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Prepare follow-up questions" }));
+    await waitFor(() => expect(createDocumentFormProposal).toHaveBeenCalledWith("document-1", 4, undefined, undefined, "assessment-1"));
+    expect(changed).toHaveBeenCalledWith(expect.objectContaining({ id: "followup-1" }));
+  });
   it("matches each spreadsheet excerpt to its own source row", () => {
     const rowProposal = { ...proposal, field_changes: proposal.field_changes.map((change, index) => ({ ...change, anchor: { sheet: "Sheet 1", row_start: index + 2, row_end: index + 2 } })) };
     const { container } = render(<FormProposalReview proposal={rowProposal} sourceElements={[

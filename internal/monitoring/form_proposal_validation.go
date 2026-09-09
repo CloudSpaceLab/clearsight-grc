@@ -17,6 +17,9 @@ func validateNewFormProposal(value FormTemplateProposal) error {
 	if value.SourceKind != FormProposalSourceDocument && value.SourceKind != FormProposalSourceAI {
 		return errors.Join(ErrInvalid, errors.New("unsupported proposal source kind"))
 	}
+	if len(value.FindingAssessmentID) > 128 || (value.FindingAssessmentID != "" && (value.SourceKind != FormProposalSourceDocument || value.BaseTemplateID != "")) {
+		return errors.Join(ErrInvalid, errors.New("a finding follow-up must create a separate document-based draft"))
+	}
 	if !validProposalSHA256(value.SourceSHA256) {
 		return errors.Join(ErrInvalid, errors.New("proposal requires an exact sha256 source snapshot"))
 	}
@@ -54,6 +57,7 @@ func sameProposalSource(left, right FormTemplateProposal) bool {
 		left.SourceDocumentID == right.SourceDocumentID &&
 		left.SourceDocumentVersion == right.SourceDocumentVersion &&
 		left.SourceSHA256 == right.SourceSHA256 &&
+		left.FindingAssessmentID == right.FindingAssessmentID &&
 		left.BaseTemplateID == right.BaseTemplateID &&
 		left.BaseTemplateVersion == right.BaseTemplateVersion
 }

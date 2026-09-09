@@ -8,6 +8,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -27,7 +28,15 @@ func TestPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T) {
 	}
 }
 
-func testPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T, useTenantUUID bool) {
+func TestPostgresFindingFollowUpAcceptanceIsAtomicAndAuditable(t *testing.T) {
+	testPostgresFormProposalAcceptanceIsAtomicAndAuditable(t, true, "assessment-1")
+}
+
+func testPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T, useTenantUUID bool, assessmentIDs ...string) {
+	assessmentID := ""
+	if len(assessmentIDs) > 0 {
+		assessmentID = assessmentIDs[0]
+	}
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL is not configured")
@@ -89,12 +98,29 @@ func testPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T, useTen
 
 	store := NewPostgresFormProposalStore(pool)
 	created, err := store.Create(ctx, FormTemplateProposal{
-		ID: proposalID, TenantID: tenantSlug, LegalEntityID: entityID,
+		FindingAssessmentID: assessmentID,
+		ID:                  proposalID, TenantID: tenantSlug, LegalEntityID: entityID,
 		SourceKind: FormProposalSourceDocument, SourceDocumentID: documentID, SourceDocumentVersion: 1, SourceSHA256: sha256,
 		Status: FormProposalGenerating, CreatedBy: principalID, CreatedAt: now, UpdatedAt: now, Version: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if created.FindingAssessmentID != assessmentID {
+		t.Fatal("assessment identity lost in persistence")
+	}
+	if assessmentID != "" {
+		second := created
+		second.ID = "9d111111-1111-7111-8111-111111111117"
+		second.FindingAssessmentID = "assessment-2"
+		got, err := store.Create(ctx, second)
+		if err != nil || got.ID != second.ID || got.FindingAssessmentID != second.FindingAssessmentID {
+			t.Fatalf("assessment receipt collided: %#v %v", got, err)
+		}
+		again, err := store.Create(ctx, second)
+		if err != nil || again.ID != got.ID {
+			t.Fatalf("duplicate assessment receipt: %#v %v", again, err)
+		}
 	}
 	generatedInput := created
 	generatedInput.ProposedContract = contract
@@ -122,8 +148,16 @@ func testPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T, useTen
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: principalID, CreatedAt: now.Add(2 * time.Second), UpdatedAt: now.Add(2 * time.Second)},
 	}
 	mutation := FormProposalReviewMutation{
-		TenantID: actorTenantID, LegalEntityID: entityID, ProposalID: proposalID, ExpectedVersion: generated.Version,
+		AssessmentConfirmed: assessmentID != "",
+		TenantID:            actorTenantID, LegalEntityID: entityID, ProposalID: proposalID, ExpectedVersion: generated.Version,
 		Status: FormProposalAccepted, ReviewerID: principalID, ChangeIDs: []string{changeID}, At: now.Add(2 * time.Second),
+	}
+	if assessmentID != "" {
+		unconfirmed := mutation
+		unconfirmed.AssessmentConfirmed = false
+		if _, err := store.AcceptWithDraft(ctx, unconfirmed, draft); !errors.Is(err, ErrFormProposalSelection) {
+			t.Fatalf("unconfirmed assessment accepted: %v", err)
+		}
 	}
 
 	const otherTenantID = "9d111111-1111-7111-8111-111111111119"
@@ -195,6 +229,21 @@ func testPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T, useTen
 		t.Fatal(err)
 	}
 
+	if assessmentID != "" {
+		var workers sync.WaitGroup
+		failures := make(chan error, 8)
+		for i := 0; i < 8; i++ {
+			workers.Add(1)
+			go func() { defer workers.Done(); _, err := store.AcceptWithDraft(ctx, mutation, draft); failures <- err }()
+		}
+		workers.Wait()
+		close(failures)
+		for err := range failures {
+			if err != nil {
+				t.Fatalf("concurrent acceptance: %v", err)
+			}
+		}
+	}
 	accepted, err := store.AcceptWithDraft(ctx, mutation, draft)
 	if err != nil {
 		t.Fatal(err)

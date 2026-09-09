@@ -23,6 +23,7 @@ The repository contains a working application foundation for ongoing Programs an
 - governed document imports with immutable original metadata, SHA-256 lineage and actor-bound review;
 - deterministic TXT, Markdown, CSV, DOCX and XLSX extraction with source-location anchors;
 - source-anchored DOCX, XLS/XLSX and searchable-PDF form proposals, plus reviewable AI form proposals;
+- optional assessment-specific finding follow-up drafts from fully retained structured registers, with explicit source-context confirmation;
 - source-anchored analysis proposals that require explicit human acceptance or rejection;
 - dedicated, actor-scoped Program records where authorized users can maintain scope, ownership, versioned requirements, applicability, safeguards, evidence expectations, reviewer results and operating status;
 - exact linked-issue handling from each Program, including bounded issue reads, new issue creation and direct record navigation;

@@ -5,6 +5,8 @@
 
 ## Vendor workflow release
 
+The subsequent [defect-repair plan](superpowers/plans/2026-09-09-finding-followup-defects.md) addresses the four reproduced historical-branch failures through an optional structured assessment generator, independent source-scoped proposal receipts and retained working response amendments. It intentionally replaces nested parent/child acceptance with existing ordinary draft acceptance. Current verification and release boundaries are recorded in [acceptance](acceptance/2026-09-09-finding-followup-defects.md); #80 remains the broader lifecycle tracker and #200 stays closed.
+
 The [finding follow-up branch review](reviews/2026-09-09-finding-followup-branch-salvage.md) and [selective port plan](superpowers/plans/2026-09-09-finding-followup-salvage.md) record the September 9 source comparison. This tranche adapts explicit XLSX merged ranges, exact row previews and competing generation recovery. Grouped follow-up drafts and submission-status changes remain under #80 because synthetic review probes reproduced four branch defects. #200 remains closed.
 
 The [release plan](superpowers/plans/2026-09-09-vendor-workflow-release.md) tracks source-row spreadsheet drafts, explicit vendor classifications, missing-assurance capture, governed reference-starter updates and release verification. The supplied workbooks produce 47 checklist fields and five historical follow-ups without inventing vendor matches, applicability decisions or compliance. See [spreadsheet acceptance](acceptance/2026-09-09-spreadsheet-vendor-proposal.md). Existing form revisions, evidence decisions and authority policies remain distinct.

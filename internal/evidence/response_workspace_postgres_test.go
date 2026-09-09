@@ -15,6 +15,16 @@ import (
 )
 
 func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testing.T) {
+	for _, recipient := range []int{0, 1} {
+		name := "same_respondent"
+		if recipient == 1 {
+			name = "different_respondent"
+		}
+		t.Run(name, func(t *testing.T) { testPostgresResponseWorkspaceAmendment(t, recipient) })
+	}
+}
+
+func testPostgresResponseWorkspaceAmendment(t *testing.T, amendmentRecipient int) {
 	pool, ctx := distributionTestPool(t)
 	tenantID := mustResponseWorkspaceID(t)
 	entityID := mustResponseWorkspaceID(t)
@@ -157,11 +167,11 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	afterSubmit, err := access.GetResponseWorkspace(ctx, tokens[1])
+	afterSubmit, err := access.GetResponseWorkspace(ctx, tokens[amendmentRecipient])
 	if err != nil {
 		t.Fatal(err)
 	}
-	amended, err := access.SaveResponseWorkspace(ctx, tokens[1], SaveWorkspaceInput{
+	amended, err := access.SaveResponseWorkspace(ctx, tokens[amendmentRecipient], SaveWorkspaceInput{
 		ExpectedVersion: afterSubmit.Workspace.Version,
 		Edits: []FieldEdit{{
 			FieldID: "registered_address", Value: formcontract.TextAnswer("Abuja"),
@@ -171,7 +181,7 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	secondSubmission, err := access.SubmitResponseWorkspace(ctx, tokens[1], SubmitWorkspaceInput{ExpectedVersion: amended.Workspace.Version})
+	secondSubmission, err := access.SubmitResponseWorkspace(ctx, tokens[amendmentRecipient], SubmitWorkspaceInput{ExpectedVersion: amended.Workspace.Version})
 	if err != nil {
 		t.Fatal(err)
 	}

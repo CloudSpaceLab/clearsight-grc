@@ -21,10 +21,10 @@ export async function importDocument(file: File, purpose: string, sourceType: st
   return normalizeDetail(await requestJSON<DocumentImport>(apiBase, "/api/v1/document-imports", { method: "POST", body }));
 }
 
-export function createDocumentFormProposal(documentID: string, expectedDocumentVersion: number, baseTemplateID?: string, baseTemplateVersion?: number): Promise<FormTemplateProposal> {
+export function createDocumentFormProposal(documentID: string, expectedDocumentVersion: number, baseTemplateID?: string, baseTemplateVersion?: number, findingAssessmentID?: string): Promise<FormTemplateProposal> {
   return requestJSON<FormTemplateProposal>(apiBase, `/api/v1/document-imports/${encodeURIComponent(documentID)}/form-template-proposals`, {
     method: "POST",
-    body: JSON.stringify({ expected_document_version: expectedDocumentVersion, base_template_id: baseTemplateID, base_template_version: baseTemplateVersion }),
+    body: JSON.stringify({ expected_document_version: expectedDocumentVersion, base_template_id: baseTemplateID, base_template_version: baseTemplateVersion, finding_assessment_id: findingAssessmentID }),
   });
 }
 

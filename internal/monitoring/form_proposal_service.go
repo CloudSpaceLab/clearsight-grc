@@ -2,6 +2,7 @@ package monitoring
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -62,6 +63,19 @@ func (s *FormProposalService) RequestFromDocument(ctx context.Context, documentI
 	if document.Version != input.ExpectedDocumentVersion {
 		return FormTemplateProposal{}, ErrConflict
 	}
+	input.FindingAssessmentID = strings.TrimSpace(input.FindingAssessmentID)
+	if input.FindingAssessmentID != "" {
+		if input.BaseTemplateID != "" {
+			return FormTemplateProposal{}, ErrFormProposalSelection
+		}
+		assessments, err := documentimport.FindingFollowUpAssessments(document)
+		if err != nil {
+			return FormTemplateProposal{}, errors.Join(ErrInvalid, err)
+		}
+		if !slices.ContainsFunc(assessments, func(item documentimport.FindingAssessment) bool { return item.ID == input.FindingAssessmentID }) {
+			return FormTemplateProposal{}, ErrFormProposalSelection
+		}
+	}
 	if document.ExtractionStatus != documentimport.ExtractionExtracted && document.ExtractionStatus != documentimport.ExtractionPartial && document.ExtractionStatus != documentimport.ExtractionTruncated {
 		return FormTemplateProposal{}, errors.Join(ErrInvalid, fmt.Errorf("document extraction status %s cannot generate a form proposal", document.ExtractionStatus))
 	}
@@ -78,13 +92,17 @@ func (s *FormProposalService) RequestFromDocument(ctx context.Context, documentI
 	created, err := s.store.Create(ctx, FormTemplateProposal{
 		ID: proposalID, TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID,
 		SourceKind: FormProposalSourceDocument, SourceDocumentID: document.ID, SourceDocumentVersion: document.Version, SourceSHA256: document.SHA256,
-		BaseTemplateID: strings.TrimSpace(input.BaseTemplateID), BaseTemplateVersion: input.BaseTemplateVersion,
+		FindingAssessmentID: input.FindingAssessmentID,
+		BaseTemplateID:      strings.TrimSpace(input.BaseTemplateID), BaseTemplateVersion: input.BaseTemplateVersion,
 		Status: FormProposalGenerating, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now, Version: 1,
 	})
 	if err != nil {
 		return FormTemplateProposal{}, err
 	}
 	if s.store.QueuesGeneration() || created.Status != FormProposalGenerating {
+		if created.FindingAssessmentID == "" && len(created.Provenance.FindingAssessments) == 0 {
+			created.Provenance.FindingAssessments, _ = documentimport.FindingFollowUpAssessments(document)
+		}
 		return created, nil
 	}
 	return s.Generate(ctx, created.TenantID, created.LegalEntityID, created.ID)
@@ -111,7 +129,12 @@ func (s *FormProposalService) Generate(ctx context.Context, tenantID, legalEntit
 	if !proposalSourceMatchesDocument(current, document) {
 		return s.failGeneration(ctx, current, "SOURCE_CHANGED", ErrFormProposalSourceChanged.Error())
 	}
-	generated, err := documentimport.ProposeFormTemplate(document, documentimport.DefaultProposalPolicy())
+	var generated documentimport.FormTemplateProposal
+	if current.FindingAssessmentID != "" {
+		generated, err = documentimport.ProposeFindingFollowUp(document, current.FindingAssessmentID, documentimport.DefaultProposalPolicy())
+	} else {
+		generated, err = documentimport.ProposeFormTemplate(document, documentimport.DefaultProposalPolicy())
+	}
 	if err != nil {
 		return s.failGeneration(ctx, current, "DETERMINISTIC_PROPOSAL_FAILED", err.Error())
 	}
@@ -146,7 +169,14 @@ func (s *FormProposalService) Get(ctx context.Context, proposalID string) (FormT
 	if s.store == nil {
 		return FormTemplateProposal{}, errors.Join(ErrInvalid, errors.New("form proposal store is not configured"))
 	}
-	return s.store.Get(ctx, actor.TenantID, actor.LegalEntityID, strings.TrimSpace(proposalID))
+	proposal, err := s.store.Get(ctx, actor.TenantID, actor.LegalEntityID, strings.TrimSpace(proposalID))
+	if err == nil && s.docs != nil && proposal.SourceKind == FormProposalSourceDocument && proposal.FindingAssessmentID == "" && len(proposal.Provenance.FindingAssessments) == 0 {
+		// Older general receipts remain usable without regeneration or mutation.
+		if document, readErr := s.docs.Get(ctx, actor.TenantID, proposal.SourceDocumentID); readErr == nil && proposalSourceMatchesDocument(proposal, document) {
+			proposal.Provenance.FindingAssessments, _ = documentimport.FindingFollowUpAssessments(document)
+		}
+	}
+	return proposal, err
 }
 
 func (s *FormProposalService) Reject(ctx context.Context, proposalID string, input RejectFormProposalInput) (FormTemplateProposal, error) {
@@ -177,6 +207,9 @@ func (s *FormProposalService) Accept(ctx context.Context, proposalID string, inp
 	}
 	proposal, err := s.store.Get(ctx, actor.TenantID, actor.LegalEntityID, strings.TrimSpace(proposalID))
 	if err != nil {
+		return FormTemplateProposal{}, err
+	}
+	if err := validateFindingFollowUpAcceptance(proposal, changeIDs, input.AssessmentConfirmed); err != nil {
 		return FormTemplateProposal{}, err
 	}
 	if proposal.Status == FormProposalAccepted && proposal.ReviewedBy == actor.PrincipalID && slices.Equal(proposal.AcceptedChangeIDs, changeIDs) {
@@ -228,7 +261,8 @@ func (s *FormProposalService) Accept(ctx context.Context, proposalID string, inp
 	}
 	formInput := proposalFormInput(base, sourceDocument, proposal, contract)
 	mutation := FormProposalReviewMutation{
-		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ProposalID: proposal.ID,
+		AssessmentConfirmed: input.AssessmentConfirmed,
+		TenantID:            actor.TenantID, LegalEntityID: actor.LegalEntityID, ProposalID: proposal.ID,
 		ExpectedVersion: proposal.Version, Status: FormProposalAccepted, ReviewerID: actor.PrincipalID,
 		ChangeIDs: changeIDs, At: s.now().UTC(),
 	}
@@ -308,8 +342,13 @@ func proposalFormInput(base FormTemplate, document *documentimport.Document, pro
 		if purpose == "" {
 			purpose = "Form template derived from an imported document."
 		}
+		code := proposalDraftCode("IMPORT", proposal.SourceSHA256)
+		if proposal.FindingAssessmentID != "" {
+			digest := sha256.Sum256([]byte(proposal.ID))
+			code = proposalDraftCode("FOLLOWUP", fmt.Sprintf("%x", digest))
+		}
 		return CreateFormInput{
-			Code: proposalDraftCode("IMPORT", proposal.SourceSHA256), Name: name, Purpose: purpose,
+			Code: code, Name: name, Purpose: purpose,
 			Sensitivity: "INTERNAL", ScoringMode: contract.ScoringMode,
 			Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
 		}

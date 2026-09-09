@@ -6,7 +6,8 @@ import { ApiError, apiErrorKind } from "../../http";
 import type { CaptureFormContract } from "../../types";
 import { captureContract } from "../capture/contract";
 import { FormPreview } from "./FormPreview";
-import { Notice } from "../ui";
+import { CheckboxField, Notice } from "../ui";
+import { FindingFollowUpPicker } from "./FindingFollowUpPicker";
 
 type Props = {
   proposal: FormTemplateProposal;
@@ -16,7 +17,14 @@ type Props = {
   onDraftCreated?: (templateID: string, version: number) => void;
 };
 
-export function FormProposalReview({ proposal: receivedProposal, sourceTitle, sourceElements = [], onProposalChange, onDraftCreated }: Props) {
+export function FormProposalReview(props: Props) {
+  return <>
+    <FindingFollowUpPicker key={`${props.proposal.source_document_id}:${props.proposal.source_document_version}:${props.proposal.id}`} proposal={props.proposal} onProposalChange={props.onProposalChange}/>
+    <ProposalReviewFields key={`${props.proposal.id}:${props.proposal.status === "GENERATING"}`} {...props}/>
+  </>;
+}
+
+function ProposalReviewFields({ proposal: receivedProposal, sourceTitle, sourceElements = [], onProposalChange, onDraftCreated }: Props) {
   // Empty Go slices are null in persisted/API proposals, including unsectioned
   // spreadsheets and proposals whose generation has not produced fields yet.
   const proposal = useMemo(() => ({
@@ -32,6 +40,11 @@ export function FormProposalReview({ proposal: receivedProposal, sourceTitle, so
   const [selected, setSelected] = useState<Set<string>>(() => new Set(proposal.field_changes.map((change) => change.id)));
   const [busy, setBusy] = useState<"accept" | "reject" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [assessmentConfirmed, setAssessmentConfirmed] = useState(false);
+  const followUp = Boolean(proposal.finding_assessment_id);
+  const assessment = proposal.provenance.finding_assessments?.find((item) => item.id === proposal.finding_assessment_id);
+
+  useEffect(() => { setAssessmentConfirmed(false); }, [proposal.version]);
 
   useEffect(() => {
     const available = new Set(proposal.field_changes.map((change) => change.id));
@@ -66,11 +79,13 @@ export function FormProposalReview({ proposal: receivedProposal, sourceTitle, so
   }
 
   async function accept() {
-    if (busy || selectedChanges.length === 0) return;
+    if (busy || selectedChanges.length === 0 || (followUp && (!assessmentConfirmed || !allSelected))) return;
     setBusy("accept");
     setError(null);
     try {
-      const accepted = await acceptFormProposal(proposal.id, proposal.version, selectedChanges.map((change) => change.id));
+      const accepted = followUp
+        ? await acceptFormProposal(proposal.id, proposal.version, selectedChanges.map((change) => change.id), assessmentConfirmed)
+        : await acceptFormProposal(proposal.id, proposal.version, selectedChanges.map((change) => change.id));
       onProposalChange(accepted);
       if (accepted.result_template_id && accepted.result_template_version) onDraftCreated?.(accepted.result_template_id, accepted.result_template_version);
     } catch (cause) {
@@ -114,14 +129,20 @@ export function FormProposalReview({ proposal: receivedProposal, sourceTitle, so
       <div className="form-proposal-count"><strong>{selected.size}</strong><span>of {proposal.field_changes.length} selected</span></div>
     </header>
     {error && <div className="form-proposal-feedback"><Notice tone="error">{error}</Notice></div>}
+    {followUp && <div className="finding-followup-fields">
+      <strong>{assessment?.label ?? "Selected historical assessment"}</strong>
+      <p>All findings are included. Check the historical details and remove any internal-only content in the draft before approval. Creating this draft does not send a request or close a finding.</p>
+      <CheckboxField label="I have checked the vendor, service and historical assessment details" isSelected={assessmentConfirmed} onChange={setAssessmentConfirmed} isDisabled={Boolean(busy)}/>
+    </div>}
+    {proposal.unresolved_items.filter((item) => !item.field_change_id).map((item, index) => <Notice key={`${item.code}-${index}`} tone="warning">{item.message}</Notice>)}
     {(proposal.provenance.extraction_status === "PARTIAL" || proposal.provenance.extraction_status === "TRUNCATED") && <p className="form-proposal-notice" role="status">Only the retained portion of this source was analyzed. Review source gaps and unresolved items before using the draft.</p>}
     <div className="form-proposal-toolbar">
-      <label><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(proposal.field_changes.map((change) => change.id)))}/> Select all proposed fields</label>
+      <label><input type="checkbox" checked={allSelected} disabled={followUp} onChange={() => setSelected(allSelected ? new Set() : new Set(proposal.field_changes.map((change) => change.id)))}/> {followUp ? "All assessment fields included" : "Select all proposed fields"}</label>
       {proposal.unresolved_items.length > 0 && <span>{proposal.unresolved_items.length} unresolved</span>}
     </div>
     <div className="form-proposal-layout" role="region" aria-label="Field review and preview" tabIndex={0}>
       <div className="form-proposal-changes" aria-label="Proposed field changes">
-        {proposal.field_changes.map((change) => <ProposalChange key={change.id} change={change} checked={selected.has(change.id)} elements={sourceElements} unresolved={proposal.unresolved_items.filter((item) => item.field_change_id === change.id)} onToggle={() => toggle(change.id)}/>)}
+        {proposal.field_changes.map((change) => <ProposalChange key={change.id} change={change} checked={selected.has(change.id)} disabled={followUp} elements={sourceElements} unresolved={proposal.unresolved_items.filter((item) => item.field_change_id === change.id)} onToggle={() => toggle(change.id)}/>)}
       </div>
       <aside className="form-proposal-preview">
         <FormPreview contract={preview} initialMode="CLASSIC"/>
@@ -130,16 +151,16 @@ export function FormProposalReview({ proposal: receivedProposal, sourceTitle, so
     </div>
     <footer className="form-proposal-actions">
       <button className="secondary-button" type="button" disabled={Boolean(busy)} onClick={() => void reject()}>{busy === "reject" ? "Rejecting…" : "Reject proposal"}</button>
-      <button className="primary-button" type="button" disabled={Boolean(busy) || selected.size === 0} onClick={() => void accept()}>{busy === "accept" ? "Creating draft…" : "Create draft from selected fields"}</button>
+      <button className="primary-button" type="button" disabled={Boolean(busy) || selected.size === 0 || (followUp && (!assessmentConfirmed || !allSelected))} onClick={() => void accept()}>{busy === "accept" ? "Creating draft…" : followUp ? "Create follow-up draft" : "Create draft from selected fields"}</button>
     </footer>
   </section>;
 }
 
-function ProposalChange({ change, checked, elements, unresolved, onToggle }: { change: FormProposalFieldChange; checked: boolean; elements: DocumentExtractedElement[]; unresolved: FormTemplateProposal["unresolved_items"]; onToggle: () => void }) {
+function ProposalChange({ change, checked, disabled, elements, unresolved, onToggle }: { change: FormProposalFieldChange; checked: boolean; disabled?: boolean; elements: DocumentExtractedElement[]; unresolved: FormTemplateProposal["unresolved_items"]; onToggle: () => void }) {
   const excerpt = sourceExcerpt(change.anchor, elements);
   return <article className={`form-proposal-change${checked ? " selected" : ""}`}>
     <div className="form-proposal-change-heading">
-      <label><input type="checkbox" checked={checked} onChange={onToggle} aria-label={`Include ${change.field.label}`}/><span><small>{changeLabel(change.kind)}</small><strong>{change.field.label}</strong></span></label>
+      <label><input type="checkbox" checked={checked} disabled={disabled} onChange={onToggle} aria-label={`Include ${change.field.label}`}/><span><small>{changeLabel(change.kind)}</small><strong>{change.field.label}</strong></span></label>
       <mark>{Math.round(change.confidence * 100)}% confidence</mark>
     </div>
     <dl><div><dt>Field type</dt><dd>{human(change.field.type)}</dd></div><div><dt>Required</dt><dd>{change.field.required ? "Yes" : "Not set"}</dd></div></dl>

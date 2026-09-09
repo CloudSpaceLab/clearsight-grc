@@ -2,6 +2,8 @@
 
 The documentation is layered so product semantics, safety, architecture, experience and implementation remain distinct.
 
+The optional assessment follow-up repair has a [decision brief and plan](superpowers/plans/2026-09-09-finding-followup-defects.md), [acceptance evidence](acceptance/2026-09-09-finding-followup-defects.md), and [proposal API contract](../api/form-proposals.md). Ordinary source-row proposals remain the default.
+
 ## Required reading
 
 1. [`../README.md`](../README.md) — product promise, executable scope and boundaries.
