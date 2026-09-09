@@ -1,6 +1,7 @@
-import { chromium } from "playwright";
+import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
@@ -18,7 +19,7 @@ const captures = [
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "07-import-dark-1440x900", route: "#imports", title: "Imports", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
-  { name: "08-configure-light-1440x900", route: "#configure", title: "Configuration", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Control plane" },
+  { name: "08-configure-light-1440x900", route: "#configure", title: "Configuration", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Configuration areas" },
   { name: "09-today-dark-tablet-1024x768", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 1024, height: 768 }, touch: true, assertFirstActionVisible: true },
   { name: "10-today-light-mobile-390x844", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, assertFirstActionVisible: true },
   { name: "11-today-dark-reflow-320x800", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 320, height: 800 }, touch: true },
@@ -51,6 +52,8 @@ try {
     await captureVendorCollectionWorkflows();
   } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-activation") {
     await captureVendorActivationRecovery();
+  } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-workflows") {
+    await captureVendorWorkflows();
   } else {
   await captureVendorLinkedWorkflows();
   for (const capture of captures) await capturePage(capture);
@@ -252,6 +255,7 @@ async function captureVendorCollectionWorkflows() {
   const openChecklist = async (capture) => {
     const opened = await openPage(capture);
     await opened.page.getByRole("button", { name: /Acme Processing Limited.*Card transaction processing/ }).click();
+    await openVendorSection(opened.page, "Due diligence");
     await opened.page.getByRole("heading", { name: "Due diligence", exact: true }).waitFor();
     await opened.page.locator(".vendor-checklist").waitFor();
     await opened.page.locator(".vendor-checklist").scrollIntoViewIfNeeded();
@@ -279,7 +283,7 @@ async function captureVendorCollectionWorkflows() {
     const { context, page } = await openChecklist(capture);
     try {
       const checklist = page.locator(".vendor-checklist");
-      for (const name of ["All items 5", "Missing 1", "Pending review 1", "Accepted 1"]) await checklist.getByRole("button", { name, exact: true }).waitFor();
+      for (const name of ["All items 5", "Missing 1", "Awaiting review 1", "Accepted 1"]) await checklist.getByRole("button", { name, exact: true }).waitFor();
       await checklist.getByText("Applicability pending", { exact: true }).waitFor();
       await save(page, capture, "checklist");
       await accessibility(page, ".vendor-checklist");
@@ -298,7 +302,7 @@ async function captureVendorCollectionWorkflows() {
       await dialog.getByRole("button", { name: "Use this document", exact: true }).click();
       await dialog.waitFor({ state: "hidden" });
       await checklist.getByRole("button", { name: "Missing 0", exact: true }).waitFor();
-      await checklist.getByRole("button", { name: "Pending review 2", exact: true }).waitFor();
+      await checklist.getByRole("button", { name: "Awaiting review 2", exact: true }).waitFor();
       await checklist.getByRole("button", { name: "All items 5", exact: true }).click();
       if (await checklist.getByText("No missing items.", { exact: true }).count()) throw new Error("Unknown applicability was labelled complete");
       await checklist.scrollIntoViewIfNeeded();
@@ -310,7 +314,7 @@ async function captureVendorCollectionWorkflows() {
       await review.getByRole("button", { name: "Record validation", exact: true }).waitFor();
       await save(page, capture, "review-accept");
       await accessibility(page, '[role="dialog"]');
-      await review.getByRole("combobox", { name: /^Decision/ }).selectOption("REJECT");
+      await chooseSharedSelectOption(page, "Decision", "Reject");
       await review.getByRole("button", { name: "Record rejection", exact: true }).waitFor();
       await save(page, capture, "review-reject");
       await page.keyboard.press("Escape");
@@ -358,7 +362,7 @@ async function captureVendorCollectionWorkflows() {
     const { context, page } = await openPage(capture);
     try {
       if (state === "all-held") {
-        await page.getByText("All required documents received. No response needed. Bank review is separate.", { exact: true }).waitFor();
+        await page.getByText("All required documents received. No response needed.", { exact: true }).waitFor();
         if (await page.locator('input[type="file"]').count() || await page.getByRole("button", { name: /Submit|Review response/ }).count()) throw new Error("All-held request still asks for a response");
       } else {
         await page.getByText("Document received", { exact: true }).waitFor();
@@ -685,7 +689,7 @@ async function assertVendorWorkContained(page, name) {
 async function captureVendorWorkflows() {
   const scenarios = [
     { name: "40-vendor-start-light-1440x900", fixture: undefined, state: "vendor-due-diligence-start", viewport: { width: 1440, height: 900 }, action: "Start due diligence" },
-    { name: "41-vendor-ready-dark-1440x900", fixture: "vendor-ready", state: "vendor-request-ready", viewport: { width: 1440, height: 900 }, action: "Send due diligence request", theme: "dark" },
+    { name: "41-vendor-ready-dark-1440x900", fixture: "vendor-ready", state: "vendor-request-ready", viewport: { width: 1440, height: 900 }, action: "Prepare request", theme: "dark" },
     { name: "42-vendor-review-light-1440x900", fixture: "vendor-submitted", state: "vendor-response-review", viewport: { width: 1440, height: 900 }, action: "Review vendor response", startReview: true },
     { name: "43-vendor-review-light-390x844", fixture: "vendor-submitted", state: "vendor-response-review-mobile", viewport: { width: 390, height: 844 }, action: "Review vendor response", startReview: true, touch: true },
     { name: "44-vendor-source-degraded-light-1440x900", fixture: "vendor-source-degraded", state: "vendor-form-source-unavailable", viewport: { width: 1440, height: 900 }, expectText: "Due-diligence forms are unavailable" },
@@ -715,9 +719,12 @@ async function captureVendorWorkflows() {
   try {
     await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
     await openVendorSection(page, "Due diligence");
-    await page.getByRole("button", { name: "Send due diligence request" }).click();
+    await page.getByRole("button", { name: "Prepare request", exact: true }).click();
     await page.getByLabel("Vendor contact email").fill("security@acme.example");
     await page.getByLabel("Response due date").fill("2026-09-10");
+    await page.getByRole("button", { name: "Prepare request", exact: true }).last().click();
+    await page.getByText("Request prepared. Review evidence already held before sending the outstanding items to the vendor.", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "Send due diligence request" }).click();
     await page.getByRole("button", { name: "Send due diligence request" }).last().click();
     await page.getByText("Email delivery did not complete", { exact: true }).waitFor({ state: "visible" });
     if (await page.getByLabel("Vendor contact email").count()) throw new Error("Vendor contact email remained visible after the send attempt");
@@ -804,7 +811,7 @@ async function captureVendorActivationRecovery() {
       await page.waitForFunction(() => typeof window.__vendorActivationRecovery.releaseCommand === "function");
       const commands = await page.evaluate(() => window.__vendorActivationRecovery.commands);
       if (commands.length !== 2 || commands[0].expected_version !== 4 || commands[1].expected_version !== 6) throw new Error("Activation did not use the refreshed relationship version.");
-      if (width < 800) await page.getByRole("button", { name: "← Back to vendor register", exact: true }).click();
+      if (width < 800) await page.getByRole("button", { name: "Back to vendor register", exact: true }).click();
       await page.getByRole("button", { name: /Sample · Meridian Technology Limited/ }).click();
       await openVendorSection(page, "Due diligence");
       await panel.getByText("Policy 9, version 3 applies from", { exact: false }).waitFor();
@@ -863,12 +870,12 @@ async function fillVendorWorkCreation(page, layout) {
   if (await contact.getAttribute("type") !== "email" || await due.getAttribute("type") !== "date") throw new Error("Vendor work delivery fields do not use email and date input types");
   await contact.fill("security@acme.example");
   await due.fill("2026-09-30");
-  await page.getByText("8 fields · 8 required · 1 document upload", { exact: true }).waitFor({ state: "visible" });
+  await page.getByText("10 fields · 10 required · 1 document upload", { exact: true }).waitFor({ state: "visible" });
   if (!(await page.getByRole("button", { name: "Prepare and send request" }).isEnabled())) throw new Error("Vendor work request remains unavailable after every required field is completed");
 }
 
 async function openVendorSection(page, section) {
-  const tab = page.getByRole("tab", { name: section, exact: true });
+  const tab = page.getByRole("tablist", { name: "Vendor sections", exact: true }).getByRole("tab", { name: section, exact: true });
   if (await tab.waitFor({ state: "visible", timeout: 3_000 }).then(() => true, () => false)) await tab.click();
   else await chooseSharedSelectOption(page, "Vendor section", section);
 }
@@ -876,6 +883,7 @@ async function openVendorSection(page, section) {
 async function chooseSharedSelectOption(page, label, option) {
   const trigger = page.getByRole("button", { name: new RegExp(label, "i") });
   await trigger.scrollIntoViewIfNeeded();
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await trigger.click();
   const listbox = page.getByRole("listbox");
   await listbox.waitFor({ state: "visible" });
@@ -888,6 +896,7 @@ async function chooseSharedSelectOption(page, label, option) {
 async function assertSharedSelectOptions(page, label, expected) {
   const trigger = page.getByRole("button", { name: new RegExp(label, "i") });
   await trigger.scrollIntoViewIfNeeded();
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await trigger.click();
   const listbox = page.getByRole("listbox");
   await listbox.waitFor({ state: "visible" });
@@ -975,7 +984,9 @@ async function captureVendorWorkReview() {
     await page.getByRole("button", { name: "Request changes" }).click();
     const changeMessage = page.getByLabel("What the vendor must change", { exact: true });
     await changeMessage.fill("Provide a clean current assurance report and identify the accountable control owner.");
-    await page.getByLabel("Control owner", { exact: true }).check();
+    const controlOwner = page.getByRole("checkbox", { name: "Control owner", exact: true });
+    await page.locator("label.cs-checkbox-field").filter({ has: controlOwner }).click();
+    if (!await controlOwner.isChecked()) throw new Error("Control owner was not selected for the change request");
     await page.getByLabel(/Vendor contact/).fill("security@acme.example");
     await page.getByLabel("Revised due date", { exact: true }).fill("2026-10-07");
     if (!(await page.getByRole("button", { name: "Send change request" }).isEnabled())) throw new Error("Change request remains unavailable after its required decision record is complete");

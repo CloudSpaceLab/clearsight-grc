@@ -24,7 +24,11 @@ type ScoredResponseEvent struct {
 	ID                 string
 	TenantID           string
 	ResponseRevisionID string
-	OccurredAt         time.Time
+	// RequestID and RequestVersion retain submission-time collection provenance.
+	// Both remain empty for historical events emitted before that contract.
+	RequestID      string
+	RequestVersion int64
+	OccurredAt     time.Time
 }
 
 type ExecutionRoute struct {

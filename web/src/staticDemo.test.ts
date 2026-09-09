@@ -607,6 +607,10 @@ describe("static stakeholder demo transport", () => {
     expect(review.coverage).toMatchObject({ answered_required: 4, required_fields: 4 });
     expect(review.documents).toHaveLength(1);
     expect(review.matters).toEqual([]);
+    expect(review.answers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ field_id: "data_classes", label: "Information used" }),
+      expect.objectContaining({ field_id: "subprocessors", label: "Do subcontractors process the service data?" }),
+    ]));
 
     const started = await staticDemoRequest<{ status: string; version: number }>(`/api/v1/vendor-assessments/${current.assessment.id}/review/start`, { method: "POST", body: JSON.stringify({ expected_version: 4 }) });
     expect(started).toMatchObject({ status: "UNDER_REVIEW", version: 5 });
@@ -630,6 +634,55 @@ describe("static stakeholder demo transport", () => {
     const partial = await staticDemoRequest<{ state: string; capture_url?: string; delivery: { status: string } }>(`/api/v1/vendor-assessments/${ready.assessment.id}/send-request`, { method: "POST", body: JSON.stringify({ expected_version: ready.assessment.version, audience: "security@acme.example", deadline: "2099-09-20T23:59:59Z", invitation_ttl_minutes: 1440 }) });
     expect(partial).toMatchObject({ state: "LINK_CREATED_EMAIL_NOT_SENT", delivery: { status: "FAILED" } });
     expect(partial.capture_url).toContain("#form_access=");
+  });
+
+  it("prepares a vendor request, retains its collection on refresh and sends using the prepared contact", async () => {
+    window.history.replaceState(null, "", "/?fixture=vendor-partial-delivery");
+    const { staticDemoRequest } = await demo();
+    type Current = { assessment: import("./vendorAssessmentTypes").VendorAssessment };
+    const currentPath = "/api/v1/vendors/vendor-relationship-payments/assessments/current";
+    const current = await staticDemoRequest<Current>(currentPath);
+    const base = `/api/v1/vendor-assessments/${current.assessment.id}`;
+    const initial = await staticDemoRequest<import("./vendorCollectionApi").VendorCollection>(`${base}/collection`);
+    expect(initial).toMatchObject({ prepared: false, assessment_version: current.assessment.version });
+    expect(initial.request_id).toBeUndefined();
+    expect(initial.vendor_pending_count).toBeGreaterThan(0);
+    const prepared = await staticDemoRequest<import("./vendorCollectionApi").PrepareVendorCollectionResult>(`${base}/prepare-request`, { method: "POST", body: JSON.stringify({ expected_version: current.assessment.version, audience: "security@acme.example", deadline: "2026-09-10T23:59:59Z" }) });
+    expect(prepared).toMatchObject({ state: "PREPARED", assessment: { status: "READY_TO_SEND", current_request_id: prepared.request.id } });
+    expect(prepared).not.toHaveProperty("capture_url");
+    expect(prepared).not.toHaveProperty("delivery");
+    expect((await staticDemoRequest<Current>(currentPath)).assessment).toEqual(prepared.assessment);
+    const collection = await staticDemoRequest<import("./vendorCollectionApi").VendorCollection>(`${base}/collection`);
+    expect(collection).toMatchObject({ prepared: true, request_id: prepared.request.id, request_version: 1, assessment_version: prepared.assessment.version, deadline: "2026-09-10T23:59:59Z" });
+    expect(collection.audience_hint).not.toBe("security@acme.example");
+    expect(JSON.stringify(collection)).not.toContain("security@acme.example");
+    const sent = await staticDemoRequest<import("./vendorAssessmentTypes").VendorAssessmentSendOutcome>(`${base}/send-request`, { method: "POST", body: JSON.stringify({ expected_version: prepared.assessment.version, audience: "", deadline: "", invitation_ttl_minutes: 1440 }) });
+    expect(sent).toMatchObject({ state: "LINK_CREATED_EMAIL_NOT_SENT", assessment: { status: "COLLECTING", current_request_id: prepared.request.id }, request: { id: prepared.request.id, deadline: "2026-09-10T23:59:59Z" }, delivery: { status: "FAILED" } });
+    expect((await staticDemoRequest<Current>(currentPath)).assessment).toEqual(sent.assessment);
+    expect((await staticDemoRequest<import("./vendorCollectionApi").VendorCollection>(`${base}/collection`)).request_id).toBe(prepared.request.id);
+    await expect(staticDemoRequest(`${base}/send-request`, { method: "POST", body: JSON.stringify({ expected_version: prepared.assessment.version, invitation_ttl_minutes: 1440 }) })).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("rejects changed prepared request details without losing the saved contact or deadline", async () => {
+    window.history.replaceState(null, "", "/?fixture=vendor-ready");
+    const { staticDemoRequest } = await demo();
+    const current = await staticDemoRequest<{ assessment: import("./vendorAssessmentTypes").VendorAssessment }>("/api/v1/vendors/vendor-relationship-payments/assessments/current");
+    const base = `/api/v1/vendor-assessments/${current.assessment.id}`;
+    const input = { expected_version: current.assessment.version, audience: "security@acme.example", deadline: "2026-09-10T23:59:59Z" };
+    const prepared = await staticDemoRequest<import("./vendorCollectionApi").PrepareVendorCollectionResult>(`${base}/prepare-request`, { method: "POST", body: JSON.stringify(input) });
+    await expect(staticDemoRequest(`${base}/prepare-request`, { method: "POST", body: JSON.stringify({ ...input, expected_version: prepared.assessment.version, audience: "other@acme.example" }) })).rejects.toMatchObject({ status: 409 });
+    const sent = await staticDemoRequest<import("./vendorAssessmentTypes").VendorAssessmentSendOutcome>(`${base}/send-request`, { method: "POST", body: JSON.stringify({ expected_version: prepared.assessment.version, invitation_ttl_minutes: 1440 }) });
+    expect(sent).toMatchObject({ state: "DELIVERED", request: { id: prepared.request.id, deadline: input.deadline } });
+  });
+
+  it("includes submitted document occurrences in the vendor collection review count", async () => {
+    window.history.replaceState(null, "", "/?fixture=vendor-submitted");
+    const { staticDemoRequest } = await demo();
+    const current = await staticDemoRequest<{ assessment: import("./vendorAssessmentTypes").VendorAssessment }>("/api/v1/vendors/vendor-relationship-payments/assessments/current");
+    const collection = await staticDemoRequest<import("./vendorCollectionApi").VendorCollection>(`/api/v1/vendor-assessments/${current.assessment.id}/collection`);
+    expect(collection.fields.find((field) => field.field_id === "security_document")).toMatchObject({ type: "vendor_document", collection_state: "RECEIVED", bank_review_state: "PENDING", vendor_action_required: false });
+    expect(collection.bank_pending_count).toBe(1);
+    expect(collection.accepted_document_count).toBe(0);
   });
 
   it("provides a vendor relationship with no active form for governed setup review", async () => {

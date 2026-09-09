@@ -20,9 +20,9 @@ Use the established field, status, tab and disclosure components. No new palette
 
 - [x] Verify prior changes, commit them and integrate the newer main navigation, response and policy changes; preserve both submission truth and collection receipt semantics.
 - [x] Move the unreleased reconciliation migration to 000086 without rewriting main's migration 000085.
-- [ ] Add failing spreadsheet extraction/proposal tests; implement source-row drafts while retaining generic table support. Files: `internal/documentimport` and dedicated acceptance documentation.
-- [ ] Add failing onboarding tests; remove unsupported defaults and add an explicit missing-assurance path. Files: `web/src/components/VendorsWorkspace.tsx`, its tests, `web/src/vendorDueDiligenceForm.ts` and capture contract tests.
-- [ ] Verify isolated PostgreSQL migrations and serial transaction tests, full Go/frontend tests, copy regression, production/evidence builds and rendered affected workflows.
+- [x] Add failing spreadsheet extraction/proposal tests; implement source-row drafts while retaining generic table support. Files: `internal/documentimport` and dedicated acceptance documentation.
+- [x] Add failing onboarding tests; remove unsupported defaults and add an explicit missing-assurance path. Files: `web/src/components/VendorsWorkspace.tsx`, its tests, `web/src/vendorDueDiligenceForm.ts` and capture contract tests.
+- [x] Verify isolated PostgreSQL migrations and serial transaction tests, full Go/frontend tests, copy regression, production/evidence builds and rendered affected workflows.
 - [ ] Commit integrated fixes, push the task branch, create and merge its PR after CI, wait for main CI and the normal deployment workflow, and verify the exact deployed revision and hosted flow.
 
 ## Release constraints
