@@ -159,8 +159,14 @@ function previewContract(proposal: FormTemplateProposal, selected: Set<string>):
 }
 
 function sourceExcerpt(anchor: DocumentSourceAnchor, elements: DocumentExtractedElement[]) {
-  if (!anchor.page && !anchor.sheet && !anchor.paragraph && !anchor.table && !anchor.cell) return undefined;
-  return elements.find((element) => element.anchor.page === anchor.page && element.anchor.sheet === anchor.sheet && (element.anchor.paragraph === anchor.paragraph || element.anchor.cell === anchor.cell))?.text;
+  if (!anchor.page && !anchor.sheet && !anchor.row_start && !anchor.paragraph && !anchor.table && !anchor.cell) return undefined;
+  return elements.find((element) => element.anchor.page === anchor.page
+    && element.anchor.sheet === anchor.sheet
+    && element.anchor.row_start === anchor.row_start
+    && (element.anchor.row_end ?? element.anchor.row_start) === (anchor.row_end ?? anchor.row_start)
+    && element.anchor.paragraph === anchor.paragraph
+    && element.anchor.table === anchor.table
+    && element.anchor.cell === anchor.cell)?.text;
 }
 
 function anchorLabel(anchor: DocumentSourceAnchor) {

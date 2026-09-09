@@ -47,6 +47,15 @@ beforeEach(() => {
 });
 
 describe("FormProposalReview", () => {
+  it("matches each spreadsheet excerpt to its own source row", () => {
+    const rowProposal = { ...proposal, field_changes: proposal.field_changes.map((change, index) => ({ ...change, anchor: { sheet: "Sheet 1", row_start: index + 2, row_end: index + 2 } })) };
+    const { container } = render(<FormProposalReview proposal={rowProposal} sourceElements={[
+      { ref: "row-2", kind: "TABLE", text: "First row source", anchor: { sheet: "Sheet 1", row_start: 2, row_end: 2 } },
+      { ref: "row-3", kind: "TABLE", text: "Second row source", anchor: { sheet: "Sheet 1", row_start: 3, row_end: 3 } },
+    ]} onProposalChange={() => undefined}/>);
+    expect([...container.querySelectorAll("blockquote")].map((quote) => quote.textContent)).toEqual(["First row source", "Second row source"]);
+  });
+
   it("reviews an unsectioned server proposal with null optional lists and creates its selected draft", async () => {
     const wireProposal = JSON.parse(JSON.stringify({
       ...proposal,

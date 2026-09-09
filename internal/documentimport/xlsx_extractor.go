@@ -112,6 +112,10 @@ func readSharedStrings(ctx context.Context, file *zip.File, policy ExtractionPol
 }
 
 func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheetName string, collector *sectionCollector, budget *extractionBudget) error {
+	merges, err := worksheetVerticalMerges(ctx, file, collector.policy)
+	if err != nil {
+		return err
+	}
 	stream, err := file.Open()
 	if err != nil {
 		return err
@@ -120,6 +124,7 @@ func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheet
 	decoder := xml.NewDecoder(stream)
 	rowNumber := 0
 	rowFallback := 0
+	previousRow := 0
 	inRow := false
 	rowNonEmpty := false
 	var parts []string
@@ -153,6 +158,10 @@ func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheet
 					}
 				}
 				inRow = true
+				if len(merges) > 0 && rowNumber <= previousRow {
+					return fmt.Errorf("XLSX merged rows must be in source order")
+				}
+				previousRow = rowNumber
 				rowNonEmpty = false
 				parts = nil
 				cells = nil
@@ -176,6 +185,23 @@ func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheet
 					return limitError("column index exceeds %d", collector.policy.MaxColumns)
 				}
 				cellValue = strings.TrimSpace(cellValue)
+				if len(merges) > 0 {
+					parsedColumn, parsedRow, coordinateErr := mergedCellCoordinates(reference, collector.policy)
+					if coordinateErr != nil {
+						return coordinateErr
+					}
+					if parsedRow != rowNumber {
+						return fmt.Errorf("XLSX cell reference does not match its source row")
+					}
+					if merged := merges.at(parsedColumn, rowNumber); merged != nil && cellValue != "" {
+						if rowNumber == merged.start && merged.value == "" {
+							merged.value = cellValue
+						}
+						if cellValue != merged.value {
+							return fmt.Errorf("XLSX merged range contains conflicting populated cells")
+						}
+					}
+				}
 				if cellValue == "" {
 					continue
 				}
@@ -190,6 +216,27 @@ func streamWorksheet(ctx context.Context, file *zip.File, shared []string, sheet
 			}
 		case xml.EndElement:
 			if value.Name.Local == "row" && inRow {
+				for column := range merges {
+					merged := merges.at(column, rowNumber)
+					if merged == nil || merged.value == "" {
+						continue
+					}
+					rowNonEmpty = true
+					if parts != nil {
+						for len(cells) <= column {
+							cells = append(cells, "")
+						}
+						cells[column] = merged.value
+					}
+				}
+				if parts != nil && len(merges) > 0 {
+					parts = parts[:0]
+					for column, cellValue := range cells {
+						if cellValue != "" {
+							parts = append(parts, fmt.Sprintf("Column %d: %s", column+1, cellValue))
+						}
+					}
+				}
 				before := len(collector.sections)
 				collector.add(Section{Title: fmt.Sprintf("%s row %d", sheetName, rowNumber), Text: strings.Join(parts, "\n"), Sheet: sheetName, RowStart: rowNumber, RowEnd: rowNumber}, rowNonEmpty, parts == nil && rowNonEmpty)
 				// Only complete retained rows may supply structured proposal input.
