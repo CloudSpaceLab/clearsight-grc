@@ -57,7 +57,21 @@ func (s *PostgresFormProposalStore) AcceptWithDraft(ctx context.Context, mutatio
 	if current.Status != FormProposalReviewRequired {
 		return FormTemplateProposal{}, ErrFormProposalState
 	}
-	if current.TenantID != draft.TenantID || current.LegalEntityID != draft.LegalEntityID {
+	if current.LegalEntityID != draft.LegalEntityID {
+		return FormTemplateProposal{}, ErrFormProposalSourceChanged
+	}
+	// Proposal reads expose the tenant slug, while a verified request identity
+	// may use its UUID. Compare both references against the same tenant row;
+	// string equality would reject a valid draft prepared for that identity.
+	var sameTenant bool
+	if err := tx.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM tenants
+			WHERE (id::text=$1 OR slug=$1) AND (id::text=$2 OR slug=$2)
+		)`, current.TenantID, draft.TenantID).Scan(&sameTenant); err != nil {
+		return FormTemplateProposal{}, mapPostgresError(err)
+	}
+	if !sameTenant {
 		return FormTemplateProposal{}, ErrFormProposalSourceChanged
 	}
 	if sourceSHA, required := proposalAcceptanceSourceSHA256(current); required {

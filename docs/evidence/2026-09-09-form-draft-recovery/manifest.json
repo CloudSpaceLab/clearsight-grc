@@ -1,0 +1,58 @@
+[
+  {
+    "code": "form_proposal_source_changed",
+    "theme": "light",
+    "width": 1440,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "code": "form_proposal_state_conflict",
+    "theme": "light",
+    "width": 1440,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "code": "form_proposal_source_changed",
+    "theme": "light",
+    "width": 390,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "code": "form_proposal_state_conflict",
+    "theme": "light",
+    "width": 390,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "code": "form_proposal_source_changed",
+    "theme": "dark",
+    "width": 1440,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "code": "form_proposal_state_conflict",
+    "theme": "dark",
+    "width": 1440,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "code": "form_proposal_source_changed",
+    "theme": "dark",
+    "width": 390,
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "code": "form_proposal_state_conflict",
+    "theme": "dark",
+    "width": 390,
+    "errors": [],
+    "overflow": false
+  }
+]

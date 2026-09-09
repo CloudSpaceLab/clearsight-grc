@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { DocumentExtractedElement, DocumentSourceAnchor } from "../../documentTypes";
 import { acceptFormProposal, loadFormProposal, rejectFormProposal } from "../../formsApi";
 import type { FormProposalFieldChange, FormTemplateProposal } from "../../formsTypes";
-import { apiErrorKind } from "../../http";
+import { ApiError, apiErrorKind } from "../../http";
 import type { CaptureFormContract } from "../../types";
 import { captureContract } from "../capture/contract";
 import { FormPreview } from "./FormPreview";
+import { Notice } from "../ui";
 
 type Props = {
   proposal: FormTemplateProposal;
@@ -73,7 +74,9 @@ export function FormProposalReview({ proposal: receivedProposal, sourceTitle, so
       onProposalChange(accepted);
       if (accepted.result_template_id && accepted.result_template_version) onDraftCreated?.(accepted.result_template_id, accepted.result_template_version);
     } catch (cause) {
-      if (apiErrorKind(cause) === "conflict") {
+      if (cause instanceof ApiError && ["form_proposal_source_changed", "form_proposal_state_conflict"].includes(cause.code ?? "")) {
+        setError(cause.message);
+      } else if (apiErrorKind(cause) === "conflict") {
         setError("This proposal changed while you were reviewing it. Reload it before creating a draft.");
         try {
           onProposalChange(await loadFormProposal(proposal.id));
@@ -110,7 +113,7 @@ export function FormProposalReview({ proposal: receivedProposal, sourceTitle, so
       <div><span className="eyebrow">{proposal.source_kind === "AI" ? "Governed AI proposal" : "Document field proposal"}</span><h3 id={`form-proposal-${proposal.id}`}>Review proposed form fields</h3><p>{sourceTitle ? `Compare proposed fields with ${sourceTitle} before creating a draft.` : "Choose the field changes to include before creating a draft."}</p></div>
       <div className="form-proposal-count"><strong>{selected.size}</strong><span>of {proposal.field_changes.length} selected</span></div>
     </header>
-    {error && <p className="error-text" role="alert">{error}</p>}
+    {error && <div className="form-proposal-feedback"><Notice tone="error">{error}</Notice></div>}
     {(proposal.provenance.extraction_status === "PARTIAL" || proposal.provenance.extraction_status === "TRUNCATED") && <p className="form-proposal-notice" role="status">Only the retained portion of this source was analyzed. Review source gaps and unresolved items before using the draft.</p>}
     <div className="form-proposal-toolbar">
       <label><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(proposal.field_changes.map((change) => change.id)))}/> Select all proposed fields</label>

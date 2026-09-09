@@ -22,6 +22,34 @@ type formProposalHTTPDocuments struct {
 	documents map[string]documentimport.Document
 }
 
+func TestFormProposalConflictResponsesIdentifyRecovery(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		err     error
+		code    string
+		message string
+	}{
+		{"source", monitoring.ErrFormProposalSourceChanged, "form_proposal_source_changed", "The source document changed. Reload the import and create a new proposal."},
+		{"state", monitoring.ErrFormProposalState, "form_proposal_state_conflict", "This proposal cannot create a draft in its current state. Reload the import."},
+		{"version", monitoring.ErrConflict, "form_proposal_conflict", monitoring.ErrConflict.Error()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			writeFormProposalError(w, tc.err)
+			var body struct {
+				Error   string `json:"error"`
+				Message string `json:"message"`
+			}
+			if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+				t.Fatal(err)
+			}
+			if w.Code != http.StatusConflict || body.Error != tc.code || body.Message != tc.message {
+				t.Fatalf("conflict response = %d %s", w.Code, w.Body.String())
+			}
+		})
+	}
+}
+
 func (r formProposalHTTPDocuments) Get(_ context.Context, tenantID, documentID string) (documentimport.Document, error) {
 	value, ok := r.documents[documentID]
 	if !ok || value.TenantID != tenantID {
