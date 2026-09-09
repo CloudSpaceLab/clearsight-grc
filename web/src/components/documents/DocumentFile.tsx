@@ -1,4 +1,4 @@
-import { documentContentURL, documentEligibility, type DocumentOccurrence, type FileKind } from "../../submittedDocumentApi";
+import { demoUnscannedAllowed, documentContentURL, documentEligibility, type DocumentAvailability, type DocumentOccurrence, type FileKind } from "../../submittedDocumentApi";
 import { ActionLink, Notice } from "../ui";
 
 export function FileIcon({ kind }: { kind: FileKind | "ALL" }) {
@@ -7,10 +7,11 @@ export function FileIcon({ kind }: { kind: FileKind | "ALL" }) {
 export function fileKindLabel(kind: FileKind) { return ({ PDF: "PDF", IMAGE: "Image", WORD: "Word document", SPREADSHEET: "Spreadsheet", OTHER: "Other file" })[kind] ?? "Other file"; }
 export function fileSize(bytes: number) { return Number.isFinite(bytes) && bytes >= 0 ? bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB` : "Size not recorded"; }
 export function documentDate(value?: string) { return value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "Not recorded"; }
-export function fileStatus(file: DocumentOccurrence) { return documentEligibility(file) === "demo" ? "Demo check complete" : ({ AVAILABLE: "Ready to view", STORED_UNSCANNED: "Safety check pending", QUARANTINED: "Quarantined", DELETED: "Removed" })[file.artifact_status] ?? "File unavailable"; }
+export function fileStatus(file: DocumentOccurrence) { return demoUnscannedAllowed(file) ? "Unscanned · Demo" : documentEligibility(file) === "demo" ? "Unscanned · Demo preview" : ({ AVAILABLE: "Ready to view", STORED_UNSCANNED: "Safety check pending", QUARANTINED: "Quarantined", DELETED: "Removed" })[file.artifact_status] ?? "File unavailable"; }
 
-export function DocumentDemoNotice({ file }: { file: DocumentOccurrence }) {
-  return documentEligibility(file) === "demo" ? <Notice tone="warning"><strong>Demo check complete</strong><p>No antivirus scan was performed. This sample is for demonstration only and cannot support an approval.</p></Notice> : null;
+export function DocumentDemoNotice({ file }: { file: DocumentAvailability }) {
+  if (demoUnscannedAllowed(file)) return <Notice tone="warning"><strong>Unscanned · Demo</strong><p>Unscanned file. Review is enabled in demo mode.</p></Notice>;
+  return documentEligibility(file) === "demo" ? <Notice tone="warning"><strong>Unscanned · Demo preview</strong><p>No antivirus scan was performed. This sample is for demonstration only and cannot support an approval.</p></Notice> : null;
 }
 
 export function DocumentFacts({ file }: { file: DocumentOccurrence }) {

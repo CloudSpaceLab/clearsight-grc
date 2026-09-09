@@ -226,6 +226,7 @@ export type VendorAssessmentDocument = {
   media_type: string;
   size_bytes: number;
   artifact_status: string;
+  demo_unscanned_allowed?: boolean;
   status?: "SUBMITTED" | "VALIDATED" | "REJECTED" | "EXPIRED" | string;
   evidence_class: "VENDOR_SUPPLIED" | "STAFF_SUPPLIED" | "BANK_VALIDATED" | "OFFICIAL_SOURCE" | string;
   document_type: string;

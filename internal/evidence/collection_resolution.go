@@ -45,7 +45,7 @@ type CollectionResolution struct {
 
 func CollectionFieldFulfilled(field Field, now time.Time) bool {
 	r := field.CollectionResolution
-	if field.Type != "vendor_document" || r == nil || r.ID == "" || r.Version < 1 || r.Source.ArtifactStatus != ArtifactAvailable || !r.Source.Current || (r.BankReviewState != "PENDING" && r.BankReviewState != "VALIDATED") {
+	if field.Type != "vendor_document" || r == nil || r.ID == "" || r.Version < 1 || !ArtifactUseAllowed(r.Source.ArtifactStatus, r.Source.DemoUnscannedAllowed) || !r.Source.Current || (r.BankReviewState != "PENDING" && r.BankReviewState != "VALIDATED") {
 		return false
 	}
 	if r.Source.Review != nil && (r.Source.Review.Status == "REJECTED" || r.Source.Review.Status == "EXPIRED") {
@@ -71,6 +71,7 @@ func RefreshCollectionResolutions(ctx context.Context, request Request, loader f
 		if r == nil {
 			continue
 		}
+		r.Source.DemoUnscannedAllowed = false
 		if loader == nil {
 			r.Source.ArtifactStatus = ArtifactQuarantined
 			continue
@@ -81,6 +82,7 @@ func RefreshCollectionResolutions(ctx context.Context, request Request, loader f
 			continue
 		}
 		r.Source.ArtifactStatus = artifact.Status
+		r.Source.DemoUnscannedAllowed = artifact.DemoUnscannedAllowed && artifact.Status == ArtifactStoredUnscanned
 	}
 	return request
 }
@@ -133,7 +135,7 @@ func (r *MemoryRepository) MutateCollectionRequest(ctx context.Context, tenant, 
 		if !ok || artifact.TenantID != tenant || artifact.RequestID != requestID {
 			return Artifact{}, ErrNotFound
 		}
-		return artifact, nil
+		return withArtifactUsePolicy(artifact, r.demoUnscannedAllowed), nil
 	}, time.Now().UTC())
 	*candidate = *probe.Fields[0].CollectionResolution
 	current.Fields = cloneFields(current.Fields)

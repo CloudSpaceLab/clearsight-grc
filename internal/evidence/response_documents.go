@@ -71,6 +71,7 @@ type DocumentOccurrence struct {
 	SHA256               string           `json:"sha256"`
 	ArtifactStatus       ArtifactStatus   `json:"artifact_status"`
 	DemoPreviewAvailable bool             `json:"demo_preview_available,omitempty"`
+	DemoUnscannedAllowed bool             `json:"demo_unscanned_allowed,omitempty"`
 	UploadedAt           time.Time        `json:"uploaded_at"`
 	UploadedBy           string           `json:"uploaded_by,omitempty"`
 	SubmittedAt          time.Time        `json:"submitted_at"`
@@ -191,6 +192,7 @@ func (s *DistributionService) ListDocuments(ctx context.Context, q DocumentQuery
 	copy(items, page.Items)
 	for i := range items {
 		v := &items[i]
+		v.DemoUnscannedAllowed = s.demoUnscannedAllowed && v.ArtifactStatus == ArtifactStoredUnscanned
 		v.DemoPreviewAvailable = s.demoSamplePreview && v.ArtifactStatus == ArtifactStoredUnscanned && demodocuments.Matches(v.FileName, v.MediaType, v.SHA256, v.SizeBytes)
 	}
 	page.Items = items

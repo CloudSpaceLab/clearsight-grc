@@ -397,8 +397,8 @@ describe("VendorDueDiligence", () => {
     expect(screen.getByText(/^Insurance limit/, { selector: "dt" }).parentElement!.textContent).toContain("Not requested because its condition was not met");
   });
 
-  it("opens only an available assessment document before its review actions", () => {
-    const available = { field_id: "security-report", artifact_id: "artifact-1", file_name: "security-report.pdf", media_type: "application/pdf", size_bytes: 64000, artifact_status: "AVAILABLE", status: "SUBMITTED", evidence_class: "VENDOR_SUPPLIED" as const, document_type: "SECURITY_TEST" };
+  it.each([false, true])("opens available or explicitly demo-allowed assessment evidence (demo=%s)", (demo) => {
+    const available = { field_id: "security-report", artifact_id: "artifact-1", file_name: "security-report.pdf", media_type: "application/pdf", size_bytes: 64000, artifact_status: demo ? "STORED_UNSCANNED" : "AVAILABLE", demo_unscanned_allowed: demo, status: "SUBMITTED", evidence_class: "VENDOR_SUPPLIED" as const, document_type: "SECURITY_TEST" };
     const quarantined = { ...available, artifact_id: "artifact-2", file_name: "quarantined-report.pdf", artifact_status: "QUARANTINED" };
     const review: VendorAssessmentReviewView = {
       assessment: assessment("UNDER_REVIEW"), requests: [],
@@ -414,11 +414,32 @@ describe("VendorDueDiligence", () => {
     expect(availableActions.map((button) => button.textContent)).toEqual(["Open document", "Validate document", "Reject document"]);
     fireEvent.click(availableActions[0]!);
     expect(onOpenDocument).toHaveBeenCalledWith("assessment-1", "request-7", "artifact-1");
+    expect((within(availableDocument).getByRole("button", { name: "Validate document" }) as HTMLButtonElement).disabled).toBe(false);
+    if (demo) expect(within(availableDocument).getByText("Unscanned file. Review is enabled in demo mode.")).toBeTruthy();
 
     const quarantinedDocument = screen.getByRole("article", { name: "quarantined-report.pdf" });
     expect((within(quarantinedDocument).getByRole("button", { name: "Open document" }) as HTMLButtonElement).disabled).toBe(true);
     expect(within(quarantinedDocument).getByText("This document is quarantined. Wait for a clean replacement before reviewing it.")).toBeTruthy();
     expect((within(quarantinedDocument).getByRole("button", { name: "Reject document" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it.each([
+    { artifact_status: "STORED_UNSCANNED", demo_unscanned_allowed: false, status: "SUBMITTED" },
+    { artifact_status: "QUARANTINED", demo_unscanned_allowed: true, status: "SUBMITTED" },
+    { artifact_status: "DELETED", demo_unscanned_allowed: true, status: "SUBMITTED" },
+    { artifact_status: "UNKNOWN", demo_unscanned_allowed: true, status: "SUBMITTED" },
+    { artifact_status: "STORED_UNSCANNED", demo_unscanned_allowed: true, status: "EXPIRED" },
+    { artifact_status: "STORED_UNSCANNED", demo_unscanned_allowed: true, status: "REJECTED" },
+  ])("keeps assessment evidence blocked for $artifact_status / $status / $demo_unscanned_allowed", (change) => {
+    const file = { field_id: "report", artifact_id: "artifact", file_name: "Report.pdf", media_type: "application/pdf", size_bytes: 300, evidence_class: "VENDOR_SUPPLIED", document_type: "SECURITY_TEST", ...change };
+    const current = { ...assessment("UNDER_REVIEW"), current_request_id: "request-1" };
+    const review: VendorAssessmentReviewView = { assessment: current, requests: [], answers: [], coverage: { visible_fields: 0, answered_fields: 0, required_fields: 0, answered_required: 0, ratio: 1 }, documents: [file], matters: [] };
+    const open = vi.fn(), decide = vi.fn();
+    render(<VendorDueDiligence relationship={relationship} assessment={current} review={review} form={form} onOpenDocument={open} onReviewDocument={decide}/>);
+    const item = screen.getByRole("article", { name: "Report.pdf" });
+    for (const button of within(item).getAllByRole("button")) { expect(button.hasAttribute("disabled")).toBe(true); fireEvent.click(button); }
+    expect(open).not.toHaveBeenCalled();
+    expect(decide).not.toHaveBeenCalled();
   });
 
   it("requests targeted clarification, clears the audience and exposes only a returned fallback link", async () => {
@@ -510,8 +531,8 @@ describe("VendorDueDiligence", () => {
     expect(primaryActions()).toHaveLength(1);
   });
 
-  it("records the exact document decision metadata through a focused panel", async () => {
-    const document = { field_id: "security-report", artifact_id: "artifact-1", file_name: "independent-security-test.pdf", media_type: "application/pdf", size_bytes: 64000, artifact_status: "AVAILABLE", status: "SUBMITTED", evidence_class: "VENDOR_SUPPLIED" as const, document_type: "SOC_2_TYPE_II", expires_on: "2027-05-31" };
+  it.each([false, true])("records exact document decisions through the panel without changing scan status (demo=%s)", async (demo) => {
+    const document = { field_id: "security-report", artifact_id: "artifact-1", file_name: "independent-security-test.pdf", media_type: "application/pdf", size_bytes: 64000, artifact_status: demo ? "STORED_UNSCANNED" : "AVAILABLE", demo_unscanned_allowed: demo, status: "SUBMITTED", evidence_class: "VENDOR_SUPPLIED" as const, document_type: "SOC_2_TYPE_II", expires_on: "2027-05-31" };
     const review: VendorAssessmentReviewView = {
       assessment: assessment("UNDER_REVIEW"), requests: [], answers: [],
       coverage: { visible_fields: 0, answered_fields: 0, required_fields: 0, answered_required: 0, ratio: 1 }, documents: [document], matters: [],
@@ -520,6 +541,7 @@ describe("VendorDueDiligence", () => {
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onReviewDocument={onReviewDocument} onComplete={vi.fn()}/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Validate document" }));
+    if (demo) expect(within(screen.getByRole("dialog", { name: "Review document" })).getByText("Unscanned file. Review is enabled in demo mode.")).toBeTruthy();
     expect((screen.getByLabelText("Document type", { exact: false }) as HTMLInputElement).maxLength).toBe(128);
     await chooseOption("Evidence class", "Validated by reviewer");
     fireEvent.change(screen.getByLabelText("Valid until", { exact: false }), { target: { value: "2027-05-31" } });

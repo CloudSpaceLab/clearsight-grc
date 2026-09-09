@@ -12,7 +12,8 @@ func (s *Service) GetArtifact(ctx context.Context, tenant, requestID, artifactID
 	if tenant == "" || requestID == "" || artifactID == "" {
 		return Artifact{}, ErrNotFound
 	}
-	return s.repo.GetArtifact(ctx, tenant, requestID, artifactID)
+	artifact, err := s.repo.GetArtifact(ctx, tenant, requestID, artifactID)
+	return withArtifactUsePolicy(artifact, s.demoUnscannedAllowed), err
 }
 
 func (r *MemoryRepository) GetArtifact(_ context.Context, tenant, requestID, artifactID string) (Artifact, error) {
@@ -22,5 +23,5 @@ func (r *MemoryRepository) GetArtifact(_ context.Context, tenant, requestID, art
 	if !ok || value.TenantID != tenant || value.RequestID != requestID {
 		return Artifact{}, ErrNotFound
 	}
-	return value, nil
+	return withArtifactUsePolicy(value, r.demoUnscannedAllowed), nil
 }

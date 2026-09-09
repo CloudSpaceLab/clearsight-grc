@@ -47,7 +47,7 @@ func (a *API) openVendorWorkDocument(w http.ResponseWriter, r *http.Request) {
 
 func vendorWorkDocumentAvailable(view thirdparty.VendorWorkReviewView, requestID, artifactID string) bool {
 	for _, document := range view.Documents {
-		if document.RequestID == requestID && document.ArtifactID == artifactID && document.ArtifactStatus == evidence.ArtifactAvailable {
+		if document.RequestID == requestID && document.ArtifactID == artifactID && evidence.ArtifactUseAllowed(document.ArtifactStatus, document.DemoUnscannedAllowed) {
 			return true
 		}
 	}

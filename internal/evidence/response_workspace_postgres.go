@@ -147,7 +147,8 @@ func (store *PostgresDistributionStore) SubmitResponseWorkspace(ctx context.Cont
 		return WorkspaceSubmissionResult{}, ErrVersionConflict
 	}
 	current = RefreshCollectionResolutions(ctx, current, func(ctx context.Context, tenantID, requestID, artifactID string) (Artifact, error) {
-		return loadPostgresWorkspaceArtifact(ctx, tx, command.Session, tenantID, requestID, artifactID, true)
+		artifact, err := loadPostgresWorkspaceArtifact(ctx, tx, command.Session, tenantID, requestID, artifactID, true)
+		return withArtifactUsePolicy(artifact, store.repo.demoUnscannedAllowed), err
 	}, command.Now)
 	current, err = RefreshCollectionReviewsPostgres(ctx, tx, current)
 	if err != nil {

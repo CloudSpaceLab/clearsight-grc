@@ -1,4 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { demoUnscannedAllowed, documentReviewAllowed } from "../submittedDocumentApi";
+import { DocumentDemoNotice } from "./documents/DocumentFile";
 import type { FormEvent } from "react";
 import { ApiError, apiErrorKind } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
@@ -269,7 +271,7 @@ function VendorWorkCard({ work, form, relationship, captureURL, onOpenRequest, o
   const setupIncomplete = retry && work.state === "PREPARING" && !work.current_request_id;
   const canCancel = work.state !== "ACCEPTED" && work.state !== "CANCELLED";
   const changeFields = responseView?.answers.map((answer) => ({ id: answer.field_id, label: answer.label })) ?? form?.fields.map((field) => ({ id: field.id, label: field.label })) ?? [];
-  const acceptanceBlocked = responseView?.documents.some((document) => document.artifact_status !== "AVAILABLE") ?? false;
+  const acceptanceBlocked = responseView?.documents.some((document) => !documentReviewAllowed(document)) ?? false;
 
   useEffect(() => {
     setResponseView(undefined);
@@ -387,10 +389,10 @@ function VendorWorkAnswer({ answer }: { answer: VendorWorkResponseView["answers"
 }
 
 function VendorWorkDocument({ view, document }: { view: VendorWorkResponseView; document: VendorWorkResponseView["documents"][number] }) {
-  const available = document.artifact_status === "AVAILABLE";
+  const available = documentReviewAllowed(document);
   const openURL = available ? vendorWorkDocumentURL(view.work.relationship_id, view.work.id, document.request_id || view.request.request_id, document.artifact_id) : "";
   return <article className="vendor-work-document" aria-label={document.file_name}>
-    <div><strong>{document.file_name}</strong><span>{documentTypeLabel(document.document_type)} · {formatBytes(document.size_bytes)}</span><span>{artifactStateLabel(document.artifact_status)} · {evidenceClassLabel(document.evidence_class)}</span>{!available && <small>{artifactRecovery(document.artifact_status)}</small>}</div>
+    <div><strong>{document.file_name}</strong><span>{documentTypeLabel(document.document_type)} · {formatBytes(document.size_bytes)}</span><span>{demoUnscannedAllowed(document) ? "Unscanned · Demo" : artifactStateLabel(document.artifact_status)} · {evidenceClassLabel(document.evidence_class)}</span><DocumentDemoNotice file={document}/>{!available && <small>{artifactRecovery(document.artifact_status)}</small>}</div>
     {openURL && <Button type="button" variant="secondary" onPress={() => window.open(openURL, "_blank", "noopener,noreferrer")}>Open document</Button>}
   </article>;
 }

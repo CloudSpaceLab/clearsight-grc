@@ -9,6 +9,7 @@ export function installVendorCollectionEvidence() {
   const original = globalThis.fetch.bind(globalThis);
   const now = "2026-09-08T10:00:00Z";
   const relationshipID = "vendor-relationship-payments";
+  const unscannedFixture = fixture === "vendor-collection-unscanned-allowed" || fixture === "vendor-collection-unscanned-blocked";
   let assessment: VendorAssessment = {
     id: "sample-collection-assessment", tenant_id: "bank", legal_entity_id: "entity", relationship_id: relationshipID,
     review_kind: "ONBOARDING", source_trigger: "INITIAL", stable_episode_key: "sample-collection",
@@ -20,7 +21,7 @@ export function installVendorCollectionEvidence() {
     id: "sample-iso-occurrence", artifact_id: "sample-iso-artifact", request_id: "sample-earlier-request", submission_id: "sample-earlier-submission", submission_channel: "MAGIC_LINK", field_id: "iso",
     relationship_id: relationshipID, form_template_version: 1, form_title: "Sample · Earlier security review", field_label: "ISO 27001 assurance",
     file_name: "ISO 27001 certificate.pdf", file_kind: "PDF", media_type: "application/pdf", size_bytes: 1024, sha256: "sample-digest",
-    artifact_status: "AVAILABLE", uploaded_at: "2026-08-03T09:00:00Z", submitted_at: "2026-08-03T10:00:00Z", current: true, expires_on: "2099-08-03T00:00:00Z",
+    artifact_status: unscannedFixture ? "STORED_UNSCANNED" : "AVAILABLE", ...(unscannedFixture ? { demo_unscanned_allowed: fixture.endsWith("allowed") } : {}), uploaded_at: "2026-08-03T09:00:00Z", submitted_at: "2026-08-03T10:00:00Z", current: true, expires_on: "2099-08-03T00:00:00Z",
   };
   const resolution: VendorCollectionResolution = { id: "sample-link", version: 1, source, reconciled_by: "Sample · Security reviewer", reconciled_at: now, rationale: "Certificate covers the vendor entity and the payment service under review." };
   let collection: VendorCollection = {
@@ -36,6 +37,7 @@ export function installVendorCollectionEvidence() {
     ],
   };
   if (fixture.includes("empty")) collection = { ...collection, fields: [], vendor_pending_count: 0, bank_pending_count: 0 };
+  if (fixture === "vendor-collection-unscanned-blocked") collection = { ...collection, vendor_pending_count: 3, bank_pending_count: 0, fields: collection.fields.map((field) => field.field_id === "iso" ? { ...field, collection_state: "MISSING", vendor_action_required: true, bank_review_state: "NOT_REQUIRED" } : field) };
   if (fixture.includes("replaced")) collection = { ...collection, vendor_pending_count: 3, bank_pending_count: 0, fields: collection.fields.map((field) => field.field_id === "iso" ? { ...field, collection_state: "MISSING", vendor_action_required: true, bank_review_state: "NOT_REQUIRED", resolution: { ...resolution, source: { ...source, current: false } } } : field) };
   if (fixture.includes("long")) collection.fields[0]!.label = "Independent vulnerability assessment and penetration test report for the payment processing service and its supporting infrastructure";
   function review(): VendorAssessmentReviewView {
@@ -43,7 +45,7 @@ export function installVendorCollectionEvidence() {
       documents: collection.fields.filter((field) => field.resolution || field.field_id === "continuity").map((field) => ({
         field_id: field.field_id, artifact_id: field.resolution?.source.artifact_id ?? "sample-continuity", request_id: field.resolution?.source.request_id ?? "sample-collection-request",
         file_name: field.resolution?.source.file_name ?? "Business continuity certificate.pdf", media_type: "application/pdf", size_bytes: 1024,
-        artifact_status: "AVAILABLE", status: field.bank_review_state === "VALIDATED" ? "VALIDATED" : "SUBMITTED", evidence_class: "VENDOR_SUPPLIED", document_type: field.field_id,
+        artifact_status: field.resolution?.source.artifact_status ?? "AVAILABLE", demo_unscanned_allowed: field.resolution?.source.demo_unscanned_allowed, status: field.bank_review_state === "VALIDATED" ? "VALIDATED" : "SUBMITTED", evidence_class: "VENDOR_SUPPLIED", document_type: field.field_id,
       })), matters: [] };
   }
   let errorAttempts = 0;

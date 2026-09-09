@@ -532,8 +532,16 @@ func TestVendorWorkResponseReturnsBoundDocumentBeforeScanCompletes(t *testing.T)
 }
 
 func TestAcceptVendorWorkBlocksUnavailableCurrentResponseDocument(t *testing.T) {
-	for _, status := range []evidence.ArtifactStatus{evidence.ArtifactStoredUnscanned, evidence.ArtifactQuarantined, evidence.ArtifactDeleted} {
-		t.Run(string(status), func(t *testing.T) {
+	for _, test := range []struct {
+		status  evidence.ArtifactStatus
+		enabled bool
+	}{{evidence.ArtifactStoredUnscanned, false}, {evidence.ArtifactStoredUnscanned, true}, {evidence.ArtifactQuarantined, true}, {evidence.ArtifactDeleted, true}} {
+		status := test.status
+		name := string(status)
+		if test.enabled {
+			name += "_demo_enabled"
+		}
+		t.Run(name, func(t *testing.T) {
 			fixture := newVendorWorkFixture(t)
 			forms := fixture.service.forms.(*monitoring.MemoryRepository)
 			_, err := forms.CreateFormRevision(context.Background(), monitoring.FormTemplate{
@@ -570,8 +578,19 @@ func TestAcceptVendorWorkBlocksUnavailableCurrentResponseDocument(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
+			fixture.service.ConfigureDemoUnscannedArtifacts(test.enabled)
 			fixture.service.evidence = vendorWorkArtifactStatusStub{vendorWorkEvidence: fixture.evidence, artifactID: artifact.ID, status: status}
 			_, err = fixture.service.Accept(context.Background(), Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}, reviewing.ID, AcceptVendorWorkInput{ExpectedVersion: reviewing.Version, Rationale: "The executed agreement addresses the request."})
+			if test.enabled && status == evidence.ArtifactStoredUnscanned {
+				if err != nil {
+					t.Fatal(err)
+				}
+				view, err := fixture.service.Response(context.Background(), fixture.actor, reviewing.ID)
+				if err != nil || len(view.Documents) != 1 || !view.Documents[0].DemoUnscannedAllowed || view.Documents[0].ArtifactStatus != evidence.ArtifactStoredUnscanned {
+					t.Fatalf("accepted response lost scan status: %+v %v", view, err)
+				}
+				return
+			}
 			if !errors.Is(err, ErrVendorWorkAcceptanceBlocked) {
 				t.Fatalf("accept with %s document = %v", status, err)
 			}

@@ -263,6 +263,7 @@ type vendorWorkDispatcher interface {
 }
 
 type VendorWorkService struct {
+	demoArtifactPolicy
 	repo          VendorWorkRepository
 	links         RelationshipLinkRepository
 	evidence      vendorWorkEvidence
@@ -733,7 +734,7 @@ func (s *VendorWorkService) Accept(ctx context.Context, actor Actor, workID stri
 		return VendorWorkRequest{}, ErrVersionConflict
 	}
 	for _, document := range view.Documents {
-		if document.ArtifactStatus != evidence.ArtifactAvailable {
+		if !s.artifactUseAllowed(document.ArtifactStatus) {
 			return VendorWorkRequest{}, ErrVendorWorkAcceptanceBlocked
 		}
 	}
@@ -1082,7 +1083,7 @@ func (s *VendorWorkService) Response(ctx context.Context, actor Actor, id string
 			if readErr != nil || artifact.SubmissionID != source.submissionID {
 				return VendorWorkReviewView{}, ErrNotFound
 			}
-			document := AssessmentReviewDocument{FieldID: field.ID, RequestID: source.requestID, ArtifactID: artifact.ID, FileName: artifact.FileName, MediaType: artifact.MediaType, SizeBytes: artifact.SizeBytes, ArtifactStatus: artifact.Status, Status: "SUBMITTED", EvidenceClass: AssessmentEvidenceVendorSupplied}
+			document := AssessmentReviewDocument{FieldID: field.ID, RequestID: source.requestID, ArtifactID: artifact.ID, FileName: artifact.FileName, MediaType: artifact.MediaType, SizeBytes: artifact.SizeBytes, ArtifactStatus: artifact.Status, DemoUnscannedAllowed: s.demoUnscannedAllowed(artifact.Status), Status: "SUBMITTED", EvidenceClass: AssessmentEvidenceVendorSupplied}
 			if answer.Value.Document != nil {
 				document.DocumentType = answer.Value.Document.DocumentType
 				document.Reference = answer.Value.Document.Reference

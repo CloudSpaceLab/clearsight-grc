@@ -98,7 +98,7 @@ func (s *AssessmentReviewService) GetCollection(ctx context.Context, actor Actor
 		if err = validateCollectionRequest(a, request); err != nil {
 			return AssessmentCollection{}, err
 		}
-		request = evidence.RefreshCollectionResolutions(ctx, request, s.evidence.GetArtifact, s.assessments.now())
+		request = s.refreshCollectionArtifacts(ctx, request)
 		if a.SubmissionID != "" {
 			submission, readErr := s.evidence.GetSubmission(ctx, a.TenantID, a.SubmissionID)
 			if readErr != nil {
@@ -134,7 +134,7 @@ func (s *AssessmentReviewService) GetCollection(ctx context.Context, actor Actor
 			continue
 		}
 		artifact, readErr := s.evidence.GetArtifact(ctx, a.TenantID, request.ID, answers[row.FieldID].Document.ArtifactID)
-		if readErr != nil || artifact.Status != evidence.ArtifactAvailable {
+		if readErr != nil || !s.artifactUseAllowed(artifact.Status) {
 			if row.BankReviewState == "PENDING" {
 				result.BankPendingCount--
 			}
@@ -267,6 +267,7 @@ func (s *AssessmentReviewService) ReconcileCollection(ctx context.Context, _ Act
 		return ReconcileAssessmentCollectionOutcome{}, ErrNotFound
 	}
 	occurrence := source.Items[0]
+	occurrence.DemoUnscannedAllowed = s.demoUnscannedAllowed(occurrence.ArtifactStatus)
 	if occurrence.SubmissionChannel != "MAGIC_LINK" {
 		return ReconcileAssessmentCollectionOutcome{}, ErrAssessmentCompletionBlocked
 	}

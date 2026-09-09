@@ -45,9 +45,10 @@ func (r *PostgresRepository) WriteAssessmentCollection(ctx context.Context, reco
 	if err != nil {
 		return fail(err)
 	}
-	if exact.SubmissionChannel != "MAGIC_LINK" || exact.ID != source.ID || exact.SHA256 != source.SHA256 || exact.SizeBytes != source.SizeBytes || exact.ArtifactStatus != evidence.ArtifactAvailable {
+	if exact.SubmissionChannel != "MAGIC_LINK" || exact.ID != source.ID || exact.SHA256 != source.SHA256 || exact.SizeBytes != source.SizeBytes || !r.artifactUseAllowed(exact.ArtifactStatus) {
 		return fail(ErrAssessmentCompletionBlocked)
 	}
+	exact.DemoUnscannedAllowed = r.demoUnscannedAllowed(exact.ArtifactStatus)
 	record.Resolution.Source = exact
 	record.Resolution.SourceArtifactRequestID = exact.ArtifactRequestID
 	// Fence source review and currency changes in the same command transaction.

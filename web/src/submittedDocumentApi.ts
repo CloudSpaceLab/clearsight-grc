@@ -10,6 +10,7 @@ export type DocumentOccurrence = {
   file_name: string; media_type: string; file_kind: FileKind; size_bytes: number;
   sha256: string; artifact_status: string; uploaded_at: string; uploaded_by?: string;
   demo_preview_available?: boolean;
+  demo_unscanned_allowed?: boolean;
   submitted_at: string; submitted_by?: string; submission_channel?: string; expires_on?: string; current: boolean;
   review?: { id: string; status: string; reviewed_by: string; reviewed_at?: string; source: "VENDOR_ASSESSMENT" };
 };
@@ -36,10 +37,17 @@ export function documentContentURL(file: ContentOccurrence, download = false) {
   return `${apiBase}/api/v1/forms/documents/${path}/content${params.size ? `?${params}` : ""}`;
 }
 
-type DocumentAvailability = Pick<DocumentOccurrence, "artifact_status" | "demo_preview_available">;
+export type DocumentAvailability = Pick<DocumentOccurrence, "artifact_status" | "demo_preview_available" | "demo_unscanned_allowed">;
+export function demoUnscannedAllowed(file: DocumentAvailability): boolean {
+  return file.artifact_status === "STORED_UNSCANNED" && file.demo_unscanned_allowed === true;
+}
+// Preview-only sample access never grants eligibility for evidence review.
+export function documentReviewAllowed(file: DocumentAvailability): boolean {
+  return file.artifact_status === "AVAILABLE" || demoUnscannedAllowed(file);
+}
 export function documentEligibility(file: DocumentAvailability): "available" | "demo" | undefined {
   if (file.artifact_status === "AVAILABLE") return "available";
-  if (file.artifact_status === "STORED_UNSCANNED" && file.demo_preview_available === true) return "demo";
+  if (demoUnscannedAllowed(file) || (file.artifact_status === "STORED_UNSCANNED" && file.demo_preview_available === true)) return "demo";
   return undefined;
 }
 

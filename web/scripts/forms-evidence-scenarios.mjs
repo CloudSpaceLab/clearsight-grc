@@ -888,7 +888,7 @@ for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"
       await dialog.waitFor();
       const metadata = await assertDemoDocumentMetadata(dialog, demoDocumentMetadata.image);
       if (state === "preview") {
-        await dialog.getByText("Demo check complete", { exact: true }).waitFor();
+        await dialog.getByText("Unscanned · Demo preview", { exact: true }).waitFor();
         const warning = dialog.getByText(/No antivirus scan was performed/);
         await warning.waitFor();
         const link = dialog.getByRole("link", { name: "Download file" }); await link.waitFor();
@@ -933,7 +933,7 @@ for (const theme of ["light", "dark"]) scenarios.push({
     const row = page.getByRole("row", { name: /sample-insurance-schedule\.pdf/ }); await row.waitFor(); await row.focus(); await page.keyboard.press("Space");
     const dialog = page.getByRole("dialog", { name: "Preview sample-insurance-schedule.pdf" }); await dialog.waitFor();
     const metadata = await assertDemoDocumentMetadata(dialog, demoDocumentMetadata.pdf);
-    await dialog.getByText("Demo check complete", { exact: true }).waitFor();
+    await dialog.getByText("Unscanned · Demo preview", { exact: true }).waitFor();
     const warning = dialog.getByText(/No antivirus scan was performed/); await warning.waitFor();
     const link = dialog.getByRole("link", { name: "Download file" }); await link.waitFor();
     const nativePreview = await page.evaluate(() => navigator.pdfViewerEnabled !== false);

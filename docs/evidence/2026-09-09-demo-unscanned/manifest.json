@@ -1,0 +1,1555 @@
+{
+  "capturedAt": "2026-09-09T06:37:32.857Z",
+  "base": "http://127.0.0.1:4187",
+  "fixtureOnly": true,
+  "fileBytesPreviewed": false,
+  "results": [
+    {
+      "allowance": "allowed",
+      "state": "collection",
+      "name": "allowed-collection-light-1440",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "light",
+      "width": 1440,
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      },
+      "surfaceLayout": {
+        "clientWidth": 691,
+        "scrollWidth": 691
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 5,
+            "examples": [
+              {
+                "target": [
+                  ".brand-mark"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".avatar"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".context-bar"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 68,
+            "examples": [
+              {
+                "target": [
+                  ".brand-mark"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+              },
+              {
+                "target": [
+                  "nav > .nav-item:nth-child(1) > b"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  ".nav-item:nth-child(2) > b"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-collection-light-1440-viewport.png",
+      "surfaceFile": "allowed-collection-light-1440-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "collection",
+      "name": "allowed-collection-light-390",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "light",
+      "width": 390,
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390
+      },
+      "surfaceLayout": {
+        "clientWidth": 284,
+        "scrollWidth": 284
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 3,
+            "examples": [
+              {
+                "target": [
+                  ".context-bar"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".vendor-brand-icon-detail"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a span with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".vdd-scope"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 44,
+            "examples": [
+              {
+                "target": [
+                  ".context-bar > div:nth-child(1) > strong"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "summary[aria-label=\"Administration\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "summary[role=\"button\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-collection-light-390-viewport.png",
+      "surfaceFile": "allowed-collection-light-390-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "collection",
+      "name": "allowed-collection-dark-1440",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "dark",
+      "width": 1440,
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      },
+      "surfaceLayout": {
+        "clientWidth": 691,
+        "scrollWidth": 691
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 5,
+            "examples": [
+              {
+                "target": [
+                  ".brand-mark"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".avatar"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".context-bar"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 68,
+            "examples": [
+              {
+                "target": [
+                  ".brand-mark"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+              },
+              {
+                "target": [
+                  "nav > .nav-item:nth-child(1) > b"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  ".nav-item:nth-child(2) > b"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-collection-dark-1440-viewport.png",
+      "surfaceFile": "allowed-collection-dark-1440-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "collection",
+      "name": "allowed-collection-dark-390",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "dark",
+      "width": 390,
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390
+      },
+      "surfaceLayout": {
+        "clientWidth": 284,
+        "scrollWidth": 284
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 3,
+            "examples": [
+              {
+                "target": [
+                  ".context-bar"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".vendor-brand-icon-detail"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a span with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".vdd-scope"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 44,
+            "examples": [
+              {
+                "target": [
+                  ".context-bar > div:nth-child(1) > strong"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "summary[aria-label=\"Administration\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "summary[role=\"button\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-collection-dark-390-viewport.png",
+      "surfaceFile": "allowed-collection-dark-390-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "blocked",
+      "state": "collection",
+      "name": "blocked-collection-light-1440",
+      "fixture": "vendor-collection-unscanned-blocked",
+      "theme": "light",
+      "width": 1440,
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": false,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      },
+      "surfaceLayout": {
+        "clientWidth": 691,
+        "scrollWidth": 691
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 5,
+            "examples": [
+              {
+                "target": [
+                  ".brand-mark"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".avatar"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".context-bar"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 65,
+            "examples": [
+              {
+                "target": [
+                  ".brand-mark"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+              },
+              {
+                "target": [
+                  "nav > .nav-item:nth-child(1) > b"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  ".nav-item:nth-child(2) > b"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "blocked-collection-light-1440-viewport.png",
+      "surfaceFile": "blocked-collection-light-1440-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "blocked",
+      "state": "collection",
+      "name": "blocked-collection-light-390",
+      "fixture": "vendor-collection-unscanned-blocked",
+      "theme": "light",
+      "width": 390,
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": false,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390
+      },
+      "surfaceLayout": {
+        "clientWidth": 284,
+        "scrollWidth": 284
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 3,
+            "examples": [
+              {
+                "target": [
+                  ".context-bar"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".vendor-brand-icon-detail"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a span with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".vdd-scope"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 47,
+            "examples": [
+              {
+                "target": [
+                  ".context-bar > div:nth-child(1) > strong"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "summary[aria-label=\"Administration\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "summary[role=\"button\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "blocked-collection-light-390-viewport.png",
+      "surfaceFile": "blocked-collection-light-390-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "blocked",
+      "state": "collection",
+      "name": "blocked-collection-dark-1440",
+      "fixture": "vendor-collection-unscanned-blocked",
+      "theme": "dark",
+      "width": 1440,
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": false,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      },
+      "surfaceLayout": {
+        "clientWidth": 691,
+        "scrollWidth": 691
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 5,
+            "examples": [
+              {
+                "target": [
+                  ".brand-mark"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".avatar"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".context-bar"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 65,
+            "examples": [
+              {
+                "target": [
+                  ".brand-mark"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+              },
+              {
+                "target": [
+                  "nav > .nav-item:nth-child(1) > b"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  ".nav-item:nth-child(2) > b"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "blocked-collection-dark-1440-viewport.png",
+      "surfaceFile": "blocked-collection-dark-1440-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "blocked",
+      "state": "collection",
+      "name": "blocked-collection-dark-390",
+      "fixture": "vendor-collection-unscanned-blocked",
+      "theme": "dark",
+      "width": 390,
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": false,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390
+      },
+      "surfaceLayout": {
+        "clientWidth": 284,
+        "scrollWidth": 284
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 3,
+            "examples": [
+              {
+                "target": [
+                  ".context-bar"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".vendor-brand-icon-detail"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a span with no valid role attribute."
+              },
+              {
+                "target": [
+                  ".vdd-scope"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 47,
+            "examples": [
+              {
+                "target": [
+                  ".context-bar > div:nth-child(1) > strong"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "summary[aria-label=\"Administration\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "summary[role=\"button\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "blocked-collection-dark-390-viewport.png",
+      "surfaceFile": "blocked-collection-dark-390-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "review",
+      "name": "allowed-review-light-1440",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "light",
+      "width": 1440,
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      },
+      "surfaceLayout": {
+        "clientWidth": 559,
+        "scrollWidth": 559
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria4819320517-_r_5c_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "#react-aria4819320517-_r_5p_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-review-light-1440-viewport.png",
+      "surfaceFile": "allowed-review-light-1440-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "review",
+      "name": "allowed-review-light-390",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "light",
+      "width": 390,
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390
+      },
+      "surfaceLayout": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria2008653174-_r_5c_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "#react-aria2008653174-_r_5p_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-review-light-390-viewport.png",
+      "surfaceFile": "allowed-review-light-390-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "review",
+      "name": "allowed-review-dark-1440",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "dark",
+      "width": 1440,
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      },
+      "surfaceLayout": {
+        "clientWidth": 559,
+        "scrollWidth": 559
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria6887065491-_r_5c_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "#react-aria6887065491-_r_5p_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-review-dark-1440-viewport.png",
+      "surfaceFile": "allowed-review-dark-1440-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "review",
+      "name": "allowed-review-dark-390",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "dark",
+      "width": 390,
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390
+      },
+      "surfaceLayout": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria5961947077-_r_5c_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "#react-aria5961947077-_r_5p_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-review-dark-390-viewport.png",
+      "surfaceFile": "allowed-review-dark-390-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "picker",
+      "name": "allowed-picker-light-1440",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "light",
+      "width": 1440,
+      "capturedAt": "2026-09-09T06:37:17.375Z",
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "chooseEnabled": true,
+      "pickerNavigation": {
+        "clientWidth": 839,
+        "scrollWidth": 930,
+        "buttons": [
+          {
+            "label": "All files",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "PDF files",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Images",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Word documents",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Spreadsheets",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Other files",
+            "markerGap": 8,
+            "height": 44
+          }
+        ],
+        "lastTypeReachable": true
+      },
+      "actionReachable": true,
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      },
+      "surfaceLayout": {
+        "clientWidth": 879,
+        "scrollWidth": 879
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 1,
+            "examples": [
+              {
+                "target": [
+                  "div[aria-label=\"Document selection\"]"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria7078413254-_r_5e_ > span > .document-kind-label > span[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "footer > span:nth-child(1)"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-picker-light-1440-viewport.png",
+      "surfaceFile": "allowed-picker-light-1440-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "picker",
+      "name": "allowed-picker-light-390",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "light",
+      "width": 390,
+      "capturedAt": "2026-09-09T06:37:19.562Z",
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "chooseEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390
+      },
+      "surfaceLayout": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 1,
+            "examples": [
+              {
+                "target": [
+                  "div[aria-label=\"Document selection\"]"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria4038652658-_r_61_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "footer > span:nth-child(1)"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-picker-light-390-viewport.png",
+      "surfaceFile": "allowed-picker-light-390-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "picker",
+      "name": "allowed-picker-dark-1440",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "dark",
+      "width": 1440,
+      "capturedAt": "2026-09-09T06:37:21.251Z",
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "chooseEnabled": true,
+      "pickerNavigation": {
+        "clientWidth": 839,
+        "scrollWidth": 930,
+        "buttons": [
+          {
+            "label": "All files",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "PDF files",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Images",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Word documents",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Spreadsheets",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Other files",
+            "markerGap": 8,
+            "height": 44
+          }
+        ],
+        "lastTypeReachable": true
+      },
+      "actionReachable": true,
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      },
+      "surfaceLayout": {
+        "clientWidth": 879,
+        "scrollWidth": 879
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 1,
+            "examples": [
+              {
+                "target": [
+                  "div[aria-label=\"Document selection\"]"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria6982242871-_r_5e_ > span > .document-kind-label > span[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "footer > span:nth-child(1)"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-picker-dark-1440-viewport.png",
+      "surfaceFile": "allowed-picker-dark-1440-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "picker",
+      "name": "allowed-picker-dark-390",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "dark",
+      "width": 390,
+      "capturedAt": "2026-09-09T06:37:23.284Z",
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "chooseEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390
+      },
+      "surfaceLayout": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 1,
+            "examples": [
+              {
+                "target": [
+                  "div[aria-label=\"Document selection\"]"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria3557411559-_r_61_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "footer > span:nth-child(1)"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-picker-dark-390-viewport.png",
+      "surfaceFile": "allowed-picker-dark-390-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "blocked",
+      "state": "picker",
+      "name": "blocked-picker-light-1440",
+      "fixture": "vendor-collection-unscanned-blocked",
+      "theme": "light",
+      "width": 1440,
+      "capturedAt": "2026-09-09T06:37:24.968Z",
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": false,
+      "chooseEnabled": false,
+      "pickerNavigation": {
+        "clientWidth": 839,
+        "scrollWidth": 930,
+        "buttons": [
+          {
+            "label": "All files",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "PDF files",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Images",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Word documents",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Spreadsheets",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Other files",
+            "markerGap": 8,
+            "height": 44
+          }
+        ],
+        "lastTypeReachable": true
+      },
+      "actionReachable": true,
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      },
+      "surfaceLayout": {
+        "clientWidth": 879,
+        "scrollWidth": 879
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 1,
+            "examples": [
+              {
+                "target": [
+                  "div[aria-label=\"Document selection\"]"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria5303716614-_r_5b_ > span > .document-kind-label > span[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "footer > span:nth-child(1)"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "blocked-picker-light-1440-viewport.png",
+      "surfaceFile": "blocked-picker-light-1440-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "blocked",
+      "state": "picker",
+      "name": "blocked-picker-light-390",
+      "fixture": "vendor-collection-unscanned-blocked",
+      "theme": "light",
+      "width": 390,
+      "capturedAt": "2026-09-09T06:37:26.95Z",
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": false,
+      "chooseEnabled": false,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390
+      },
+      "surfaceLayout": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 1,
+            "examples": [
+              {
+                "target": [
+                  "div[aria-label=\"Document selection\"]"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 1,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria8733007440-_r_5u_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "blocked-picker-light-390-viewport.png",
+      "surfaceFile": "blocked-picker-light-390-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "blocked",
+      "state": "picker",
+      "name": "blocked-picker-dark-1440",
+      "fixture": "vendor-collection-unscanned-blocked",
+      "theme": "dark",
+      "width": 1440,
+      "capturedAt": "2026-09-09T06:37:28.739Z",
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": false,
+      "chooseEnabled": false,
+      "pickerNavigation": {
+        "clientWidth": 839,
+        "scrollWidth": 930,
+        "buttons": [
+          {
+            "label": "All files",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "PDF files",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Images",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Word documents",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Spreadsheets",
+            "markerGap": 8,
+            "height": 44
+          },
+          {
+            "label": "Other files",
+            "markerGap": 8,
+            "height": 44
+          }
+        ],
+        "lastTypeReachable": true
+      },
+      "actionReachable": true,
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      },
+      "surfaceLayout": {
+        "clientWidth": 879,
+        "scrollWidth": 879
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 1,
+            "examples": [
+              {
+                "target": [
+                  "div[aria-label=\"Document selection\"]"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria2643060724-_r_5b_ > span > .document-kind-label > span[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "footer > span:nth-child(1)"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "blocked-picker-dark-1440-viewport.png",
+      "surfaceFile": "blocked-picker-dark-1440-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "blocked",
+      "state": "picker",
+      "name": "blocked-picker-dark-390",
+      "fixture": "vendor-collection-unscanned-blocked",
+      "theme": "dark",
+      "width": 390,
+      "capturedAt": "2026-09-09T06:37:30.996Z",
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": false,
+      "chooseEnabled": false,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390
+      },
+      "surfaceLayout": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "impact": "serious",
+            "help": "Elements must only use permitted ARIA attributes",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+            "nodeCount": 1,
+            "examples": [
+              {
+                "target": [
+                  "div[aria-label=\"Document selection\"]"
+                ],
+                "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute."
+              }
+            ]
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 1,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria3323975279-_r_5u_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "blocked-picker-dark-390-viewport.png",
+      "surfaceFile": "blocked-picker-dark-390-surface.png",
+      "status": "CAPTURED"
+    }
+  ],
+  "visualReview": {
+    "inspectedAt": "2026-09-09T06:38:14.8143748Z",
+    "inspectedFiles": [
+      "allowed-review-dark-390-surface.png",
+      "allowed-picker-light-1440-surface.png",
+      "blocked-picker-dark-390-surface.png",
+      "allowed-collection-light-390-surface.png",
+      "allowed-collection-light-390-viewport.png",
+      "blocked-collection-dark-1440-viewport.png",
+      "allowed-review-light-1440-viewport.png",
+      "allowed-picker-dark-390-viewport.png",
+      "blocked-collection-light-390-viewport.png",
+      "allowed-collection-dark-1440-viewport.png",
+      "allowed-review-light-390-viewport.png",
+      "allowed-review-dark-1440-viewport.png",
+      "allowed-picker-dark-1440-surface.png",
+      "blocked-picker-light-1440-surface.png",
+      "blocked-picker-light-390-viewport.png"
+    ],
+    "observations": [
+      "Explicit demo status and review notice remain visible; default-off selection is disabled with a reason.",
+      "Review panel fields, cancel and Record validation remain readable and reachable at 390px and 1440px.",
+      "Final desktop picker navigation has an 8px marker gap, 44px targets and a reachable last item through horizontal scrolling.",
+      "Tall checklist surface screenshots include the fixed context bar within the element capture; viewport screenshots show the actual scrolled action state."
+    ],
+    "limitations": [
+      "Axe reports no violations, with incomplete ARIA-role and gradient/symbol contrast diagnostics retained in each result; this is not a full accessibility conformance claim.",
+      "No file preview/download bytes were requested and no material review or reuse command was submitted. Fixture metadata is not real PDF evidence."
+    ],
+    "harnessCorrection": "Initial checklist navigation assumed the old selected-vendor layout. The harness now opens due diligence from Overview. Three stale diagnostic screenshots were removed after the successful rerun."
+  }
+}

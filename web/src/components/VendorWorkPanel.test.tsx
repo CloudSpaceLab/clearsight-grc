@@ -323,6 +323,21 @@ describe("VendorWorkPanel", () => {
     expect(card.textContent).not.toContain("artifact-quarantined");
   });
 
+  it.each([false, true])("requires the explicit demo allowance to accept unscanned vendor work (allowed=%s)", async (allowed) => {
+    vi.mocked(loadVendorWork).mockResolvedValue({ items: [{ ...work, state: "UNDER_REVIEW", version: 5 }] });
+    vi.mocked(loadVendorWorkResponse).mockResolvedValue({ ...response, documents: [{ ...response.documents[0]!, artifact_status: "STORED_UNSCANNED", demo_unscanned_allowed: allowed }] });
+    render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
+    const card = await screen.findByTestId("vendor-work-work-1");
+    fireEvent.click(within(card).getByRole("button", { name: "Review response" }));
+    const file = await within(card).findByRole("article", { name: "current-test-report.pdf" });
+    expect((within(card).getByRole("button", { name: "Accept response" }) as HTMLButtonElement).disabled).toBe(!allowed);
+    if (allowed) {
+      expect(within(file).getByText("Unscanned file. Review is enabled in demo mode.")).toBeTruthy();
+      expect(within(file).getByRole("button", { name: "Open document" })).toBeTruthy();
+      expect(within(file).queryByText(/scan is pending/)).toBeNull();
+    } else expect(within(file).queryByRole("button", { name: "Open document" })).toBeNull();
+  });
+
   it("keeps review unstarted when the response projection is unavailable", async () => {
     vi.mocked(loadVendorWork).mockResolvedValue({ items: [{ ...work, state: "RESPONSE_RECEIVED", version: 4 }] });
     vi.mocked(loadVendorWorkResponse).mockRejectedValue(new Error("unavailable"));

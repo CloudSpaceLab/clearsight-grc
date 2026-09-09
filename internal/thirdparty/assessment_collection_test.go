@@ -31,6 +31,15 @@ func (s *assessmentReviewEvidenceStub) MutateCollectionRequest(_ context.Context
 }
 
 func TestReconcileCollectionKeepsVendorSubmissionAbsentAndBankReviewPending(t *testing.T) {
+	for _, demo := range []bool{false, true} {
+		name := "scanned"
+		if demo {
+			name = "demo_unscanned"
+		}
+		t.Run(name, func(t *testing.T) { testReconcileCollectionKeepsVendorSubmissionAbsentAndBankReviewPending(t, demo) })
+	}
+}
+func testReconcileCollectionKeepsVendorSubmissionAbsentAndBankReviewPending(t *testing.T, demo bool) {
 	review, actor, assessment, capture := assessmentReviewFixture(t)
 	repo := review.links.(*MemoryAssessmentRepository)
 	assessment.Status = AssessmentCollecting
@@ -47,10 +56,22 @@ func TestReconcileCollectionKeepsVendorSubmissionAbsentAndBankReviewPending(t *t
 	review.assessments.guard = newAssessmentGuard()
 	review.assessments.now = func() time.Time { return assessment.UpdatedAt }
 	source := evidence.DocumentOccurrence{ID: "old:submission-old:report:artifact-1", SubmissionChannel: "MAGIC_LINK", ArtifactID: "artifact-1", RequestID: "old-request", ArtifactRequestID: "old-request", SubmissionID: "submission-old", FieldID: "report", RelationshipID: assessment.RelationshipID, FileName: "Report.pdf", FieldLabel: "Assurance report", ArtifactStatus: evidence.ArtifactAvailable, Current: true, SizeBytes: 100, SHA256: "digest"}
+	if demo {
+		source.ArtifactStatus = evidence.ArtifactStoredUnscanned
+		review.ConfigureDemoUnscannedArtifacts(true)
+		repo.ConfigureDemoUnscannedArtifacts(true)
+	}
 	source.MediaType = "application/pdf"
 	review.ConfigureCollectionSources(collectionSourcesStub{source}, nil)
 	capture.artifacts[source.ArtifactID] = evidence.Artifact{ID: source.ArtifactID, TenantID: actor.TenantID, RequestID: source.ArtifactRequestID, Status: source.ArtifactStatus, SHA256: source.SHA256, SizeBytes: source.SizeBytes}
 	input := ReconcileAssessmentCollectionInput{ExpectedVersion: assessment.Version, RequestID: request.ID, ExpectedRequestVersion: request.Version, SourceSubmissionID: source.SubmissionID, SourceFieldID: source.FieldID, SourceArtifactID: source.ArtifactID, Rationale: "This submitted report covers the requested service."}
+	if demo {
+		repo.ConfigureDemoUnscannedArtifacts(false)
+		if _, err := review.ReconcileCollection(assessmentContextFor(actor.TenantID, actor.LegalEntityID, actor.PrincipalID), actor, assessment.ID, "assurance_report", input); !errors.Is(err, ErrAssessmentCompletionBlocked) {
+			t.Fatalf("service flag bypassed repository policy: %v", err)
+		}
+		repo.ConfigureDemoUnscannedArtifacts(true)
+	}
 	result, err := review.ReconcileCollection(assessmentContextFor(actor.TenantID, actor.LegalEntityID, actor.PrincipalID), actor, assessment.ID, "assurance_report", input)
 	if err != nil {
 		t.Fatal(err)
@@ -77,6 +98,12 @@ func TestReconcileCollectionKeepsVendorSubmissionAbsentAndBankReviewPending(t *t
 	}
 	if err := review.CheckAssessmentCompletion(assessmentContextFor(actor.TenantID, actor.LegalEntityID, actor.PrincipalID), actor, assessment.ID); err != nil {
 		t.Fatalf("accepted reused document remains blocked: %v", err)
+	}
+	if demo {
+		review.ConfigureDemoUnscannedArtifacts(false)
+		if err := review.CheckAssessmentCompletion(assessmentContextFor(actor.TenantID, actor.LegalEntityID, actor.PrincipalID), actor, assessment.ID); !errors.Is(err, ErrAssessmentCompletionBlocked) {
+			t.Fatalf("revoked policy accepted stored receipt: %v", err)
+		}
 	}
 	if _, err := review.ReconcileCollection(assessmentContextFor(actor.TenantID, actor.LegalEntityID, actor.PrincipalID), actor, assessment.ID, "assurance_report", input); !errors.Is(err, ErrVersionConflict) {
 		t.Fatalf("stale reconcile: %v", err)

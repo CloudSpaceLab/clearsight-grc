@@ -31,4 +31,11 @@ describe("submitted document access", () => {
     }
     expect(previewKind({ media_type: "image/png", artifact_status: "STORED_UNSCANNED" })).toBeUndefined();
   });
+  it("previews explicitly allowed unscanned demo files without a sample-preview capability", () => {
+    expect(previewKind({ media_type: "image/png", artifact_status: "STORED_UNSCANNED", demo_unscanned_allowed: true })).toBe("image");
+    for (const artifact_status of ["QUARANTINED", "DELETED", "UNKNOWN"]) {
+      expect(previewKind({ media_type: "image/png", artifact_status, demo_unscanned_allowed: true })).toBeUndefined();
+    }
+    expect(previewKind({ media_type: "image/png", artifact_status: "STORED_UNSCANNED", demo_unscanned_allowed: false })).toBeUndefined();
+  });
 });

@@ -44,11 +44,20 @@ func TestDemoDocumentContentRequiresBothServerFlagsAndFreshAuthorizedOccurrence(
 		{"missing occurrence", true, true, "denied", 404}, {"revoked occurrence", true, true, "revoked", 404},
 		{"quarantined", true, true, "QUARANTINED", 404}, {"deleted", true, true, "DELETED", 404},
 		{"missing identity", true, true, "identity", 401}, {"wrong tenant", true, true, "tenant", 404},
+		{"demo acceptance ordinary file", true, true, "", 200}, {"demo acceptance download", true, true, "download", 200},
+		{"demo acceptance disabled", false, false, "", 404}, {"demo acceptance capture only", true, false, "", 404}, {"demo acceptance list only", false, true, "", 404},
+		{"demo acceptance quarantine", true, true, "QUARANTINED", 404}, {"demo acceptance deleted", true, true, "DELETED", 404},
+		{"demo acceptance changed bytes", true, true, "changed", 404}, {"demo acceptance unauthorized", true, true, "denied", 404},
+		{"demo acceptance missing identity", true, true, "identity", 401}, {"demo acceptance wrong tenant", true, true, "tenant", 404},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ctx := context.Background()
 			file := demodocuments.Files()[0]
 			content, _ := demodocuments.Read(file.Name)
+			allowUnscanned := strings.HasPrefix(test.name, "demo acceptance")
+			if allowUnscanned {
+				file.Name = "ordinary-upload.pdf"
+			}
 			store := evidence.NewMemoryObjectStore()
 			repo := evidence.NewMemoryRepository(nil, []evidence.Request{{ID: "upload-request", TenantID: "tenant", LegalEntityID: "entity", Status: evidence.RequestReady, Deadline: time.Now().Add(time.Hour)}})
 			info, err := store.Put(ctx, "private-demo-key", bytes.NewReader(content), 20<<20)
@@ -67,6 +76,11 @@ func TestDemoDocumentContentRequiresBothServerFlagsAndFreshAuthorizedOccurrence(
 			distributions := evidence.NewDistributionService(documents)
 			evidence.ConfigureDemoSamplePreview(capture, nil, test.capture)
 			evidence.ConfigureDemoSamplePreview(nil, distributions, test.distribution)
+			if allowUnscanned {
+				evidence.ConfigureDemoSamplePreview(capture, distributions, false)
+				capture.ConfigureDemoUnscannedArtifacts(test.capture)
+				distributions.ConfigureDemoUnscannedArtifacts(test.distribution)
+			}
 			if test.change == "unknown" {
 				documents.value.FileName = "genuine-upload.pdf"
 			}
@@ -96,7 +110,7 @@ func TestDemoDocumentContentRequiresBothServerFlagsAndFreshAuthorizedOccurrence(
 			if test.change == "tenant" {
 				actor.TenantID = "other"
 			}
-			r := httptest.NewRequest(http.MethodGet, "/content?response_revision_id=revision&demo_preview_available=true&download="+fmt.Sprint(test.change == "download"), nil)
+			r := httptest.NewRequest(http.MethodGet, "/content?response_revision_id=revision&demo_preview_available=true&demo_unscanned_allowed=true&download="+fmt.Sprint(test.change == "download"), nil)
 			if test.change != "identity" {
 				r = r.WithContext(identity.WithActor(ctx, actor))
 			}
