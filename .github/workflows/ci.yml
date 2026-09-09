@@ -37,7 +37,14 @@ jobs:
           # Chrome is preinstalled on the runner and is not used by this job.
           # Excluding its external package index prevents an unrelated mirror
           # rotation from blocking backend verification.
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          for source in /etc/apt/sources.list.d/*; do
+            if [ -f "$source" ] && grep -qF "dl.google.com/linux/chrome" "$source"; then
+              sudo rm -f -- "$source"
+            fi
+          done
+          if grep -qF "dl.google.com/linux/chrome" /etc/apt/sources.list; then
+            sudo sed -i '\|dl.google.com/linux/chrome|d' /etc/apt/sources.list
+          fi
           sudo apt-get update -qq
           sudo apt-get install -y poppler-utils postgresql-client
       - name: Format
