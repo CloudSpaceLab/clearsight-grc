@@ -30,7 +30,18 @@ jobs:
       - name: Install pinned Playwright review runtime
         run: npm install --no-save --package-lock=false playwright@1.55.0
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: |
+          # Playwright installs Chromium; the runner's separate Chrome package
+          # repository is not required and may rotate while apt metadata is cached.
+          for source in /etc/apt/sources.list.d/*; do
+            if [ -f "$source" ] && grep -qF "dl.google.com/linux/chrome" "$source"; then
+              sudo rm -f -- "$source"
+            fi
+          done
+          if grep -qF "dl.google.com/linux/chrome" /etc/apt/sources.list; then
+            sudo sed -i '\|dl.google.com/linux/chrome|d' /etc/apt/sources.list
+          fi
+          npx playwright install --with-deps chromium
       - name: Validate component contracts
         run: |
           npm run typecheck
