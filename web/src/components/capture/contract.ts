@@ -22,7 +22,7 @@ export function normalizeFieldType(value: string): CaptureFieldType | null {
   return supportedTypes.has(type as CaptureFieldType) ? type as CaptureFieldType : null;
 }
 
-export function captureContract(request: CaptureRequest): CaptureFormContract {
+export function captureContract(request: Pick<CaptureRequest, "sections" | "fields" | "presentation">): CaptureFormContract {
   const sections = request.sections?.length
     ? request.sections
     : [{ id: "general", title: "Response" }];

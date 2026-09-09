@@ -4,6 +4,7 @@ import { acceptFormProposal, loadFormProposal, rejectFormProposal } from "../../
 import type { FormProposalFieldChange, FormTemplateProposal } from "../../formsTypes";
 import { apiErrorKind } from "../../http";
 import type { CaptureFormContract } from "../../types";
+import { captureContract } from "../capture/contract";
 import { FormPreview } from "./FormPreview";
 
 type Props = {
@@ -14,7 +15,19 @@ type Props = {
   onDraftCreated?: (templateID: string, version: number) => void;
 };
 
-export function FormProposalReview({ proposal, sourceTitle, sourceElements = [], onProposalChange, onDraftCreated }: Props) {
+export function FormProposalReview({ proposal: receivedProposal, sourceTitle, sourceElements = [], onProposalChange, onDraftCreated }: Props) {
+  // Empty Go slices are null in persisted/API proposals, including unsectioned
+  // spreadsheets and proposals whose generation has not produced fields yet.
+  const proposal = useMemo(() => ({
+    ...receivedProposal,
+    field_changes: receivedProposal.field_changes ?? [],
+    unresolved_items: receivedProposal.unresolved_items ?? [],
+    proposed_contract: {
+      ...receivedProposal.proposed_contract,
+      fields: receivedProposal.proposed_contract.fields ?? [],
+      sections: receivedProposal.proposed_contract.sections ?? [],
+    },
+  }), [receivedProposal]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(proposal.field_changes.map((change) => change.id)));
   const [busy, setBusy] = useState<"accept" | "reject" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +114,7 @@ export function FormProposalReview({ proposal, sourceTitle, sourceElements = [],
     {(proposal.provenance.extraction_status === "PARTIAL" || proposal.provenance.extraction_status === "TRUNCATED") && <p className="form-proposal-notice" role="status">Only the retained portion of this source was analyzed. Review source gaps and unresolved items before using the draft.</p>}
     <div className="form-proposal-toolbar">
       <label><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(proposal.field_changes.map((change) => change.id)))}/> Select all proposed fields</label>
-      <span>{proposal.unresolved_items.length} decision{proposal.unresolved_items.length === 1 ? "" : "s"} need author review</span>
+      {proposal.unresolved_items.length > 0 && <span>{proposal.unresolved_items.length} unresolved</span>}
     </div>
     <div className="form-proposal-layout" role="region" aria-label="Field review and preview" tabIndex={0}>
       <div className="form-proposal-changes" aria-label="Proposed field changes">
@@ -139,7 +152,7 @@ function previewContract(proposal: FormTemplateProposal, selected: Set<string>):
     return !change || (selected.has(change.id) && change.kind !== "REMOVE_FIELD");
   });
   const sectionIDs = new Set(fields.map((field) => field.section_id).filter(Boolean));
-  return { presentation: proposal.proposed_contract.presentation, sections: proposal.proposed_contract.sections.filter((section) => sectionIDs.has(section.id)), fields };
+  return captureContract({ presentation: proposal.proposed_contract.presentation, sections: proposal.proposed_contract.sections.filter((section) => sectionIDs.has(section.id)), fields });
 }
 
 function sourceExcerpt(anchor: DocumentSourceAnchor, elements: DocumentExtractedElement[]) {

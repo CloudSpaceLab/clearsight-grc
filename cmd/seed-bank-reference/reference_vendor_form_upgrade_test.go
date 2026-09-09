@@ -17,7 +17,7 @@ import (
 )
 
 func TestReferenceVendorFormUpgradePreservesHistoryAndCustomizations(t *testing.T) {
-	for _, scenario := range []string{"shipped", "customized", "draft interrupted", "pending interrupted", "authority unavailable", "checker inactive"} {
+	for _, scenario := range []string{"shipped", "historical omitted defaults", "customized", "draft interrupted", "pending interrupted", "authority unavailable", "checker inactive"} {
 		t.Run(scenario, func(t *testing.T) {
 			custom := scenario == "customized"
 			pool, _, seed := sampleTestSetup(t)
@@ -49,6 +49,11 @@ func TestReferenceVendorFormUpgradePreservesHistoryAndCustomizations(t *testing.
 				fields = append(fields, f)
 			}
 			input.Fields = fields
+			for n := range input.Sections {
+				if input.Sections[n].ID == "service" {
+					input.Sections[n].Help = "Describe the service and the bank information it uses."
+				}
+			}
 			if custom {
 				input.Fields[0].Description = "Contact the operator security desk before sending requests."
 			}
@@ -66,6 +71,16 @@ func TestReferenceVendorFormUpgradePreservesHistoryAndCustomizations(t *testing.
 			old, err = forms.TransitionForm(ctx, checker, monitoring.TransitionInput{ID: old.ID, ProgramID: programID, LegalEntityID: seed.LegalEntityID, ExpectedVersion: old.Version, To: monitoring.LifecycleActive})
 			if err != nil {
 				t.Fatal(err)
+			}
+			if scenario == "historical omitted defaults" {
+				// Reconstruct the persisted field encoding before defaults were introduced.
+				if _, err = pool.Exec(ctx, `UPDATE monitoring_form_templates f SET fields=(SELECT jsonb_agg(field-'collection_intent'-'browser_cache_policy' ORDER BY ordinal) FROM jsonb_array_elements(f.fields) WITH ORDINALITY AS stored(field,ordinal)) WHERE f.id=$1::uuid`, old.ID); err != nil {
+					t.Fatal(err)
+				}
+				old, err = forms.Form(ctx, actor, programID, old.ID, old.Version)
+				if err != nil {
+					t.Fatal(err)
+				}
 			}
 			encodedFields, _ := json.Marshal(old.Fields)
 			var requestFields []evidence.Field
