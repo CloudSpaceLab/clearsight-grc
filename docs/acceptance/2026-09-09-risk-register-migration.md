@@ -26,3 +26,9 @@ Reproduce with `go test ./internal/registermigration ./internal/documentimport .
 - Draft choices persist on explicit save or import. No protected draft content is stored in browser storage. Unfinished edits within an application route change are not automatically saved.
 - Imported issues still require present-day status review, evidence assessment and normal outcome verification/closure. Generic vendor responsibility is an association and coordination action, not an externally distributed work request.
 - Production-volume load tests, bank-user task timing, live tenant authority validation and deployment remain rollout work. Local evidence does not establish those outcomes.
+
+## Cloudspace OEM form response seed
+
+The non-production reference installer reuses the exact Cloudspace Technologies Ltd / OEM relationship. It supersedes only the user-confirmed `Vendor security and privacy review` request on `VENDOR-DUE-DILIGENCE` revision 3, retaining the original distribution and its supersession event. The replacement contains a submitted, unreviewed sample response with the register's payment-data scope, ISO 27001/22301, VAPT, right-to-audit and expired PCI-DSS assurance gaps, including the 31 March 2026 target. Contact and subprocessor details are explicitly identified as sample assumptions; no certificate, compliance conclusion or issue closure is created.
+
+Installer retries require both the fixture's idempotency receipt and the persisted supersession lineage when a legacy request was replaced. A pending replacement is resumed, while an existing submitted response must have one current unscored revision and the exact seeded answers. Without a confirmed legacy request, the receipt-backed standalone sample is validated. A user-owned, ambiguous, altered or out-of-scope replacement fails closed. PostgreSQL integration coverage is run in CI with the configured disposable database; local unit coverage does not establish a deployed demo result.

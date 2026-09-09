@@ -37,6 +37,7 @@ type SupersedeDistributionInput struct {
 	ExpectedVersion          int64
 	ExpectedWorkspaceVersion int64
 	TargetFormVersion        int64
+	IdempotencyKey           string
 	CarryForward             bool
 	ConfirmedFieldIDs        []string
 	ActorID                  string
@@ -157,7 +158,8 @@ func (service *DistributionAccessService) SupersedeDistribution(ctx context.Cont
 	}
 	current := snapshot.Bundle.Distribution
 	replacement, err := store.CreateDistribution(ctx, CreateDistributionInput{
-		TenantID: current.TenantID, LegalEntityID: current.LegalEntityID,
+		IdempotencyKey: input.IdempotencyKey,
+		TenantID:       current.TenantID, LegalEntityID: current.LegalEntityID,
 		FormTemplateID: current.FormTemplateID, FormTemplateVersion: input.TargetFormVersion,
 		SubjectType: current.SubjectType, SubjectID: current.SubjectID, Title: current.Title, Purpose: current.Purpose,
 		AccessPolicy: current.AccessPolicy, EstimatedMinutes: snapshot.EstimatedMinutes,

@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Seed Cloudspace Technologies Ltd's OEM vendor due-diligence response from the supplied risk register as a submitted sample awaiting independent review.
+**Goal:** Supersede the user-confirmed legacy Cloudspace Technologies Ltd OEM request with a current submitted sample response from the supplied risk register.
 
-**Architecture:** Extend the non-production PostgreSQL reference installer with an exact Cloudspace OEM resolver and typed operating-form answers. A stable distribution idempotency key validates the existing response rather than creating, replacing, or approving it.
+**Architecture:** Extend the non-production PostgreSQL reference installer with an exact Cloudspace OEM resolver and typed operating-form answers. The installer uses governed distribution supersession only for the confirmed revision-3 request titled `Vendor security and privacy review`; the replacement's installer idempotency receipt and persisted supersession event resume a pending replacement after interruption. Repeat runs validate the immutable response rather than altering it.
 
 **Tech Stack:** Go, PostgreSQL/pgx, evidence distribution and response-workspace services, GitHub Actions demo deployment.
 
@@ -15,7 +15,7 @@
 - Modify: `internal/bankverticals/install_vendor.go` — exact Cloudspace OEM relationship resolution.
 - Modify: `internal/bankverticals/install_vendor_test.go` — direct-record reuse and ambiguity coverage.
 - Modify: `cmd/seed-bank-reference/operating_form_samples.go` — typed Cloudspace response and unscored submitted state.
-- Create: `cmd/seed-bank-reference/operating_form_samples_test.go` — PostgreSQL integration coverage.
+- Create: `cmd/seed-bank-reference/operating_form_samples_integration_test.go` — PostgreSQL integration coverage.
 - Modify: `docs/acceptance/2026-09-09-risk-register-migration.md` — demo-response acceptance evidence.
 
 ### Task 1: Resolve the Cloudspace OEM relationship
@@ -104,7 +104,7 @@ Expected: FAIL because no Cloudspace operating-form sample exists.
 
 - [ ] **Step 3: Implement typed source-backed answers**
 
-Change `operatingFormSampleSpec.answers` to `map[string]formcontract.AnswerValue`. Add state `COMPLETED_UNREVIEWED`, requiring one current response without a score. Include the active due-diligence answers below, keeping source gaps and the 31 March 2026 deadline in `assurance_gap`.
+Change `operatingFormSampleSpec.answers` to `map[string]formcontract.AnswerValue`. Add state `COMPLETED_UNREVIEWED`, requiring one current response with no configured score. For the exact user-confirmed Cloudspace legacy request, use `SupersedeDistribution` to retain the earlier revision and create the current replacement before submitting the response. Include the active due-diligence answers below, keeping source gaps and the 31 March 2026 deadline in `assurance_gap`.
 
 ```go
 answers: map[string]formcontract.AnswerValue{
@@ -119,7 +119,7 @@ answers: map[string]formcontract.AnswerValue{
 }
 ```
 
-Make repeat validation compare the persisted current answers with the specification and fail rather than altering a different or superseded response.
+Make repeat validation compare the persisted current answers with the specification and fail rather than altering a different or superseded response. Before creating anything, require both the installer receipt and recorded supersession event for the confirmed legacy request: resume its pending replacement or validate its submitted response. A user-owned replacement fails closed. With no confirmed legacy request, validate the receipt-backed standalone sample.
 
 - [ ] **Step 4: Verify GREEN**
 
@@ -139,7 +139,7 @@ Run `git add cmd/seed-bank-reference/operating_form_samples.go cmd/seed-bank-ref
 
 - [ ] **Step 1: Record the acceptance outcome**
 
-State that the Cloudspace OEM response is source-labelled, submitted, awaiting independent review, and includes no fabricated certificate or compliance conclusion.
+State that the Cloudspace OEM response is source-labelled, submitted and unscored, preserves the superseded legacy request, and includes no fabricated certificate or compliance conclusion.
 
 - [ ] **Step 2: Run regression coverage**
 
