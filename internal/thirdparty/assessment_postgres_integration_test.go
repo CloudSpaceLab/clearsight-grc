@@ -207,6 +207,17 @@ func TestPostgresAssessmentRequestReissueCommitsSafeAuditAndKeepsPriorLinkUntilE
 }
 
 func TestPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox(t *testing.T) {
+	for _, demo := range []bool{false, true} {
+		name := "scanned"
+		if demo {
+			name = "demo_unscanned"
+		}
+		t.Run(name, func(t *testing.T) {
+			testPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox(t, demo)
+		})
+	}
+}
+func testPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox(t *testing.T, demo bool) {
 	pool := assessmentPostgresPool(t)
 	ctx := context.Background()
 	relationship := seedAssessmentRelationship(t, pool, "Managed assurance reporting")
@@ -264,6 +275,19 @@ func TestPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox
 	}
 	artifact.Status = evidence.ArtifactAvailable
 	artifact.SubmissionID = receipt.SubmissionID
+	if demo {
+		artifact.Status = evidence.ArtifactStoredUnscanned
+		artifact.DemoUnscannedAllowed = true // caller flags cannot enable repository policy.
+		if _, err = pool.Exec(ctx, `UPDATE capture_artifacts SET status='STORED_UNSCANNED' WHERE id=$1::uuid`, artifact.ID); err != nil {
+			t.Fatal(err)
+		}
+		_, _, err = repository.ReviewAssessmentDocument(ctx, AssessmentDocumentReviewRecord{Scope: Scope{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA}, AssessmentID: assessment.ID, ExpectedVersion: 4, ActorPrincipalID: thirdPartyPrincipal, Artifact: artifact, Document: documentAnswer, Decision: AssessmentDocumentValidate, DocumentType: "SOC_2_TYPE_II", EvidenceClass: AssessmentDocumentBankValidated, At: now.Add(time.Minute)})
+		if !errors.Is(err, ErrAssessmentCompletionBlocked) {
+			t.Fatalf("caller flag enabled unscanned validation: %v", err)
+		}
+		repository.ConfigureDemoUnscannedArtifacts(true)
+	}
+
 	expiresOn := time.Date(2027, 5, 31, 0, 0, 0, 0, time.UTC)
 	document, updated, err := repository.ReviewAssessmentDocument(ctx, AssessmentDocumentReviewRecord{
 		Scope: Scope{TenantID: "third-party-bank", LegalEntityID: thirdPartyEntityA}, AssessmentID: assessment.ID, ExpectedVersion: 4,
@@ -275,6 +299,12 @@ func TestPostgresAssessmentDocumentReviewCommitsDocumentAssessmentEventAndOutbox
 	}
 	if document.Status != AssessmentDocumentValidated || document.Version != 1 || updated.Version != 5 || updated.Status != AssessmentUnderReview {
 		t.Fatalf("unexpected committed review document=%#v assessment=%#v", document, updated)
+	}
+	if demo {
+		var audited bool
+		if err = pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM third_party_events WHERE aggregate_id=$1::uuid AND event_type='AssessmentDocumentValidated' AND payload->>'artifact_status'='STORED_UNSCANNED' AND payload->>'demo_unscanned_allowed'='true')`, assessment.ID).Scan(&audited); err != nil || !audited {
+			t.Fatalf("unscanned exception missing from audit: %v", err)
+		}
 	}
 	var eventCount, outboxCount int
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM third_party_events WHERE aggregate_id=$1::uuid AND event_type='AssessmentDocumentValidated'`, assessment.ID).Scan(&eventCount); err != nil {

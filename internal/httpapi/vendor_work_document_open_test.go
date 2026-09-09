@@ -23,3 +23,23 @@ func TestVendorWorkDocumentAvailableUsesEachDocumentRequest(t *testing.T) {
 		t.Fatal("a quarantined artifact must not be opened")
 	}
 }
+
+func TestVendorWorkDocumentDemoUnscannedGate(t *testing.T) {
+	for _, test := range []struct {
+		name             string
+		status           evidence.ArtifactStatus
+		enabled, allowed bool
+	}{
+		{"default off", evidence.ArtifactStoredUnscanned, false, false}, {"demo enabled", evidence.ArtifactStoredUnscanned, true, true}, {"quarantined", evidence.ArtifactQuarantined, true, false}, {"deleted", evidence.ArtifactDeleted, true, false}, {"scanned", evidence.ArtifactAvailable, false, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			view := thirdparty.VendorWorkReviewView{Documents: []thirdparty.AssessmentReviewDocument{{RequestID: "request", ArtifactID: "artifact", ArtifactStatus: test.status, DemoUnscannedAllowed: test.enabled}}}
+			if got := vendorWorkDocumentAvailable(view, "request", "artifact"); got != test.allowed {
+				t.Fatalf("work document allowed=%v", got)
+			}
+			if vendorWorkDocumentAvailable(view, "other", "artifact") || vendorWorkDocumentAvailable(view, "request", "other") {
+				t.Fatal("scope widened")
+			}
+		})
+	}
+}

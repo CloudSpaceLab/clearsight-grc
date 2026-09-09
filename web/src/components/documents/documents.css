@@ -5,8 +5,10 @@
   .document-browser-heading h2, .document-preview-heading h2 { margin: 0; font-size: var(--cs-font-size-body); color: var(--cs-text-primary); overflow-wrap: anywhere; }
   .document-browser-heading p, .document-preview-heading p { margin: 0; color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
   .document-browser-body { display: flex; min-inline-size: 0; }
-  .document-kinds { flex: 0 0 12rem; display: flex; flex-direction: column; align-items: stretch; gap: var(--cs-space-inline); padding: var(--cs-space-inline); background: var(--cs-bg-surface-2); border-inline-end: 1px solid var(--cs-border-default); }
-  .document-kind-label { display: flex; align-items: center; gap: var(--cs-space-inline); text-align: start; }
+  .document-kinds { flex: 0 0 13rem; display: flex; flex-direction: column; align-items: stretch; gap: var(--cs-primitive-space-1); padding: var(--cs-space-inline); background: var(--cs-bg-surface-2); border-inline-end: 1px solid var(--cs-border-default); }
+  .document-kinds > button > span { inline-size: 100%; }
+  .document-kind-label { display: grid; grid-template-columns: var(--cs-primitive-icon-20) minmax(0, 1fr) var(--cs-primitive-icon-16); align-items: center; gap: var(--cs-space-inline); text-align: start; }
+  .document-kind-label > .document-file-icon { inline-size: var(--cs-primitive-icon-20); block-size: var(--cs-primitive-icon-24); }
   .document-kind-selector { display: none; margin-block-end: var(--cs-space-inline); }
   .document-file-icon { inline-size: 1.6rem; block-size: 2rem; flex-shrink: 0; fill: var(--cs-bg-surface-1); stroke: var(--cs-text-muted); stroke-width: 1.5; }
   .document-file-icon[data-kind="PDF"] { stroke: var(--cs-status-error); }
@@ -25,7 +27,8 @@
   .document-inspector p { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
   .document-browser--selecting .document-browser-body { display: block; }
   .document-browser--selecting .document-kinds { flex-direction: row; overflow-x: auto; border-inline-end: 0; border-block-end: 1px solid var(--cs-border-default); }
-  .document-browser--selecting .document-kind-label { white-space: nowrap; }
+  .document-browser--selecting .document-kinds > button { flex: none; }
+  .document-browser--selecting .document-kind-label { grid-template-columns: var(--cs-primitive-icon-20) max-content var(--cs-primitive-icon-16); white-space: nowrap; }
   .document-browser--selecting .document-inspector { display: none; }
   .document-facts { display: grid; gap: var(--cs-space-group); font-size: var(--cs-font-size-caption); }
   .document-facts dt { color: var(--cs-text-muted); }

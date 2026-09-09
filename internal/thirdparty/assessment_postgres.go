@@ -237,7 +237,7 @@ func (r *PostgresRepository) TransitionAssessment(ctx context.Context, record As
 		if !validAssessmentIdentifier(record.ActorPrincipalID) || !validAssessmentConclusion(record.Conclusion) || strings.TrimSpace(record.ConclusionRationale) == "" {
 			return Assessment{}, ErrInvalidAssessmentTransition
 		}
-		if err := verifyPostgresAssessmentCompletionReady(ctx, tx, tenantID, current); err != nil {
+		if err := r.verifyPostgresAssessmentCompletionReady(ctx, tx, tenantID, current); err != nil {
 			return Assessment{}, err
 		}
 		at := record.At.UTC()
@@ -819,7 +819,7 @@ func (r *PostgresRepository) ReviewAssessmentDocument(ctx context.Context, recor
 	if artifactStatus != record.Artifact.Status || submittedType != record.Document.DocumentType || reference != record.Document.Reference || issuedBy != record.Document.IssuedBy || issuedOn != record.Document.IssuedOn || expiresOn != record.Document.ExpiresOn {
 		return AssessmentDocument{}, Assessment{}, ErrNotFound
 	}
-	if record.Decision == AssessmentDocumentValidate && artifactStatus != evidence.ArtifactAvailable {
+	if record.Decision == AssessmentDocumentValidate && !r.artifactUseAllowed(artifactStatus) {
 		return AssessmentDocument{}, Assessment{}, ErrAssessmentCompletionBlocked
 	}
 	issuedDate, err := assessmentDocumentDate(issuedOn)
@@ -859,7 +859,7 @@ func (r *PostgresRepository) ReviewAssessmentDocument(ctx context.Context, recor
 	if err := updateAssessment(ctx, tx, tenantID, current); err != nil {
 		return AssessmentDocument{}, Assessment{}, err
 	}
-	eventID, err := appendAssessmentDocumentEvent(ctx, tx, tenantID, current, document, record.ActorPrincipalID, eventType)
+	eventID, err := appendAssessmentDocumentEvent(ctx, tx, tenantID, current, document, record.ActorPrincipalID, eventType, artifactStatus, r.demoUnscannedAllowed(artifactStatus))
 	if err != nil {
 		return AssessmentDocument{}, Assessment{}, err
 	}
@@ -1018,15 +1018,15 @@ func appendAssessmentEvent(ctx context.Context, tx pgx.Tx, tenantID string, valu
 	return eventID, nil
 }
 
-func appendAssessmentDocumentEvent(ctx context.Context, tx pgx.Tx, tenantID string, assessment Assessment, document AssessmentDocument, actorID, eventType string) (string, error) {
+func appendAssessmentDocumentEvent(ctx context.Context, tx pgx.Tx, tenantID string, assessment Assessment, document AssessmentDocument, actorID, eventType string, artifactStatus evidence.ArtifactStatus, demoUnscannedAllowed bool) (string, error) {
 	var eventID string
 	err := tx.QueryRow(ctx, `
 		INSERT INTO third_party_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,actor_principal_id,event_type,payload,occurred_at)
 		VALUES($1::uuid,'THIRD_PARTY_ASSESSMENT',$2::uuid,$3,$4::uuid,$5,
-			jsonb_build_object('status',$6::text,'relationship_id',$7::text,'request_id',$8::text,'artifact_id',$9::text,'document_id',$10::text,'document_status',$11::text),$12)
+			jsonb_build_object('status',$6::text,'relationship_id',$7::text,'request_id',$8::text,'artifact_id',$9::text,'document_id',$10::text,'document_status',$11::text,'artifact_status',$13::text,'demo_unscanned_allowed',$14::boolean),$12)
 		RETURNING id::text`,
 		tenantID, assessment.ID, assessment.Version, actorID, eventType, assessment.Status, assessment.RelationshipID,
-		assessment.CurrentRequestID, document.ArtifactID, document.ID, document.Status, assessment.UpdatedAt).Scan(&eventID)
+		assessment.CurrentRequestID, document.ArtifactID, document.ID, document.Status, assessment.UpdatedAt, artifactStatus, demoUnscannedAllowed).Scan(&eventID)
 	if err != nil {
 		return "", fmt.Errorf("append assessment document event: %w", err)
 	}
@@ -1042,7 +1042,7 @@ func appendAssessmentDocumentEvent(ctx context.Context, tx pgx.Tx, tenantID stri
 	return eventID, nil
 }
 
-func verifyPostgresAssessmentCompletionReady(ctx context.Context, tx pgx.Tx, tenantID string, assessment Assessment) error {
+func (r *PostgresRepository) verifyPostgresAssessmentCompletionReady(ctx context.Context, tx pgx.Tx, tenantID string, assessment Assessment) error {
 	var requestStatus evidence.RequestStatus
 	var presentationJSON, sectionsJSON, fieldsJSON, answersJSON []byte
 	err := tx.QueryRow(ctx, `
@@ -1099,12 +1099,15 @@ func verifyPostgresAssessmentCompletionReady(ctx context.Context, tx pgx.Tx, ten
 		storedField := requestFields[field.ID]
 		if storedField.CollectionResolution != nil {
 			receipt := storedField.CollectionResolution
-			if !evidence.CollectionFieldFulfilled(storedField, time.Now().UTC()) || receipt.BankReviewState != "VALIDATED" {
+			var status evidence.ArtifactStatus
+			var exact bool
+			err := tx.QueryRow(ctx, `SELECT status,sha256=$4 AND size_bytes=$5 FROM capture_artifacts WHERE tenant_id=$1::uuid AND request_id=$2::uuid AND id=$3::uuid FOR SHARE`, tenantID, receipt.SourceArtifactRequestID, receipt.Source.ArtifactID, receipt.Source.SHA256, receipt.Source.SizeBytes).Scan(&status, &exact)
+			if err != nil || !exact || !r.artifactUseAllowed(status) {
 				return ErrAssessmentCompletionBlocked
 			}
-			var available bool
-			err := tx.QueryRow(ctx, `SELECT status='AVAILABLE' AND sha256=$4 AND size_bytes=$5 FROM capture_artifacts WHERE tenant_id=$1::uuid AND request_id=$2::uuid AND id=$3::uuid FOR SHARE`, tenantID, receipt.SourceArtifactRequestID, receipt.Source.ArtifactID, receipt.Source.SHA256, receipt.Source.SizeBytes).Scan(&available)
-			if err != nil || !available {
+			receipt.Source.ArtifactStatus = status
+			receipt.Source.DemoUnscannedAllowed = r.demoUnscannedAllowed(status)
+			if !evidence.CollectionFieldFulfilled(storedField, time.Now().UTC()) || receipt.BankReviewState != "VALIDATED" {
 				return ErrAssessmentCompletionBlocked
 			}
 			continue
@@ -1148,7 +1151,7 @@ func verifyPostgresAssessmentCompletionReady(ctx context.Context, tx pgx.Tx, ten
 			SELECT status FROM capture_artifacts
 			WHERE tenant_id=$1::uuid AND request_id=$2::uuid AND submission_id=$3::uuid AND id=$4::uuid
 			FOR SHARE`, tenantID, assessment.CurrentRequestID, assessment.SubmissionID, artifactID).Scan(&status)
-		if errors.Is(err, pgx.ErrNoRows) || (err == nil && status != evidence.ArtifactAvailable) {
+		if errors.Is(err, pgx.ErrNoRows) || (err == nil && !r.artifactUseAllowed(status)) {
 			return ErrAssessmentCompletionBlocked
 		}
 		if err != nil {

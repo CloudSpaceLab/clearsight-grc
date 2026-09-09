@@ -31,6 +31,17 @@ beforeEach(() => {
 });
 
 describe("VendorEvidenceChecklist", () => {
+  it.each([false, true])("requires explicit demo permission for an unscanned checklist review (allowed=%s)", async (allowed) => {
+    const review = vi.fn();
+    const file = { field_id: "iso", artifact_id: "artifact", file_name: "Unscanned report.pdf", media_type: "application/pdf", size_bytes: 300, artifact_status: "STORED_UNSCANNED", demo_unscanned_allowed: allowed, status: "SUBMITTED", evidence_class: "VENDOR_SUPPLIED", document_type: "ISO_27001" };
+    render(<VendorEvidenceChecklist assessmentID="assessment" assessmentVersion={4} relationshipID="relationship" documents={[file]} onReviewDocument={review}/>);
+    const item = await screen.findByRole("article", { name: "ISO 27001 assurance" });
+    const button = within(item).getByRole("button", { name: "Review document" });
+    expect(button.hasAttribute("disabled")).toBe(!allowed);
+    fireEvent.click(button);
+    if (allowed) expect(review).toHaveBeenCalledWith(file, "VALIDATE");
+    else expect(review).not.toHaveBeenCalled();
+  });
   it("separates receipt from acceptance and places pending work before accepted evidence", async () => {
     render(<VendorEvidenceChecklist assessmentID="assessment" assessmentVersion={4} relationshipID="relationship"/>);
     const reused = await screen.findByRole("article", { name: "ISO 27001 assurance" });
@@ -55,7 +66,8 @@ describe("VendorEvidenceChecklist", () => {
     expect(within(row).queryByText("Accepted")).toBeNull();
   });
 
-  it("saves the exact existing occurrence with a rationale and updates vendor pending work", async () => {
+  it.each([false, true])("saves the exact eligible existing occurrence with a rationale (demo=%s)", async (demo) => {
+    vi.mocked(loadDocuments).mockResolvedValue({ items: [{ ...source, artifact_status: demo ? "STORED_UNSCANNED" : "AVAILABLE", demo_unscanned_allowed: demo }] });
     const onChanged = vi.fn();
     const receipt = { id: "new-receipt", version: 1, source, reconciled_by: "reviewer", reconciled_at: "2026-09-08T11:00:00Z", rationale: "Includes the service in this review." };
     vi.mocked(reconcileVendorEvidence).mockResolvedValue({ receipt, collection: { ...collection, assessment_version: 5, request_version: 3, vendor_pending_count: 0, bank_pending_count: 2, fields: collection.fields.map((field) => field.field_id === "vapt" ? { ...field, collection_state: "REUSED", vendor_action_required: false, bank_review_state: "PENDING", resolution: receipt } : field) } });
@@ -64,6 +76,7 @@ describe("VendorEvidenceChecklist", () => {
     fireEvent.click(within(row).getByRole("button", { name: "Use existing document" }));
     fireEvent.click(await screen.findByRole("row", { name: /ISO certificate.pdf/ }));
     fireEvent.click(screen.getByRole("button", { name: "Choose this document" }));
+    if (demo) expect(screen.getByText("Unscanned file. Review is enabled in demo mode.")).toBeTruthy();
     fireEvent.change(screen.getByRole("textbox", { name: "Reason for reuse" }), { target: { value: receipt.rationale } });
     fireEvent.click(screen.getByRole("button", { name: "Use this document" }));
     await waitFor(() => expect(reconcileVendorEvidence).toHaveBeenCalledWith("assessment", "vapt", {
@@ -116,6 +129,10 @@ describe("VendorEvidenceChecklist", () => {
     { current: false, explanation: /has been replaced/ },
     { expires_on: "2025-01-01", explanation: /expired/ },
     { artifact_status: "QUARANTINED", explanation: /not available/ },
+    { artifact_status: "QUARANTINED", demo_unscanned_allowed: true, explanation: /not available/ },
+    { artifact_status: "STORED_UNSCANNED", demo_preview_available: true, explanation: /not available/ },
+    { artifact_status: "STORED_UNSCANNED", demo_unscanned_allowed: true, current: false, explanation: /has been replaced/ },
+    { artifact_status: "STORED_UNSCANNED", demo_unscanned_allowed: true, expires_on: "2025-01-01", explanation: /expired/ },
   ])("prevents reuse of an unsuitable source: $explanation", async ({ explanation, ...change }) => {
     vi.mocked(loadDocuments).mockResolvedValue({ items: [{ ...source, ...change }] });
     render(<VendorEvidenceChecklist assessmentID="assessment" assessmentVersion={4} relationshipID="relationship"/>);

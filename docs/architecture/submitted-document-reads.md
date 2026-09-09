@@ -20,7 +20,7 @@ The inventory retains no derived document content, tokens or storage keys. Origi
 
 The focused PostgreSQL regression also reuses original and contributor-uploaded artifacts across two immutable revisions. Its executable `EXPLAIN (ANALYZE, BUFFERS)` exact-response query on the small fixture returned two rows under a Limit in 2.325 ms with 66 shared-buffer hits on 2026-09-07. Observed access included response-revision, artifact tenant/ID, reverse submission/revision, assessment-request-link and work-capture indexes. This is representative query-path evidence only, not production cardinality or latency acceptance.
 
-OpenArtifact buffers at most the configured upload size, checks exact size and SHA-256, and only then returns content. This protects reads from mutable development storage. The API delivers PDF and supported raster images inline; other formats use attachment disposition. Every content response uses private/no-store, nosniff and a sandbox content policy. Missing, changed, unscanned, quarantined and unknown artifacts return no bytes. Production object-storage deployment remains separate work.
+OpenArtifact buffers at most the configured upload size, checks exact size and SHA-256, and only then returns content. This protects reads from mutable development storage. The API delivers PDF and supported raster images inline; other formats use attachment disposition. Every content response uses private/no-store, nosniff and a sandbox content policy. Missing, changed, quarantined and unknown artifacts return no bytes. Unscanned files require one of the explicit non-production demo exceptions below. Production object-storage deployment remains separate work.
 
 ## Vendor request collection receipts
 
@@ -40,4 +40,12 @@ Validated `cfg.DemoMode` configures private Evidence and DistributionService dem
 
 The existing protected content endpoint re-queries the exact occurrence with current tenant, entity, principal, submission, field, artifact and optional response revision. Only a newly recomputed demo capability selects `OpenDemoSampleArtifact`; other reads use AVAILABLE-only `OpenArtifact`. The demo method independently requires its startup flag and exact manifest match, then calls the same private bounded full-byte integrity routine. It never substitutes embedded bytes for changed stored content. Quarantined/deleted files are never eligible. Both paths hide storage keys and retain private/no-store, nosniff and sandbox headers; no static sample route is added.
 
-This read exception creates no scan result, inspection receipt, AVAILABLE transition or review acceptance. The UI identifies a fictional sample, states that no antivirus scan was performed, and uses its existing protected PDF/image fetch/blob lifecycle or Office download fallback. Genuine-upload scanning and all evidence/review gates remain unchanged.
+This preview-only exception creates no scan result, inspection receipt, AVAILABLE transition or review acceptance. With the separate unscanned-use setting disabled, the UI identifies a fictional sample and explains that the file remains preview-only.
+
+## Demo unscanned document use
+
+The user-authorized `CLEARSIGHT_DEMO_ALLOW_UNSCANNED_ARTIFACTS` setting permits unscanned document viewing, reuse and governed acceptance only in validated non-production demo mode. It defaults on with demo mode and supports explicit off. Configurations enabling it outside demo or in production fail startup.
+
+API and worker compose the same private instance policy into evidence and third-party services/repositories. The API recomputes `demo_unscanned_allowed` for each authorized document occurrence, artifact and review DTO; request-body or query flags do not enable it. Status remains `STORED_UNSCANNED`, scan jobs and receipts remain independent, and the normal exact-source, content integrity, current-version, expiry, reviewer and transaction checks remain active. Quarantined/deleted/unknown artifacts never qualify.
+
+Collection refresh clears persisted eligibility before applying current server policy, so disabling the setting removes the exception from existing receipts. Material review and acceptance re-evaluate the current instance policy under the transaction rather than trusting stored or browser eligibility. Historical review decisions remain reconstructable. The UI labels the exception **Unscanned · Demo** and retains separate receipt/review/approval states.

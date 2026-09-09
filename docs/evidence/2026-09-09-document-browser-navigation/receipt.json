@@ -1,0 +1,361 @@
+{
+  "generatedAt": "2026-09-09T06:28:38.906Z",
+  "results": [
+    {
+      "id": "documents-light-1440",
+      "navVisible": true,
+      "selectorVisible": false,
+      "buttons": [
+        {
+          "label": "All files",
+          "selected": "false",
+          "height": 44,
+          "iconX": 196.59375,
+          "labelX": 224.59375,
+          "labelHeight": 21
+        },
+        {
+          "label": "PDF files",
+          "selected": "true",
+          "height": 44,
+          "iconX": 196.59375,
+          "labelX": 224.59375,
+          "labelHeight": 21
+        },
+        {
+          "label": "Images",
+          "selected": "false",
+          "height": 44,
+          "iconX": 196.59375,
+          "labelX": 224.59375,
+          "labelHeight": 21
+        },
+        {
+          "label": "Word documents",
+          "selected": "false",
+          "height": 44,
+          "iconX": 196.59375,
+          "labelX": 224.59375,
+          "labelHeight": 21
+        },
+        {
+          "label": "Spreadsheets",
+          "selected": "false",
+          "height": 44,
+          "iconX": 196.59375,
+          "labelX": 224.59375,
+          "labelHeight": 21
+        },
+        {
+          "label": "Other files",
+          "selected": "false",
+          "height": 44,
+          "iconX": 196.59375,
+          "labelX": 224.59375,
+          "labelHeight": 21
+        }
+      ],
+      "clientWidth": 1440,
+      "scrollWidth": 1440,
+      "selectedText": "PDF files",
+      "keyboardFocus": {
+        "visible": true,
+        "outline": "color(srgb 0.0313726 0.498039 0.568627 / 0.78) solid 3px"
+      }
+    },
+    {
+      "id": "documents-light-390",
+      "navVisible": false,
+      "selectorVisible": true,
+      "buttons": [
+        {
+          "label": "All files",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "PDF files",
+          "selected": "true",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Images",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Word documents",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Spreadsheets",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Other files",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        }
+      ],
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "selectedText": "PDF files"
+    },
+    {
+      "id": "documents-light-320",
+      "navVisible": false,
+      "selectorVisible": true,
+      "buttons": [
+        {
+          "label": "All files",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "PDF files",
+          "selected": "true",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Images",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Word documents",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Spreadsheets",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Other files",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        }
+      ],
+      "clientWidth": 320,
+      "scrollWidth": 320,
+      "selectedText": "PDF files"
+    },
+    {
+      "id": "documents-dark-1440",
+      "navVisible": true,
+      "selectorVisible": false,
+      "buttons": [
+        {
+          "label": "All files",
+          "selected": "false",
+          "height": 44,
+          "iconX": 196.59375,
+          "labelX": 224.59375,
+          "labelHeight": 21
+        },
+        {
+          "label": "PDF files",
+          "selected": "true",
+          "height": 44,
+          "iconX": 196.59375,
+          "labelX": 224.59375,
+          "labelHeight": 21
+        },
+        {
+          "label": "Images",
+          "selected": "false",
+          "height": 44,
+          "iconX": 196.59375,
+          "labelX": 224.59375,
+          "labelHeight": 21
+        },
+        {
+          "label": "Word documents",
+          "selected": "false",
+          "height": 44,
+          "iconX": 196.59375,
+          "labelX": 224.59375,
+          "labelHeight": 21
+        },
+        {
+          "label": "Spreadsheets",
+          "selected": "false",
+          "height": 44,
+          "iconX": 196.59375,
+          "labelX": 224.59375,
+          "labelHeight": 21
+        },
+        {
+          "label": "Other files",
+          "selected": "false",
+          "height": 44,
+          "iconX": 196.59375,
+          "labelX": 224.59375,
+          "labelHeight": 21
+        }
+      ],
+      "clientWidth": 1440,
+      "scrollWidth": 1440,
+      "selectedText": "PDF files",
+      "keyboardFocus": {
+        "visible": true,
+        "outline": "color(srgb 0.545098 0.886275 0.933333 / 0.78) solid 3px"
+      }
+    },
+    {
+      "id": "documents-dark-390",
+      "navVisible": false,
+      "selectorVisible": true,
+      "buttons": [
+        {
+          "label": "All files",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "PDF files",
+          "selected": "true",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Images",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Word documents",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Spreadsheets",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Other files",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        }
+      ],
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "selectedText": "PDF files"
+    },
+    {
+      "id": "documents-dark-320",
+      "navVisible": false,
+      "selectorVisible": true,
+      "buttons": [
+        {
+          "label": "All files",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "PDF files",
+          "selected": "true",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Images",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Word documents",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Spreadsheets",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        },
+        {
+          "label": "Other files",
+          "selected": "false",
+          "height": 0,
+          "iconX": 0,
+          "labelX": 0,
+          "labelHeight": 0
+        }
+      ],
+      "clientWidth": 320,
+      "scrollWidth": 320,
+      "selectedText": "PDF files"
+    }
+  ]
+}

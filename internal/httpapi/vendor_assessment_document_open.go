@@ -36,7 +36,7 @@ func (a *API) openVendorAssessmentDocument(w http.ResponseWriter, r *http.Reques
 		}
 		source := receipt.Source
 		page, readErr := service.ListDocuments(r.Context(), evidence.DocumentQuery{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID, RelationshipID: view.Assessment.RelationshipID, SubmissionID: source.SubmissionID, FieldID: source.FieldID, ArtifactID: artifactID, ResponseRevisionID: source.ResponseRevisionID, Limit: 1})
-		if readErr != nil || len(page.Items) != 1 || page.Items[0].ArtifactRequestID != requestID || page.Items[0].ArtifactStatus != evidence.ArtifactAvailable || page.Items[0].SHA256 != source.SHA256 || page.Items[0].SizeBytes != source.SizeBytes {
+		if readErr != nil || len(page.Items) != 1 || page.Items[0].ArtifactRequestID != requestID || !evidence.ArtifactUseAllowed(page.Items[0].ArtifactStatus, page.Items[0].DemoUnscannedAllowed) || page.Items[0].SHA256 != source.SHA256 || page.Items[0].SizeBytes != source.SizeBytes {
 			httpx.WriteError(w, http.StatusNotFound, "vendor_document_not_found", "This document is not available for review.")
 			return
 		}
@@ -71,7 +71,7 @@ func assessmentCollectionDocument(view thirdparty.AssessmentReviewView, requestI
 	}
 	for _, answer := range view.Answers {
 		r := answer.CollectionResolution
-		if r != nil && r.SourceArtifactRequestID == requestID && r.Source.ArtifactID == artifactID && r.Source.ArtifactStatus == evidence.ArtifactAvailable {
+		if r != nil && r.SourceArtifactRequestID == requestID && r.Source.ArtifactID == artifactID && evidence.ArtifactUseAllowed(r.Source.ArtifactStatus, r.Source.DemoUnscannedAllowed) {
 			return r
 		}
 	}
@@ -86,7 +86,7 @@ func assessmentDocumentAvailable(view thirdparty.AssessmentReviewView, requestID
 	for _, request := range view.Requests {
 		if request.RequestID == requestID {
 			for _, document := range view.Documents {
-				if document.ArtifactID == artifactID && document.ArtifactStatus == evidence.ArtifactAvailable {
+				if document.ArtifactID == artifactID && evidence.ArtifactUseAllowed(document.ArtifactStatus, document.DemoUnscannedAllowed) {
 					return true
 				}
 			}

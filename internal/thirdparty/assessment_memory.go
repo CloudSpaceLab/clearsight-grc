@@ -12,6 +12,7 @@ import (
 )
 
 type MemoryAssessmentRepository struct {
+	demoArtifactPolicy
 	*MemoryRepository
 	relationshipLinkRepo *MemoryRelationshipLinkRepository
 	assessmentMu         sync.RWMutex
@@ -577,7 +578,7 @@ func (r *MemoryAssessmentRepository) ReviewAssessmentDocument(_ context.Context,
 	if current.Status != AssessmentUnderReview || current.CurrentRequestID != record.Artifact.RequestID || current.SubmissionID != record.Artifact.SubmissionID || record.Artifact.TenantID != record.TenantID || record.Document.ArtifactID != record.Artifact.ID {
 		return AssessmentDocument{}, Assessment{}, ErrInvalidAssessmentTransition
 	}
-	if record.Decision == AssessmentDocumentValidate && record.Artifact.Status != evidence.ArtifactAvailable {
+	if record.Decision == AssessmentDocumentValidate && !r.artifactUseAllowed(record.Artifact.Status) {
 		return AssessmentDocument{}, Assessment{}, ErrAssessmentCompletionBlocked
 	}
 	status := AssessmentDocumentValidated
@@ -618,6 +619,16 @@ func (r *MemoryAssessmentRepository) ReviewAssessmentDocument(_ context.Context,
 	current.ReviewerPrincipalID = record.ActorPrincipalID
 	r.assessments[current.ID] = current
 	r.appendMemoryAssessmentAudit(current, record.ActorPrincipalID, eventType)
+	// Exception metadata belongs to the audit receipt, not the outbox contract.
+	auditPayload := map[string]string{}
+	for key, value := range r.assessmentEvents[len(r.assessmentEvents)-1].Payload {
+		auditPayload[key] = value
+	}
+	r.assessmentEvents[len(r.assessmentEvents)-1].Payload = auditPayload
+	r.assessmentEvents[len(r.assessmentEvents)-1].Payload["artifact_status"] = string(record.Artifact.Status)
+	if r.demoUnscannedAllowed(record.Artifact.Status) {
+		r.assessmentEvents[len(r.assessmentEvents)-1].Payload["demo_unscanned_allowed"] = "true"
+	}
 	return document, current, nil
 }
 

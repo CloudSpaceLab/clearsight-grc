@@ -356,6 +356,11 @@ func (r *PostgresRepository) TransitionVendorWork(ctx context.Context, scope Sco
 	if current.Version != expected {
 		return VendorWorkRequest{}, ErrVersionConflict
 	}
+	tenantID, err := resolveTenant(ctx, tx, scope.TenantID)
+	if err != nil {
+		return VendorWorkRequest{}, err
+	}
+	var unscannedArtifacts []string
 	eventType := ""
 	switch target {
 	case VendorWorkUnderReview:
@@ -372,6 +377,10 @@ func (r *PostgresRepository) TransitionVendorWork(ctx context.Context, scope Sco
 		if current.State != VendorWorkUnderReview {
 			return VendorWorkRequest{}, ErrInvalidAssessmentTransition
 		}
+		unscannedArtifacts, err = r.verifyVendorWorkArtifacts(ctx, tx, tenantID, current)
+		if err != nil {
+			return VendorWorkRequest{}, err
+		}
 		current.ReviewerPrincipalID, current.ReviewRationale, current.AcceptedAt, eventType = actor, detail, timePointer(now.UTC()), "VendorWorkAccepted"
 	case VendorWorkCancelled:
 		if current.State == VendorWorkAccepted || current.State == VendorWorkCancelled {
@@ -382,16 +391,12 @@ func (r *PostgresRepository) TransitionVendorWork(ctx context.Context, scope Sco
 		return VendorWorkRequest{}, ErrInvalid
 	}
 	current.State, current.Version, current.UpdatedAt = target, current.Version+1, now.UTC()
-	tenantID, err := resolveTenant(ctx, tx, scope.TenantID)
-	if err != nil {
-		return VendorWorkRequest{}, err
-	}
 	_, err = tx.Exec(ctx, `UPDATE third_party_work_requests SET state=$4,reviewer_principal_id=NULLIF($5,'')::uuid,review_rationale=$6,cancellation_reason=$7,response_received_at=$8,review_started_at=$9,accepted_at=$10,cancelled_at=$11,version=$12,updated_at=$13 WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$14`,
 		tenantID, scope.LegalEntityID, id, current.State, current.ReviewerPrincipalID, current.ReviewRationale, current.CancellationReason, current.ResponseReceivedAt, current.ReviewStartedAt, current.AcceptedAt, current.CancelledAt, current.Version, current.UpdatedAt, expected)
 	if err != nil {
 		return VendorWorkRequest{}, fmt.Errorf("transition vendor work: %w", err)
 	}
-	eventID, err := appendVendorWorkEvent(ctx, tx, tenantID, current, actor, eventType)
+	eventID, err := appendVendorWorkEvent(ctx, tx, tenantID, current, actor, eventType, unscannedArtifacts)
 	if err != nil {
 		return VendorWorkRequest{}, err
 	}
@@ -576,9 +581,14 @@ func scanVendorWork(row rowScanner) (VendorWorkRequest, error) {
 	return value, err
 }
 
-func appendVendorWorkEvent(ctx context.Context, tx pgx.Tx, tenantID string, value VendorWorkRequest, actor, eventType string) (string, error) {
+func appendVendorWorkEvent(ctx context.Context, tx pgx.Tx, tenantID string, value VendorWorkRequest, actor, eventType string, demoArtifacts ...[]string) (string, error) {
+	unscanned := []string{}
+	if len(demoArtifacts) > 0 && demoArtifacts[0] != nil {
+		unscanned = demoArtifacts[0]
+	}
+	raw, _ := json.Marshal(unscanned)
 	var eventID string
-	err := tx.QueryRow(ctx, `INSERT INTO third_party_work_events(tenant_id,legal_entity_id,work_request_id,work_version,actor_principal_id,event_type,payload,occurred_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4,NULLIF($5,'')::uuid,$6,jsonb_build_object('state',$7::text,'delivery_state',$8::text,'request_kind',$9::text,'request_id',$10::text,'submission_id',$11::text),$12) RETURNING id::text`, tenantID, value.LegalEntityID, value.ID, value.Version, actor, eventType, value.State, value.DeliveryState, value.RequestKind, value.CurrentRequestID, value.SubmissionID, value.UpdatedAt).Scan(&eventID)
+	err := tx.QueryRow(ctx, `INSERT INTO third_party_work_events(tenant_id,legal_entity_id,work_request_id,work_version,actor_principal_id,event_type,payload,occurred_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4,NULLIF($5,'')::uuid,$6,jsonb_build_object('state',$7::text,'delivery_state',$8::text,'request_kind',$9::text,'request_id',$10::text,'submission_id',$11::text,'demo_unscanned_artifact_ids',$13::jsonb),$12) RETURNING id::text`, tenantID, value.LegalEntityID, value.ID, value.Version, actor, eventType, value.State, value.DeliveryState, value.RequestKind, value.CurrentRequestID, value.SubmissionID, value.UpdatedAt, string(raw)).Scan(&eventID)
 	if err != nil {
 		return "", fmt.Errorf("append vendor work event: %w", err)
 	}

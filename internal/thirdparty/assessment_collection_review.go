@@ -22,7 +22,7 @@ func (s *AssessmentReviewService) addCollectionEvidence(view *AssessmentReviewVi
 				status = "SUPERSEDED"
 			case source.Review != nil && source.Review.Status == "REJECTED":
 				status = "REJECTED"
-			case source.ArtifactStatus != evidence.ArtifactAvailable:
+			case !s.artifactUseAllowed(source.ArtifactStatus):
 				status = "SUBMITTED"
 			case receipt.BankReviewState != "REJECTED":
 				status = "EXPIRED"
@@ -35,7 +35,7 @@ func (s *AssessmentReviewService) addCollectionEvidence(view *AssessmentReviewVi
 		if status == "VALIDATED" {
 			class = AssessmentEvidenceBankValidated
 		}
-		view.Documents = append(view.Documents, AssessmentReviewDocument{FieldID: field.ID, RequestID: receipt.SourceArtifactRequestID, ArtifactID: source.ArtifactID, FileName: source.FileName, MediaType: source.MediaType, SizeBytes: source.SizeBytes, ArtifactStatus: source.ArtifactStatus, Status: status, EvidenceClass: class, DocumentType: receipt.Document.DocumentType, Reference: receipt.Document.Reference, IssuedBy: receipt.Document.IssuedBy, IssuedOn: receipt.Document.IssuedOn, ExpiresOn: receipt.Document.ExpiresOn})
+		view.Documents = append(view.Documents, AssessmentReviewDocument{FieldID: field.ID, RequestID: receipt.SourceArtifactRequestID, ArtifactID: source.ArtifactID, FileName: source.FileName, MediaType: source.MediaType, SizeBytes: source.SizeBytes, ArtifactStatus: source.ArtifactStatus, DemoUnscannedAllowed: s.demoUnscannedAllowed(source.ArtifactStatus), Status: status, EvidenceClass: class, DocumentType: receipt.Document.DocumentType, Reference: receipt.Document.Reference, IssuedBy: receipt.Document.IssuedBy, IssuedOn: receipt.Document.IssuedOn, ExpiresOn: receipt.Document.ExpiresOn})
 		found := false
 		for i := range view.Answers {
 			if view.Answers[i].FieldID == field.ID {

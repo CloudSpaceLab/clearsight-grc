@@ -51,6 +51,7 @@ type Config struct {
 	OIDCSecureCookies                     bool
 	CommandAuthorizationMode              string
 	DemoMode                              bool
+	DemoAllowUnscannedArtifacts           bool
 	DocumentImportAllowUnscannedAnalysis  bool
 	VendorBrandDiscoveryEnabled           bool
 	DemoTenantID                          string
@@ -166,6 +167,9 @@ func Load() (Config, error) {
 	if cfg.DemoMode, err = boolValue("CLEARSIGHT_DEMO_MODE", cfg.DemoMode); err != nil {
 		return Config{}, err
 	}
+	if cfg.DemoAllowUnscannedArtifacts, err = boolValue("CLEARSIGHT_DEMO_ALLOW_UNSCANNED_ARTIFACTS", cfg.DemoMode && !production); err != nil {
+		return Config{}, err
+	}
 	if cfg.DocumentImportAllowUnscannedAnalysis, err = boolValue("CLEARSIGHT_DOCUMENT_IMPORT_ALLOW_UNSCANNED_ANALYSIS", cfg.DocumentImportAllowUnscannedAnalysis); err != nil {
 		return Config{}, err
 	}
@@ -242,6 +246,9 @@ func Load() (Config, error) {
 		if cfg.DemoMode {
 			return Config{}, fmt.Errorf("production does not permit CLEARSIGHT_DEMO_MODE=true")
 		}
+	}
+	if cfg.DemoAllowUnscannedArtifacts && (!cfg.DemoMode || production) {
+		return Config{}, fmt.Errorf("CLEARSIGHT_DEMO_ALLOW_UNSCANNED_ARTIFACTS requires non-production demo mode")
 	}
 	if strings.EqualFold(env("CLEARSIGHT_LOG_LEVEL", "info"), "debug") {
 		cfg.LogLevel = slog.LevelDebug

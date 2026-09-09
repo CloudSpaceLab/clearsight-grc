@@ -1,0 +1,17 @@
+# Document file-type navigation
+
+The supplied screenshot shows each icon/label group centred independently, producing different horizontal starting positions. The approved correction keeps the existing six file types and their filtering behavior, arranges each row into fixed icon and selection-marker columns with a flexible left-aligned label, and reduces the between-row gap to the existing 4px primitive. The sidebar is 13rem wide so the longest label remains on one line after reserving marker space. A check mark supplements the existing selected Button variant and `aria-pressed` state. Shared button appearance, focus and 44px targets remain owned by the design system.
+
+At widths up to 760px, the existing labelled File type SelectField replaces the sidebar. No new tokens or component variants are needed. Horizontal selection-mode navigation retains its existing overflow behavior.
+
+The horizontal picker uses non-shrinking buttons and an intrinsic-width label track. This prevents a long label from consuming the reserved check-mark gap when the row runs out of space; the existing row scrolls instead. The desktop sidebar retains its flexible label track. The [crowded picker before state](../evidence/2026-09-09-document-browser-navigation/before-picker-crowding.png) is preserved separately from the user's sidebar screenshot.
+
+Proof retains the [user's before screenshot](../evidence/2026-09-09-document-browser-navigation/before-user.png), then renders light/dark desktop and mobile states. Desktop checks require equal icon and label starting positions, a single selected type, and keyboard focus visibility. Mobile checks require the selector to remain available, the sidebar hidden, and no document horizontal overflow. File-type selection must preserve server filtering and scoped reads, as covered by the existing DocumentBrowser tests.
+
+## Verification
+
+The [render receipt](../evidence/2026-09-09-document-browser-navigation/receipt.json) records six passing cases: 1440, 390 and 320px in light and dark themes. Desktop icons and labels have identical horizontal start positions across all six rows; every label is one 21px line and each Button is 44px high. Exactly one file type is selected. PDF selection updates both presentations, and keyboard focus remains visible. Mobile hides the sidebar and exposes the File type selector. All six cases have document scroll width equal to viewport width.
+
+The final desktop selected/focused states and mobile light/dark states were visually inspected. The first render exposed wrapping in Word documents at the old 12rem width; the 13rem correction was rebuilt and all six captures rerun. `DocumentBrowser.test.tsx` passed all seven existing workflow tests. No new tokens, API behavior or file availability rules were introduced by this layout correction.
+
+Final picker-specific proof is recorded in the [demo-unscanned manifest](../evidence/2026-09-09-demo-unscanned/manifest.json). All four desktop allowed/blocked theme cases measure an 8px label/marker gap and 44px button height for every type. The horizontal row is 839px wide with 930px scroll content, and its final Other files button is hit-test reachable after scrolling. The dialog and document do not overflow. The corrected light/dark selected row was visually inspected, and the mobile picker captures retain their File type selector. This targeted follow-up does not change the verified sidebar geometry.

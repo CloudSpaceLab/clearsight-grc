@@ -485,18 +485,19 @@ const (
 )
 
 type Artifact struct {
-	ID           string         `json:"id"`
-	TenantID     string         `json:"tenant_id"`
-	RequestID    string         `json:"request_id"`
-	SubmissionID string         `json:"submission_id,omitempty"`
-	FileName     string         `json:"file_name"`
-	MediaType    string         `json:"media_type"`
-	SizeBytes    int64          `json:"size_bytes"`
-	SHA256       string         `json:"sha256"`
-	StorageKey   string         `json:"storage_key"`
-	Status       ArtifactStatus `json:"status"`
-	CreatedBy    string         `json:"created_by,omitempty"`
-	CreatedAt    time.Time      `json:"created_at"`
+	DemoUnscannedAllowed bool           `json:"demo_unscanned_allowed,omitempty"`
+	ID                   string         `json:"id"`
+	TenantID             string         `json:"tenant_id"`
+	RequestID            string         `json:"request_id"`
+	SubmissionID         string         `json:"submission_id,omitempty"`
+	FileName             string         `json:"file_name"`
+	MediaType            string         `json:"media_type"`
+	SizeBytes            int64          `json:"size_bytes"`
+	SHA256               string         `json:"sha256"`
+	StorageKey           string         `json:"storage_key"`
+	Status               ArtifactStatus `json:"status"`
+	CreatedBy            string         `json:"created_by,omitempty"`
+	CreatedAt            time.Time      `json:"created_at"`
 }
 
 type ArtifactInput struct {

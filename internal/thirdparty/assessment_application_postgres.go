@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -102,7 +103,7 @@ func (r *PostgresRepository) ApplyAssessmentResponse(ctx context.Context, record
 			WHERE d.tenant_id=$1::uuid AND d.legal_entity_id::text=$2 AND d.relationship_id=$3::uuid AND d.assessment_id=$4::uuid
 			  AND d.id::text=$5 AND d.artifact_id::text=$6 AND d.document_type=$7
 			FOR UPDATE OF d,a`, tenantID, record.LegalEntityID, assessment.RelationshipID, assessment.ID, replacement.ReplacementID, replacement.ReplacementArtifactID, replacement.DocumentType).Scan(&replacementVersion, &replacementStatus, &artifactStatus)
-		if errors.Is(err, pgx.ErrNoRows) || replacementStatus != string(AssessmentDocumentValidated) || artifactStatus != "AVAILABLE" || replacement.PriorDocumentID == replacement.ReplacementID {
+		if errors.Is(err, pgx.ErrNoRows) || replacementStatus != string(AssessmentDocumentValidated) || !r.artifactUseAllowed(evidence.ArtifactStatus(artifactStatus)) || replacement.PriorDocumentID == replacement.ReplacementID {
 			return ResponseApplicationReceipt{}, ErrVersionConflict
 		}
 		if err != nil {

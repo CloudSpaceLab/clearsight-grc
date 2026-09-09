@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { apiErrorKind } from "../http";
 import { loadVendorCollection, reconcileVendorEvidence, type VendorCollection, type VendorCollectionField } from "../vendorCollectionApi";
-import type { DocumentOccurrence } from "../submittedDocumentApi";
+import { documentReviewAllowed, type DocumentOccurrence } from "../submittedDocumentApi";
+import { DocumentDemoNotice } from "./documents/DocumentFile";
 import type { VendorAssessmentDocument } from "../vendorAssessmentTypes";
 import { Button, EmptyState, FocusedSheet, Notice, StatusBadge, TextArea, type StatusTone } from "./ui";
 import { DocumentBrowser } from "./documents/DocumentBrowser";
@@ -99,14 +100,15 @@ export function VendorEvidenceChecklist({ assessmentID, assessmentVersion, relat
       {visible.map((field) => {
         const status = fieldStatus(field);
         const document = documents.find((item) => item.field_id === field.field_id);
+        const reviewReason = document ? reviewUnavailableReason(document) : "";
         const canChoose = collection.prepared && collection.can_reconcile && field.type.toLowerCase() === "vendor_document" && !["NOT_REQUIRED", "CONDITION_UNKNOWN"].includes(field.collection_state) && field.bank_review_state !== "VALIDATED";
         return <article key={field.field_id} className="vendor-checklist__item" aria-label={field.label}>
           <div className="vendor-checklist__item-main"><div className="vendor-checklist__item-title"><h4>{field.label}</h4><StatusBadge tone={status.tone}>{status.label}</StatusBadge></div>{status.detail && <p>{status.detail}</p>}
-            {field.resolution && <div className="vendor-checklist__evidence"><strong>{field.resolution.source.file_name}</strong><span>Submitted {date(field.resolution.source.submitted_at)} · Linked {date(field.resolution.reconciled_at)}</span><p>{field.resolution.rationale}</p><Button variant="quiet" size="compact" onPress={() => setPreview(field.resolution!.source)}>View existing document</Button></div>}
-            {!field.resolution && document && <div className="vendor-checklist__evidence"><strong>{document.file_name}</strong>{document.expires_on && <span>Expires {date(document.expires_on)}</span>}{onOpenDocument && <Button variant="quiet" size="compact" onPress={() => onOpenDocument(document)}>View submitted document</Button>}</div>}
+            {field.resolution && <div className="vendor-checklist__evidence"><strong>{field.resolution.source.file_name}</strong><span>Submitted {date(field.resolution.source.submitted_at)} · Linked {date(field.resolution.reconciled_at)}</span><p>{field.resolution.rationale}</p><DocumentDemoNotice file={field.resolution.source}/><Button variant="quiet" size="compact" onPress={() => setPreview(field.resolution!.source)}>View existing document</Button></div>}
+            {!field.resolution && document && <div className="vendor-checklist__evidence"><strong>{document.file_name}</strong>{document.expires_on && <span>Expires {date(document.expires_on)}</span>}<DocumentDemoNotice file={document}/>{onOpenDocument && <Button variant="quiet" size="compact" onPress={() => onOpenDocument(document)}>View submitted document</Button>}</div>}
           </div>
           <div className="vendor-checklist__item-actions">
-            {document && field.bank_review_state === "PENDING" && onReviewDocument && <Button onPress={() => onReviewDocument(document, "VALIDATE")}>Review document</Button>}
+            {document && field.bank_review_state === "PENDING" && onReviewDocument && <><Button isDisabled={Boolean(reviewReason)} onPress={() => onReviewDocument(document, "VALIDATE")}>Review document</Button>{reviewReason && <p>{reviewReason}</p>}</>}
             {canChoose && <Button variant="quiet" onPress={() => choose(field)}>{field.collection_state === "REUSED" || field.collection_state === "RECEIVED" ? "Replace document" : "Use existing document"}</Button>}
           </div>
         </article>;
@@ -117,7 +119,7 @@ export function VendorEvidenceChecklist({ assessmentID, assessmentVersion, relat
       <div className="vendor-checklist__selection"><h2>Use existing document</h2><p>Requested item: <strong>{target.label}</strong></p>
         {error && <Notice tone="error">{error}{conflict && <Button onPress={() => { close(); setReload((value) => value + 1); }}>Reload checklist</Button>}</Notice>}
         {!source ? <DocumentBrowser scopeLabel="Documents already submitted for this vendor service" relationshipID={relationshipID} onChoose={setSource} selectionUnavailableReason={unavailableReason}/> : <>
-          <div className="vendor-checklist__evidence"><strong>{source.file_name}</strong><span>Submitted {date(source.submitted_at)} · {source.form_title}</span><span>Original request item: {source.field_label}</span><Button variant="quiet" onPress={() => setPreview(source)}>Preview selected document</Button></div>
+          <div className="vendor-checklist__evidence"><strong>{source.file_name}</strong><span>Submitted {date(source.submitted_at)} · {source.form_title}</span><span>Original request item: {source.field_label}</span><DocumentDemoNotice file={source}/><Button variant="quiet" onPress={() => setPreview(source)}>Preview selected document</Button></div>
           <TextArea label="Reason for reuse" description="Confirm the document covers this service and requirement." value={rationale} onChange={setRationale} maxLength={2000} rows={3} isDisabled={saving}/>
           <div className="vendor-checklist__selection-actions"><Button isDisabled={saving} onPress={() => setSource(undefined)}>Choose another document</Button><Button variant="primary" isLoading={saving} isDisabled={!rationale.trim() || conflict} onPress={() => void save()}>Use this document</Button></div>
         </>}
@@ -131,7 +133,7 @@ function priority(field: VendorCollectionField) { return field.vendor_action_req
 function isMissing(field: VendorCollectionField) { return field.vendor_action_required && field.collection_state !== "CONDITION_UNKNOWN"; }
 function fieldStatus(field: VendorCollectionField): { label: string; tone: StatusTone; detail?: string } {
   if (field.collection_state === "CONDITION_UNKNOWN") return { label: "Applicability pending", tone: "unknown", detail: "Depends on unanswered questions." };
-  if (field.vendor_action_required) return { label: "Missing", tone: "warning", detail: field.resolution && !field.resolution.source.current ? "Document replaced. Link the current version." : field.resolution && field.resolution.source.artifact_status !== "AVAILABLE" ? "Linked document unavailable. Review its source." : field.bank_review_state === "REJECTED" || field.resolution?.source.review?.status === "REJECTED" ? "Rejected evidence. Vendor replacement required." : field.resolution ? "Linked evidence needs replacement." : "Vendor" };
+  if (field.vendor_action_required) return { label: "Missing", tone: "warning", detail: field.resolution && !field.resolution.source.current ? "Document replaced. Link the current version." : field.resolution && !documentReviewAllowed(field.resolution.source) ? "Linked document unavailable. Review its source." : field.bank_review_state === "REJECTED" || field.resolution?.source.review?.status === "REJECTED" ? "Rejected evidence. Vendor replacement required." : field.resolution ? "Linked evidence needs replacement." : "Vendor" };
   if (field.collection_state === "NOT_REQUIRED") return { label: "Not required", tone: "neutral" };
   if (field.bank_review_state === "VALIDATED") return { label: "Accepted", tone: "success" };
   if (field.bank_review_state === "REJECTED") return { label: "Rejected", tone: "error", detail: "Review the finding before proceeding." };
@@ -143,9 +145,14 @@ function fieldStatus(field: VendorCollectionField): { label: string; tone: Statu
 function date(value: string) { const parsed = new Date(value); return Number.isNaN(parsed.getTime()) ? "Date not recorded" : parsed.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); }
 function unavailableReason(file: DocumentOccurrence) {
   if (file.submission_channel !== "MAGIC_LINK") return "Choose a document submitted by the vendor.";
-  if (file.artifact_status !== "AVAILABLE") return "This file is not available for use. Choose an available document.";
+  if (!documentReviewAllowed(file)) return "This file is not available for use. Choose an available document.";
   if (!file.current) return "This document has been replaced. Choose its current version.";
   if (file.review?.status === "REJECTED") return "Document rejected. Choose different evidence.";
   if (file.expires_on && (!Number.isFinite(Date.parse(file.expires_on)) || file.expires_on.slice(0, 10) < new Date().toISOString().slice(0, 10))) return "This document is expired or its validity is unclear. Choose current evidence.";
   return "";
+}
+function reviewUnavailableReason(file: VendorAssessmentDocument) {
+  if (file.status === "REJECTED") return "This document was rejected. Request a replacement before reviewing it again.";
+  if (file.status === "EXPIRED") return "This document has expired. Request current evidence.";
+  return documentReviewAllowed(file) ? "" : "This file is unavailable for review. Wait for its safety check or choose another document.";
 }

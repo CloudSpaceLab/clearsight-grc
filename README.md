@@ -42,7 +42,7 @@ The repository contains a working application foundation for ongoing Programs an
 - mechanically verified main API and isolated AI gateway route/access contracts, Docker Compose, CI and PostgreSQL integration tests;
 - OpenAI-compatible Chat/Responses text-and-function transport with OpenAI/Anthropic adapters, truthful SSE, workload authentication, budgets, routing/fallback, circuit state and content-free telemetry.
 
-The default build uses in-memory repositories for local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage and OCR are not implemented. Capture artifacts have a durable fail-closed inspection worker and a bounded ClamAV adapter; an approved, configured scanner deployment is still required. Searchable PDFs are extracted automatically by the durable worker through bounded Poppler utilities.
+The default build uses in-memory repositories for local development. The `postgres` build tag activates PostgreSQL repositories. The local artifact-store adapter is for development and testing only; production object storage and OCR are not implemented. Capture artifacts have a durable fail-closed inspection worker and a bounded ClamAV adapter; production requires an approved, configured scanner deployment. Demo mode can explicitly permit unscanned document use as described below, without recording a clean scan. Searchable PDFs are extracted automatically by the durable worker through bounded Poppler utilities.
 
 ## Product model
 
@@ -109,6 +109,8 @@ When disabled:
 Production refuses to start with demo mode enabled.
 
 `CLEARSIGHT_DOCUMENT_IMPORT_ALLOW_UNSCANNED_ANALYSIS` separately controls whether deterministic local analysis may run before an approved scanning service marks an artifact available. It defaults to `true` in development and `false` in production.
+
+`CLEARSIGHT_DEMO_ALLOW_UNSCANNED_ARTIFACTS` permits protected document viewing, reuse and governed evidence acceptance before antivirus scanning in non-production demo mode. It defaults to the validated demo-mode setting and can be disabled explicitly. Production and non-demo deployments reject an enabled value. Files remain `STORED_UNSCANNED` and appear as **Unscanned · Demo**; no clean scan receipt is created. Quarantine, content-integrity checks, current-version/expiry rules and review/approval authority still apply. Set the flag to `false` and restart the API and worker to restore the scan prerequisite without changing document or review history.
 
 `CLEARSIGHT_VENDOR_BRAND_DISCOVERY_ENABLED` controls the worker's outbound HTTPS retrieval of public vendor website icons. It defaults to `true` in development and `false` in production. Production deployments must opt in explicitly after approving outbound-network policy; vendor records remain usable with the generated monogram when discovery is disabled or unavailable.
 
