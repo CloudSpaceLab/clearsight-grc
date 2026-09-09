@@ -175,6 +175,14 @@ describe("SelectField", () => {
 
   it("closes for outside focus while restoring the opening scroll position", async () => {
     let scrollY = 0;
+    const nativeFocus = HTMLElement.prototype.focus;
+    const pendingFocus = new Set<number>();
+    // A visible listbox can precede its initial option focus under CI load.
+    const focus = vi.spyOn(HTMLElement.prototype, "focus").mockImplementation(function (this: HTMLElement, options) {
+      if (!this.closest('[role="listbox"]')) return nativeFocus.call(this, options);
+      const timer = window.setTimeout(() => { pendingFocus.delete(timer); nativeFocus.call(this, options); }, 0);
+      pendingFocus.add(timer);
+    });
     const originalScrollY = Object.getOwnPropertyDescriptor(window, "scrollY");
     Object.defineProperty(window, "scrollY", { configurable: true, get: () => scrollY });
     const now = vi.spyOn(performance, "now").mockReturnValue(1_000);
@@ -183,6 +191,10 @@ describe("SelectField", () => {
       render(<main><SelectField label="File type" value="OPEN" placeholder="File type" options={options} onChange={() => undefined}/><input aria-label="Search file names"/><div id="cs-overlay-root"/></main>);
       fireEvent.click(screen.getByRole("button", { name: /File type/ }));
       await screen.findByRole("listbox");
+      await waitFor(() => {
+        expect(document.activeElement).toBe(screen.getByRole("option", { name: "Responses open" }));
+        expect(pendingFocus.size).toBe(0);
+      });
       scrollY = 11;
       fireEvent.scroll(document);
       expect(scrollTo).toHaveBeenCalled();
@@ -192,6 +204,8 @@ describe("SelectField", () => {
       await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
       expect(document.activeElement).toBe(search);
     } finally {
+      focus.mockRestore();
+      pendingFocus.forEach((timer) => window.clearTimeout(timer));
       now.mockRestore();
       scrollTo.mockRestore();
       if (originalScrollY) Object.defineProperty(window, "scrollY", originalScrollY);
