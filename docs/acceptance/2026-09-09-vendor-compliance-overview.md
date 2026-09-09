@@ -7,6 +7,7 @@ The vendor overview now lists failed configured requirements immediately after a
 - Five affected web suites pass: 130 tests covering the overview, Vendors workspace, vendor Forms panel, application and copy-quality gate.
 - TypeScript project build passes; the UI contract, flow-manifest and Forms scenario checks pass all 51 tests.
 - Fresh `go test -tags postgres ./internal/evidence ./internal/bankverticals ./internal/monitoring ./internal/httpapi -count=1` passes.
+- The complete `go test -tags postgres ./...` suite passes after updating the API demo boot test's expected sample-form set from three to four. The targeted boot test failed before that expectation change and passed afterward; the initial CI failure is retained in its run history.
 - The backend and seed acceptance records include actual PostgreSQL tests and the custom distribution → OTP → response save → submission → vendor overview API workflow.
 - Independent backend review cleared the source-attribution correction with no remaining P1/P2 findings.
 - Visual evidence includes desktop, 390px and 320px, both themes, keyboard review handoffs, unknown/error states and existing evidence reuse. The broader Forms runner preserves an initial performance failure and subsequent verification separately; its evidence README records the precise outcome.

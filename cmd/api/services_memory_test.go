@@ -91,7 +91,7 @@ func TestConfigureReferenceVerticalsInstallsActiveVendorForms(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]bool{"VENDOR-DUE-DILIGENCE": true, "VENDOR-ADDRESS-VERIFICATION": true, "VENDOR-CERTIFICATION-REFRESH": true}
+	want := map[string]bool{"VENDOR-DUE-DILIGENCE": true, "VENDOR-ADDRESS-VERIFICATION": true, "VENDOR-CERTIFICATION-REFRESH": true, "THIRD-PARTY-RISK-COMPLIANCE": true}
 	if len(forms) != len(want) {
 		t.Fatalf("demo vendor forms=%#v", forms)
 	}
