@@ -15,7 +15,9 @@ Six connected journeys provide the initial operating population:
 5. Privacy screening: a scoped change/project reference, conditional questions and a documented privacy decision; missing safeguards remain open before the relevant authorization.
 6. Regulatory preparation and operational follow-up: source verification and filing evidence remain separate; a synthetic incident/recovery example retains occurrence, recognition, reported recovery and verification as distinct facts.
 
-Show varied states across the population rather than creating every possible state for every journey. Use five plausible fictional supplier services and a concise reusable form set. Existing real/user-created suppliers remain separate. Names, contacts, amounts, dates, findings and evidence content in the new package are fictional and visibly labelled. The existing customer organization and user identities are not renamed.
+Show varied states across the population rather than creating every possible state for every journey. Use five plausible fictional supplier services and eight reusable forms. Existing real/user-created suppliers remain separate. Names, contacts, amounts, dates, findings and evidence content in the new package are fictional and visibly labelled. The existing customer organization and user identities are not renamed.
+
+The PostgreSQL demo includes four managed vendor form examples: one outstanding risk review, one partially completed due-diligence response, one completed control confirmation with a high compliance score, and one completed control confirmation with reported gaps and a low score. Completed responses remain awaiting independent review. These examples use protected `.invalid` recipient addresses and direct demo access without sending messages or recording delivery.
 
 ## Source use
 

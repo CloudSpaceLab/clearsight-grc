@@ -90,6 +90,8 @@ func main() {
 	operatingVendors, err := installer.EnsureOperatingVendors(ctx, seed, thirdPartyService)
 	fatalIf(err)
 	referenceVendor := operatingVendors[0]
+	formSamples, err := seedOperatingFormSamples(ctx, cfg, pool, seed, operatingDemo, operatingVendors, monitoringRepo, evidenceRepo)
+	fatalIf(err)
 
 	maintainer := &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepo, WorkerID: "reference-installer"}
 	for {
@@ -135,6 +137,7 @@ func main() {
 		"reference_vendor_relationship_id": referenceVendor.Relationship.ID,
 		"operating_demo":                   operatingDemo,
 		"operating_vendor_count":           len(operatingVendors),
+		"operating_form_samples":           formSamples,
 		"oversight_projection":             oversightSnapshot.ProjectionVersion,
 		"oversight_generated_at":           oversightSnapshot.GeneratedAt,
 		"oversight_population":             oversightSnapshot.Coverage.Population,
