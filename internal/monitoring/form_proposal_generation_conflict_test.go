@@ -13,6 +13,7 @@ type competingGenerationStore struct {
 	beforeComplete func(context.Context, FormTemplateProposal, int64)
 	readError      error
 	completed      bool
+	rewriteReceipt func(*FormTemplateProposal)
 }
 
 func (s *competingGenerationStore) CompleteGeneration(ctx context.Context, value FormTemplateProposal, version int64) (FormTemplateProposal, error) {
@@ -25,7 +26,40 @@ func (s *competingGenerationStore) Get(ctx context.Context, tenant, entity, id s
 	if s.completed && s.readError != nil {
 		return FormTemplateProposal{}, s.readError
 	}
-	return s.MemoryFormProposalStore.Get(ctx, tenant, entity, id)
+	value, err := s.MemoryFormProposalStore.Get(ctx, tenant, entity, id)
+	if err == nil && s.completed && s.rewriteReceipt != nil {
+		s.rewriteReceipt(&value)
+	}
+	return value, err
+}
+
+func TestFormProposalGenerationRejectsMismatchedCompetingReceipt(t *testing.T) {
+	for _, scenario := range []struct {
+		name  string
+		alter func(*FormTemplateProposal)
+	}{
+		{"tenant", func(p *FormTemplateProposal) { p.TenantID = "another-tenant" }},
+		{"entity", func(p *FormTemplateProposal) { p.LegalEntityID = "another-entity" }},
+		{"proposal", func(p *FormTemplateProposal) { p.ID = "another-proposal" }},
+		{"source revision", func(p *FormTemplateProposal) { p.SourceDocumentVersion++ }},
+		{"source digest", func(p *FormTemplateProposal) { p.SourceSHA256 = "another-digest" }},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			document := proposalSourceDocument()
+			store := &competingGenerationStore{MemoryFormProposalStore: NewMemoryFormProposalStore(), rewriteReceipt: scenario.alter}
+			store.beforeComplete = func(ctx context.Context, value FormTemplateProposal, version int64) {
+				if _, err := store.MemoryFormProposalStore.CompleteGeneration(ctx, value, version); err != nil {
+					t.Fatal(err)
+				}
+			}
+			forms := libraryService(t, NewMemoryRepository(), "maker-a")
+			service := NewFormProposalService(store, &proposalDocumentStub{document: document}, forms)
+			result, err := service.RequestFromDocument(formActorContext("bank-a", "entity-a", "maker-a"), document.ID, RequestDocumentFormProposalInput{ExpectedDocumentVersion: document.Version})
+			if !errors.Is(err, ErrConflict) || result.ID != "" {
+				t.Fatalf("mismatched receipt returned: %+v, %v", result, err)
+			}
+		})
+	}
 }
 
 func TestFormProposalGenerationCompletionConflictRecovery(t *testing.T) {
