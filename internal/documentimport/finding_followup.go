@@ -120,8 +120,13 @@ func findingAssessmentGroups(document Document) ([]findingAssessmentRows, error)
 			}
 		}
 		if document.Tabular != nil {
+			// Tabular rows include formatted/explicitly empty cells; extraction
+			// SectionsTotal counts nonempty content before retention limits. A
+			// complete section receipt plus the exact row checks above therefore
+			// proves retention without treating blank separators as missing findings.
+			completeSections := document.SectionsTotal > 0 && document.SectionsTotal == len(document.Sections)
 			for _, resource := range document.Tabular.Resources {
-				if resource.Name == sheet && (resource.RowsRejected > 0 || resource.RowsTotal > len(rows)-1) {
+				if resource.Name == sheet && (resource.RowsRejected > 0 || (!completeSections && resource.RowsTotal > len(rows)-1)) {
 					return nil, errors.New("The findings register has rows missing from extraction. Upload the complete source file again.")
 				}
 			}

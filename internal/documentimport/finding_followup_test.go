@@ -1,6 +1,7 @@
 package documentimport
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -8,6 +9,49 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
+
+func TestFindingFollowUpCompleteXLSXWithBlankFormattedRows(t *testing.T) {
+	rows := `<row r="1"><c r="A1" t="inlineStr"><is><t>S/N</t></is></c><c r="B1" t="inlineStr"><is><t>SERVICE PROVIDER</t></is></c><c r="C1" t="inlineStr"><is><t>SERVICES OFFERED</t></is></c><c r="D1" t="inlineStr"><is><t>DATE OF ASSESSMENT</t></is></c><c r="E1" t="inlineStr"><is><t>FINDINGS</t></is></c><c r="F1" t="inlineStr"><is><t>RECOMMENDATIONS</t></is></c></row>
+	<row r="2"><c r="A2"><v>1</v></c><c r="B2" t="inlineStr"><is><t>Sample vendor</t></is></c><c r="C2" t="inlineStr"><is><t>Payments</t></is></c><c r="D2" t="inlineStr"><is><t>2026-02-06</t></is></c><c r="E2" t="inlineStr"><is><t>First finding</t></is></c><c r="F2" t="inlineStr"><is><t>Provide report</t></is></c></row>
+	<row r="3"><c r="A3" s="1"/><c r="E3" t="inlineStr"><is><t></t></is></c></row>
+	<row r="4"><c r="A4"><v>1</v></c><c r="E4" t="inlineStr"><is><t>Second finding</t></is></c><c r="F4" t="inlineStr"><is><t>Confirm scope</t></is></c></row>
+	<row r="5"><c r="A5" s="1"/></row>`
+	data := mergedWorkbook(t, rows, "")
+	extraction := Extract("blank-rows.xlsx", "", data)
+	metadata, err := InspectTabularArtifact(context.Background(), "blank-rows.xlsx", "", data, DefaultExtractionPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if extraction.Status != ExtractionExtracted || extraction.SectionsTotal != 3 || metadata.RowsTotal != 4 {
+		t.Fatalf("fixture does not reproduce different row populations: %#v %#v", extraction, metadata)
+	}
+	d := Document{ID: "blank-rows", Version: 1, SHA256: strings64("d"), ExtractionStatus: extraction.Status, ParserVersion: extraction.ParserVersion, Elements: extraction.Elements, Sections: extraction.Sections, SectionsTotal: extraction.SectionsTotal, SectionsOmitted: extraction.SectionsOmitted, ContentTruncated: extraction.ContentTruncated, Tabular: &metadata}
+	groups, err := FindingFollowUpAssessments(d)
+	if err != nil || len(groups) != 1 || groups[0].FindingCount != 2 {
+		t.Fatalf("complete register rejected due to blank rows: %#v %v", groups, err)
+	}
+	p, err := ProposeFindingFollowUp(d, groups[0].ID, DefaultProposalPolicy())
+	if err != nil || len(p.FieldChanges) != 10 || p.FieldChanges[5].Anchor.RowStart != 4 {
+		t.Fatalf("blank source row became a finding or displaced its anchor: %#v %v", p, err)
+	}
+	for _, testCase := range []struct {
+		name   string
+		mutate func(*Document)
+	}{
+		{"missing finding cells", func(d *Document) { d.Elements = d.Elements[:2] }},
+		{"missing entire finding", func(d *Document) { d.Elements = d.Elements[:2]; d.Sections = d.Sections[:2] }},
+		{"omitted source content", func(d *Document) { d.SectionsOmitted = 1 }},
+		{"no completeness receipt", func(d *Document) { d.SectionsTotal = 0 }},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			incomplete := d
+			testCase.mutate(&incomplete)
+			if _, err := FindingFollowUpAssessments(incomplete); err == nil {
+				t.Fatal("incomplete finding extraction became eligible")
+			}
+		})
+	}
+}
 
 func findingDocument(t *testing.T, rows ...[]string) Document {
 	t.Helper()
