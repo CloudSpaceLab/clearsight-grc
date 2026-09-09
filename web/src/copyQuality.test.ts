@@ -7,7 +7,7 @@ const interfaceSources = import.meta.glob(
 
 const productCommentary = [
   /\b(?:awaiting|require|needs|pending) bank review\b/i,
-  /\bbank (?:assessment|judgement|rubric|reviewer)\b/i,
+  /\bbank (?:assessment|judgement|rubric|reviewer|decision)\b/i,
   /\bwithout mixing\b/i,
   /assigned work remains canonical/i,
   /\bbounded view\b/i,
