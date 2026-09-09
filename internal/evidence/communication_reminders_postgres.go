@@ -28,6 +28,7 @@ func (repository *PostgresCommunicationReminderRepository) ScheduleDueCommunicat
 		SELECT d.id::text,d.tenant_id::text,d.deadline,d.reminder_policy
 		FROM capture_form_distributions d
 		WHERE d.status='OPEN' AND d.deadline>$1 AND d.route_expires_at>$1 AND d.reminder_policy<>'{}'::jsonb
+		  AND EXISTS (SELECT 1 FROM capture_requests collection_request WHERE collection_request.distribution_id=d.id AND collection_request.tenant_id=d.tenant_id AND collection_request.legal_entity_id=d.legal_entity_id AND NOT `+collectionNoVendorActionSQL("collection_request", "$1")+`)
 		  AND (
 			d.reminder_policy-'reminder_hours_before'-'due_soon_hours_before'<>'{}'::jsonb
 			OR (d.reminder_policy?'reminder_hours_before' AND jsonb_typeof(d.reminder_policy->'reminder_hours_before')<>'array')
@@ -119,8 +120,9 @@ func (repository *PostgresCommunicationReminderRepository) insertReminder(ctx co
 	var eligible bool
 	if err := tx.QueryRow(ctx, `
 		SELECT EXISTS(
-			SELECT 1 FROM capture_form_distributions
-			WHERE tenant_id=$1::uuid AND id=$2::uuid AND status='OPEN' AND deadline=$3 AND deadline>$4 AND route_expires_at>$4
+			SELECT 1 FROM capture_form_distributions d
+			WHERE d.tenant_id=$1::uuid AND d.id=$2::uuid AND d.status='OPEN' AND d.deadline=$3 AND d.deadline>$4 AND d.route_expires_at>$4
+			 AND EXISTS (SELECT 1 FROM capture_requests collection_request WHERE collection_request.distribution_id=d.id AND collection_request.tenant_id=d.tenant_id AND collection_request.legal_entity_id=d.legal_entity_id AND NOT `+collectionNoVendorActionSQL("collection_request", "$4")+`)
 		)`, tenantID, distributionID, deadline.UTC(), now.UTC()).Scan(&eligible); err != nil {
 		return false, err
 	}

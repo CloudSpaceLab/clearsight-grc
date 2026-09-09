@@ -30,7 +30,7 @@ func vendorFormsScopedSQL() string {
  COALESCE(bank.state,CASE WHEN COALESCE((r.score_result->>'assessment_review_count')::int,0)>0 THEN 'AWAITING_REVIEW' ELSE 'NOT_REQUIRED' END) AS assessment_state,
  COALESCE(bank.required_count,(r.score_result->>'assessment_required_count')::int,0) AS required_reviews,
  COALESCE(bank.reviewed_required_count,0) AS completed_reviews,
- CASE WHEN d.status IN ('REVOKED','SUPERSEDED') THEN d.status WHEN req.status='SUBMITTED' THEN 'SUBMITTED' WHEN req.status='IN_PROGRESS' THEN 'IN_PROGRESS' WHEN req.status='DRAFT' THEN 'REQUEST_READY' WHEN req.status IN ('CANCELLED','EXPIRED') THEN req.status ELSE 'AWAITING_RESPONSE' END AS response_state,
+	CASE WHEN d.status IN ('REVOKED','SUPERSEDED') THEN d.status WHEN req.status='SUBMITTED' THEN 'SUBMITTED' WHEN req.status='CANCELLED' THEN 'CANCELLED' WHEN ` + collectionNoVendorActionSQL("req", "$4") + ` THEN 'NO_VENDOR_ACTION' WHEN req.status='IN_PROGRESS' THEN 'IN_PROGRESS' WHEN req.status='DRAFT' THEN 'REQUEST_READY' WHEN req.status='EXPIRED' THEN req.status ELSE 'AWAITING_RESPONSE' END AS response_state,
  COALESCE(d.status NOT IN ('REVOKED','SUPERSEDED'),true) AND (req.origin_type NOT IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK') OR submission.id IS NULL OR currency.total=0 OR currency.remaining>0) AS current,
  CASE WHEN d.status IN ('REVOKED','SUPERSEDED') THEN 'HISTORICAL'
  WHEN req.origin_type NOT IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK') OR submission.id IS NULL OR currency.total=0 OR currency.remaining=currency.total THEN 'CURRENT'
@@ -79,6 +79,13 @@ func (s *PostgresDistributionStore) ListVendorForms(ctx context.Context, q Vendo
 	}
 	defer rows.Close()
 	values := []VendorFormRow{}
+	type progressInput struct {
+		request Request
+		row     VendorFormRow
+		answers map[string]formcontract.AnswerValue
+		known   bool
+	}
+	inputs := make([]progressInput, 0, q.Limit+1)
 	for rows.Next() {
 		var reqJSON, rowJSON, answerJSON []byte
 		var known bool
@@ -97,17 +104,30 @@ func (s *PostgresDistributionStore) ListVendorForms(ctx context.Context, q Vendo
 		if err := json.Unmarshal(answerJSON, &answers); err != nil {
 			return VendorFormsPage{}, err
 		}
-		progress := vendorFormRow(req, answers, known, nil, now)
-		row.RequiredCount = progress.RequiredCount
-		row.AnsweredRequired = progress.AnsweredRequired
-		row.MissingFields = progress.MissingFields
-		if row.ResponseState == "IN_PROGRESS" || row.ResponseState == "AWAITING_RESPONSE" {
-			row.ResponseState = progress.ResponseState
-		}
-		values = append(values, row)
+		inputs = append(inputs, progressInput{req, row, answers, known})
 	}
 	if err := rows.Err(); err != nil {
 		return VendorFormsPage{}, err
+	}
+	// Release the bounded page cursor before exact artifact reads so a
+	// one-connection pool cannot deadlock while refreshing collection status.
+	rows.Close()
+	for _, input := range inputs {
+		req, row, answers, known := input.request, input.row, input.answers, input.known
+		req = RefreshCollectionResolutions(ctx, req, s.repo.GetArtifact, now)
+		req, err = s.repo.RefreshCollectionRequestReviews(ctx, req)
+		if err != nil {
+			return VendorFormsPage{}, err
+		}
+		progress := vendorFormRow(req, answers, known, nil, now)
+		row.RequiredCount = progress.RequiredCount
+		row.AnsweredRequired = progress.AnsweredRequired
+		row.HeldRequired = progress.HeldRequired
+		row.MissingFields = progress.MissingFields
+		if row.ResponseState == "IN_PROGRESS" || row.ResponseState == "AWAITING_RESPONSE" || row.ResponseState == "NO_VENDOR_ACTION" || row.ResponseState == "REQUEST_READY" || row.ResponseState == "EXPIRED" {
+			row.ResponseState = progress.ResponseState
+		}
+		values = append(values, row)
 	}
 	return vendorFormsPage(values, q.Limit, now), nil
 }

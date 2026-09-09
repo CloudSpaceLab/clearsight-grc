@@ -8,3 +8,9 @@
   font-family: Inter, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   line-height: var(--cs-leading-body);
 }
+
+/* Override the transparent preflight placeholder in the same base layer. */
+:is(input, textarea)::placeholder {
+  color: var(--cs-text-placeholder);
+  opacity: 1;
+}

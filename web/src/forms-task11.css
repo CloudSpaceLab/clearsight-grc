@@ -77,12 +77,6 @@
   grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   gap: 18px;
 }
-.forms-response-layout {
-  grid-template-columns: minmax(220px, 300px) minmax(320px, 1fr) minmax(
-      280px,
-      360px
-    );
-}
 .forms-task-detail {
   border-left: 1px solid var(--forms-border, #d8dee8);
   padding-left: 18px;

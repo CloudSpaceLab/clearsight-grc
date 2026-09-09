@@ -183,7 +183,7 @@ export function AIGatewayTransportDraftForm({
       <label><span>Open duration (ms)</span><input type="number" min={100} max={600000} value={openDurationMs} onChange={(event) => setOpenDurationMs(Number(event.target.value))}/></label>
     </div></details>
 
-    <label><span>Change reason</span><textarea rows={3} maxLength={1000} value={changeReason} onChange={(event) => setChangeReason(event.target.value)} required/><small>Stored with the governed revision for reviewer context and audit reconstruction.</small></label>
+    <label><span>Change reason</span><textarea rows={3} maxLength={1000} value={changeReason} onChange={(event) => setChangeReason(event.target.value)} required/><small>Explain the routing change for the reviewer.</small></label>
     <div className="ai-gateway-transport__actions"><button className="primary-button" type="submit" disabled={busy || disabled || !changeReason.trim()}>{busy ? "Creating…" : `Create ${environment.toLowerCase()} revision`}</button><span>Draft only · independent approval required</span></div>
   </form>;
 }

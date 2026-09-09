@@ -3,17 +3,17 @@ import { activateVendorRelationship, loadVendorActivation } from "../vendorApi";
 import type { VendorActivationResult, VendorRelationship } from "../vendorTypes";
 import { apiErrorKind } from "../http";
 
-export function VendorActivationPanel({ relationship, onActivated }: { relationship: VendorRelationship; onActivated: (relationship: VendorRelationship) => void }) {
+export function VendorActivationPanel({ relationship, reviewVersion, onActivated }: { relationship: VendorRelationship; reviewVersion?: number; onActivated: (relationship: VendorRelationship) => void }) {
   const [state, setState] = useState<"loading" | "ready" | "unavailable">(relationship.status === "ACTIVE" ? "ready" : "loading");
   const [eligibility, setEligibility] = useState<VendorActivationResult>();
   const [rationale, setRationale] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  useEffect(() => setRationale(""), [relationship.id]);
 
   useEffect(() => {
     let current = true;
     setError("");
-    setRationale("");
     if (relationship.status === "ACTIVE") {
       setEligibility(undefined);
       setState("ready");
@@ -31,7 +31,7 @@ export function VendorActivationPanel({ relationship, onActivated }: { relations
       setError(apiErrorKind(caught) === "conflict" ? "No approved activation policy applies to this legal entity at the current time." : "Activation checks could not be loaded. The relationship remains unchanged.");
     });
     return () => { current = false; };
-  }, [relationship.id, relationship.version, relationship.status]);
+  }, [relationship.id, relationship.version, relationship.status, reviewVersion]);
 
   async function activate() {
     if (!eligibility?.eligible || rationale.trim().length < 20) return;
@@ -53,7 +53,7 @@ export function VendorActivationPanel({ relationship, onActivated }: { relations
     }
   }
 
-  if (relationship.status === "ACTIVE") return <section className="vendor-activation-panel" aria-labelledby="vendor-activation-title"><span className="eyebrow">Activation complete</span><h3 id="vendor-activation-title">Vendor relationship active</h3><p>{relationship.service_name} may now receive certification requests. Vendor uploads still require separate bank review.</p></section>;
+  if (relationship.status === "ACTIVE") return <section className="vendor-activation-panel" aria-labelledby="vendor-activation-title"><span className="eyebrow">Activation complete</span><h3 id="vendor-activation-title">Vendor relationship active</h3><p>{relationship.service_name} may now receive certification requests. Vendor uploads still require separate review.</p></section>;
   return <section className="vendor-activation-panel" aria-labelledby="vendor-activation-title" aria-busy={state === "loading"}>
     <div className="vendor-activation-heading"><div><span className="eyebrow">Activation decision</span><h3 id="vendor-activation-title">Activate vendor relationship</h3></div>{eligibility && <span className={eligibility.eligible ? "vendor-activation-ready" : "vendor-activation-pending"}>{eligibility.eligible ? "Ready for authorization" : "Checks incomplete"}</span>}</div>
     {state === "loading" && <p>Checking the current policy, assessment, decisions, address outcome and blocking issues…</p>}

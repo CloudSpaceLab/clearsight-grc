@@ -9,6 +9,8 @@ import type { VendorRelationshipLink } from "./vendorLinkTypes";
 import type { VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "./vendorTypes";
 import type { VendorWorkRequest, VendorWorkResponseView, VendorWorkSendOutcome } from "./vendorWorkTypes";
 import type { DocumentOccurrence } from "./submittedDocumentApi";
+import type { ResponseAssessmentDetail } from "./formAssessmentApi";
+import type { VendorFormRow } from "./vendorFormsApi";
 
 // Static transport is an isolated review fixture, never a deployable demo API.
 export const staticDemoEnabled = import.meta.env.VITE_STATIC_DEMO === "true" && import.meta.env.VITE_UI_EVIDENCE === "true";
@@ -790,6 +792,32 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     vendorAssessment = { ...vendorAssessment, status: "COMPLETED", conclusion: input.conclusion, conclusion_rationale: input.rationale.trim(), conclusion_uncertainty: input.uncertainty?.trim(), next_review_recommended_at: input.next_review_recommended_at, completed_at: now, version: vendorAssessment.version + 1, updated_at: now };
     return clone(vendorAssessment) as T;
   }
+  if (pathname === "/api/v1/vendors/form-summaries" && method === "GET") {
+    const ids = new Set((url.searchParams.get("relationship_ids") ?? "").split(",").slice(0, 50));
+    const templateID = url.searchParams.get("form_template_id");
+    return clone({ items: vendorRelationships.filter((item) => ids.has(item.relationship.id)).map((item) => ({ relationship_id: item.relationship.id, outstanding_forms: item.relationship.id === vendorRelationshipID && (!templateID || templateID === vendorDueDiligenceForm.id) ? 1 : 0, overdue_forms: 0, submitted_forms: 0, awaiting_review: 0, unassessed_forms: 0, assessed_forms: 0, observed_at: now })) }) as T;
+  }
+  const vendorFormsMatch = pathname.match(/^\/api\/v1\/vendors\/([^/]+)\/forms$/);
+  if (vendorFormsMatch && method === "GET") {
+    const id = decodeURIComponent(vendorFormsMatch[1]!);
+    if (!vendorRelationships.some((item) => item.relationship.id === id)) throw new StaticDemoHTTPError(404, "vendor_not_found", "The vendor relationship is not available in this legal entity.");
+    if (fixture === "vendor-requests-error") throw new StaticDemoHTTPError(503, "vendor_forms_unavailable", "Vendor form requests could not be loaded. Try again.");
+    const distribution = staticDistributionDetail().distribution;
+    const sample: VendorFormRow = { request_id: "request-vendor-security", relationship_id: vendorRelationshipID, distribution_id: distribution.id, form_template_id: distribution.form_template_id, form_template_version: distribution.form_template_version, title: "Sample · Acme annual vendor review", purpose: distribution.purpose, response_state: "IN_PROGRESS", recipient_hint: "s***@acme.example", delivery_state: "DELIVERED", deadline: distribution.deadline, updated_at: now, required_count: 5, answered_required: 2, missing_fields: [], required_reviews: 0, completed_reviews: 0, current: true };
+    const filter = url.searchParams.get("filter");
+    const templateID = url.searchParams.get("form_template_id");
+    const items = id === vendorRelationshipID && (!filter || filter === "AWAITING_VENDOR") && (!templateID || templateID === sample.form_template_id) ? [sample] : [];
+    return clone({ items, observed_at: now }) as T;
+  }
+  const vendorActivationMatch = pathname.match(/^\/api\/v1\/vendors\/([^/]+)\/activation$/);
+  if (vendorActivationMatch && method === "GET") {
+    const id = decodeURIComponent(vendorActivationMatch[1]!);
+    const selected = vendorRelationships.find((item) => item.relationship.id === id);
+    if (!selected) throw new StaticDemoHTTPError(404, "vendor_not_found", "The vendor relationship is not available in this legal entity.");
+    if (fixture === "vendor-requests-error") throw new StaticDemoHTTPError(503, "vendor_activation_unavailable", "Activation checks could not be loaded. Try again.");
+    const completed = (fixtureVendorAssessment(fixture) ?? vendorAssessment)?.status === "COMPLETED";
+    return clone({ relationship: selected.relationship, eligible: false, policy: { id: "sample-activation-policy", policy_number: 1, version: 1, effective_from: now, status: "ACTIVE" }, gates: [{ code: completed ? "REQUIRED_DECISIONS" : "CURRENT_ASSESSMENT", satisfied: false, explanation: completed ? "Sample · Required activation decisions have not been recorded." : "Sample · Complete the due diligence review before activation." }] }) as T;
+  }
   if (pathname.startsWith("/api/v1/vendors/") && method === "GET") {
     const id = decodeURIComponent(pathname.slice("/api/v1/vendors/".length));
     const found = vendorRelationships.find((item) => item.relationship.id === id);
@@ -949,6 +977,20 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     return clone({ items }) as T;
   }
   if (pathname === "/api/v1/forms/responses" && method === "GET") return clone({ items: fixture === "forms-response-history" ? [completedResponse] : [] }) as T;
+  const responseAssessmentMatch = pathname.match(/^\/api\/v1\/forms\/responses\/([^/]+)\/assessment$/);
+  if (responseAssessmentMatch && method === "GET") {
+    const responseID = decodeURIComponent(responseAssessmentMatch[1]!);
+    if (fixture !== "forms-response-history" || !["response-revision-acme-1", completedResponse.id].includes(responseID)) throw new StaticDemoHTTPError(404, "response_not_found", "The selected response is no longer available.");
+    const current = responseID === completedResponse.id;
+    // This sample history predates manual assessment; its saved result is automatic.
+    const assessment: ResponseAssessmentDetail = {
+      response_id: responseID, form_template_id: completedResponse.form_template_id, form_template_version: 2,
+      version: 0, current, may_review: false, state: "NOT_REQUIRED", required_count: 0, reviewed_required_count: 0, reviewed_count: 0,
+      fields: [],
+      automatic_score: { ...completedResponse.score, mode: "COMPLIANCE", direction: "LOW_IS_POOR", band: "LOW", state: "FINAL", raw_score: current ? 86 : 72, adverse_score: current ? 14 : 28, calculated_at: current ? completedResponse.completed_at : "2026-08-20T13:15:00Z" },
+    };
+    return clone(assessment) as T;
+  }
   const completedResponseMatch = pathname.match(/^\/api\/v1\/forms\/responses\/([^/]+)$/);
   if (completedResponseMatch && method === "GET") {
     if (fixture !== "forms-response-history" || decodeURIComponent(completedResponseMatch[1]!) !== completedResponse.id) throw new StaticDemoHTTPError(404, "response_not_found", "The selected completed response is no longer available.");

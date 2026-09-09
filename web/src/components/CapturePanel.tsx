@@ -6,7 +6,7 @@ import type { CaptureAnswerValue, CaptureAnswers, CaptureField, CapturePresentat
 import { CaptureForm } from "./capture/CaptureForm";
 import type { CaptureAttachment } from "./capture/CaptureFieldControl";
 import { CaptureReview } from "./capture/CaptureReview";
-import { captureContract, effectivePresentationMode, keepVisibleAnswers, normalizeFieldType, visibleCaptureFields } from "./capture/contract";
+import { allRequiredDocumentsReceived, captureContract, effectivePresentationMode, keepVisibleAnswers, normalizeFieldType, visibleCaptureFields } from "./capture/contract";
 import { initialSourceAnswers } from "./capture/sourceProvenance";
 import { EmptyState } from "./EmptyState";
 
@@ -354,6 +354,8 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
   }
 
   if (receipt) return <div className="panel-content response-receipt"><span className="eyebrow">Receipt</span><div className="receipt-mark" aria-hidden="true">✓</div><h2>{external ? "Submitted" : "Response submitted"}</h2><p>{receipt}</p><p>{external ? "Your response was recorded." : "The response was recorded for evidence review."}</p></div>;
+
+  if (external && (workspacePersistence || !sessionToken || draftReady) && allRequiredDocumentsReceived(contract, answers)) return <div className="panel-content response-receipt"><h2>Received</h2><p>{request.title}</p><p>All required documents received. No response needed.</p><ul>{visibleCaptureFields(contract, answers).filter((field) => field.required).map((field) => <li key={field.id}>{field.label}</li>)}</ul></div>;
 
   if (reviewing) return <CaptureReview request={request} fields={visibleCaptureFields(contract, answers)} answers={answers} attachments={attachments} external={external} submitting={submitting} error={error} errorKind={errorKind} onEdit={() => setReviewing(false)} onReload={onReload} onSubmit={() => void submit()}/>;
 

@@ -33,10 +33,10 @@
 .program-record-facts dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
 .program-operation-reason { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: .78rem; }
 .program-operation-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
-.program-operation-form label { display: grid; gap: 6px; min-width: 0; color: var(--muted); font-size: .78rem; }
+.program-operation-form > label { display: grid; gap: 6px; min-width: 0; color: var(--muted); font-size: .78rem; }
 .program-operation-form .wide { grid-column: 1 / -1; }
-.program-operation-form input, .program-operation-form select, .program-operation-form textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text); }
-.program-operation-form textarea { resize: vertical; line-height: 1.45; }
+.program-operation-form > label > input, .program-operation-form > label > select, .program-operation-form > label > textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--cs-border-field); border-radius: 10px; background: var(--surface-2); color: var(--text); }
+.program-operation-form > label > textarea { resize: vertical; line-height: 1.45; }
 .program-safeguard-list { display: grid; gap: 12px; margin-top: 16px; }
 .program-safeguard-card { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 16px; padding: 15px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface-2); }
 @media (max-width: 560px) { .program-safeguard-card { grid-template-columns: minmax(0, 1fr); } }
@@ -71,7 +71,7 @@
 :root[data-theme="light"] .program-evidence-card span,
 :root[data-theme="light"] .program-evidence-card p,
 :root[data-theme="light"] .program-evidence-card small { color: var(--text); }
-.program-operation-form input:focus, .program-operation-form select:focus, .program-operation-form textarea:focus { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.program-operation-form > label > input:focus, .program-operation-form > label > select:focus, .program-operation-form > label > textarea:focus { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .program-form-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .program-form-actions button { min-height: 44px; }
 .program-form-error { display: flex; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid color-mix(in srgb, var(--coral) 50%, var(--border)); border-radius: 10px; color: var(--coral); }

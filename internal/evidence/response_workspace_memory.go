@@ -67,7 +67,7 @@ func (store *MemoryDistributionAccessStore) ClearResponseWorkspace(ctx context.C
 	return store.SaveResponseWorkspace(ctx, command)
 }
 
-func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Context, command workspaceSubmitCommand) (WorkspaceSubmissionResult, error) {
+func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(ctx context.Context, command workspaceSubmitCommand) (WorkspaceSubmissionResult, error) {
 	workspace, err := store.validateMemoryWorkspaceAccess(command.Session, command.Request, command.Now)
 	if err != nil {
 		return WorkspaceSubmissionResult{}, err
@@ -118,6 +118,30 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 	request, ok := repo.requests[command.Request.ID]
 	if !ok || request.TenantID != command.Session.TenantID || !requestOpenAt(request, command.Now) {
 		return WorkspaceSubmissionResult{}, ErrWorkspaceUnavailable
+	}
+	if request.LegalEntityID != command.Session.LegalEntityID || request.Version != command.Request.Version {
+		return WorkspaceSubmissionResult{}, ErrVersionConflict
+	}
+	request = RefreshCollectionResolutions(ctx, request, func(_ context.Context, tenantID, requestID, artifactID string) (Artifact, error) {
+		artifact, exists := repo.artifacts[artifactID]
+		if !exists || artifact.TenantID != tenantID || artifact.RequestID != requestID {
+			return Artifact{}, ErrNotFound
+		}
+		return artifact, nil
+	}, command.Now)
+	request = refreshCollectionSourceCurrencyMemoryLocked(distributions, request)
+	request, err = refreshCollectionSourceReviews(ctx, request, repo.collectionReviews)
+	if err != nil {
+		return WorkspaceSubmissionResult{}, err
+	}
+	if err := validateWorkspaceAnswerSet(ctx, repo, request, answers, true, func(_ context.Context, tenantID, _ string, artifactID string) (Artifact, error) {
+		artifact, exists := repo.artifacts[artifactID]
+		if !exists || artifact.TenantID != tenantID || !eligibleRequests[artifact.RequestID] {
+			return Artifact{}, ErrNotFound
+		}
+		return artifact, nil
+	}, command.Now); err != nil {
+		return WorkspaceSubmissionResult{}, err
 	}
 	for _, artifactID := range artifactIDs {
 		artifact, exists := repo.artifacts[artifactID]
@@ -190,6 +214,7 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 		OccurredAt:     command.Now.UTC(),
 		Payload: map[string]any{
 			"version": revisionNumber, "response_revision_id": metadata.ID,
+			"request_id": request.ID, "request_version": request.Version,
 			"form_template_id": command.Request.FormTemplateID, "form_template_version": command.Request.FormTemplateVersion,
 			"score_state": string(scoreState),
 		},
@@ -243,7 +268,7 @@ func (store *MemoryDistributionAccessStore) ValidateWorkspaceAnswers(ctx context
 			return Artifact{}, ErrNotFound
 		}
 		return artifact, nil
-	})
+	}, store.distributions.now().UTC())
 }
 
 func (store *MemoryDistributionAccessStore) saveMemoryWorkspaceLocked(state *memoryWorkspaceState, command workspaceSaveCommand) (ResponseWorkspaceView, error) {

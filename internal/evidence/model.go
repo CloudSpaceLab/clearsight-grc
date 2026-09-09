@@ -192,25 +192,27 @@ type RecordBaseline struct {
 }
 
 type Field struct {
-	Assessment         *formcontract.FieldAssessment     `json:"assessment,omitempty"`
-	ID                 string                            `json:"id"`
-	SectionID          string                            `json:"section_id"`
-	Label              string                            `json:"label"`
-	Type               string                            `json:"type"`
-	Required           bool                              `json:"required"`
-	Description        string                            `json:"description,omitempty"`
-	Options            []string                          `json:"options,omitempty"`
-	AcceptedFormats    []string                          `json:"accepted_formats,omitempty"`
-	Attestation        string                            `json:"attestation,omitempty"`
-	Constraints        formcontract.Constraints          `json:"constraints,omitempty"`
-	Condition          *formcontract.VisibilityCondition `json:"condition,omitempty"`
-	Scoring            *formcontract.Scoring             `json:"scoring,omitempty"`
-	CollectionIntent   formcontract.CollectionIntent     `json:"collection_intent,omitempty"`
-	RecordTarget       *formcontract.RecordTarget        `json:"record_target,omitempty"`
-	RecordBaseline     *RecordBaseline                   `json:"record_baseline,omitempty"`
-	BrowserCachePolicy formcontract.BrowserCachePolicy   `json:"browser_cache_policy,omitempty"`
-	Bindings           []FieldBindingReference           `json:"bindings,omitempty"`
-	SourceResolutions  []SourceResolution                `json:"source_resolutions,omitempty"`
+	CollectionReceived bool `json:"collection_received,omitempty"`
+	CollectionResolution *CollectionResolution             `json:"collection_resolution,omitempty"`
+	Assessment           *formcontract.FieldAssessment     `json:"assessment,omitempty"`
+	ID                   string                            `json:"id"`
+	SectionID            string                            `json:"section_id"`
+	Label                string                            `json:"label"`
+	Type                 string                            `json:"type"`
+	Required             bool                              `json:"required"`
+	Description          string                            `json:"description,omitempty"`
+	Options              []string                          `json:"options,omitempty"`
+	AcceptedFormats      []string                          `json:"accepted_formats,omitempty"`
+	Attestation          string                            `json:"attestation,omitempty"`
+	Constraints          formcontract.Constraints          `json:"constraints,omitempty"`
+	Condition            *formcontract.VisibilityCondition `json:"condition,omitempty"`
+	Scoring              *formcontract.Scoring             `json:"scoring,omitempty"`
+	CollectionIntent     formcontract.CollectionIntent     `json:"collection_intent,omitempty"`
+	RecordTarget         *formcontract.RecordTarget        `json:"record_target,omitempty"`
+	RecordBaseline       *RecordBaseline                   `json:"record_baseline,omitempty"`
+	BrowserCachePolicy   formcontract.BrowserCachePolicy   `json:"browser_cache_policy,omitempty"`
+	Bindings             []FieldBindingReference           `json:"bindings,omitempty"`
+	SourceResolutions    []SourceResolution                `json:"source_resolutions,omitempty"`
 }
 
 type Recipient struct {

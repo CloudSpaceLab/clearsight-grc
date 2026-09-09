@@ -108,7 +108,7 @@ export function FormPolicyEditor({ onCancel, onCreate, forms, formsLoading = fal
 
     </div></section>
 
-    <section aria-labelledby="policy-population-title"><h3 id="policy-population-title">Response population</h3><p>Choose the approved form revision and the bank records whose responses this policy covers.</p><div className="forms-policy-control-grid">
+    <section aria-labelledby="policy-population-title"><h3 id="policy-population-title">Response population</h3><p>Choose the approved form revision and the records whose responses this policy covers.</p><div className="forms-policy-control-grid">
 
       {formsLoading ? <div className="forms-policy-control-grid__full"><Notice>Loading approved scoring forms…</Notice></div>
 
@@ -124,11 +124,11 @@ export function FormPolicyEditor({ onCancel, onCreate, forms, formsLoading = fal
 
               }}/>} 
 
-      <SelectField label="Responses about" value={value.eligibility.subject_types[0] ?? ""} placeholder="Choose bank records" allowsEmpty={false} options={[{id:"VENDOR_RELATIONSHIP",label:"Vendor services"},{id:"PROGRAM",label:"Programs"},{id:"MATTER",label:"Issues and changes"}]} onChange={(subject) => { if(subject) patch("eligibility", {...value.eligibility,subject_types:[subject]}); }}/>
+      <SelectField label="Responses about" value={value.eligibility.subject_types[0] ?? ""} placeholder="Choose record type" allowsEmpty={false} options={[{id:"VENDOR_RELATIONSHIP",label:"Vendor services"},{id:"PROGRAM",label:"Programs"},{id:"MATTER",label:"Issues and changes"}]} onChange={(subject) => { if(subject) patch("eligibility", {...value.eligibility,subject_types:[subject]}); }}/>
 
-      <SelectField label="Result used for issue handling" value={value.eligibility.result_basis ?? "AUTOMATIC"} placeholder="Choose result" allowsEmpty={false} options={[{id:"AUTOMATIC",label:"Automatic submission result"},{id:"BANK_ASSESSED",label:"Completed bank assessment"}]} onChange={(basis) => {if(basis) patch("eligibility",{...value.eligibility,result_basis:basis as "AUTOMATIC" | "BANK_ASSESSED"}); }}/>
+      <SelectField label="Result used for issue handling" value={value.eligibility.result_basis ?? "AUTOMATIC"} placeholder="Choose result" allowsEmpty={false} options={[{id:"AUTOMATIC",label:"Automatic submission result"},{id:"BANK_ASSESSED",label:"Completed assessment"}]} onChange={(basis) => {if(basis) patch("eligibility",{...value.eligibility,result_basis:basis as "AUTOMATIC" | "BANK_ASSESSED"}); }}/>
 
-      {value.eligibility.result_basis === "BANK_ASSESSED" && <p>Required bank reviews must be complete before this policy can create an issue. Minimum coverage applies to the assessed result.</p>}
+      {value.eligibility.result_basis === "BANK_ASSESSED" && <p>Required reviews must be complete before this policy can create an issue. Minimum coverage applies to the assessed result.</p>}
 
       <NumberField label="Minimum answer coverage (%)" value={Math.round(value.eligibility.minimum_coverage * 100)} min={0} max={100} onChange={(minimum_coverage) => patch("eligibility", { ...value.eligibility, minimum_coverage: minimum_coverage / 100 })}/>
 

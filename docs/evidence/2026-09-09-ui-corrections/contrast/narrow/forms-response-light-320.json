@@ -1,0 +1,893 @@
+{
+  "id": "forms-response-light-320",
+  "name": "forms-response",
+  "fixture": "forms-response-history",
+  "route": "#forms",
+  "action": "response",
+  "theme": "light",
+  "width": 320,
+  "scale": 1,
+  "generatedAt": "2026-09-09T00:03:56.321Z",
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscuring",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>0 of 0 required fields reviewed</p>",
+            "target": [
+              ".response-assessment > p:nth-child(3)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 18
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "#react-aria3115676516-_r_2s_",
+      "parentSelector": "div.cs-sheet__close",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 239,
+        "y": 37,
+        "width": 44,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.3604859319908555,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header.cs-sheet-heading",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 37,
+        "width": 130,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Submitted response",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h2",
+      "parentSelector": "header.cs-sheet-heading",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 66.6875,
+        "width": 130,
+        "height": 99
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendor due diligence review",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header.cs-sheet-heading",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 173.6875,
+        "width": 130,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendor  ·  vendor-acme-processing",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 241.0625,
+        "width": 182,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Submitted",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 263.0625,
+        "width": 182,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Aug 27, 2026, 2:15 PM",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 293.0625,
+        "width": 182,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Response revision",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 315.0625,
+        "width": 182,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "2  · Current",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 345.0625,
+        "width": 182,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Assurance",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 367.0625,
+        "width": 182,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Email verified",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "section.forms-response-review__history",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 409.0625,
+        "width": 182,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Version history",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "li",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 50,
+        "y": 459.0625,
+        "width": 156,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Revision  1",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "li",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 50,
+        "y": 496.0625,
+        "width": 156,
+        "height": 42
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Secure link confirmed  ·  Aug 20, 2026, 2:15 PM",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "li",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 50,
+        "y": 572.0625,
+        "width": 156,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Revision  2  · Current",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "li",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 50,
+        "y": 609.0625,
+        "width": 156,
+        "height": 42
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Email verified  ·  Aug 27, 2026, 2:15 PM",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 688.0625,
+        "width": 72.171875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Assessment",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--neutral",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#f2f3f5",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 717.0625,
+        "width": 151.859375,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Review not required",
+      "foreground": "#596c80",
+      "ratio": 4.872914087928425,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section.response-assessment",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 759.0625,
+        "width": 182,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Assessment version  0",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section.response-assessment",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 796.75,
+        "width": 182,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "0  of  0  required fields reviewed",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h4",
+      "parentSelector": "section",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 58,
+        "y": 877.125,
+        "width": 140,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Automatic result",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 58,
+        "y": 906.125,
+        "width": 140,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "86% compliance",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 58,
+        "y": 935.8125,
+        "width": 140,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Meets expected level",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 58,
+        "y": 965.5,
+        "width": 140,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "14  concern points",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 58,
+        "y": 995.1875,
+        "width": 140,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Coverage:  100%",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 58,
+        "y": 1024.875,
+        "width": 140,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Calculated",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "time",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 58,
+        "y": 1025.875,
+        "width": 135.015625,
+        "height": 40.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "8/27/2026, 2:15:00 PM",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria3115676516-_r_34_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 1105.25,
+        "width": 182,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Assessment fields",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria3115676516-_r_33_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 1134.25,
+        "width": 182,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.484129976937558,
+      "outsideRatio": 3.484129976937558,
+      "insideRatio": 3.892107034158479,
+      "fillRatio": 1.1170958201678571,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "span.cs-select-field__value",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 50,
+        "y": 1146.75,
+        "width": 118.75,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "All submitted fields",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p.cs-empty-state__population",
+      "parentSelector": "section.cs-empty-state",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 70,
+        "y": 1227.25,
+        "width": 116,
+        "height": 92.96875
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Fields in this submitted response matching the selected filter",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#_r_3b_",
+      "parentSelector": "section.cs-empty-state",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 70,
+        "y": 1332.21875,
+        "width": 116,
+        "height": 99
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "No matching fields",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p.cs-empty-state__description",
+      "parentSelector": "section.cs-empty-state",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 70,
+        "y": 1443.21875,
+        "width": 116,
+        "height": 108.4375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Choose All submitted fields to review the other answers and evidence.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "div.cs-notice.cs-tone--info",
+      "parentSelector": "div.forms-response-review__content",
+      "disabled": false,
+      "background": "#ebf4f5",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 1624.65625,
+        "width": 182,
+        "height": 152
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "This submitted version cannot be changed. Send an amended form when the subject must provide updated information.",
+      "foreground": "#152639",
+      "ratio": 13.734137343584273,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    }
+  ],
+  "assetURLs": [
+    "http://127.0.0.1:4179/assets/index-BMWHmGgh.js",
+    "http://127.0.0.1:4179/assets/ui-BKmW7Hgr.js",
+    "http://127.0.0.1:4179/assets/vendorIdentity-DNAUaTE1.js",
+    "http://127.0.0.1:4179/assets/form-policies-B7RQjXrL.js",
+    "http://127.0.0.1:4179/assets/http-CsyLtnQx.js",
+    "http://127.0.0.1:4179/assets/api-4YXod1O7.js",
+    "http://127.0.0.1:4179/assets/monitoringApi-B_rnuu-E.js",
+    "http://127.0.0.1:4179/assets/FocusedSheet-D6A2pfF6.js",
+    "http://127.0.0.1:4179/assets/FileDropzone-D3bjzZCz.js",
+    "http://127.0.0.1:4179/assets/FormPreview-xfiykOdw.js",
+    "http://127.0.0.1:4179/assets/identityAccessApi-DQ4JpP1X.js",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-CP0P4Fzd.js",
+    "http://127.0.0.1:4179/assets/formPoliciesApi-BOB15CUF.js",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-DF59NCDq.js",
+    "http://127.0.0.1:4179/assets/FormBuilder-D0uIMr0F.js",
+    "http://127.0.0.1:4179/assets/preload-helper-Czpn1I53.js",
+    "http://127.0.0.1:4179/assets/EmptyState-CAuvZgjp.js",
+    "http://127.0.0.1:4179/assets/SessionGate-e9miZAkm.js",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-CoL3pBsn.js",
+    "http://127.0.0.1:4179/assets/ui-BqQkgK9q.css",
+    "http://127.0.0.1:4179/assets/form-policies-CXmCjy0e.css",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-Bc4QplLt.css",
+    "http://127.0.0.1:4179/assets/FormBuilder-BR0NOz-_.css",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-xmrvZhbh.css",
+    "http://127.0.0.1:4179/assets/SessionGate-CBT7oevM.css",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-BbMW_Uts.css",
+    "http://127.0.0.1:4179/assets/index-BfD_vL87.css",
+    "http://127.0.0.1:4179/assets/forms-BF_LZwBu.css",
+    "http://127.0.0.1:4179/assets/staticDemoWorkflowRuntime-CCKpbhZb.js",
+    "http://127.0.0.1:4179/assets/staticDemoFixtures-BJo7eiOJ.json",
+    "http://127.0.0.1:4179/assets/App-B4c7mFpZ.js",
+    "http://127.0.0.1:4179/assets/Monogram-k38BLA7P.js",
+    "http://127.0.0.1:4179/assets/VendorWorkPanel-D3NeEmZw.js",
+    "http://127.0.0.1:4179/assets/VendorWorkPanel-CU0uMlLg.css",
+    "http://127.0.0.1:4179/assets/WorkspaceErrorBoundary-Di4hsd7o.js",
+    "http://127.0.0.1:4179/assets/FormProposalReview-siSJwhuo.js",
+    "http://127.0.0.1:4179/assets/App-Bd-YkfrJ.css",
+    "http://127.0.0.1:4179/assets/FormsWorkspace-Cp1tIp4B.js",
+    "http://127.0.0.1:4179/assets/SentFormDetail-DAN60mcz.js",
+    "http://127.0.0.1:4179/assets/SentFormDetail-DFR_kdL0.css",
+    "http://127.0.0.1:4179/assets/FormsWorkspace-D1Q1XD5f.css"
+  ],
+  "layout": {
+    "clientWidth": 320,
+    "scrollWidth": 320
+  },
+  "headings": [
+    "Forms",
+    "Responses",
+    "Vendor due diligence review"
+  ],
+  "status": "CAPTURED"
+}

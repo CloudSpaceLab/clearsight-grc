@@ -1,0 +1,513 @@
+{
+  "generatedAt": "2026-09-08T22:49:20.032Z",
+  "baseURL": "http://127.0.0.1:4178",
+  "failure": null,
+  "captures": [
+    {
+      "name": "vendor-collection-checklist-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection",
+      "state": "checklist",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 3493,
+        "scrollY": 840,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CTodayProgramsWorkVendorsFormsConfigureCOMeridian Trust BankMeridian Trust Bank "
+      }
+    },
+    {
+      "name": "vendor-collection-choose-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection",
+      "state": "choose",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 2945,
+        "scrollY": 840,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Security test report.pdf, PDF, Ready to view"
+      }
+    },
+    {
+      "name": "vendor-collection-reason-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection",
+      "state": "reason",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 2945,
+        "scrollY": 840,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Covers the payment processing service and the current test period."
+      }
+    },
+    {
+      "name": "vendor-collection-linked-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection",
+      "state": "linked",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 3607,
+        "scrollY": 840,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "All items 5"
+      }
+    },
+    {
+      "name": "vendor-collection-review-accept-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection",
+      "state": "review-accept",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 3518,
+        "scrollY": 840,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Close"
+      }
+    },
+    {
+      "name": "vendor-collection-review-reject-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection",
+      "state": "review-reject",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 3518,
+        "scrollY": 840,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Close"
+      }
+    },
+    {
+      "name": "vendor-collection-checklist-dark-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection",
+      "state": "checklist",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 3493,
+        "scrollY": 840,
+        "theme": "dark",
+        "density": "comfortable",
+        "activeElement": "CTodayProgramsWorkVendorsFormsConfigureCOMeridian Trust BankMeridian Trust Bank "
+      }
+    },
+    {
+      "name": "vendor-collection-checklist-light-390",
+      "route": "#vendors",
+      "fixture": "vendor-collection",
+      "state": "checklist",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 5253,
+        "scrollY": 1456,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CTodayProgramsWorkVendorsFormsConfigureCOMeridian Trust BankMeridian Trust Bank "
+      }
+    },
+    {
+      "name": "vendor-collection-choose-light-390",
+      "route": "#vendors",
+      "fixture": "vendor-collection",
+      "state": "choose",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 4518,
+        "scrollY": 1456,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Security test report.pdf, PDF, Ready to view"
+      }
+    },
+    {
+      "name": "vendor-collection-reason-light-390",
+      "route": "#vendors",
+      "fixture": "vendor-collection",
+      "state": "reason",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 4518,
+        "scrollY": 1456,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Covers the payment processing service and the current test period."
+      }
+    },
+    {
+      "name": "vendor-collection-checklist-dark-320",
+      "route": "#vendors",
+      "fixture": "vendor-collection",
+      "state": "checklist",
+      "viewport": {
+        "width": 320,
+        "height": 844
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 320,
+        "scrollWidth": 320,
+        "clientHeight": 844,
+        "scrollHeight": 5789,
+        "scrollY": 1549,
+        "theme": "dark",
+        "density": "comfortable",
+        "activeElement": "CTodayProgramsWorkVendorsFormsConfigureCOMeridian Trust BankMeridian Trust Bank "
+      }
+    },
+    {
+      "name": "vendor-collection-error-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection-error",
+      "state": "error",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 3004,
+        "scrollY": 840,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CTodayProgramsWorkVendorsFormsConfigureCOMeridian Trust BankMeridian Trust Bank "
+      }
+    },
+    {
+      "name": "vendor-collection-retry-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection-error",
+      "state": "retry",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 3493,
+        "scrollY": 840,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CTodayProgramsWorkVendorsFormsConfigureCOMeridian Trust BankMeridian Trust Bank "
+      }
+    },
+    {
+      "name": "vendor-collection-loading-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection-loading",
+      "state": "loading",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 2961,
+        "scrollY": 840,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CTodayProgramsWorkVendorsFormsConfigureCOMeridian Trust BankMeridian Trust Bank "
+      }
+    },
+    {
+      "name": "vendor-collection-readonly-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection-readonly",
+      "state": "readonly",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 3493,
+        "scrollY": 840,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CTodayProgramsWorkVendorsFormsConfigureCOMeridian Trust BankMeridian Trust Bank "
+      }
+    },
+    {
+      "name": "vendor-collection-empty-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection-empty",
+      "state": "empty",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 2996,
+        "scrollY": 840,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CTodayProgramsWorkVendorsFormsConfigureCOMeridian Trust BankMeridian Trust Bank "
+      }
+    },
+    {
+      "name": "vendor-collection-conflict-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection-conflict",
+      "state": "conflict",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 2945,
+        "scrollY": 936,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CTodayProgramsWorkVendorsFormsConfigureCOMeridian Trust BankMeridian Trust Bank "
+      }
+    },
+    {
+      "name": "vendor-collection-long-light-320",
+      "route": "#vendors",
+      "fixture": "vendor-collection-long",
+      "state": "long",
+      "viewport": {
+        "width": 320,
+        "height": 844
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 320,
+        "scrollWidth": 320,
+        "clientHeight": 844,
+        "scrollHeight": 5889,
+        "scrollY": 1549,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CTodayProgramsWorkVendorsFormsConfigureCOMeridian Trust BankMeridian Trust Bank "
+      }
+    },
+    {
+      "name": "vendor-collection-replaced-light-1440",
+      "route": "#vendors",
+      "fixture": "vendor-collection-replaced",
+      "state": "replaced",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 3493,
+        "scrollY": 840,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CTodayProgramsWorkVendorsFormsConfigureCOMeridian Trust BankMeridian Trust Bank "
+      }
+    },
+    {
+      "name": "vendor-collection-capture-received-light-390",
+      "route": "",
+      "fixture": "vendor-capture-received",
+      "state": "capture-received",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1479,
+        "scrollY": 635,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CClearSightEvidence responseSample data · Vendor evidence request, 8 September 2"
+      }
+    },
+    {
+      "name": "vendor-collection-capture-recovered-light-390",
+      "route": "",
+      "fixture": "vendor-capture-recovered",
+      "state": "capture-recovered",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 2160,
+        "scrollY": 1064,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CClearSightEvidence responseSample data · Vendor evidence request, 8 September 2"
+      }
+    },
+    {
+      "name": "vendor-collection-capture-recovered-cleared-light-390",
+      "route": "",
+      "fixture": "vendor-capture-recovered",
+      "state": "capture-recovered-cleared",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1479,
+        "scrollY": 635,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CClearSightEvidence responseSample data · Vendor evidence request, 8 September 2"
+      }
+    },
+    {
+      "name": "vendor-collection-capture-all-held-light-390",
+      "route": "",
+      "fixture": "vendor-capture-all-held",
+      "state": "capture-all-held",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 940,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "CClearSightEvidence responseSample data · Vendor evidence request, 8 September 2"
+      }
+    }
+  ]
+}

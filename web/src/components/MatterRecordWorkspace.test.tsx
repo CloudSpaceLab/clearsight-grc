@@ -223,7 +223,7 @@ describe("Matter record workspace", () => {
     expect(screen.queryByText(/matter-owner-internal|action-owner-internal|reviewer-internal/)).toBeNull();
     expect(screen.getByText("Recorded issue owner unavailable")).toBeTruthy();
     expect(screen.getByText("Recorded action owner unavailable")).toBeTruthy();
-    expect(screen.getByText("Recorded reviewer unavailable")).toBeTruthy();
+    expect(screen.getByText("Reviewer name unavailable")).toBeTruthy();
   });
 
   it("keeps closed issue and completed action owners readable without restoring commands", async () => {

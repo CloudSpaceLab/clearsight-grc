@@ -64,6 +64,7 @@ type AssessmentDocument struct {
 }
 
 type ReviewAssessmentDocumentInput struct {
+	FieldID         string                          `json:"field_id,omitempty"`
 	ExpectedVersion int64                           `json:"expected_version"`
 	Decision        AssessmentDocumentDecision      `json:"decision"`
 	DocumentType    string                          `json:"document_type"`
@@ -106,13 +107,39 @@ func (s *AssessmentReviewService) ReviewDocument(ctx context.Context, _ Actor, a
 	if view.Assessment.Version != input.ExpectedVersion {
 		return AssessmentReviewView{}, ErrVersionConflict
 	}
+	if view.Assessment.Status == AssessmentUnderReview {
+		request, readErr := s.evidence.GetRequest(ctx, actor.TenantID, view.Assessment.CurrentRequestID)
+		if readErr != nil {
+			return AssessmentReviewView{}, readErr
+		}
+		matches := []evidence.Field{}
+		for _, field := range request.Fields {
+			if field.CollectionResolution != nil && field.CollectionResolution.Source.ArtifactID == artifactID && (input.FieldID == "" || input.FieldID == field.ID) {
+				matches = append(matches, field)
+			}
+		}
+		if len(matches) > 1 {
+			return AssessmentReviewView{}, ErrInvalid
+		}
+		if len(matches) == 1 {
+			return s.reviewCollectionDocument(ctx, actor, view, request, matches[0], input)
+		}
+		if input.FieldID != "" {
+			for _, field := range request.Fields {
+				if field.ID == input.FieldID && field.CollectionResolution != nil {
+					return AssessmentReviewView{}, ErrNotFound
+				}
+			}
+		}
+
+	}
 	if view.Assessment.Status != AssessmentUnderReview || view.Response == nil || view.Response.RequestID != view.Assessment.CurrentRequestID {
 		return AssessmentReviewView{}, ErrInvalidAssessmentTransition
 	}
 	var submitted AssessmentReviewDocument
 	found := false
 	for _, document := range view.Documents {
-		if document.ArtifactID == artifactID {
+		if document.ArtifactID == artifactID && (input.FieldID == "" || input.FieldID == document.FieldID) {
 			submitted, found = document, true
 			break
 		}
@@ -190,6 +217,29 @@ func (s *AssessmentReviewService) CheckAssessmentCompletion(ctx context.Context,
 	view, err := s.GetReview(ctx, actor, assessmentID)
 	if err != nil {
 		return err
+	}
+	if view.Assessment.CurrentRequestID != "" {
+		request, readErr := s.evidence.GetRequest(ctx, actor.TenantID, view.Assessment.CurrentRequestID)
+		if readErr != nil {
+			return readErr
+		}
+		for _, field := range request.Fields {
+			if field.CollectionResolution != nil {
+				collection, readErr := s.GetCollection(ctx, actor, assessmentID)
+				if readErr != nil {
+					return readErr
+				}
+				if view.Assessment.Status != AssessmentUnderReview || collection.VendorPendingCount != 0 || collection.BankPendingCount != 0 {
+					return ErrAssessmentCompletionBlocked
+				}
+				for _, status := range view.artifactStatuses {
+					if status != evidence.ArtifactAvailable {
+						return ErrAssessmentCompletionBlocked
+					}
+				}
+				return nil
+			}
+		}
 	}
 	if view.Assessment.Status != AssessmentUnderReview || view.Response == nil || view.Response.RequestID != view.Assessment.CurrentRequestID || view.Coverage.AnsweredRequired != view.Coverage.RequiredFields {
 		return ErrAssessmentCompletionBlocked

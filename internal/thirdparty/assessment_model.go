@@ -60,6 +60,7 @@ type Assessment struct {
 	StartedByPrincipalID    string               `json:"started_by_principal_id"`
 	StartedAt               time.Time            `json:"started_at"`
 	SubmittedAt             *time.Time           `json:"submitted_at,omitempty"`
+	CollectionCompletedAt   *time.Time           `json:"collection_completed_at,omitempty"`
 	ReviewStartedAt         *time.Time           `json:"review_started_at,omitempty"`
 	CompletedAt             *time.Time           `json:"completed_at,omitempty"`
 	ReviewerPrincipalID     string               `json:"reviewer_principal_id,omitempty"`

@@ -10,6 +10,8 @@
   --cs-text-inverse: var(--cs-primitive-color-neutral-950);
   --cs-border-default: var(--cs-primitive-color-neutral-750);
   --cs-border-strong: var(--cs-primitive-color-neutral-700);
+  --cs-border-field: var(--cs-primitive-color-neutral-600);
+  --cs-text-placeholder: var(--cs-primitive-color-neutral-500);
   --cs-border-interactive: var(--cs-primitive-color-cyan-400);
   --cs-border-invalid: var(--cs-primitive-color-coral-400);
   --cs-action-primary: var(--cs-primitive-color-cyan-400);

@@ -4,7 +4,7 @@
   gap: var(--cs-badge-gap);
   padding: var(--cs-badge-padding-block) var(--cs-badge-padding-inline);
   border-radius: var(--cs-badge-radius);
-  background: color-mix(in srgb, var(--cs-status-badge-tone) 12%, transparent);
+  background: color-mix(in srgb, var(--cs-status-badge-tone) 8%, var(--cs-bg-surface-1));
   color: var(--cs-status-badge-tone);
   font-size: var(--cs-font-size-caption);
   font-weight: 700;

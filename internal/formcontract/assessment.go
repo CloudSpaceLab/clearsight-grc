@@ -1,6 +1,27 @@
 package formcontract
 
-import "strings"
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
+
+// assessmentValidationError carries reviewed field-recovery copy through
+// wrapping service errors without exposing internal sentinel descriptions.
+type assessmentValidationError struct{ message string }
+
+func (e *assessmentValidationError) Error() string { return e.message }
+func (e *assessmentValidationError) Unwrap() error { return ErrInvalid }
+func assessmentInvalid(format string, args ...any) error {
+	return &assessmentValidationError{message: fmt.Sprintf(format, args...)}
+}
+func AssessmentValidationMessage(err error) string {
+	var validation *assessmentValidationError
+	if errors.As(err, &validation) {
+		return validation.message
+	}
+	return ""
+}
 
 type AssessmentMode string
 
@@ -49,7 +70,7 @@ func normalizeAssessment(f *Field) error {
 		return invalid("%s requires a reviewer role and approved rubric", f.Label)
 	}
 	if !a.NeedsReview() && (a.Required || len(a.Rubric) > 0) {
-		return invalid("%s bank review must be enabled to require a rubric or review", f.Label)
+		return assessmentInvalid("Enable review for %s before requiring a review or defining its outcomes.", f.Label)
 	}
 	seen := map[string]bool{}
 	for i := range a.Rubric {
@@ -62,7 +83,7 @@ func normalizeAssessment(f *Field) error {
 		seen[r.ID] = true
 	}
 	if a.Mode == AssessmentManual && f.Scoring != nil {
-		return invalid("%s bank review cannot also have automatic field scores", f.Label)
+		return assessmentInvalid("Remove automatic scores from %s or choose automatic scoring with review.", f.Label)
 	}
 	if a.Mode == AssessmentNone && f.Scoring != nil {
 		return invalid("%s unscored field cannot retain automatic field scores", f.Label)
@@ -233,7 +254,7 @@ func validateAssessmentProfile(c Contract) error {
 			}
 		}
 		if f.Assessment.Mode == AssessmentAutomaticReview && direct != 1 {
-			return invalid("%s bank confirmation requires one automatic contribution for this field", f.Label)
+			return assessmentInvalid("Define one automatic score contribution for %s before requiring review.", f.Label)
 		}
 		if direct > 1 {
 			return invalid("%s assessment weight requires one automatic contribution for this field", f.Label)

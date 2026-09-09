@@ -745,6 +745,11 @@ describe("static stakeholder demo transport", () => {
     expect(completed.items).toMatchObject([{ id: "response-revision-acme-2", revision: 2, current: true }]);
     const completedDetail = await staticDemoRequest<{ response: { id: string }; revision: { revision: number } }>("/api/v1/forms/responses/response-revision-acme-2");
     expect(completedDetail).toMatchObject({ response: { id: "response-revision-acme-2" }, revision: { revision: 2 } });
+    const assessment = await staticDemoRequest<{ response_id: string; current: boolean; state: string; automatic_score: { raw_score: number }; may_review: boolean }>("/api/v1/forms/responses/response-revision-acme-2/assessment");
+    expect(assessment).toMatchObject({ response_id: "response-revision-acme-2", current: true, state: "NOT_REQUIRED", automatic_score: { raw_score: 86 }, may_review: false });
+    const priorAssessment = await staticDemoRequest<{ response_id: string; current: boolean; automatic_score: { raw_score: number } }>("/api/v1/forms/responses/response-revision-acme-1/assessment");
+    expect(priorAssessment).toMatchObject({ response_id: "response-revision-acme-1", current: false, automatic_score: { raw_score: 72 } });
+    await expect(staticDemoRequest("/api/v1/forms/responses/unknown/assessment")).rejects.toMatchObject({ status: 404, code: "response_not_found" });
 
     window.history.replaceState(null, "", "/?fixture=forms-communication-compose");
     expect((await staticDemoRequest<{ items: unknown[] }>("/api/v1/forms/communications/profiles")).items).toHaveLength(1);
@@ -760,6 +765,18 @@ describe("static stakeholder demo transport", () => {
     const appliedCurrent = await staticDemoRequest<{ assessment: { id: string } }>("/api/v1/vendors/vendor-relationship-payments/assessments/current");
     const appliedReview = await staticDemoRequest<{ application_receipt?: { accepted_field_ids: string[]; prior_vendor_version: number; result_vendor_version: number } }>(`/api/v1/vendor-assessments/${appliedCurrent.assessment.id}`);
     expect(appliedReview.application_receipt).toMatchObject({ accepted_field_ids: ["registered_address"], prior_vendor_version: 1, result_vendor_version: 2 });
+  });
+
+  it("keeps vendor request and activation reads scoped to the selected sample relationship", async () => {
+    const { staticDemoRequest } = await demo();
+    const forms = await staticDemoRequest<{ items: Array<{ relationship_id: string; distribution_id: string }> }>("/api/v1/vendors/vendor-relationship-payments/forms?limit=25");
+    expect(forms.items).toMatchObject([{ relationship_id: "vendor-relationship-payments", distribution_id: "distribution-vendor-review" }]);
+    expect(await staticDemoRequest("/api/v1/vendors/form-summaries?relationship_ids=vendor-relationship-payments,unknown&limit=50")).toMatchObject({ items: [{ relationship_id: "vendor-relationship-payments", outstanding_forms: 1 }] });
+    expect(await staticDemoRequest("/api/v1/vendors/vendor-relationship-payments/activation")).toMatchObject({ eligible: false, relationship: { id: "vendor-relationship-payments" }, gates: [{ code: "CURRENT_ASSESSMENT", satisfied: false }] });
+    await expect(staticDemoRequest("/api/v1/vendors/unknown/forms")).rejects.toMatchObject({ status: 404 });
+    window.history.replaceState(null, "", "/?fixture=vendor-requests-error");
+    await expect(staticDemoRequest("/api/v1/vendors/vendor-relationship-payments/forms")).rejects.toMatchObject({ status: 503, code: "vendor_forms_unavailable" });
+    await expect(staticDemoRequest("/api/v1/vendors/vendor-relationship-payments/activation")).rejects.toMatchObject({ status: 503, code: "vendor_activation_unavailable" });
   });
 
   it("exposes stored sample collection states without deriving dates from viewer time", async () => {

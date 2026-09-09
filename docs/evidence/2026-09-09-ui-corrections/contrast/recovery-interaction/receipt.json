@@ -1,0 +1,6093 @@
+{
+  "generatedAt": "2026-09-09T00:03:51.370Z",
+  "results": [
+    {
+      "theme": "light",
+      "width": 1440,
+      "failureCount": 1,
+      "automaticResult": "Automatic result\n\n86% compliance\n\nMeets expected level\n\n14 concern points\n\nCoverage: 100%\n\nCalculated 8/27/2026, 2:15:00 PM",
+      "documentCount": "6 files on this page",
+      "documents": [
+        {
+          "selector": "#react-aria3503442169-_r_37_",
+          "parentSelector": "div.cs-sheet__close",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1376,
+            "y": 20,
+            "width": 44,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#c8d3dd",
+          "ratio": 1.5197931480241564,
+          "outsideRatio": 1.5197931480241564,
+          "insideRatio": 1.5197931480241564,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "h2",
+          "parentSelector": "div",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 20,
+            "width": 208.75,
+            "height": 33
+          },
+          "fontSize": "22px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Documents",
+          "foreground": "#0c1623",
+          "ratio": 18.187075708088937,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "p",
+          "parentSelector": "div",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 53,
+            "width": 208.75,
+            "height": 18.59375
+          },
+          "fontSize": "12px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Documents for this submitted response",
+          "foreground": "#596c80",
+          "ratio": 5.410284008030763,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_3a_",
+          "parentSelector": "header.document-browser-heading",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1248.015625,
+            "y": 23.796875,
+            "width": 107.984375,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#ffffff",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1265.015625,
+            "y": 35.296875,
+            "width": 73.984375,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Refresh files",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_3d_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 71.59375,
+            "width": 192,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#c8d3dd",
+          "ratio": 1.3604859319908555,
+          "outsideRatio": 1.3604859319908555,
+          "insideRatio": 1.3604859319908555,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 638.15625,
+            "y": 77.59375,
+            "width": 77.671875,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "All files",
+          "foreground": "#0c1623",
+          "ratio": 16.280676536195532,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_3g_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 123.59375,
+            "width": 192,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#eef3f7",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 633.8125,
+            "y": 129.59375,
+            "width": 86.359375,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "PDF files",
+          "foreground": "#152639",
+          "ratio": 13.73963654123749,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_3j_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 175.59375,
+            "width": 192,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#eef3f7",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 637.984375,
+            "y": 181.59375,
+            "width": 78.015625,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Images",
+          "foreground": "#152639",
+          "ratio": 13.73963654123749,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_3m_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 227.59375,
+            "width": 192,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#eef3f7",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 606.9375,
+            "y": 233.59375,
+            "width": 140.109375,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Word documents",
+          "foreground": "#152639",
+          "ratio": 13.73963654123749,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_3p_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 279.59375,
+            "width": 192,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#eef3f7",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 618.984375,
+            "y": 285.59375,
+            "width": 116.015625,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Spreadsheets",
+          "foreground": "#152639",
+          "ratio": 13.73963654123749,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_3s_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 331.59375,
+            "width": 192,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#eef3f7",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 628.359375,
+            "y": 337.59375,
+            "width": 97.265625,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Other files",
+          "foreground": "#152639",
+          "ratio": 13.73963654123749,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-sr-only",
+          "parentSelector": "label.cs-search-field",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 772,
+            "y": 70.59375,
+            "width": 1,
+            "height": 1
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Search file names",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#_r_3u_",
+          "parentSelector": "label.cs-search-field",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 773,
+            "y": 71.59375,
+            "width": 583,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "placeholder",
+          "text": "Search file names",
+          "foreground": "#405469",
+          "ratio": 7.806368064067723,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#_r_3u_",
+          "parentSelector": "label.cs-search-field",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 773,
+            "y": 71.59375,
+            "width": 583,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": true,
+          "foreground": "#718397",
+          "ratio": 3.892107034158479,
+          "outsideRatio": 3.892107034158479,
+          "insideRatio": 3.892107034158479,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 774,
+            "y": 116.59375,
+            "width": 133.375,
+            "height": 42.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Name",
+          "foreground": "#596c80",
+          "ratio": 4.84316914480783,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 116.59375,
+            "width": 106.953125,
+            "height": 42.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Kind",
+          "foreground": "#596c80",
+          "ratio": 4.84316914480783,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 116.59375,
+            "width": 89,
+            "height": 42.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Submitted",
+          "foreground": "#596c80",
+          "ratio": 4.84316914480783,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1103.328125,
+            "y": 116.59375,
+            "width": 146.0625,
+            "height": 42.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "File status",
+          "foreground": "#596c80",
+          "ratio": 4.84316914480783,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1249.390625,
+            "y": 116.59375,
+            "width": 105.609375,
+            "height": 42.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#596c80",
+          "ratio": 4.84316914480783,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 819.59375,
+            "y": 171.59375,
+            "width": 75.78125,
+            "height": 84
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample security certification.pdf",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 159.09375,
+            "width": 106.953125,
+            "height": 109
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "PDF",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 159.09375,
+            "width": 89,
+            "height": 109
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f2f3f5",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1117.890625,
+            "y": 200.59375,
+            "width": 116.9375,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#596c80",
+          "ratio": 4.872914087928425,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_40_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1261.421875,
+            "y": 191.59375,
+            "width": 81.578125,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#ffffff",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1278.421875,
+            "y": 203.09375,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 819.59375,
+            "y": 280.59375,
+            "width": 75.78125,
+            "height": 63
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample registered office.png",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 268.09375,
+            "width": 106.953125,
+            "height": 88
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Image",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 268.09375,
+            "width": 89,
+            "height": 88
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f2f3f5",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1117.890625,
+            "y": 299.09375,
+            "width": 116.9375,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#596c80",
+          "ratio": 4.872914087928425,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_43_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1261.421875,
+            "y": 290.09375,
+            "width": 81.578125,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#ffffff",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1278.421875,
+            "y": 301.59375,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 819.59375,
+            "y": 368.59375,
+            "width": 75.78125,
+            "height": 84
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample business continuity plan.docx",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 356.09375,
+            "width": 106.953125,
+            "height": 109
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Word document",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 356.09375,
+            "width": 89,
+            "height": 109
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f2f3f5",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1117.890625,
+            "y": 397.59375,
+            "width": 116.9375,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#596c80",
+          "ratio": 4.872914087928425,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_46_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1261.421875,
+            "y": 388.59375,
+            "width": 81.578125,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#ffffff",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1278.421875,
+            "y": 400.09375,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 819.59375,
+            "y": 477.59375,
+            "width": 75.78125,
+            "height": 105
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample subprocessor register.xlsx",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 465.09375,
+            "width": 106.953125,
+            "height": 130
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Spreadsheet",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 465.09375,
+            "width": 89,
+            "height": 130
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f2f3f5",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1117.890625,
+            "y": 517.09375,
+            "width": 116.9375,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#596c80",
+          "ratio": 4.872914087928425,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_49_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1261.421875,
+            "y": 508.09375,
+            "width": 81.578125,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#ffffff",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1278.421875,
+            "y": 519.59375,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#f1f7f8",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 819.59375,
+            "y": 607.59375,
+            "width": 75.78125,
+            "height": 63
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample service records.zip",
+          "foreground": "#152639",
+          "ratio": 14.179024988003414,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#f1f7f8",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 595.09375,
+            "width": 106.953125,
+            "height": 88
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Other file",
+          "foreground": "#152639",
+          "ratio": 14.179024988003414,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#f1f7f8",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 595.09375,
+            "width": 89,
+            "height": 88
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#152639",
+          "ratio": 14.179024988003414,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--warning",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f6f2eb",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1122.0625,
+            "y": 626.09375,
+            "width": 108.578125,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Quarantined",
+          "foreground": "#8b5b00",
+          "ratio": 5.235909272739711,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_4c_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f1f7f8",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1261.421875,
+            "y": 617.09375,
+            "width": 81.578125,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#f1f7f8",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#f1f7f8",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1278.421875,
+            "y": 628.59375,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#152639",
+          "ratio": 14.179024988003414,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 819.59375,
+            "y": 695.59375,
+            "width": 75.78125,
+            "height": 84
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample updated insurance.pdf",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 683.09375,
+            "width": 106.953125,
+            "height": 108.5
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "PDF",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 683.09375,
+            "width": 89,
+            "height": 108.5
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--warning",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f6f2eb",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1115.328125,
+            "y": 715.59375,
+            "width": 122.0625,
+            "height": 44
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Safety check pending",
+          "foreground": "#8b5b00",
+          "ratio": 5.235909272739711,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria3503442169-_r_4f_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1261.421875,
+            "y": 715.59375,
+            "width": 81.578125,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#ffffff",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1278.421875,
+            "y": 727.09375,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "footer.document-list-footer",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 773,
+            "y": 804.59375,
+            "width": 99.734375,
+            "height": 18
+          },
+          "fontSize": "12px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "6  files on this page",
+          "foreground": "#596c80",
+          "ratio": 5.410284008030763,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "footer.document-list-footer",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1166.078125,
+            "y": 804.59375,
+            "width": 189.921875,
+            "height": 18
+          },
+          "fontSize": "12px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Select a file · Press Space to preview",
+          "foreground": "#596c80",
+          "ratio": 5.410284008030763,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        }
+      ],
+      "layout": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      }
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "failureCount": 1,
+      "automaticResult": "Automatic result\n\n86% compliance\n\nMeets expected level\n\n14 concern points\n\nCoverage: 100%\n\nCalculated 8/27/2026, 2:15:00 PM",
+      "documentCount": "6 files on this page",
+      "documents": [
+        {
+          "selector": "#react-aria6277770187-_r_37_",
+          "parentSelector": "div.cs-sheet__close",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 256,
+            "y": 20,
+            "width": 44,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#c8d3dd",
+          "ratio": 1.5197931480241564,
+          "outsideRatio": 1.5197931480241564,
+          "insideRatio": 1.5197931480241564,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "h2",
+          "parentSelector": "div",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 20,
+            "width": 128.28125,
+            "height": 33
+          },
+          "fontSize": "22px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Documents",
+          "foreground": "#0c1623",
+          "ratio": 18.187075708088937,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "p",
+          "parentSelector": "div",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 53,
+            "width": 128.28125,
+            "height": 37.1875
+          },
+          "fontSize": "12px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Documents for this submitted response",
+          "foreground": "#596c80",
+          "ratio": 5.410284008030763,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_3a_",
+          "parentSelector": "header.document-browser-heading",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 156.28125,
+            "y": 33.09375,
+            "width": 79.71875,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#ffffff",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 173.28125,
+            "y": 34.09375,
+            "width": 45.71875,
+            "height": 42
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Refresh files",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_3d_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 90.1875,
+            "width": 111.671875,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#c8d3dd",
+          "ratio": 1.3604859319908555,
+          "outsideRatio": 1.3604859319908555,
+          "insideRatio": 1.3604859319908555,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 96.1875,
+            "width": 77.671875,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "All files",
+          "foreground": "#0c1623",
+          "ratio": 16.280676536195532,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_3g_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 139.671875,
+            "y": 90.1875,
+            "width": 120.359375,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#eef3f7",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 156.671875,
+            "y": 96.1875,
+            "width": 86.359375,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "PDF files",
+          "foreground": "#152639",
+          "ratio": 13.73963654123749,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_3j_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 268.03125,
+            "y": 90.1875,
+            "width": 112.015625,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#eef3f7",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 285.03125,
+            "y": 96.1875,
+            "width": 78.015625,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Images",
+          "foreground": "#152639",
+          "ratio": 13.73963654123749,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_3m_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 388.046875,
+            "y": 90.1875,
+            "width": 174.109375,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#eef3f7",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 405.046875,
+            "y": 96.1875,
+            "width": 140.109375,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Word documents",
+          "foreground": "#152639",
+          "ratio": 13.73963654123749,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_3p_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 570.15625,
+            "y": 90.1875,
+            "width": 150.015625,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#eef3f7",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 587.15625,
+            "y": 96.1875,
+            "width": 116.015625,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Spreadsheets",
+          "foreground": "#152639",
+          "ratio": 13.73963654123749,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_3s_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 728.171875,
+            "y": 90.1875,
+            "width": 131.265625,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#eef3f7",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 745.171875,
+            "y": 96.1875,
+            "width": 97.265625,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Other files",
+          "foreground": "#152639",
+          "ratio": 13.73963654123749,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-sr-only",
+          "parentSelector": "label.cs-search-field",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 19,
+            "y": 133.1875,
+            "width": 1,
+            "height": 1
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Search file names",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#_r_3u_",
+          "parentSelector": "label.cs-search-field",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 134.1875,
+            "width": 280,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "placeholder",
+          "text": "Search file names",
+          "foreground": "#405469",
+          "ratio": 7.806368064067723,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#_r_3u_",
+          "parentSelector": "label.cs-search-field",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 134.1875,
+            "width": 280,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": true,
+          "foreground": "#718397",
+          "ratio": 3.892107034158479,
+          "outsideRatio": 3.892107034158479,
+          "insideRatio": 3.892107034158479,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 178.1875,
+            "width": 57.421875,
+            "height": 60.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Name",
+          "foreground": "#596c80",
+          "ratio": 4.84316914480783,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 77.421875,
+            "y": 178.1875,
+            "width": 49.890625,
+            "height": 60.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Kind",
+          "foreground": "#596c80",
+          "ratio": 4.84316914480783,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 127.3125,
+            "y": 178.1875,
+            "width": 83.046875,
+            "height": 60.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Submitted",
+          "foreground": "#596c80",
+          "ratio": 4.84316914480783,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 210.359375,
+            "y": 178.1875,
+            "width": 57.609375,
+            "height": 60.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "File status",
+          "foreground": "#596c80",
+          "ratio": 4.84316914480783,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#eef3f7",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 267.96875,
+            "y": 178.1875,
+            "width": 68.578125,
+            "height": 60.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#596c80",
+          "ratio": 4.84316914480783,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 174.59375,
+            "y": 195.1875,
+            "width": 108.40625,
+            "height": 42
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample security certification.pdf",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 245.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "PDF",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 274.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f2f3f5",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 303.1875,
+            "width": 142,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#596c80",
+          "ratio": 4.872914087928425,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_40_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 337.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#ffffff",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 188.203125,
+            "y": 348.6875,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#f1f7f8",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 174.59375,
+            "y": 427.1875,
+            "width": 108.40625,
+            "height": 63
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample registered office.png",
+          "foreground": "#152639",
+          "ratio": 14.179024988003414,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#f1f7f8",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 498.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Image",
+          "foreground": "#152639",
+          "ratio": 14.179024988003414,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#f1f7f8",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 527.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#152639",
+          "ratio": 14.179024988003414,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f2f3f5",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 556.1875,
+            "width": 142,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#596c80",
+          "ratio": 4.872914087928425,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_43_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f1f7f8",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 590.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#f1f7f8",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#f1f7f8",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 188.203125,
+            "y": 601.6875,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#152639",
+          "ratio": 14.179024988003414,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 174.59375,
+            "y": 680.1875,
+            "width": 108.40625,
+            "height": 63
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample business continuity plan.docx",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 751.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Word document",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 780.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f2f3f5",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 809.1875,
+            "width": 142,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#596c80",
+          "ratio": 4.872914087928425,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_46_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 843.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#ffffff",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 188.203125,
+            "y": 854.6875,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 174.59375,
+            "y": 933.1875,
+            "width": 108.40625,
+            "height": 63
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample subprocessor register.xlsx",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 1004.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Spreadsheet",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 1033.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f2f3f5",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 1062.1875,
+            "width": 142,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#596c80",
+          "ratio": 4.872914087928425,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_49_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 1096.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#ffffff",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 188.203125,
+            "y": 1107.6875,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 174.59375,
+            "y": 1186.1875,
+            "width": 108.40625,
+            "height": 42
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample service records.zip",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 1236.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Other file",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 1265.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--warning",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f6f2eb",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 1294.1875,
+            "width": 142,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Quarantined",
+          "foreground": "#8b5b00",
+          "ratio": 5.235909272739711,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_4c_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 1328.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#ffffff",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 188.203125,
+            "y": 1339.6875,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 174.59375,
+            "y": 1418.1875,
+            "width": 108.40625,
+            "height": 42
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample updated insurance.pdf",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 1468.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "PDF",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 1497.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--warning",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#f6f2eb",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 1526.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Safety check pending",
+          "foreground": "#8b5b00",
+          "ratio": 5.235909272739711,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6277770187-_r_4f_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 1578.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#ffffff",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 188.203125,
+            "y": 1589.6875,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#152639",
+          "ratio": 15.348490550841955,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "footer.document-list-footer",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 1651.1875,
+            "width": 99.734375,
+            "height": 18
+          },
+          "fontSize": "12px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "6  files on this page",
+          "foreground": "#596c80",
+          "ratio": 5.410284008030763,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "footer.document-list-footer",
+          "disabled": false,
+          "background": "#ffffff",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 1677.1875,
+            "width": 189.921875,
+            "height": 18
+          },
+          "fontSize": "12px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Select a file · Press Space to preview",
+          "foreground": "#596c80",
+          "ratio": 5.410284008030763,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        }
+      ],
+      "layout": {
+        "clientWidth": 320,
+        "scrollWidth": 320
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "failureCount": 1,
+      "automaticResult": "Automatic result\n\n86% compliance\n\nMeets expected level\n\n14 concern points\n\nCoverage: 100%\n\nCalculated 8/27/2026, 2:15:00 PM",
+      "documentCount": "6 files on this page",
+      "documents": [
+        {
+          "selector": "#react-aria1414646492-_r_37_",
+          "parentSelector": "div.cs-sheet__close",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1376,
+            "y": 20,
+            "width": 44,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#26394d",
+          "ratio": 1.5095232148557631,
+          "outsideRatio": 1.5095232148557631,
+          "insideRatio": 1.5095232148557631,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "h2",
+          "parentSelector": "div",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 20,
+            "width": 208.75,
+            "height": 33
+          },
+          "fontSize": "22px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Documents",
+          "foreground": "#ffffff",
+          "ratio": 17.860866883411923,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "p",
+          "parentSelector": "div",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 53,
+            "width": 208.75,
+            "height": 18.59375
+          },
+          "fontSize": "12px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Documents for this submitted response",
+          "foreground": "#8fa0b2",
+          "ratio": 6.667309159989725,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_3a_",
+          "parentSelector": "header.document-browser-heading",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1248.015625,
+            "y": 23.796875,
+            "width": 107.984375,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#0d1826",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1265.015625,
+            "y": 35.296875,
+            "width": 73.984375,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Refresh files",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_3d_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 71.59375,
+            "width": 192,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#26394d",
+          "ratio": 1.3588903886839139,
+          "outsideRatio": 1.3588903886839139,
+          "insideRatio": 1.3588903886839139,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 638.15625,
+            "y": 77.59375,
+            "width": 77.671875,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "All files",
+          "foreground": "#ffffff",
+          "ratio": 16.078560503456977,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_3g_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 123.59375,
+            "width": 192,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#132234",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 633.8125,
+            "y": 129.59375,
+            "width": 86.359375,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "PDF files",
+          "foreground": "#d7e0e9",
+          "ratio": 12.042317230643741,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_3j_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 175.59375,
+            "width": 192,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#132234",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 637.984375,
+            "y": 181.59375,
+            "width": 78.015625,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Images",
+          "foreground": "#d7e0e9",
+          "ratio": 12.042317230643741,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_3m_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 227.59375,
+            "width": 192,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#132234",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 606.9375,
+            "y": 233.59375,
+            "width": 140.109375,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Word documents",
+          "foreground": "#d7e0e9",
+          "ratio": 12.042317230643741,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_3p_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 279.59375,
+            "width": 192,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#132234",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 618.984375,
+            "y": 285.59375,
+            "width": 116.015625,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Spreadsheets",
+          "foreground": "#d7e0e9",
+          "ratio": 12.042317230643741,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_3s_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 581,
+            "y": 331.59375,
+            "width": 192,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#132234",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 628.359375,
+            "y": 337.59375,
+            "width": 97.265625,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Other files",
+          "foreground": "#d7e0e9",
+          "ratio": 12.042317230643741,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-sr-only",
+          "parentSelector": "label.cs-search-field",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 772,
+            "y": 70.59375,
+            "width": 1,
+            "height": 1
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Search file names",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#_r_3u_",
+          "parentSelector": "label.cs-search-field",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 773,
+            "y": 71.59375,
+            "width": 583,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "placeholder",
+          "text": "Search file names",
+          "foreground": "#8fa0b2",
+          "ratio": 6.667309159989725,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#_r_3u_",
+          "parentSelector": "label.cs-search-field",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 773,
+            "y": 71.59375,
+            "width": 583,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": true,
+          "foreground": "#718397",
+          "ratio": 4.5889968406980515,
+          "outsideRatio": 4.5889968406980515,
+          "insideRatio": 4.5889968406980515,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 774,
+            "y": 116.59375,
+            "width": 133.375,
+            "height": 42.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Name",
+          "foreground": "#8fa0b2",
+          "ratio": 6.001989400845329,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 116.59375,
+            "width": 106.953125,
+            "height": 42.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Kind",
+          "foreground": "#8fa0b2",
+          "ratio": 6.001989400845329,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 116.59375,
+            "width": 89,
+            "height": 42.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Submitted",
+          "foreground": "#8fa0b2",
+          "ratio": 6.001989400845329,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1103.328125,
+            "y": 116.59375,
+            "width": 146.0625,
+            "height": 42.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "File status",
+          "foreground": "#8fa0b2",
+          "ratio": 6.001989400845329,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1249.390625,
+            "y": 116.59375,
+            "width": 105.609375,
+            "height": 42.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#8fa0b2",
+          "ratio": 6.001989400845329,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 819.59375,
+            "y": 171.59375,
+            "width": 75.78125,
+            "height": 84
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample security certification.pdf",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 159.09375,
+            "width": 106.953125,
+            "height": 109
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "PDF",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 159.09375,
+            "width": 89,
+            "height": 109
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#172331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1117.890625,
+            "y": 200.59375,
+            "width": 116.9375,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#8fa0b2",
+          "ratio": 5.93335822306068,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_40_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1261.421875,
+            "y": 191.59375,
+            "width": 81.578125,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#0d1826",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1278.421875,
+            "y": 203.09375,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 819.59375,
+            "y": 280.59375,
+            "width": 75.78125,
+            "height": 63
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample registered office.png",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 268.09375,
+            "width": 106.953125,
+            "height": 88
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Image",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 268.09375,
+            "width": 89,
+            "height": 88
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#172331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1117.890625,
+            "y": 299.09375,
+            "width": 116.9375,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#8fa0b2",
+          "ratio": 5.93335822306068,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_43_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1261.421875,
+            "y": 290.09375,
+            "width": 81.578125,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#0d1826",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1278.421875,
+            "y": 301.59375,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 819.59375,
+            "y": 368.59375,
+            "width": 75.78125,
+            "height": 84
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample business continuity plan.docx",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 356.09375,
+            "width": 106.953125,
+            "height": 109
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Word document",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 356.09375,
+            "width": 89,
+            "height": 109
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#172331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1117.890625,
+            "y": 397.59375,
+            "width": 116.9375,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#8fa0b2",
+          "ratio": 5.93335822306068,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_46_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1261.421875,
+            "y": 388.59375,
+            "width": 81.578125,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#0d1826",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1278.421875,
+            "y": 400.09375,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 819.59375,
+            "y": 477.59375,
+            "width": 75.78125,
+            "height": 105
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample subprocessor register.xlsx",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 465.09375,
+            "width": 106.953125,
+            "height": 130
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Spreadsheet",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 465.09375,
+            "width": 89,
+            "height": 130
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#172331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1117.890625,
+            "y": 517.09375,
+            "width": 116.9375,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#8fa0b2",
+          "ratio": 5.93335822306068,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_49_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1261.421875,
+            "y": 508.09375,
+            "width": 81.578125,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#0d1826",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1278.421875,
+            "y": 519.59375,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#112331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 819.59375,
+            "y": 607.59375,
+            "width": 75.78125,
+            "height": 63
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample service records.zip",
+          "foreground": "#d7e0e9",
+          "ratio": 12.063264652693523,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#112331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 595.09375,
+            "width": 106.953125,
+            "height": 88
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Other file",
+          "foreground": "#d7e0e9",
+          "ratio": 12.063264652693523,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#112331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 595.09375,
+            "width": 89,
+            "height": 88
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#d7e0e9",
+          "ratio": 12.063264652693523,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--warning",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#1f252a",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1122.0625,
+            "y": 626.09375,
+            "width": 108.578125,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Quarantined",
+          "foreground": "#e9b75a",
+          "ratio": 8.394585008888814,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_4c_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#112331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1261.421875,
+            "y": 617.09375,
+            "width": 81.578125,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#112331",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#112331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1278.421875,
+            "y": 628.59375,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#d7e0e9",
+          "ratio": 12.063264652693523,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 819.59375,
+            "y": 695.59375,
+            "width": 75.78125,
+            "height": 84
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample updated insurance.pdf",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 907.375,
+            "y": 683.09375,
+            "width": 106.953125,
+            "height": 108.5
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "PDF",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1014.328125,
+            "y": 683.09375,
+            "width": 89,
+            "height": 108.5
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--warning",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#1f252a",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1115.328125,
+            "y": 715.59375,
+            "width": 122.0625,
+            "height": 44
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Safety check pending",
+          "foreground": "#e9b75a",
+          "ratio": 8.394585008888814,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria1414646492-_r_4f_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1261.421875,
+            "y": 715.59375,
+            "width": 81.578125,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#0d1826",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1278.421875,
+            "y": 727.09375,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "footer.document-list-footer",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 773,
+            "y": 804.59375,
+            "width": 99.734375,
+            "height": 18
+          },
+          "fontSize": "12px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "6  files on this page",
+          "foreground": "#8fa0b2",
+          "ratio": 6.667309159989725,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "footer.document-list-footer",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 1166.078125,
+            "y": 804.59375,
+            "width": 189.921875,
+            "height": 18
+          },
+          "fontSize": "12px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Select a file · Press Space to preview",
+          "foreground": "#8fa0b2",
+          "ratio": 6.667309159989725,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        }
+      ],
+      "layout": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "failureCount": 1,
+      "automaticResult": "Automatic result\n\n86% compliance\n\nMeets expected level\n\n14 concern points\n\nCoverage: 100%\n\nCalculated 8/27/2026, 2:15:00 PM",
+      "documentCount": "6 files on this page",
+      "documents": [
+        {
+          "selector": "#react-aria6971763569-_r_37_",
+          "parentSelector": "div.cs-sheet__close",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 256,
+            "y": 20,
+            "width": 44,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#26394d",
+          "ratio": 1.5095232148557631,
+          "outsideRatio": 1.5095232148557631,
+          "insideRatio": 1.5095232148557631,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "h2",
+          "parentSelector": "div",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 20,
+            "width": 128.28125,
+            "height": 33
+          },
+          "fontSize": "22px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Documents",
+          "foreground": "#ffffff",
+          "ratio": 17.860866883411923,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "p",
+          "parentSelector": "div",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 53,
+            "width": 128.28125,
+            "height": 37.1875
+          },
+          "fontSize": "12px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Documents for this submitted response",
+          "foreground": "#8fa0b2",
+          "ratio": 6.667309159989725,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_3a_",
+          "parentSelector": "header.document-browser-heading",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 156.28125,
+            "y": 33.09375,
+            "width": 79.71875,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#0d1826",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 173.28125,
+            "y": 34.09375,
+            "width": 45.71875,
+            "height": 42
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Refresh files",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_3d_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 90.1875,
+            "width": 111.671875,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#26394d",
+          "ratio": 1.3588903886839139,
+          "outsideRatio": 1.3588903886839139,
+          "insideRatio": 1.3588903886839139,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 96.1875,
+            "width": 77.671875,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "All files",
+          "foreground": "#ffffff",
+          "ratio": 16.078560503456977,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_3g_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 139.671875,
+            "y": 90.1875,
+            "width": 120.359375,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#132234",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 156.671875,
+            "y": 96.1875,
+            "width": 86.359375,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "PDF files",
+          "foreground": "#d7e0e9",
+          "ratio": 12.042317230643741,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_3j_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 268.03125,
+            "y": 90.1875,
+            "width": 112.015625,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#132234",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 285.03125,
+            "y": 96.1875,
+            "width": 78.015625,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Images",
+          "foreground": "#d7e0e9",
+          "ratio": 12.042317230643741,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_3m_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 388.046875,
+            "y": 90.1875,
+            "width": 174.109375,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#132234",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 405.046875,
+            "y": 96.1875,
+            "width": 140.109375,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Word documents",
+          "foreground": "#d7e0e9",
+          "ratio": 12.042317230643741,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_3p_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 570.15625,
+            "y": 90.1875,
+            "width": 150.015625,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#132234",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 587.15625,
+            "y": 96.1875,
+            "width": 116.015625,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Spreadsheets",
+          "foreground": "#d7e0e9",
+          "ratio": 12.042317230643741,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_3s_",
+          "parentSelector": "nav.document-kinds",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 728.171875,
+            "y": 90.1875,
+            "width": 131.265625,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#132234",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.document-kind-label",
+          "parentSelector": "span",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 745.171875,
+            "y": 96.1875,
+            "width": 97.265625,
+            "height": 32
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Other files",
+          "foreground": "#d7e0e9",
+          "ratio": 12.042317230643741,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-sr-only",
+          "parentSelector": "label.cs-search-field",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 19,
+            "y": 133.1875,
+            "width": 1,
+            "height": 1
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Search file names",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#_r_3u_",
+          "parentSelector": "label.cs-search-field",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 134.1875,
+            "width": 280,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "placeholder",
+          "text": "Search file names",
+          "foreground": "#8fa0b2",
+          "ratio": 6.667309159989725,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#_r_3u_",
+          "parentSelector": "label.cs-search-field",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 134.1875,
+            "width": 280,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": true,
+          "foreground": "#718397",
+          "ratio": 4.5889968406980515,
+          "outsideRatio": 4.5889968406980515,
+          "insideRatio": 4.5889968406980515,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 178.1875,
+            "width": 57.421875,
+            "height": 60.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Name",
+          "foreground": "#8fa0b2",
+          "ratio": 6.001989400845329,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 77.421875,
+            "y": 178.1875,
+            "width": 49.890625,
+            "height": 60.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Kind",
+          "foreground": "#8fa0b2",
+          "ratio": 6.001989400845329,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 127.3125,
+            "y": 178.1875,
+            "width": 83.046875,
+            "height": 60.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Submitted",
+          "foreground": "#8fa0b2",
+          "ratio": 6.001989400845329,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 210.359375,
+            "y": 178.1875,
+            "width": 57.609375,
+            "height": 60.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "File status",
+          "foreground": "#8fa0b2",
+          "ratio": 6.001989400845329,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "th",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#132234",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 267.96875,
+            "y": 178.1875,
+            "width": 68.578125,
+            "height": 60.5
+          },
+          "fontSize": "12px",
+          "fontWeight": "650",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#8fa0b2",
+          "ratio": 6.001989400845329,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 174.59375,
+            "y": 195.1875,
+            "width": 108.40625,
+            "height": 42
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample security certification.pdf",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 245.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "PDF",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 274.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#172331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 303.1875,
+            "width": 142,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#8fa0b2",
+          "ratio": 5.93335822306068,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_40_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 337.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#0d1826",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 188.203125,
+            "y": 348.6875,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#112331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 174.59375,
+            "y": 427.1875,
+            "width": 108.40625,
+            "height": 63
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample registered office.png",
+          "foreground": "#d7e0e9",
+          "ratio": 12.063264652693523,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#112331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 498.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Image",
+          "foreground": "#d7e0e9",
+          "ratio": 12.063264652693523,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#112331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 527.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#d7e0e9",
+          "ratio": 12.063264652693523,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#172331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 556.1875,
+            "width": 142,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#8fa0b2",
+          "ratio": 5.93335822306068,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_43_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#112331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 590.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#112331",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#112331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 188.203125,
+            "y": 601.6875,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#d7e0e9",
+          "ratio": 12.063264652693523,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 174.59375,
+            "y": 680.1875,
+            "width": 108.40625,
+            "height": 63
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample business continuity plan.docx",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 751.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Word document",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 780.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#172331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 809.1875,
+            "width": 142,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#8fa0b2",
+          "ratio": 5.93335822306068,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_46_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 843.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#0d1826",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 188.203125,
+            "y": 854.6875,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 174.59375,
+            "y": 933.1875,
+            "width": 108.40625,
+            "height": 63
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample subprocessor register.xlsx",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 1004.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Spreadsheet",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 1033.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--neutral",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#172331",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 1062.1875,
+            "width": 142,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Ready to view",
+          "foreground": "#8fa0b2",
+          "ratio": 5.93335822306068,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_49_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 1096.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#0d1826",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 188.203125,
+            "y": 1107.6875,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 174.59375,
+            "y": 1186.1875,
+            "width": 108.40625,
+            "height": 42
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample service records.zip",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 1236.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Other file",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 1265.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--warning",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#1f252a",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 1294.1875,
+            "width": 142,
+            "height": 26
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Quarantined",
+          "foreground": "#e9b75a",
+          "ratio": 8.394585008888814,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_4c_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 1328.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#0d1826",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 188.203125,
+            "y": 1339.6875,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "strong",
+          "parentSelector": "span.document-file-name",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 174.59375,
+            "y": 1418.1875,
+            "width": 108.40625,
+            "height": 42
+          },
+          "fontSize": "14px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Sample updated insurance.pdf",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 1468.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "PDF",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "td",
+          "parentSelector": "tr",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 37,
+            "y": 1497.1875,
+            "width": 246,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Aug 27, 2026",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span.cs-status-badge.cs-tone--warning",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#1f252a",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 1526.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "kind": "text",
+          "text": "Safety check pending",
+          "foreground": "#e9b75a",
+          "ratio": 8.394585008888814,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "#react-aria6971763569-_r_4f_",
+          "parentSelector": "td",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 141,
+            "y": 1578.1875,
+            "width": 142,
+            "height": 44
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "control-border",
+          "essential": false,
+          "foreground": "#0d1826",
+          "ratio": 1,
+          "outsideRatio": 1,
+          "insideRatio": 1,
+          "fillRatio": 1,
+          "minimum": 3,
+          "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 188.203125,
+            "y": 1589.6875,
+            "width": 47.578125,
+            "height": 21
+          },
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Preview",
+          "foreground": "#d7e0e9",
+          "ratio": 13.377206558889451,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "footer.document-list-footer",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 1651.1875,
+            "width": 99.734375,
+            "height": 18
+          },
+          "fontSize": "12px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "6  files on this page",
+          "foreground": "#8fa0b2",
+          "ratio": 6.667309159989725,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        },
+        {
+          "selector": "span",
+          "parentSelector": "footer.document-list-footer",
+          "disabled": false,
+          "background": "#0d1826",
+          "uncertain": [
+            "filter"
+          ],
+          "box": {
+            "x": 20,
+            "y": 1677.1875,
+            "width": 189.921875,
+            "height": 18
+          },
+          "fontSize": "12px",
+          "fontWeight": "400",
+          "kind": "text",
+          "text": "Select a file · Press Space to preview",
+          "foreground": "#8fa0b2",
+          "ratio": 6.667309159989725,
+          "minimum": 4.5,
+          "outcome": "INCOMPLETE"
+        }
+      ],
+      "layout": {
+        "clientWidth": 320,
+        "scrollWidth": 320
+      }
+    }
+  ]
+}

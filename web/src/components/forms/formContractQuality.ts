@@ -21,7 +21,7 @@ export function validateFieldContractBounds(field: AuthoringField, index: number
 
   if (field.record_target) {
     if (!validRecordTargetIdentifier(field.record_target.key, 200, true) || !validRecordTargetIdentifier(field.record_target.required_subject_type, 80, false)) {
-      block(`record-target-format:${field.id}`, `${label} requires a valid bounded record target.`, { fieldID: field.id });
+      block(`record-target-format:${field.id}`, `${label} requires a valid record field and record type. Check the record destination.`, { fieldID: field.id });
     }
   }
 
@@ -51,7 +51,7 @@ export function validateAdvancedScoreProfile(profile: FormScoreProfile | undefin
   for (const contribution of profile.contributions) {
     if (!contribution.id.trim() || ids.has(contribution.id)) block(`score-contribution-id:${contribution.id}`, "Every score contribution requires a unique key.");
     ids.add(contribution.id);
-    if (!contribution.label.trim() || contribution.weight < 1 || contribution.weight > 100 || contribution.match_points < 0 || contribution.match_points > 100 || contribution.non_match_points < 0 || contribution.non_match_points > 100) block(`score-contribution:${contribution.id}`, `${contribution.label || "Score contribution"} requires bounded weights and points from 0–100.`);
+    if (!contribution.label.trim() || contribution.weight < 1 || contribution.weight > 100 || contribution.match_points < 0 || contribution.match_points > 100 || contribution.non_match_points < 0 || contribution.non_match_points > 100) block(`score-contribution:${contribution.id}`, `${contribution.label || "Score contribution"} requires a label, a weight from 1–100 and points from 0–100.`);
     validatePredicate(contribution.predicate, fieldByID, contribution.id, block);
   }
   let floor = -1, cap = 101;

@@ -925,7 +925,7 @@ func writeContinuityResult[T any](w http.ResponseWriter, value T, err error, suc
 func writeContinuityError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, continuity.ErrNotFound):
-		httpx.WriteError(w, http.StatusNotFound, "not_found", "The requested program or issue was not found in this bank scope.")
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "Program or issue not found in your organization.")
 	case errors.Is(err, continuity.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "version_conflict", "This record changed. Reload it before saving your update.")
 	case errors.Is(err, continuity.ErrMakerChecker):

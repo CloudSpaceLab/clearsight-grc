@@ -54,11 +54,13 @@ describe("field assessment authoring", () => {
     draft.sections[0]!.weight = 100;
     expect(evaluateQuality(draft)).toEqual([]);
   });
-  it("links the assessment summary back to its field without losing configuration", () => {
+  it("links an invalid assessment to its field and keeps valid rubrics out of the overview", () => {
     const onSelectField = vi.fn();
-    render(<FormInspector draft={draftFromTemplate(template)} selection={{ kind: "overview" }} onSelectField={onSelectField} onPatch={() => {}} onScoringMode={() => {}} onSectionsChange={() => {}} onFieldChange={() => {}} onFieldTypeChange={() => {}} onFieldConstraint={() => {}} onFieldScoringToggle={() => {}} onMoveSection={() => {}} onDuplicateSection={() => {}} onRemoveSection={() => {}} onMoveField={() => {}} onRemoveField={() => {}}/>);
+    const draft = draftFromTemplate(template);
+    draft.fields[0]!.assessment!.reviewer_role = undefined;
+    render(<FormInspector draft={draft} selection={{ kind: "overview" }} onSelectField={onSelectField} onPatch={() => {}} onScoringMode={() => {}} onSectionsChange={() => {}} onFieldChange={() => {}} onFieldTypeChange={() => {}} onFieldConstraint={() => {}} onFieldScoringToggle={() => {}} onMoveSection={() => {}} onDuplicateSection={() => {}} onRemoveSection={() => {}} onMoveField={() => {}} onRemoveField={() => {}}/>);
     expect(screen.getByText("Assessment and scoring")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Edit assessment for Vulnerability test" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit assessment" }));
     expect(onSelectField).toHaveBeenCalledWith("report");
   });
   it("retains imported assessment configuration through save and keeps copies independent", () => {
@@ -78,7 +80,7 @@ describe("field assessment authoring", () => {
     expect(input.fields[0]!.scoring).toMatchObject(legacy.fields[0]!.scoring);
   });
 
-  it("blocks approval for an empty bank rubric and out-of-range outcome", () => {
+  it("blocks approval for an empty rubric and out-of-range outcome", () => {
     const draft = draftFromTemplate(template);
     draft.fields[0]!.assessment!.rubric = [];
     expect(evaluateQuality(draft)).toContainEqual(expect.objectContaining({ fieldID: "report", blocking: true, message: expect.stringMatching(/rubric/i) }));
@@ -88,10 +90,10 @@ describe("field assessment authoring", () => {
 
   it("offers assessment modes on document fields in the existing inspector", async () => {
     const onChange = vi.fn();
-    render(<FormFieldPropertyEditor field={draftFromTemplate(template).fields[0]!} index={0} scoringMode="RISK" sections={template.sections} earlierFields={[]} onChange={onChange} onTypeChange={() => {}} onConstraint={() => {}} onScoringToggle={() => {}} onMove={() => {}} onRemove={() => {}} removable={false} first last inspector/>);
+    render(<FormFieldPropertyEditor field={draftFromTemplate(template).fields[0]!} index={0} scoringMode="RISK" sections={template.sections} earlierFields={[]} onChange={onChange} onTypeChange={() => {}} onConstraint={() => {}} onScoringToggle={() => {}} onMove={() => {}} onRemove={() => {}} removable={false} first last/>);
     fireEvent.click(screen.getByRole("button", { name: /How this field is assessed/ }));
-    for (const mode of ["Not scored", "Bank review", "Automatic rules", "Automatic rules, then bank review"]) expect(screen.getByRole("option", { name: mode })).toBeTruthy();
-    fireEvent.click(screen.getByRole("option", { name: "Automatic rules, then bank review" }));
+    for (const mode of ["Not scored", "Review", "Automatic rules", "Automatic rules, then review"]) expect(screen.getByRole("option", { name: mode })).toBeTruthy();
+    fireEvent.click(screen.getByRole("option", { name: "Automatic rules, then review" }));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ assessment: expect.objectContaining({ mode: "AUTOMATIC_REVIEW", rubric: template.fields[0]!.assessment.rubric }) }));
     fireEvent.click(screen.getByRole("button", { name: /Reviewer responsibility/ }));
     await waitFor(() => expect(screen.getByRole("option", { name: "Risk reviewer" })).toBeTruthy());

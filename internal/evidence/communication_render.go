@@ -165,7 +165,7 @@ func RenderCommunication(template CommunicationTemplate, context CommunicationCo
 
 func SampleCommunicationContext() CommunicationContext {
 	return CommunicationContext{
-		RecipientName: "[Sample recipient]", BankName: "[Sample bank]", FormTitle: "[Sample form]",
+		RecipientName: "[Sample recipient]", BankName: "[Sample organization]", FormTitle: "[Sample form]",
 		TaskSummary: "[Sample task summary]", DueTime: "[Sample due time]", LinkExpiry: "[Sample link expiry]",
 		AccessInstructions: "[Sample access instructions]", SupportContact: "[Sample support contact]",
 		SecureFormLink: protectedString{value: "https://forms.example.invalid/sample-secure-link"},

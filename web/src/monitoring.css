@@ -10,10 +10,10 @@
 .setup-progress span, .question-number { width: 25px; height: 25px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 50%; color: var(--cyan); font-size: 11px; font-weight: 700; }
 .monitoring-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .monitoring-form-grid .full { grid-column: 1 / -1; }
-.monitoring-form-grid label, .requirement-form label, .question-label, .question-scoring label, .collection-schedule label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; }
-.monitoring-form-grid input, .monitoring-form-grid select, .monitoring-form-grid textarea, .requirement-form input, .requirement-form textarea, .question-editor input[type="text"], .question-label input, .question-scoring input, .collection-schedule input { width: 100%; min-height: 44px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; outline: none; }
-.monitoring-form-grid textarea, .requirement-form textarea { resize: vertical; }
-.monitoring-form-grid input:focus, .monitoring-form-grid select:focus, .monitoring-form-grid textarea:focus, .requirement-form input:focus, .requirement-form textarea:focus, .question-label input:focus, .question-scoring input:focus, .collection-schedule input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(91,198,214,.12); }
+.monitoring-form-grid label, .requirement-form > label, .question-label, .question-scoring label, .collection-schedule label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; }
+.monitoring-form-grid input, .monitoring-form-grid select, .monitoring-form-grid textarea, .requirement-form > label > input, .requirement-form > label > textarea, .question-editor input[type="text"], .question-label input, .question-scoring input, .collection-schedule input { width: 100%; min-height: 44px; color: var(--text); background: var(--surface); border: 1px solid var(--cs-border-field); border-radius: 10px; padding: 10px 12px; outline: none; }
+.monitoring-form-grid textarea, .requirement-form > label > textarea { resize: vertical; }
+.monitoring-form-grid input:focus, .monitoring-form-grid select:focus, .monitoring-form-grid textarea:focus, .requirement-form > label > input:focus, .requirement-form > label > textarea:focus, .question-label input:focus, .question-scoring input:focus, .collection-schedule input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(91,198,214,.12); }
 .monitoring-form-actions { margin-top: 20px; display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
 .field-note { margin: -5px 0 0; color: var(--muted); font-size: 12px; }
 .setup-sections { display: grid; gap: 18px; }
@@ -41,14 +41,13 @@
 .builder-control-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: end; }
 .builder-control-grid > .full { grid-column: 1 / -1; }
 .builder-control-grid label, .builder-subpanel > label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; }
-.builder-control-grid input:not([type="checkbox"]), .builder-control-grid select, .builder-subpanel textarea, .builder-subpanel input:not([type="checkbox"]), .typed-question-editor textarea { width: 100%; min-height: 44px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; outline: none; }
+.builder-control-grid input:not([type="checkbox"]), .builder-control-grid select, .builder-subpanel textarea, .builder-subpanel input:not([type="checkbox"]), .typed-question-editor textarea { width: 100%; min-height: 44px; color: var(--text); background: var(--surface); border: 1px solid var(--cs-border-field); border-radius: 10px; padding: 10px 12px; outline: none; }
 .builder-control-grid input:focus, .builder-control-grid select:focus, .builder-subpanel textarea:focus, .builder-subpanel input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(91,198,214,.12); }
 .builder-sections, .question-list { display: grid; gap: 12px; }
-.section-editor { padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .section-editor-heading, .question-editor-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
 .section-editor-heading h5 { margin: 0; font-size: 14px; }
 .section-editor-heading p { margin: 4px 0 0; font-size: 12px; }
-.builder-row-actions, .builder-add-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.builder-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .builder-row-actions .text-button:disabled { opacity: .45; cursor: not-allowed; }
 .builder-add-button { justify-self: start; }
 .typed-question-editor { display: grid; grid-template-columns: 1fr; align-items: stretch; gap: 14px; }
@@ -92,7 +91,7 @@
 .collection-policy-grid { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(220px, 1fr); gap: 10px 16px; align-items: center; }
 .collection-policy-grid label { color: var(--muted); font-size: 12px; }
 .collection-policy-grid > div { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 12px; }
-.collection-policy-grid input { width: 110px; min-height: 44px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.collection-policy-grid input { width: 110px; min-height: 44px; color: var(--text); background: var(--surface); border: 1px solid var(--cs-border-field); border-radius: 10px; padding: 10px 12px; }
 .collection-policy-grid input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(91,198,214,.12); outline: none; }
 .collection-policy-preview { margin: 14px 0 0 !important; padding: 11px 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--muted); line-height: 1.5; }
 .collection-record { grid-template-columns: minmax(220px, 1fr) minmax(270px, .9fr) auto; align-items: start; }
@@ -136,9 +135,8 @@
   .builder-control-grid > .full { grid-column: auto; }
   .section-editor-heading { align-items: flex-start; display: grid; }
   .builder-row-actions { justify-content: flex-start; }
-  .builder-add-actions { display: grid; grid-template-columns: 1fr; }
-  .builder-add-actions button, .builder-add-button { width: 100%; min-height: 44px; }
-  .builder-preview, .form-builder-preview, .builder-panel, .builder-subpanel, .section-editor, .typed-question-editor { padding: 12px; }
+  .builder-add-button { width: 100%; min-height: 44px; }
+  .builder-preview, .form-builder-preview, .builder-panel, .builder-subpanel, .typed-question-editor { padding: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .monitoring-choice-grid button { transition: none; }

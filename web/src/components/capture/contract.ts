@@ -81,7 +81,7 @@ export function visibleCaptureFields(contract: CaptureFormContract, answers: Cap
 }
 
 export function keepVisibleAnswers(contract: CaptureFormContract, answers: CaptureAnswers): CaptureAnswers {
-  const visibleIDs = new Set(visibleCaptureFields(contract, answers).map((field) => field.id));
+  const visibleIDs = new Set(visibleCaptureFields(contract, answers).filter((field) => !documentAlreadyReceived(field) || answerIsPresent(answers[field.id])).map((field) => field.id));
   return Object.fromEntries(Object.entries(answers).filter(([fieldID]) => visibleIDs.has(fieldID)));
 }
 
@@ -94,11 +94,24 @@ export function effectivePresentationMode(contract: CaptureFormContract, answers
 
 export type CaptureValidationError = { fieldID: string; message: string };
 
+export function documentAlreadyReceived(field: CaptureField): boolean {
+  return normalizeFieldType(field.type) === "vendor_document" && field.collection_received === true;
+}
+
+export function allRequiredDocumentsReceived(contract: CaptureFormContract, answers: CaptureAnswers): boolean {
+  if (Object.values(answers).some(answerIsPresent)) return false;
+  const conditions = [...contract.sections, ...contract.fields].flatMap((item) => item.condition ? [item.condition] : []);
+  if (conditions.some((condition) => !answerIsPresent(answers[condition.field_id]))) return false;
+  const required = visibleCaptureFields(contract, answers).filter((field) => field.required);
+  return required.length > 0 && required.every(documentAlreadyReceived);
+}
+
 export function validateCaptureFields(fields: CaptureField[], answers: CaptureAnswers): CaptureValidationError[] {
   const errors: CaptureValidationError[] = [];
   for (const field of fields) {
     const value = answers[field.id];
     const type = normalizeFieldType(field.type);
+    if (documentAlreadyReceived(field) && !answerIsPresent(value)) continue;
     if (field.required && !answerIsPresent(value)) {
       errors.push({ fieldID: field.id, message: `${field.label} is required` });
       continue;

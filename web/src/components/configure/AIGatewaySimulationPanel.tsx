@@ -108,7 +108,7 @@ export function AIGatewaySimulationPanel({ workloads, workloadState }: { workloa
       <div>
         <span className="eyebrow">Gateway · deterministic validation</span>
         <h3 id="gateway-simulation-heading">Test policy before traffic moves</h3>
-        <p>Run bounded fixtures through the exact candidate baseline, workload policy and routing revision. Simulation makes no model call, stores no fixture content and creates no normal decision receipt.</p>
+        <p>Test the selected instructions, workload policy and routing versions. This simulation makes no model calls and does not retain test content.</p>
       </div>
       <span className="ai-gateway-simulation__state">{running ? "Evaluating…" : result ? title(result.decision.action) : "No provider call"}</span>
     </div>

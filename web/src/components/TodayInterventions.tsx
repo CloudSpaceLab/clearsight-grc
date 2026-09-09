@@ -81,7 +81,7 @@ function openItem(item: AttentionItem, fallback: (item: AttentionItem) => void) 
 function VerificationContext({ item }: { item: AttentionItem }) {
   const verification = item.verification;
   if (!verification) return null;
-  const timing = verification.next_check_at ? formatCheckTime(verification.next_check_at) : "Ready now";
+  const timing = formatCheckTime(verification.next_check_at);
   return <details className="intervention-verification">
     <summary>Outcome check details</summary>
     <dl>
@@ -110,7 +110,7 @@ function StatusChecks({ readiness, state }: { readiness: Readiness | null; state
         <div><dt>At risk</dt><dd>{dimensions.at_risk}</dd></div>
         <div><dt>Unknown</dt><dd>{dimensions.unknown}</dd></div>
         <div><dt>Routing blocked</dt><dd>{dimensions.blocked_routing}</dd></div>
-        <div><dt>Waiting for review</dt><dd>{dimensions.pending_human}</dd></div>
+        <div><dt>Awaiting review</dt><dd>{dimensions.pending_human}</dd></div>
       </dl>
       {readiness.recommended_actions.length > 0 && <div><h3>Suggested follow-up</h3><ul>{readiness.recommended_actions.map((action) => <li key={action}>{action}</li>)}</ul></div>}
       {!readiness.baseline_known && <p>Coverage is incomplete, so these counts are not a complete view of compliance status.</p>}
@@ -148,8 +148,8 @@ function formatDue(value: string) {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
 }
 
-function formatCheckTime(value: string) {
-  const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) return "Ready now";
+function formatCheckTime(value?: string) {
+  const parsed = Date.parse(value ?? "");
+  if (!Number.isFinite(parsed) || new Date(parsed).getUTCFullYear() < 2000) return "Not scheduled";
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(parsed));
 }

@@ -12,6 +12,11 @@ const readiness: Readiness = {
 };
 
 describe("TodayInterventions", () => {
+  it.each([undefined, "", "invalid", "0001-01-01T00:00:00Z"])("does not claim a check is ready from an absent or invalid schedule: %s", (nextCheck) => {
+    render(<TodayInterventions items={[{ ...item, verification: { state: "Pending", expected_outcome: "Restore service", method: "Review", next_check_at: nextCheck } }]} connection="live" readiness={readiness} readinessState="live" onOpenItem={vi.fn()}/>);
+    expect(screen.getByText("Not scheduled")).toBeTruthy();
+    expect(screen.queryByText("Ready now")).toBeNull();
+  });
   it("uses Today as the practical work surface and keeps status checks collapsed", () => {
     const onOpen = vi.fn();
     render(<TodayInterventions items={[item]} connection="live" readiness={readiness} readinessState="live" onOpenItem={onOpen}/>);

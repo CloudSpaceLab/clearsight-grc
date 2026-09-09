@@ -10,7 +10,7 @@ const kinds: ReadonlyArray<{ id: FileKind | "ALL"; label: string }> = [
   { id: "WORD", label: "Word documents" }, { id: "SPREADSHEET", label: "Spreadsheets" }, { id: "OTHER", label: "Other files" },
 ];
 
-export function DocumentBrowser({ scopeLabel, relationshipID, responseRevisionID }: { scopeLabel: string; relationshipID?: string; responseRevisionID?: string }) {
+export function DocumentBrowser({ scopeLabel, relationshipID, responseRevisionID, onChoose, selectionUnavailableReason }: { scopeLabel: string; relationshipID?: string; responseRevisionID?: string; onChoose?: (file: DocumentOccurrence) => void; selectionUnavailableReason?: (file: DocumentOccurrence) => string }) {
   const [kind, setKind] = useState<FileKind | "ALL">("ALL");
   const [query, setQuery] = useState("");
   const [includeHistory, setIncludeHistory] = useState(false);
@@ -35,6 +35,7 @@ export function DocumentBrowser({ scopeLabel, relationshipID, responseRevisionID
     return () => { window.clearTimeout(timer); controller.abort(); };
   }, [kind, query, relationshipID, responseRevisionID, includeHistory, cursor, reload]);
   const selected = items.find((item) => item.id === selectedID);
+  const selectionReason = selected && selectionUnavailableReason ? selectionUnavailableReason(selected) : "";
   const preview = items.find((item) => item.id === previewID);
   function open(file: DocumentOccurrence) { setSelectedID(file.id); setPreviewID(file.id); }
   const columns: readonly DataColumn<DocumentOccurrence>[] = [
@@ -44,13 +45,14 @@ export function DocumentBrowser({ scopeLabel, relationshipID, responseRevisionID
     { id: "status", header: "File status", kind: "status", render: (file) => <StatusBadge tone={file.artifact_status === "AVAILABLE" ? "neutral" : "warning"}>{fileStatus(file)}</StatusBadge>, accessibleText: fileStatus },
     { id: "preview", header: "Preview", kind: "action", render: (file) => <Button size="compact" variant="quiet" aria-label={`Preview ${file.file_name}`} onPress={() => open(file)}>Preview</Button>, accessibleText: (file) => `Preview ${file.file_name}` },
   ];
-  return <section className="document-browser" aria-label={scopeLabel}>
+  return <section className={`document-browser${onChoose ? " document-browser--selecting" : ""}`} aria-label={scopeLabel}>
     <header className="document-browser-heading"><div><h2>Documents</h2><p>{scopeLabel}</p></div><Button variant="quiet" onPress={() => setReload((value) => value + 1)}>Refresh files</Button></header>
     <div className="document-browser-body">
       <nav className="document-kinds" aria-label="File types">{kinds.map((item) => <Button key={item.id} variant={kind === item.id ? "secondary" : "quiet"} aria-pressed={kind === item.id} onPress={() => { setKind(item.id); setPages([]); }}><span className="document-kind-label"><FileIcon kind={item.id}/>{item.label}</span></Button>)}</nav>
       <div className="document-browser-content">
         <div className="document-toolbar"><SearchField label="Search file names" placeholder="Search file names" value={query} onChange={(value) => { setQuery(value); setPages([]); }}/>{!responseRevisionID && <Button aria-expanded={filtersOpen} onPress={() => setFiltersOpen(!filtersOpen)}>Filters{includeHistory ? " · History included" : ""}</Button>}</div>
         {filtersOpen && !responseRevisionID && <div className="document-filters"><SelectField label="Submitted versions" placeholder="Current versions" value={includeHistory ? "ALL" : "CURRENT"} allowsEmpty={false} options={[{ id: "CURRENT", label: "Current versions" }, { id: "ALL", label: "Include previous versions" }]} onChange={(value) => { setIncludeHistory(value === "ALL"); setPages([]); }}/></div>}
+        {selected && onChoose && <div className="document-toolbar" aria-label="Document selection"><div><strong>{selected.file_name}</strong>{selectionReason && <p>{selectionReason}</p>}</div><Button variant="primary" isDisabled={Boolean(selectionReason)} onPress={() => onChoose(selected)}>Choose this document</Button></div>}
         {state === "loading" && <p role="status">Loading documents…</p>}
         {state === "error" && <Notice tone="error"><strong>Documents could not be loaded.</strong> Check your connection and access, then try again. <Button onPress={() => setReload((value) => value + 1)}>Reload documents</Button></Notice>}
         {state === "ready" && (items.length ? <>

@@ -36,3 +36,29 @@ func loadPostgresDistributionArtifact(ctx context.Context, store *PostgresDistri
 	}
 	return value, nil
 }
+
+// Original bank-held artifacts are read only through the server-owned receipt.
+// Respondent file answers must still belong to an eligible TO request in this
+// distribution. Shared locks keep inspection status stable through commit.
+func loadPostgresWorkspaceArtifact(ctx context.Context, tx pgx.Tx, session DistributionAccessSession, tenantID, requestID, artifactID string, original bool) (Artifact, error) {
+	query := `SELECT a.id::text,a.tenant_id::text,a.request_id::text,COALESCE(a.submission_id::text,''),
+	 a.file_name,a.media_type,a.size_bytes,a.sha256,a.storage_key,a.status,COALESCE(a.created_by::text,''),a.created_at
+	 FROM capture_artifacts a WHERE a.id=$1::uuid AND a.tenant_id=$2::uuid`
+	args := []any{artifactID, tenantID}
+	if original {
+		query += ` AND a.request_id=$3::uuid`
+		args = append(args, requestID)
+	} else {
+		query += ` AND EXISTS (SELECT 1 FROM capture_distribution_recipients r WHERE r.request_id=a.request_id AND r.tenant_id=a.tenant_id AND r.distribution_id=$3::uuid AND r.legal_entity_id=$4::uuid AND r.role='TO' AND r.state<>'REVOKED')`
+		args = append(args, session.DistributionID, session.LegalEntityID)
+	}
+	query += ` FOR SHARE OF a`
+	var value Artifact
+	if err := tx.QueryRow(ctx, query, args...).Scan(&value.ID, &value.TenantID, &value.RequestID, &value.SubmissionID, &value.FileName, &value.MediaType, &value.SizeBytes, &value.SHA256, &value.StorageKey, &value.Status, &value.CreatedBy, &value.CreatedAt); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Artifact{}, ErrNotFound
+		}
+		return Artifact{}, err
+	}
+	return value, nil
+}

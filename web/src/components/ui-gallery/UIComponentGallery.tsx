@@ -28,7 +28,7 @@ import {
 import "../../ui-gallery.css";
 
 const tabs = [
-  { id: "PENDING", label: "Pending review" },
+  { id: "PENDING", label: "Awaiting review" },
   { id: "COMPLETE", label: "Completed" },
 ] as const;
 const selections = [

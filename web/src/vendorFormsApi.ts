@@ -6,6 +6,7 @@ export type VendorFormRow = {
   request_id: string; relationship_id: string; distribution_id?: string; response_id?: string; form_template_id: string; form_template_version: number;
   title: string; purpose?: string; origin_type?: string; origin_id?: string; response_state: string; recipient_hint?: string; delivery_state?: string;
   deadline: string; updated_at: string; submitted_at?: string; required_count: number | null; answered_required: number | null;
+  held_required?: number | null;
   missing_fields: Array<{ id: string; label: string }>; score?: ResponseScore; assessed_score?: ResponseScore; assessment_state?: string; required_reviews: number; completed_reviews: number; current: boolean; response_currency?: "CURRENT" | "PARTIALLY_REPLACED" | "HISTORICAL";
 };
 export type VendorFormsPage = { items: VendorFormRow[]; next_cursor?: string; observed_at: string };

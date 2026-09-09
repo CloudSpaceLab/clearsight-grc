@@ -1,0 +1,31 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+const root = process.cwd();
+const src = path.join(root, 'web/src');
+const require = createRequire(path.join(root, 'web/package.json'));
+const postcss = require('postcss');
+const relative = p => path.relative(root, p).replaceAll('\\', '/');
+const walk = p => fs.readdirSync(p, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(p,e.name)) : [path.join(p,e.name)]);
+const all = walk(src);
+const text = new Map(all.map(p => [p,fs.readFileSync(p,'utf8')]));
+const resolve = (base, spec) => [spec,...['.ts','.tsx','.js','.css','/index.ts','/index.tsx'].map(e=>spec+e)].map(s=>path.resolve(path.dirname(base),s)).find(p=>text.has(p));
+const imports = p => [...(text.get(p)||'').matchAll(/(?:\b(?:import|export)\s+(?:[^;]*?\s+from\s*)?["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']|@import\s*["']([^"']+)["'])/g)].map(m=>m[1]||m[2]||m[3]).filter(s=>s.startsWith('.')).map(s=>resolve(p,s)).filter(Boolean);
+const reached = new Set();
+const visit = p => { if(reached.has(p))return; reached.add(p); imports(p).forEach(visit); };
+visit(path.join(src,'main.tsx'));
+const metrics = [...reached].filter(p=>p.endsWith('.tsx')).map(p=>{
+ const s=text.get(p); const tags=[...s.matchAll(/<([A-Za-z][\w.]*)\b/g)].map(m=>m[1]);
+ const count = name=>tags.filter(t=>t===name).length;
+ return {file:relative(p),lines:s.split(/\r?\n/).length,bytes:Buffer.byteLength(s),raw:Object.fromEntries(['button','input','select','textarea','table','form'].map(n=>[n,count(n)])),shared:Object.fromEntries(['Button','IconButton','ActionLink','TextField','TextArea','SelectField','CheckboxField','FocusedSheet','FocusedDialog','StatusBadge','Notice','EmptyState','DataTable'].map(n=>[n,count(n)])),stateCalls:[...s.matchAll(/\buseState(?:<[^;]*?>)?\(/g)].length};
+}).sort((a,b)=>b.lines-a.lines);
+const css = [...reached].filter(p=>p.endsWith('.css')).map(p=>{
+ const s=text.get(p);let rules=0,declarations=0,important=0;const selectors=new Map();
+ postcss.parse(s,{from:p}).walkRules(rule=>{rules++;rule.walkDecls(d=>{declarations++; if(d.important)important++;});const ancestors=[];for(let n=rule.parent;n?.type==='atrule';n=n.parent)ancestors.push(`@${n.name} ${n.params}`);const key=ancestors.reverse().join(' / ')+' | '+rule.selector;const entries=selectors.get(key)||[];entries.push(rule.source.start.line);selectors.set(key,entries);});
+ return {file:relative(p),lines:s.split(/\r?\n/).length,rules,declarations,important,repeatedSelectorBlocks:[...selectors].filter(([,lines])=>lines.length>1).map(([selector,lines])=>({selector,lines}))};
+}).sort((a,b)=>b.lines-a.lines);
+const migrated=JSON.parse(fs.readFileSync(path.join(root,'web/ui-contract-migrations.json'),'utf8')).migratedTsx.map(p=>'web/'+p);
+const totals={tsxFiles:metrics.length,tsxLines:metrics.reduce((n,r)=>n+r.lines,0),cssFiles:css.length,cssLines:css.reduce((n,r)=>n+r.lines,0),cssRules:css.reduce((n,r)=>n+r.rules,0),cssImportant:css.reduce((n,r)=>n+r.important,0),manifestReachableTsx:metrics.filter(r=>migrated.includes(r.file)).length,raw:Object.fromEntries(['button','input','select','textarea','table','form'].map(k=>[k,metrics.reduce((n,r)=>n+r.raw[k],0)]))};
+const result={generatedAt:new Date().toISOString(),methodology:'Static relative-import reachability from web/src/main.tsx, including lazy imports, CSS imports, type imports and barrel exports. JSX opening tags and useState are regex source-site counts, not rendered/control/component counts. CSS repeated selectors are exact selector plus at-rule context within one file; not defects by themselves. No tree-shaking, runtime coverage or dead-code proof.',totals,tsx:metrics,css,unreachedTsx:all.filter(p=>p.endsWith('.tsx')&&!p.endsWith('.test.tsx')&&!reached.has(p)).map(relative)};
+fs.writeFileSync(path.join(root,'docs/evidence/2026-09-09-ui-audit/component-inventory.json'),JSON.stringify(result,null,2)+'\n');
+console.log(JSON.stringify({totals,largest:metrics.slice(0,15),largestCss:css.slice(0,12).map(({repeatedSelectorBlocks,...r})=>({...r,repeatedSelectorGroups:repeatedSelectorBlocks.length})),unreachedTsx:result.unreachedTsx},null,2));

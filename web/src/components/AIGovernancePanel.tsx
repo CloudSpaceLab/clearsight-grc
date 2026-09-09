@@ -49,7 +49,7 @@ export function AIGovernancePanel({ policies, policyState, workloads, workloadSt
 function PolicyList({ policies, state }: { policies: AIGovernancePolicy[]; state: LoadState }) {
   if (state === "loading") return <div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading AI policies…</div>;
   if (state === "unavailable") return <EmptyState kind="unavailable" label="AI policies" title="AI policies are unavailable" description="Try again before changing or relying on an AI enforcement rollout."/>;
-  if (!policies.length) return <EmptyState label="AI policies" title="No AI policies in this scope" description="No governed model policy has been registered for the current bank scope."/>;
+  if (!policies.length) return <EmptyState label="AI policies" title="No AI policies in this scope" description="No governed model policy has been registered for the current organization."/>;
   return <div className="ai-governance-list">{policies.map((policy) => <div className="ai-governance-row" key={policy.id}>
     <div><strong>{policy.name}</strong><span>{policy.code} · v{policy.version}</span></div>
     <div className="ai-governance-badges"><StatusBadge tone={rolloutTone(policy.rollout_mode)}>{humanize(policy.rollout_mode)}</StatusBadge><StatusBadge tone={stateTone(policy.status)}>{humanize(policy.status)}</StatusBadge></div>

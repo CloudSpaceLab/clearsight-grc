@@ -39,7 +39,7 @@ type MemoryDistributionStore struct {
 }
 
 func NewMemoryDistributionStore(repo *MemoryRepository, forms DistributionFormReader, protector recipientAddressProtector) *MemoryDistributionStore {
-	return &MemoryDistributionStore{
+	store := &MemoryDistributionStore{
 		repo:                repo,
 		forms:               forms,
 		protector:           protector,
@@ -50,6 +50,10 @@ func NewMemoryDistributionStore(repo *MemoryRepository, forms DistributionFormRe
 		requestDistribution: map[string]string{},
 		responseRevisions:   map[string][]ResponseRevision{},
 	}
+	if repo != nil {
+		repo.collectionCurrency = store
+	}
+	return store
 }
 
 func (s *MemoryDistributionStore) CreateDistribution(ctx context.Context, input CreateDistributionInput) (DistributionBundle, error) {

@@ -56,6 +56,7 @@ export type CaptureField = {
   bindings?: FieldBindingReference[];
   source_resolutions?: SourceResolution[];
   collection_intent?: "CAPTURE" | "CONFIRM_OR_CORRECT" | "REPLACE_HELD_DOCUMENT";
+  collection_received?: boolean;
   record_target?: { key: string; required_subject_type: string };
   record_baseline?: CaptureRecordBaseline;
   browser_cache_policy?: "ALLOWED" | "NO_BROWSER_CACHE";

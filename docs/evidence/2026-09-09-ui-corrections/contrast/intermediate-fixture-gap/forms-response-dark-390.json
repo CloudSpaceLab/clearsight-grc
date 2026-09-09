@@ -1,0 +1,456 @@
+{
+  "id": "forms-response-dark-390",
+  "name": "forms-response",
+  "fixture": "forms-response-history",
+  "route": "#forms",
+  "action": "response",
+  "theme": "dark",
+  "width": 390,
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 16
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "#react-aria432054050-_r_2s_",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 309,
+        "y": 37,
+        "width": 44,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.3588903886839139,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 37,
+        "width": 200.765625,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Submitted response",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h2",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 66.6875,
+        "width": 200.765625,
+        "height": 66
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendor due diligence review",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 140.6875,
+        "width": 200.765625,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendor  ·  vendor-acme-processing",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 208.0625,
+        "width": 252.765625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Submitted",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 230.0625,
+        "width": 252.765625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Aug 27, 2026, 2:15 PM",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 260.0625,
+        "width": 252.765625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Response revision",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 282.0625,
+        "width": 252.765625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "2  · Current",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 312.0625,
+        "width": 252.765625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Assurance",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 334.0625,
+        "width": 252.765625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Email verified",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 376.0625,
+        "width": 252.765625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Version history",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 49,
+        "y": 425.0625,
+        "width": 228.765625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Revision  1",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 49,
+        "y": 462.0625,
+        "width": 228.765625,
+        "height": 42
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Secure link confirmed  ·  Aug 20, 2026, 2:15 PM",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 49,
+        "y": 536.0625,
+        "width": 228.765625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Revision  2  · Current",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 49,
+        "y": 573.0625,
+        "width": 228.765625,
+        "height": 42
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Email verified  ·  Aug 27, 2026, 2:15 PM",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "div.cs-notice.cs-tone--error",
+      "disabled": false,
+      "background": "#1f202e",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 651.0625,
+        "width": 252.765625,
+        "height": 110
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Static stakeholder demo does not implement GET /api/v1/forms/responses/response-revision-acme-2/assessment",
+      "foreground": "#d7e0e9",
+      "ratio": 12.058656340290414,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria432054050-_r_2v_",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 761.0625,
+        "width": 150.34375,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.3588903886839139,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 54,
+        "y": 772.5625,
+        "width": 116.34375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Reload assessment",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "div.cs-notice.cs-tone--info",
+      "disabled": false,
+      "background": "#132634",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 37,
+        "y": 829.0625,
+        "width": 252.765625,
+        "height": 110
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "This submitted version cannot be changed. Send an amended form when the subject must provide updated information.",
+      "foreground": "#d7e0e9",
+      "ratio": 11.61171396110812,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    }
+  ],
+  "headings": [
+    "Forms",
+    "Responses",
+    "Vendor due diligence review"
+  ],
+  "status": "CAPTURED"
+}

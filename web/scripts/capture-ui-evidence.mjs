@@ -47,6 +47,8 @@ const captures = [
 try {
   if (process.env.UI_EVIDENCE_SCOPE === "document-results") {
     await captureDocumentResultHandoffs();
+  } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-collection") {
+    await captureVendorCollectionWorkflows();
   } else {
   await captureVendorLinkedWorkflows();
   for (const capture of captures) await capturePage(capture);
@@ -64,6 +66,7 @@ try {
   await captureImportSelection("180-import-selected-light-mobile-390x844", "light", { width: 390, height: 844 }, true);
   await captureDocumentResultHandoffs();
   await captureVendorWorkflows();
+  await captureVendorCollectionWorkflows();
   }
 } catch (error) {
   failure = error instanceof Error ? error.message : String(error);
@@ -223,6 +226,151 @@ async function record(page, capture, state) {
 
 async function writeManifest() {
   await writeFile(path.join(outputDir, "manifest.json"), JSON.stringify({ generatedAt: new Date().toISOString(), baseURL, failure, captures: results }, null, 2));
+}
+
+async function captureVendorCollectionWorkflows() {
+  const axeSource = await readFile(path.resolve("node_modules/axe-core/axe.min.js"), "utf8");
+  const base = { route: "#vendors", title: "Vendors", fixture: "vendor-collection", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const save = async (page, capture, state) => {
+    const name = `vendor-collection-${state}-${capture.theme}-${capture.viewport.width}`;
+    if (!await page.getByRole("dialog").count() && capture.fixture.startsWith("vendor-collection")) {
+      await page.locator(".vendor-checklist").evaluate((element) => window.scrollBy(0, element.getBoundingClientRect().top - 88));
+    }
+    await assertNoHorizontalOverflow(page, name);
+    await saveScreenshot(page, name);
+    await record(page, { ...capture, name }, state);
+  };
+  const accessibility = async (page, selector) => {
+    await page.addScriptTag({ content: axeSource });
+    const violations = await page.evaluate(async (selector) => (await globalThis.axe.run(selector, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] } })).violations.map(({ id, nodes }) => ({ id, nodes: nodes.map(({ failureSummary }) => failureSummary) })), selector);
+    if (violations.length) throw new Error(`Vendor collection accessibility failed: ${JSON.stringify(violations)}`);
+  };
+  const openChecklist = async (capture) => {
+    const opened = await openPage(capture);
+    await opened.page.getByRole("button", { name: /Acme Processing Limited.*Card transaction processing/ }).click();
+    await opened.page.getByRole("heading", { name: "Due diligence", exact: true }).waitFor();
+    await opened.page.locator(".vendor-checklist").waitFor();
+    await opened.page.locator(".vendor-checklist").scrollIntoViewIfNeeded();
+    return opened;
+  };
+  const choose = async (page, capture, screenshot = false) => {
+    await page.getByRole("button", { name: "Missing 1", exact: true }).click();
+    await page.getByRole("button", { name: "Use existing document", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: /Use existing document for/ });
+    await dialog.waitFor();
+    await assertFocusInsideSheet(page, "Choose existing document");
+    await dialog.getByRole("row").filter({ hasText: "Security test report.pdf" }).click();
+    await dialog.getByRole("button", { name: "Choose this document", exact: true }).waitFor();
+    const filename = await dialog.locator(".document-file-name strong").filter({ hasText: "Security test report.pdf" }).boundingBox();
+    if (!filename || filename.width < 100) throw new Error("Document picker squeezes the selected filename below a readable width");
+    if (screenshot) await save(page, capture, "choose");
+    await dialog.getByRole("button", { name: "Choose this document", exact: true }).click();
+    if (await dialog.getByRole("button", { name: "Use this document", exact: true }).isEnabled()) throw new Error("Reuse allows a missing reason");
+    await dialog.getByLabel("Reason for reuse").fill("Covers the payment processing service and the current test period.");
+    if (screenshot) { await save(page, capture, "reason"); await accessibility(page, '[role="dialog"]'); }
+    return dialog;
+  };
+  for (const variant of [{ theme: "light", width: 1440 }, { theme: "dark", width: 1440 }, { theme: "light", width: 390 }, { theme: "dark", width: 320 }]) {
+    const capture = { ...base, theme: variant.theme, viewport: { width: variant.width, height: variant.width === 1440 ? 900 : 844 }, touch: variant.width < 800 };
+    const { context, page } = await openChecklist(capture);
+    try {
+      const checklist = page.locator(".vendor-checklist");
+      for (const name of ["All items 5", "Missing 1", "Pending review 1", "Accepted 1"]) await checklist.getByRole("button", { name, exact: true }).waitFor();
+      await checklist.getByText("Applicability pending", { exact: true }).waitFor();
+      await save(page, capture, "checklist");
+      await accessibility(page, ".vendor-checklist");
+      if (variant.width === 320) {
+        const style = await page.addStyleTag({ content: "body { font-family: Verdana, sans-serif !important; }" });
+        await assertNoHorizontalOverflow(page, "Vendor checklist fallback font reflow");
+        await style.evaluate((element) => element.remove());
+      }
+      if (variant.width === 390) {
+        const mobileDialog = await choose(page, capture, true);
+        await page.keyboard.press("Escape");
+        await mobileDialog.waitFor({ state: "hidden" });
+      }
+      if (variant.width !== 1440 || variant.theme !== "light") continue;
+      const dialog = await choose(page, capture, true);
+      await dialog.getByRole("button", { name: "Use this document", exact: true }).click();
+      await dialog.waitFor({ state: "hidden" });
+      await checklist.getByRole("button", { name: "Missing 0", exact: true }).waitFor();
+      await checklist.getByRole("button", { name: "Pending review 2", exact: true }).waitFor();
+      await checklist.getByRole("button", { name: "All items 5", exact: true }).click();
+      if (await checklist.getByText("No missing items.", { exact: true }).count()) throw new Error("Unknown applicability was labelled complete");
+      await checklist.scrollIntoViewIfNeeded();
+      await save(page, capture, "linked");
+      await checklist.getByRole("article", { name: "ISO 27001 assurance", exact: true }).getByRole("button", { name: "Review document", exact: true }).click();
+      const review = page.getByRole("dialog", { name: "Review document", exact: true });
+      await review.waitFor();
+      await assertFocusInsideSheet(page, "Review document");
+      await review.getByRole("button", { name: "Record validation", exact: true }).waitFor();
+      await save(page, capture, "review-accept");
+      await accessibility(page, '[role="dialog"]');
+      await review.getByRole("combobox", { name: /^Decision/ }).selectOption("REJECT");
+      await review.getByRole("button", { name: "Record rejection", exact: true }).waitFor();
+      await save(page, capture, "review-reject");
+      await page.keyboard.press("Escape");
+      await review.waitFor({ state: "hidden" });
+    } finally { await context.close(); }
+  }
+  for (const state of ["error", "loading", "readonly", "empty", "conflict", "long", "replaced"]) {
+    const capture = { ...base, fixture: `vendor-collection-${state}`, ...(state === "long" ? { viewport: { width: 320, height: 844 }, touch: true } : {}) };
+    const { context, page } = await openChecklist(capture);
+    try {
+      const checklist = page.locator(".vendor-checklist");
+      if (state === "error") {
+        await checklist.getByText("Checklist unavailable.", { exact: true }).waitFor();
+        if (await checklist.getByRole("button", { name: /All items/ }).count()) throw new Error("Unavailable checklist claims a denominator");
+        await save(page, capture, "error");
+        await checklist.getByRole("button", { name: "Reload checklist", exact: true }).click();
+        await checklist.getByRole("button", { name: "All items 5", exact: true }).waitFor();
+        await save(page, capture, "retry");
+      } else if (state === "conflict") {
+        const dialog = await choose(page, capture);
+        await dialog.getByRole("button", { name: "Use this document", exact: true }).click();
+        await dialog.getByText("The request or evidence changed.", { exact: false }).waitFor();
+        if (await dialog.getByLabel("Reason for reuse").inputValue() !== "Covers the payment processing service and the current test period.") throw new Error("Conflict lost the reuse reason");
+        await save(page, capture, "conflict");
+        await dialog.getByRole("button", { name: "Reload checklist", exact: true }).click();
+        await dialog.waitFor({ state: "hidden" });
+        await checklist.getByRole("button", { name: "Missing 1", exact: true }).waitFor();
+      } else {
+        if (state === "loading") {
+          if (await checklist.getAttribute("aria-busy") !== "true") throw new Error("Loading checklist is not announced busy");
+          if (await checklist.getByRole("button", { name: /All items/ }).count()) throw new Error("Loading checklist claims a denominator");
+        } else if (state === "readonly" && await checklist.getByRole("button", { name: /Use existing document|Replace document/ }).count()) throw new Error("Read-only checklist exposes a reconcile command");
+        if (state === "empty") await checklist.getByRole("heading", { name: "No matching items", exact: true }).waitFor();
+        if (state === "replaced") {
+          await checklist.getByText("Document replaced. Link the current version.", { exact: true }).waitFor();
+          await checklist.getByRole("button", { name: "Missing 2", exact: true }).waitFor();
+          await checklist.getByRole("article", { name: "ISO 27001 assurance", exact: true }).getByText("Missing", { exact: true }).waitFor();
+        }
+        await save(page, capture, state);
+      }
+    } finally { await context.close(); }
+  }
+  for (const state of ["received", "recovered", "all-held"]) {
+    const capture = { ...base, route: "", title: state === "all-held" ? "Received" : "Sample · Payment service evidence", fixture: `vendor-capture-${state}`, viewport: { width: 390, height: 844 }, touch: true };
+    const { context, page } = await openPage(capture);
+    try {
+      if (state === "all-held") {
+        await page.getByText("All required documents received. No response needed. Bank review is separate.", { exact: true }).waitFor();
+        if (await page.locator('input[type="file"]').count() || await page.getByRole("button", { name: /Submit|Review response/ }).count()) throw new Error("All-held request still asks for a response");
+      } else {
+        await page.getByText("Document received", { exact: true }).waitFor();
+        await page.getByRole("group", { name: "Operating certificate", exact: true }).first().scrollIntoViewIfNeeded();
+        if (state === "received" && await page.locator('input[type="file"]').count()) throw new Error("Received document asks for an upload");
+        if (state === "recovered") await page.getByRole("button", { name: "Remove document draft", exact: true }).waitFor();
+      }
+      await save(page, capture, `capture-${state}`);
+      await accessibility(page, ".external-capture-work");
+      if (state === "recovered") {
+        await page.getByRole("button", { name: "Remove document draft", exact: true }).click();
+        if (await page.locator('input[type="file"]').count()) throw new Error("Cleared draft still asks for an upload");
+        await save(page, capture, "capture-recovered-cleared");
+      }
+    } finally { await context.close(); }
+  }
 }
 
 async function captureDocumentResultHandoffs() {

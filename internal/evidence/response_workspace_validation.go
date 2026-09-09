@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"context"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 )
@@ -27,10 +28,12 @@ func validateWorkspaceAnswerSet(
 	answers map[string]formcontract.AnswerValue,
 	requireComplete bool,
 	loadArtifact workspaceArtifactLoader,
+	now time.Time,
 ) error {
 	if repo == nil {
 		return ErrWorkspaceUnavailable
 	}
 	validator := NewService(workspaceValidationRepository{Repository: repo, loadArtifact: loadArtifact}, nil)
+	validator.now = func() time.Time { return now }
 	return validator.validateAnswerSet(ctx, request, answers, requireComplete)
 }

@@ -235,7 +235,7 @@ export function GovernanceAdminWorkspace({ policies, delegations, eligiblePeople
     {loadState === "unavailable" && (policies.length > 0 || delegations.length > 0) && <p role="alert">{degradedReason || "The latest governance inventory could not be loaded."} Previously loaded records remain available, but changes are disabled.</p>}
     {loadState === "unavailable" && policies.length === 0 && delegations.length === 0 && <p role="alert">The current legal-entity governance population could not be loaded. Refresh this page to try again; no changes are available.</p>}
     {loadState === "ready" && !canConfigure && <p>You can review this governance inventory, but your current access does not allow policy or delegation changes.</p>}
-    {loadState === "ready" && canConfigure && !delegationCreationAvailable && <p role="status">New delegations are unavailable until the bank directory can confirm who holds the selected responsibility in this legal entity. Existing delegation actions remain available.</p>}
+    {loadState === "ready" && canConfigure && !delegationCreationAvailable && <p role="status">New delegations are unavailable until the organization directory can confirm who holds the selected responsibility in this legal entity. Existing delegation actions remain available.</p>}
     {loadState === "ready" && canConfigure && createPolicyDraft && policyRoles.length === 0 && <p role="status">New routing policies are unavailable until current role labels can be confirmed. Existing policy actions remain available.</p>}
     {error && <p role="alert">{error}</p>}
 

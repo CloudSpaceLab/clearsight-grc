@@ -1,0 +1,284 @@
+{
+  "generatedAt": "2026-09-09T00:05:38.697Z",
+  "groups": [
+    {
+      "group": "baseline",
+      "cases": 104
+    },
+    {
+      "group": "narrow",
+      "cases": 20
+    },
+    {
+      "group": "reflow",
+      "cases": 20
+    },
+    {
+      "group": "filters-and-recovery",
+      "cases": 24
+    }
+  ],
+  "cases": 168,
+  "errors": [],
+  "axeViolations": 0,
+  "axeIncomplete": 3916,
+  "overflow": [],
+  "measurements": {
+    "text:INCOMPLETE": 4488,
+    "text:PASS": 5438,
+    "control-border:INCOMPLETE": 836,
+    "text:INACTIVE": 52,
+    "control-border:INACTIVE": 60,
+    "placeholder:INCOMPLETE": 40,
+    "placeholder:PASS": 66,
+    "control-border:PASS": 272,
+    "control-border:REVIEW": 252
+  },
+  "confirmedFailures": [],
+  "focus": [
+    {
+      "id": "gallery-dark-1440",
+      "tag": "INPUT",
+      "text": "",
+      "focusVisible": true,
+      "outline": "oklab(0.902502 -0.00583741 -0.0145324) solid 3px",
+      "boxShadow": "none",
+      "background": "rgb(13, 24, 38)",
+      "color": "rgb(215, 224, 233)"
+    },
+    {
+      "id": "gallery-dark-390",
+      "tag": "INPUT",
+      "text": "",
+      "focusVisible": true,
+      "outline": "oklab(0.902502 -0.00583741 -0.0145324) solid 3px",
+      "boxShadow": "none",
+      "background": "rgb(13, 24, 38)",
+      "color": "rgb(215, 224, 233)"
+    },
+    {
+      "id": "gallery-light-1440",
+      "tag": "INPUT",
+      "text": "",
+      "focusVisible": true,
+      "outline": "oklab(0.264188 -0.0130153 -0.0405362) solid 3px",
+      "boxShadow": "none",
+      "background": "rgb(255, 255, 255)",
+      "color": "color(srgb 0.0826667 0.14949 0.224157)"
+    },
+    {
+      "id": "gallery-light-390",
+      "tag": "INPUT",
+      "text": "",
+      "focusVisible": true,
+      "outline": "oklab(0.264188 -0.0130153 -0.0405362) solid 3px",
+      "boxShadow": "none",
+      "background": "rgb(255, 255, 255)",
+      "color": "color(srgb 0.0826667 0.14949 0.224157)"
+    },
+    {
+      "id": "gallery-dark-320",
+      "tag": "INPUT",
+      "text": "",
+      "focusVisible": true,
+      "outline": "oklab(0.902502 -0.00583741 -0.0145324) solid 3px",
+      "boxShadow": "none",
+      "background": "rgb(13, 24, 38)",
+      "color": "rgb(215, 224, 233)"
+    },
+    {
+      "id": "gallery-light-320",
+      "tag": "INPUT",
+      "text": "",
+      "focusVisible": true,
+      "outline": "oklab(0.264188 -0.0130153 -0.0405362) solid 3px",
+      "boxShadow": "none",
+      "background": "rgb(255, 255, 255)",
+      "color": "color(srgb 0.0826667 0.14949 0.224157)"
+    },
+    {
+      "id": "gallery-dark-720",
+      "tag": "INPUT",
+      "text": "",
+      "focusVisible": true,
+      "outline": "oklab(0.902502 -0.00583741 -0.0145324) solid 3px",
+      "boxShadow": "none",
+      "background": "rgb(13, 24, 38)",
+      "color": "rgb(215, 224, 233)"
+    },
+    {
+      "id": "gallery-light-720",
+      "tag": "INPUT",
+      "text": "",
+      "focusVisible": true,
+      "outline": "color(srgb 0.0313726 0.498039 0.568627 / 0.78) solid 3px",
+      "boxShadow": "none",
+      "background": "rgb(255, 255, 255)",
+      "color": "color(srgb 0.0826667 0.14949 0.224157)"
+    }
+  ],
+  "filters": [
+    {
+      "id": "forms-response-filters-dark-320",
+      "open": true,
+      "resultsTop": 1914.375,
+      "filterHeight": 1163
+    },
+    {
+      "id": "forms-response-filters-light-320",
+      "open": true,
+      "resultsTop": 1914.375,
+      "filterHeight": 1163
+    },
+    {
+      "id": "forms-response-list-dark-320",
+      "open": false,
+      "resultsTop": 831.375,
+      "filterHeight": 47
+    },
+    {
+      "id": "forms-response-list-light-320",
+      "open": false,
+      "resultsTop": 831.375,
+      "filterHeight": 47
+    },
+    {
+      "id": "forms-response-filters-dark-720",
+      "open": true,
+      "resultsTop": 476.6875,
+      "filterHeight": 221
+    },
+    {
+      "id": "forms-response-filters-light-720",
+      "open": true,
+      "resultsTop": 460.6875,
+      "filterHeight": 205
+    },
+    {
+      "id": "forms-response-list-dark-720",
+      "open": false,
+      "resultsTop": 532.6875,
+      "filterHeight": 47
+    },
+    {
+      "id": "forms-response-list-light-720",
+      "open": false,
+      "resultsTop": 532.6875,
+      "filterHeight": 47
+    },
+    {
+      "id": "forms-response-filters-dark-1440",
+      "open": true,
+      "resultsTop": 693.6875,
+      "filterHeight": 120
+    },
+    {
+      "id": "forms-response-filters-dark-320",
+      "open": true,
+      "resultsTop": 1914.375,
+      "filterHeight": 1163
+    },
+    {
+      "id": "forms-response-filters-dark-390",
+      "open": true,
+      "resultsTop": 1913.6875,
+      "filterHeight": 1163
+    },
+    {
+      "id": "forms-response-filters-light-1440",
+      "open": true,
+      "resultsTop": 693.6875,
+      "filterHeight": 120
+    },
+    {
+      "id": "forms-response-filters-light-320",
+      "open": true,
+      "resultsTop": 1914.375,
+      "filterHeight": 1163
+    },
+    {
+      "id": "forms-response-filters-light-390",
+      "open": true,
+      "resultsTop": 1913.6875,
+      "filterHeight": 1163
+    },
+    {
+      "id": "forms-response-list-dark-1440",
+      "open": false,
+      "resultsTop": 620.6875,
+      "filterHeight": 47
+    },
+    {
+      "id": "forms-response-list-dark-320",
+      "open": false,
+      "resultsTop": 831.375,
+      "filterHeight": 47
+    },
+    {
+      "id": "forms-response-list-dark-390",
+      "open": false,
+      "resultsTop": 809.6875,
+      "filterHeight": 47
+    },
+    {
+      "id": "forms-response-list-light-1440",
+      "open": false,
+      "resultsTop": 620.6875,
+      "filterHeight": 47
+    },
+    {
+      "id": "forms-response-list-light-320",
+      "open": false,
+      "resultsTop": 831.375,
+      "filterHeight": 47
+    },
+    {
+      "id": "forms-response-list-light-390",
+      "open": false,
+      "resultsTop": 809.6875,
+      "filterHeight": 47
+    }
+  ],
+  "simulatedFailures": [
+    {
+      "id": "forms-response-unavailable-dark-320",
+      "count": 1
+    },
+    {
+      "id": "forms-response-unavailable-light-320",
+      "count": 1
+    },
+    {
+      "id": "forms-response-unavailable-dark-720",
+      "count": 1
+    },
+    {
+      "id": "forms-response-unavailable-light-720",
+      "count": 1
+    },
+    {
+      "id": "forms-response-unavailable-dark-1440",
+      "count": 1
+    },
+    {
+      "id": "forms-response-unavailable-dark-320",
+      "count": 1
+    },
+    {
+      "id": "forms-response-unavailable-dark-390",
+      "count": 1
+    },
+    {
+      "id": "forms-response-unavailable-light-1440",
+      "count": 1
+    },
+    {
+      "id": "forms-response-unavailable-light-320",
+      "count": 1
+    },
+    {
+      "id": "forms-response-unavailable-light-390",
+      "count": 1
+    }
+  ]
+}

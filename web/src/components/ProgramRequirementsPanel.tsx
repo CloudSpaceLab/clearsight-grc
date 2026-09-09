@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { addProgramRequirement, determineProgramApplicability, supersedeProgramRequirement } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
 import type { ProgramAggregate, Requirement } from "../types";
+import { TextField } from "./ui";
 
 type Props = { aggregate: ProgramAggregate; operations: ProgramOperation[]; onUpdated: (value: ProgramAggregate) => void; onReload: () => void };
 type Mode = "add" | "replace" | "applicability" | null;
@@ -20,18 +21,21 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [code, setCode] = useState(""); const [title, setTitle] = useState(""); const [statement, setStatement] = useState("");
-  const [sourceAnchor, setSourceAnchor] = useState(""); const [modality, setModality] = useState("MUST");
-  const [actor, setActor] = useState("The bank"); const [action, setAction] = useState(""); const [object, setObject] = useState("");
+  const [sourceAnchor, setSourceAnchor] = useState(""); const [modality, setModality] = useState("");
+  const [actor, setActor] = useState(""); const [action, setAction] = useState(""); const [object, setObject] = useState("");
   const [effectiveFrom, setEffectiveFrom] = useState(today()); const [rationale, setRationale] = useState("");
   const [requirementID, setRequirementID] = useState(aggregate.requirements.find((value) => value.status === "APPROVED")?.id ?? "");
   const [applicability, setApplicability] = useState("APPLICABLE"); const [scopeDescription, setScopeDescription] = useState("");
 
-  function beginAdd() { setMode("add"); setSelected(null); setCode(""); setTitle(""); setStatement(""); setSourceAnchor(""); setModality("MUST"); setActor("The bank"); setAction(""); setObject(""); setEffectiveFrom(today()); setRationale(""); setError(""); }
-  function beginReplace(requirement: Requirement) { setMode("replace"); setSelected(requirement); setCode(requirement.code); setTitle(requirement.title); setStatement(requirement.statement); setSourceAnchor(requirement.source_anchor ?? ""); setModality(requirement.modality ?? "MUST"); setActor(requirement.actor ?? "The bank"); setAction(requirement.action ?? ""); setObject(requirement.object ?? ""); setEffectiveFrom(today()); setRationale(""); setError(""); }
+  function beginAdd() { setMode("add"); setSelected(null); setCode(""); setTitle(""); setStatement(""); setSourceAnchor(""); setModality(""); setActor(""); setAction(""); setObject(""); setEffectiveFrom(today()); setRationale(""); setError(""); }
+  function beginReplace(requirement: Requirement) { setMode("replace"); setSelected(requirement); setCode(requirement.code); setTitle(requirement.title); setStatement(requirement.statement); setSourceAnchor(requirement.source_anchor ?? ""); setModality(requirement.modality ?? ""); setActor(requirement.actor ?? ""); setAction(requirement.action ?? ""); setObject(requirement.object ?? ""); setEffectiveFrom(today()); setRationale(""); setError(""); }
   function beginApplicability() { setMode("applicability"); setRequirementID(aggregate.requirements.find((value) => value.status === "APPROVED")?.id ?? ""); setApplicability("APPLICABLE"); setScopeDescription(""); setRationale(""); setEffectiveFrom(today()); setError(""); }
 
   async function saveRequirement(event: FormEvent) {
-    event.preventDefault(); setBusy(true); setError("");
+    event.preventDefault();
+    if (![actor, action, object].every((value) => value.trim())) { setError("Enter who must act, what they must do and what the requirement applies to."); return; }
+    if (!modality) { setError("Select the obligation strength stated in the source."); return; }
+    setBusy(true); setError("");
     const input = { code, title, statement, sourceAnchor, modality, actor, action, object, effectiveFrom: isoDate(effectiveFrom) };
     try {
       const value = mode === "replace" && selected
@@ -63,11 +67,11 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
       <label><span>Requirement title</span><input required value={title} onChange={(event) => setTitle(event.target.value)}/></label>
       <label className="wide"><span>{mode === "replace" ? "Replacement statement" : "Requirement statement"}</span><textarea required value={statement} onChange={(event) => setStatement(event.target.value)}/></label>
       <label className="wide"><span>{mode === "replace" ? "Replacement source and section" : "Official source and section"}</span><input required value={sourceAnchor} onChange={(event) => setSourceAnchor(event.target.value)}/></label>
-      <label><span>Obligation strength</span><select value={modality} onChange={(event) => setModality(event.target.value)}><option value="MUST">Must</option><option value="MUST_NOT">Must not</option><option value="SHOULD">Should</option><option value="MAY">May</option><option value="EXPECTED">Expected</option></select></label>
+      <label><span>Obligation strength</span><select required value={modality} onChange={(event) => setModality(event.target.value)}><option value="">Select the source's wording</option><option value="MUST">Must</option><option value="MUST_NOT">Must not</option><option value="SHOULD">Should</option><option value="MAY">May</option><option value="EXPECTED">Expected</option></select></label>
       <label><span>Effective from</span><input required type="date" value={effectiveFrom} onChange={(event) => setEffectiveFrom(event.target.value)}/></label>
-      <label><span>Who must act?</span><input value={actor} onChange={(event) => setActor(event.target.value)}/></label>
-      <label><span>What must they do?</span><input value={action} onChange={(event) => setAction(event.target.value)}/></label>
-      <label className="wide"><span>What does it apply to?</span><input value={object} onChange={(event) => setObject(event.target.value)}/></label>
+      <TextField label="Who must act?" value={actor} onChange={setActor} isRequired/>
+      <TextField label="What must they do?" value={action} onChange={setAction} isRequired/>
+      <div className="wide"><TextField label="What does it apply to?" value={object} onChange={setObject} isRequired/></div>
       {mode === "replace" && <label className="wide"><span>Reason for replacing this requirement</span><textarea required value={rationale} onChange={(event) => setRationale(event.target.value)}/></label>}
       {error && <p className="program-form-error wide" role="alert">{error} <button className="text-button" type="button" onClick={onReload}>Reload Program</button></p>}
       <div className="program-form-actions wide"><button className="primary-button" disabled={busy} type="submit">{busy ? "Saving…" : mode === "replace" ? "Save replacement requirement" : "Save requirement"}</button><button className="text-button" type="button" onClick={() => setMode(null)}>Cancel</button></div>

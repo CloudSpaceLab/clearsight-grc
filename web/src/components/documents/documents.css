@@ -22,6 +22,10 @@
   .document-inspector { flex: 0 0 14rem; min-inline-size: 0; padding: var(--cs-space-group); border-inline-start: 1px solid var(--cs-border-default); background: var(--cs-bg-surface-2); }
   .document-inspector h3 { overflow-wrap: anywhere; font-size: var(--cs-font-size-body); }
   .document-inspector p { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+  .document-browser--selecting .document-browser-body { display: block; }
+  .document-browser--selecting .document-kinds { flex-direction: row; overflow-x: auto; border-inline-end: 0; border-block-end: 1px solid var(--cs-border-default); }
+  .document-browser--selecting .document-kind-label { white-space: nowrap; }
+  .document-browser--selecting .document-inspector { display: none; }
   .document-facts { display: grid; gap: var(--cs-space-group); font-size: var(--cs-font-size-caption); }
   .document-facts dt { color: var(--cs-text-muted); }
   .document-facts dd { margin: 0; color: var(--cs-text-primary); overflow-wrap: anywhere; text-align: start; }

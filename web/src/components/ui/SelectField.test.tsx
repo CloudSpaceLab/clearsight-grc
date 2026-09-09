@@ -11,6 +11,14 @@ const options = [
 ] as const satisfies readonly SelectOption<string>[];
 
 describe("SelectField", () => {
+  it("shows only the selected label in the trigger and retains option guidance in the menu", () => {
+    render(<SelectField label="Priority" value="attention" placeholder="Choose priority" options={[{ id: "attention", label: "Needs attention first", description: "Highest adverse score, then most recent" }]} onChange={() => undefined}/>);
+    const trigger = screen.getByRole("button", { name: /Priority/ });
+    expect(trigger.textContent).toContain("Needs attention first");
+    expect(trigger.textContent).not.toContain("Highest adverse score");
+    fireEvent.click(trigger);
+    expect(screen.getByText("Highest adverse score, then most recent")).toBeTruthy();
+  });
   it("opens a themed listbox and selects a bounded option", async () => {
     const change = vi.fn();
     render(<SelectField label="Status" placeholder="All states" options={options} onChange={change}/>);

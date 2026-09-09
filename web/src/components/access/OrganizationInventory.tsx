@@ -34,7 +34,7 @@ export function OrganizationInventory({ positions, mode }: Props) {
       <div><strong>{positions.length}</strong><span>Active positions in this legal entity</span></div>
       <div><strong>{occupied}</strong><span>Positions with an active occupant</span></div>
       <div><strong>{vacancies}</strong><span>Vacant positions requiring coverage</span></div>
-      <div><strong>{unresolvedParents}</strong><span>Parent positions outside this bounded view</span></div>
+      <div><strong>{unresolvedParents}</strong><span>Parent positions not shown</span></div>
     </div>
 
     <article className="config-card identity-organization-card">

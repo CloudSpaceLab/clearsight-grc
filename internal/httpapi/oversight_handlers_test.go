@@ -51,3 +51,24 @@ func TestSystemAdministratorDoesNotGainRiskOversightFromPlatformAdministration(t
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 }
+
+func TestOversightRecoveryDescribesUnavailableAndUncalculatedStates(t *testing.T) {
+	for _, tt := range []struct {
+		name          string
+		service       *oversight.Service
+		code, message string
+	}{
+		{"unconfigured", nil, "oversight_unavailable", "Oversight unavailable. Try again."},
+		{"uncalculated", oversight.NewService(oversight.NewMemoryRepository(nil)), "oversight_not_ready", "Oversight has not been calculated for this legal entity."},
+		{"failed read", oversight.NewService(nil), "oversight_unavailable", "Oversight unavailable. Try again."},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			api := &API{deps: Dependencies{Oversight: tt.service}}
+			r := httptest.NewRequest(http.MethodGet, "/api/v1/oversight", nil)
+			r = r.WithContext(identity.WithActor(r.Context(), identity.Actor{TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "reviewer", ExpiresAt: time.Now().Add(time.Hour)}))
+			w := httptest.NewRecorder()
+			api.oversightSnapshot(w, r)
+			assertAPIError(t, w, 503, tt.code, tt.message)
+		})
+	}
+}

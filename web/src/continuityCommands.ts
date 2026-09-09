@@ -63,6 +63,11 @@ type AddRequirementInput = {
   title: string;
   statement: string;
   sourceAnchor?: string;
+  // The party named in the obligation, not the authenticated command identity.
+  actor: string;
+  action: string;
+  object: string;
+  modality: string;
 };
 
 export type CreateMatterInput = {
@@ -146,16 +151,20 @@ export async function createMatter(input: CreateMatterInput): Promise<MatterAggr
 }
 
 export async function addProgramRequirement(programID: string, expectedVersion: number, input: AddRequirementInput): Promise<ProgramAggregate> {
+  if (![input.actor, input.action, input.object].every((value) => value?.trim())) {
+    throw new Error("Enter who must act, what they must do and what the requirement applies to.");
+  }
+  if (!["MUST", "MUST_NOT", "SHOULD", "MAY", "EXPECTED"].includes(input.modality)) throw new Error("Select the obligation strength stated in the source.");
   const value = await continuityCommand<Parameters<typeof normalizeProgramAggregate>[0]>(`/api/v1/programs/${encodeURIComponent(programID)}/requirements`, {
     expected_version: expectedVersion,
     code: input.code,
     title: input.title,
     statement: input.statement,
     source_anchor: input.sourceAnchor,
-    modality: "MUST",
-    actor: "The bank",
-    action: "maintain the stated safeguard",
-    object: "the monitored channel",
+    modality: input.modality,
+    actor: input.actor.trim(),
+    action: input.action.trim(),
+    object: input.object.trim(),
     status: "APPROVED",
     effective_from: new Date().toISOString(),
   });

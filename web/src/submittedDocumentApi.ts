@@ -9,7 +9,7 @@ export type DocumentOccurrence = {
   form_template_version: number; form_title: string; field_label: string;
   file_name: string; media_type: string; file_kind: FileKind; size_bytes: number;
   sha256: string; artifact_status: string; uploaded_at: string; uploaded_by?: string;
-  submitted_at: string; submitted_by?: string; expires_on?: string; current: boolean;
+  submitted_at: string; submitted_by?: string; submission_channel?: string; expires_on?: string; current: boolean;
   review?: { id: string; status: string; reviewed_by: string; reviewed_at?: string; source: "VENDOR_ASSESSMENT" };
 };
 export type DocumentQuery = {

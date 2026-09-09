@@ -103,7 +103,7 @@ func (a *API) listWorkflowTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if tenantID != actor.TenantID {
-		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This request is outside your signed-in bank scope.")
+		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This request is outside your organization.")
 		return
 	}
 	if requested := strings.TrimSpace(r.URL.Query().Get("principal_id")); requested != "" && requested != actor.PrincipalID {

@@ -47,6 +47,7 @@ type DocumentReview struct {
 	Source     string     `json:"source"`
 }
 type DocumentOccurrence struct {
+	SubmissionChannel   string           `json:"submission_channel"`
 	ID                  string           `json:"id"`
 	ArtifactID          string           `json:"artifact_id"`
 	RequestID           string           `json:"request_id"`

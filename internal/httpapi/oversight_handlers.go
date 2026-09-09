@@ -16,16 +16,16 @@ func (a *API) oversightSnapshot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if a.deps.Oversight == nil {
-		httpx.WriteError(w, http.StatusServiceUnavailable, "oversight_unavailable", "Oversight information is not available. Try again after the projection worker has completed a cycle.")
+		httpx.WriteError(w, http.StatusServiceUnavailable, "oversight_unavailable", "Oversight unavailable. Try again.")
 		return
 	}
 	value, err := a.deps.Oversight.Get(r.Context(), oversight.Scope{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID})
 	if errors.Is(err, oversight.ErrNotFound) {
-		httpx.WriteError(w, http.StatusServiceUnavailable, "oversight_not_ready", "No oversight snapshot is available for this legal entity. Check projection operations and retry after the next cycle.")
+		httpx.WriteError(w, http.StatusServiceUnavailable, "oversight_not_ready", "Oversight has not been calculated for this legal entity.")
 		return
 	}
 	if err != nil {
-		httpx.WriteError(w, http.StatusServiceUnavailable, "oversight_unavailable", "Oversight information could not be loaded. Retry or check projection operations.")
+		httpx.WriteError(w, http.StatusServiceUnavailable, "oversight_unavailable", "Oversight unavailable. Try again.")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, value)

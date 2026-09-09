@@ -9,6 +9,18 @@ vi.mock("./documents/DocumentBrowser", () => ({ DocumentBrowser: () => null }));
 const row = { request_id: "request", relationship_id: "r1", response_id: "submitted-2", form_template_id: "form", form_template_version: 4, title: "Security evidence", response_state: "SUBMITTED", assessment_state: "AWAITING_REVIEW", required_reviews: 2, completed_reviews: 0, required_count: 3, answered_required: 3, current: true, deadline: "2099-09-08T12:00:00Z", updated_at: "2026-09-08T12:00:00Z", submitted_at: "2026-09-08T12:00:00Z", missing_fields: [] };
 beforeEach(() => { vi.clearAllMocks(); api.loadVendorForms.mockResolvedValue({ items: [row], observed_at: "2026-09-08T12:00:00Z" }); });
 describe("vendor forms and responses", () => {
+  it("shows received documents without inventing a submitted response or waiting for vendor submission", async () => {
+    api.loadVendorForms.mockResolvedValue({ items: [{ ...row, response_id: undefined, submitted_at: undefined, assessment_state: undefined, response_state: "NO_VENDOR_ACTION", required_count: 2, answered_required: 0, held_required: 2 }], observed_at: row.updated_at });
+    render(<VendorFormsPanel relationshipID="r1" serviceName="Payments" onRequestForm={() => {}}/>);
+    expect(await screen.findByText("Received")).toBeTruthy();
+    expect(screen.getByText("Assessment state unavailable")).toBeTruthy();
+    expect(screen.getByText("2 required documents received")).toBeTruthy();
+    expect(screen.queryByText("Awaiting submission")).toBeNull();
+    expect(screen.queryByText(/required answers saved/)).toBeNull();
+    expect(screen.queryByText(/Saved progress does not include/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /Review Security evidence response/ })).toBeNull();
+  });
+
   it("identifies a partly replaced response without describing its old score as current", async () => {
     api.loadVendorForms.mockResolvedValue({ items: [{ ...row, response_currency: "PARTIALLY_REPLACED" }], observed_at: row.updated_at });
     render(<VendorFormsPanel relationshipID="r1" serviceName="Payments" onRequestForm={() => {}}/>);
@@ -28,7 +40,7 @@ describe("vendor forms and responses", () => {
     fireEvent.click(screen.getByRole("button", { name: "Review Earlier security evidence revision 1" }));
     expect(screen.getByRole("region", { name: "Assess revision-historical" })).toBeTruthy();
   });
-  it("separates a submitted response from required bank review and opens the exact response", async () => {
+  it("separates a submitted response from required review and opens the exact response", async () => {
     render(<VendorFormsPanel relationshipID="r1" serviceName="Payments" onRequestForm={() => {}}/>);
     expect(await screen.findByText("Security evidence")).toBeTruthy();
     expect(screen.getByText("2 required fields awaiting review")).toBeTruthy();
@@ -42,7 +54,7 @@ describe("vendor forms and responses", () => {
     expect(await screen.findByText("Saved response progress unknown")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Review Security evidence response" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Form work to show/ }));
-    fireEvent.click(screen.getByRole("option", { name: "Awaiting bank review" }));
+    fireEvent.click(screen.getByRole("option", { name: "Awaiting review" }));
     await waitFor(() => expect(api.loadVendorForms).toHaveBeenLastCalledWith("r1", expect.objectContaining({ filter: "AWAITING_REVIEW" })));
   });
 });

@@ -17,18 +17,13 @@
 .vendor-work-facts dd { margin: 0; }
 .vendor-work-action, .vendor-work-buttons, .vendor-work-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; align-items: end; }
 .vendor-work-secure-link { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; align-items: end; }
-.vendor-work-secure-link label { display: grid; gap: .35rem; min-width: 0; }
-.vendor-work-secure-link small { grid-column: 1 / -1; color: var(--muted); }
-.vendor-work-action label, .vendor-work-form > label, .vendor-work-decision label { display: grid; gap: .35rem; }
+.vendor-work-secure-link > small { grid-column: 1 / -1; color: var(--muted); }
 .vendor-work-form { min-width: 0; display: grid; gap: 1rem; margin-top: 1rem; padding: 1rem; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); }
-.vendor-work-form input, .vendor-work-form select, .vendor-work-form textarea, .vendor-work-decision input, .vendor-work-decision textarea { min-width: 0; max-width: 100%; width: 100%; }
-.vendor-work-form textarea, .vendor-work-decision textarea { resize: vertical; }
 .vendor-work-form-summary, .vendor-work-prefill, .vendor-work-outcome { display: grid; gap: .25rem; padding: .75rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
 .vendor-work-scope-note { margin: 0; padding: .75rem; border-left: 3px solid var(--violet); border-radius: 0 8px 8px 0; background: var(--surface-2); color: var(--muted); }
 .vendor-work-form-summary span, .vendor-work-form-summary small, .vendor-work-prefill p { color: var(--muted); margin: 0; }
 .vendor-work-decision { display: grid; gap: .75rem; padding: .75rem; border-left: 2px solid var(--violet); }
 .vendor-work-decision fieldset { display: grid; gap: .4rem; }
-.vendor-work-decision fieldset label { display: flex; align-items: center; gap: .5rem; }
 .vendor-work-response { min-width: 0; display: grid; gap: 1rem; padding: 1rem; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface-2); }
 .vendor-work-response-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
 .vendor-work-response-heading h5, .vendor-work-response-group h6 { margin: 0; font-size: .95rem; }
@@ -43,10 +38,10 @@
 .vendor-work-documents { display: grid; gap: .6rem; }
 .vendor-work-document { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .65rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .vendor-work-document > div { display: grid; gap: .15rem; }
-.vendor-work-document span, .vendor-work-document small { color: var(--muted); }
+.vendor-work-document > div > span, .vendor-work-document > div > small { color: var(--muted); }
 .vendor-work-cancel { justify-self: start; }
 .vendor-work-history { margin-top: 1rem; }
 .vendor-work-history > summary { display: flex; justify-content: space-between; cursor: pointer; }
 .vendor-work-history > div { display: grid; gap: .75rem; margin-top: .75rem; }
 .vendor-work-load-more { margin-top: 1rem; }
-@media (max-width: 720px) { .vendor-work-panel { padding: .75rem; } .vendor-work-form, .vendor-work-card, .vendor-work-response { padding: .75rem; } .vendor-work-panel .section-heading-row, .vendor-work-card-heading, .vendor-work-response-heading, .vendor-work-document { align-items: stretch; flex-direction: column; } .vendor-work-facts, .vendor-work-action, .vendor-work-buttons, .vendor-work-form-grid, .vendor-work-secure-link, .vendor-work-response .vendor-work-answer-list > div { grid-template-columns: minmax(0, 1fr); } .vendor-work-secure-link small { grid-column: 1; } }
+@media (max-width: 720px) { .vendor-work-panel { padding: .75rem; } .vendor-work-form, .vendor-work-card, .vendor-work-response { padding: .75rem; } .vendor-work-panel .section-heading-row, .vendor-work-card-heading, .vendor-work-response-heading, .vendor-work-document { align-items: stretch; flex-direction: column; } .vendor-work-facts, .vendor-work-action, .vendor-work-buttons, .vendor-work-form-grid, .vendor-work-secure-link, .vendor-work-response .vendor-work-answer-list > div { grid-template-columns: minmax(0, 1fr); } .vendor-work-secure-link > small { grid-column: 1; } }

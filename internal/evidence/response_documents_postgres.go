@@ -83,7 +83,7 @@ func documentInventorySQL() string {
  req.title AS form_title,field->>'label' AS field_label,artifact.file_name,artifact.media_type,
  ` + documentKindSQL("artifact.media_type") + ` AS file_kind,
  artifact.size_bytes,artifact.sha256,artifact.status AS artifact_status,artifact.created_at AS uploaded_at,artifact.created_by::text AS uploaded_by,
- submission.submitted_at,submission.submitted_by::text AS submitted_by,
+ submission.submitted_at,submission.submitted_by::text AS submitted_by,submission.channel AS submission_channel,
  COALESCE(review.expires_on::text,submission.answers->(field->>'id')->'document'->>'expires_on','') AS expires_on,
  ` + documentCurrentSQL() + ` AS current,
  CASE WHEN review.id IS NOT NULL THEN jsonb_build_object('id',review.id::text,'status',review.status,'reviewed_by',review.validated_by_principal_id::text,'reviewed_at',review.validated_at,'source','VENDOR_ASSESSMENT') END AS review,

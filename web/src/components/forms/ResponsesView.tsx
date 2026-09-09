@@ -14,7 +14,7 @@ import {
   type ResponseRevision,
 } from "../../formsDistributionApi";
 import { ApiError } from "../../http";
-import { DocumentBrowser } from "../documents/DocumentBrowser";
+import { concernText, concernTone, coverageText, scorePresentation } from "./responseScorePresentation";
 import { ResponseAssessment } from "./ResponseAssessment";
 import {
   ActionLink,
@@ -30,7 +30,6 @@ import {
   Surface,
   TextField,
   type DataColumn,
-  type StatusTone,
 } from "../ui";
 
 type ListState = "loading" | "live" | "sign-in-required" | "error";
@@ -38,7 +37,7 @@ type DetailState = "idle" | "loading" | "live" | "error";
 
 const sortOptions = [
   { id: "CONCERN_DESC", label: "Needs attention first", description: "Highest adverse score, then most recent" },
-  { id: "COMPLETED_DESC", label: "Most recent", description: "Latest completed response first" },
+  { id: "COMPLETED_DESC", label: "Most recent", description: "Latest submitted response first" },
   { id: "RAW_ASC", label: "Lowest score first" },
   { id: "RAW_DESC", label: "Highest score first" },
 ] as const;
@@ -88,7 +87,7 @@ export function ResponsesView() {
       if (sequence !== requestSequence.current) return;
       setItems([]);
       setNextCursor(undefined);
-      setError(message(cause, "Completed responses could not be loaded for the current filters."));
+      setError(message(cause, "Responses could not be loaded for the current filters."));
       setListState(cause instanceof ApiError && cause.status === 401 ? "sign-in-required" : "error");
     }
   }
@@ -101,7 +100,7 @@ export function ResponsesView() {
       setItems((current) => [...current, ...page.items]);
       setNextCursor(page.next_cursor);
     } catch (cause) {
-      setError(message(cause, "More completed responses could not be loaded."));
+      setError(message(cause, "More responses could not be loaded."));
     } finally {
       setLoadingMore(false);
     }
@@ -138,7 +137,7 @@ export function ResponsesView() {
       setDetail(detailResult.value);
       setDetailState("live");
     } else {
-      setDetailError(message(detailResult.reason, "This completed response could not be loaded."));
+      setDetailError(message(detailResult.reason, "This submitted response could not be loaded."));
       setDetailState("error");
     }
   }
@@ -146,7 +145,7 @@ export function ResponsesView() {
   const columns: readonly DataColumn<CompletedResponseSummary>[] = [
     { id: "form", header: "Form", render: (value) => <div className="forms-responses__form"><strong>{value.title}</strong><span>Revision {value.form_template_version}</span></div>, accessibleText: (value) => `${value.title}, form revision ${value.form_template_version}` },
     { id: "subject", header: "Subject", render: (value) => <div className="forms-responses__subject"><strong>{humanize(value.subject_type)}</strong><span>{value.subject_id}</span></div>, accessibleText: (value) => `${humanize(value.subject_type)} ${value.subject_id}` },
-    { id: "completed", header: "Completed", render: (value) => <time dateTime={value.completed_at}>{formatDateTime(value.completed_at)}</time>, accessibleText: (value) => formatDateTime(value.completed_at) },
+    { id: "completed", header: "Submitted", render: (value) => <time dateTime={value.completed_at}>{formatDateTime(value.completed_at)}</time>, accessibleText: (value) => formatDateTime(value.completed_at) },
     { id: "score", header: "Score", render: (value) => <ScoreCell score={value.score}/>, accessibleText: (value) => scoreAccessibleText(value.score) },
     { id: "concern", header: "Concern", kind: "status", render: (value) => <ConcernBadge score={value.score}/>, accessibleText: (value) => concernText(value.score) },
     { id: "coverage", header: "Coverage", kind: "number", render: (value) => coverageText(value.score), accessibleText: (value) => coverageText(value.score) },
@@ -155,53 +154,53 @@ export function ResponsesView() {
 
   return <section className="forms-responses" aria-labelledby="responses-title">
     <header className="forms-responses__heading">
-      <div><p>Completed work</p><h2 id="responses-title">Responses</h2><p>Review submitted forms by concern, score meaning and completion date.</p></div>
+      <div><h2 id="responses-title">Responses</h2></div>
     </header>
 
     {error && listState === "live" && <Notice tone="error">{error} The responses already shown remain available.</Notice>}
+    <div className="forms-responses__sort"><SelectField label="Priority" value={query.sort ?? "CONCERN_DESC"} placeholder="Needs attention first" options={sortOptions} allowsEmpty={false} onChange={(sort) => updateQuery({ sort: sort as ResponseSort | undefined })}/></div>
+    <details className="forms-response-filters"><summary>Filters{hasFilters(query) ? " · Applied" : ""}</summary>
     <FilterBar
-      label="Completed-response filters"
-      resultCount={listState === "live" ? items.length : undefined}
-      resultLabel={(count) => `${count} completed ${count === 1 ? "response" : "responses"} on this page`}
-      clearLabel="Clear response filters"
-      onClear={hasFilters(query) ? clearFilters : undefined}
+      label="Response filters"
       fields={<>
-        <SelectField label="Priority" value={query.sort ?? "CONCERN_DESC"} placeholder="Needs attention first" options={sortOptions} allowsEmpty={false} onChange={(sort) => updateQuery({ sort: sort as ResponseSort | undefined })}/>
         <SelectField label="Concern" value={query.bands?.[0]} placeholder="All concern levels" options={concernOptions} onChange={(band) => updateQuery({ bands: band ? [band as ResponseConcernBand] : undefined })}/>
         <SelectField label="Score meaning" value={query.modes?.[0]} placeholder="All score meanings" options={modeOptions} onChange={(mode) => updateQuery({ modes: mode ? [mode as ResponseScoreMode] : undefined })}/>
         <SelectField label="Score state" value={query.states?.[0]} placeholder="All score states" options={scoreStateOptions} onChange={(state) => updateQuery({ states: state ? [state as ResponseScoreState] : undefined })}/>
-        <TextField label="Completed from" type="date" value={dateInputValue(query.completed_from)} onChange={(value) => updateQuery({ completed_from: startOfDate(value) })}/>
-        <TextField label="Completed until" type="date" value={dateInputValue(query.completed_until)} onChange={(value) => updateQuery({ completed_until: endOfDate(value) })}/>
+        <TextField label="Submitted from" type="date" value={dateInputValue(query.completed_from)} onChange={(value) => updateQuery({ completed_from: startOfDate(value) })}/>
+        <TextField label="Submitted until" type="date" value={dateInputValue(query.completed_until)} onChange={(value) => updateQuery({ completed_until: endOfDate(value) })}/>
         <TextField label="Subject type" value={query.subject_type ?? ""} placeholder="For example, Vendor" onChange={(value) => updateQuery({ subject_type: value.trim() || undefined })}/>
       </>}
     />
+
+    </details>
+    <div className="forms-responses__filter-summary">{listState === "live" && <output>{items.length} responses on this page</output>}{hasFilters(query) && <Button variant="quiet" onPress={clearFilters}>Clear response filters</Button>}</div>
 
     {hasFilters(query) && <div className="forms-responses__chips" aria-label="Applied response filters">
       {query.bands?.[0] && <FilterChip label="Concern" value={humanize(query.bands[0])} onRemove={() => updateQuery({ bands: undefined })}/>}
       {query.modes?.[0] && <FilterChip label="Score meaning" value={humanize(query.modes[0])} onRemove={() => updateQuery({ modes: undefined })}/>}
       {query.states?.[0] && <FilterChip label="Score state" value={humanize(query.states[0])} onRemove={() => updateQuery({ states: undefined })}/>}
-      {query.completed_from && <FilterChip label="Completed from" value={formatDate(query.completed_from)} onRemove={() => updateQuery({ completed_from: undefined })}/>}
-      {query.completed_until && <FilterChip label="Completed until" value={formatDate(query.completed_until)} onRemove={() => updateQuery({ completed_until: undefined })}/>}
+      {query.completed_from && <FilterChip label="Submitted from" value={formatDate(query.completed_from)} onRemove={() => updateQuery({ completed_from: undefined })}/>}
+      {query.completed_until && <FilterChip label="Submitted until" value={formatDate(query.completed_until)} onRemove={() => updateQuery({ completed_until: undefined })}/>}
       {query.subject_type && <FilterChip label="Subject type" value={query.subject_type} onRemove={() => updateQuery({ subject_type: undefined })}/>}
     </div>}
 
     <div className="forms-responses__results" aria-live="polite">
-      {listState === "loading" && items.length === 0 && <Surface><p role="status">Loading completed responses matching the current filters…</p></Surface>}
-      {listState === "sign-in-required" && <EmptyState population="Completed responses matching the current filters" title="Sign in to review responses" description="Your session ended before this response list could be loaded." action={<ActionLink href="/">Sign in again</ActionLink>}/>}
-      {listState === "error" && <EmptyState population="Completed responses matching the current filters" title="Completed responses could not be loaded" description={error ?? "The current response query could not be completed."} action={<Button onPress={() => void refresh()}>Try again</Button>}/>}
-      {listState === "live" && items.length === 0 && <EmptyState population="Completed responses matching the current filters" title="No completed responses match these filters" description="Change or clear the filters to review a different response population."/>}
+      {listState === "loading" && items.length === 0 && <Surface><p role="status">Loading responses matching the current filters…</p></Surface>}
+      {listState === "sign-in-required" && <EmptyState population="Responses matching the current filters" title="Sign in to review responses" description="Your session ended before this response list could be loaded." action={<ActionLink href="/">Sign in again</ActionLink>}/>}
+      {listState === "error" && <EmptyState population="Responses matching the current filters" title="Responses could not be loaded" description={error ?? "The current response query could not be completed."} action={<Button onPress={() => void refresh()}>Try again</Button>}/>}
+      {listState === "live" && items.length === 0 && <EmptyState population="Responses matching the current filters" title="No responses match these filters" description="Change or clear the filters to review a different response population."/>}
       {(listState === "live" || items.length > 0) && items.length > 0 && <DataTable
-        ariaLabel="Completed form responses"
+        ariaLabel="Submitted form responses"
         rows={items}
         rowKey={(value) => value.id}
-        rowName={(value) => `${value.title}, ${humanize(value.subject_type)} ${value.subject_id}, ${scoreAccessibleText(value.score)}, completed ${formatDateTime(value.completed_at)}`}
+        rowName={(value) => `${value.title}, ${humanize(value.subject_type)} ${value.subject_id}, ${scoreAccessibleText(value.score)}, submitted ${formatDateTime(value.completed_at)}`}
         columns={columns}
         isLoading={listState === "loading"}
-        pagination={nextCursor ? { label: "Completed-response pages", nextLabel: "Load more responses", onNext: () => void loadMore(), isLoading: loadingMore } : undefined}
+        pagination={nextCursor ? { label: "Response pages", nextLabel: "Load more responses", onNext: () => void loadMore(), isLoading: loadingMore } : undefined}
       />}
     </div>
 
-    {selectedID && <FocusedSheet label={`Review ${items.find((value) => value.id === selectedID)?.title ?? "completed"} response`} size="wide" panelClassName="forms-response-review" onClose={() => { setSelectedID(undefined); setDetail(undefined); setDetailState("idle"); }}>
+    {selectedID && <FocusedSheet label={`Review ${items.find((value) => value.id === selectedID)?.title ?? "submitted"} response`} size="wide" panelClassName="forms-response-review" onClose={() => { setSelectedID(undefined); setDetail(undefined); setDetailState("idle"); }}>
       <ResponseReview state={detailState} detail={detail} error={detailError} revisions={revisions} revisionsError={revisionsError}/>
     </FocusedSheet>}
   </section>;
@@ -217,69 +216,28 @@ function ConcernBadge({ score }: { score?: ResponseScore }) {
 }
 
 function ResponseReview({ state, detail, error, revisions, revisionsError }: { state: DetailState; detail?: CompletedResponseDetail; error?: string; revisions: ResponseRevision[]; revisionsError?: string }) {
-  const [documentsOpen, setDocumentsOpen] = useState(false);
-  if (state === "loading") return <p role="status">Loading the completed response and score explanation…</p>;
-  if (state === "error") return <EmptyState population="The selected completed response" title="Response details could not be loaded" description={error ?? "Select the response again to retry."}/>;
+  if (state === "loading") return <p role="status">Loading the submitted response and score explanation…</p>;
+  if (state === "error") return <EmptyState population="The selected submitted response" title="Response details could not be loaded" description={error ?? "Select the response again to retry."}/>;
   if (state !== "live" || !detail) return null;
-  const score = detail.response.score ?? detail.revision.score;
-  const presentation = scorePresentation(score);
   return <div className="forms-response-review__content">
-    <header className="cs-sheet-heading"><p>Completed response</p><h2>{detail.response.title}</h2><p>{humanize(detail.response.subject_type)} · {detail.response.subject_id}</p></header>
-    {score?.state === "FAILED" && <Notice tone="warning">The score could not be calculated. The submitted response remains complete and available for review.</Notice>}
-    <section className="forms-response-review__summary" aria-labelledby="response-score-heading">
-      <div><p>Score result</p><h3 id="response-score-heading">{presentation.value}</h3><span>{presentation.meaning}</span></div>
-      <ConcernBadge score={score}/>
-    </section>
+    <header className="cs-sheet-heading"><p>Submitted response</p><h2>{detail.response.title}</h2><p>{humanize(detail.response.subject_type)} · {detail.response.subject_id}</p></header>
     <dl className="cs-sheet-facts">
-      <div><dt>Completed</dt><dd>{formatDateTime(detail.response.completed_at)}</dd></div>
+      <div><dt>Submitted</dt><dd>{formatDateTime(detail.response.completed_at)}</dd></div>
       <div><dt>Response revision</dt><dd>{detail.response.revision}{detail.response.current ? " · Current" : " · Historical"}</dd></div>
       <div><dt>Assurance</dt><dd>{assuranceLabel(detail.revision.achieved_assurance)}</dd></div>
-      <div><dt>Score coverage</dt><dd>{coverageText(score)}</dd></div>
-      <div><dt>Score state</dt><dd>{humanize(score?.state ?? "NOT_CONFIGURED")}</dd></div>
-      <div><dt>Scoring profile</dt><dd>{score?.profile_version || detail.revision.scoring_policy_version || "Not configured"}</dd></div>
     </dl>
     <section className="forms-response-review__history" aria-label="Version history">
-      <div><p>Submitted versions</p><h3>Version history</h3></div>
+      <h3>Version history</h3>
       {revisionsError && <Notice tone="warning">{revisionsError} The selected response remains available.</Notice>}
       {revisions.length > 0 && <ol>{revisions.map((revision) => <li key={revision.id}><strong>Revision {revision.revision}{revision.current ? " · Current" : ""}</strong><span>{assuranceLabel(revision.achieved_assurance)} · {formatDateTime(revision.created_at)}</span></li>)}</ol>}
     </section>
-    <ScoreExplanation score={score}/>
-    <ResponseAssessment responseID={detail.response.id}/>
-    <Button onPress={() => setDocumentsOpen(true)}>View submitted documents</Button>
-    {documentsOpen && <FocusedSheet label="Submitted documents" size="wide" onClose={() => setDocumentsOpen(false)}><DocumentBrowser key={detail.response.id} scopeLabel={`${detail.response.title} · Revision ${detail.response.revision}`} responseRevisionID={detail.response.id}/></FocusedSheet>}
+    <ResponseAssessment responseID={detail.response.id} submissionScore={detail.response.score} showResponseContext={false}/>
     <Notice tone="info">This submitted version cannot be changed. Send an amended form when the subject must provide updated information.</Notice>
   </div>;
 }
 
-function ScoreExplanation({ score }: { score?: ResponseScore }) {
-  const contributions = score?.contribution_results ?? [];
-  const rules = score?.rule_results ?? [];
-  if (contributions.length === 0 && rules.length === 0) return null;
-  return <section className="forms-response-review__explanation" aria-labelledby="score-explanation-heading">
-    <div><p>Calculation detail</p><h3 id="score-explanation-heading">Why this score was assigned</h3></div>
-    {contributions.length > 0 && <ul>{contributions.map((item, index) => <li key={item.id || index}><strong>{humanize(item.id || `Contribution ${index + 1}`)}</strong><span>{humanize(item.outcome || "included")} · {formatNumber(item.points)} points at weight {formatNumber(item.weight)}</span></li>)}</ul>}
-    {rules.length > 0 && <ul>{rules.map((item, index) => <li key={item.id || index}><strong>{humanize(item.id || `Rule ${index + 1}`)}</strong><span>{item.matched ? "Applied to this response" : "Did not apply"} · {humanize(item.effect || item.outcome || "rule")}{typeof item.value === "number" ? ` ${formatNumber(item.value)}` : ""}</span></li>)}</ul>}
-  </section>;
-}
-
-function scorePresentation(score?: ResponseScore): { value: string; meaning: string } {
-  if (!score || score.state === "NOT_CONFIGURED") return { value: "Not scored", meaning: "No scoring profile applied" };
-  if (score.state === "FAILED") return { value: "Score unavailable", meaning: "The response is complete and can still be reviewed." };
-  if (score.raw_score === undefined) return { value: "Score pending", meaning: "Required scored answers are incomplete" };
-  if (score.mode === "COMPLIANCE") return { value: `${formatNumber(score.raw_score)}% compliance`, meaning: score.band === "LOW" ? "Meets expected level" : score.band === "MODERATE" ? "Review advised" : "Below required level" };
-  if (score.mode === "RISK") return { value: `${formatNumber(score.raw_score)}% risk`, meaning: score.band ? `${humanize(score.band)} concern` : "Risk score available" };
-  return { value: `${formatNumber(score.raw_score)}%`, meaning: "Completed score" };
-}
-
-function scoreAccessibleText(score?: ResponseScore) { const value = scorePresentation(score); return `${value.value}, ${value.meaning}`; }
-function concernText(score?: ResponseScore) { return score?.band ? `${humanize(score.band)} concern` : score?.state === "FAILED" ? "Score unavailable" : "Not classified"; }
-function concernTone(score?: ResponseScore): StatusTone {
-  if (score?.state === "FAILED") return "warning";
-  switch (score?.band) { case "CRITICAL": return "error"; case "HIGH": return "warning"; case "MODERATE": return "info"; case "LOW": return "success"; default: return "unknown"; }
-}
-function coverageText(score?: ResponseScore) { return typeof score?.coverage === "number" ? `${formatNumber(score.coverage <= 1 ? score.coverage * 100 : score.coverage)}%` : "Not available"; }
 function assuranceLabel(value: string) { return value === "EMAIL_VERIFIED" ? "Email verified" : value === "LINK_POSSESSION" ? "Secure link confirmed" : humanize(value); }
-function formatNumber(value: number) { return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value); }
+
 function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (part) => part.toUpperCase()); }
 function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Unknown date" : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date); }
 function formatDateTime(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Unknown time" : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date); }
@@ -313,3 +271,5 @@ function writeQuery(query: CompletedResponseQuery) {
   set("response_from", query.completed_from); set("response_until", query.completed_until); set("response_subject_type", query.subject_type?.trim());
   window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
+
+function scoreAccessibleText(score?: ResponseScore) { const value = scorePresentation(score); return `${value.value}, ${value.meaning}`; }

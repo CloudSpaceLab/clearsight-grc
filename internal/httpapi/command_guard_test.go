@@ -99,7 +99,7 @@ func TestCommandRejectsTenantMismatch(t *testing.T) {
 	req = req.WithContext(identity.WithActor(req.Context(), identity.Actor{TenantID: "bank-demo", PrincipalID: "person-1", LegalEntityID: "bank-ng", Kind: "PERSON", ExpiresAt: now.Add(time.Hour)}))
 	response := httptest.NewRecorder()
 	handler(response, req)
-	if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), "outside your signed-in bank scope") {
+	if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), "outside your organization") {
 		t.Fatalf("unexpected response %d: %s", response.Code, response.Body.String())
 	}
 }

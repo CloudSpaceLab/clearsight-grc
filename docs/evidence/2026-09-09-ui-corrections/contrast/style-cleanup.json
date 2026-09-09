@@ -1,0 +1,66 @@
+{
+  "generatedAt": "2026-09-08T23:39:25.031Z",
+  "method": "Exact top-level selector groups from the accepted before inventory. Media and theme contexts kept separate. Counts are source cleanup evidence, not bundle or render claims.",
+  "rules": [
+    {
+      "file": "web/src/form-builder-workspace.css",
+      "selector": ".form-builder-inspector",
+      "beforeBlocks": 2,
+      "afterBlocks": 1
+    },
+    {
+      "file": "web/src/ui-preferences.css",
+      "selector": ".display-preferences-popover",
+      "beforeBlocks": 2,
+      "afterBlocks": 1
+    },
+    {
+      "file": "web/src/forms-task11.css",
+      "selector": ".forms-response-layout",
+      "beforeBlocks": 2,
+      "afterBlocks": 1
+    },
+    {
+      "file": "web/src/components/vendor-due-diligence.css",
+      "selector": ".vdd-limitation",
+      "beforeBlocks": 2,
+      "afterBlocks": 1
+    },
+    {
+      "file": "web/src/document-import.css",
+      "selector": ".document-import-inspector",
+      "beforeBlocks": 2,
+      "afterBlocks": 1
+    },
+    {
+      "file": "web/src/continuity.css",
+      "selector": ".workspace-loading",
+      "beforeBlocks": 2,
+      "afterBlocks": 1
+    },
+    {
+      "file": "web/src/forms-foundation.css",
+      "selector": ".forms-workspace",
+      "beforeBlocks": 2,
+      "afterBlocks": 1
+    },
+    {
+      "file": "web/src/forms-foundation.css",
+      "selector": ".forms-layout-toggle",
+      "beforeBlocks": 2,
+      "afterBlocks": 0
+    },
+    {
+      "file": "web/src/forms-foundation.css",
+      "selector": ".forms-summary-metric",
+      "beforeBlocks": 2,
+      "afterBlocks": 0
+    },
+    {
+      "file": "web/src/components/vendor-forms.css",
+      "selector": ".vendor-form-summary",
+      "beforeBlocks": 2,
+      "afterBlocks": 1
+    }
+  ]
+}

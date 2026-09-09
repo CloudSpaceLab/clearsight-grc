@@ -36,10 +36,9 @@ export function MatterCurrentHandoff({ aggregate, operations, responsibleParties
 
   return <section className="matter-current-handoff" aria-labelledby="matter-current-handoff-title">
     <div className="matter-handoff-copy">
-      <span className="eyebrow">What needs to happen next</span>
-      <h2 id="matter-current-handoff-title">Current handoff</h2>
-      <h3>{aggregate.next_action}</h3>
-      <p>{operation?.reason ?? "No person or role is currently assigned to this issue."}</p>
+      <span className="eyebrow">Next action</span>
+      <h2 id="matter-current-handoff-title">{aggregate.next_action}</h2>
+      {operation?.can_act && <p>{operation.reason}</p>}
       <div className="matter-handoff-facts" aria-label="Current responsibility and timing">
         <span>{ownerLabel} <strong>{owner}</strong></span>
         <span>{formatDate(aggregate.matter.due_at)}</span>
@@ -50,7 +49,7 @@ export function MatterCurrentHandoff({ aggregate, operations, responsibleParties
     <div className="matter-dominant-next" data-testid="dominant-next-action">
       {operation?.can_act
         ? <button className="primary-button" type="button" onClick={moveToOperation}>{operation.label}</button>
-        : <div className="matter-readonly-next"><strong>{operation?.label ?? "No action available"}</strong><span>{operation?.reason ?? "No operation is available for your current role."}</span></div>}
+        : <div className="matter-readonly-next"><strong>{operation?.label ?? "No action available"}</strong><span>{operation?.reason ?? "No action is available for your current role."}</span></div>}
     </div>
   </section>;
 }

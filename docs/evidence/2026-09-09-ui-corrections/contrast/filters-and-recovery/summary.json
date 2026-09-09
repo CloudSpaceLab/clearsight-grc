@@ -1,0 +1,173 @@
+{
+  "generatedAt": "2026-09-09T00:02:21.066Z",
+  "results": [
+    {
+      "id": "forms-response-list-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 28
+    },
+    {
+      "id": "forms-response-list-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "forms-response-list-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "forms-response-list-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 28
+    },
+    {
+      "id": "forms-response-list-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "forms-response-list-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "forms-response-filters-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 37
+    },
+    {
+      "id": "forms-response-filters-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-response-filters-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-response-filters-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 37
+    },
+    {
+      "id": "forms-response-filters-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-response-filters-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-response-unavailable-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 1
+    },
+    {
+      "id": "forms-response-unavailable-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 0
+    },
+    {
+      "id": "forms-response-unavailable-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 0
+    },
+    {
+      "id": "forms-response-unavailable-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 1
+    },
+    {
+      "id": "forms-response-unavailable-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 0
+    },
+    {
+      "id": "forms-response-unavailable-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 0
+    },
+    {
+      "id": "configure-data-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 37
+    },
+    {
+      "id": "configure-data-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 25
+    },
+    {
+      "id": "configure-data-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 25
+    },
+    {
+      "id": "configure-data-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 37
+    },
+    {
+      "id": "configure-data-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 25
+    },
+    {
+      "id": "configure-data-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 25
+    }
+  ]
+}

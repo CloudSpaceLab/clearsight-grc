@@ -82,5 +82,22 @@ describe("FormProposalReview", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create draft from selected fields" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/changed while you were reviewing/i);
     await waitFor(() => expect(loadFormProposal).toHaveBeenCalledWith("proposal-1"));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Latest version loaded. Review the selected fields before creating a draft."));
+  });
+
+  it("does not claim a conflicting proposal was reloaded while its refresh is pending or failed", async () => {
+    vi.mocked(acceptFormProposal).mockRejectedValueOnce(new ApiError(409, "proposal changed", "form_proposal_conflict"));
+    let failRefresh!: (error: Error) => void;
+    vi.mocked(loadFormProposal).mockReturnValueOnce(new Promise((_, reject) => { failRefresh = reject; }));
+    const changed = vi.fn();
+    render(<FormProposalReview proposal={proposal} onProposalChange={changed}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Create draft from selected fields" }));
+    await waitFor(() => expect(loadFormProposal).toHaveBeenCalledWith("proposal-1"));
+    expect(screen.getByRole("alert").textContent).toContain("Reload it before creating a draft.");
+    expect(screen.getByRole("alert").textContent).not.toMatch(/latest version.*loaded/i);
+    failRefresh(new Error("Failed to fetch"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Create draft from selected fields" }).hasAttribute("disabled")).toBe(false));
+    expect(changed).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toContain("Reload it before creating a draft.");
   });
 });

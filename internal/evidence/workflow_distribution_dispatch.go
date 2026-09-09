@@ -31,7 +31,7 @@ func NewWorkflowDistributionDispatcher(distributions *DistributionService, acces
 	return &WorkflowDistributionDispatcher{distributions: distributions, access: access}
 }
 
-func (service *WorkflowDistributionDispatcher) Dispatch(ctx context.Context, input WorkflowDistributionDispatchInput) (WorkflowDistributionDispatch, error) {
+func (service *WorkflowDistributionDispatcher) Prepare(ctx context.Context, input WorkflowDistributionDispatchInput) (WorkflowDistributionDispatch, error) {
 	if service == nil || service.distributions == nil || service.access == nil || service.access.store == nil {
 		return WorkflowDistributionDispatch{}, ErrDistributionAccessUnavailable
 	}
@@ -71,24 +71,15 @@ func (service *WorkflowDistributionDispatcher) Dispatch(ctx context.Context, inp
 		return WorkflowDistributionDispatch{}, err
 	}
 	partial := WorkflowDistributionDispatch{Distribution: prepared.Distribution, Request: request}
-	routes, err := service.access.EnsureDistributionAccessRoutes(ctx, prepared.Distribution.TenantID, prepared.Distribution.LegalEntityID, prepared.Distribution.ID, requestInput.CreatedBy)
-	if err != nil || len(routes) != 1 {
-		return partial, ErrDistributionAccessUnavailable
-	}
-	partial.Route = routes[0]
-	opened, err := service.distributions.Open(ctx, prepared.Distribution.TenantID, prepared.Distribution.LegalEntityID, prepared.Distribution.ID, prepared.Distribution.Version, requestInput.CreatedBy)
+	return partial, nil
+}
+
+func (service *WorkflowDistributionDispatcher) Dispatch(ctx context.Context, input WorkflowDistributionDispatchInput) (WorkflowDistributionDispatch, error) {
+	prepared, err := service.Prepare(ctx, input)
 	if err != nil {
-		_ = service.access.RevokeDistributionAccessRoute(ctx, prepared.Distribution.TenantID, prepared.Distribution.LegalEntityID, prepared.Distribution.ID, routes[0].RouteID)
-		return partial, err
+		return prepared, err
 	}
-	if len(opened.Recipients) != 1 || opened.Recipients[0].RequestID == "" {
-		return WorkflowDistributionDispatch{}, ErrDistributionInvalid
-	}
-	request, err = service.access.store.GetRequest(ctx, opened.Distribution.TenantID, opened.Recipients[0].RequestID)
-	if err != nil {
-		return WorkflowDistributionDispatch{}, err
-	}
-	return WorkflowDistributionDispatch{Distribution: opened.Distribution, Request: request, Route: routes[0]}, nil
+	return service.Resume(ctx, prepared.Request.TenantID, prepared.Request.LegalEntityID, prepared.Request.ID, input.Request.CreatedBy, input.RouteExpiresAt)
 }
 
 func (service *WorkflowDistributionDispatcher) Revoke(ctx context.Context, tenantID, legalEntityID, distributionID, routeID string) error {
@@ -96,6 +87,32 @@ func (service *WorkflowDistributionDispatcher) Revoke(ctx context.Context, tenan
 		return ErrDistributionAccessUnavailable
 	}
 	return service.access.RevokeDistributionAccessRoute(ctx, tenantID, legalEntityID, distributionID, routeID)
+}
+
+// PreparedRequestRecipient returns the stored protected recipient only to the
+// owning workflow after its command authorization. It never returns an access
+// token or puts the address in a response DTO.
+func (service *WorkflowDistributionDispatcher) PreparedRequestRecipient(ctx context.Context, tenant, entity, requestID string) (string, error) {
+	if service == nil || service.distributions == nil || service.access == nil || service.access.revealer == nil {
+		return "", ErrDistributionAccessUnavailable
+	}
+	bundle, err := service.distributions.GetForRequest(ctx, tenant, entity, requestID)
+	if err != nil {
+		return "", err
+	}
+	if bundle.Distribution.Status != DistributionDraft && bundle.Distribution.Status != DistributionOpen {
+		return "", ErrDistributionInvalid
+	}
+	if len(bundle.Recipients) != 1 || bundle.Recipients[0].RequestID != requestID {
+		return "", ErrDistributionInvalid
+	}
+	recipient := bundle.Recipients[0]
+	route := AccessRoute{TenantID: bundle.Distribution.TenantID, LegalEntityID: bundle.Distribution.LegalEntityID, DistributionID: bundle.Distribution.ID, RecipientID: recipient.ID, Policy: bundle.Distribution.AccessPolicy}
+	safe, protected, err := service.access.store.ProtectedRecipientForAccess(ctx, route, recipient.ID)
+	if err != nil {
+		return "", err
+	}
+	return service.access.revealer.RevealRecipientAddress(ctx, route.TenantID, route.DistributionID, safe.ID, protected)
 }
 
 func (service *WorkflowDistributionDispatcher) RevokeRequest(ctx context.Context, tenantID, legalEntityID, requestID, routeID string) error {

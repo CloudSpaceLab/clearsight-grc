@@ -181,7 +181,7 @@ func DemoGuides() []Guide {
 			Steps: []Step{
 				{ID: "today", Title: "Review assigned work", Description: "Today shows reviews, approvals and evidence requests assigned to your role.", Action: "Open Today", View: "today", Target: "attention-list"},
 				{ID: "matter", Title: "Check facts and open questions", Description: "Review known facts, missing information, conflicts, actions and outcome checks.", Action: "Open first issue", View: "work", Target: "matters-workspace", Intent: "open-first-matter"},
-				{ID: "evidence", Title: "Request missing evidence", Description: "Check information already held by the bank before requesting a response.", Action: "Open evidence requests", View: "work", Target: "evidence-workspace", Intent: "switch-evidence"},
+				{ID: "evidence", Title: "Request missing evidence", Description: "Check existing evidence before requesting a response.", Action: "Open evidence requests", View: "work", Target: "evidence-workspace", Intent: "switch-evidence"},
 				{ID: "finish", Title: "Record an independent result", Description: "Keep the outcome check separate from the action it verifies.", Action: "Done", View: "work", Target: "matters-workspace"},
 			},
 		},
@@ -202,7 +202,7 @@ func DemoGuides() []Guide {
 			Title: "Evidence requests", Description: "Review assigned requests and provide the requested information.", Illustration: "guided-orbit",
 			Steps: []Step{
 				{ID: "today", Title: "Review assigned requests", Description: "Today shows why each request is due and links to the request details.", Action: "Open Today", View: "today", Target: "attention-list"},
-				{ID: "request", Title: "Check the request", Description: "Review the purpose, deadline and information already held by the bank.", Action: "Open evidence request", View: "work", Target: "evidence-workspace", Intent: "open-first-evidence"},
+				{ID: "request", Title: "Check the request", Description: "Review the purpose, deadline and existing evidence.", Action: "Open evidence request", View: "work", Target: "evidence-workspace", Intent: "open-first-evidence"},
 				{ID: "capture", Title: "Submit requested information", Description: "Your submission receives a receipt and remains subject to evidence review.", Action: "Open response form", View: "today", Target: "capture-action", Intent: "open-capture"},
 				{ID: "finish", Title: "Report an incorrect assignment", Description: "Redirect the request or report that it was assigned to the wrong person or team.", Action: "Done", View: "work", Target: "evidence-workspace"},
 			},
@@ -224,7 +224,7 @@ func DemoGuides() []Guide {
 			Title: "Manage vendor relationships", Description: "Record the service, collect missing information and route vendor work for review.", Illustration: "guided-orbit",
 			Steps: []Step{
 				{ID: "register", Title: "Review the vendor register", Description: "Check the supplied service, owner and current relationship state.", Action: "Review vendors", View: "vendors", Target: "vendor-register"},
-				{ID: "due-diligence", Title: "Collect due diligence", Description: "Use known bank records first, then request only missing information.", Action: "Review due diligence", View: "vendors", Target: "vdd-title", Intent: "open-vendor-due-diligence"},
+				{ID: "due-diligence", Title: "Collect due diligence", Description: "Use existing records, then request missing information.", Action: "Review due diligence", View: "vendors", Target: "vdd-title", Intent: "open-vendor-due-diligence"},
 				{ID: "work", Title: "Request vendor action", Description: "Send a focused form, document, signature or upload request when the vendor must act.", Action: "Review vendor requests", View: "vendors", Target: "vendor-work-panel", Intent: "open-vendor-work"},
 				{ID: "finish", Title: "Confirm the outcome", Description: "Completion and upload remain separate from review and outcome confirmation.", Action: "Open next vendor task", View: "vendors", Target: "vendors-workspace", Intent: "open-vendor-next-action"},
 			},

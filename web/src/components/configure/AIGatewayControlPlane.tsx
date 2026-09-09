@@ -96,7 +96,7 @@ export function AIGatewayControlPlane({ onChanged }: { onChanged?: () => void })
       <div>
         <span className="eyebrow">Gateway · organization baseline</span>
         <h3 id="gateway-baseline-heading">AI security guardrails</h3>
-        <p>Set tenant-wide, non-bypassable gateway instructions and prompt-injection controls. The baseline is evaluated separately from each workload policy and both exact revisions remain reconstructable.</p>
+        <p>Set organization-wide gateway instructions and prompt-injection controls. These apply alongside each workload policy.</p>
       </div>
       <span className="ai-gateway-control-plane__state">{loading ? "Checking…" : active ? `${active.rollout_mode.toLowerCase()} · v${active.version}` : "Not active"}</span>
     </div>

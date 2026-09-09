@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 const interfaceSources = import.meta.glob(
-  ["./*.ts", "./*.tsx", "./components/*.ts", "./components/*.tsx", "./components/forms/*.ts", "./components/forms/*.tsx", "!./**/*.test.ts", "!./**/*.test.tsx"],
+  ["./*.ts", "./*.tsx", "./components/**/*.ts", "./components/**/*.tsx", "!./**/*.test.ts", "!./**/*.test.tsx", "!./**/*.d.ts"],
   { eager: true, query: "?raw", import: "default" },
 ) as Record<string, string>;
 
 const productCommentary = [
+  /\b(?:awaiting|require|needs|pending) bank review\b/i,
+  /\bbank (?:assessment|judgement|rubric|reviewer)\b/i,
+  /\bwithout mixing\b/i,
+  /assigned work remains canonical/i,
+  /\bbounded view\b/i,
+  /<h[1-6][^>]*>\s*what (?:is|[’']s) still needed\s*<\/h[1-6]>/i,
   /generic dashboard/i,
   /exact (?:linked )?record/i,
   /authoritative server/i,

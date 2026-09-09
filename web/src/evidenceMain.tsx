@@ -3,6 +3,9 @@ import { createRoot } from "react-dom/client";
 import "./staticDemoBootstrap";
 import { PolicyAssessmentEvidence } from "./PolicyAssessmentEvidence";
 import { FieldAssessmentEvidencePage, installVendorAssessmentEvidence } from "./vendorAssessmentEvidence";
+import { installVendorCollectionEvidence } from "./vendorCollectionEvidence";
+import { installUITruthEvidence, UITruthEvidencePage } from "./uiTruthEvidence";
+import { VendorCaptureEvidencePage, type VendorCaptureEvidenceState } from "./vendorCaptureEvidence";
 import { consumeCaptureInvitation } from "./captureInvitationBrowser";
 import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
 import { LifecycleTodayEvidencePage } from "./components/LifecycleTodayEvidencePage";
@@ -38,8 +41,12 @@ if (!root) throw new Error("Application root is missing");
 
 const fixture = new URLSearchParams(window.location.search).get("fixture");
 installVendorAssessmentEvidence();
+installVendorCollectionEvidence();
+installUITruthEvidence();
 const application = invitationToken !== null
   ? <ExternalCaptureApp invitationToken={invitationToken}/>
+  : fixture?.startsWith("ui-truth-") ? <UITruthEvidencePage state={fixture.replace("ui-truth-", "")}/>
+  : fixture?.startsWith("vendor-capture-") ? <VendorCaptureEvidencePage state={fixture.replace("vendor-capture-", "") as VendorCaptureEvidenceState}/>
   : fixture === "field-assessment-policy" ? <PolicyAssessmentEvidence/>
   : fixture === "field-assessment-builder" || fixture === "field-assessment-review"
     ? <FieldAssessmentEvidencePage review={fixture === "field-assessment-review"}/>

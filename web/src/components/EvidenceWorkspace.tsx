@@ -21,8 +21,8 @@ function SourceIcon({ type }: { type: string }) {
 
 function label(value: string) {
   const labels: Record<string, string> = {
-    REGULATORY: "Regulator or official publication", SYSTEM: "Bank system", DOCUMENT: "Document or file", HUMAN: "Staff response", VENDOR: "External provider",
-    SYSTEM_OF_RECORD: "Official bank record", AUTHORITATIVE: "Authoritative source", PRIMARY: "Primary source", SECONDARY: "Supporting source",
+    REGULATORY: "Regulator or official publication", SYSTEM: "Internal system", DOCUMENT: "Document or file", HUMAN: "Staff response", VENDOR: "External provider",
+    SYSTEM_OF_RECORD: "Official record", AUTHORITATIVE: "Authoritative source", PRIMARY: "Primary source", SECONDARY: "Supporting source",
     CURRENT: "Up to date", DEGRADED: "Limited", STALE: "Out of date", UNAVAILABLE: "Unavailable", UNKNOWN: "Not checked",
     READY: "Response required", IN_PROGRESS: "Response in progress", SUBMITTED: "Response received", CANCELLED: "Cancelled", EXPIRED: "Past due", DRAFT: "Draft",
     ASSIGNED: "Assigned", REASSIGNMENT_REQUIRED: "Needs reassignment", LEGACY_UNASSIGNED: "Unassigned historical request",

@@ -1,0 +1,783 @@
+{
+  "id": "forms-response-unavailable-dark-1440",
+  "name": "forms-response-unavailable",
+  "fixture": "forms-response-history",
+  "route": "#forms",
+  "action": "response-error",
+  "theme": "dark",
+  "width": 1440,
+  "scale": 1,
+  "generatedAt": "2026-09-09T00:02:04.541Z",
+  "errors": [],
+  "simulatedAssessmentFailures": 1,
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscuring",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Revision 1</strong>",
+            "target": [
+              "li:nth-child(1) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 24
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "#react-aria3526028703-_r_2s_",
+      "parentSelector": "div.cs-sheet__close",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1359,
+        "y": 37,
+        "width": 44,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.3588903886839139,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header.cs-sheet-heading",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 37,
+        "width": 690,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Submitted response",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h2",
+      "parentSelector": "header.cs-sheet-heading",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 66.6875,
+        "width": 690,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendor due diligence review",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header.cs-sheet-heading",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 107.6875,
+        "width": 690,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendor  ·  vendor-acme-processing",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 153.375,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Submitted",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 175.375,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Aug 27, 2026, 2:15 PM",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 848.328125,
+        "y": 153.375,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Response revision",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 848.328125,
+        "y": 175.375,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "2  · Current",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1099.65625,
+        "y": 153.375,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Assurance",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1099.65625,
+        "y": 175.375,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Email verified",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "section.forms-response-review__history",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 217.375,
+        "width": 742,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Version history",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "li",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 610,
+        "y": 267.375,
+        "width": 67.03125,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Revision  1",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "li",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1043.765625,
+        "y": 267.375,
+        "width": 282.234375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Secure link confirmed  ·  Aug 20, 2026, 2:15 PM",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "li",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 610,
+        "y": 322.375,
+        "width": 128.34375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Revision  2  · Current",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "li",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1094.78125,
+        "y": 322.375,
+        "width": 231.21875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Email verified  ·  Aug 27, 2026, 2:15 PM",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "div.cs-notice.cs-tone--error",
+      "parentSelector": "section.response-assessment",
+      "disabled": false,
+      "background": "#1f202e",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 380.375,
+        "width": 742,
+        "height": 47
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Response assessment is temporarily unavailable. Try again.",
+      "foreground": "#d7e0e9",
+      "ratio": 12.058656340290414,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria3526028703-_r_32_",
+      "parentSelector": "section.response-assessment",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 443.375,
+        "width": 742,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.3588903886839139,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 909.828125,
+        "y": 454.875,
+        "width": 116.34375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Reload assessment",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h4",
+      "parentSelector": "section",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 503.375,
+        "width": 742,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Automatic result",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 524.375,
+        "width": 742,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "86% compliance",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 546.0625,
+        "width": 742,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Meets expected level",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 567.75,
+        "width": 742,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "14  concern points",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 589.4375,
+        "width": 742,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Coverage:  100%",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 611.125,
+        "width": 742,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Calculated",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "time",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 665.234375,
+        "y": 612.125,
+        "width": 138.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "8/27/2026, 2:15:00 PM",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria3526028703-_r_2v_",
+      "parentSelector": "section.response-assessment",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 648.8125,
+        "width": 742,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.3588903886839139,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 883.6875,
+        "y": 660.3125,
+        "width": 168.625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "View submitted documents",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "div.cs-notice.cs-tone--info",
+      "parentSelector": "div.forms-response-review__content",
+      "disabled": false,
+      "background": "#132634",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 716.8125,
+        "width": 742,
+        "height": 68
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "This submitted version cannot be changed. Send an amended form when the subject must provide updated information.",
+      "foreground": "#d7e0e9",
+      "ratio": 11.61171396110812,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    }
+  ],
+  "assetURLs": [
+    "http://127.0.0.1:4179/assets/index-BMWHmGgh.js",
+    "http://127.0.0.1:4179/assets/ui-BKmW7Hgr.js",
+    "http://127.0.0.1:4179/assets/vendorIdentity-DNAUaTE1.js",
+    "http://127.0.0.1:4179/assets/form-policies-B7RQjXrL.js",
+    "http://127.0.0.1:4179/assets/http-CsyLtnQx.js",
+    "http://127.0.0.1:4179/assets/api-4YXod1O7.js",
+    "http://127.0.0.1:4179/assets/FocusedSheet-D6A2pfF6.js",
+    "http://127.0.0.1:4179/assets/monitoringApi-B_rnuu-E.js",
+    "http://127.0.0.1:4179/assets/FileDropzone-D3bjzZCz.js",
+    "http://127.0.0.1:4179/assets/identityAccessApi-DQ4JpP1X.js",
+    "http://127.0.0.1:4179/assets/FormPreview-xfiykOdw.js",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-CP0P4Fzd.js",
+    "http://127.0.0.1:4179/assets/formPoliciesApi-BOB15CUF.js",
+    "http://127.0.0.1:4179/assets/preload-helper-Czpn1I53.js",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-DF59NCDq.js",
+    "http://127.0.0.1:4179/assets/FormBuilder-D0uIMr0F.js",
+    "http://127.0.0.1:4179/assets/EmptyState-CAuvZgjp.js",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-CoL3pBsn.js",
+    "http://127.0.0.1:4179/assets/SessionGate-e9miZAkm.js",
+    "http://127.0.0.1:4179/assets/ui-BqQkgK9q.css",
+    "http://127.0.0.1:4179/assets/form-policies-CXmCjy0e.css",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-Bc4QplLt.css",
+    "http://127.0.0.1:4179/assets/FormBuilder-BR0NOz-_.css",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-xmrvZhbh.css",
+    "http://127.0.0.1:4179/assets/SessionGate-CBT7oevM.css",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-BbMW_Uts.css",
+    "http://127.0.0.1:4179/assets/forms-BF_LZwBu.css",
+    "http://127.0.0.1:4179/assets/index-BfD_vL87.css",
+    "http://127.0.0.1:4179/assets/staticDemoWorkflowRuntime-CCKpbhZb.js",
+    "http://127.0.0.1:4179/assets/staticDemoFixtures-BJo7eiOJ.json",
+    "http://127.0.0.1:4179/assets/App-B4c7mFpZ.js",
+    "http://127.0.0.1:4179/assets/Monogram-k38BLA7P.js",
+    "http://127.0.0.1:4179/assets/VendorWorkPanel-D3NeEmZw.js",
+    "http://127.0.0.1:4179/assets/VendorWorkPanel-CU0uMlLg.css",
+    "http://127.0.0.1:4179/assets/WorkspaceErrorBoundary-Di4hsd7o.js",
+    "http://127.0.0.1:4179/assets/FormProposalReview-siSJwhuo.js",
+    "http://127.0.0.1:4179/assets/App-Bd-YkfrJ.css",
+    "http://127.0.0.1:4179/assets/FormsWorkspace-Cp1tIp4B.js",
+    "http://127.0.0.1:4179/assets/SentFormDetail-DAN60mcz.js",
+    "http://127.0.0.1:4179/assets/SentFormDetail-DFR_kdL0.css",
+    "http://127.0.0.1:4179/assets/FormsWorkspace-D1Q1XD5f.css"
+  ],
+  "layout": {
+    "clientWidth": 1440,
+    "scrollWidth": 1440
+  },
+  "headings": [
+    "Forms",
+    "Responses",
+    "Vendor due diligence review"
+  ],
+  "status": "CAPTURED"
+}

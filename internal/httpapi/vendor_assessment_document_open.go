@@ -28,7 +28,20 @@ func (a *API) openVendorAssessmentDocument(w http.ResponseWriter, r *http.Reques
 		writeThirdPartyAssessmentError(w, err)
 		return
 	}
-	if !assessmentDocumentAvailable(view, requestID, artifactID) {
+	receipt := assessmentCollectionDocument(view, requestID, artifactID)
+	if receipt != nil {
+		service, ok := a.formDistributionService(w)
+		if !ok {
+			return
+		}
+		source := receipt.Source
+		page, readErr := service.ListDocuments(r.Context(), evidence.DocumentQuery{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID, RelationshipID: view.Assessment.RelationshipID, SubmissionID: source.SubmissionID, FieldID: source.FieldID, ArtifactID: artifactID, ResponseRevisionID: source.ResponseRevisionID, Limit: 1})
+		if readErr != nil || len(page.Items) != 1 || page.Items[0].ArtifactRequestID != requestID || page.Items[0].ArtifactStatus != evidence.ArtifactAvailable || page.Items[0].SHA256 != source.SHA256 || page.Items[0].SizeBytes != source.SizeBytes {
+			httpx.WriteError(w, http.StatusNotFound, "vendor_document_not_found", "This document is not available for review.")
+			return
+		}
+	}
+	if receipt == nil && !assessmentDocumentAvailable(view, requestID, artifactID) {
 		httpx.WriteError(w, http.StatusNotFound, "vendor_document_not_found", "This document is not available for review.")
 		return
 	}
@@ -38,6 +51,11 @@ func (a *API) openVendorAssessmentDocument(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	defer reader.Close()
+	if receipt != nil && (artifact.SHA256 != receipt.Source.SHA256 || artifact.SizeBytes != receipt.Source.SizeBytes) {
+		httpx.WriteError(w, http.StatusNotFound, "vendor_document_not_found", "This document is not available for review.")
+		return
+	}
+	documentProtection(w)
 	w.Header().Set("Content-Type", artifact.MediaType)
 	w.Header().Set("Content-Disposition", mime.FormatMediaType("inline", map[string]string{"filename": artifact.FileName}))
 	w.Header().Set("Content-Length", strconv.FormatInt(artifact.SizeBytes, 10))
@@ -45,6 +63,19 @@ func (a *API) openVendorAssessmentDocument(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	_, _ = io.CopyN(w, reader, artifact.SizeBytes)
+}
+
+func assessmentCollectionDocument(view thirdparty.AssessmentReviewView, requestID, artifactID string) *evidence.CollectionResolution {
+	if requestID == "" || artifactID == "" {
+		return nil
+	}
+	for _, answer := range view.Answers {
+		r := answer.CollectionResolution
+		if r != nil && r.SourceArtifactRequestID == requestID && r.Source.ArtifactID == artifactID && r.Source.ArtifactStatus == evidence.ArtifactAvailable {
+			return r
+		}
+	}
+	return nil
 }
 
 func assessmentDocumentAvailable(view thirdparty.AssessmentReviewView, requestID, artifactID string) bool {

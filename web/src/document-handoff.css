@@ -6,7 +6,7 @@
 .proposal-handoff-head small { max-width: 280px; text-align: right; color: var(--muted); font-size: 10px; line-height: 1.4; }
 .proposal-handoff-form, .proposal-handoff-decision { display: grid; gap: 11px; }
 .proposal-handoff-form label, .proposal-handoff-decision label { display: grid; gap: 5px; color: var(--muted); font-size: 10px; }
-.proposal-handoff-form input, .proposal-handoff-form textarea, .proposal-handoff-form select, .proposal-handoff-decision textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); font: inherit; resize: vertical; }
+.proposal-handoff-form input, .proposal-handoff-form textarea, .proposal-handoff-form select, .proposal-handoff-decision textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--cs-border-field); border-radius: 9px; background: var(--surface); color: var(--text); font: inherit; resize: vertical; }
 .proposal-handoff-grid { display: grid; grid-template-columns: minmax(0,.7fr) minmax(0,1.3fr); gap: 10px; }
 .proposal-handoff-actions { flex-wrap: wrap; }
 .proposal-handoff-decision dl { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin: 0; }

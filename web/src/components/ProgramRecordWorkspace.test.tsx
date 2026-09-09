@@ -204,8 +204,8 @@ describe("Program record workspace", () => {
 
     expect(await screen.findByRole("heading", { name: "Nigeria data protection" })).toBeTruthy();
     expect(screen.getAllByText("Data Protection Officer").length).toBeGreaterThan(0);
-    expect(screen.getByText("Updating status")).toBeTruthy();
-    expect(screen.getByText("Status is being recalculated after the Program changed.")).toBeTruthy();
+    expect(screen.getByText("Out of date")).toBeTruthy();
+    expect(screen.getByText(/Last assessed at version 3; Program is version 4/)).toBeTruthy();
     expect(screen.getByText("Two applicable requirements do not have evidence checks.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Approve Program activation" })).toBeTruthy();
     expect(screen.getAllByTestId("program-dominant-action")).toHaveLength(1);
@@ -624,6 +624,10 @@ describe("Program record workspace", () => {
 	fireEvent.change(screen.getByLabelText("Requirement title"), { target: { value: "Keep filing evidence" } });
 	fireEvent.change(screen.getByLabelText("Requirement statement"), { target: { value: "The bank must keep its filing receipt." } });
 	fireEvent.change(screen.getByLabelText("Official source and section"), { target: { value: "GAID 2025, section 7.3" } });
+	fireEvent.change(screen.getByLabelText("Who must act?", { exact: false }), { target: { value: "The bank" } });
+	fireEvent.change(screen.getByLabelText("Obligation strength"), { target: { value: "MUST" } });
+	fireEvent.change(screen.getByLabelText("What must they do?", { exact: false }), { target: { value: "keep" } });
+	fireEvent.change(screen.getByLabelText("What does it apply to?", { exact: false }), { target: { value: "the filing receipt" } });
 	fireEvent.click(screen.getByRole("button", { name: "Save requirement" }));
 	await waitFor(() => expect(addProgramRequirement).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ code: "CAR-02", sourceAnchor: "GAID 2025, section 7.3" })));
 

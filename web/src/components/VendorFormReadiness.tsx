@@ -106,7 +106,7 @@ export function VendorFormReadiness({ onClose, onReady }: Props) {
 
   return <FocusedSheet label="Set up due-diligence form" onClose={onClose} panelClassName="vendor-form-readiness-sheet">
     <div className="vendor-form-readiness">
-      <header><span className="eyebrow">Vendor review readiness</span><h2>Set up due-diligence form</h2><p>Attach the bank&apos;s starter questionnaire to a Program, then send it to an independent reviewer before it can be used for vendor reviews.</p></header>
+      <header><span className="eyebrow">Vendor review readiness</span><h2>Set up due-diligence form</h2><p>Attach the starter questionnaire to a Program, then send it to an independent reviewer before it can be used for vendor reviews.</p></header>
       {state === "loading" && <p aria-live="polite" aria-busy="true">Loading Programs available for this legal entity…</p>}
       {state === "unavailable" && <Notice tone="error"><strong>Programs are unavailable</strong> Programs could not be loaded. Close this panel and try again before configuring the form.</Notice>}
       {state === "live" && programs.length === 0 && <div className="vdd-limitation"><strong>No Programs are available in this legal entity.</strong><p>Create or gain access to a Program before setting up vendor due diligence.</p></div>}

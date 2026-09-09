@@ -423,10 +423,18 @@ func writeFormsError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "form_authority_unavailable", "The current approval route could not be checked. No form was changed.")
 	case errors.Is(err, monitoring.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "form_not_found", "The form template or saved view was not found in this legal entity.")
-	case errors.Is(err, monitoring.ErrConflict), errors.Is(err, monitoring.ErrMakerChecker), errors.Is(err, monitoring.ErrInactive):
-		httpx.WriteError(w, http.StatusConflict, "form_conflict", err.Error())
+	case errors.Is(err, monitoring.ErrMakerChecker):
+		httpx.WriteError(w, http.StatusConflict, "form_conflict", "A different authorized person must approve this form revision.")
+	case errors.Is(err, monitoring.ErrInactive):
+		httpx.WriteError(w, http.StatusConflict, "form_conflict", "This form revision is not active. Choose an active revision.")
+	case errors.Is(err, monitoring.ErrConflict):
+		httpx.WriteError(w, http.StatusConflict, "form_conflict", "This form or saved view has changed. Reload before saving.")
 	case errors.Is(err, monitoring.ErrInvalid):
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "form_invalid", err.Error())
+		message := formcontract.AssessmentValidationMessage(err)
+		if message == "" {
+			message = err.Error()
+		}
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "form_invalid", message)
 	default:
 		httpx.WriteError(w, http.StatusInternalServerError, "form_failed", "The form change could not be completed.")
 	}

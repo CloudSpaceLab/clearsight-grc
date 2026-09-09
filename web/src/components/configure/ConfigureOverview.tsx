@@ -8,7 +8,7 @@ type Props = {
 export function ConfigureOverview({ importsEnabled, onOpen }: Props) {
   return <section className="configure-overview" aria-labelledby="configuration-overview-heading">
     <header className="configure-domain-header">
-      <div><span className="eyebrow">Administration</span><h2 id="configuration-overview-heading">Control plane</h2><p>Open one administrative area at a time. Operational approvals and assigned work remain in Today and Work.</p></div>
+      <div><h2 id="configuration-overview-heading">Configuration areas</h2></div>
     </header>
     <div className="configure-area-list">
       {configurationAreas.map((area) => {

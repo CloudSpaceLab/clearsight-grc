@@ -1,10 +1,11 @@
-import type { ChangeEventHandler, FocusEventHandler } from "react";
+import type { ChangeEventHandler, FocusEventHandler, InputHTMLAttributes } from "react";
 import { FormField } from "./FormField";
 
 export type TextFieldType = "text" | "search" | "email" | "url" | "tel" | "number" | "date" | "time" | "datetime-local";
 
 export type TextFieldProps = {
   label: string;
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   description?: string;
@@ -13,6 +14,8 @@ export type TextFieldProps = {
   type?: TextFieldType;
   name?: string;
   autoComplete?: string;
+  pattern?: string;
+  inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"];
   min?: number | string;
   max?: number | string;
   step?: number | string;
@@ -24,10 +27,12 @@ export type TextFieldProps = {
   isLoading?: boolean;
   isLabelHidden?: boolean;
   onBlur?: FocusEventHandler<HTMLInputElement>;
+  onFocus?: FocusEventHandler<HTMLInputElement>;
 };
 
 export function TextField({
   label,
+  id,
   value,
   onChange,
   description,
@@ -36,6 +41,8 @@ export function TextField({
   type = "text",
   name,
   autoComplete,
+  pattern,
+  inputMode,
   min,
   max,
   step,
@@ -47,9 +54,10 @@ export function TextField({
   isLoading = false,
   isLabelHidden = false,
   onBlur,
+  onFocus,
 }: TextFieldProps) {
   const change: ChangeEventHandler<HTMLInputElement> = (event) => onChange(event.target.value);
-  return <FormField label={label} description={description} errorMessage={errorMessage} isInvalid={isInvalid} isRequired={isRequired} isLoading={isLoading} isLabelHidden={isLabelHidden}>
+  return <FormField id={id} label={label} description={description} errorMessage={errorMessage} isInvalid={isInvalid} isRequired={isRequired} isLoading={isLoading} isLabelHidden={isLabelHidden}>
     {(control) => <input
       {...control}
       className="cs-field__control"
@@ -58,6 +66,8 @@ export function TextField({
       value={value}
       placeholder={placeholder}
       autoComplete={autoComplete}
+      pattern={pattern}
+      inputMode={inputMode}
       min={min}
       max={max}
       step={step}
@@ -67,6 +77,7 @@ export function TextField({
       required={isRequired}
       onChange={change}
       onBlur={onBlur}
+      onFocus={onFocus}
     />}
   </FormField>;
 }

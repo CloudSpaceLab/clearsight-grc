@@ -94,8 +94,115 @@ func NewAssessmentRequestService(assessments *AssessmentService, repo Assessment
 	return service, nil
 }
 
+type PrepareAssessmentRequestInput struct {
+	ExpectedVersion int64     `json:"expected_version"`
+	Audience        string    `json:"audience"`
+	Deadline        time.Time `json:"deadline"`
+}
+
+func (s *AssessmentRequestService) PrepareRequest(ctx context.Context, _ Actor, assessmentID string, input PrepareAssessmentRequestInput) (SendRequestOutcome, error) {
+	audience, err := normalizeAssessmentAudience(input.Audience)
+	if err != nil || !validAssessmentIdentifier(assessmentID) || input.ExpectedVersion < 1 {
+		return SendRequestOutcome{}, ErrInvalid
+	}
+	actor, err := s.assessments.authorize(ctx, assessmentID, assessmentObjectType, AssessmentSendRequestCommand, authority.ResponsibilityOwner)
+	if err != nil {
+		return SendRequestOutcome{}, err
+	}
+	current, err := s.repo.GetAssessment(ctx, scopeFrom(actor), assessmentID)
+	if err != nil {
+		return SendRequestOutcome{}, err
+	}
+	if current.Version != input.ExpectedVersion {
+		return SendRequestOutcome{}, ErrVersionConflict
+	}
+	if current.Status != AssessmentReadyToSend || current.ReviewMatterID == "" {
+		return SendRequestOutcome{}, ErrInvalidAssessmentTransition
+	}
+	if !input.Deadline.After(s.assessments.now()) || input.Deadline.After(current.ReviewDueAt) {
+		return SendRequestOutcome{}, ErrInvalid
+	}
+	origin := evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: current.ID, Version: 1}
+	request, err := s.evidence.GetRequestByOrigin(ctx, actor.TenantID, origin)
+	if errors.Is(err, evidence.ErrNotFound) {
+		form, readErr := s.forms.ReusableFormRevision(ctx, actor.TenantID, actor.LegalEntityID, current.FormTemplateID, current.FormTemplateVersion)
+		if readErr != nil {
+			return SendRequestOutcome{}, readErr
+		}
+		if !form.IsCurrent || form.Status != monitoring.LifecycleActive {
+			return SendRequestOutcome{}, monitoring.ErrInactive
+		}
+		aggregate, readErr := s.repo.GetRelationship(ctx, scopeFrom(actor), current.RelationshipID)
+		if readErr != nil {
+			return SendRequestOutcome{}, readErr
+		}
+		if !assessmentKindAllowedForRelationship(current.ReviewKind, aggregate.Relationship.Status) {
+			return SendRequestOutcome{}, ErrInvalidAssessmentTransition
+		}
+		composed, readErr := s.composeAssessmentEvidenceRequest(ctx, actor, current, aggregate, form, origin, audience, input.Deadline)
+		if readErr != nil {
+			return SendRequestOutcome{}, readErr
+		}
+		preparer, ok := s.dispatch.(interface {
+			Prepare(context.Context, evidence.WorkflowDistributionDispatchInput) (evidence.WorkflowDistributionDispatch, error)
+		})
+		if !ok {
+			return SendRequestOutcome{}, evidence.ErrDistributionAccessUnavailable
+		}
+		prepared, prepareErr := preparer.Prepare(evidence.WithRequestOriginAuthority(ctx, AssessmentRequestOrigin), evidence.WorkflowDistributionDispatchInput{Request: composed, AccessPolicy: evidence.AccessDirectMagicLink, RouteExpiresAt: input.Deadline})
+		request, err = prepared.Request, prepareErr
+	}
+	if err != nil {
+		return SendRequestOutcome{}, err
+	}
+	if request.Origin != origin || request.SubjectID != current.RelationshipID || request.SubjectType != "VENDOR_RELATIONSHIP" || request.FormTemplateID != current.FormTemplateID || request.FormTemplateVersion != current.FormTemplateVersion || !evidence.ExternalAudienceMatches(request, audience) || !request.Deadline.Equal(input.Deadline) {
+		return SendRequestOutcome{}, ErrVersionConflict
+	}
+	_, prepared, err := s.repo.PrepareAssessmentRequest(ctx, PrepareAssessmentRequestRecord{Scope: scopeFrom(actor), AssessmentID: current.ID, ExpectedVersion: current.Version, ActorPrincipalID: actor.PrincipalID, RequestID: request.ID, Purpose: AssessmentRequestInitial, OriginType: AssessmentRequestOrigin, OriginID: current.ID, OriginSequence: 1, PreparedAt: s.assessments.now().UTC()})
+	if err != nil {
+		return SendRequestOutcome{}, err
+	}
+	return SendRequestOutcome{Assessment: prepared, Request: request, State: "PREPARED"}, nil
+}
+
 func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, assessmentID string, input SendAssessmentRequestInput) (SendRequestOutcome, error) {
 	assessmentID = strings.TrimSpace(assessmentID)
+	if strings.TrimSpace(input.Audience) == "" {
+		actor, authErr := s.assessments.authorize(ctx, assessmentID, assessmentObjectType, AssessmentSendRequestCommand, authority.ResponsibilityOwner)
+		if authErr != nil {
+			return SendRequestOutcome{}, authErr
+		}
+		current, readErr := s.repo.GetAssessment(ctx, scopeFrom(actor), assessmentID)
+		if readErr != nil {
+			return SendRequestOutcome{}, readErr
+		}
+		if current.Version != input.ExpectedVersion {
+			return SendRequestOutcome{}, ErrVersionConflict
+		}
+		if current.Status != AssessmentReadyToSend || current.CurrentRequestID == "" {
+			return SendRequestOutcome{}, ErrInvalidAssessmentTransition
+		}
+		stored, readErr := s.evidence.GetRequestByOrigin(ctx, actor.TenantID, evidence.RequestOrigin{Type: AssessmentRequestOrigin, ID: assessmentID, Version: 1})
+		if readErr != nil {
+			return SendRequestOutcome{}, readErr
+		}
+		if stored.ID != current.CurrentRequestID {
+			return SendRequestOutcome{}, ErrNotFound
+		}
+		resolver, ok := s.dispatch.(interface {
+			PreparedRequestRecipient(context.Context, string, string, string) (string, error)
+		})
+		if !ok {
+			return SendRequestOutcome{}, evidence.ErrDistributionAccessUnavailable
+		}
+		input.Audience, readErr = resolver.PreparedRequestRecipient(ctx, actor.TenantID, actor.LegalEntityID, stored.ID)
+		if readErr != nil {
+			return SendRequestOutcome{}, readErr
+		}
+		if input.Deadline.IsZero() {
+			input.Deadline = stored.Deadline
+		}
+	}
 	audience, err := normalizeAssessmentAudience(input.Audience)
 	if err != nil || !validAssessmentIdentifier(assessmentID) || input.ExpectedVersion < 1 || input.Deadline.IsZero() || input.InvitationTTLMinutes < 5 || input.InvitationTTLMinutes > 30*24*60 {
 		return SendRequestOutcome{}, ErrInvalid
@@ -161,7 +268,7 @@ func (s *AssessmentRequestService) SendRequest(ctx context.Context, _ Actor, ass
 	if request.Origin != origin || request.SubjectType != "VENDOR_RELATIONSHIP" || request.SubjectID != assessment.RelationshipID || request.FormTemplateID != assessment.FormTemplateID || request.FormTemplateVersion != assessment.FormTemplateVersion {
 		return SendRequestOutcome{}, ErrInvalid
 	}
-	if !evidence.ExternalAudienceMatches(request, audience) {
+	if !evidence.ExternalAudienceMatches(request, audience) || !request.Deadline.Equal(deadline) {
 		return SendRequestOutcome{}, ErrVersionConflict
 	}
 

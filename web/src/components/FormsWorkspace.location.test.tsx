@@ -67,6 +67,15 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("Forms workspace location state", () => {
+  it("opens Imports directly without a second launcher and preserves the prior Forms URL", async () => {
+    window.history.replaceState(null, "", "#forms?search=vendor");
+    render(<FormsWorkspace/>);
+    await screen.findAllByText("Vendor due diligence");
+    fireEvent.click(screen.getByRole("tab", { name: "Imports" }));
+    expect(window.location.hash).toBe("#imports");
+    expect(screen.queryByRole("button", { name: "Open Imports" })).toBeNull();
+  });
+
   it.each(["hashchange", "popstate"])("lets a pending library read settle after section-only %s navigation", async (event) => {
     let finish!: (page: { items: FormLibraryItem[] }) => void;
     api.loadFormTemplatePage.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));

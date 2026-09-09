@@ -37,7 +37,7 @@ export function ConfigureWorkspace({ importsEnabled, canReconcileProjection, onO
 
   return <div className="configure-workspace" id="configure-workspace">
     <header className="topbar configure-topbar">
-      <div><span className="eyebrow">Restricted administration</span><h1>Configuration</h1><p>Keep ClearSight connected, governed and operational without mixing administration into daily bank work.</p></div>
+      <div><span className="eyebrow">Restricted administration</span><h1>Configuration</h1><p>Manage access, approval routes, integrations and system settings.</p></div>
     </header>
     <div className="configure-shell">
       <ConfigureNavigation active={section} onSelect={select}/>

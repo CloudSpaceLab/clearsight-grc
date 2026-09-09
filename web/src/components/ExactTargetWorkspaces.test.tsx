@@ -75,7 +75,7 @@ describe("exact workspace targets", () => {
     render(<MattersWorkspace targetID={matterDetail.matter.id}/>);
 
     expect(await screen.findByText("Matter outside first page")).toBeTruthy();
-    expect(await screen.findByRole("heading", { name: "Current handoff" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: matterDetail.next_action })).toBeTruthy();
     expect(screen.getByTestId("vendor-links-MATTER-matter-outside-page")).toBeTruthy();
     expect(screen.getByTestId("vendor-work-MATTER-matter-outside-page")).toBeTruthy();
     expect(loadMatter).toHaveBeenCalledWith(matterDetail.matter.id);

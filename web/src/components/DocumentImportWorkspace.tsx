@@ -145,7 +145,7 @@ export function DocumentImportWorkspace() {
       applyDocumentUpdate(updated);
     } catch (cause) {
       const conflict = apiErrorKind(cause) === "conflict";
-      setError(conflict ? "This import changed while you were reviewing it. The latest version has been loaded." : cause instanceof Error ? cause.message : "The review could not be recorded.");
+      setError(conflict ? "This import changed while you were reviewing it. Review the changes before saving again." : cause instanceof Error ? cause.message : "The review could not be recorded.");
       await refresh(selected.id);
     } finally {
       setReviewingProposalID(null);
@@ -167,7 +167,7 @@ export function DocumentImportWorkspace() {
       setCoverage(await reviewDocumentCoverage(selected.id, coverage.version, [{ candidate_id: candidate.id, decision, match_id: matchID, reason: reason || undefined }]));
     } catch (cause) {
       const conflict = apiErrorKind(cause) === "conflict";
-      setError(conflict ? "Programs or this assessment changed. The latest comparison has been loaded." : cause instanceof Error ? cause.message : "The coverage review could not be recorded.");
+      setError(conflict ? "Programs or this assessment changed. Review the comparison before saving again." : cause instanceof Error ? cause.message : "The coverage review could not be recorded.");
       if (conflict) await refresh(selected.id);
     } finally {
       setCoverageActionID(null);
@@ -185,7 +185,7 @@ export function DocumentImportWorkspace() {
       setCoverageNotice(actionReceipt(result.object_type));
     } catch (cause) {
       const conflict = apiErrorKind(cause) === "conflict";
-      setError(conflict ? "Programs or this assessment changed. The latest comparison has been loaded." : cause instanceof Error ? cause.message : "The recommended update could not be applied.");
+      setError(conflict ? "Programs or this assessment changed. Review the comparison before saving again." : cause instanceof Error ? cause.message : "The recommended update could not be applied.");
       if (conflict) await refresh(selected.id);
     } finally {
       setCoverageActionID(null);

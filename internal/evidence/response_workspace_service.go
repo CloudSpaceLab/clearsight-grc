@@ -11,7 +11,7 @@ import (
 )
 
 func (service *DistributionAccessService) GetResponseWorkspace(ctx context.Context, sessionToken string) (ResponseWorkspaceView, error) {
-	session, request, err := service.SessionRequest(ctx, sessionToken)
+	session, request, err := service.sessionRequest(ctx, sessionToken)
 	if err != nil {
 		return ResponseWorkspaceView{}, ErrWorkspaceUnavailable
 	}
@@ -27,7 +27,7 @@ func (service *DistributionAccessService) GetResponseWorkspace(ctx context.Conte
 }
 
 func (service *DistributionAccessService) SaveResponseWorkspace(ctx context.Context, sessionToken string, input SaveWorkspaceInput) (ResponseWorkspaceView, error) {
-	session, request, err := service.SessionRequest(ctx, sessionToken)
+	session, request, err := service.sessionRequest(ctx, sessionToken)
 	if err != nil {
 		return ResponseWorkspaceView{}, ErrWorkspaceUnavailable
 	}
@@ -54,7 +54,7 @@ func (service *DistributionAccessService) SaveResponseWorkspace(ctx context.Cont
 }
 
 func (service *DistributionAccessService) SubmitResponseWorkspace(ctx context.Context, sessionToken string, input SubmitWorkspaceInput) (WorkspaceSubmissionResult, error) {
-	session, request, err := service.SessionRequest(ctx, sessionToken)
+	session, request, err := service.sessionRequest(ctx, sessionToken)
 	if err != nil {
 		return WorkspaceSubmissionResult{}, ErrWorkspaceUnavailable
 	}
@@ -88,7 +88,7 @@ func (service *DistributionAccessService) SubmitResponseWorkspace(ctx context.Co
 }
 
 func (service *DistributionAccessService) ClearResponseWorkspace(ctx context.Context, sessionToken string, expectedVersion int64) (ResponseWorkspaceView, error) {
-	session, request, err := service.SessionRequest(ctx, sessionToken)
+	session, request, err := service.sessionRequest(ctx, sessionToken)
 	if err != nil {
 		return ResponseWorkspaceView{}, ErrWorkspaceUnavailable
 	}

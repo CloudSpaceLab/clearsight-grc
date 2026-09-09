@@ -3,7 +3,7 @@ import type { ResponseScore } from "./formsDistributionApi";
 import type { CaptureAnswerValue } from "./types";
 import { requestJSON } from "./http";
 
-export type FieldAssessmentDecision = { id: string; field_id: string; outcome_id: string; points: number; rationale: string; reviewer_id: string; assessed_at: string; supersedes_id?: string };
+export type FieldAssessmentDecision = { id: string; field_id: string; outcome_id: string; points: number; rationale: string; reviewer_id: string; reviewer_display_name?: string; assessed_at: string; supersedes_id?: string };
 export type ResponseFieldAssessment = { field: FormTemplateField; answer: CaptureAnswerValue; decision?: FieldAssessmentDecision; may_review?: boolean };
 export type ResponseAssessmentDetail = {
   response_id: string; form_template_id: string; form_template_version: number; version: number; current: boolean;

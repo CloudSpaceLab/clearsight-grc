@@ -228,7 +228,7 @@ func (a *API) getVendorAssessmentReview(w http.ResponseWriter, r *http.Request) 
 		writeThirdPartyAssessmentError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, view)
+	httpx.WriteJSON(w, http.StatusOK, a.vendorAssessmentReviewWithLabels(r.Context(), actor, view))
 }
 
 func (a *API) startVendorAssessmentReview(w http.ResponseWriter, r *http.Request) {
@@ -320,7 +320,7 @@ func (a *API) reviewVendorAssessmentDocument(w http.ResponseWriter, r *http.Requ
 		writeThirdPartyAssessmentError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, view)
+	httpx.WriteJSON(w, http.StatusOK, a.vendorAssessmentReviewWithLabels(r.Context(), actor, view))
 }
 
 func (a *API) applyVendorAssessmentResponse(w http.ResponseWriter, r *http.Request) {
@@ -343,7 +343,12 @@ func (a *API) applyVendorAssessmentResponse(w http.ResponseWriter, r *http.Reque
 		writeThirdPartyAssessmentError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, result)
+	review := a.vendorAssessmentReviewWithLabels(r.Context(), actor, result.Review)
+	receipt := responseApplicationReceiptRead{ResponseApplicationReceipt: result.Receipt}
+	if review.ApplicationReceipt != nil && review.ApplicationReceipt.ID == receipt.ID && review.ApplicationReceipt.ActorPrincipalID == receipt.ActorPrincipalID {
+		receipt.ActorDisplayName = review.ApplicationReceipt.ActorDisplayName
+	}
+	httpx.WriteJSON(w, http.StatusOK, vendorAssessmentApplicationRead{Receipt: receipt, Review: review})
 }
 
 func writeThirdPartyAssessmentError(w http.ResponseWriter, err error) {
@@ -354,7 +359,7 @@ func writeThirdPartyAssessmentError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusForbidden, "vendor_assessment_not_authorized", "Your current role cannot complete this due-diligence action.")
 	case errors.Is(err, thirdparty.ErrNotFound), errors.Is(err, monitoring.ErrNotFound), errors.Is(err, evidence.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "vendor_assessment_not_found", "This due-diligence record was not found in your current legal-entity scope.")
-	case errors.Is(err, thirdparty.ErrVersionConflict):
+	case errors.Is(err, thirdparty.ErrVersionConflict), errors.Is(err, evidence.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "vendor_assessment_changed", "This due-diligence record changed. Reload it before continuing.")
 	case errors.Is(err, thirdparty.ErrInvalidAssessmentTransition):
 		httpx.WriteError(w, http.StatusConflict, "vendor_assessment_action_unavailable", "This due-diligence action is not available in the current state. Reload the record.")

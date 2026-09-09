@@ -24,18 +24,18 @@ export async function parseJSON<T>(response: Response): Promise<T> {
 export async function requestJSON<T>(apiBase: string, path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (!(init?.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  return parseJSON<T>(await fetch(`${apiBase}${path}`, { ...init, credentials: init?.credentials ?? "include", headers }));
+  return parseJSON<T>(await fetchResponse(`${apiBase}${path}`, { ...init, credentials: init?.credentials ?? "include", headers }));
 }
 
 export async function requestVoid(apiBase: string, path: string, init?: RequestInit): Promise<void> {
   const headers = new Headers(init?.headers);
   if (!(init?.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const response = await fetch(`${apiBase}${path}`, { ...init, credentials: init?.credentials ?? "include", headers });
+  const response = await fetchResponse(`${apiBase}${path}`, { ...init, credentials: init?.credentials ?? "include", headers });
   if (!response.ok) throw await responseError(response);
 }
 
 export async function requestBlob(apiBase: string, path: string, init?: RequestInit): Promise<{ blob: Blob; filename?: string }> {
-  const response = await fetch(`${apiBase}${path}`, { ...init, credentials: init?.credentials ?? "include" });
+  const response = await fetchResponse(`${apiBase}${path}`, { ...init, credentials: init?.credentials ?? "include" });
   if (!response.ok) throw await responseError(response);
   return {
     blob: await response.blob(),
@@ -51,9 +51,27 @@ async function responseError(response: Response): Promise<ApiError> {
   const body = await response.json().catch(() => null) as ErrorEnvelope | null;
   return new ApiError(
     response.status,
-    body?.error?.message ?? body?.message ?? `Request failed with ${response.status}`,
+    body?.error?.message ?? body?.message ?? recoveryMessage(response.status),
     body?.error?.code,
   );
+}
+
+async function fetchResponse(url: string, init?: RequestInit): Promise<Response> {
+  try { return await fetch(url, init); }
+  catch (cause) {
+    if (init?.signal?.aborted || cause && typeof cause === "object" && "name" in cause && cause.name === "AbortError") throw cause;
+    throw new ApiError(0, "Connection lost. Check the record before trying again.", "connection_lost");
+  }
+}
+
+function recoveryMessage(status: number): string {
+  if (status === 401) return "Session ended. Sign in again.";
+  if (status === 403) return "Access denied. Check your permissions.";
+  if (status === 404) return "Record not found. Reload the list.";
+  if (status === 409 || status === 412) return "Record changed. Reload before saving.";
+  if (status === 429) return "Too many requests. Try again shortly.";
+  if (status >= 500) return "Service unavailable. Try again.";
+  return "Request unavailable. Reload the record and try again.";
 }
 
 function responseFilename(contentDisposition: string | null): string | undefined {
@@ -72,6 +90,6 @@ function kindFromStatus(status: number): ApiErrorKind {
   if (status === 404) return "not_found";
   if (status === 409 || status === 412) return "conflict";
   if (status === 400 || status === 413 || status === 415 || status === 422) return "validation";
-  if (status === 429 || status >= 500) return "unavailable";
+  if (status === 0 || status === 429 || status >= 500) return "unavailable";
   return "unknown";
 }

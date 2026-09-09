@@ -25,3 +25,17 @@ func TestAssessmentDocumentAvailableRequiresExactCurrentRequestAndAvailableArtif
 		t.Fatal("quarantined artifact must not be available")
 	}
 }
+
+func TestAssessmentCollectionDocumentRequiresExactReceipt(t *testing.T) {
+	view := thirdparty.AssessmentReviewView{Answers: []thirdparty.AssessmentReviewAnswer{{CollectionResolution: &evidence.CollectionResolution{SourceArtifactRequestID: "original", Source: evidence.DocumentOccurrence{ArtifactID: "report", ArtifactStatus: evidence.ArtifactAvailable}}}}}
+	if assessmentCollectionDocument(view, "original", "report") == nil {
+		t.Fatal("receipt source unavailable")
+	}
+	if assessmentCollectionDocument(view, "other", "report") != nil || assessmentCollectionDocument(view, "original", "other") != nil {
+		t.Fatal("receipt widened document access")
+	}
+	view.Answers[0].CollectionResolution.Source.ArtifactStatus = evidence.ArtifactQuarantined
+	if assessmentCollectionDocument(view, "original", "report") != nil {
+		t.Fatal("quarantined source available")
+	}
+}

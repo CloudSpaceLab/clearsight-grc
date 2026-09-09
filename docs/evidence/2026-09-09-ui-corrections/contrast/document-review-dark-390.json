@@ -1,0 +1,659 @@
+{
+  "id": "document-review-dark-390",
+  "name": "document-review",
+  "fixture": "vendor-collection",
+  "route": "#vendors",
+  "action": "review",
+  "theme": "dark",
+  "width": 390,
+  "scale": 1,
+  "generatedAt": "2026-09-09T00:03:01.623Z",
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+            "target": [
+              "#react-aria8240964708-_r_4q_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+            "target": [
+              "#react-aria8240964708-_r_57_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.8pt (13px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscuring",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p class=\"vdd-limitation\">Validation confirms this document can support the current assessment. It does not approve the vendor relationship.</p>",
+            "target": [
+              ".vdd-limitation"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 15
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "#react-aria8240964708-_r_4m_",
+      "parentSelector": "div.cs-sheet__close",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 326,
+        "y": 20,
+        "width": 44,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.5095232148557631,
+      "outsideRatio": 1.5095232148557631,
+      "insideRatio": 1.5095232148557631,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 41,
+        "y": 117,
+        "width": 137.40625,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Document decision",
+      "foreground": "#5bc6d6",
+      "ratio": 7.429597244079324,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 41,
+        "y": 134,
+        "width": 308,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Review document",
+      "foreground": "#ffffff",
+      "ratio": 14.868440411394479,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 41,
+        "y": 162,
+        "width": 308,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "ISO 27001 certificate.pdf",
+      "foreground": "#8fa0b2",
+      "ratio": 5.550261899198184,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria8240964708-_r_4r_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 41,
+        "y": 203.6875,
+        "width": 308,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Decision",
+      "foreground": "#ffffff",
+      "ratio": 14.868440411394479,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria8240964708-_r_4q_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 41,
+        "y": 232.6875,
+        "width": 308,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.8201519847485947,
+      "outsideRatio": 3.8201519847485947,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.20126027943887,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "span.cs-select-field__value",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 54,
+        "y": 245.1875,
+        "width": 42.265625,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Accept",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 41,
+        "y": 292.6875,
+        "width": 308,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Document type",
+      "foreground": "#ffffff",
+      "ratio": 14.868440411394479,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.cs-sr-only",
+      "parentSelector": "label.cs-field__label",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 151.734375,
+        "y": 291.6875,
+        "width": 1,
+        "height": 1
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "required",
+      "foreground": "#ffffff",
+      "ratio": 14.868440411394479,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#_r_52_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 41,
+        "y": 321.6875,
+        "width": 308,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.8201519847485947,
+      "outsideRatio": 3.8201519847485947,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.20126027943887,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria8240964708-_r_58_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 41,
+        "y": 381.6875,
+        "width": 308,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Evidence class",
+      "foreground": "#ffffff",
+      "ratio": 14.868440411394479,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria8240964708-_r_57_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 41,
+        "y": 410.6875,
+        "width": 308,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.8201519847485947,
+      "outsideRatio": 3.8201519847485947,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.20126027943887,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "span.cs-select-field__value",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 54,
+        "y": 423.1875,
+        "width": 131.84375,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Validated by reviewer",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 41,
+        "y": 470.6875,
+        "width": 308,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Valid until",
+      "foreground": "#ffffff",
+      "ratio": 14.868440411394479,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#_r_5f_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 41,
+        "y": 499.6875,
+        "width": 308,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.8201519847485947,
+      "outsideRatio": 3.8201519847485947,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.20126027943887,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p.vdd-limitation",
+      "parentSelector": "form.vdd-panel",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 41,
+        "y": 570.6875,
+        "width": 308,
+        "height": 86.421875
+      },
+      "fontSize": "13px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Validation confirms this document can support the current assessment. It does not approve the vendor relationship.",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria8240964708-_r_5j_",
+      "parentSelector": "div.vdd-panel-actions",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 207.859375,
+        "y": 677.109375,
+        "width": 141.140625,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.256616272670639,
+      "outsideRatio": 1.256616272670639,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1.081388501993465,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 257.96875,
+        "y": 688.609375,
+        "width": 40.90625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Cancel",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria8240964708-_r_5m_",
+      "parentSelector": "div.vdd-panel-actions",
+      "disabled": false,
+      "background": "#16293a",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 207.859375,
+        "y": 731.109375,
+        "width": 141.140625,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#5bc6d6",
+      "ratio": 7.429597244079324,
+      "outsideRatio": 7.429597244079324,
+      "insideRatio": 1,
+      "fillRatio": 7.429597244079324,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--primary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#5bc6d6",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 224.859375,
+        "y": 742.609375,
+        "width": 107.140625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Record validation",
+      "foreground": "#07111d",
+      "ratio": 9.479578580346425,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    }
+  ],
+  "assetURLs": [
+    "http://127.0.0.1:4179/assets/index-BMWHmGgh.js",
+    "http://127.0.0.1:4179/assets/ui-BKmW7Hgr.js",
+    "http://127.0.0.1:4179/assets/vendorIdentity-DNAUaTE1.js",
+    "http://127.0.0.1:4179/assets/form-policies-B7RQjXrL.js",
+    "http://127.0.0.1:4179/assets/http-CsyLtnQx.js",
+    "http://127.0.0.1:4179/assets/api-4YXod1O7.js",
+    "http://127.0.0.1:4179/assets/monitoringApi-B_rnuu-E.js",
+    "http://127.0.0.1:4179/assets/FocusedSheet-D6A2pfF6.js",
+    "http://127.0.0.1:4179/assets/FileDropzone-D3bjzZCz.js",
+    "http://127.0.0.1:4179/assets/FormPreview-xfiykOdw.js",
+    "http://127.0.0.1:4179/assets/identityAccessApi-DQ4JpP1X.js",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-CP0P4Fzd.js",
+    "http://127.0.0.1:4179/assets/formPoliciesApi-BOB15CUF.js",
+    "http://127.0.0.1:4179/assets/FormBuilder-D0uIMr0F.js",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-DF59NCDq.js",
+    "http://127.0.0.1:4179/assets/preload-helper-Czpn1I53.js",
+    "http://127.0.0.1:4179/assets/EmptyState-CAuvZgjp.js",
+    "http://127.0.0.1:4179/assets/SessionGate-e9miZAkm.js",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-CoL3pBsn.js",
+    "http://127.0.0.1:4179/assets/ui-BqQkgK9q.css",
+    "http://127.0.0.1:4179/assets/form-policies-CXmCjy0e.css",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-Bc4QplLt.css",
+    "http://127.0.0.1:4179/assets/FormBuilder-BR0NOz-_.css",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-xmrvZhbh.css",
+    "http://127.0.0.1:4179/assets/SessionGate-CBT7oevM.css",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-BbMW_Uts.css",
+    "http://127.0.0.1:4179/assets/index-BfD_vL87.css",
+    "http://127.0.0.1:4179/assets/forms-BF_LZwBu.css",
+    "http://127.0.0.1:4179/assets/staticDemoWorkflowRuntime-CCKpbhZb.js",
+    "http://127.0.0.1:4179/assets/staticDemoFixtures-BJo7eiOJ.json",
+    "http://127.0.0.1:4179/assets/App-B4c7mFpZ.js",
+    "http://127.0.0.1:4179/assets/Monogram-k38BLA7P.js",
+    "http://127.0.0.1:4179/assets/VendorWorkPanel-D3NeEmZw.js",
+    "http://127.0.0.1:4179/assets/VendorWorkPanel-CU0uMlLg.css",
+    "http://127.0.0.1:4179/assets/WorkspaceErrorBoundary-Di4hsd7o.js",
+    "http://127.0.0.1:4179/assets/FormProposalReview-siSJwhuo.js",
+    "http://127.0.0.1:4179/assets/App-Bd-YkfrJ.css",
+    "http://127.0.0.1:4179/assets/VendorsWorkspace-Chm5Pg7U.js",
+    "http://127.0.0.1:4179/assets/SentFormDetail-DAN60mcz.js",
+    "http://127.0.0.1:4179/assets/SentFormDetail-DFR_kdL0.css",
+    "http://127.0.0.1:4179/assets/VendorsWorkspace-Bfv9eAAt.css"
+  ],
+  "layout": {
+    "clientWidth": 390,
+    "scrollWidth": 390
+  },
+  "headings": [
+    "Vendors",
+    "Vendor register",
+    "Acme Processing Limited",
+    "Due diligence",
+    "Forms and responses",
+    "Vendor requests"
+  ],
+  "status": "CAPTURED"
+}

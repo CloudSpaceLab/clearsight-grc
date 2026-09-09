@@ -256,6 +256,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   }
 
   function chooseSection(tab: FormsTab) {
+    if (tab === "Imports") { changeSection(tab); openImport(); return; }
     if (tab === activeTab) return;
     changeSection(tab);
     writeFormsLocation(query, targetID, false, tab);

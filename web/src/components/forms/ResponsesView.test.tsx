@@ -3,12 +3,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ResponsesView } from "./ResponsesView";
 vi.mock("../documents/DocumentBrowser", () => ({ DocumentBrowser: ({ responseRevisionID }: { responseRevisionID?: string }) => <section aria-label={`Documents for ${responseRevisionID}`}/> }));
-vi.mock("./ResponseAssessment", () => ({ ResponseAssessment: ({ responseID }: { responseID: string }) => <section aria-label={`Bank assessment for ${responseID}`}/> }));
+const assessmentApi = vi.hoisted(() => ({ loadResponseAssessment: vi.fn(), recordResponseAssessment: vi.fn() }));
+vi.mock("../../formAssessmentApi", () => assessmentApi);
 
 it("opens documents belonging to the selected submitted version", async () => {
   render(<ResponsesView/>);
   fireEvent.click(await screen.findByRole("button", { name: "Review Vendor certification refresh response" }));
-  expect(await screen.findByRole("region", { name: "Bank assessment for response-a" })).toBeTruthy();
+  expect(await screen.findByRole("region", { name: "Assessment" })).toBeTruthy();
   fireEvent.click(await screen.findByRole("button", { name: "View submitted documents" }));
   expect(screen.getByRole("region", { name: "Documents for response-a" })).toBeTruthy();
 });
@@ -39,9 +40,18 @@ beforeEach(() => {
     response: completedResponse,
     revision: { id: "response-a", revision: 2, achieved_assurance: "EMAIL_VERIFIED", scored_weight_coverage: 90, state: "FINAL", current: true, created_at: "2026-09-01T09:30:00Z", score: completedResponse.score },
   });
+  assessmentApi.loadResponseAssessment.mockResolvedValue({ response_id: "response-a", form_template_id: "form-a", form_template_version: 4, version: 1, current: true, state: "NOT_REQUIRED", required_count: 0, reviewed_count: 0, reviewed_required_count: 0, automatic_score: completedResponse.score, fields: [{ field: { id: "file", label: "Certificate", type: "file" }, answer: { artifact_ids: ["document-a"] } }] });
 });
 
 describe("completed response portfolio", () => {
+  it("shows one automatic result and one document action within a response review", async () => {
+    render(<ResponsesView/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Review Vendor certification refresh response" }));
+    await screen.findByRole("region", { name: "Assessment" });
+    const dialog = screen.getByRole("dialog", { name: "Review Vendor certification refresh response" });
+    expect(dialog.querySelectorAll('[aria-label="Automatic result"]').length).toBe(1);
+    expect(Array.from(dialog.querySelectorAll("button")).filter((button) => /submitted (documents|evidence)/i.test(button.textContent ?? ""))).toHaveLength(1);
+  });
   it("requests completed responses by concern and explains compliance meaning", async () => {
     render(<ResponsesView/>);
 
@@ -56,9 +66,10 @@ describe("completed response portfolio", () => {
     render(<ResponsesView/>);
     expect(await screen.findByText("Vendor certification refresh")).toBeTruthy();
 
+    fireEvent.click(screen.getByText("Filters"));
     fireEvent.click(screen.getByRole("button", { name: /Concern/ }));
     fireEvent.click(await screen.findByRole("option", { name: "Critical" }));
-    fireEvent.change(screen.getByLabelText("Completed from"), { target: { value: "2026-08-01" } });
+    fireEvent.change(screen.getByLabelText("Submitted from"), { target: { value: "2026-08-01" } });
 
     await waitFor(() => expect(distributionApi.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({ bands: ["CRITICAL"], completed_from: "2026-08-01T00:00:00.000Z" })));
   });
@@ -69,7 +80,7 @@ describe("completed response portfolio", () => {
 
     expect(await screen.findByRole("button", { name: "Review Vendor certification refresh response" })).toBeTruthy();
     expect(screen.getAllByText("Score unavailable").length).toBeGreaterThan(0);
-    expect(screen.getByRole("cell", { name: /The response is complete and can still be reviewed/ })).toBeTruthy();
+    expect(screen.getByRole("cell", { name: /The response is available for review/ })).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "Review Vendor certification refresh response" })).toHaveLength(1);
   });
 

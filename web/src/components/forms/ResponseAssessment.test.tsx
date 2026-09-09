@@ -18,23 +18,33 @@ const assessment = {
 
 beforeEach(() => { vi.clearAllMocks(); api.loadResponseAssessment.mockResolvedValue(structuredClone(assessment)); });
 
-describe("submitted field bank assessment", () => {
+describe("submitted field assessment", () => {
+  it("keeps the submitted result and document access available when the assessment read fails", async () => {
+    api.loadResponseAssessment.mockRejectedValue(new ApiError(503, "Assessment unavailable"));
+    render(<ResponseAssessment responseID="response-2" submissionScore={assessment.automatic_score as never}/>);
+    await screen.findByText("Assessment unavailable");
+    expect(screen.getByText("20% risk")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "View submitted documents" }));
+    expect(screen.getByRole("region", { name: "Submitted documents response-2" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Save assessment" })).toBeNull();
+  });
+
   it("requires explicit permission for the response and each field before offering judgement controls", async () => {
     api.loadResponseAssessment.mockResolvedValue({ ...assessment, fields: assessment.fields.map((item) => ({ ...item, may_review: false })) });
     const view = render(<ResponseAssessment responseID="response-2"/>);
-    await screen.findByText("1 required field awaiting bank review");
-    expect(screen.queryByRole("button", { name: /Bank judgement for/ })).toBeNull();
+    await screen.findByText("1 required field awaiting review");
+    expect(screen.queryByRole("button", { name: /Decision for/ })).toBeNull();
     api.loadResponseAssessment.mockResolvedValue({ ...assessment, may_review: undefined });
     view.rerender(<ResponseAssessment responseID="response-3"/>);
-    await screen.findByText("1 required field awaiting bank review");
-    expect(screen.queryByRole("button", { name: "Save bank assessment" })).toBeNull();
+    await screen.findByText("1 required field awaiting review");
+    expect(screen.queryByRole("button", { name: "Save assessment" })).toBeNull();
   });
   it("shows unavailable totals without converting null scores to numbers", async () => {
     api.loadResponseAssessment.mockResolvedValue({ ...assessment, automatic_score: { ...assessment.automatic_score, raw_score: null, adverse_score: null, coverage: null } });
     render(<ResponseAssessment responseID="response-2"/>);
-    const result = await screen.findByRole("region", { name: "Automatic submission result" });
-    expect(within(result).getByText("No score available")).toBeTruthy();
-    expect(within(result).getByText("Score coverage unknown")).toBeTruthy();
+    const result = await screen.findByRole("region", { name: "Automatic result" });
+    expect(within(result).getByText("Score unavailable")).toBeTruthy();
+    expect(within(result).getByText("Coverage: Not available")).toBeTruthy();
     expect(within(result).queryByText(/null risk|0% score/)).toBeNull();
   });
   it("shows automatic field contributions and uses the saved concern bands for poor-result filtering", async () => {
@@ -53,24 +63,24 @@ describe("submitted field bank assessment", () => {
     expect(screen.getByRole("article", { name: "Privileged access reviews" })).toBeTruthy();
   });
 
-  it("keeps a committed bank assessment successful when its parent refresh fails", async () => {
+  it("keeps a committed assessment successful when its parent refresh fails", async () => {
     api.recordResponseAssessment.mockResolvedValue({ ...assessment, version: 1 });
     render(<ResponseAssessment responseID="response-2" onUpdated={() => { throw new Error("Parent refresh failed"); }}/>);
-    await screen.findByText("1 required field awaiting bank review");
-    fireEvent.click(screen.getByRole("button", { name: /Bank judgement for Vulnerability test/ }));
+    await screen.findByText("1 required field awaiting review");
+    fireEvent.click(screen.getByRole("button", { name: /Decision for Vulnerability test/ }));
     fireEvent.click(screen.getByRole("option", { name: /Evidence incomplete/ }));
     fireEvent.change(screen.getByLabelText("Rationale for Vulnerability test"), { target: { value: "Scope missing." } });
-    fireEvent.click(screen.getByRole("button", { name: "Save bank assessment" }));
-    expect(await screen.findByText(/Bank assessment saved/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Save assessment" }));
+    expect(await screen.findByText(/Assessment saved/)).toBeTruthy();
     expect(screen.queryByText("Parent refresh failed")).toBeNull();
   });
   it("shows provisional bank coverage separately from the submitted score and reviews exact documents", async () => {
     render(<ResponseAssessment responseID="response-2"/>);
-    expect(await screen.findByText("1 required field awaiting bank review")).toBeTruthy();
-    expect(screen.getByText("20 risk score")).toBeTruthy();
-    expect(screen.getByText("Bank assessment is provisional")).toBeTruthy();
+    expect(await screen.findByText("1 required field awaiting review")).toBeTruthy();
+    expect(screen.getByText("20% risk")).toBeTruthy();
+    expect(screen.getByText("Provisional")).toBeTruthy();
     expect(screen.getByText("0 of 1 required fields reviewed")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Review submitted evidence" }));
+    fireEvent.click(screen.getByRole("button", { name: "View submitted documents" }));
     expect(screen.getByRole("region", { name: "Submitted documents response-2" })).toBeTruthy();
   });
 
@@ -79,15 +89,15 @@ describe("submitted field bank assessment", () => {
     api.recordResponseAssessment.mockResolvedValueOnce({ ...assessment, version: 1, state: "ASSESSED", reviewed_count: 1, reviewed_required_count: 1 });
     const updated = vi.fn();
     render(<ResponseAssessment responseID="response-2" onUpdated={updated}/>);
-    await screen.findByText("1 required field awaiting bank review");
-    fireEvent.click(screen.getByRole("button", { name: /Bank judgement for Vulnerability test/ }));
+    await screen.findByText("1 required field awaiting review");
+    fireEvent.click(screen.getByRole("button", { name: /Decision for Vulnerability test/ }));
     fireEvent.click(screen.getByRole("option", { name: /Evidence incomplete/ }));
-    expect(screen.getByRole("button", { name: "Save bank assessment" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "Save assessment" }).hasAttribute("disabled")).toBe(true);
     fireEvent.change(screen.getByLabelText("Rationale for Vulnerability test"), { target: { value: "The report excludes the payment service." } });
-    fireEvent.click(screen.getByRole("button", { name: "Save bank assessment" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save assessment" }));
     expect(await screen.findByText(/Review service unavailable/)).toBeTruthy();
     expect((screen.getByLabelText("Rationale for Vulnerability test") as HTMLTextAreaElement).value).toBe("The report excludes the payment service.");
-    fireEvent.click(screen.getByRole("button", { name: "Save bank assessment" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save assessment" }));
     await waitFor(() => expect(updated).toHaveBeenCalledTimes(1));
     expect(api.recordResponseAssessment).toHaveBeenLastCalledWith("response-2", { expected_version: 0, decisions: [{ field_id: "test", outcome_id: "gap", rationale: "The report excludes the payment service." }] });
   });
@@ -95,15 +105,15 @@ describe("submitted field bank assessment", () => {
   it("requires a fresh read after a conflict without discarding the draft judgement", async () => {
     api.recordResponseAssessment.mockRejectedValue(new ApiError(409, "Assessment changed"));
     render(<ResponseAssessment responseID="response-2"/>);
-    await screen.findByText("1 required field awaiting bank review");
-    fireEvent.click(screen.getByRole("button", { name: /Bank judgement for Vulnerability test/ }));
+    await screen.findByText("1 required field awaiting review");
+    fireEvent.click(screen.getByRole("button", { name: /Decision for Vulnerability test/ }));
     fireEvent.click(screen.getByRole("option", { name: /Evidence incomplete/ }));
     fireEvent.change(screen.getByLabelText("Rationale for Vulnerability test"), { target: { value: "Scope missing." } });
-    fireEvent.click(screen.getByRole("button", { name: "Save bank assessment" }));
-    expect(await screen.findByRole("button", { name: "Reload bank assessment" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Save bank assessment" }).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Save assessment" }));
+    expect(await screen.findByRole("button", { name: "Reload assessment" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Save assessment" }).hasAttribute("disabled")).toBe(true);
     api.loadResponseAssessment.mockResolvedValue({ ...assessment, version: 2 });
-    fireEvent.click(screen.getByRole("button", { name: "Reload bank assessment" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reload assessment" }));
     await waitFor(() => expect(api.loadResponseAssessment).toHaveBeenCalledTimes(2));
     expect((await screen.findByLabelText("Rationale for Vulnerability test") as HTMLTextAreaElement).value).toBe("Scope missing.");
   });
@@ -112,7 +122,7 @@ describe("submitted field bank assessment", () => {
     api.loadResponseAssessment.mockResolvedValue({ ...assessment, current: false });
     const view = render(<ResponseAssessment responseID="response-1"/>);
     expect(await screen.findByText(/Historical response\. Review/)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Save bank assessment" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save assessment" })).toBeNull();
     const result = await axe.run(view.container, { rules: { "color-contrast": { enabled: false } } });
     expect(result.violations.map((violation) => violation.id)).toEqual([]);
   });

@@ -1,4 +1,5 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { useOverlayLifecycle } from "./useOverlayLifecycle";
 import { Dialog, Modal, ModalOverlay } from "react-aria-components";
 import { CloseIcon } from "../CloseIcon";
 import { IconButton } from "./Button";
@@ -14,22 +15,7 @@ export type FocusedDialogProps = {
 };
 
 export function FocusedDialog({ label, onClose, children, panelClassName = "", closeLabel = "Close", size = "default" }: FocusedDialogProps) {
-  const invokerRef = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
-
-  useEffect(() => {
-    const overflow = document.body.style.overflow;
-    const paddingRight = document.body.style.paddingRight;
-    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
-    const currentPadding = Number.parseFloat(window.getComputedStyle(document.body).paddingRight) || 0;
-    document.body.style.overflow = "hidden";
-    if (scrollbarWidth > 0) document.body.style.paddingRight = `${currentPadding + scrollbarWidth}px`;
-    return () => {
-      document.body.style.overflow = overflow;
-      document.body.style.paddingRight = paddingRight;
-      const invoker = invokerRef.current;
-      queueMicrotask(() => invoker?.focus());
-    };
-  }, []);
+  useOverlayLifecycle();
 
   return <ModalOverlay isOpen isDismissable className="cs-dialog__overlay" onOpenChange={(open) => { if (!open) onClose(); }}>
     <Modal className={`cs-dialog cs-dialog--${size} ${panelClassName}`.trim()}>
