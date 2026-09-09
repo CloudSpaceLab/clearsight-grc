@@ -123,7 +123,10 @@ async function assertFileTypeSelected(page, name) {
   const compact = page.getByRole("button", { name: `${name} File type`, exact: true });
   const sidebar = page.locator(".document-kinds");
   if (await compact.isVisible() !== narrow || await sidebar.isVisible() === narrow) throw new Error("File types must use one visible labelled navigation at the current width.");
-  if (await sidebar.locator('[aria-pressed="true"]').textContent() !== name) throw new Error("Compact and desktop file types must share the selected value.");
+  const selected = sidebar.getByRole("button", { pressed: true, includeHidden: true });
+  const selectedLabel = selected.locator('.document-kind-label > span:not([aria-hidden="true"])');
+  if (await selected.count() !== 1 || await selectedLabel.textContent() !== name) throw new Error("Compact and desktop file types must share the selected value.");
+  if (!narrow && await sidebar.getByRole("button", { name, exact: true, pressed: true }).count() !== 1) throw new Error("The selected file type must retain its accessible label.");
 }
 
 async function assertDocumentNameWidth(page) {

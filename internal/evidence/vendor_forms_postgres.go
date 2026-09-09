@@ -18,7 +18,7 @@ import (
 // Workflow currency uses the existing submitted field replacement predicate:
 // only retirement of every field retires the response; partial concerns remain
 // relevant with explicit PARTIALLY_REPLACED freshness.
-func vendorFormsScopedSQL() string {
+func vendorFormsScopedSQL(allowUnscanned bool) string {
 	access := documentReadAuthoritySQLAt(3, 4)
 	access = strings.ReplaceAll(access, "ELSE r.id IS NOT NULL AND (", "ELSE (")
 	access = "(" + access + ") OR (" + completedResponseReviewerSQL(3, 4) + ")"
@@ -30,7 +30,7 @@ func vendorFormsScopedSQL() string {
  COALESCE(bank.state,CASE WHEN COALESCE((r.score_result->>'assessment_review_count')::int,0)>0 THEN 'AWAITING_REVIEW' ELSE 'NOT_REQUIRED' END) AS assessment_state,
  COALESCE(bank.required_count,(r.score_result->>'assessment_required_count')::int,0) AS required_reviews,
  COALESCE(bank.reviewed_required_count,0) AS completed_reviews,
-	CASE WHEN d.status IN ('REVOKED','SUPERSEDED') THEN d.status WHEN r.id IS NOT NULL THEN 'SUBMITTED' WHEN req.status='SUBMITTED' THEN 'SUBMITTED' WHEN req.status='CANCELLED' THEN 'CANCELLED' WHEN ` + collectionNoVendorActionSQL("req", "$4") + ` THEN 'NO_VENDOR_ACTION' WHEN req.status='IN_PROGRESS' THEN 'IN_PROGRESS' WHEN req.status='DRAFT' THEN 'REQUEST_READY' WHEN req.status='EXPIRED' THEN req.status ELSE 'AWAITING_RESPONSE' END AS response_state,
+	CASE WHEN d.status IN ('REVOKED','SUPERSEDED') THEN d.status WHEN r.id IS NOT NULL THEN 'SUBMITTED' WHEN req.status='SUBMITTED' THEN 'SUBMITTED' WHEN req.status='CANCELLED' THEN 'CANCELLED' WHEN ` + collectionNoVendorActionSQL("req", "$4", allowUnscanned) + ` THEN 'NO_VENDOR_ACTION' WHEN req.status='IN_PROGRESS' THEN 'IN_PROGRESS' WHEN req.status='DRAFT' THEN 'REQUEST_READY' WHEN req.status='EXPIRED' THEN req.status ELSE 'AWAITING_RESPONSE' END AS response_state,
  COALESCE(d.status NOT IN ('REVOKED','SUPERSEDED'),true) AND (req.origin_type NOT IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK') OR submission.id IS NULL OR currency.total=0 OR currency.remaining>0) AS current,
  CASE WHEN d.status IN ('REVOKED','SUPERSEDED') THEN 'HISTORICAL'
  WHEN req.origin_type NOT IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK') OR submission.id IS NULL OR currency.total=0 OR currency.remaining=currency.total THEN 'CURRENT'
@@ -63,7 +63,7 @@ func (s *PostgresDistributionStore) ListVendorForms(ctx context.Context, q Vendo
 	}
 	now := time.Now().UTC()
 	cursor := decodeVendorFormsCursor(q.Cursor)
-	rows, err := s.repo.pool.Query(ctx, vendorFormsScopedSQL()+`
+	rows, err := s.repo.pool.Query(ctx, vendorFormsScopedSQL(s.repo.demoUnscannedAllowed)+`
  SELECT to_jsonb(f)||jsonb_build_object('origin',jsonb_build_object('type',f.origin_type,'id',f.origin_id,'version',f.origin_version)),
  jsonb_build_object('request_id',f.id::text,'relationship_id',f.subject_id,'distribution_id',f.distribution_id::text,'response_id',f.response_id::text,'form_template_id',f.form_template_id::text,'form_template_version',f.form_template_version,'title',f.title,'purpose',f.purpose,'origin_type',f.origin_type,'origin_id',f.origin_id,'response_state',f.response_state,'recipient_hint',f.audience_hint,'delivery_state',f.delivery_state,'deadline',f.deadline,'updated_at',f.updated_at,'submitted_at',f.submitted_at,'score',f.automatic_score,'assessed_score',f.assessed_score,'assessment_state',f.assessment_state,'required_reviews',f.required_reviews,'completed_reviews',f.completed_reviews,'current',f.current,'response_currency',f.response_currency),
  COALESCE(submission.answers,edits.answers,draft.answers,'{}'::jsonb),
@@ -136,7 +136,7 @@ func (s *PostgresDistributionStore) VendorFormSummaries(ctx context.Context, q V
 		return nil, err
 	}
 	now := time.Now().UTC()
-	rows, err := s.repo.pool.Query(ctx, vendorFormsScopedSQL()+` SELECT subject_id,
+	rows, err := s.repo.pool.Query(ctx, vendorFormsScopedSQL(s.repo.demoUnscannedAllowed)+` SELECT subject_id,
  count(*) FILTER(WHERE response_state IN ('REQUEST_READY','AWAITING_RESPONSE','IN_PROGRESS','EXPIRED')),
  count(*) FILTER(WHERE response_state IN ('REQUEST_READY','AWAITING_RESPONSE','IN_PROGRESS','EXPIRED') AND deadline<$4),
  count(*) FILTER(WHERE response_state='SUBMITTED'),

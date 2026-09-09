@@ -56,6 +56,8 @@ func buildFormCommunicationWorker(cfg config.Config, pool *pgxpool.Pool, evidenc
 	if err != nil {
 		return nil, nil, err
 	}
-	reminders := evidence.NewCommunicationReminderScheduler(evidence.NewPostgresCommunicationReminderRepository(pool))
+	reminderRepository := evidence.NewPostgresCommunicationReminderRepository(pool)
+	reminderRepository.ConfigureDemoUnscannedArtifacts(cfg.DemoAllowUnscannedArtifacts)
+	reminders := evidence.NewCommunicationReminderScheduler(reminderRepository)
 	return worker, reminders, nil
 }
