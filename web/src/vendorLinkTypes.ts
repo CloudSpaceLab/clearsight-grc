@@ -8,6 +8,7 @@ export type VendorRelationshipLink = {
   relationship_id: string;
   target_type: VendorLinkTargetType;
   target_id: string;
+  target_title?: string;
   purpose_code: string;
   purpose_label: string;
   state: VendorRelationshipLinkState;

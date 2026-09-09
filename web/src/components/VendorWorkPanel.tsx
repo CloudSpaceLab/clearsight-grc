@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { ApiError, apiErrorKind } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import type { FormTemplate } from "../monitoringTypes";
+import type { VendorAssessmentFinding } from "../vendorAssessmentTypes";
 import type { CapturePresentationMode } from "../types";
 import { loadVendorRelationship } from "../vendorApi";
 import { loadVendorRelationshipLinks } from "../vendorLinkApi";
@@ -16,7 +17,7 @@ import type { VendorWorkRequest, VendorWorkRequestKind, VendorWorkResponseView, 
 import { Button, FocusedSheet, Notice, SelectField, TextArea, TextField } from "./ui";
 import "../vendor-work.css";
 
-type Props = ({ targetType: VendorLinkTargetType; targetID: string; relationshipID?: never } | { relationshipID: string; targetType?: never; targetID?: never }) & { onOpenRequest?: (requestID: string) => void };
+type Props = ({ targetType: VendorLinkTargetType; targetID: string; relationshipID?: never } | { relationshipID: string; targetType?: never; targetID?: never }) & { onOpenRequest?: (requestID: string) => void; relatedFindings?: VendorAssessmentFinding[] };
 type LinkedRelationship = { link: VendorRelationshipLink; relationship: VendorRelationshipAggregate | null };
 type LoadState = "loading" | "ready" | "failed";
 type ActionMode = "accept" | "changes" | "cancel" | null;
@@ -28,6 +29,7 @@ export function VendorWorkPanel(props: Props) {
   const targetID = props.targetID;
   const relationshipID = props.relationshipID;
   const onOpenRequest = props.onOpenRequest;
+  const findingTitleByID = useMemo(() => new Map((props.relatedFindings ?? []).map((finding) => [finding.matter_id, finding.title])), [props.relatedFindings]);
   const [work, setWork] = useState<VendorWorkRequest[]>([]);
   const [relationships, setRelationships] = useState<LinkedRelationship[]>([]);
   const [forms, setForms] = useState<FormTemplate[]>([]);
@@ -233,7 +235,7 @@ export function VendorWorkPanel(props: Props) {
       <form className="vendor-work-form" onSubmit={(event) => void prepareAndSend(event)}>
         <SelectField label="Request type" value={requestKind} placeholder="Choose the work requested" allowsEmpty={false} options={[{ id: "GENERAL", label: "Vendor information or evidence" }, { id: "CERTIFICATION_REFRESH", label: "ISO 27001 and PCI DSS evidence" }]} onChange={(value) => { if (value) { setRequestKind(value); setFormKey(""); } }}/>
         {requestKind === "CERTIFICATION_REFRESH" && <Notice tone="info">The vendor is being asked for current ISO 27001 and PCI DSS evidence. Submission does not mean the bank accepted it; the assigned reviewer must check and accept the evidence.</Notice>}
-        <SelectField label={relationshipID ? "Related Program or issue" : "Vendor relationship"} value={selectedLinkID || undefined} placeholder={relationshipID ? "Choose related work" : "Choose a linked vendor"} isRequired options={relationships.filter((item) => item.relationship).map(({ link, relationship }) => ({ id: link.id, label: relationship ? relationshipID ? `${link.target_type === "PROGRAM" ? "Program" : "Issue or change"} · ${link.purpose_label}` : `${relationship.vendor.legal_name} — ${relationship.relationship.service_name}` : "Vendor details unavailable" }))} onChange={(value) => setSelectedLinkID(value ?? "")}/>
+        <SelectField label={relationshipID ? "Related Program or issue" : "Vendor relationship"} value={selectedLinkID || undefined} placeholder={relationshipID ? "Choose related work" : "Choose a linked vendor"} isRequired options={relationships.filter((item) => item.relationship).map(({ link, relationship }) => ({ id: link.id, label: relationship ? relationshipID ? relationshipLinkLabel(link, findingTitleByID) : `${relationship.vendor.legal_name} — ${relationship.relationship.service_name}` : "Vendor details unavailable" }))} onChange={(value) => setSelectedLinkID(value ?? "")}/>
         {linkNextCursor && <Button type="button" variant="secondary" isLoading={loadingMoreLinks} onPress={() => void loadMoreLinks()}>{relationshipID ? "Load more related work" : "Load more linked vendors"}</Button>}
         {linkLoadError && <Notice tone="error">More related records could not be loaded. The current choices remain available.</Notice>}
         <TextField label="Request purpose" value={purpose} onChange={setPurpose} maxLength={500} isRequired placeholder="Confirm annual service controls"/>
@@ -399,6 +401,14 @@ function FormSummary({ form }: { form: FormTemplate }) {
   const required = form.fields.filter((field) => field.required).length;
   const uploads = form.fields.filter((field) => ["file", "photo", "signature", "vendor_document"].includes(field.type)).length;
   return <div className="vendor-work-form-summary"><strong>{form.name}</strong><span>{form.fields.length} {form.fields.length === 1 ? "field" : "fields"} · {required} required · {uploads} {uploads === 1 ? "document upload" : "document uploads"}</span><small>{form.purpose}</small></div>;
+}
+
+function relationshipLinkLabel(link: VendorRelationshipLink, findingTitleByID: Map<string, string>) {
+  if (link.target_type === "MATTER") {
+    const title = link.target_title || findingTitleByID.get(link.target_id);
+    return title ? `Issue or change · ${title}` : `Issue or change · ${link.purpose_label}`;
+  }
+  return `Program · ${link.target_title || link.purpose_label}`;
 }
 
 function findForm(forms: FormTemplate[], work: VendorWorkRequest) { return forms.find((form) => form.id === work.form_template_id && form.version === work.form_template_version); }

@@ -161,7 +161,7 @@ func deficiencyMatterInput(actor Actor, assessment Assessment, input CreateAsses
 	}
 	scope, _ := json.Marshal(map[string]any{"access": continuity.MatterAccessRestricted, "allowed_principal_ids": allowed, "assessment_id": assessment.ID, "relationship_id": assessment.RelationshipID, "deficiency_key": input.TriggerKey})
 	known, _ := json.Marshal(map[string]string{"assessment_id": assessment.ID, "relationship_id": assessment.RelationshipID, "deficiency_key": input.TriggerKey})
-	return continuity.CreateMatterInput{TenantID: assessment.TenantID, Type: continuity.MatterVendorDeficiency, Priority: 3, Title: input.Title, Summary: input.Summary, Scope: scope, TriggerType: "VENDOR_ASSESSMENT_DEFICIENCY", TriggerID: assessment.ID, TriggerKey: triggerKey, KnownFacts: known, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), OwnerPrincipalID: assessment.StartedByPrincipalID, RequiredAuthority: string(authority.ResponsibilityOwner), DueAt: input.DueAt, ActorID: actor.PrincipalID}
+	return continuity.CreateMatterInput{TenantID: actor.TenantID, Type: continuity.MatterVendorDeficiency, Priority: 3, Title: input.Title, Summary: input.Summary, Scope: scope, TriggerType: "VENDOR_ASSESSMENT_DEFICIENCY", TriggerID: assessment.ID, TriggerKey: triggerKey, KnownFacts: known, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), OwnerPrincipalID: assessment.StartedByPrincipalID, RequiredAuthority: string(authority.ResponsibilityOwner), DueAt: input.DueAt, ActorID: actor.PrincipalID}
 }
 
 func validDeficiencyMatter(value continuity.MatterAggregate, scope Scope, assessment Assessment, triggerKey, principalID string) bool {

@@ -3,6 +3,7 @@ package thirdparty
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -167,15 +168,15 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 	}
 	assessment, err := s.assessments.GetAssessment(ctx, actor, assessmentID)
 	if err != nil {
-		return AssessmentReviewView{}, err
+		return AssessmentReviewView{}, fmt.Errorf("read assessment: %w", err)
 	}
 	scope := Scope{TenantID: assessment.TenantID, LegalEntityID: assessment.LegalEntityID}
 	if err := s.authorizeRead(ctx, actor, scope, assessment); err != nil {
-		return AssessmentReviewView{}, err
+		return AssessmentReviewView{}, fmt.Errorf("authorize assessment review: %w", err)
 	}
 	links, err := s.links.ListAssessmentRequestLinks(ctx, scope, assessment.ID)
 	if err != nil {
-		return AssessmentReviewView{}, err
+		return AssessmentReviewView{}, fmt.Errorf("list assessment requests: %w", err)
 	}
 	if len(links) > assessmentReviewMaxRequests {
 		return AssessmentReviewView{}, ErrInvalid
@@ -191,7 +192,7 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		}
 		request, readErr := s.evidence.GetRequest(ctx, scope.TenantID, link.RequestID)
 		if readErr != nil {
-			return AssessmentReviewView{}, readErr
+			return AssessmentReviewView{}, fmt.Errorf("read assessment request: %w", readErr)
 		}
 		// Evidence reads are tenant-scoped. Their Postgres projections return the
 		// tenant UUID while the assessment scope carries the tenant slug, so a
@@ -228,19 +229,19 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 	if assessment.SubmissionID != "" {
 		submission, readErr := s.evidence.GetSubmission(ctx, scope.TenantID, assessment.SubmissionID)
 		if readErr != nil {
-			return AssessmentReviewView{}, readErr
+			return AssessmentReviewView{}, fmt.Errorf("read assessment submission: %w", readErr)
 		}
 		if submission.ID != assessment.SubmissionID || submission.RequestID != currentRequest.ID {
 			return AssessmentReviewView{}, ErrNotFound
 		}
 		if err = s.addSubmission(ctx, &view, currentRequest, submission); err != nil {
-			return AssessmentReviewView{}, err
+			return AssessmentReviewView{}, fmt.Errorf("project assessment submission: %w", err)
 		}
 	}
 	if documents, ok := s.links.(AssessmentReviewDocumentReader); ok {
 		values, readErr := documents.ListAssessmentDocuments(ctx, scope, assessment.ID, assessmentReviewMaxArtifacts+1)
 		if readErr != nil {
-			return AssessmentReviewView{}, readErr
+			return AssessmentReviewView{}, fmt.Errorf("list assessment documents: %w", readErr)
 		}
 		if len(values) > assessmentReviewMaxArtifacts {
 			return AssessmentReviewView{}, ErrInvalid
@@ -274,15 +275,12 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		}
 	}
 	if s.matters != nil {
-		// Assessment reads expose the canonical tenant slug while the verified
-		// session carries the durable tenant ID. The matter reader is already
-		// bound to this resolved assessment scope, so pass that same scope with
-		// the verified principal retained for restricted-matter filtering.
-		scopedActor := actor
-		scopedActor.TenantID, scopedActor.LegalEntityID = scope.TenantID, scope.LegalEntityID
-		values, readErr := s.matters.ListAssessmentReviewMatters(ctx, scopedActor, scope, assessment.ID, assessmentReviewMaxMatters+1)
+		// The assessment scope uses the tenant slug while the verified session
+		// retains the durable tenant ID required by the restricted-matter reader.
+		// The assessment was already loaded in that verified identity's scope.
+		values, readErr := s.matters.ListAssessmentReviewMatters(ctx, actor, scope, assessment.ID, assessmentReviewMaxMatters+1)
 		if readErr != nil {
-			return AssessmentReviewView{}, readErr
+			return AssessmentReviewView{}, fmt.Errorf("list assessment matters: %w", readErr)
 		}
 		if len(values) > assessmentReviewMaxMatters {
 			return AssessmentReviewView{}, ErrInvalid

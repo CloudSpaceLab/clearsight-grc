@@ -56,7 +56,7 @@ func NewCanonicalAssessmentReviewMatterReader(links AssessmentMatterLinkReader, 
 
 func (r *CanonicalAssessmentReviewMatterReader) ListAssessmentReviewMatters(ctx context.Context, actor Actor, scope Scope, assessmentID string, limit int) ([]AssessmentReviewMatter, error) {
 	assessmentID = strings.TrimSpace(assessmentID)
-	if r == nil || r.links == nil || r.matters == nil || !validAssessmentScope(scope) || actor.TenantID != scope.TenantID || actor.LegalEntityID != scope.LegalEntityID || strings.TrimSpace(actor.PrincipalID) == "" || !validAssessmentIdentifier(assessmentID) || limit < 1 || limit > assessmentReviewMaxMatters+1 {
+	if r == nil || r.links == nil || r.matters == nil || !validAssessmentScope(scope) || actor.LegalEntityID != scope.LegalEntityID || strings.TrimSpace(actor.TenantID) == "" || strings.TrimSpace(actor.PrincipalID) == "" || !validAssessmentIdentifier(assessmentID) || limit < 1 || limit > assessmentReviewMaxMatters+1 {
 		return nil, ErrInvalid
 	}
 	links, err := r.links.ListAssessmentMatterLinks(ctx, scope, assessmentID, limit)
@@ -90,7 +90,7 @@ func (r *CanonicalAssessmentReviewMatterReader) ListAssessmentReviewMatters(ctx 
 		default:
 			return nil, ErrNotFound
 		}
-		aggregate, readErr := r.matters.GetMatter(ctx, scope.TenantID, link.MatterID)
+		aggregate, readErr := r.matters.GetMatter(ctx, actor.TenantID, link.MatterID)
 		if readErr != nil {
 			if errors.Is(readErr, continuity.ErrNotFound) {
 				return nil, ErrNotFound
@@ -98,7 +98,7 @@ func (r *CanonicalAssessmentReviewMatterReader) ListAssessmentReviewMatters(ctx 
 			return nil, readErr
 		}
 		matter := aggregate.Matter
-		if matter.ID != link.MatterID || matter.TenantID != scope.TenantID || matter.Type != continuity.MatterVendorDeficiency {
+		if matter.ID != link.MatterID || matter.TenantID != actor.TenantID || matter.Type != continuity.MatterVendorDeficiency {
 			return nil, ErrNotFound
 		}
 		if !continuity.MatterVisibleTo(matter, actor.PrincipalID) {

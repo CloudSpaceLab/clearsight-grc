@@ -14,9 +14,10 @@ import (
 
 func ensureAssessmentMatterRelationshipLink(ctx context.Context, tx pgx.Tx, tenantID string, assessment Assessment, matterID string, kind AssessmentMatterLinkKind, actorID string, at time.Time) (RelationshipLink, error) {
 	load := func() (RelationshipLink, error) {
-		value, err := scanRelationshipLink(tx.QueryRow(ctx, `SELECT l.id::text,t.slug,l.legal_entity_id,l.relationship_id,'MATTER'::text,l.matter_id,l.purpose_code,l.purpose_label,l.state,
+		value, err := scanRelationshipLink(tx.QueryRow(ctx, `SELECT l.id::text,t.slug,l.legal_entity_id,l.relationship_id,'MATTER'::text,l.matter_id,m.title,l.purpose_code,l.purpose_label,l.state,
 			l.created_by_principal_id::text,COALESCE(l.ended_by_principal_id::text,''),l.end_reason,l.version,l.created_at,l.updated_at,l.ended_at
 			FROM third_party_relationship_matter_links l JOIN tenants t ON t.id=l.tenant_id
+			JOIN matters m ON m.id=l.matter_id AND m.tenant_id=l.tenant_id
 			WHERE l.tenant_id=$1::uuid AND l.legal_entity_id::text=$2 AND l.relationship_id=$3::uuid AND l.matter_id=$4::uuid AND l.state='ACTIVE'
 			FOR UPDATE OF l`, tenantID, assessment.LegalEntityID, assessment.RelationshipID, matterID))
 		return value, err

@@ -226,6 +226,9 @@ func (a *API) getVendorAssessmentReview(w http.ResponseWriter, r *http.Request) 
 	}
 	view, err := a.deps.ThirdPartyAssessmentReviews.GetReview(r.Context(), actor, r.PathValue("id"))
 	if err != nil {
+		if a.deps.Logger != nil {
+			a.deps.Logger.Error("vendor assessment review read failed", "assessment_id", r.PathValue("id"), "principal_id", actor.PrincipalID, "error", err)
+		}
 		writeThirdPartyAssessmentError(w, err)
 		return
 	}

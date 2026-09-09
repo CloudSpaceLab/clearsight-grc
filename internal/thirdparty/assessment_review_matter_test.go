@@ -53,6 +53,23 @@ func TestCanonicalAssessmentReviewMatterReaderReturnsOnlyVisibleLinkedDeficienci
 	}
 }
 
+func TestCanonicalAssessmentReviewMatterReaderUsesVerifiedTenantForMatterReadWhenAssessmentUsesSlug(t *testing.T) {
+	scope := Scope{TenantID: "clearsight-demo", LegalEntityID: "entity-a"}
+	links := &assessmentMatterLinkReaderStub{values: []AssessmentMatterLink{{
+		Scope: scope, AssessmentID: "assessment-1", MatterID: "visible-deficiency", Kind: AssessmentMatterDeficiency,
+	}}}
+	reader := NewCanonicalAssessmentReviewMatterReader(links, assessmentCanonicalMatterStub{values: map[string]continuity.MatterAggregate{
+		"visible-deficiency": {Matter: reviewMatter("00000000-0000-4000-8000-000000000001", "visible-deficiency", continuity.MatterVendorDeficiency, `{"access":"INTERNAL"}`)},
+	}})
+	values, err := reader.ListAssessmentReviewMatters(context.Background(), Actor{TenantID: "00000000-0000-4000-8000-000000000001", LegalEntityID: "entity-a", PrincipalID: "reviewer-a"}, scope, "assessment-1", assessmentReviewMaxMatters+1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(values) != 1 || values[0].TenantID != scope.TenantID || values[0].MatterID != "visible-deficiency" {
+		t.Fatalf("review matter did not retain assessment scope: %#v", values)
+	}
+}
+
 func TestCanonicalAssessmentReviewMatterReaderFailsClosedOnLinkScopeMismatch(t *testing.T) {
 	scope := Scope{TenantID: "bank-a", LegalEntityID: "entity-a"}
 	links := &assessmentMatterLinkReaderStub{values: []AssessmentMatterLink{{

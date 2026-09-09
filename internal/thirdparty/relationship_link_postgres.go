@@ -265,19 +265,21 @@ func relationshipLinkTable(targetType LinkTargetType) (string, string, error) {
 }
 
 const relationshipLinkUnion = `SELECT * FROM (
-	SELECT l.id::text,t.slug AS tenant_ref,l.legal_entity_id,l.relationship_id,'PROGRAM'::text AS target_type,l.program_id AS target_id,l.purpose_code,l.purpose_label,l.state,
+	SELECT l.id::text,t.slug AS tenant_ref,l.legal_entity_id,l.relationship_id,'PROGRAM'::text AS target_type,l.program_id AS target_id,p.name AS target_title,l.purpose_code,l.purpose_label,l.state,
 	       l.created_by_principal_id::text,COALESCE(l.ended_by_principal_id::text,''),l.end_reason,l.version,l.created_at,l.updated_at,l.ended_at
 	FROM third_party_relationship_program_links l JOIN tenants t ON t.id=l.tenant_id
+	JOIN programs p ON p.id=l.program_id AND p.tenant_id=l.tenant_id
 	UNION ALL
-	SELECT l.id::text,t.slug AS tenant_ref,l.legal_entity_id,l.relationship_id,'MATTER'::text AS target_type,l.matter_id AS target_id,l.purpose_code,l.purpose_label,l.state,
+	SELECT l.id::text,t.slug AS tenant_ref,l.legal_entity_id,l.relationship_id,'MATTER'::text AS target_type,l.matter_id AS target_id,m.title AS target_title,l.purpose_code,l.purpose_label,l.state,
 	       l.created_by_principal_id::text,COALESCE(l.ended_by_principal_id::text,''),l.end_reason,l.version,l.created_at,l.updated_at,l.ended_at
 	FROM third_party_relationship_matter_links l JOIN tenants t ON t.id=l.tenant_id
+	JOIN matters m ON m.id=l.matter_id AND m.tenant_id=l.tenant_id
 ) link_rows`
 
 func scanRelationshipLink(row rowScanner) (RelationshipLink, error) {
 	var value RelationshipLink
 	var targetType string
-	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.RelationshipID, &targetType, &value.TargetID,
+	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.RelationshipID, &targetType, &value.TargetID, &value.TargetTitle,
 		&value.PurposeCode, &value.PurposeLabel, &value.State, &value.CreatedBy, &value.EndedBy, &value.EndReason,
 		&value.Version, &value.CreatedAt, &value.UpdatedAt, &value.EndedAt)
 	value.TargetType = LinkTargetType(targetType)

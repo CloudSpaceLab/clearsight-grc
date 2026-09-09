@@ -37,6 +37,7 @@ type RelationshipLink struct {
 	RelationshipID string                `json:"relationship_id"`
 	TargetType     LinkTargetType        `json:"target_type"`
 	TargetID       string                `json:"target_id"`
+	TargetTitle    string                `json:"target_title,omitempty"`
 	PurposeCode    string                `json:"purpose_code"`
 	PurposeLabel   string                `json:"purpose_label"`
 	State          RelationshipLinkState `json:"state"`

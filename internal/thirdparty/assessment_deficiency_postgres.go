@@ -61,7 +61,7 @@ func (r *PostgresRepository) LinkAssessmentDeficiency(ctx context.Context, recor
 		return AssessmentMatterLink{}, Assessment{}, ErrInvalidAssessmentTransition
 	}
 	var proof bool
-	err = tx.QueryRow(ctx, `SELECT true FROM matters WHERE tenant_id=$1::uuid AND id=$2::uuid AND matter_type='VENDOR_DEFICIENCY' AND trigger_type='VENDOR_ASSESSMENT_DEFICIENCY' AND trigger_id=$3::uuid AND trigger_key=$4`, tenantID, record.MatterID, current.ID, record.MatterTriggerKey).Scan(&proof)
+	err = tx.QueryRow(ctx, `SELECT true FROM matters WHERE tenant_id=$1::uuid AND id=$2::uuid AND matter_type='VENDOR_DEFICIENCY' AND trigger_type='VENDOR_ASSESSMENT_DEFICIENCY' AND trigger_id=$3 AND trigger_key=$4`, tenantID, record.MatterID, current.ID, record.MatterTriggerKey).Scan(&proof)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return AssessmentMatterLink{}, Assessment{}, ErrNotFound
 	}

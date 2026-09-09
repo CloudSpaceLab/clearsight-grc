@@ -194,6 +194,17 @@ describe("VendorWorkPanel", () => {
     expect(await screen.findByText("Link this vendor relationship to a Program or issue before requesting vendor work.")).toBeTruthy();
   });
 
+  it("names each linked finding in the related-work picker", async () => {
+    vi.mocked(loadVendorRelationshipLinks).mockResolvedValue({ items: [{ ...link, target_type: "MATTER", target_id: "matter-vapt", target_title: "Provide an independent VAPT report" }] });
+    render(<VendorWorkPanel relationshipID="relationship-1"/>);
+
+    await screen.findByText("No vendor requests have been recorded for this vendor relationship.");
+    fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Request vendor work" })).getByRole("button", { name: /Related Program or issue/i }));
+
+    expect(await screen.findByRole("option", { name: "Issue or change · Provide an independent VAPT report" })).toBeTruthy();
+  });
+
   it("keeps entered values when preparation fails", async () => {
     vi.mocked(prepareVendorWork).mockRejectedValue(new Error("unavailable"));
     render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);

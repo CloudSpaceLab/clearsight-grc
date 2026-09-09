@@ -61,6 +61,7 @@ func (a *API) createVendorAssessmentDeficiency(w http.ResponseWriter, r *http.Re
 	}
 	outcome, err := a.deps.ThirdPartyAssessmentDeficiencies.CreateDeficiency(r.Context(), actor, r.PathValue("id"), request.CreateAssessmentDeficiencyInput)
 	if err != nil {
+		a.deps.Logger.Error("vendor assessment finding failed", "assessment_id", r.PathValue("id"), "error", err)
 		writeThirdPartyAssessmentError(w, err)
 		return
 	}

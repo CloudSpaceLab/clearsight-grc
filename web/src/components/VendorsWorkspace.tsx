@@ -735,7 +735,7 @@ function VendorDetail({ record, assessment, assessmentSetup, assessmentState, re
     onOpenMatter={onOpenMatter}
   />}
   <VendorActivationPanel relationship={relationship} onActivated={onActivated}/>
-  <VendorWorkPanel relationshipID={relationship.id} onOpenRequest={onOpenRequest}/>
+  <VendorWorkPanel relationshipID={relationship.id} relatedFindings={review?.matters} onOpenRequest={onOpenRequest}/>
   {documentsFor === relationship.id && <FocusedSheet label={`${vendor.legal_name} documents`} size="wide" onClose={() => setDocumentsFor(undefined)}>
     <DocumentBrowser key={relationship.id} scopeLabel={`${vendor.legal_name} · ${relationship.service_name}`} relationshipID={relationship.id}/>
   </FocusedSheet>}
