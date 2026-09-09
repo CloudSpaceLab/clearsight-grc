@@ -128,6 +128,9 @@ func seedOperatingFormSample(ctx context.Context, pool *pgxpool.Pool, distributi
 		return "", nil, err
 	}
 	if spec.state == "IN_PROGRESS" {
+		if err := markOperatingFormSampleInProgress(ctx, pool, seed.TenantID, bundle.Recipients[0].RequestID, now); err != nil {
+			return "", nil, err
+		}
 		return string(evidence.RequestInProgress), nil, nil
 	}
 	submitted, err := access.SubmitResponseWorkspace(ctx, session.SessionToken, evidence.SubmitWorkspaceInput{ExpectedVersion: workspace.Workspace.Version})
@@ -188,10 +191,28 @@ func existingOperatingFormSample(ctx context.Context, pool *pgxpool.Pool, distri
 				return "", nil, fmt.Errorf("repair partial sample response: answers=%d err=%v", len(workspace.Answers), routeErr)
 			}
 		}
+		if err := markOperatingFormSampleInProgress(ctx, pool, seed.TenantID, request.ID, time.Now().UTC()); err != nil {
+			return "", nil, err
+		}
 		return string(evidence.RequestInProgress), nil, nil
 	default:
 		return string(evidence.RequestReady), nil, nil
 	}
+}
+
+func markOperatingFormSampleInProgress(ctx context.Context, pool *pgxpool.Pool, tenantID, requestID string, now time.Time) error {
+	if _, err := pool.Exec(ctx, `UPDATE capture_requests r SET status='IN_PROGRESS',version=version+1,updated_at=$3 FROM tenants t WHERE r.tenant_id=t.id AND (t.id::text=$1 OR t.slug=$1) AND r.id=$2::uuid AND r.status='READY'`, tenantID, requestID, now.UTC()); err != nil {
+		return err
+	}
+	var status evidence.RequestStatus
+	err := pool.QueryRow(ctx, `SELECT r.status FROM capture_requests r JOIN tenants t ON t.id=r.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND r.id=$2::uuid`, tenantID, requestID).Scan(&status)
+	if err != nil {
+		return err
+	}
+	if status != evidence.RequestInProgress {
+		return fmt.Errorf("partial sample request is %s", status)
+	}
+	return nil
 }
 
 func operatingFormSampleEdits(answers map[string]string, sequences map[string]int64) []evidence.FieldEdit {
