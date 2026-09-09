@@ -63,6 +63,7 @@ function ComplianceOverview({ relationshipID, serviceName, summary, summaryState
       <div><dt>Incomplete</dt><dd>{summary.outstanding_forms}</dd>{summary.overdue_forms > 0 && <small>{summary.overdue_forms} overdue</small>}</div>
       <div><dt>Awaiting review</dt><dd>{summary.awaiting_review}</dd></div>
       <div><dt>Outdated</dt><dd>{outdated ?? "—"}</dd>{outdated === undefined ? <small>Not checked</small> : (summary.freshness_unknown_forms ?? 0) > 0 && <small>{summary.freshness_unknown_forms} not checked</small>}</div>
+      {summary.submitted_forms > 0 && <div><dt>Assessed</dt><dd>{summary.assessed_forms}/{summary.submitted_forms}</dd></div>}
     </dl>}
     {conclusion && <p className="vendor-compliance__review"><strong>Last review: {conclusion}</strong>{assessment?.completed_at && <> · {dateTime(assessment.completed_at)}</>}{overdueReview && <> · Review overdue</>}</p>}
     {(error || summaryState === "unavailable") && <Notice tone="error"><strong>Compliance status unavailable</strong><p>Vendor forms could not be checked.</p><Button onPress={() => { void load(); onUpdated(); }}>Retry</Button></Notice>}
@@ -71,10 +72,11 @@ function ComplianceOverview({ relationshipID, serviceName, summary, summaryState
     {!!rows.length && <>
       <ul className="vendor-compliance__forms">{rows.map((row) => {
         const items = itemsFor(row);
+        const score = row.assessed_score ?? row.score;
         const received = row.response_state === "NO_VENDOR_ACTION";
         const submitted = row.response_state === "SUBMITTED";
         return <li key={`${row.request_id}:${row.response_id ?? "pending"}`}>
-          <div className="vendor-compliance__form-heading"><strong>{row.title}</strong><StatusBadge tone={submitted || received ? "neutral" : "info"}>{received ? "Received" : submitted ? "Submitted" : row.response_state === "READY_TO_SUBMIT" ? "Awaiting submission" : row.response_state === "REQUEST_READY" ? "Ready to send" : "Incomplete"}</StatusBadge></div>
+          <div className="vendor-compliance__form-heading"><strong>{row.title}</strong><div className="vendor-compliance__form-status">{score?.raw_score != null && <span className="vendor-compliance__score">{scoreValue(score.raw_score)}% {score.mode === "RISK" ? "risk" : "compliance"}</span>}{score?.band && <StatusBadge tone={concernTone(score.band)}>{concernLabel(score.band)}</StatusBadge>}<StatusBadge tone={submitted || received ? "neutral" : "info"}>{received ? "Received" : submitted ? "Submitted" : row.response_state === "READY_TO_SUBMIT" ? "Awaiting submission" : row.response_state === "REQUEST_READY" ? "Ready to send" : "Incomplete"}</StatusBadge></div></div>
           {items.length > 0 && <ul className="vendor-compliance__items">{items.map((item) => <li key={`${item.field_id ?? item.rule_id ?? item.label}:${item.state}`}><span>{item.label}</span><StatusBadge tone={item.state === "GAP" ? "warning" : "error"}>{item.state === "MISSING" ? "Missing" : item.state === "EXPIRED" ? "Expired" : "Not met"}</StatusBadge></li>)}</ul>}
           <div className="vendor-compliance__form-footer"><div>
             {items.some((item) => item.source === "RESPONSE") && <p>Based on submitted answers</p>}
@@ -105,5 +107,13 @@ function itemsFor(row: VendorFormRow) {
   }
   for (const field of row.missing_fields ?? []) if (!items.some((item) => item.field_id === field.id)) items.push({ field_id: field.id, label: field.label, state: "MISSING", source: "RESPONSE" });
   return items;
+}
+function scoreValue(value: number) { return Number.isInteger(value) ? String(value) : value.toFixed(1); }
+function concernLabel(value: string) { return value.charAt(0) + value.slice(1).toLowerCase(); }
+function concernTone(value: string): "neutral" | "warning" | "error" | "info" {
+  if (value === "CRITICAL") return "error";
+  if (value === "HIGH") return "warning";
+  if (value === "MODERATE") return "info";
+  return "neutral";
 }
 function dateTime(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Date unavailable" : date.toLocaleDateString(); }

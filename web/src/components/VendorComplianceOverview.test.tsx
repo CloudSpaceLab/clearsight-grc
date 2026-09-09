@@ -13,10 +13,13 @@ beforeEach(() => { vi.clearAllMocks(); api.loadVendorForms.mockResolvedValue({ i
 
 describe("vendor compliance overview", () => {
   it("shows submitted gaps without describing the form as incomplete and opens its exact review", async () => {
-    api.loadVendorForms.mockResolvedValue({ items: [{ ...row, attention_items: [{ field_id: "iso", label: "ISO 27001 certificate", state: "MISSING", source: "RESPONSE" }] }], observed_at: summary.observed_at });
-    render(<VendorComplianceOverview {...props}/>);
+    api.loadVendorForms.mockResolvedValue({ items: [{ ...row, score: { mode: "COMPLIANCE", direction: "LOW_IS_POOR", raw_score: 35, adverse_score: 65, band: "CRITICAL", coverage: 1, final: true, state: "FINAL", profile_version: "third-party-risk-v3", profile_checksum: "checksum", evaluator_version: "formcontract-advanced-v1", calculated_at: summary.observed_at }, attention_items: [{ field_id: "iso", label: "ISO 27001 certificate", state: "MISSING", source: "RESPONSE" }] }], observed_at: summary.observed_at });
+    render(<VendorComplianceOverview {...props} summary={{ ...summary, highest_concern: "CRITICAL" }}/>);
     expect(await screen.findByText("ISO 27001 certificate")).toBeTruthy();
     expect(screen.getByText("Submitted")).toBeTruthy();
+    expect(screen.getByText("35% compliance")).toBeTruthy();
+    expect(screen.getByText("Critical")).toBeTruthy();
+    expect(screen.getByText("1/1")).toBeTruthy();
     expect(screen.getByText("Action required")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review Third Party Risk Compliance" }));
     expect(await screen.findByText("Reviewing response-1")).toBeTruthy();

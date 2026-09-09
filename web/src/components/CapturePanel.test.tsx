@@ -207,6 +207,48 @@ describe("CapturePanel", () => {
     expect(screen.queryByText(/verification/i)).toBeNull();
   });
 
+  it("renders and submits the seeded vendor control assessment answers", async () => {
+    const submit = vi.fn().mockResolvedValue({ submitted_at: "2026-09-09T15:25:01Z" });
+    const vendorRiskRequest: CaptureRequest = {
+      ...request,
+      id: "vendor-control-request",
+      title: "Third Party Risk Compliance",
+      purpose: "Confirm the controls used to protect the service.",
+      why_you: "You are the vendor contact for this service.",
+      sensitivity: "CONFIDENTIAL",
+      sections: [{ id: "controls", title: "Current controls" }],
+      fields: [
+        { id: "encryption_enabled", section_id: "controls", label: "Is service data encrypted at rest and in transit?", type: "yes_no", required: true },
+        { id: "admin_mfa", section_id: "controls", label: "Is MFA required for administrator access?", type: "yes_no", required: true },
+        { id: "annual_security_test", section_id: "controls", label: "Was independent security testing completed in the last 12 months?", type: "yes_no", required: true },
+        { id: "critical_weakness", section_id: "controls", label: "Is any critical security weakness unresolved?", type: "yes_no", required: true },
+      ],
+    };
+    render(<CapturePanel request={vendorRiskRequest} external onSubmit={submit}/>);
+
+    expect(screen.getByRole("heading", { name: "Third Party Risk Compliance" })).toBeTruthy();
+    expect(screen.getByText("Current controls")).toBeTruthy();
+    const yes = screen.getAllByRole("radio", { name: "Yes" });
+    const no = screen.getAllByRole("radio", { name: "No" });
+    expect(yes).toHaveLength(4);
+    expect(no).toHaveLength(4);
+    fireEvent.click(yes[0]!);
+    fireEvent.click(no[1]!);
+    fireEvent.click(no[2]!);
+    fireEvent.click(yes[3]!);
+    fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
+    expect(screen.getByRole("heading", { name: "Check your response" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Submit evidence" }));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledWith(vendorRiskRequest, {
+      encryption_enabled: { text: "Yes" },
+      admin_mfa: { text: "No" },
+      annual_security_test: { text: "No" },
+      critical_weakness: { text: "Yes" },
+    }));
+    expect(await screen.findByRole("heading", { name: "Submitted" })).toBeTruthy();
+  });
+
   it("normalizes server-valid field types and accepted media formats in the browser", () => {
     render(<CapturePanel request={{ ...request, fields: [{ id: "photo", label: "Site photo", type: " PHOTO ", required: true, accepted_formats: [" IMAGE/JPEG ; charset=binary "] }] }}/>);
     const input = screen.getByLabelText(/Site photo/) as HTMLInputElement;
