@@ -142,7 +142,7 @@ func documentReadAuthoritySQLAt(principal, at int) string {
 	workReviewer := authority.PostgresReadRouteSQL("work", "relationship_id", "VENDOR_RELATIONSHIP", "THIRDPARTY.WORK.REVIEW", "REVIEWER", principal, at)
 	workOwner := authority.PostgresReadRouteSQL("work", "relationship_id", "VENDOR_RELATIONSHIP", "THIRDPARTY.WORK.SEND", "OWNER", principal, at)
 	principalSQL := fmt.Sprintf("$%d", principal)
-	subjectVisibility := strings.ReplaceAll(completedResponseSubjectVisibilitySQL(principalSQL), "ELSE true", "ELSE false")
+	subjectVisibility := strings.ReplaceAll(completedResponseSubjectVisibilitySQL(principalSQL, fmt.Sprintf("$%d", at)), "ELSE true", "ELSE false")
 	return `CASE
  WHEN req.origin_type='THIRD_PARTY_ASSESSMENT' THEN assessment.id IS NOT NULL AND (assessment.started_by_principal_id::text=` + principalSQL + ` OR relationship.business_owner_principal_id::text=` + principalSQL + ` OR ` + assessmentRoute + `)
  WHEN req.origin_type='THIRD_PARTY_WORK' THEN work.id IS NOT NULL

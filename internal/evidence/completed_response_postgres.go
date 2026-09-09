@@ -204,7 +204,7 @@ func postgresCompletedResponseScoreStateIndexPredicate(states []ResponseScoreSta
 	return " AND r.score_state='PROVISIONAL'"
 }
 
-func completedResponseSubjectVisibilitySQL(principalPlaceholder string) string {
+func completedResponseSubjectVisibilitySQL(principalPlaceholder, atPlaceholder string) string {
 	return `CASE upper(d.subject_type)
 		WHEN 'PROGRAM' THEN EXISTS (
 			SELECT 1 FROM programs visible_program
@@ -225,10 +225,27 @@ func completedResponseSubjectVisibilitySQL(principalPlaceholder string) string {
 			WHERE visible_relationship.tenant_id=r.tenant_id
 			  AND visible_relationship.legal_entity_id=r.legal_entity_id
 			  AND visible_relationship.id=d.subject_id
-			  AND visible_relationship.business_owner_principal_id::text=` + principalPlaceholder + `
+			  AND (visible_relationship.business_owner_principal_id::text=` + principalPlaceholder + ` OR ` + readAllCapabilitySQL(principalPlaceholder, atPlaceholder) + `)
 		)
 		ELSE true
 	END`
+}
+
+func readAllCapabilitySQL(principalPlaceholder, atPlaceholder string) string {
+	return `EXISTS (
+		SELECT 1
+		FROM org_positions read_position
+		JOIN position_role_bindings read_binding ON read_binding.tenant_id=read_position.tenant_id AND read_binding.position_id=read_position.id
+		JOIN role_templates read_role ON read_role.tenant_id=read_binding.tenant_id AND read_role.id=read_binding.role_template_id
+		WHERE read_position.tenant_id=r.tenant_id
+		  AND read_position.legal_entity_id=r.legal_entity_id
+		  AND read_position.occupant_principal_id::text=` + principalPlaceholder + `
+		  AND read_position.valid_from<=` + atPlaceholder + ` AND (read_position.valid_until IS NULL OR ` + atPlaceholder + `<read_position.valid_until)
+		  AND read_binding.valid_from<=` + atPlaceholder + ` AND (read_binding.valid_until IS NULL OR ` + atPlaceholder + `<read_binding.valid_until)
+		  AND (NOT (read_binding.scope ? 'legal_entity_id') OR read_binding.scope->>'legal_entity_id'=r.legal_entity_id::text)
+		  AND read_role.valid_from<=` + atPlaceholder + ` AND (read_role.valid_until IS NULL OR ` + atPlaceholder + `<read_role.valid_until)
+		  AND 'read:all'=ANY(read_role.capabilities)
+	)`
 }
 
 func completedResponseRequestJoinsSQL() string {
@@ -240,7 +257,7 @@ func completedResponseRequestJoinsSQL() string {
 func completedResponseVisibilitySQL(principal, at int) string {
 	return `submission.id IS NOT NULL AND req.id IS NOT NULL AND CASE WHEN req.origin_type IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK')
 	THEN ` + documentRevisionScopeSQL() + ` AND (` + documentReadAuthoritySQLAt(principal, at) + `)
-	ELSE (` + completedResponseSubjectVisibilitySQL(fmt.Sprintf("$%d", principal)) + `) END`
+	ELSE (` + completedResponseSubjectVisibilitySQL(fmt.Sprintf("$%d", principal), fmt.Sprintf("$%d", at)) + `) END`
 }
 
 func scoringModeStrings(values []formcontract.ScoringMode) []string {
