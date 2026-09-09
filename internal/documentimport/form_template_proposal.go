@@ -53,14 +53,15 @@ type ProposalUnresolvedItem struct {
 }
 
 type FormProposalProvenance struct {
-	ProposalVersion  string `json:"proposal_version"`
-	SourceDocumentID string `json:"source_document_id"`
-	SourceSHA256     string `json:"source_sha256"`
-	SourceVersion    int64  `json:"source_version"`
-	ParserVersion    string `json:"parser_version,omitempty"`
-	AdapterVersion   string `json:"adapter_version,omitempty"`
-	ExtractionStatus string `json:"extraction_status"`
-	TabularParser    string `json:"tabular_parser_version,omitempty"`
+	FindingAssessments []FindingAssessment `json:"finding_assessments,omitempty"`
+	ProposalVersion    string              `json:"proposal_version"`
+	SourceDocumentID   string              `json:"source_document_id"`
+	SourceSHA256       string              `json:"source_sha256"`
+	SourceVersion      int64               `json:"source_version"`
+	ParserVersion      string              `json:"parser_version,omitempty"`
+	AdapterVersion     string              `json:"adapter_version,omitempty"`
+	ExtractionStatus   string              `json:"extraction_status"`
+	TabularParser      string              `json:"tabular_parser_version,omitempty"`
 }
 
 type FormTemplateProposal struct {
@@ -133,6 +134,12 @@ func ProposeFormTemplate(document Document, policy ProposalPolicy) (FormTemplate
 	}
 	if document.Tabular != nil {
 		provenance.TabularParser = strings.TrimSpace(document.Tabular.ParserVersion)
+	}
+	// Optional assessment grouping must never prevent an ordinary row proposal.
+	if assessments, groupingErr := FindingFollowUpAssessments(document); groupingErr == nil {
+		provenance.FindingAssessments = assessments
+	} else if hasFindingFollowUpHeaders(document) {
+		builder.addUnresolved(ProposalUnresolvedItem{Code: "FINDING_FOLLOW_UP_UNAVAILABLE", Message: groupingErr.Error()})
 	}
 	return FormTemplateProposal{
 		Contract:        contract,
