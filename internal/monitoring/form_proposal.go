@@ -40,6 +40,7 @@ type FormTemplateProposal struct {
 	SourceDocumentID      string                                  `json:"source_document_id,omitempty"`
 	SourceDocumentVersion int64                                   `json:"source_document_version,omitempty"`
 	SourceSHA256          string                                  `json:"source_sha256,omitempty"`
+	FindingAssessmentID   string                                  `json:"finding_assessment_id,omitempty"`
 	BaseTemplateID        string                                  `json:"base_template_id,omitempty"`
 	BaseTemplateVersion   int64                                   `json:"base_template_version,omitempty"`
 	Status                FormProposalStatus                      `json:"status"`
@@ -61,14 +62,16 @@ type FormTemplateProposal struct {
 }
 
 type RequestDocumentFormProposalInput struct {
+	FindingAssessmentID     string `json:"finding_assessment_id,omitempty"`
 	ExpectedDocumentVersion int64  `json:"expected_document_version"`
 	BaseTemplateID          string `json:"base_template_id,omitempty"`
 	BaseTemplateVersion     int64  `json:"base_template_version,omitempty"`
 }
 
 type AcceptFormProposalInput struct {
-	ExpectedVersion int64    `json:"expected_version"`
-	ChangeIDs       []string `json:"change_ids"`
+	AssessmentConfirmed bool     `json:"assessment_confirmed,omitempty"`
+	ExpectedVersion     int64    `json:"expected_version"`
+	ChangeIDs           []string `json:"change_ids"`
 }
 
 type RejectFormProposalInput struct {
@@ -76,6 +79,7 @@ type RejectFormProposalInput struct {
 }
 
 type FormProposalReviewMutation struct {
+	AssessmentConfirmed   bool
 	TenantID              string
 	LegalEntityID         string
 	ProposalID            string
@@ -124,6 +128,7 @@ func cloneFormTemplateProposal(value FormTemplateProposal) FormTemplateProposal 
 
 func cloneFormProposalProvenance(value FormProposalProvenance) FormProposalProvenance {
 	cloned := value
+	cloned.FindingAssessments = append([]documentimport.FindingAssessment(nil), value.FindingAssessments...)
 	if value.AI != nil {
 		ai := *value.AI
 		ai.SourceElementRefs = append([]string(nil), value.AI.SourceElementRefs...)

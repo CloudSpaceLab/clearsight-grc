@@ -48,6 +48,9 @@ func (s *PostgresFormProposalStore) AcceptWithDraft(ctx context.Context, mutatio
 	if err != nil {
 		return FormTemplateProposal{}, mapPostgresError(err)
 	}
+	if err := validateFindingFollowUpAcceptance(current, changeIDs, mutation.AssessmentConfirmed); err != nil {
+		return FormTemplateProposal{}, err
+	}
 	if current.Status == FormProposalAccepted && current.ReviewedBy == mutation.ReviewerID && slices.Equal(current.AcceptedChangeIDs, changeIDs) {
 		return current, nil
 	}

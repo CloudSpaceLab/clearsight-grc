@@ -63,6 +63,11 @@ jobs:
           PAGE_URL: http://127.0.0.1:4173
           UI_EVIDENCE_DIR: ui-evidence/proposal-source-rows
         run: node scripts/capture-proposal-source-rows.mjs
+      - name: Verify assessment follow-up review and recovery
+        env:
+          PAGE_URL: http://127.0.0.1:4173
+          UI_EVIDENCE_DIR: ui-evidence/finding-followup
+        run: node scripts/capture-finding-followup.mjs
       - name: Publish review receipt
         if: always()
         run: |
@@ -83,6 +88,8 @@ jobs:
             web/ui-evidence/configuration/*.png
             web/ui-evidence/proposal-source-rows/after/*.png
             web/ui-evidence/proposal-source-rows/after/*.json
+            web/ui-evidence/finding-followup/*.png
+            web/ui-evidence/finding-followup/*.json
             web/ui-evidence/*.json
             web/ui-evidence/*.md
             web/ui-evidence/flow-logs/*.log

@@ -30,3 +30,10 @@
 @media (max-width: 650px) { .form-proposal-feedback { padding-inline: 16px; } }
 .form-proposal-unresolved{color:var(--text)}
 .form-preview-panel .section-editor-heading h4{margin:0;font-size:14px}
+.finding-followup-picker{margin-block:16px;min-width:0}
+.finding-followup-picker summary{cursor:pointer;min-height:var(--cs-target-min);display:flex;align-items:center;font-weight:650}
+.finding-followup-fields{display:grid;gap:12px;min-width:0;padding:16px 24px;overflow-wrap:anywhere}
+.finding-followup-fields p{margin:0;font-size:12px;line-height:1.5}
+.finding-followup-fields>.cs-button{justify-self:start}
+.form-proposal-review>.cs-notice{margin:12px 24px}
+@media(max-width:650px){.finding-followup-fields{padding-inline:16px}.finding-followup-fields>.cs-button{justify-self:stretch}}

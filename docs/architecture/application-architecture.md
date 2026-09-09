@@ -16,6 +16,8 @@ The protected document inventory remains bounded and permission-filtered. Reusin
 
 ## Technology baseline
 
+Finding follow-up uses the existing document proposal generation worker and ordinary atomic draft acceptance. Migration `000087` adds an empty-by-default assessment identifier to the proposal's unique source-version/digest/base identity. Historical and default V2 receipts remain unchanged. A selected assessment generates one complete contract; no nested proposal acceptance or separate workflow is introduced. Current source, legal entity and draft authority checks still apply. Proposal rejection is independent per assessment. Downgrade refuses to remove the assessment column after follow-up history exists. The bounded metadata list contains at most 200 choices with 200-byte labels; exact source row anchors retain complete historical context.
+
 | Layer | Initial choice | Reason |
 |---|---|---|
 | Backend | Go standard HTTP stack | predictable latency, low memory and simple deployment |

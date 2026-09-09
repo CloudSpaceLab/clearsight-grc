@@ -124,6 +124,7 @@ export type FormAIProvenance = {
   validation_results: string[];
 };
 export type FormProposalProvenance = {
+	 finding_assessments?: FindingAssessment[];
   proposal_version: string;
   source_document_id: string;
   source_sha256: string;
@@ -135,6 +136,7 @@ export type FormProposalProvenance = {
   ai?: FormAIProvenance;
 };
 export type FormTemplateProposal = {
+	 finding_assessment_id?: string;
   id: string;
   source_kind: FormProposalSourceKind;
   source_document_id?: string;
@@ -158,6 +160,15 @@ export type FormTemplateProposal = {
   updated_at: string;
   reviewed_at?: string;
   version: number;
+};
+
+export type FindingAssessment = {
+  id: string;
+  label: string;
+  sheet: string;
+  row_start: number;
+  row_end: number;
+  finding_count: number;
 };
 
 export type RequestAIFormProposalInput = {
