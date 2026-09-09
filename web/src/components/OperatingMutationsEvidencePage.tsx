@@ -2,7 +2,7 @@ import { useState } from "react";
 import "../program-record.css";
 import type { MatterAggregate, ProgramAggregate, WorkflowTask } from "../types";
 import { MatterWorkCommand } from "./MatterWorkCommandPanel";
-import { ProgramLifecycleControls } from "./ProgramLifecycleControls";
+import { ProgramLifecycleControls } from "./evidence/ProgramLifecycleControls";
 
 const matter: MatterAggregate = {
   type_label: "Regulatory change",

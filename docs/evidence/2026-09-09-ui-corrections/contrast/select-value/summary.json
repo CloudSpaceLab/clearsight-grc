@@ -1,0 +1,89 @@
+{
+  "generatedAt": "2026-09-09T00:11:27.403Z",
+  "results": [
+    {
+      "id": "gallery-select-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 20
+    },
+    {
+      "id": "gallery-select-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 20
+    },
+    {
+      "id": "gallery-select-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 20
+    },
+    {
+      "id": "gallery-select-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 20
+    },
+    {
+      "id": "forms-response-list-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "forms-response-list-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "forms-response-list-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "forms-response-list-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "forms-response-filters-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-response-filters-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-response-filters-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-response-filters-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    }
+  ]
+}

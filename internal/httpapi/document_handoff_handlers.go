@@ -245,13 +245,13 @@ func writeDocumentConversionError(w http.ResponseWriter, err error) {
 	case errors.Is(err, continuity.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "program_not_found", "The target Program no longer exists.")
 	case errors.Is(err, continuity.ErrDuplicate):
-		httpx.WriteError(w, http.StatusConflict, "conversion_identity_conflict", "The deterministic conversion identity is already bound to different canonical content.")
+		httpx.WriteError(w, http.StatusConflict, "conversion_identity_conflict", "This proposal conflicts with an existing import. Reload the import and review the proposal.")
 	case errors.Is(err, continuity.ErrInvalidState):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "program_not_mutable", "The target Program cannot accept new governance objects in its current state.")
 	case errors.Is(err, documentimport.ErrInvalidHandoff):
 		writeDocumentHandoffError(w, err)
 	default:
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "conversion_failed", "The canonical Program object could not be created. No approval was recorded.")
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "conversion_failed", "The Program requirement or control could not be created. No approval was recorded.")
 	}
 }
 

@@ -23,7 +23,9 @@ import type {
   ApplyVendorAssessmentResponseInput,
 } from "../vendorAssessmentTypes";
 import { VendorResponseReview } from "./forms/VendorResponseReview";
-import { Notice, StatusBadge, type StatusTone } from "./ui";
+import { VendorEvidenceChecklist } from "./VendorEvidenceChecklist";
+import type { PrepareVendorCollectionInput, PrepareVendorCollectionResult, VendorCollection } from "../vendorCollectionApi";
+import { Button, CheckboxField, FocusedSheet, Notice, SelectField, StatusBadge, TextArea, TextField, type StatusTone } from "./ui";
 import "./vendor-due-diligence.css";
 
 type ViewState = "live" | "loading" | "unavailable";
@@ -48,6 +50,7 @@ type Props = {
   onRefresh?: () => Promise<void> | void;
   onRefreshReview?: (assessmentID: string) => Promise<void> | void;
   onSend?: (input: SendVendorAssessmentRequestInput) => Promise<VendorAssessmentSendOutcome>;
+  onPrepare?: (input: PrepareVendorCollectionInput) => Promise<PrepareVendorCollectionResult>;
   onReissue?: (input: ReissueVendorAssessmentRequestInput) => Promise<VendorAssessmentSendOutcome>;
   onOpenRequest?: (requestID: string) => void;
   onOpenMatter?: (matterID: string) => void;
@@ -65,6 +68,8 @@ type Props = {
 
 type ActionPanel = "start" | "send" | "reissue" | "clarification" | "deficiency" | "document" | "conclusion" | "cancelAssessment" | null;
 type AssessmentStartMode = "initial" | "restart" | "reassessment";
+
+const linkExpiryOptions = [{ id: "60", label: "1 hour" }, { id: "1440", label: "24 hours" }, { id: "10080", label: "7 days" }];
 
 const conclusionOptions: { value: VendorAssessmentConclusion; label: string }[] = [
   { value: "SATISFACTORY", label: "Satisfactory" },
@@ -93,6 +98,7 @@ export function VendorDueDiligence({
   onRefresh,
   onRefreshReview,
   onSend,
+  onPrepare,
   onReissue,
   onOpenRequest,
   onOpenMatter,
@@ -120,6 +126,8 @@ export function VendorDueDiligence({
   const [selectedFieldIDs, setSelectedFieldIDs] = useState<string[]>([]);
   const [applicationComplete, setApplicationComplete] = useState(false);
   const [recipient, setRecipient] = useState("");
+  const [collection, setCollection] = useState<VendorCollection>();
+  const [preparedDeadline, setPreparedDeadline] = useState("");
   const [responseDueDate, setResponseDueDate] = useState("");
   const [invitationMinutes, setInvitationMinutes] = useState(1440);
   const [selectedClarificationFields, setSelectedClarificationFields] = useState<string[]>([]);
@@ -174,7 +182,8 @@ export function VendorDueDiligence({
 
   const effectiveOutcome = localOutcome ?? requestOutcome;
   const effectiveOutcomeKind = localOutcome ? localOutcomeKind : requestOutcomeKind;
-  const effectiveAssessment = effectiveOutcome?.assessment ?? localAssessment;
+  const effectiveAssessment = localAssessment && (!effectiveOutcome || localAssessment.version >= effectiveOutcome.assessment.version) ? localAssessment : effectiveOutcome?.assessment ?? localAssessment;
+  const currentCollection = collection?.assessment_id === effectiveAssessment?.id && collection?.request_id === effectiveAssessment?.current_request_id ? collection : undefined;
   const status = effectiveAssessment?.status;
   const requestID = effectiveAssessment?.current_request_id ?? effectiveOutcome?.request.id;
   const dueDate = effectiveAssessment?.review_due_at;
@@ -202,7 +211,7 @@ export function VendorDueDiligence({
   async function startAssessment(event: React.FormEvent) {
     event.preventDefault();
     if (!selectedForm || !onStart || !reviewDueDate || Date.parse(endOfDay(reviewDueDate)) <= Date.now() || (startMode === "reassessment" && (!reviewReference.trim() || (scopeKind === "FOCUSED" && selectedFieldIDs.length === 0)))) {
-      setError(startMode === "reassessment" ? "Choose a review type, enter the bank review reference and set a future due date. A focused review must include at least one held record." : "Choose an active collection form and review due date before starting due diligence.");
+      setError(startMode === "reassessment" ? "Choose a review type, enter the review reference and set a future due date. A focused review must include at least one held record." : "Choose an active collection form and review due date before starting due diligence.");
       return;
     }
     setBusy(true);
@@ -234,18 +243,29 @@ export function VendorDueDiligence({
 
   async function sendRequest(event: React.FormEvent) {
     event.preventDefault();
-    const deadline = responseDueDate ? Date.parse(endOfDay(responseDueDate)) : Number.NaN;
-    if (!effectiveAssessment || !onSend || !validEmail(recipient) || !Number.isFinite(deadline) || deadline <= Date.now() || deadline > Date.parse(effectiveAssessment.review_due_at)) {
+    const preparing = Boolean(onPrepare && !effectiveAssessment?.current_request_id);
+    const prepared = Boolean(onPrepare && effectiveAssessment?.current_request_id);
+    const deadlineValue = prepared ? currentCollection?.deadline || preparedDeadline : responseDueDate ? endOfDay(responseDueDate) : "";
+    const deadline = Date.parse(deadlineValue);
+    if (!effectiveAssessment || !onSend || (!prepared && !validEmail(recipient)) || !Number.isFinite(deadline) || deadline <= Date.now() || (!prepared && deadline > Date.parse(effectiveAssessment.review_due_at))) {
       setError("Enter a valid vendor contact email and a future response date no later than the assessment due date.");
       return;
     }
     setBusy(true);
     setError("");
     try {
+      if (preparing && onPrepare) {
+        const outcome = await onPrepare({ expected_version: effectiveAssessment.version, audience: recipient.trim().toLowerCase(), deadline: deadlineValue });
+        setLocalAssessment(outcome.assessment);
+        setPreparedDeadline(outcome.request.deadline ?? deadlineValue);
+        setPanel(null);
+        setNotice("Request prepared. Review evidence already held before sending the outstanding items to the vendor.");
+        return;
+      }
       const outcome = await onSend({
-        expected_version: effectiveAssessment.version,
-        audience: recipient.trim().toLowerCase(),
-        deadline: endOfDay(responseDueDate),
+        expected_version: Math.max(effectiveAssessment.version, currentCollection?.assessment_version ?? 0),
+        audience: prepared ? "" : recipient.trim().toLowerCase(),
+        deadline: deadlineValue,
         invitation_ttl_minutes: invitationMinutes,
       });
       setRecipient("");
@@ -254,9 +274,8 @@ export function VendorDueDiligence({
       setPanel(null);
       if (outcome.state === "DELIVERED") setNotice(`The request was sent. The response is due ${formatDate(outcome.request.deadline)}.`);
     } catch {
-      setRecipient("");
-      setPanel(null);
-      setError("The request was not sent. Re-enter the vendor contact email before trying again.");
+      if (preparing || prepared) setError(preparing ? "The request could not be prepared. Check the contact and deadline, then try again." : "The prepared request was not sent. Reload the checklist and try again.");
+      else { setRecipient(""); setPanel(null); setError("The request was not sent. Re-enter the vendor contact email before trying again."); }
     } finally {
       setBusy(false);
     }
@@ -383,6 +402,7 @@ export function VendorDueDiligence({
     await run(async () => {
       const refreshed = await onReviewDocument(effectiveAssessment.id, selectedDocument.artifact_id, {
         expected_version: effectiveAssessment.version,
+        field_id: selectedDocument.field_id,
         decision: documentDecision,
         document_type: documentType.trim(),
         evidence_class: documentEvidenceClass,
@@ -391,7 +411,7 @@ export function VendorDueDiligence({
       setLocalAssessment(refreshed.assessment);
       setSelectedDocument(undefined);
       setPanel(null);
-      setNotice(documentDecision === "VALIDATE" ? "Document validation recorded. The response view now shows the current decision." : "Document rejection recorded. The response view now shows the current decision.");
+      setNotice(documentDecision === "VALIDATE" ? "Document accepted." : "Document rejected.");
     }, "The document decision could not be recorded. Reload the response before trying again.");
   }
 
@@ -469,7 +489,7 @@ export function VendorDueDiligence({
   }
 
   if (viewState === "unavailable") {
-    return <section className="vdd-workspace" aria-label="Due diligence" tabIndex={-1}><div className="vdd-state vdd-state-error" role="alert"><h2>Due diligence is unavailable</h2><p>The current assessment for {relationship.relationship.service_name} could not be loaded. Try again before starting or changing the review.</p>{onRefresh && <button type="button" className="secondary-button" onClick={() => void onRefresh()}>Try again</button>}</div></section>;
+    return <section className="vdd-workspace" aria-label="Due diligence" tabIndex={-1}><div className="vdd-state vdd-state-error" role="alert"><h2>Due diligence is unavailable</h2><p>The current assessment for {relationship.relationship.service_name} could not be loaded. Try again before starting or changing the review.</p>{onRefresh && <Button type="button" variant="secondary" onPress={() => void onRefresh()}>Try again</Button>}</div></section>;
   }
 
   return <section className="vdd-workspace" aria-labelledby="vdd-title" tabIndex={-1}>
@@ -492,36 +512,39 @@ export function VendorDueDiligence({
     {clarificationOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" && <Notice tone="error"><strong>Clarification access was not issued</strong> {clarificationOutcome.recovery ?? "Review the clarification request before retrying secure access."}</Notice>}
     {clarificationOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && <Notice tone="error"><strong>Clarification email delivery did not complete</strong> {clarificationOutcome.recovery ?? "Use the returned secure link or review delivery status."}</Notice>}
     {notice && <Notice tone="success">{notice}</Notice>}
-    {error && <Notice tone="error">{error}</Notice>}
+    {error && panel !== "document" && <Notice tone="error">{error}</Notice>}
 
     {effectiveAssessment && needsReviewView(status) && reviewState === "loading" && <div className="vdd-review-state" aria-live="polite" aria-busy="true">Loading the submitted response and supporting documents…</div>}
-    {effectiveAssessment && needsReviewView(status) && reviewState === "unavailable" && <Notice tone="error"><strong>Vendor response is unavailable</strong> The submitted answers and documents could not be loaded. Reload them before starting or completing the review. {onRefreshReview && <button type="button" className="secondary-button" onClick={() => void onRefreshReview(effectiveAssessment.id)}>Reload vendor response</button>}</Notice>}
+    {effectiveAssessment && needsReviewView(status) && reviewState === "unavailable" && <Notice tone="error"><strong>Vendor response is unavailable</strong> The submitted answers and documents could not be loaded. Reload them before starting or completing the review. {onRefreshReview && <Button type="button" variant="secondary" onPress={() => void onRefreshReview(effectiveAssessment.id)}>Reload vendor response</Button>}</Notice>}
 
-    {reviewState === "live" && review && <ReviewSummary review={review} assessment={effectiveAssessment} onOpenMatter={onOpenMatter} onOpenDocument={!panel && onOpenDocument ? onOpenDocument : undefined} onReviewDocument={!panel && onReviewDocument ? openDocumentReview : undefined} onCreateDeficiency={!panel && onCreateDeficiency ? () => openPanel("deficiency") : undefined}/>}
+    {onPrepare && effectiveAssessment && !["SETUP_PENDING", "CANCELLED"].includes(effectiveAssessment.status) && <VendorEvidenceChecklist key={effectiveAssessment.id} assessmentID={effectiveAssessment.id} assessmentVersion={effectiveAssessment.version} relationshipID={relationship.relationship.id} onLoaded={setCollection} onChanged={async () => { await onRefresh?.(); }} documents={review?.documents} onReviewDocument={status === "UNDER_REVIEW" && !panel && onReviewDocument ? openDocumentReview : undefined} onOpenDocument={onOpenDocument ? (document) => { const request = document.request_id || review?.response?.request_id; if (request) onOpenDocument(effectiveAssessment.id, request, document.artifact_id); } : undefined}/>}
+
+    {reviewState === "live" && review && <ReviewSummary review={review} assessment={effectiveAssessment} documents={currentCollection ? review.documents.filter((document) => !currentCollection.fields.some((field) => field.field_id === document.field_id)) : review.documents} onOpenMatter={onOpenMatter} onOpenDocument={!panel && onOpenDocument ? onOpenDocument : undefined} onReviewDocument={!panel && onReviewDocument ? openDocumentReview : undefined} onCreateDeficiency={!panel && onCreateDeficiency ? () => openPanel("deficiency") : undefined}/>}
 
     {status === "UNDER_REVIEW" && reviewState === "live" && review && onApplyResponse && <VendorResponseReview relationship={relationship} review={review} onApply={onApplyResponse} onApplied={(result) => { setLocalAssessment(result.review.assessment); setApplicationComplete(true); }}/>}
 
     {panel === "start" && startMode && <StartPanel mode={startMode} forms={availableForms} selectedForm={selectedForm} onSelectedForm={setSelectedFormKey} scopeKind={scopeKind} selectedFieldIDs={selectedFieldIDs} onScopeKind={setScopeKind} onSelectedFieldIDs={setSelectedFieldIDs} reviewDueDate={reviewDueDate} reviewKind={reviewKind} reviewReference={reviewReference} minimumDate={minimumFutureDate} busy={busy} onReviewDueDate={setReviewDueDate} onReviewKind={setReviewKind} onReviewReference={setReviewReference} onCancel={() => setPanel(null)} onSubmit={startAssessment}/>}
-    {panel === "send" && effectiveAssessment && <SendPanel recipient={recipient} responseDueDate={responseDueDate} invitationMinutes={invitationMinutes} minimumDate={minimumFutureDate} reviewDueAt={effectiveAssessment.review_due_at} busy={busy} onRecipient={setRecipient} onResponseDueDate={setResponseDueDate} onInvitationMinutes={setInvitationMinutes} onCancel={() => { setRecipient(""); setPanel(null); }} onSubmit={sendRequest}/>}
+    {panel === "send" && effectiveAssessment && <SendPanel preparing={Boolean(onPrepare && !effectiveAssessment.current_request_id)} prepared={Boolean(onPrepare && effectiveAssessment.current_request_id)} preparedDeadline={collection?.deadline || preparedDeadline} audienceHint={collection?.audience_hint} recipient={recipient} responseDueDate={responseDueDate} invitationMinutes={invitationMinutes} minimumDate={minimumFutureDate} reviewDueAt={effectiveAssessment.review_due_at} busy={busy} onRecipient={setRecipient} onResponseDueDate={setResponseDueDate} onInvitationMinutes={setInvitationMinutes} onCancel={() => { if (!onPrepare) setRecipient(""); setPanel(null); }} onSubmit={sendRequest}/>}
     {panel === "reissue" && effectiveAssessment && <ReissuePanel recipient={recipient} invitationMinutes={invitationMinutes} busy={busy} onRecipient={setRecipient} onInvitationMinutes={setInvitationMinutes} onCancel={() => { setRecipient(""); setPanel(null); }} onSubmit={reissueRequest}/>}
     {panel === "clarification" && effectiveAssessment && <ClarificationPanel fields={availableClarificationFields} selected={selectedClarificationFields} message={clarificationMessage} recipient={clarificationRecipient} dueDate={clarificationDueDate} invitationMinutes={clarificationInvitationMinutes} minimumDate={minimumFutureDate} reviewDueAt={effectiveAssessment.review_due_at} busy={busy} onSelected={setSelectedClarificationFields} onMessage={setClarificationMessage} onRecipient={setClarificationRecipient} onDueDate={setClarificationDueDate} onInvitationMinutes={setClarificationInvitationMinutes} onCancel={() => { setClarificationRecipient(""); setPanel(null); }} onSubmit={submitClarification}/>}
     {panel === "deficiency" && <DeficiencyPanel triggerKey={deficiencyKey} title={deficiencyTitle} summary={deficiencySummary} dueDate={deficiencyDueDate} minimumDate={minimumFutureDate} busy={busy} onTriggerKey={setDeficiencyKey} onTitle={setDeficiencyTitle} onSummary={setDeficiencySummary} onDueDate={setDeficiencyDueDate} onCancel={() => setPanel(null)} onSubmit={submitDeficiency}/>}
-    {panel === "document" && selectedDocument && <DocumentDecisionPanel document={selectedDocument} decision={documentDecision} documentType={documentType} evidenceClass={documentEvidenceClass} validUntil={documentValidUntil} busy={busy} onDocumentType={setDocumentType} onEvidenceClass={setDocumentEvidenceClass} onValidUntil={setDocumentValidUntil} onCancel={() => { setSelectedDocument(undefined); setPanel(null); }} onSubmit={submitDocumentDecision}/>}
+    {panel === "document" && selectedDocument && <FocusedSheet label="Review document" isDismissable={!busy} onClose={() => { setSelectedDocument(undefined); setPanel(null); }}><div className="vdd-document-sheet">{error && <Notice tone="error">{error}</Notice>}<DocumentDecisionPanel document={selectedDocument} decision={documentDecision} documentType={documentType} evidenceClass={documentEvidenceClass} validUntil={documentValidUntil} busy={busy} onDecision={(value) => { setDocumentDecision(value); setDocumentEvidenceClass(value === "VALIDATE" ? "BANK_VALIDATED" : selectedDocument.evidence_class as ReviewVendorAssessmentDocumentInput["evidence_class"]); }} onDocumentType={setDocumentType} onEvidenceClass={setDocumentEvidenceClass} onValidUntil={setDocumentValidUntil} onCancel={() => { setSelectedDocument(undefined); setPanel(null); }} onSubmit={submitDocumentDecision}/></div></FocusedSheet>}
     {panel === "conclusion" && <ConclusionPanel conclusion={conclusion} rationale={rationale} uncertainty={uncertainty} nextReviewDate={nextReviewDate} minimumDate={minimumFutureDate} busy={busy} onConclusion={setConclusion} onRationale={setRationale} onUncertainty={setUncertainty} onNextReviewDate={setNextReviewDate} onCancel={() => setPanel(null)} onSubmit={submitConclusion}/>}
     {panel === "cancelAssessment" && <CancelAssessmentPanel reason={cancellationReason} busy={busy} onReason={setCancellationReason} onCancel={() => setPanel(null)} onSubmit={cancelAssessment}/>}
 
     {!panel && <div className="vdd-actions">
-      {status === "COLLECTING" ? <><button type="button" className="primary-button" onClick={() => requestID && onOpenRequest?.(requestID)} disabled={!requestID || !onOpenRequest}>Review request status</button>{clarificationOutcome?.capture_url && <button type="button" className="secondary-button" onClick={() => void copyClarificationLink()}>Copy clarification link</button>}{effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <button type="button" className="secondary-button" onClick={() => void copyCaptureLink()}>{effectiveOutcomeKind === "replacement" ? "Copy new link" : "Copy secure link"}</button> : <button type="button" className="secondary-button" onClick={() => openPanel("reissue")} disabled={!onReissue}>{effectiveOutcomeKind === "replacement" && effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? "Retry new link" : "Send another link"}</button>}</>
-        : effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <button type="button" className="primary-button" onClick={() => void copyCaptureLink()}>Copy secure link</button>
-        : effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? <button type="button" className="primary-button" onClick={() => openPanel("send")} disabled={!onSend}>Retry invitation creation</button>
-          : startMode ? availableForms.length ? <button type="button" className="primary-button" onClick={() => openPanel("start")} disabled={!onStart}>{startActionLabel(startMode)}</button> : <><button type="button" className="primary-button" onClick={onSetUpForm} disabled={!onSetUpForm}>Use a starter template</button>{onOpenForms && <button type="button" className="secondary-button" onClick={onOpenForms}>Open Forms</button>}</>
-            : status === "SETUP_PENDING" ? setupFailure ? <button type="button" className="primary-button" onClick={() => void retrySetup()} disabled={!onRetrySetup || busy}>{busy ? "Queuing setup…" : "Retry due diligence setup"}</button> : <button type="button" className="primary-button" onClick={() => void onRefresh?.()} disabled={!onRefresh}>View setup status</button>
-              : status === "READY_TO_SEND" ? <button type="button" className="primary-button" onClick={() => openPanel("send")} disabled={!onSend}>Send due diligence request</button>
-                : status === "SUBMITTED" ? <button type="button" className="primary-button" onClick={() => void startReview()} disabled={!onStartReview || busy || reviewState !== "live"}>{busy ? "Opening review…" : "Review vendor response"}</button>
-                    : status === "UNDER_REVIEW" && (!responseRequiresApplication || applicationComplete) ? <button type="button" className="primary-button" onClick={() => openPanel("conclusion")} disabled={!onComplete || reviewState !== "live"}>Record assessment conclusion</button>
+      {status === "COLLECTING" ? <><Button type="button" variant="primary" onPress={() => requestID && onOpenRequest?.(requestID)} isDisabled={!requestID || !onOpenRequest}>Review request status</Button>{clarificationOutcome?.capture_url && <Button type="button" variant="secondary" onPress={() => void copyClarificationLink()}>Copy clarification link</Button>}{effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <Button type="button" variant="secondary" onPress={() => void copyCaptureLink()}>{effectiveOutcomeKind === "replacement" ? "Copy new link" : "Copy secure link"}</Button> : <Button type="button" variant="secondary" onPress={() => openPanel("reissue")} isDisabled={!onReissue}>{effectiveOutcomeKind === "replacement" && effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? "Retry new link" : "Send another link"}</Button>}</>
+        : effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <Button type="button" variant="primary" onPress={() => void copyCaptureLink()}>Copy secure link</Button>
+        : effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? <Button type="button" variant="primary" onPress={() => openPanel("send")} isDisabled={!onSend}>Retry invitation creation</Button>
+          : startMode ? availableForms.length ? <Button type="button" variant="primary" onPress={() => openPanel("start")} isDisabled={!onStart}>{startActionLabel(startMode)}</Button> : <><Button type="button" variant="primary" onPress={onSetUpForm} isDisabled={!onSetUpForm}>Use a starter template</Button>{onOpenForms && <Button type="button" variant="secondary" onPress={onOpenForms}>Open Forms</Button>}</>
+            : status === "SETUP_PENDING" ? setupFailure ? <Button type="button" variant="primary" onPress={() => void retrySetup()} isDisabled={!onRetrySetup || busy}>{busy ? "Queuing setup…" : "Retry due diligence setup"}</Button> : <Button type="button" variant="primary" onPress={() => void onRefresh?.()} isDisabled={!onRefresh}>View setup status</Button>
+              : collection?.can_start_review && ["READY_TO_SEND", "COLLECTING"].includes(status ?? "") ? <Button type="button" variant="primary" onPress={() => void startReview()} isDisabled={!onStartReview || busy}>Review existing evidence</Button>
+              : status === "READY_TO_SEND" ? <Button type="button" variant="primary" onPress={() => openPanel("send")} isDisabled={!onSend}>{onPrepare && !effectiveAssessment?.current_request_id ? "Prepare request" : "Send due diligence request"}</Button>
+                : status === "SUBMITTED" ? <Button type="button" variant="primary" onPress={() => void startReview()} isDisabled={!onStartReview || busy || reviewState !== "live"}>{busy ? "Opening review…" : "Review vendor response"}</Button>
+                    : status === "UNDER_REVIEW" && (!responseRequiresApplication || applicationComplete) ? <Button type="button" variant="primary" onPress={() => openPanel("conclusion")} isDisabled={!onComplete || reviewState !== "live"}>Record assessment conclusion</Button>
                       : null}
-      {status === "UNDER_REVIEW" && onRequestClarification && <button type="button" className="secondary-button" onClick={() => openPanel("clarification")}>Request clarification</button>}
-      {effectiveAssessment && !["COMPLETED", "CANCELLED"].includes(effectiveAssessment.status) && onCancelAssessment && <button type="button" className="secondary-button" onClick={() => openPanel("cancelAssessment")}>Cancel assessment</button>}
+      {status === "UNDER_REVIEW" && onRequestClarification && <Button type="button" variant="secondary" onPress={() => openPanel("clarification")}>Request clarification</Button>}
+      {effectiveAssessment && !["COMPLETED", "CANCELLED"].includes(effectiveAssessment.status) && onCancelAssessment && <Button type="button" variant="secondary" onPress={() => openPanel("cancelAssessment")}>Cancel assessment</Button>}
     </div>}
 
     {!availableForms.length && !effectiveAssessment && <p className="vdd-limitation">No active due-diligence form was found in this legal entity. Create a new form draft or open Forms to review and approve an existing template before starting this vendor review.</p>}
@@ -531,8 +554,8 @@ export function VendorDueDiligence({
 function CancelAssessmentPanel({ reason, busy, onReason, onCancel, onSubmit }: { reason: string; busy: boolean; onReason: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
     <div><span className="eyebrow">Assessment status</span><h3>Cancel assessment</h3><p>Cancel this assessment when the current review should stop. The vendor relationship and recorded evidence remain available.</p></div>
-    <label className="vdd-field"><span>Reason for cancellation</span><textarea rows={4} maxLength={2000} value={reason} onChange={(event) => onReason(event.target.value)} required/></label>
-    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Keep assessment</button><button type="submit" className="primary-button" disabled={busy || !reason.trim()}>{busy ? "Cancelling…" : "Cancel assessment"}</button></div>
+    <TextArea label="Reason for cancellation" rows={4} maxLength={2000} value={reason} onChange={(value) => onReason(value)} isRequired/>
+    <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Keep assessment</Button><Button type="submit" variant="primary" isDisabled={busy || !reason.trim()}>{busy ? "Cancelling…" : "Cancel assessment"}</Button></div>
   </form>;
 }
 
@@ -540,26 +563,25 @@ function StartPanel({ mode, forms, selectedForm, onSelectedForm, scopeKind, sele
   const action = startActionLabel(mode);
   const refreshFields = selectedForm?.fields?.filter((field) => field.collection_intent && field.collection_intent !== "CAPTURE" && field.target_key) ?? [];
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
-    <div><span className="eyebrow">Assessment setup</span><h3>{action}</h3><p>{mode === "reassessment" ? "Use the bank review reference that identifies this review. Known vendor and service details will remain available to the form." : mode === "restart" ? "Start a new onboarding review while preserving the cancelled assessment and its history." : "The selected form will use the current vendor and service details as known context."}</p></div>
-    <label className="vdd-field"><span>Active collection form</span><select value={selectedForm ? `${selectedForm.id}:${selectedForm.version}` : ""} onChange={(event) => { onSelectedForm(event.target.value); onSelectedFieldIDs([]); }}><option value="">Select an active form</option>{forms.map((item) => <option key={`${item.id}:${item.version}`} value={`${item.id}:${item.version}`}>{item.name} · version {item.version}</option>)}</select></label>
+    <div><span className="eyebrow">Assessment setup</span><h3>{action}</h3><p>{mode === "reassessment" ? "Use the review reference that identifies this review. Known vendor and service details will remain available to the form." : mode === "restart" ? "Start a new onboarding review while preserving the cancelled assessment and its history." : "The selected form will use the current vendor and service details as known context."}</p></div>
+    <SelectField label="Active collection form" value={selectedForm ? `${selectedForm.id}:${selectedForm.version}` : undefined} placeholder="Select an active form" options={forms.map((item) => ({ id: `${item.id}:${item.version}`, label: `${item.name} · version ${item.version}` }))} onChange={(value) => { onSelectedForm(value ?? ""); onSelectedFieldIDs([]); }}/>
     <dl className="vdd-preview"><div><dt>Collection form</dt><dd>{selectedForm?.name ?? "No active form"}</dd></div><div><dt>Form version</dt><dd>{selectedForm ? `Version ${selectedForm.version}` : "Not available"}</dd></div><div><dt>Response layout</dt><dd>{selectedForm ? presentationLabel(selectedForm.presentation) : "Not available"}</dd></div></dl>
-    {mode === "reassessment" && <div className="vdd-form-grid"><label className="vdd-field"><span>Review type</span><select value={reviewKind} onChange={(event) => onReviewKind(event.target.value as Extract<VendorAssessmentReviewKind, "PERIODIC" | "TRIGGERED">)}><option value="PERIODIC">Scheduled review</option><option value="TRIGGERED">Event or change</option></select></label><label className="vdd-field"><span>Review reference</span><input value={reviewReference} maxLength={128} onChange={(event) => onReviewReference(event.target.value)} required/></label></div>}
-    {mode === "reassessment" && <fieldset className="vdd-fieldset"><legend>Information to request</legend><label><input type="radio" name="assessment-scope" checked={scopeKind === "FULL"} onChange={() => { onScopeKind("FULL"); onSelectedFieldIDs([]); }}/><span>Full form</span></label><label><input type="radio" name="assessment-scope" checked={scopeKind === "FOCUSED"} disabled={refreshFields.length === 0} onChange={() => { onScopeKind("FOCUSED"); onSelectedFieldIDs(refreshFields.map((field) => field.id)); }}/><span>Selected held records only</span></label>{scopeKind === "FOCUSED" && <div className="vdd-refresh-fields">{refreshFields.map((field) => <label key={field.id}><input type="checkbox" checked={selectedFieldIDs.includes(field.id)} onChange={(event) => onSelectedFieldIDs(event.target.checked ? [...selectedFieldIDs, field.id] : selectedFieldIDs.filter((id) => id !== field.id))}/><span>{field.label}<small>{humanizeStatus(field.collection_intent ?? "CAPTURE")}</small></span></label>)}</div>}</fieldset>}
-    <label className="vdd-field"><span>Review due date</span><input type="date" min={minimumDate} value={reviewDueDate} onChange={(event) => onReviewDueDate(event.target.value)} required/></label>
-    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy || !selectedForm || (mode === "reassessment" && (!reviewReference.trim() || (scopeKind === "FOCUSED" && selectedFieldIDs.length === 0)))}>{busy ? "Starting…" : action}</button></div>
+    {mode === "reassessment" && <div className="vdd-form-grid"><SelectField label="Review type" value={reviewKind} placeholder="Select review type" allowsEmpty={false} options={[{ id: "PERIODIC", label: "Scheduled review" }, { id: "TRIGGERED", label: "Event or change" }]} onChange={(value) => { if (value) onReviewKind(value); }}/><TextField label="Review reference" value={reviewReference} maxLength={128} onChange={(value) => onReviewReference(value)} isRequired/></div>}
+    {mode === "reassessment" && <fieldset className="vdd-fieldset"><legend>Information to request</legend><label><input type="radio" name="assessment-scope" checked={scopeKind === "FULL"} onChange={() => { onScopeKind("FULL"); onSelectedFieldIDs([]); }}/><span>Full form</span></label><label><input type="radio" name="assessment-scope" checked={scopeKind === "FOCUSED"} disabled={refreshFields.length === 0} onChange={() => { onScopeKind("FOCUSED"); onSelectedFieldIDs(refreshFields.map((field) => field.id)); }}/><span>Selected held records only</span></label>{scopeKind === "FOCUSED" && <div className="vdd-refresh-fields">{refreshFields.map((field) => <CheckboxField key={field.id} label={field.label} description={humanizeStatus(field.collection_intent ?? "CAPTURE")} isSelected={selectedFieldIDs.includes(field.id)} onChange={(selected) => onSelectedFieldIDs(selected ? [...selectedFieldIDs, field.id] : selectedFieldIDs.filter((id) => id !== field.id))}/>)}</div>}</fieldset>}
+    <TextField label="Review due date" type="date" min={minimumDate} value={reviewDueDate} onChange={(value) => onReviewDueDate(value)} isRequired/>
+    <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Cancel</Button><Button type="submit" variant="primary" isDisabled={busy || !selectedForm || (mode === "reassessment" && (!reviewReference.trim() || (scopeKind === "FOCUSED" && selectedFieldIDs.length === 0)))}>{busy ? "Starting…" : action}</Button></div>
   </form>;
 }
 
-function SendPanel({ recipient, responseDueDate, invitationMinutes, minimumDate, reviewDueAt, busy, onRecipient, onResponseDueDate, onInvitationMinutes, onCancel, onSubmit }: { recipient: string; responseDueDate: string; invitationMinutes: number; minimumDate: string; reviewDueAt: string; busy: boolean; onRecipient: (value: string) => void; onResponseDueDate: (value: string) => void; onInvitationMinutes: (value: number) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
+function SendPanel({ preparing = false, prepared = false, preparedDeadline, audienceHint, recipient, responseDueDate, invitationMinutes, minimumDate, reviewDueAt, busy, onRecipient, onResponseDueDate, onInvitationMinutes, onCancel, onSubmit }: { preparing?: boolean; prepared?: boolean; preparedDeadline?: string; audienceHint?: string; recipient: string; responseDueDate: string; invitationMinutes: number; minimumDate: string; reviewDueAt: string; busy: boolean; onRecipient: (value: string) => void; onResponseDueDate: (value: string) => void; onInvitationMinutes: (value: number) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
-    <div><span className="eyebrow">Secure vendor request</span><h3>Send due diligence request</h3><p>The vendor contact receives access to this request only. The email address is cleared from this screen after the send attempt.</p></div>
+    <div><span className="eyebrow">Vendor evidence request</span><h3>{preparing ? "Prepare request" : "Send due diligence request"}</h3><p>{preparing ? "Confirm the vendor contact and deadline, then check documents already held. Preparing the request does not send an email." : prepared ? `Send the outstanding items to the prepared contact${audienceHint ? ` (${audienceHint})` : ""}. Documents already linked remain received.` : "The vendor contact receives access to this request only. The email address is cleared from this screen after the send attempt."}</p></div>
     <div className="vdd-form-grid">
-      <label className="vdd-field vdd-wide"><span>Vendor contact email</span><input type="email" inputMode="email" autoComplete="email" value={recipient} onChange={(event) => onRecipient(event.target.value)} required/></label>
-      <label className="vdd-field"><span>Response due date</span><input type="date" value={responseDueDate} min={minimumDate} max={reviewDueAt.slice(0, 10)} onChange={(event) => onResponseDueDate(event.target.value)} required/></label>
-      <label className="vdd-field"><span>Secure link valid for</span><select value={invitationMinutes} onChange={(event) => onInvitationMinutes(Number(event.target.value))}><option value={60}>1 hour</option><option value={1440}>24 hours</option><option value={10080}>7 days</option></select></label>
+      {prepared ? <p>Response due {formatDate(preparedDeadline)}</p> : <><div className="vdd-wide"><TextField label="Vendor contact email" type="email" inputMode="email" autoComplete="email" value={recipient} onChange={(value) => onRecipient(value)} isRequired/></div><TextField label="Response due date" type="date" value={responseDueDate} min={minimumDate} max={reviewDueAt.slice(0, 10)} onChange={(value) => onResponseDueDate(value)} isRequired/></>}
+      {!preparing && <SelectField label="Secure link valid for" value={String(invitationMinutes)} placeholder="Choose link expiry" allowsEmpty={false} options={linkExpiryOptions} onChange={(value) => { if (value) onInvitationMinutes(Number(value)); }}/>}
     </div>
-    <p className="vdd-limitation">Sending the request starts evidence collection. A submitted response still requires bank review.</p>
-    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy}>{busy ? "Sending…" : "Send due diligence request"}</button></div>
+    <p className="vdd-limitation">Sending the request starts evidence collection. A submitted response still requires review.</p>
+    <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Cancel</Button><Button type="submit" variant="primary" isDisabled={busy}>{busy ? preparing ? "Preparing…" : "Sending…" : preparing ? "Prepare request" : "Send due diligence request"}</Button></div>
   </form>;
 }
 
@@ -567,25 +589,25 @@ function ReissuePanel({ recipient, invitationMinutes, busy, onRecipient, onInvit
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
     <div><span className="eyebrow">Vendor request access</span><h3>Send another link</h3><p>Each link remains available until its printed expiry. Cancel the request when all active links must stop working.</p></div>
     <div className="vdd-form-grid">
-      <label className="vdd-field vdd-wide"><span>Vendor contact email</span><input type="email" inputMode="email" autoComplete="email" value={recipient} onChange={(event) => onRecipient(event.target.value)} required/></label>
-      <label className="vdd-field"><span>New link valid for</span><select value={invitationMinutes} onChange={(event) => onInvitationMinutes(Number(event.target.value))}><option value={60}>1 hour</option><option value={1440}>24 hours</option><option value={10080}>7 days</option></select></label>
+      <div className="vdd-wide"><TextField label="Vendor contact email" type="email" inputMode="email" autoComplete="email" value={recipient} onChange={(value) => onRecipient(value)} isRequired/></div>
+      <SelectField label="New link valid for" value={String(invitationMinutes)} placeholder="Choose link expiry" allowsEmpty={false} options={linkExpiryOptions} onChange={(value) => { if (value) onInvitationMinutes(Number(value)); }}/>
     </div>
-    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy}>{busy ? "Sending…" : "Send another link"}</button></div>
+    <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Cancel</Button><Button type="submit" variant="primary" isDisabled={busy}>{busy ? "Sending…" : "Send another link"}</Button></div>
   </form>;
 }
 
 function ClarificationPanel({ fields, selected, message, recipient, dueDate, invitationMinutes, minimumDate, reviewDueAt, busy, onSelected, onMessage, onRecipient, onDueDate, onInvitationMinutes, onCancel, onSubmit }: { fields: { id: string; label: string }[]; selected: string[]; message: string; recipient: string; dueDate: string; invitationMinutes: number; minimumDate: string; reviewDueAt: string; busy: boolean; onSelected: (value: string[]) => void; onMessage: (value: string) => void; onRecipient: (value: string) => void; onDueDate: (value: string) => void; onInvitationMinutes: (value: number) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
     <div><span className="eyebrow">Vendor follow-up</span><h3>Request clarification</h3><p>Select only the submitted fields that the vendor must update or support.</p></div>
-    {fields.length ? <fieldset className="vdd-fieldset"><legend>Fields requiring clarification</legend>{fields.map((field) => <label key={field.id}><input type="checkbox" checked={selected.includes(field.id)} onChange={(event) => onSelected(event.target.checked ? [...selected, field.id] : selected.filter((id) => id !== field.id))}/><span>{field.label}</span></label>)}</fieldset> : <p className="vdd-limitation">No response fields are available for clarification. Reload the submitted response before creating a request.</p>}
-    <label className="vdd-field"><span>What the vendor must provide</span><textarea rows={4} maxLength={2000} value={message} onChange={(event) => onMessage(event.target.value)} required/></label>
+    {fields.length ? <fieldset className="vdd-fieldset"><legend>Fields requiring clarification</legend>{fields.map((field) => <CheckboxField key={field.id} label={field.label} isSelected={selected.includes(field.id)} onChange={(checked) => onSelected(checked ? [...selected, field.id] : selected.filter((id) => id !== field.id))}/>)}</fieldset> : <p className="vdd-limitation">No response fields are available for clarification. Reload the submitted response before creating a request.</p>}
+    <TextArea label="What the vendor must provide" rows={4} maxLength={2000} value={message} onChange={(value) => onMessage(value)} isRequired/>
     <div className="vdd-form-grid">
-      <label className="vdd-field vdd-wide"><span>Vendor contact email</span><input type="email" inputMode="email" autoComplete="email" maxLength={254} value={recipient} onChange={(event) => onRecipient(event.target.value)} required/></label>
-      <label className="vdd-field"><span>Response due date</span><input type="date" min={minimumDate} max={reviewDueAt.slice(0, 10)} value={dueDate} onChange={(event) => onDueDate(event.target.value)} required/></label>
-      <label className="vdd-field"><span>Secure link valid for</span><select value={invitationMinutes} onChange={(event) => onInvitationMinutes(Number(event.target.value))}><option value={60}>1 hour</option><option value={1440}>24 hours</option><option value={10080}>7 days</option></select></label>
+      <div className="vdd-wide"><TextField label="Vendor contact email" type="email" inputMode="email" autoComplete="email" maxLength={254} value={recipient} onChange={(value) => onRecipient(value)} isRequired/></div>
+      <TextField label="Response due date" type="date" min={minimumDate} max={reviewDueAt.slice(0, 10)} value={dueDate} onChange={(value) => onDueDate(value)} isRequired/>
+      <SelectField label="Secure link valid for" value={String(invitationMinutes)} placeholder="Choose link expiry" allowsEmpty={false} options={linkExpiryOptions} onChange={(value) => { if (value) onInvitationMinutes(Number(value)); }}/>
     </div>
     <p className="vdd-limitation">The email address is used only for this secure invitation and is cleared from this screen after every attempt.</p>
-    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy || fields.length === 0}>{busy ? "Creating request…" : "Send clarification request"}</button></div>
+    <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Cancel</Button><Button type="submit" variant="primary" isDisabled={busy || fields.length === 0}>{busy ? "Creating request…" : "Send clarification request"}</Button></div>
   </form>;
 }
 
@@ -593,25 +615,26 @@ function DeficiencyPanel({ triggerKey, title, summary, dueDate, minimumDate, bus
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
     <div><span className="eyebrow">Review finding</span><h3>Record a vendor finding</h3><p>Use one stable reference for the same evidence gap. Reusing the reference opens the existing finding instead of creating a duplicate.</p></div>
     <div className="vdd-form-grid">
-      <label className="vdd-field"><span>Finding reference</span><input value={triggerKey} maxLength={80} pattern="[a-z0-9][a-z0-9._:-]{0,79}" placeholder="security-test-report" onChange={(event) => onTriggerKey(event.target.value.toLowerCase())} required/></label>
-      <label className="vdd-field"><span>Action due date</span><input type="date" min={minimumDate} value={dueDate} onChange={(event) => onDueDate(event.target.value)} required/></label>
-      <label className="vdd-field vdd-wide"><span>Finding title</span><input value={title} maxLength={200} onChange={(event) => onTitle(event.target.value)} required/></label>
-      <label className="vdd-field vdd-wide"><span>Finding details</span><textarea rows={4} maxLength={2000} value={summary} onChange={(event) => onSummary(event.target.value)} required/></label>
+      <TextField label="Finding reference" value={triggerKey} maxLength={80} pattern="[a-z0-9][a-z0-9._:-]{0,79}" placeholder="security-test-report" onChange={(value) => onTriggerKey(value.toLowerCase())} isRequired/>
+      <TextField label="Action due date" type="date" min={minimumDate} value={dueDate} onChange={(value) => onDueDate(value)} isRequired/>
+      <div className="vdd-wide"><TextField label="Finding title" value={title} maxLength={200} onChange={(value) => onTitle(value)} isRequired/></div>
+      <div className="vdd-wide"><TextArea label="Finding details" rows={4} maxLength={2000} value={summary} onChange={(value) => onSummary(value)} isRequired/></div>
     </div>
-    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy}>{busy ? "Recording…" : "Record finding"}</button></div>
+    <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Cancel</Button><Button type="submit" variant="primary" isDisabled={busy}>{busy ? "Recording…" : "Record finding"}</Button></div>
   </form>;
 }
 
-function DocumentDecisionPanel({ document, decision, documentType, evidenceClass, validUntil, busy, onDocumentType, onEvidenceClass, onValidUntil, onCancel, onSubmit }: { document: VendorAssessmentDocument; decision: "VALIDATE" | "REJECT"; documentType: string; evidenceClass: ReviewVendorAssessmentDocumentInput["evidence_class"]; validUntil: string; busy: boolean; onDocumentType: (value: string) => void; onEvidenceClass: (value: ReviewVendorAssessmentDocumentInput["evidence_class"]) => void; onValidUntil: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
+function DocumentDecisionPanel({ document, decision, documentType, evidenceClass, validUntil, busy, onDecision, onDocumentType, onEvidenceClass, onValidUntil, onCancel, onSubmit }: { document: VendorAssessmentDocument; decision: "VALIDATE" | "REJECT"; documentType: string; evidenceClass: ReviewVendorAssessmentDocumentInput["evidence_class"]; validUntil: string; busy: boolean; onDecision: (value: "VALIDATE" | "REJECT") => void; onDocumentType: (value: string) => void; onEvidenceClass: (value: ReviewVendorAssessmentDocumentInput["evidence_class"]) => void; onValidUntil: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
-    <div><span className="eyebrow">Document decision</span><h3>{decision === "VALIDATE" ? "Validate supporting document" : "Reject supporting document"}</h3><p>{document.file_name} will remain part of the submitted response with the recorded review decision.</p></div>
+    <div><span className="eyebrow">Document decision</span><h3>Review document</h3><p>{document.file_name}</p></div>
     <div className="vdd-form-grid">
-      <label className="vdd-field vdd-wide"><span>Document type</span><input value={documentType} maxLength={128} onChange={(event) => onDocumentType(event.target.value)} required/></label>
-      <label className="vdd-field"><span>Evidence class</span><select value={evidenceClass} onChange={(event) => onEvidenceClass(event.target.value as ReviewVendorAssessmentDocumentInput["evidence_class"])}><option value="VENDOR_SUPPLIED">Vendor supplied</option><option value="BANK_VALIDATED">Bank validated</option><option value="OFFICIAL_SOURCE">Official source</option></select></label>
-      <label className="vdd-field"><span>Valid until</span><input type="date" value={validUntil} onChange={(event) => onValidUntil(event.target.value)}/></label>
+      <SelectField label="Decision" value={decision} placeholder="Choose a decision" isDisabled={busy} allowsEmpty={false} options={[{ id: "VALIDATE", label: "Accept" }, { id: "REJECT", label: "Reject" }]} onChange={(value) => { if (value) onDecision(value); }}/>
+      <div className="vdd-wide"><TextField label="Document type" value={documentType} maxLength={128} onChange={(value) => onDocumentType(value)} isRequired/></div>
+      <SelectField label="Evidence class" value={evidenceClass} placeholder="Choose evidence class" allowsEmpty={false} options={[{ id: "VENDOR_SUPPLIED", label: "Vendor supplied" }, { id: "BANK_VALIDATED", label: "Validated by reviewer" }, { id: "OFFICIAL_SOURCE", label: "Official source" }]} onChange={(value) => { if (value) onEvidenceClass(value); }}/>
+      <TextField label="Valid until" type="date" value={validUntil} onChange={(value) => onValidUntil(value)}/>
     </div>
     <p className="vdd-limitation">{decision === "VALIDATE" ? "Validation confirms this document can support the current assessment. It does not approve the vendor relationship." : "Rejection records that this document cannot support the current assessment."}</p>
-    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy}>{busy ? "Recording…" : decision === "VALIDATE" ? "Record validation" : "Record rejection"}</button></div>
+    <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Cancel</Button><Button type="submit" variant="primary" isDisabled={busy}>{busy ? "Recording…" : decision === "VALIDATE" ? "Record validation" : "Record rejection"}</Button></div>
   </form>;
 }
 
@@ -619,23 +642,23 @@ function ConclusionPanel({ conclusion, rationale, uncertainty, nextReviewDate, m
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
     <div><span className="eyebrow">Reviewer conclusion</span><h3>Record assessment conclusion</h3><p>Base the conclusion on the submitted response, reviewed documents and recorded findings.</p></div>
     <div className="vdd-form-grid">
-      <label className="vdd-field"><span>Conclusion</span><select value={conclusion} onChange={(event) => onConclusion(event.target.value as VendorAssessmentConclusion | "")} required><option value="">Select a conclusion</option>{conclusionOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-      <label className="vdd-field"><span>Recommended next review</span><input type="date" min={minimumDate} value={nextReviewDate} onChange={(event) => onNextReviewDate(event.target.value)}/></label>
-      <label className="vdd-field vdd-wide"><span>Assessment basis</span><textarea rows={5} value={rationale} onChange={(event) => onRationale(event.target.value)} required/></label>
-      <label className="vdd-field vdd-wide"><span>Remaining uncertainty</span><textarea rows={3} value={uncertainty} onChange={(event) => onUncertainty(event.target.value)}/></label>
+      <SelectField label="Conclusion" value={conclusion || undefined} placeholder="Select a conclusion" isRequired options={conclusionOptions.map((option) => ({ id: option.value, label: option.label }))} onChange={(value) => onConclusion(value ?? "")}/>
+      <TextField label="Recommended next review" type="date" min={minimumDate} value={nextReviewDate} onChange={(value) => onNextReviewDate(value)}/>
+      <div className="vdd-wide"><TextArea label="Assessment basis" rows={5} value={rationale} onChange={(value) => onRationale(value)} isRequired/></div>
+      <div className="vdd-wide"><TextArea label="Remaining uncertainty" rows={3} value={uncertainty} onChange={(value) => onUncertainty(value)}/></div>
     </div>
     <p className="vdd-limitation">This conclusion completes the assessment review. It does not activate or approve the vendor relationship.</p>
-    <div className="vdd-panel-actions"><button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-button" disabled={busy || !conclusion || !rationale.trim()}>{busy ? "Recording…" : "Record assessment conclusion"}</button></div>
+    <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Cancel</Button><Button type="submit" variant="primary" isDisabled={busy || !conclusion || !rationale.trim()}>{busy ? "Recording…" : "Record assessment conclusion"}</Button></div>
   </form>;
 }
 
-function ReviewSummary({ review, assessment, onOpenMatter, onOpenDocument, onReviewDocument, onCreateDeficiency }: { review: VendorAssessmentReviewView; assessment?: VendorAssessment | null; onOpenMatter?: (matterID: string) => void; onOpenDocument?: (assessmentID: string, requestID: string, artifactID: string) => void; onReviewDocument?: (document: VendorAssessmentDocument, decision: "VALIDATE" | "REJECT") => void; onCreateDeficiency?: () => void }) {
+function ReviewSummary({ review, assessment, documents = review.documents, onOpenMatter, onOpenDocument, onReviewDocument, onCreateDeficiency }: { review: VendorAssessmentReviewView; assessment?: VendorAssessment | null; documents?: VendorAssessmentDocument[]; onOpenMatter?: (matterID: string) => void; onOpenDocument?: (assessmentID: string, requestID: string, artifactID: string) => void; onReviewDocument?: (document: VendorAssessmentDocument, decision: "VALIDATE" | "REJECT") => void; onCreateDeficiency?: () => void }) {
   const criticalResponses = new Map(review.provisional_score?.critical_failures?.map((failure) => [failure.field_id, failure.outcome]) ?? []);
   return <section className="vdd-review" aria-label="Vendor response review">
     <div className="vdd-review-header"><div><h3>Vendor response</h3>{review.response ? <p>Submitted {formatDate(review.response.submitted_at)} · {review.response.answer_count} {itemLabel(review.response.answer_count, "answer")} · {review.response.artifact_count} {itemLabel(review.response.artifact_count, "document")}</p> : <p>No submitted response summary is available.</p>}</div><div className="vdd-review-metrics"><span>{review.coverage.answered_required} of {review.coverage.required_fields} required answers received</span>{review.provisional_score?.score !== undefined && <span>Provisional score: {formatScore(review.provisional_score.score)} of 100 · Form version {review.assessment.form_template_version}</span>}</div></div>
     <div className="vdd-review-group"><h4>Submitted answers</h4>{review.answers.length ? <dl className="vdd-answer-list">{review.answers.map((answer) => <ReviewAnswer key={answer.field_id} answer={answer} criticalResponse={criticalResponses.get(answer.field_id)}/>)}</dl> : <p>No answers were submitted for this form version.</p>}</div>
-    {review.documents.length > 0 && <div className="vdd-review-group"><h4>Supporting documents</h4>{review.documents.map((document) => <ReviewDocument key={document.artifact_id} document={document} assessment={assessment} requestID={review.response?.request_id} onOpenDocument={onOpenDocument} onReviewDocument={onReviewDocument}/>)}</div>}
-    <div className="vdd-review-group"><div className="vdd-review-group-heading"><h4>Findings</h4>{assessment?.status === "UNDER_REVIEW" && onCreateDeficiency && <button type="button" className="secondary-button" onClick={onCreateDeficiency}>Record finding</button>}</div>{review.matters.length ? <ul>{review.matters.map((finding) => <li key={finding.matter_id}><strong>{finding.title}</strong><span>{humanizeStatus(finding.status)}</span>{onOpenMatter && <button type="button" className="text-button" onClick={() => onOpenMatter(finding.matter_id)}>Open finding</button>}</li>)}</ul> : <p>No findings are linked to this assessment.</p>}</div>
+    {documents.length > 0 && <div className="vdd-review-group"><h4>Supporting documents</h4>{documents.map((document) => <ReviewDocument key={`${document.field_id}:${document.artifact_id}`} document={document} assessment={assessment} requestID={document.request_id || review.response?.request_id} onOpenDocument={onOpenDocument} onReviewDocument={onReviewDocument}/>)}</div>}
+    <div className="vdd-review-group"><div className="vdd-review-group-heading"><h4>Findings</h4>{assessment?.status === "UNDER_REVIEW" && onCreateDeficiency && <Button type="button" variant="secondary" onPress={onCreateDeficiency}>Record finding</Button>}</div>{review.matters.length ? <ul>{review.matters.map((finding) => <li key={finding.matter_id}><strong>{finding.title}</strong><span>{humanizeStatus(finding.status)}</span>{onOpenMatter && <Button type="button" variant="quiet" onPress={() => onOpenMatter(finding.matter_id)}>Open finding</Button>}</li>)}</ul> : <p>No findings are linked to this assessment.</p>}</div>
     {assessment?.status === "COMPLETED" && <div className="vdd-review-group"><h4>Recorded conclusion</h4><dl className="vdd-conclusion"><div><dt>Conclusion</dt><dd>{conclusionLabel(assessment.conclusion)}</dd></div><div><dt>Assessment basis</dt><dd>{assessment.conclusion_rationale || "No assessment basis was recorded."}</dd></div>{assessment.conclusion_uncertainty && <div><dt>Remaining uncertainty</dt><dd>{assessment.conclusion_uncertainty}</dd></div>}<div><dt>Completed</dt><dd>{formatDate(assessment.completed_at)}</dd></div></dl></div>}
   </section>;
 }
@@ -643,10 +666,11 @@ function ReviewSummary({ review, assessment, onOpenMatter, onOpenDocument, onRev
 function ReviewAnswer({ answer, criticalResponse }: { answer: VendorAssessmentReviewView["answers"][number]; criticalResponse?: string }) {
   const conditionalOmission = answer.visibility === "CONDITIONALLY_OMITTED";
   const sourceValue = answer.provenance?.source_value?.text;
-  const missingRequired = answer.required && !answer.value;
-  return <div role="group" aria-label={`Response: ${answer.label}`}>
+  const linkedDocument = !answer.value ? answer.collection_resolution?.source.file_name : undefined;
+  const missingRequired = answer.required && !answer.value && !linkedDocument;
+  return <div>
     <dt>{answer.label}{answer.required ? " · Required" : ""}</dt>
-    <dd className={conditionalOmission || missingRequired ? "vdd-answer-limitation" : undefined}>{conditionalOmission ? "Not requested because its condition was not met" : missingRequired ? "Required response missing" : `Vendor response: ${formatAnswer(answer.value)}`}</dd>
+    <dd className={conditionalOmission || missingRequired ? "vdd-answer-limitation" : undefined}>{conditionalOmission ? "Not requested because its condition was not met" : linkedDocument ? `Document linked: ${linkedDocument}` : missingRequired ? "Required response missing" : `Vendor response: ${formatAnswer(answer.value)}`}</dd>
     {sourceValue && <dd>Source value: {sourceValue}</dd>}
     {criticalResponse && <dd className="vdd-critical-response">Critical response: {humanizeResponseOutcome(criticalResponse)}</dd>}
     {answer.provenance && <dd className="vdd-provenance">{provenanceLabel(answer.provenance)}</dd>}
@@ -666,9 +690,9 @@ function ReviewDocument({ document, assessment, requestID, onOpenDocument, onRev
       {unavailableReason && <span className="vdd-document-recovery">{unavailableReason}</span>}
     </div>
     {assessment?.status === "UNDER_REVIEW" && (onOpenDocument || onReviewDocument) && <div>
-      {onOpenDocument && <button type="button" className="text-button" onClick={() => requestID && onOpenDocument(assessment.id, requestID, document.artifact_id)} disabled={!actionable || !requestID}>Open document</button>}
-      {onReviewDocument && <button type="button" className="text-button" onClick={() => onReviewDocument(document, "VALIDATE")} disabled={!actionable}>Validate document</button>}
-      {onReviewDocument && <button type="button" className="text-button" onClick={() => onReviewDocument(document, "REJECT")} disabled={!actionable}>Reject document</button>}
+      {onOpenDocument && <Button type="button" variant="quiet" onPress={() => requestID && onOpenDocument(assessment.id, requestID, document.artifact_id)} isDisabled={!actionable || !requestID}>Open document</Button>}
+      {onReviewDocument && <Button type="button" variant="quiet" onPress={() => onReviewDocument(document, "VALIDATE")} isDisabled={!actionable}>Validate document</Button>}
+      {onReviewDocument && <Button type="button" variant="quiet" onPress={() => onReviewDocument(document, "REJECT")} isDisabled={!actionable}>Reject document</Button>}
     </div>}
   </article>;
 }
@@ -746,7 +770,7 @@ function artifactStatusLabel(value: string) {
 function evidenceClassLabel(value: string) {
   switch (value) {
     case "VENDOR_SUPPLIED": return "Vendor supplied evidence";
-    case "BANK_VALIDATED": return "Bank validated evidence";
+    case "BANK_VALIDATED": return "Validated evidence";
     case "OFFICIAL_SOURCE": return "Official source evidence";
     default: return humanizeStatus(value);
   }
@@ -791,13 +815,13 @@ function assessmentStatusCopy(assessment?: VendorAssessment | null, setupFailure
       ? { label: "Setup failed", tone: "danger", description: "The assessment exists, but its review record still needs to be prepared." }
       : { label: "Setup in progress", tone: "pending", description: "The assessment exists while its review record is being prepared." };
     case "READY_TO_SEND": return { label: "Ready to send", tone: "information", description: "The assessment is ready for the vendor contact and response deadline." };
-    case "COLLECTING": return { label: "Awaiting response", tone: "pending", description: "The vendor request is open. Submission will not complete the bank review." };
-    case "SUBMITTED": return { label: "Response received", tone: "information", description: "The vendor response was submitted and now requires bank review." };
+    case "COLLECTING": return { label: "Awaiting response", tone: "pending", description: "The vendor request is open. Submission will not complete the review." };
+    case "SUBMITTED": return { label: "Response received", tone: "information", description: "The vendor response was submitted and now requires review." };
     case "UNDER_REVIEW": return { label: "Under review", tone: "pending", description: "Review the response, documents and findings before recording a conclusion." };
     case "COMPLETED": return { label: conclusionLabel(assessment.conclusion), tone: assessment.conclusion === "UNSATISFACTORY" ? "danger" : "complete", description: "The assessment conclusion is recorded. The vendor relationship status remains separate." };
     case "CANCELLED": return assessment.review_kind === "ONBOARDING"
       ? { label: "Cancelled", tone: "neutral", description: "This onboarding assessment was cancelled. The relationship remains available for a new review." }
-      : { label: "Cancelled", tone: "neutral", description: "This reassessment was cancelled. Start a new review with a new bank reference when required." };
+      : { label: "Cancelled", tone: "neutral", description: "This reassessment was cancelled. Start a new review with a new review reference when required." };
   }
 }
 

@@ -1,13 +1,21 @@
 # ClearSight implementation ledger
 
-**Status date:** 2026-09-08
-**Current execution:** Approved Forms/Policies/vendor completeness under #143/#139/#138, with release acceptance in #147. #200 remains closed.
+**Status date:** 2026-09-09
+**Current execution:** User-authorized vendor workflow merge and deployment, integrating the Forms/Policies/vendor completeness changes with evidence reconciliation and the copy/contrast corrections.
+
+## Vendor workflow release
+
+The [release plan](superpowers/plans/2026-09-09-vendor-workflow-release.md) tracks source-row spreadsheet drafts, explicit vendor classifications, missing-assurance capture, governed reference-starter updates and release verification. The supplied workbooks produce 47 checklist fields and five historical follow-ups without inventing vendor matches, applicability decisions or compliance. See [spreadsheet acceptance](acceptance/2026-09-09-spreadsheet-vendor-proposal.md). Existing form revisions, evidence decisions and authority policies remain distinct.
 
 ## Forms and vendor completeness — approved, implementation in progress
 
 The operator approved the [completion brief](design/2026-09-08-forms-vendor-completeness.md) and [task plan](superpowers/plans/2026-09-08-forms-vendor-completeness.md) after a read-only hosted audit of `fab860ce` as Program Owner and System Administrator. Scope is contradictory vendor submission/count state, neutral no-review/no-score presentation, purposeful policy permission and lifecycle states, response review sections, vendor sections and safe sample presentation. Existing authority, immutable submissions, protected documents and separate review/activation gates remain unchanged. No new mockups, dependencies or parallel workflow model.
 
 PR #205 deployed `fab860cef1057f366b1d90969aca55c441840571`; its exact-head and main CI, 224-capture UI review, Compose checks and deployment passed. Hosted document-only acceptance verified six fictional files, two immutable submitted versions and protected reads through Forms, response and vendor entry points. That receipt supersedes the historical release-pending notes below only for that bounded slice; it did not prove complete Policies/Responses/vendor operating UX. The new baseline passed 97 focused UI tests and evidence/HTTP unit tests. Current completion and release receipts will be recorded in the existing child issues; all wider outcome requirements remain open.
+
+## Vendor evidence reconciliation — local implementation
+
+The approved vendor journey refinement adds request preparation, reuse of existing vendor-submitted documents, distinct collection/review states, safe vendor receipts and field-specific bank decisions. The interface uses short production labels and puts the checklist before form history. Existing approval policy gates remain separate. The [decision brief](design/2026-09-08-vendor-evidence-reconciliation.md), [implementation plan](superpowers/plans/2026-09-08-vendor-evidence-reconciliation.md) and [acceptance record](acceptance/vendor-evidence-reconciliation.md) track validation and release limitations. This slice does not implement the broader spreadsheet-to-requirements or onboarding redesign.
 
 ## Vendor forms and bank field assessment — implemented and locally verified
 
@@ -505,3 +513,9 @@ A tranche is not complete until relevant gates pass on its **exact final head**:
 - representative query/performance/recovery proof when cardinality or durability changes.
 
 Never claim a branch or PR is green from an older commit.
+
+## 9 September 2026 — copy, contrast and component audit corrections
+
+The approved [correction plan](superpowers/plans/2026-09-09-ui-audit-corrections.md) implements industry-neutral shared copy, truthful missing/stale status and historical attribution, explicit requirement meaning, scoped reviewer display-name enrichment, contrast-token corrections, vendor shared controls and simpler Forms/vendor composition. Existing evidence reconciliation, command identity, authority routes, distinct receipt/review/approval semantics and conditional-approval governance remain intact. New names are read-side enrichment, not stored authority.
+
+The [acceptance receipt](../docs/acceptance/ui-audit-corrections.md) records actual tests, rendered evidence and limits. This work is local and uncommitted; no deployment or full-workspace migration is implied.

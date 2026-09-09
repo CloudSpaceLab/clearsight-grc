@@ -46,8 +46,8 @@ func RenderOperationalNotification(context OperationalNotificationContext) (Rend
 
 	responsibility := operationalResponsibilityLabel(context.Responsibility)
 	intro := fmt.Sprintf("%s, you have been assigned issue work as the %s.", context.RecipientName, strings.ToLower(responsibility))
-	bodyPlain := "What needs to happen next: " + context.WorkTitle + ".\n\nOpen the issue to review its current facts, evidence and permitted actions. Completing assigned work does not authorize, approve or sign off the issue."
-	bodyHTML := `<p style="margin:0 0 12px;">What needs to happen next: <strong>` + html.EscapeString(context.WorkTitle) + `</strong>.</p>` +
+	bodyPlain := "Next action: " + context.WorkTitle + ".\n\nOpen the issue to review its current facts, evidence and permitted actions. Completing assigned work does not authorize, approve or sign off the issue."
+	bodyHTML := `<p style="margin:0 0 12px;">Next action: <strong>` + html.EscapeString(context.WorkTitle) + `</strong>.</p>` +
 		`<p style="margin:0;">Open the issue to review its current facts, evidence and permitted actions. Completing assigned work does not authorize, approve or sign off the issue.</p>`
 	facts := []emailFact{{Label: "Responsibility", Value: responsibility}}
 	if !context.DueAt.IsZero() {

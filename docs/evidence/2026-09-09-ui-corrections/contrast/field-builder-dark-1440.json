@@ -1,0 +1,3804 @@
+{
+  "id": "field-builder-dark-1440",
+  "name": "field-builder",
+  "fixture": "field-assessment-builder",
+  "route": "",
+  "theme": "dark",
+  "width": 1440,
+  "scale": 1,
+  "generatedAt": "2026-09-09T00:03:51.982Z",
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"form-outline-icon\" aria-hidden=\"true\">⌂</span>",
+            "target": [
+              ".form-outline-icon"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "25.5pt (34px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<input class=\"form-canvas-title\" aria-label=\"Form name\" maxlength=\"200\" placeholder=\"Untitled form\" required=\"\" value=\"Sample · Vendor security evidence\" style=\"\">",
+            "target": [
+              ".form-canvas-title"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.8pt (13px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<textarea class=\"form-canvas-purpose\" aria-label=\"Purpose\" maxlength=\"1000\" rows=\"2\" placeholder=\"Describe why respondents are completing this form…\" required=\"\" style=\"\">Review payment-service control and test evidence.</textarea>",
+            "target": [
+              "textarea"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.8pt (9px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section data-builder-section-id=\"security\" class=\"form-canvas-section\" aria-label=\"Security evidence\">",
+                    "target": [
+                      ".form-canvas-section"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"form-canvas-section-number\">01</span>",
+            "target": [
+              ".form-canvas-section-number"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "12.0pt (16px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section data-builder-section-id=\"security\" class=\"form-canvas-section\" aria-label=\"Security evidence\">",
+                    "target": [
+                      ".form-canvas-section"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<input aria-label=\"Section 1 title\" maxlength=\"200\" placeholder=\"Section 1\" value=\"Security evidence\" style=\"\">",
+            "target": [
+              "input[aria-label=\"Section 1 title\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section data-builder-section-id=\"security\" class=\"form-canvas-section\" aria-label=\"Security evidence\">",
+                    "target": [
+                      ".form-canvas-section"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<input aria-label=\"Section 1 guidance\" maxlength=\"1000\" placeholder=\"Add optional guidance for this section…\" value=\"\" style=\"\">",
+            "target": [
+              "input[aria-label=\"Section 1 guidance\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+            "target": [
+              "#react-aria8994764741-_r_2_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.8pt (13px)",
+                  "fontWeight": "normal",
+                  "messageKey": "shortTextContent",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<article class=\"form-canvas-question\" data-builder-field-id=\"access-control\">",
+                    "target": [
+                      "article[data-builder-field-id=\"access-control\"]"
+                    ]
+                  },
+                  {
+                    "html": "<section data-builder-section-id=\"security\" class=\"form-canvas-section\" aria-label=\"Security evidence\">",
+                    "target": [
+                      ".form-canvas-section"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element content is too short to determine if it is actual text content"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"form-question-drag\" aria-hidden=\"true\" title=\"Drag question 2 to reorder\">⠿</span>",
+            "target": [
+              "span[title=\"Drag question 2 to reorder\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<article class=\"form-canvas-question\" data-builder-field-id=\"access-control\">",
+                    "target": [
+                      "article[data-builder-field-id=\"access-control\"]"
+                    ]
+                  },
+                  {
+                    "html": "<section data-builder-section-id=\"security\" class=\"form-canvas-section\" aria-label=\"Security evidence\">",
+                    "target": [
+                      ".form-canvas-section"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<input class=\"form-question-prompt\" aria-label=\"Question\" maxlength=\"200\" placeholder=\"Ask a clear question…\" required=\"\" value=\"Are privileged access reviews complete?\" style=\"\">",
+            "target": [
+              "article[data-builder-field-id=\"access-control\"] > .form-question-prompt[aria-label=\"Question\"][placeholder=\"Ask a clear question…\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<article class=\"form-canvas-question\" data-builder-field-id=\"access-control\">",
+                    "target": [
+                      "article[data-builder-field-id=\"access-control\"]"
+                    ]
+                  },
+                  {
+                    "html": "<section data-builder-section-id=\"security\" class=\"form-canvas-section\" aria-label=\"Security evidence\">",
+                    "target": [
+                      ".form-canvas-section"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<input class=\"form-question-guidance\" aria-label=\"Question 2 response guidance\" maxlength=\"1000\" placeholder=\"Add guidance for the respondent…\" value=\"\" style=\"\">",
+            "target": [
+              "input[aria-label=\"Question 2 response guidance\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+            "target": [
+              "#react-aria8994764741-_r_c_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<article class=\"form-canvas-question\" data-builder-field-id=\"access-control\">",
+                    "target": [
+                      "article[data-builder-field-id=\"access-control\"]"
+                    ]
+                  },
+                  {
+                    "html": "<section data-builder-section-id=\"security\" class=\"form-canvas-section\" aria-label=\"Security evidence\">",
+                    "target": [
+                      ".form-canvas-section"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Required</span>",
+            "target": [
+              "article[data-builder-field-id=\"access-control\"] > .form-question-controls > .form-question-required > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.8pt (13px)",
+                  "fontWeight": "normal",
+                  "messageKey": "shortTextContent",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<article class=\"form-canvas-question\" data-builder-field-id=\"context\">",
+                    "target": [
+                      "article[data-builder-field-id=\"context\"]"
+                    ]
+                  },
+                  {
+                    "html": "<section data-builder-section-id=\"security\" class=\"form-canvas-section\" aria-label=\"Security evidence\">",
+                    "target": [
+                      ".form-canvas-section"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element content is too short to determine if it is actual text content"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"form-question-drag\" aria-hidden=\"true\" title=\"Drag question 3 to reorder\">⠿</span>",
+            "target": [
+              "span[title=\"Drag question 3 to reorder\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<article class=\"form-canvas-question\" data-builder-field-id=\"context\">",
+                    "target": [
+                      "article[data-builder-field-id=\"context\"]"
+                    ]
+                  },
+                  {
+                    "html": "<section data-builder-section-id=\"security\" class=\"form-canvas-section\" aria-label=\"Security evidence\">",
+                    "target": [
+                      ".form-canvas-section"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<input class=\"form-question-prompt\" aria-label=\"Question\" maxlength=\"200\" placeholder=\"Ask a clear question…\" required=\"\" value=\"Service changes since the previous review\" style=\"\">",
+            "target": [
+              "article[data-builder-field-id=\"context\"] > .form-question-prompt[aria-label=\"Question\"][placeholder=\"Ask a clear question…\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<article class=\"form-canvas-question\" data-builder-field-id=\"context\">",
+                    "target": [
+                      "article[data-builder-field-id=\"context\"]"
+                    ]
+                  },
+                  {
+                    "html": "<section data-builder-section-id=\"security\" class=\"form-canvas-section\" aria-label=\"Security evidence\">",
+                    "target": [
+                      ".form-canvas-section"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<input class=\"form-question-guidance\" aria-label=\"Question 3 response guidance\" maxlength=\"1000\" placeholder=\"Add guidance for the respondent…\" value=\"\" style=\"\">",
+            "target": [
+              "input[aria-label=\"Question 3 response guidance\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+            "target": [
+              "#react-aria8994764741-_r_m_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<article class=\"form-canvas-question\" data-builder-field-id=\"context\">",
+                    "target": [
+                      "article[data-builder-field-id=\"context\"]"
+                    ]
+                  },
+                  {
+                    "html": "<section data-builder-section-id=\"security\" class=\"form-canvas-section\" aria-label=\"Security evidence\">",
+                    "target": [
+                      ".form-canvas-section"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Required</span>",
+            "target": [
+              "article[data-builder-field-id=\"context\"] > .form-question-controls > .form-question-required > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section data-builder-section-id=\"security\" class=\"form-canvas-section\" aria-label=\"Security evidence\">",
+                    "target": [
+                      ".form-canvas-section"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<button class=\"form-canvas-add\" type=\"button\">+ Add question</button>",
+            "target": [
+              ".form-canvas-add"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"form-builder-canvas\" aria-label=\"Form canvas\">",
+                    "target": [
+                      ".form-builder-canvas"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<button class=\"form-canvas-add-section\" type=\"button\">+ Add section</button>",
+            "target": [
+              ".form-canvas-add-section"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+            "target": [
+              "#react-aria8994764741-_r_10_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+            "target": [
+              "#react-aria8994764741-_r_1a_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+            "target": [
+              "#react-aria8994764741-_r_1k_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+            "target": [
+              "#react-aria8994764741-_r_21_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary>Validation &amp; response options</summary>",
+            "target": [
+              "details[open=\"\"] > summary"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<legend>Accepted files</legend>",
+            "target": [
+              "fieldset:nth-child(1) > legend"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.8pt (9px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<label class=\"compact-control\"><input type=\"checkbox\" checked=\"\" style=\"\">PDF</label>",
+            "target": [
+              ".format-options > .compact-control:nth-child(1)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.8pt (9px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<label class=\"compact-control\"><input type=\"checkbox\" style=\"\">PNG image</label>",
+            "target": [
+              ".compact-control:nth-child(2)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.8pt (9px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<label class=\"compact-control\"><input type=\"checkbox\" style=\"\">JPEG image</label>",
+            "target": [
+              ".compact-control:nth-child(3)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.8pt (9px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<label class=\"compact-control\"><input type=\"checkbox\" style=\"\">Text file</label>",
+            "target": [
+              ".compact-control:nth-child(4)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.8pt (9px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<label class=\"compact-control\"><input type=\"checkbox\" style=\"\">CSV file</label>",
+            "target": [
+              ".format-options > .compact-control:nth-child(5)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.8pt (9px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<label class=\"compact-control\"><input type=\"checkbox\" style=\"\">Word document</label>",
+            "target": [
+              ".compact-control:nth-child(6)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.8pt (9px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<label class=\"compact-control\"><input type=\"checkbox\" style=\"\">Excel workbook</label>",
+            "target": [
+              ".compact-control:nth-child(7)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<legend>Response limits</legend>",
+            "target": [
+              ".form-inspector-disclosure-body > fieldset:nth-child(2) > legend"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Minimum files</span>",
+            "target": [
+              "label:nth-child(1) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Maximum files</span>",
+            "target": [
+              "label:nth-child(2) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Maximum file size (MB)</span>",
+            "target": [
+              ".builder-control-grid > label:nth-child(3) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Combined file limit (MB)</span>",
+            "target": [
+              "label:nth-child(4) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary>Logic</summary>",
+            "target": [
+              ".form-inspector-disclosure:nth-child(4) > summary"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary>Data handling</summary>",
+            "target": [
+              ".form-inspector-disclosure:nth-child(5) > summary"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<aside class=\"form-builder-inspector\" aria-label=\"Question settings\">",
+                    "target": [
+                      "aside"
+                    ]
+                  },
+                  {
+                    "html": "<form class=\"monitoring-builder form-builder forms-authoring-shell form-builder-workspace\" novalidate=\"\">",
+                    "target": [
+                      "form"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary>Question actions</summary>",
+            "target": [
+              ".form-inspector-disclosure:nth-child(6) > summary"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 69
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "div.cs-notice.cs-tone--info",
+      "parentSelector": "main",
+      "disabled": false,
+      "background": "#132634",
+      "uncertain": [],
+      "box": {
+        "x": 57.59375,
+        "y": 24,
+        "width": 1324.8125,
+        "height": 47
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Sample data · Vendor field assessment review fixture, 8 September 2026.",
+      "foreground": "#d7e0e9",
+      "ratio": 11.61171396110812,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.text-button.form-builder-back",
+      "parentSelector": "div.form-builder-toolbar-leading",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 92.59375,
+        "y": 115.5,
+        "width": 62.171875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "‹ Forms",
+      "foreground": "#5bc6d6",
+      "ratio": 8.822619340424954,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div.form-builder-toolbar-title",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 175.765625,
+        "y": 120.5,
+        "width": 208.578125,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample · Vendor security evidence",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "div.form-builder-toolbar-title",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 175.765625,
+        "y": 141,
+        "width": 30.703125,
+        "height": 13.5
+      },
+      "fontSize": "9px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Draft",
+      "foreground": "#8fa0b2",
+      "ratio": 6.590915545968836,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.text-button",
+      "parentSelector": "div.form-builder-toolbar-actions",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1086.453125,
+        "y": 118.5,
+        "width": 63.578125,
+        "height": 38
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Preview",
+      "foreground": "#5bc6d6",
+      "ratio": 8.822619340424954,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.form-builder-review-button.needs-review",
+      "parentSelector": "div.form-builder-toolbar-actions",
+      "disabled": false,
+      "background": "#122031",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1156.03125,
+        "y": 118.5,
+        "width": 90.25,
+        "height": 38
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Review  · 1",
+      "foreground": "#c6dce6",
+      "ratio": 11.554300285026427,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.form-builder-review-button.needs-review",
+      "parentSelector": "div.form-builder-toolbar-actions",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1156.03125,
+        "y": 118.5,
+        "width": 90.25,
+        "height": 38
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#203246",
+      "ratio": 1.2560016250540686,
+      "outsideRatio": 1.3509234482501153,
+      "insideRatio": 1.2560016250540686,
+      "fillRatio": 1.075574602215949,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.primary-button",
+      "parentSelector": "div.form-builder-toolbar-actions",
+      "disabled": false,
+      "background": "#162d3b",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1252.28125,
+        "y": 115,
+        "width": 99.125,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Save draft",
+      "foreground": "#ffffff",
+      "ratio": 14.260274375259133,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.primary-button",
+      "parentSelector": "div.form-builder-toolbar-actions",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1252.28125,
+        "y": 115,
+        "width": 99.125,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#3f7d8f",
+      "ratio": 3.0839083318330514,
+      "outsideRatio": 3.818310708685546,
+      "insideRatio": 3.0839083318330514,
+      "fillRatio": 1.238140144851832,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.form-builder-pane-heading",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 88.59375,
+        "y": 203.5,
+        "width": 49.5625,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "800",
+      "kind": "text",
+      "text": "Outline",
+      "foreground": "#8fa0b2",
+      "ratio": 6.590915545968836,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "div.form-builder-pane-heading",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 260.359375,
+        "y": 204.25,
+        "width": 35.234375,
+        "height": 13.5
+      },
+      "fontSize": "9px",
+      "fontWeight": "600",
+      "kind": "text",
+      "text": "1   section",
+      "foreground": "#8fa0b2",
+      "ratio": 6.590915545968836,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.form-outline-item",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 119.59375,
+        "y": 242.5,
+        "width": 164,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Overview",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.form-outline-index",
+      "parentSelector": "button.form-outline-item.section",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 90.59375,
+        "y": 279,
+        "width": 22,
+        "height": 22
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "1",
+      "foreground": "#8fa0b2",
+      "ratio": 6.590915545968836,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.form-outline-label",
+      "parentSelector": "button.form-outline-item.section",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 119.59375,
+        "y": 281.75,
+        "width": 164,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Security evidence",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.form-outline-label",
+      "parentSelector": "button.form-outline-item.field.active",
+      "disabled": false,
+      "background": "#152937",
+      "uncertain": [],
+      "box": {
+        "x": 122.59375,
+        "y": 338.25,
+        "width": 149,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "550",
+      "kind": "text",
+      "text": "Independent vulnerability test report",
+      "foreground": "#c7d2dd",
+      "ratio": 9.75702240543018,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.form-outline-label",
+      "parentSelector": "button.form-outline-item.field",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 122.59375,
+        "y": 396.25,
+        "width": 149,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "550",
+      "kind": "text",
+      "text": "Are privileged access reviews complete?",
+      "foreground": "#c7d2dd",
+      "ratio": 11.511141070303061,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.form-outline-label",
+      "parentSelector": "button.form-outline-item.field",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 122.59375,
+        "y": 454.25,
+        "width": 149,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "550",
+      "kind": "text",
+      "text": "Service changes since the previous review",
+      "foreground": "#c7d2dd",
+      "ratio": 11.511141070303061,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.text-button",
+      "parentSelector": "div.form-outline-actions",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 86.59375,
+        "y": 512,
+        "width": 60.28125,
+        "height": 34
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "+ Section",
+      "foreground": "#5bc6d6",
+      "ratio": 8.822619340424954,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.text-button",
+      "parentSelector": "div.form-outline-actions",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 150.875,
+        "y": 512,
+        "width": 68.546875,
+        "height": 34
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "+ Question",
+      "foreground": "#5bc6d6",
+      "ratio": 8.822619340424954,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "textarea.form-canvas-purpose",
+      "parentSelector": "header.form-canvas-header",
+      "disabled": false,
+      "background": "#111f30",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 383.59375,
+        "y": 293,
+        "width": 578.8125,
+        "height": 44
+      },
+      "fontSize": "13px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Review payment-service control and test evidence.",
+      "foreground": "#c3ceda",
+      "ratio": 10.424746595475902,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.form-canvas-section-number",
+      "parentSelector": "div.form-canvas-section-heading",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 383.59375,
+        "y": 408,
+        "width": 30,
+        "height": 58
+      },
+      "fontSize": "9px",
+      "fontWeight": "800",
+      "kind": "text",
+      "text": "01",
+      "foreground": "#8fa0b2",
+      "ratio": 6.596677100534029,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "input",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 422.59375,
+        "y": 438,
+        "width": 539.8125,
+        "height": 28
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "placeholder",
+      "text": "Add optional guidance for this section…",
+      "foreground": "#8fa0b2",
+      "ratio": 6.596677100534029,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.form-question-menu",
+      "disabled": false,
+      "background": "#101f2d",
+      "uncertain": [],
+      "box": {
+        "x": 919.40625,
+        "y": 495,
+        "width": 28,
+        "height": 26
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "•••",
+      "foreground": "#8fa0b2",
+      "ratio": 6.241742061699872,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "input.form-question-guidance",
+      "parentSelector": "article.form-canvas-question.selected",
+      "disabled": false,
+      "background": "#101f2d",
+      "uncertain": [],
+      "box": {
+        "x": 398.59375,
+        "y": 559,
+        "width": 548.8125,
+        "height": 30
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "placeholder",
+      "text": "Add guidance for the respondent…",
+      "foreground": "#8fa0b2",
+      "ratio": 6.241742061699872,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_3_",
+      "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
+      "disabled": false,
+      "background": "#101f2d",
+      "uncertain": [],
+      "box": {
+        "x": 398.59375,
+        "y": 597,
+        "width": 1,
+        "height": 1
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Response type",
+      "foreground": "#ffffff",
+      "ratio": 16.720827159721253,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_2_",
+      "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
+      "disabled": false,
+      "background": "#101f2d",
+      "uncertain": [],
+      "box": {
+        "x": 398.59375,
+        "y": 597,
+        "width": 62.71875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 4.296086159238039,
+      "outsideRatio": 4.296086159238039,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.0681808210084789,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "span.cs-select-field__value",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 411.59375,
+        "y": 609.5,
+        "width": 20.953125,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "File",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "label.form-question-required",
+      "disabled": false,
+      "background": "#101f2d",
+      "uncertain": [],
+      "box": {
+        "x": 882.078125,
+        "y": 611.5,
+        "width": 42.328125,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Required",
+      "foreground": "#8fa0b2",
+      "ratio": 6.241742061699872,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.form-question-menu",
+      "disabled": false,
+      "background": "#101e2e",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 919.40625,
+        "y": 679,
+        "width": 28,
+        "height": 26
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "•••",
+      "foreground": "#8fa0b2",
+      "ratio": 6.26685383418211,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "input.form-question-guidance",
+      "parentSelector": "article.form-canvas-question",
+      "disabled": false,
+      "background": "#101e2e",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 398.59375,
+        "y": 743,
+        "width": 548.8125,
+        "height": 30
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "placeholder",
+      "text": "Add guidance for the respondent…",
+      "foreground": "#8fa0b2",
+      "ratio": 6.26685383418211,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_d_",
+      "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
+      "disabled": false,
+      "background": "#101e2e",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 398.59375,
+        "y": 781,
+        "width": 1,
+        "height": 1
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Response type",
+      "foreground": "#ffffff",
+      "ratio": 16.788098380351506,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_c_",
+      "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
+      "disabled": false,
+      "background": "#101e2e",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 398.59375,
+        "y": 781,
+        "width": 100.953125,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 4.313370170196591,
+      "outsideRatio": 4.313370170196591,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.0639005370802428,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "span.cs-select-field__value",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 411.59375,
+        "y": 793.5,
+        "width": 59.1875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Yes or No",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "label.form-question-required",
+      "disabled": false,
+      "background": "#101e2e",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 882.078125,
+        "y": 795.5,
+        "width": 42.328125,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Required",
+      "foreground": "#8fa0b2",
+      "ratio": 6.26685383418211,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.form-question-menu",
+      "disabled": false,
+      "background": "#101e2e",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 919.40625,
+        "y": 863,
+        "width": 28,
+        "height": 26
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "•••",
+      "foreground": "#8fa0b2",
+      "ratio": 6.26685383418211,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "input.form-question-guidance",
+      "parentSelector": "article.form-canvas-question",
+      "disabled": false,
+      "background": "#101e2e",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 398.59375,
+        "y": 927,
+        "width": 548.8125,
+        "height": 30
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "placeholder",
+      "text": "Add guidance for the respondent…",
+      "foreground": "#8fa0b2",
+      "ratio": 6.26685383418211,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_n_",
+      "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
+      "disabled": false,
+      "background": "#101e2e",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 398.59375,
+        "y": 965,
+        "width": 1,
+        "height": 1
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Response type",
+      "foreground": "#ffffff",
+      "ratio": 16.788098380351506,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_m_",
+      "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
+      "disabled": false,
+      "background": "#101e2e",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 398.59375,
+        "y": 965,
+        "width": 119.859375,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 4.313370170196591,
+      "outsideRatio": 4.313370170196591,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.0639005370802428,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "span.cs-select-field__value",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 411.59375,
+        "y": 977.5,
+        "width": 78.09375,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Long answer",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "label.form-question-required",
+      "disabled": false,
+      "background": "#101e2e",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 882.078125,
+        "y": 979.5,
+        "width": 42.328125,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Required",
+      "foreground": "#8fa0b2",
+      "ratio": 6.26685383418211,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.form-canvas-add",
+      "parentSelector": "section.form-canvas-section",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 383.59375,
+        "y": 1032,
+        "width": 578.8125,
+        "height": 38
+      },
+      "fontSize": "11px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "+ Add question",
+      "foreground": "#8fa0b2",
+      "ratio": 6.596677100534029,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.form-canvas-add",
+      "parentSelector": "section.form-canvas-section",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 383.59375,
+        "y": 1032,
+        "width": 578.8125,
+        "height": 38
+      },
+      "fontSize": "11px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#1e3043",
+      "ratio": 1.3155604974925588,
+      "outsideRatio": 1.3155604974925588,
+      "insideRatio": 1.3155604974925588,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.form-canvas-add-section",
+      "parentSelector": "div.form-canvas-document",
+      "disabled": false,
+      "background": "#111f30",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 533,
+        "y": 1119,
+        "width": 280,
+        "height": 38
+      },
+      "fontSize": "11px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "+ Add section",
+      "foreground": "#8fa0b2",
+      "ratio": 6.2091613309680715,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.form-canvas-add-section",
+      "parentSelector": "div.form-canvas-document",
+      "disabled": false,
+      "background": "#111f30",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 533,
+        "y": 1119,
+        "width": 280,
+        "height": 38
+      },
+      "fontSize": "11px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#1f3246",
+      "ratio": 1.2667798234342507,
+      "outsideRatio": 1.2667798234342507,
+      "insideRatio": 1.2667798234342507,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 200,
+        "width": 210,
+        "height": 13.5
+      },
+      "fontSize": "9px",
+      "fontWeight": "800",
+      "kind": "text",
+      "text": "Inspector",
+      "foreground": "#8fa0b2",
+      "ratio": 6.590915545968836,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 215.5,
+        "width": 210,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "900",
+      "kind": "text",
+      "text": "Independent vulnerability test report",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "div.form-builder-pane-heading.form-inspector-heading",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1279.90625,
+        "y": 200,
+        "width": 71.5,
+        "height": 13.5
+      },
+      "fontSize": "9px",
+      "fontWeight": "600",
+      "kind": "text",
+      "text": "Question settings",
+      "foreground": "#8fa0b2",
+      "ratio": 6.590915545968836,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.compact-control.form-inspector-required",
+      "parentSelector": "div.form-inspector-primary-settings",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 258,
+        "width": 301,
+        "height": 44
+      },
+      "fontSize": "9px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Required response",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_11_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 312,
+        "width": 301,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Section",
+      "foreground": "#ffffff",
+      "ratio": 17.656218180610214,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_10_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 341,
+        "width": 301,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 4.53641640007665,
+      "outsideRatio": 4.53641640007665,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.0115907438789158,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "span.cs-select-field__value",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 1063.40625,
+        "y": 353.5,
+        "width": 107.46875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Security evidence",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_1b_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 395,
+        "width": 301,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Inspector response type",
+      "foreground": "#ffffff",
+      "ratio": 17.656218180610214,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_1a_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 424,
+        "width": 301,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 4.53641640007665,
+      "outsideRatio": 4.53641640007665,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.0115907438789158,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "span.cs-select-field__value",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 1063.40625,
+        "y": 436.5,
+        "width": 20.953125,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "File",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "legend",
+      "parentSelector": "fieldset.builder-subpanel.field-assessment-editor",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1067.40625,
+        "y": 470,
+        "width": 115.59375,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Field assessment",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_1l_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1067.40625,
+        "y": 505.5,
+        "width": 267,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "How this field is assessed",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_1k_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1067.40625,
+        "y": 534.5,
+        "width": 267,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 4.131068432174645,
+      "outsideRatio": 4.131068432174645,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.1108498723857612,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "span.cs-select-field__value",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 1080.40625,
+        "y": 547,
+        "width": 42.828125,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Review",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1067.40625,
+        "y": 594.5,
+        "width": 267,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Assessment weight",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_1s_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1067.40625,
+        "y": 623.5,
+        "width": 267,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 4.131068432174645,
+      "outsideRatio": 4.131068432174645,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.1108498723857612,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.compact-control",
+      "parentSelector": "fieldset.builder-subpanel.field-assessment-editor",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1067.40625,
+        "y": 683.5,
+        "width": 267,
+        "height": 44
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Require review before assessment is complete",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_22_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1067.40625,
+        "y": 743.5,
+        "width": 267,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Reviewer responsibility",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_21_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1067.40625,
+        "y": 772.5,
+        "width": 267,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 4.131068432174645,
+      "outsideRatio": 4.131068432174645,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.1108498723857612,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "span.cs-select-field__value",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 1080.40625,
+        "y": 785,
+        "width": 80.421875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Risk reviewer",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p.field-note",
+      "parentSelector": "fieldset.builder-subpanel.field-assessment-editor",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1067.40625,
+        "y": 832.5,
+        "width": 267,
+        "height": 55.78125
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "The current approval route determines who may record each judgement. Every judgement requires a rationale.",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p.field-note",
+      "parentSelector": "fieldset.builder-subpanel.field-assessment-editor",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1067.40625,
+        "y": 904.28125,
+        "width": 267,
+        "height": 37.1875
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "A received document remains unassessed until a reviewer records the evidence outcome.",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "legend",
+      "parentSelector": "fieldset.builder-subpanel",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 957.46875,
+        "width": 124.8125,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Assessment rubric",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p.field-note",
+      "parentSelector": "fieldset.builder-subpanel",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 992.96875,
+        "width": 233,
+        "height": 37.1875
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Higher points mean greater risk; lower points mean less concern.",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 1042.15625,
+        "width": 233,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Outcome 1",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_29_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 1071.15625,
+        "width": 233,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 4.131068432174645,
+      "outsideRatio": 4.131068432174645,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.1108498723857612,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 1131.15625,
+        "width": 233,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Outcome 1 points",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_2c_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 1160.15625,
+        "width": 233,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 4.131068432174645,
+      "outsideRatio": 4.131068432174645,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.1108498723857612,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_2g_",
+      "parentSelector": "div.field-assessment-editor__outcome",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 1220.15625,
+        "width": 233,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#132234",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1146.734375,
+        "y": 1231.65625,
+        "width": 108.34375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Remove outcome",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 1289.15625,
+        "width": 233,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Outcome 2",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_2i_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 1318.15625,
+        "width": 233,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 4.131068432174645,
+      "outsideRatio": 4.131068432174645,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.1108498723857612,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 1378.15625,
+        "width": 233,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Outcome 2 points",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_2l_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 1407.15625,
+        "width": 233,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 4.131068432174645,
+      "outsideRatio": 4.131068432174645,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.1108498723857612,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_2p_",
+      "parentSelector": "div.field-assessment-editor__outcome",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 1467.15625,
+        "width": 233,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#132234",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1146.734375,
+        "y": 1478.65625,
+        "width": 108.34375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Remove outcome",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria8994764741-_r_2s_",
+      "parentSelector": "fieldset.builder-subpanel",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1084.40625,
+        "y": 1524.15625,
+        "width": 157.859375,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.3588903886839139,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 1101.40625,
+        "y": 1535.65625,
+        "width": 123.859375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Add rubric outcome",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.form-inspector-disclosure",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 1603.15625,
+        "width": 301,
+        "height": 42
+      },
+      "fontSize": "10px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Validation & response options",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "legend",
+      "parentSelector": "fieldset.builder-subpanel",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 1645.15625,
+        "width": 70.703125,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "800",
+      "kind": "text",
+      "text": "Accepted files",
+      "foreground": "#8fa0b2",
+      "ratio": 6.590915545968836,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.compact-control",
+      "parentSelector": "div.format-options",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 1664.15625,
+        "width": 147.5,
+        "height": 44
+      },
+      "fontSize": "9px",
+      "fontWeight": "550",
+      "kind": "text",
+      "text": "PDF",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.compact-control",
+      "parentSelector": "div.format-options",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1203.90625,
+        "y": 1664.15625,
+        "width": 147.5,
+        "height": 44
+      },
+      "fontSize": "9px",
+      "fontWeight": "550",
+      "kind": "text",
+      "text": "PNG image",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.compact-control",
+      "parentSelector": "div.format-options",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 1714.15625,
+        "width": 147.5,
+        "height": 44
+      },
+      "fontSize": "9px",
+      "fontWeight": "550",
+      "kind": "text",
+      "text": "JPEG image",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.compact-control",
+      "parentSelector": "div.format-options",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1203.90625,
+        "y": 1714.15625,
+        "width": 147.5,
+        "height": 44
+      },
+      "fontSize": "9px",
+      "fontWeight": "550",
+      "kind": "text",
+      "text": "Text file",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.compact-control",
+      "parentSelector": "div.format-options",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 1764.15625,
+        "width": 147.5,
+        "height": 44
+      },
+      "fontSize": "9px",
+      "fontWeight": "550",
+      "kind": "text",
+      "text": "CSV file",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.compact-control",
+      "parentSelector": "div.format-options",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1203.90625,
+        "y": 1764.15625,
+        "width": 147.5,
+        "height": 44
+      },
+      "fontSize": "9px",
+      "fontWeight": "550",
+      "kind": "text",
+      "text": "Word document",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.compact-control",
+      "parentSelector": "div.format-options",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 1814.15625,
+        "width": 147.5,
+        "height": 44
+      },
+      "fontSize": "9px",
+      "fontWeight": "550",
+      "kind": "text",
+      "text": "Excel workbook",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "legend",
+      "parentSelector": "fieldset.builder-subpanel",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 1878.15625,
+        "width": 78.1875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "800",
+      "kind": "text",
+      "text": "Response limits",
+      "foreground": "#8fa0b2",
+      "ratio": 6.590915545968836,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "label",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 1907.15625,
+        "width": 301,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Minimum files",
+      "foreground": "#8fa0b2",
+      "ratio": 6.590915545968836,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "input",
+      "parentSelector": "label",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 1932.15625,
+        "width": 301,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#718397",
+      "ratio": 4.53641640007665,
+      "outsideRatio": 4.53641640007665,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.0115907438789158,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "label",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 1985.15625,
+        "width": 301,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Maximum files",
+      "foreground": "#8fa0b2",
+      "ratio": 6.590915545968836,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "input",
+      "parentSelector": "label",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 2010.15625,
+        "width": 301,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#718397",
+      "ratio": 4.53641640007665,
+      "outsideRatio": 4.53641640007665,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.0115907438789158,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "label",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 2063.15625,
+        "width": 301,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Maximum file size (MB)",
+      "foreground": "#8fa0b2",
+      "ratio": 6.590915545968836,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "input",
+      "parentSelector": "label",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 2088.15625,
+        "width": 301,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#718397",
+      "ratio": 4.53641640007665,
+      "outsideRatio": 4.53641640007665,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.0115907438789158,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "label",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 2141.15625,
+        "width": 301,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Combined file limit (MB)",
+      "foreground": "#8fa0b2",
+      "ratio": 6.590915545968836,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "input",
+      "parentSelector": "label",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 2166.15625,
+        "width": 301,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#718397",
+      "ratio": 4.53641640007665,
+      "outsideRatio": 4.53641640007665,
+      "insideRatio": 4.5889968406980515,
+      "fillRatio": 1.0115907438789158,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.form-inspector-disclosure",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 2223.15625,
+        "width": 301,
+        "height": 42
+      },
+      "fontSize": "10px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Logic",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.form-inspector-disclosure",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 2266.15625,
+        "width": 301,
+        "height": 42
+      },
+      "fontSize": "10px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Data handling",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.form-inspector-disclosure",
+      "disabled": false,
+      "background": "#0e1928",
+      "uncertain": [],
+      "box": {
+        "x": 1050.40625,
+        "y": 2309.15625,
+        "width": 301,
+        "height": 42
+      },
+      "fontSize": "10px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Question actions",
+      "foreground": "#d7e0e9",
+      "ratio": 13.223931357452853,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    }
+  ],
+  "assetURLs": [
+    "http://127.0.0.1:4179/assets/index-BMWHmGgh.js",
+    "http://127.0.0.1:4179/assets/ui-BKmW7Hgr.js",
+    "http://127.0.0.1:4179/assets/vendorIdentity-DNAUaTE1.js",
+    "http://127.0.0.1:4179/assets/form-policies-B7RQjXrL.js",
+    "http://127.0.0.1:4179/assets/api-4YXod1O7.js",
+    "http://127.0.0.1:4179/assets/http-CsyLtnQx.js",
+    "http://127.0.0.1:4179/assets/monitoringApi-B_rnuu-E.js",
+    "http://127.0.0.1:4179/assets/FocusedSheet-D6A2pfF6.js",
+    "http://127.0.0.1:4179/assets/FileDropzone-D3bjzZCz.js",
+    "http://127.0.0.1:4179/assets/FormPreview-xfiykOdw.js",
+    "http://127.0.0.1:4179/assets/identityAccessApi-DQ4JpP1X.js",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-CP0P4Fzd.js",
+    "http://127.0.0.1:4179/assets/formPoliciesApi-BOB15CUF.js",
+    "http://127.0.0.1:4179/assets/FormBuilder-D0uIMr0F.js",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-DF59NCDq.js",
+    "http://127.0.0.1:4179/assets/preload-helper-Czpn1I53.js",
+    "http://127.0.0.1:4179/assets/EmptyState-CAuvZgjp.js",
+    "http://127.0.0.1:4179/assets/SessionGate-e9miZAkm.js",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-CoL3pBsn.js",
+    "http://127.0.0.1:4179/assets/ui-BqQkgK9q.css",
+    "http://127.0.0.1:4179/assets/form-policies-CXmCjy0e.css",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-Bc4QplLt.css",
+    "http://127.0.0.1:4179/assets/FormBuilder-BR0NOz-_.css",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-xmrvZhbh.css",
+    "http://127.0.0.1:4179/assets/SessionGate-CBT7oevM.css",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-BbMW_Uts.css",
+    "http://127.0.0.1:4179/assets/index-BfD_vL87.css",
+    "http://127.0.0.1:4179/assets/forms-BF_LZwBu.css",
+    "http://127.0.0.1:4179/assets/staticDemoWorkflowRuntime-CCKpbhZb.js",
+    "http://127.0.0.1:4179/assets/staticDemoFixtures-BJo7eiOJ.json"
+  ],
+  "layout": {
+    "clientWidth": 1440,
+    "scrollWidth": 1440
+  },
+  "headings": [],
+  "status": "CAPTURED"
+}

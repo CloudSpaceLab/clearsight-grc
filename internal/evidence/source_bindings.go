@@ -674,10 +674,18 @@ func cloneAnswerProvenance(input map[string]AnswerProvenance) map[string]AnswerP
 // It deliberately hides validation rules, evidence searches, lookup selectors,
 // source schema field names, source rows and connector failure details.
 func RespondentRequest(request Request) Request {
+	return RespondentRequestAt(request, time.Now().UTC())
+}
+
+// RespondentRequestAt uses the caller's observation time so capture notices
+// agree with expiry checks and never expose the bank's protected source record.
+func RespondentRequestAt(request Request, now time.Time) Request {
 	request.Fields = cloneFields(request.Fields)
 	request.SourceBindings = nil
 	for fieldIndex := range request.Fields {
 		field := &request.Fields[fieldIndex]
+		field.CollectionReceived = CollectionFieldFulfilled(*field, now)
+		field.CollectionResolution = nil
 		visibleResolutions := make([]SourceResolution, 0, 2)
 		visibleKeys := make(map[string]struct{}, 2)
 		for _, resolution := range field.SourceResolutions {

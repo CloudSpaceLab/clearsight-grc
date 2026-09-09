@@ -3,6 +3,8 @@ import { FormField } from "./FormField";
 
 export type TextAreaProps = {
   label: string;
+  id?: string;
+  autoComplete?: string;
   value: string;
   onChange: (value: string) => void;
   description?: string;
@@ -18,13 +20,14 @@ export type TextAreaProps = {
   isLoading?: boolean;
 };
 
-export function TextArea({ label, value, onChange, description, errorMessage, placeholder, name, rows = 4, maxLength, isDisabled = false, isReadOnly = false, isRequired = false, isInvalid = false, isLoading = false }: TextAreaProps) {
+export function TextArea({ id, autoComplete, label, value, onChange, description, errorMessage, placeholder, name, rows = 4, maxLength, isDisabled = false, isReadOnly = false, isRequired = false, isInvalid = false, isLoading = false }: TextAreaProps) {
   const change: ChangeEventHandler<HTMLTextAreaElement> = (event) => onChange(event.target.value);
-  return <FormField label={label} description={description} errorMessage={errorMessage} isInvalid={isInvalid} isRequired={isRequired} isLoading={isLoading}>
+  return <FormField id={id} label={label} description={description} errorMessage={errorMessage} isInvalid={isInvalid} isRequired={isRequired} isLoading={isLoading}>
     {(control) => <textarea
       {...control}
       className="cs-field__control"
       name={name}
+      autoComplete={autoComplete}
       value={value}
       placeholder={placeholder}
       rows={rows}

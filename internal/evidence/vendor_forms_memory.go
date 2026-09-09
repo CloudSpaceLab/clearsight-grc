@@ -149,6 +149,11 @@ func (s *MemoryDistributionStore) vendorRows(ctx context.Context, q VendorFormsQ
 				observed = draft.UpdatedAt
 			}
 		}
+		req = RefreshCollectionResolutions(ctx, req, s.repo.GetArtifact, now)
+		req, err := s.repo.RefreshCollectionRequestReviews(ctx, req)
+		if err != nil {
+			return nil, err
+		}
 		row := vendorFormRow(req, answers, known, revision, now)
 		row.ResponseCurrency = "CURRENT"
 		if sub.ID != "" && (req.Origin.Type == "THIRD_PARTY_WORK" || req.Origin.Type == "THIRD_PARTY_ASSESSMENT") {

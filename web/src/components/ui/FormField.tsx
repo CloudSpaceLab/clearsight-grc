@@ -9,6 +9,7 @@ export type FieldControlProps = {
 
 export type FormFieldProps = {
   label: string;
+  id?: string;
   description?: string;
   errorMessage?: string;
   isInvalid?: boolean;
@@ -18,8 +19,9 @@ export type FormFieldProps = {
   children: (props: FieldControlProps) => ReactNode;
 };
 
-export function FormField({ label, description, errorMessage, isInvalid = false, isRequired = false, isLoading = false, isLabelHidden = false, children }: FormFieldProps) {
-  const controlID = useId();
+export function FormField({ label, id, description, errorMessage, isInvalid = false, isRequired = false, isLoading = false, isLabelHidden = false, children }: FormFieldProps) {
+  const generatedID = useId();
+  const controlID = id ?? generatedID;
   const descriptionID = useId();
   const errorID = useId();
   const describedBy = [description ? descriptionID : undefined, isInvalid && errorMessage ? errorID : undefined].filter(Boolean).join(" ") || undefined;

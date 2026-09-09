@@ -305,6 +305,17 @@ describe("DocumentImportWorkspace", () => {
     await waitFor(() => expect(loadDocumentImport).toHaveBeenCalledTimes(2));
   });
 
+  it("does not announce a refreshed version before a conflict reload finishes", async () => {
+    vi.mocked(reviewDocumentProposal).mockRejectedValue(new ApiError(409, "changed", "version_conflict"));
+    render(<DocumentImportWorkspace/>);
+    fireEvent.click(await screen.findByText("Extraction proposals"));
+    vi.mocked(loadDocumentImport).mockImplementationOnce(() => new Promise(() => {}));
+    fireEvent.click(await screen.findByRole("button", { name: "Accept for governed review" }));
+    await waitFor(() => expect(loadDocumentImport).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText(/latest version has been loaded/i)).toBeNull();
+    expect(screen.getByRole("alert").textContent).toMatch(/changed/i);
+  });
+
   it("renders a durable processing receipt without claiming review completion", async () => {
     vi.mocked(loadDocumentImports).mockResolvedValue([processingSummary]);
     vi.mocked(loadDocumentImport).mockResolvedValue(processingDocument);

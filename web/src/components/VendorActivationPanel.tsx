@@ -5,6 +5,7 @@ import { apiErrorKind } from "../http";
 
 type VendorActivationPanelProps = {
   relationship: VendorRelationship;
+  reviewVersion?: number;
   onActivated: (relationship: VendorRelationship) => void;
   onRefreshed?: (relationship: VendorRelationship) => void;
 };
@@ -12,7 +13,7 @@ type VendorActivationPanelProps = {
 export function VendorActivationPanel(props: VendorActivationPanelProps) {
   const { relationship } = props;
   // A new scope or material version retires every pending read and command.
-  return <ActivationChecks key={JSON.stringify([relationship.tenant_id, relationship.legal_entity_id, relationship.id, relationship.version, relationship.status])} {...props}/>;
+  return <ActivationChecks key={JSON.stringify([relationship.tenant_id, relationship.legal_entity_id, relationship.id, relationship.version, relationship.status, props.reviewVersion])} {...props}/>;
 }
 
 function ActivationChecks({ relationship, onActivated, onRefreshed }: VendorActivationPanelProps) {
@@ -83,7 +84,7 @@ function ActivationChecks({ relationship, onActivated, onRefreshed }: VendorActi
     }
   }
 
-  if (relationship.status === "ACTIVE" || eligibility?.relationship.status === "ACTIVE") return <section className="vendor-activation-panel" aria-labelledby="vendor-activation-title"><span className="eyebrow">Activation complete</span><h3 id="vendor-activation-title">Vendor relationship active</h3><p>{relationship.service_name} may now receive certification requests. Vendor uploads still require separate bank review.</p></section>;
+  if (relationship.status === "ACTIVE" || eligibility?.relationship.status === "ACTIVE") return <section className="vendor-activation-panel" aria-labelledby="vendor-activation-title"><span className="eyebrow">Activation complete</span><h3 id="vendor-activation-title">Vendor relationship active</h3><p>{relationship.service_name} may now receive certification requests. Vendor uploads still require separate review.</p></section>;
   return <section className="vendor-activation-panel" aria-labelledby="vendor-activation-title" aria-busy={state === "loading"}>
     <div className="vendor-activation-heading"><div><span className="eyebrow">Activation decision</span><h3 id="vendor-activation-title">Activate vendor relationship</h3></div>{eligibility && <span className={eligibility.eligible ? "vendor-activation-ready" : "vendor-activation-pending"}>{eligibility.eligible ? "Ready for authorization" : "Checks incomplete"}</span>}</div>
     {state === "loading" && <p>Checking the current policy, assessment, decisions, address outcome and blocking issues…</p>}

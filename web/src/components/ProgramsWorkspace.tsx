@@ -11,6 +11,7 @@ import { ProgramRecordWorkspace } from "./ProgramRecordWorkspace";
 import { readWorkspaceFilters, replaceWorkspaceHash, workspaceHash } from "../workspaceFilters";
 
 type LoadState = "loading" | "live" | "unavailable";
+type ProgramListSummary = Omit<ProgramSummary, "open_matter_count"> & { open_matter_count?: number };
 type Props = { targetID?: string; targetSection?: ProgramSection; programItem?: ProgramItemTarget; onSectionChange?: (programID: string, section: ProgramSection) => void; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenRequest?: (requestID: string) => void };
 
 function ProgramIcon() {
@@ -36,7 +37,15 @@ function stateClass(value?: ProgramState) {
   }
 }
 
-function summaryFromAggregate(detail: ProgramAggregate): ProgramSummary {
+function hasAssessment(summary: ProgramListSummary) {
+  return Number.isInteger(summary.assessed_program_version) && summary.assessed_program_version > 0;
+}
+
+function needsAssessment(summary: ProgramListSummary) {
+  return !hasAssessment(summary) || summary.projection_stale || summary.assessed_program_version !== summary.program_version;
+}
+
+function summaryFromAggregate(detail: ProgramAggregate): ProgramListSummary {
   const current = detail.current_state;
   const assessedVersion = current?.program_version ?? 0;
   const reasons = current?.reasons ?? [];
@@ -47,14 +56,14 @@ function summaryFromAggregate(detail: ProgramAggregate): ProgramSummary {
     reasons,
     reasons_total: reasons.length,
     reasons_omitted: 0,
-    open_matter_count: current?.open_matter_count ?? 0,
+    open_matter_count: current?.open_matter_count,
     requirement_count: detail.requirements.length,
     safeguard_count: detail.control_implementations.length,
     evidence_check_count: detail.evidence_contracts.length,
     program_version: detail.program.version,
     assessed_program_version: assessedVersion,
     projection_version: current?.projection_version ?? 0,
-    projection_stale: !current || assessedVersion < detail.program.version,
+    projection_stale: !current || assessedVersion !== detail.program.version,
     state_generated_at: current?.generated_at,
   };
 }
@@ -80,7 +89,7 @@ function humanizeProgramState(value: string) {
 
 function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = "", canConfigureSources = false }: Props) {
   const initialFilters = useMemo(() => readWorkspaceFilters(window.location.hash), []);
-  const [items, setItems] = useState<ProgramSummary[]>([]);
+  const [items, setItems] = useState<ProgramListSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [nextCursor, setNextCursor] = useState("");
   const [searchDraft, setSearchDraft] = useState(initialFilters.q ?? "");
@@ -132,9 +141,9 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   useEffect(() => { void load(true); }, [load]);
 
   const summary = useMemo(() => ({
-    current: items.filter((item) => !item.projection_stale && item.overall_state === "CURRENT").length,
-    attention: items.filter((item) => !item.projection_stale && ["AT_RISK", "GAP_IDENTIFIED", "EVIDENCE_INSUFFICIENT", "IMPLEMENTATION_PENDING", "OVERDUE"].includes(item.overall_state)).length,
-    setup: items.filter((item) => item.projection_stale || item.program.status === "DRAFT" || ["UNKNOWN", "UNDER_REVIEW"].includes(item.overall_state)).length,
+    current: items.filter((item) => !needsAssessment(item) && item.overall_state === "CURRENT").length,
+    attention: items.filter((item) => !needsAssessment(item) && ["AT_RISK", "GAP_IDENTIFIED", "EVIDENCE_INSUFFICIENT", "IMPLEMENTATION_PENDING", "OVERDUE"].includes(item.overall_state)).length,
+    setup: items.filter((item) => needsAssessment(item) || item.program.status === "DRAFT" || ["UNKNOWN", "UNDER_REVIEW"].includes(item.overall_state)).length,
   }), [items]);
 
   function submitSearch(event: FormEvent) {
@@ -226,7 +235,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   const briefTitle = summary.attention > 0
     ? `${summary.attention} loaded program${summary.attention === 1 ? " requires" : "s require"} follow-up`
     : summary.setup > 0
-      ? `${summary.setup} loaded program${summary.setup === 1 ? " is" : "s are"} still being set up or reassessed`
+      ? `${summary.setup} loaded program${summary.setup === 1 ? " needs" : "s need"} setup, review or a current assessment`
       : items.length ? "No recorded gaps or overdue work in the loaded programs" : "No programs in this scope";
   const targetInList = !targetID || items.some((item) => item.program.id === targetID);
   const targetLoading = Boolean(targetID && !targetInList && detailState[targetID] === "loading");
@@ -237,7 +246,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   return <div id="programs-workspace">
     <section className="workspace-brief">
         <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2><p>Open a Program to review status, recent changes, requirements, evidence and available actions.</p></div>
-      <div className="workspace-brief-side"><div className="workspace-brief-facts" aria-label="Loaded Program status"><span><strong>{summary.attention}</strong> follow-up</span><span><strong>{summary.current}</strong> current</span><span><strong>{summary.setup}</strong> setup or reassessing</span></div><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
+      <div className="workspace-brief-side"><div className="workspace-brief-facts" aria-label="Loaded Program status"><span><strong>{summary.attention}</strong> follow-up</span><span><strong>{summary.current}</strong> current</span><span><strong>{summary.setup}</strong> setup, review or assessment needed</span></div><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
     </section>
     {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
@@ -258,16 +267,20 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
         const isOpen = openID === program.id;
         const detail = details[program.id];
         const currentDetailState = detailState[program.id];
-        const displayState = summaryItem.projection_stale ? "UNKNOWN" : summaryItem.overall_state;
-        const displayLabel = summaryItem.projection_stale ? "Updating status" : summaryItem.state_label || "Not assessed";
-        const displayReason = summaryItem.projection_stale
+        const assessmentMissing = !hasAssessment(summaryItem);
+        const assessmentStale = needsAssessment(summaryItem);
+        const displayState = assessmentStale ? "UNKNOWN" : summaryItem.overall_state;
+        const displayLabel = assessmentMissing ? "Unknown" : assessmentStale ? "Out of date" : summaryItem.state_label || "Unknown";
+        const displayReason = assessmentMissing ? "No Program status calculation is available." : assessmentStale
           ? `Last assessed at version ${summaryItem.assessed_program_version}; Program is version ${summaryItem.program_version}.`
-          : summaryItem.reasons[0]?.summary ?? "Open for current status reasons";
+          : summaryItem.reasons?.[0]?.summary ?? "Open Program to review the calculation.";
+        const openIssues = summaryItem.open_matter_count;
+        const knownOpenIssues = !assessmentMissing && typeof openIssues === "number" && Number.isInteger(openIssues) && openIssues >= 0;
         return <article className={targetID === program.id ? "program-card targeted" : "program-card"} id={`program-${program.id}`} key={program.id}>
           <button className="program-card-main" type="button" aria-expanded={isOpen} aria-controls={`program-detail-${program.id}`} onClick={() => void toggleDetail(program.id)}>
             <span className="program-icon"><ProgramIcon/></span>
             <span className="program-primary"><span className="program-kicker">{program.code} · {program.owning_function}</span><strong>{program.name}</strong>{program.jurisdiction && <small>{program.jurisdiction}</small>}</span>
-            <span className="program-counts"><span><b>{summaryItem.requirement_count}</b> requirements</span><span><b>{summaryItem.evidence_check_count}</b> evidence checks</span><span><b>{summaryItem.open_matter_count}</b> open issues</span></span>
+            <span className="program-counts"><span><b>{summaryItem.requirement_count}</b> requirements</span><span><b>{summaryItem.evidence_check_count}</b> evidence checks</span><span><b>{knownOpenIssues ? openIssues : "Unknown"}</b> open issues{knownOpenIssues && assessmentStale ? " (last calculation)" : ""}</span></span>
             <span className={`program-state ${stateClass(displayState)}`}><strong>{displayLabel}</strong><small>{displayReason}</small></span>
             <span className="expand-indicator" aria-hidden="true">{isOpen ? "−" : "+"}</span>
           </button>
@@ -276,9 +289,9 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
             {currentDetailState === "loading" && <p aria-live="polite">Loading program details…</p>}
             {currentDetailState === "unavailable" && <div className="inline-error"><p>Program details could not be loaded.</p><button className="secondary-button" onClick={() => void fetchDetail(program.id)}>Try again</button></div>}
             {detail && <>
-              {summaryItem.projection_stale && <div className="inline-notice" role="status">The Program changed after the latest assessment. The last known reasons remain available below while status is recalculated.</div>}
+              {needsAssessment(summaryFromAggregate(detail)) && <div className="inline-notice" role="status">{!detail.current_state ? "No Program status calculation is available." : "This assessment does not reflect the current Program version. Review the previous calculation below."}</div>}
               <ProgramReviewDigest aggregate={detail}/>
-              <section className="status-reasons"><h3>Why this status</h3>{detail.current_state?.reasons?.length ? <ul>{detail.current_state.reasons.map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul> : <p>No status reasons are recorded for the latest assessment.</p>}{summaryItem.reasons_omitted > 0 && <p>{summaryItem.reasons_omitted} additional status reason{summaryItem.reasons_omitted === 1 ? " is" : "s are"} available in the full Program record.</p>}</section>
+              <section className="status-reasons"><h3>Why this status</h3>{detail.current_state?.reasons?.length ? <ul>{detail.current_state.reasons.map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul> : <p>{!Array.isArray(detail.current_state?.reasons) ? "Status reasons are unavailable." : "No status reasons were recorded for this calculation."}</p>}{summaryItem.reasons_omitted > 0 && <p>{summaryItem.reasons_omitted} additional status reason{summaryItem.reasons_omitted === 1 ? " is" : "s are"} available in the full Program record.</p>}</section>
               <details className="progressive-section"><summary><span>Requirements</span><strong>{detail.requirements.length}</strong></summary><div>{detail.requirements.length ? detail.requirements.map((requirement) => <div className="detail-row" key={requirement.id}><div><strong>{requirement.title}</strong><small>{requirement.statement}</small>{requirement.source_anchor && <small>Source: {requirement.source_anchor}</small>}</div><span>{requirementStatusLabel(requirement.status)}</span></div>) : <p>No approved requirements have been added.</p>}</div></details>
               <details className="progressive-section"><summary><span>Evidence expectations</span><strong>{detail.evidence_contracts.length}</strong></summary><div>{detail.evidence_contracts.length ? detail.evidence_contracts.map((contract) => <div className="detail-row" key={contract.id}><div><strong>{contract.name}</strong><small>{contract.claim}</small></div><span>Required coverage: {Math.round(contract.minimum_coverage * 100)}%</span></div>) : <p>No evidence checks have been defined.</p>}</div></details>
             </>}

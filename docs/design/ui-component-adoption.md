@@ -48,3 +48,15 @@ The scoring-policy slice adds the Policies peer workspace as a fully enforced sh
 The next migration slice should finish the remaining raw controls in Matter details, Actions, decisions, outcome checks and vendor-response recovery, then add those complete files to the manifest. Forms Builder, Imports, remaining list selectors and external capture continue as separately evidenced slices.
 
 Product-wide adoption needs a separate sequenced plan. Start with shared shell/navigation, then migrate Today, Programs, Vendors, Work, regulatory Imports, Explore and Configure according to task frequency and operational risk. Each slice must preserve domain and authority behavior, add its manifest entries and state fixtures, inspect full-host renders, repair the highest-impact defect and update this table. Until those rows are migrated, describe the result as “UI foundations, Sent forms and the Templates workspace migrated,” never “ClearSight is fully standardized.”
+
+## Vendor evidence reconciliation
+
+The new `VendorEvidenceChecklist` is listed in the executable migration manifest. It uses shared Button, StatusBadge, Notice, EmptyState, TextArea and FocusedSheet contracts, plus the protected DocumentBrowser and DocumentPreview. Its selection mode places file types above the full-width list; the chosen source details appear in confirmation and preview. The broader Vendors workspace still contains legacy controls and remains partially migrated. The document decision uses FocusedSheet and its inner fields/actions now use shared controls. See the [decision brief](2026-09-08-vendor-evidence-reconciliation.md) and [render evidence](../evidence/2026-09-08-vendor-evidence-reconciliation/ui/manifest.json).
+
+## September 9 audit corrections
+
+VendorDueDiligence and VendorWorkPanel are enforced in the migration manifest and now use shared actions, text/date inputs, text areas, typed selects and checkbox groups. Vendor relationship creation/editing uses the same fields, but register row selectors, vendor identity editing and specialized controls remain scoped exceptions; the Vendors row is therefore still partial. The checklist remains a separately enforced complete component.
+
+Response assessment owns its score/document review composition; vendor and Forms response views share score and review-state presentation. EmptyState adapters use one renderer; sheets and dialogs share lifecycle mechanics without merging their layout. Retired FormPropertyPanel, FormQualityPanel and ReadinessPanel branches were removed; unique reusable-section tests moved to the active picker. Legacy ProgramLifecycleControls is explicitly evidence-only, outside production imports.
+
+Requests and linked work begin collapsed; response Filters uses a disclosure with active filters and reset outside. Native vendor identity fields retain scoped CSS rather than inheriting shared field overrides. This is a targeted audit correction, not a claim that every legacy workspace is migrated.

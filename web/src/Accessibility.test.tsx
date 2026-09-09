@@ -74,7 +74,7 @@ async function expectNoSemanticViolations(container: HTMLElement) {
 }
 
 async function waitForEmptyState(container: HTMLElement) {
-  await waitFor(() => expect(container.querySelector(".empty-state")).not.toBeNull());
+  await waitFor(() => expect(container.querySelector(".cs-empty-state")).not.toBeNull());
 }
 
 describe("semantic accessibility gates", () => {

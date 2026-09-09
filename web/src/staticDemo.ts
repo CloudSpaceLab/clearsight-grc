@@ -3,12 +3,15 @@ import staticDemoFixturesURL from "./staticDemoFixtures.json?url";
 import staticDemoWorkflowRuntimeURL from "./staticDemoWorkflowRuntime.js?url";
 import type { FormTemplate } from "./monitoringTypes";
 import { vendorDueDiligenceStarterForm } from "./vendorDueDiligenceForm";
-import type { VendorAssessment, VendorAssessmentReviewAnswer, VendorAssessmentReviewView } from "./vendorAssessmentTypes";
+import type { VendorAssessment, VendorAssessmentRequestSummary, VendorAssessmentReviewAnswer, VendorAssessmentReviewView, VendorAssessmentSendOutcome } from "./vendorAssessmentTypes";
+import type { PrepareVendorCollectionResult, VendorCollection, VendorCollectionField } from "./vendorCollectionApi";
 import { normalizeRegisteredAddress, normalizeWebsiteDomain } from "./vendorIdentity";
 import type { VendorRelationshipLink } from "./vendorLinkTypes";
 import type { VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate } from "./vendorTypes";
 import type { VendorWorkRequest, VendorWorkResponseView, VendorWorkSendOutcome } from "./vendorWorkTypes";
 import type { DocumentOccurrence } from "./submittedDocumentApi";
+import type { ResponseAssessmentDetail } from "./formAssessmentApi";
+import type { VendorFormRow } from "./vendorFormsApi";
 
 // Static transport is an isolated review fixture, never a deployable demo API.
 export const staticDemoEnabled = import.meta.env.VITE_STATIC_DEMO === "true" && import.meta.env.VITE_UI_EVIDENCE === "true";
@@ -459,8 +462,8 @@ function vendorWorkResponse(work: VendorWorkRequest): VendorWorkResponseView {
     response: { submission_id: work.submission_id!, request_id: requestID, submitted_at: work.response_received_at! },
     answers: [
       { field_id: "service_description", label: "Service description", type: "LONG_TEXT", required: true, visibility: "VISIBLE", value: { text: "Card transaction processing, settlement routing and operational support for the bank." }, provenance: { origin: "SOURCE_PREFILLED", source_receipt: { source_id: "Vendor register", observed_at: "2026-08-24T09:00:00Z" } } },
-      { field_id: "data_classes", label: "Bank information used", type: "MULTI_SELECT", required: true, visibility: "VISIBLE", value: { values: ["Customer personal data", "Payment data"] }, provenance: { origin: "RESPONDENT_ENTERED" } },
-      { field_id: "subprocessors", label: "Do subcontractors process bank information?", type: "YES_NO", required: true, visibility: "VISIBLE", value: { text: "Yes" }, provenance: { origin: "RESPONDENT_ENTERED" } },
+      { field_id: "data_classes", label: "Information used", type: "MULTI_SELECT", required: true, visibility: "VISIBLE", value: { values: ["Customer personal data", "Payment data"] }, provenance: { origin: "RESPONDENT_ENTERED" } },
+      { field_id: "subprocessors", label: "Do subcontractors process the service data?", type: "YES_NO", required: true, visibility: "VISIBLE", value: { text: "Yes" }, provenance: { origin: "RESPONDENT_ENTERED" } },
       { field_id: "subprocessor_details", label: "Subcontractor details", type: "LONG_TEXT", required: true, visibility: "CONDITIONALLY_OMITTED" },
       { field_id: "control_owner", label: "Control owner", type: "SHORT_TEXT", required: true, visibility: "VISIBLE" },
     ],
@@ -472,6 +475,8 @@ function vendorWorkResponse(work: VendorWorkRequest): VendorWorkResponseView {
 }
 
 let vendorAssessment: VendorAssessment | null = null;
+let vendorAssessmentFixture: string | undefined;
+let vendorPreparedRequest: { audience: string; request: VendorAssessmentRequestSummary; version: number } | null = null;
 
 function submittedVendorAssessment(): VendorAssessment {
   return {
@@ -516,6 +521,53 @@ function fixtureVendorAssessment(fixture: string): VendorAssessment | null {
   }
 }
 
+function syncVendorAssessmentFixture(fixture: string) {
+  if (vendorAssessmentFixture === fixture) return;
+  vendorAssessmentFixture = fixture;
+  vendorAssessment = fixtureVendorAssessment(fixture);
+  vendorPreparedRequest = vendorAssessment?.current_request_id ? {
+    audience: "security@acme.example", version: 1,
+    request: { id: vendorAssessment.current_request_id, status: vendorAssessment.submission_id ? "SUBMITTED" : "READY", deadline: "2026-09-12T23:59:59Z", updated_at: vendorAssessment.updated_at },
+  } : null;
+}
+
+function staticVendorCollection(assessment: VendorAssessment, fixture: string): VendorCollection {
+  const review = assessment.submission_id ? submittedVendorReview(assessment, fixture) : null;
+  const fields: VendorCollectionField[] = review ? review.answers.map((answer) => ({
+    field_id: answer.field_id, label: answer.label, type: answer.type.toLowerCase(), required: answer.required,
+    collection_state: answer.visibility === "CONDITIONALLY_OMITTED" ? "NOT_REQUIRED" : answer.value ? "RECEIVED" : answer.required ? "MISSING" : "NOT_REQUIRED",
+    vendor_action_required: answer.visibility !== "CONDITIONALLY_OMITTED" && answer.required && !answer.value,
+    bank_review_state: answer.value && answer.type.toLowerCase() === "vendor_document" ? "PENDING" : "NOT_REQUIRED",
+  })) : vendorDueDiligenceForm.fields.map((field) => ({
+    field_id: field.id, label: field.label, type: field.type.toLowerCase(), required: field.required,
+    collection_state: field.condition ? "CONDITION_UNKNOWN" : field.required ? "MISSING" : "NOT_REQUIRED",
+    vendor_action_required: field.required, bank_review_state: "NOT_REQUIRED",
+  }));
+  for (const document of review?.documents ?? []) {
+    const requested = vendorDueDiligenceForm.fields.find((field) => field.id === document.field_id);
+    const existing = fields.find((field) => field.field_id === document.field_id);
+    const required = existing?.required ?? requested?.required ?? false;
+    const usable = document.artifact_status === "AVAILABLE" && !["REJECTED", "EXPIRED"].includes(document.status ?? "");
+    const row: VendorCollectionField = {
+      field_id: document.field_id, label: existing?.label ?? requested?.label ?? "Submitted document", type: "vendor_document", required,
+      collection_state: usable ? "RECEIVED" : "MISSING", vendor_action_required: !usable && required,
+      bank_review_state: document.status === "VALIDATED" && usable ? "VALIDATED" : document.status === "REJECTED" ? "REJECTED" : usable ? "PENDING" : "NOT_REQUIRED",
+    };
+    if (existing) Object.assign(existing, row); else fields.push(row);
+  }
+  return {
+    assessment_id: assessment.id, assessment_version: assessment.version,
+    request_id: vendorPreparedRequest?.request.id, request_version: vendorPreparedRequest?.version,
+    prepared: Boolean(vendorPreparedRequest), deadline: vendorPreparedRequest?.request.deadline,
+    audience_hint: vendorPreparedRequest ? maskEmail(vendorPreparedRequest.audience) : undefined,
+    // This transport supports collection inspection and prepared sending only.
+    can_reconcile: false, can_start_review: assessment.status === "SUBMITTED", observed_at: now, fields,
+    vendor_pending_count: fields.filter((field) => field.vendor_action_required).length,
+    bank_pending_count: fields.filter((field) => field.bank_review_state === "PENDING").length,
+    accepted_document_count: fields.filter((field) => field.bank_review_state === "VALIDATED").length,
+  };
+}
+
 function submittedVendorReview(assessment: VendorAssessment, fixture = ""): VendorAssessmentReviewView {
   const baselineVersion = fixture === "forms-vendor-review-conflict" ? 4 : 1;
   const heldAnswer: VendorAssessmentReviewAnswer = { field_id: "registered_address", label: "Registered address", type: "LONG_TEXT", required: true, visibility: "VISIBLE", baseline: { target_key: "VENDOR.IDENTITY.REGISTERED_ADDRESS", subject_type: "VENDOR_RELATIONSHIP", subject_id: vendorRelationshipID, record_id: "vendor-acme-processing", record_version: baselineVersion, display_value: "12 Marina Road, Lagos", source_label: "Validated vendor record", observed_or_confirmed_at: "2026-08-01T10:00:00Z" }, value: { text: "14 Marina Road, Lagos" }, provenance: { origin: "RESPONDENT_CORRECTED" } };
@@ -525,8 +577,8 @@ function submittedVendorReview(assessment: VendorAssessment, fixture = ""): Vend
     response: { submission_id: assessment.submission_id!, request_id: assessment.current_request_id!, submitted_at: assessment.submitted_at!, answer_count: 7, artifact_count: 1 },
     answers: [
       { field_id: "contact_email", label: "Security contact email", type: "EMAIL", required: true, visibility: "VISIBLE", value: { text: "security@acme.example" }, provenance: { source: "Vendor response" } },
-      { field_id: "data_classes", label: "Bank information used", type: "MULTI_SELECT", required: true, visibility: "VISIBLE", value: { values: ["Customer personal data", "Payment data"] }, provenance: { source: "Vendor response" } },
-      { field_id: "subprocessors", label: "Do subcontractors process bank information?", type: "YES_NO", required: true, visibility: "VISIBLE", value: { text: "Yes" }, provenance: { source: "Vendor response" } },
+      { field_id: "data_classes", label: "Information used", type: "MULTI_SELECT", required: true, visibility: "VISIBLE", value: { values: ["Customer personal data", "Payment data"] }, provenance: { source: "Vendor response" } },
+      { field_id: "subprocessors", label: "Do subcontractors process the service data?", type: "YES_NO", required: true, visibility: "VISIBLE", value: { text: "Yes" }, provenance: { source: "Vendor response" } },
       { field_id: "security_framework", label: "Primary security framework", type: "SINGLE_SELECT", required: true, visibility: "VISIBLE", value: { text: "ISO 27001" }, provenance: { source: "Vendor response" } },
       { field_id: "subprocessor_details", label: "Subcontractor details", type: "LONG_TEXT", required: true, visibility: "VISIBLE", value: { text: "Payment-routing infrastructure is provided by a contracted hosting provider in the stated service scope." }, provenance: { source: "Vendor response" } },
       ...(fixture.startsWith("forms-vendor-") ? [heldAnswer] : []),
@@ -549,7 +601,7 @@ const todayGuide = { code: "executive-first-run", surface: "TODAY", profile: "ex
 
 const vendorsGuide = { code: "vendor-operations-first-run", surface: "VENDORS", required_capability: "VENDORS", profile: "vendor-operations", role: "Vendor relationship owner", role_codes: ["BUSINESS_OWNER"], priority: 100, version: 1, title: "Manage vendor relationships", description: "Record the service, collect missing information and route vendor work for review.", illustration: "guided-orbit", steps: [
   { id: "register", title: "Review the vendor register", description: "Check the supplied service, owner and current relationship state.", action: "Review vendors", view: "vendors", target: "vendor-register" },
-  { id: "due-diligence", title: "Collect due diligence", description: "Use known bank records first, then request only missing information.", action: "Review due diligence", view: "vendors", target: "vdd-title", intent: "open-vendor-due-diligence" },
+  { id: "due-diligence", title: "Collect due diligence", description: "Use existing records, then request missing information.", action: "Review due diligence", view: "vendors", target: "vdd-title", intent: "open-vendor-due-diligence" },
   { id: "work", title: "Request vendor action", description: "Send a focused form, document, signature or upload request when the vendor must act.", action: "Review vendor requests", view: "vendors", target: "vendor-work-panel", intent: "open-vendor-work" },
   { id: "finish", title: "Confirm the outcome", description: "Completion and upload remain separate from review and outcome confirmation.", action: "Open next vendor task", view: "vendors", target: "vendors-workspace", intent: "open-vendor-next-action" },
 ] };
@@ -562,6 +614,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   const fixture = activeFixture();
   syncVendorBrandFixture(fixture);
   syncVendorWorkFixture(fixture);
+  syncVendorAssessmentFixture(fixture);
 
   if (fixture === "today-loading" && pathname === "/api/v1/today") await delay(1800);
   if (fixture === "today-unavailable" && pathname === "/api/v1/today") throw new StaticDemoHTTPError(503, "today_unavailable", "Today's work is unavailable.");
@@ -726,9 +779,6 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     return clone(created) as T;
   }
   if (pathname === `/api/v1/vendors/${vendorRelationshipID}/assessments/current` && method === "GET") {
-    const fixtureAssessment = fixtureVendorAssessment(fixture);
-    if (fixture === "vendor-no-form") vendorAssessment = null;
-    if (fixtureAssessment && vendorAssessment?.status !== fixtureAssessment.status) vendorAssessment = fixtureAssessment;
     if (!vendorAssessment) throw new StaticDemoHTTPError(404, "vendor_assessment_not_found", "No due-diligence assessment has been started for this vendor relationship.");
     return clone({ assessment: vendorAssessment, setup: { assessment_id: vendorAssessment.id, state: "COMPLETED", attempts: 1, updated_at: vendorAssessment.updated_at } }) as T;
   }
@@ -736,6 +786,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     const input = parseBody(init) as { relationship_version?: number; review_kind?: VendorAssessment["review_kind"]; source_trigger?: string; restart_assessment_id?: string; form_template_id?: string; form_template_version?: number; review_due_at?: string };
     if (input.relationship_version !== vendorRelationships[0]?.relationship.version) throw new StaticDemoHTTPError(409, "vendor_version_conflict", "The vendor relationship changed before due diligence was started.");
     if (input.form_template_id !== vendorDueDiligenceForm.id || input.form_template_version !== vendorDueDiligenceForm.version) throw new StaticDemoHTTPError(409, "vendor_assessment_form_inactive", "Select the current approved due-diligence form.");
+    vendorPreparedRequest = null;
     vendorAssessment = {
       id: "vendor-assessment-payments-2026",
       tenant_id: "bank-demo",
@@ -757,16 +808,38 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     };
     return clone(vendorAssessment) as T;
   }
+  if (vendorAssessment && pathname === `/api/v1/vendor-assessments/${vendorAssessment.id}/collection` && method === "GET") {
+    return clone(staticVendorCollection(vendorAssessment, fixture)) as T;
+  }
+  if (vendorAssessment && pathname === `/api/v1/vendor-assessments/${vendorAssessment.id}/prepare-request` && method === "POST") {
+    const input = parseBody(init) as { expected_version?: number; audience?: string; deadline?: string };
+    if (input.expected_version !== vendorAssessment.version) throw new StaticDemoHTTPError(409, "vendor_assessment_changed", "The assessment changed before the request was prepared.");
+    if (vendorAssessment.status !== "READY_TO_SEND") throw new StaticDemoHTTPError(409, "vendor_assessment_action_unavailable", "The assessment is not ready to prepare a request.");
+    const audience = input.audience?.trim().toLowerCase();
+    if (!audience?.includes("@") || !input.deadline || !Number.isFinite(Date.parse(input.deadline))) throw new StaticDemoHTTPError(422, "vendor_assessment_invalid", "Enter a valid vendor contact and response deadline.");
+    if (vendorPreparedRequest && (vendorPreparedRequest.audience !== audience || vendorPreparedRequest.request.deadline !== input.deadline)) throw new StaticDemoHTTPError(409, "vendor_assessment_changed", "The prepared contact or deadline differs from this request. Reload the checklist before continuing.");
+    if (!vendorPreparedRequest) {
+      vendorPreparedRequest = { audience, version: 1, request: { id: "vendor-request-payments-2026", status: "READY", deadline: input.deadline, updated_at: now } };
+      vendorAssessment = { ...vendorAssessment, current_request_id: vendorPreparedRequest.request.id, version: vendorAssessment.version + 1, updated_at: now };
+    }
+    const outcome: PrepareVendorCollectionResult = { assessment: vendorAssessment, request: vendorPreparedRequest.request, state: "PREPARED" };
+    return clone(outcome) as T;
+  }
   if (vendorAssessment && pathname === `/api/v1/vendor-assessments/${vendorAssessment.id}/send-request` && method === "POST") {
     const input = parseBody(init) as { expected_version?: number; audience?: string; deadline?: string; invitation_ttl_minutes?: number };
     if (input.expected_version !== vendorAssessment.version) throw new StaticDemoHTTPError(409, "vendor_assessment_changed", "The due-diligence assessment changed before the request was sent.");
-    if (!input.audience?.includes("@") || !input.deadline || !input.invitation_ttl_minutes) throw new StaticDemoHTTPError(422, "vendor_assessment_invalid", "Enter a valid vendor contact, response deadline and secure-link lifetime.");
-    vendorAssessment = { ...vendorAssessment, status: "COLLECTING", current_request_id: "vendor-request-payments-2026", version: vendorAssessment.version + 1, updated_at: now };
-    const outcome = {
+    if (vendorAssessment.status !== "READY_TO_SEND") throw new StaticDemoHTTPError(409, "vendor_assessment_action_unavailable", "The assessment is not ready to send a request.");
+    const audience = input.audience?.trim().toLowerCase() || vendorPreparedRequest?.audience;
+    const deadline = input.deadline || vendorPreparedRequest?.request.deadline;
+    if (!audience?.includes("@") || !deadline || !Number.isFinite(Date.parse(deadline)) || !input.invitation_ttl_minutes || input.invitation_ttl_minutes < 5 || input.invitation_ttl_minutes > 43200) throw new StaticDemoHTTPError(422, "vendor_assessment_invalid", "Enter a valid vendor contact, response deadline and secure-link lifetime.");
+    if (vendorPreparedRequest && (vendorPreparedRequest.audience !== audience || vendorPreparedRequest.request.deadline !== deadline)) throw new StaticDemoHTTPError(409, "vendor_assessment_changed", "The prepared contact or deadline differs from this request. Reload the checklist before continuing.");
+    vendorPreparedRequest ??= { audience, version: 1, request: { id: "vendor-request-payments-2026", status: "READY", deadline, updated_at: now } };
+    vendorAssessment = { ...vendorAssessment, status: "COLLECTING", current_request_id: vendorPreparedRequest.request.id, version: vendorAssessment.version + 1, updated_at: now };
+    const outcome: VendorAssessmentSendOutcome = {
       assessment: vendorAssessment,
-      request: { id: vendorAssessment.current_request_id, status: "READY", deadline: input.deadline, updated_at: now },
+      request: vendorPreparedRequest.request,
       state: fixture === "vendor-partial-delivery" ? "LINK_CREATED_EMAIL_NOT_SENT" : "DELIVERED",
-      delivery: fixture === "vendor-partial-delivery" ? { status: "FAILED", recipient_hint: maskEmail(input.audience), failure_code: "DELIVERY_UNAVAILABLE" } : { status: "DELIVERED", recipient_hint: maskEmail(input.audience), delivered_at: now },
+      delivery: fixture === "vendor-partial-delivery" ? { status: "FAILED", recipient_hint: maskEmail(audience), failure_code: "DELIVERY_UNAVAILABLE" } : { status: "DELIVERED", recipient_hint: maskEmail(audience), delivered_at: now },
       ...(fixture === "vendor-partial-delivery" ? { capture_url: "https://capture.example.test/#form_access=retry-link", recovery: "Copy the secure link or retry delivery." } : {}),
     };
     return clone(outcome) as T;
@@ -789,6 +862,32 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     if (!input.conclusion || !input.rationale?.trim()) throw new StaticDemoHTTPError(422, "vendor_assessment_invalid", "Select a conclusion and record its assessment basis.");
     vendorAssessment = { ...vendorAssessment, status: "COMPLETED", conclusion: input.conclusion, conclusion_rationale: input.rationale.trim(), conclusion_uncertainty: input.uncertainty?.trim(), next_review_recommended_at: input.next_review_recommended_at, completed_at: now, version: vendorAssessment.version + 1, updated_at: now };
     return clone(vendorAssessment) as T;
+  }
+  if (pathname === "/api/v1/vendors/form-summaries" && method === "GET") {
+    const ids = new Set((url.searchParams.get("relationship_ids") ?? "").split(",").slice(0, 50));
+    const templateID = url.searchParams.get("form_template_id");
+    return clone({ items: vendorRelationships.filter((item) => ids.has(item.relationship.id)).map((item) => ({ relationship_id: item.relationship.id, outstanding_forms: item.relationship.id === vendorRelationshipID && (!templateID || templateID === vendorDueDiligenceForm.id) ? 1 : 0, overdue_forms: 0, submitted_forms: 0, awaiting_review: 0, unassessed_forms: 0, assessed_forms: 0, observed_at: now })) }) as T;
+  }
+  const vendorFormsMatch = pathname.match(/^\/api\/v1\/vendors\/([^/]+)\/forms$/);
+  if (vendorFormsMatch && method === "GET") {
+    const id = decodeURIComponent(vendorFormsMatch[1]!);
+    if (!vendorRelationships.some((item) => item.relationship.id === id)) throw new StaticDemoHTTPError(404, "vendor_not_found", "The vendor relationship is not available in this legal entity.");
+    if (fixture === "vendor-requests-error") throw new StaticDemoHTTPError(503, "vendor_forms_unavailable", "Vendor form requests could not be loaded. Try again.");
+    const distribution = staticDistributionDetail().distribution;
+    const sample: VendorFormRow = { request_id: "request-vendor-security", relationship_id: vendorRelationshipID, distribution_id: distribution.id, form_template_id: distribution.form_template_id, form_template_version: distribution.form_template_version, title: "Sample · Acme annual vendor review", purpose: distribution.purpose, response_state: "IN_PROGRESS", recipient_hint: "s***@acme.example", delivery_state: "DELIVERED", deadline: distribution.deadline, updated_at: now, required_count: 5, answered_required: 2, missing_fields: [], required_reviews: 0, completed_reviews: 0, current: true };
+    const filter = url.searchParams.get("filter");
+    const templateID = url.searchParams.get("form_template_id");
+    const items = id === vendorRelationshipID && (!filter || filter === "AWAITING_VENDOR") && (!templateID || templateID === sample.form_template_id) ? [sample] : [];
+    return clone({ items, observed_at: now }) as T;
+  }
+  const vendorActivationMatch = pathname.match(/^\/api\/v1\/vendors\/([^/]+)\/activation$/);
+  if (vendorActivationMatch && method === "GET") {
+    const id = decodeURIComponent(vendorActivationMatch[1]!);
+    const selected = vendorRelationships.find((item) => item.relationship.id === id);
+    if (!selected) throw new StaticDemoHTTPError(404, "vendor_not_found", "The vendor relationship is not available in this legal entity.");
+    if (fixture === "vendor-requests-error") throw new StaticDemoHTTPError(503, "vendor_activation_unavailable", "Activation checks could not be loaded. Try again.");
+    const completed = (fixtureVendorAssessment(fixture) ?? vendorAssessment)?.status === "COMPLETED";
+    return clone({ relationship: selected.relationship, eligible: false, policy: { id: "sample-activation-policy", policy_number: 1, version: 1, effective_from: now, status: "ACTIVE" }, gates: [{ code: completed ? "REQUIRED_DECISIONS" : "CURRENT_ASSESSMENT", satisfied: false, explanation: completed ? "Sample · Required activation decisions have not been recorded." : "Sample · Complete the due diligence review before activation." }] }) as T;
   }
   if (pathname.startsWith("/api/v1/vendors/") && method === "GET") {
     const id = decodeURIComponent(pathname.slice("/api/v1/vendors/".length));
@@ -949,6 +1048,20 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     return clone({ items }) as T;
   }
   if (pathname === "/api/v1/forms/responses" && method === "GET") return clone({ items: fixture === "forms-response-history" ? [completedResponse] : [] }) as T;
+  const responseAssessmentMatch = pathname.match(/^\/api\/v1\/forms\/responses\/([^/]+)\/assessment$/);
+  if (responseAssessmentMatch && method === "GET") {
+    const responseID = decodeURIComponent(responseAssessmentMatch[1]!);
+    if (fixture !== "forms-response-history" || !["response-revision-acme-1", completedResponse.id].includes(responseID)) throw new StaticDemoHTTPError(404, "response_not_found", "The selected response is no longer available.");
+    const current = responseID === completedResponse.id;
+    // This sample history predates manual assessment; its saved result is automatic.
+    const assessment: ResponseAssessmentDetail = {
+      response_id: responseID, form_template_id: completedResponse.form_template_id, form_template_version: 2,
+      version: 0, current, may_review: false, state: "NOT_REQUIRED", required_count: 0, reviewed_required_count: 0, reviewed_count: 0,
+      fields: [],
+      automatic_score: { ...completedResponse.score, mode: "COMPLIANCE", direction: "LOW_IS_POOR", band: "LOW", state: "FINAL", raw_score: current ? 86 : 72, adverse_score: current ? 14 : 28, calculated_at: current ? completedResponse.completed_at : "2026-08-20T13:15:00Z" },
+    };
+    return clone(assessment) as T;
+  }
   const completedResponseMatch = pathname.match(/^\/api\/v1\/forms\/responses\/([^/]+)$/);
   if (completedResponseMatch && method === "GET") {
     if (fixture !== "forms-response-history" || decodeURIComponent(completedResponseMatch[1]!) !== completedResponse.id) throw new StaticDemoHTTPError(404, "response_not_found", "The selected completed response is no longer available.");

@@ -23,7 +23,7 @@ export class WorkspaceErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.failed) {
       return <section className="inline-error" role="alert">
-        <div><strong>{this.props.label} could not be shown</strong><p>The rest of the workspace is still available. Try again after reloading this view.</p></div>
+        <div><strong>{this.props.label} could not be shown</strong><p>This view could not be displayed. Try again.</p></div>
         <button className="secondary-button" type="button" onClick={() => this.setState({ failed: false })}>Try again</button>
       </section>;
     }

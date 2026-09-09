@@ -41,6 +41,7 @@ type VendorFormRow struct {
 	SubmittedAt         *time.Time           `json:"submitted_at,omitempty"`
 	RequiredCount       *int                 `json:"required_count"`
 	AnsweredRequired    *int                 `json:"answered_required"`
+	HeldRequired        *int                 `json:"held_required"`
 	MissingFields       []VendorMissingField `json:"missing_fields"`
 	Score               *ResponseScoreResult `json:"score,omitempty"`
 	AssessedScore       *ResponseScoreResult `json:"assessed_score,omitempty"`
@@ -159,13 +160,19 @@ func vendorFormRow(req Request, answers map[string]formcontract.AnswerValue, kno
 		contract, err := formContract(req.Presentation, req.Sections, req.Fields)
 		if err == nil {
 			fields, err := formcontract.VisibleFields(contract, answers)
-			if err == nil {
-				required, answered := 0, 0
+			if err == nil && !collectionApplicabilityUnknown(contract, answers) {
+				required, answered, held := 0, 0, 0
+				byID := make(map[string]Field, len(req.Fields))
+				for _, field := range req.Fields {
+					byID[field.ID] = field
+				}
 				for _, field := range fields {
 					if field.Required {
 						required++
 						if answers[field.ID].Answered() {
 							answered++
+						} else if CollectionFieldFulfilled(byID[field.ID], now) {
+							held++
 						} else {
 							row.MissingFields = append(row.MissingFields, VendorMissingField{field.ID, field.Label})
 						}
@@ -173,11 +180,15 @@ func vendorFormRow(req Request, answers map[string]formcontract.AnswerValue, kno
 				}
 				row.RequiredCount = &required
 				row.AnsweredRequired = &answered
+				row.HeldRequired = &held
+				if required > 0 && held == required && (row.ResponseState == "REQUEST_READY" || row.ResponseState == "AWAITING_RESPONSE" || row.ResponseState == "IN_PROGRESS" || row.ResponseState == "EXPIRED") {
+					row.ResponseState = "NO_VENDOR_ACTION"
+				}
 				if row.ResponseState == "IN_PROGRESS" || row.ResponseState == "AWAITING_RESPONSE" {
 					if len(answers) > 0 {
 						row.ResponseState = "IN_PROGRESS"
 					}
-					if answered == required && required > 0 {
+					if answered+held == required && answered > 0 {
 						row.ResponseState = "READY_TO_SUBMIT"
 					}
 				}
@@ -195,6 +206,55 @@ func vendorFormRow(req Request, answers map[string]formcontract.AnswerValue, kno
 		row.UpdatedAt = now
 	}
 	return row
+}
+
+// An unanswered applicability question does not prove a conditional
+// requirement is absent. Keep the denominator unknown until it is resolved.
+func collectionApplicabilityUnknown(contract formcontract.Contract, answers map[string]formcontract.AnswerValue) bool {
+	sections := make(map[string]*formcontract.VisibilityCondition, len(contract.Sections))
+	for _, section := range contract.Sections {
+		sections[section.ID] = section.Condition
+	}
+	for _, field := range contract.Fields {
+		if !field.Required {
+			continue
+		}
+		unknown, omitted := false, false
+		for _, condition := range []*formcontract.VisibilityCondition{sections[field.SectionID], field.Condition} {
+			if condition == nil {
+				continue
+			}
+			answer := answers[condition.FieldID]
+			if !answer.Answered() {
+				unknown = true
+				continue
+			}
+			if condition.Operator == formcontract.ConditionAnswered {
+				continue
+			}
+			values := answer.Values
+			if text, ok := answer.ScalarText(); ok {
+				values = []string{text}
+			}
+			matches := false
+			for _, value := range values {
+				if containsOption(condition.Values, strings.TrimSpace(value)) {
+					matches = true
+					break
+				}
+			}
+			if condition.Operator == formcontract.ConditionNotEquals || condition.Operator == formcontract.ConditionNotIn {
+				matches = !matches
+			}
+			if !matches {
+				omitted = true
+			}
+		}
+		if unknown && !omitted {
+			return true
+		}
+	}
+	return false
 }
 func vendorFormOutstanding(row VendorFormRow) bool {
 	return row.ResponseState == "AWAITING_RESPONSE" || row.ResponseState == "IN_PROGRESS" || row.ResponseState == "READY_TO_SUBMIT" || row.ResponseState == "REQUEST_READY" || row.ResponseState == "EXPIRED"

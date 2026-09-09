@@ -3,6 +3,7 @@ package formpolicy
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -50,5 +51,53 @@ func TestPublisherDispatchesFinalBankAssessment(t *testing.T) {
 	}
 	if len(handler.events) != 1 {
 		t.Fatal("bank assessment event was ignored")
+	}
+}
+
+func TestScoredResponsePublisherAcceptsRequestVersionProvenance(t *testing.T) {
+	handler := &scoredResponseHandlerStub{}
+	event := workflowruntime.OutboxEvent{ID: "event-source", TenantID: "bank", EventType: "FORM_RESPONSE_SCORED", OccurredAt: time.Now(), Payload: json.RawMessage(`{"version":2,"response_revision_id":"response-a","request_id":"request-a","request_version":7,"form_template_id":"form-a","form_template_version":3,"score_state":"FINAL"}`)}
+	if err := (ScoredResponsePublisher{Handler: handler}).Publish(t.Context(), event); err != nil {
+		t.Fatalf("producer provenance rejected: %v", err)
+	}
+	if len(handler.events) != 1 {
+		t.Fatal("scored response was not delivered")
+	}
+	if handler.events[0].RequestID != "request-a" || handler.events[0].RequestVersion != 7 {
+		t.Fatal("request provenance was not preserved")
+	}
+}
+
+func TestScoredResponsePublisherRejectsInvalidProvenanceAndUnknownFields(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		extra map[string]any
+	}{
+		{"missing version", map[string]any{"request_id": "request-a"}},
+		{"missing request", map[string]any{"request_version": 7}},
+		{"blank request", map[string]any{"request_id": " ", "request_version": 7}},
+		{"oversized request", map[string]any{"request_id": strings.Repeat("a", 513), "request_version": 7}},
+		{"zero version", map[string]any{"request_id": "request-a", "request_version": 0}},
+		{"negative version", map[string]any{"request_id": "request-a", "request_version": -1}},
+		{"fractional version", map[string]any{"request_id": "request-a", "request_version": 1.5}},
+		{"text version", map[string]any{"request_id": "request-a", "request_version": "7"}},
+		{"null version", map[string]any{"request_id": "request-a", "request_version": nil}},
+		{"unknown field", map[string]any{"request_id": "request-a", "request_version": 7, "approve_vendor": true}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			handler := &scoredResponseHandlerStub{}
+			payload := map[string]any{"version": 2, "response_revision_id": "response-a", "form_template_id": "form-a", "form_template_version": 3, "score_state": "FINAL"}
+			for k, v := range test.extra {
+				payload[k] = v
+			}
+			encoded, err := json.Marshal(payload)
+			if err != nil {
+				t.Fatal(err)
+			}
+			event := workflowruntime.OutboxEvent{ID: "event-source", TenantID: "bank", EventType: "FORM_RESPONSE_SCORED", OccurredAt: time.Now(), Payload: encoded}
+			if err = (ScoredResponsePublisher{Handler: handler}).Publish(t.Context(), event); err == nil || len(handler.events) != 0 {
+				t.Fatal("malformed event reached policy executor")
+			}
+		})
 	}
 }

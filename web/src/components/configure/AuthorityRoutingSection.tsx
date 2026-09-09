@@ -47,7 +47,7 @@ export function AuthorityRoutingSection() {
       </article>
 
       <article className="configure-context-panel">
-        <div className="configure-subheader"><div><h3>Affected workflow ownership</h3><p>Supporting context only; assigned work remains canonical in Today and Work.</p></div></div>
+        <div className="configure-subheader"><div><h3>Affected workflow ownership</h3><p>Review assignments affected by these approval routes.</p></div></div>
         {taskState === "loading" ? <div className="workspace-loading compact" aria-live="polite">Loading workflow ownership…</div>
           : taskState === "unavailable" ? <EmptyState kind="unavailable" label="Workflow ownership" title="Workflow ownership is unavailable" description="Routing configuration can still be inspected, but affected work could not be confirmed."/>
             : tasks.length ? <div className="configure-compact-list">{tasks.slice(0, 6).map((task) => <div className="task-row" key={task.id}><div><strong>{task.title}</strong><span>{task.responsibility} · {task.step_key}</span></div><mark>{humanize(task.status)}</mark></div>)}</div>

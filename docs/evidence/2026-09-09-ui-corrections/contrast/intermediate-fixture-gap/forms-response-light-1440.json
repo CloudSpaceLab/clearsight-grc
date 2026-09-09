@@ -1,0 +1,528 @@
+{
+  "id": "forms-response-light-1440",
+  "name": "forms-response",
+  "fixture": "forms-response-history",
+  "route": "#forms",
+  "action": "response",
+  "theme": "light",
+  "width": 1440,
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscuring",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Revision 1</strong>",
+            "target": [
+              "li:nth-child(1) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscuring",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<div class=\"cs-notice cs-tone--info\" role=\"status\">This submitted version cannot be changed. Send an amended form when the subject must provide updated information.</div>",
+            "target": [
+              ".cs-tone--info"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 15
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "#react-aria7796268261-_r_2s_",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1359,
+        "y": 37,
+        "width": 44,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.3604859319908555,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 37,
+        "width": 690,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Submitted response",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h2",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 66.6875,
+        "width": 690,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendor due diligence review",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 107.6875,
+        "width": 690,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendor  ·  vendor-acme-processing",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 153.375,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Submitted",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 175.375,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Aug 27, 2026, 2:15 PM",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 848.328125,
+        "y": 153.375,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Response revision",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 848.328125,
+        "y": 175.375,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "2  · Current",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1099.65625,
+        "y": 153.375,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Assurance",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1099.65625,
+        "y": 175.375,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Email verified",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 217.375,
+        "width": 742,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Version history",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 609,
+        "y": 266.375,
+        "width": 67.03125,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Revision  1",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1044.765625,
+        "y": 266.375,
+        "width": 282.234375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Secure link confirmed  ·  Aug 20, 2026, 2:15 PM",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 609,
+        "y": 319.375,
+        "width": 128.34375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Revision  2  · Current",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 1095.78125,
+        "y": 319.375,
+        "width": 231.21875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Email verified  ·  Aug 27, 2026, 2:15 PM",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "div.cs-notice.cs-tone--error",
+      "disabled": false,
+      "background": "#f9f0f1",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 376.375,
+        "width": 742,
+        "height": 47
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Static stakeholder demo does not implement GET /api/v1/forms/responses/response-revision-acme-2/assessment",
+      "foreground": "#152639",
+      "ratio": 13.712895033092146,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria7796268261-_r_2v_",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 423.375,
+        "width": 150.34375,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.3604859319908555,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 614,
+        "y": 434.875,
+        "width": 116.34375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Reload assessment",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "div.cs-notice.cs-tone--info",
+      "disabled": false,
+      "background": "#ebf4f5",
+      "uncertain": [
+        "filter"
+      ],
+      "box": {
+        "x": 597,
+        "y": 491.375,
+        "width": 742,
+        "height": 68
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "This submitted version cannot be changed. Send an amended form when the subject must provide updated information.",
+      "foreground": "#152639",
+      "ratio": 13.734137343584273,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    }
+  ],
+  "headings": [
+    "Forms",
+    "Responses",
+    "Vendor due diligence review"
+  ],
+  "status": "CAPTURED"
+}

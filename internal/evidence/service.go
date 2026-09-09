@@ -268,6 +268,11 @@ func (s *Service) GetRequest(ctx context.Context, tenant, requestID string) (Req
 	if err != nil {
 		return Request{}, err
 	}
+	value = RefreshCollectionResolutions(ctx, value, s.repo.GetArtifact, s.now().UTC())
+	value, err = refreshCollectionRequestReviews(ctx, s.repo, value)
+	if err != nil {
+		return Request{}, err
+	}
 	return effectiveRequest(value, s.now().UTC()), nil
 }
 
@@ -308,6 +313,11 @@ func (s *Service) Submit(ctx context.Context, submission Submission) (Submission
 	request, err := s.GetRequest(ctx, submission.TenantID, submission.RequestID)
 	if err != nil {
 		return SubmissionReceipt{}, err
+	}
+	for _, field := range request.Fields {
+		if field.CollectionResolution != nil || field.CollectionReceived {
+			return SubmissionReceipt{}, fmt.Errorf("use the current secure form to respond to this request")
+		}
 	}
 	if !strings.EqualFold(strings.TrimSpace(submission.Channel), "MAGIC_LINK") {
 		if err := validateCurrentRequestScope(ctx, s.repo, request, submission.LegalEntityID); err != nil {
@@ -453,7 +463,7 @@ func (s *Service) SessionRequest(ctx context.Context, sessionToken string) (Sess
 	if !requestOpenAt(request, now) || !externalRecipientRequest(request) || request.Recipient.AudienceHint != session.AudienceHint {
 		return Session{}, Request{}, ErrSessionInvalid
 	}
-	return session, RespondentRequest(request), nil
+	return session, RespondentRequestAt(request, now), nil
 }
 
 func (s *Service) SubmitSession(ctx context.Context, sessionToken string, answers map[string]formcontract.AnswerValue, expectedVersion int64) (SubmissionReceipt, error) {
@@ -611,6 +621,11 @@ func (s *Service) authorizeArtifactUpload(ctx context.Context, request Request, 
 }
 
 func validateRequestInput(input CreateRequestInput) error {
+	for _, field := range input.Fields {
+		if field.CollectionResolution != nil {
+			return fmt.Errorf("Bank document links must be recorded from the vendor review.")
+		}
+	}
 	if strings.TrimSpace(input.TenantID) == "" || strings.TrimSpace(input.SubjectType) == "" || strings.TrimSpace(input.SubjectID) == "" || strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Purpose) == "" || strings.TrimSpace(input.WhyYou) == "" || strings.TrimSpace(input.Sensitivity) == "" || strings.TrimSpace(input.AudienceType) == "" {
 		return fmt.Errorf("tenant, subject, title, purpose, recipient context, sensitivity and audience type are required")
 	}
@@ -752,6 +767,14 @@ func cloneAnswerValues(input map[string]formcontract.AnswerValue) map[string]for
 func cloneFields(input []Field) []Field {
 	out := append([]Field(nil), input...)
 	for index := range out {
+		if input[index].CollectionResolution != nil {
+			copy := *input[index].CollectionResolution
+			if copy.Source.Review != nil {
+				review := *copy.Source.Review
+				copy.Source.Review = &review
+			}
+			out[index].CollectionResolution = &copy
+		}
 		out[index].Options = append([]string(nil), out[index].Options...)
 		out[index].AcceptedFormats = append([]string(nil), out[index].AcceptedFormats...)
 		out[index].Bindings = append([]FieldBindingReference(nil), out[index].Bindings...)

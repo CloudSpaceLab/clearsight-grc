@@ -171,7 +171,7 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
       </div>}
     </div>
 
-    {aggregate.control_objectives.length === 0 ? <div className="program-empty-state"><strong>No control objectives are recorded</strong><p>Add the outcome the bank must maintain, then record the safeguard and accountable performer.</p></div> : <div className="program-safeguard-list">
+    {aggregate.control_objectives.length === 0 ? <div className="program-empty-state"><strong>No control objectives are recorded</strong><p>Add the required outcome, then record the safeguard and accountable performer.</p></div> : <div className="program-safeguard-list">
       {aggregate.control_objectives.map((objective) => {
         const implementations = aggregate.control_implementations.filter((value) => value.objective_id === objective.id);
         return <section className="program-safeguard-card" key={objective.id} id={`program-control-objective-${encodeURIComponent(objective.id)}`} tabIndex={-1} aria-label={`Control objective: ${objective.name}`}>

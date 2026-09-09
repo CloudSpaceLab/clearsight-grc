@@ -4,7 +4,7 @@
 .panel-content .known-facts dd { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
 .capture-field { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 8px; }
 .capture-field > legend,.capture-field > span,.field > span { color: var(--text); font-weight: 650; font-size: 13px; }
-.capture-field input,.capture-field select,.capture-field textarea,.external-capture-entry input { width: 100%; min-height: var(--control-height,44px); border: 1px solid var(--border); border-radius: 11px; background: var(--surface-2); color: var(--text); padding: 10px 12px; font: inherit; box-sizing: border-box; }
+.capture-field input,.capture-field select,.capture-field textarea,.external-capture-entry input { width: 100%; min-height: var(--control-height,44px); border: 1px solid var(--cs-border-field); border-radius: 11px; background: var(--surface-2); color: var(--text); padding: 10px 12px; font: inherit; box-sizing: border-box; }
 .capture-field textarea { min-height: 96px; resize: vertical; }
 .capture-field input:focus,.capture-field select:focus,.capture-field textarea:focus,.external-capture-entry input:focus { outline: 2px solid var(--focus); outline-offset: 2px; }
 .field-help { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }

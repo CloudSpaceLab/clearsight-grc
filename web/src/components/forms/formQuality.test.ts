@@ -49,6 +49,6 @@ describe("form quality contract parity", () => {
     draft.fields[0]!.constraints = { max_files: 1, max_file_bytes: 10 * 1024 * 1024 };
     draft.fields[0]!.collection_intent = "REPLACE_HELD_DOCUMENT";
     draft.fields[0]!.record_target = { key: "bad target?", required_subject_type: "VENDOR_RELATIONSHIP" };
-    expect(evaluateDraftValidity(draft).map((issue) => issue.message)).toContain("Registration verified requires a valid bounded record target.");
+    expect(evaluateDraftValidity(draft).map((issue) => issue.message)).toContain("Registration verified requires a valid record field and record type. Check the record destination.");
   });
 });

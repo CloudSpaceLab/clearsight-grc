@@ -136,6 +136,28 @@ func (store *PostgresDistributionStore) SubmitResponseWorkspace(ctx context.Cont
 	if err := command.Validate(answers); err != nil {
 		return WorkspaceSubmissionResult{}, err
 	}
+	// The request row is locked by loadPostgresWorkspaceState. Re-read its
+	// material version and original artifacts inside this transaction; the
+	// service's earlier snapshot cannot authorize missing collection work.
+	current, err := scanRequest(tx.QueryRow(ctx, requestSelect+` WHERE er.id=$1::uuid AND er.tenant_id=$2::uuid AND er.legal_entity_id=$3::uuid`, command.Request.ID, command.Session.TenantID, command.Session.LegalEntityID))
+	if err != nil {
+		return WorkspaceSubmissionResult{}, ErrWorkspaceUnavailable
+	}
+	if current.Version != command.Request.Version {
+		return WorkspaceSubmissionResult{}, ErrVersionConflict
+	}
+	current = RefreshCollectionResolutions(ctx, current, func(ctx context.Context, tenantID, requestID, artifactID string) (Artifact, error) {
+		return loadPostgresWorkspaceArtifact(ctx, tx, command.Session, tenantID, requestID, artifactID, true)
+	}, command.Now)
+	current, err = RefreshCollectionReviewsPostgres(ctx, tx, current)
+	if err != nil {
+		return WorkspaceSubmissionResult{}, err
+	}
+	if err := validateWorkspaceAnswerSet(ctx, store.repo, current, answers, true, func(ctx context.Context, tenantID, _ string, artifactID string) (Artifact, error) {
+		return loadPostgresWorkspaceArtifact(ctx, tx, command.Session, tenantID, "", artifactID, false)
+	}, command.Now); err != nil {
+		return WorkspaceSubmissionResult{}, err
+	}
 	metadata, err := command.BuildRevision(answers)
 	if err != nil {
 		return WorkspaceSubmissionResult{}, err
@@ -217,7 +239,7 @@ func (store *PostgresDistributionStore) ValidateWorkspaceAnswers(ctx context.Con
 	}
 	return validateWorkspaceAnswerSet(ctx, store.repo, request, answers, requireComplete, func(ctx context.Context, tenantID, _ string, artifactID string) (Artifact, error) {
 		return loadPostgresDistributionArtifact(ctx, store, session, tenantID, artifactID)
-	})
+	}, store.now().UTC())
 }
 
 func postgresWorkspaceConflict(view ResponseWorkspaceView, edits []FieldEdit) *WorkspaceConflict {

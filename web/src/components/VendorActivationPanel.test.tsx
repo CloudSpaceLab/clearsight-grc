@@ -172,3 +172,14 @@ describe("VendorActivationPanel", () => {
     expect(loadVendorActivation).not.toHaveBeenCalled();
   });
 });
+
+it("refreshes activation checks after assessment progress without changing the relationship", async () => {
+  const relationship = { id: "service", version: 1, status: "PROPOSED", service_name: "Payment service" } as VendorRelationship;
+  const pending = { eligible: false, relationship, policy: { id: "policy", status: "ACTIVE", policy_number: 1, version: 1, effective_from: "2026-01-01T00:00:00Z" }, gates: [{ code: "CURRENT_ASSESSMENT", satisfied: false, explanation: "Assessment review is pending." }] } as VendorActivationResult;
+  vi.mocked(loadVendorActivation).mockResolvedValueOnce(pending).mockResolvedValueOnce({ ...pending, eligible: true, gates: [{ code: "CURRENT_ASSESSMENT", satisfied: true, explanation: "Assessment review is complete." }] });
+  const { rerender } = render(<VendorActivationPanel relationship={relationship} reviewVersion={3} onActivated={vi.fn()}/>);
+  expect(await screen.findByText("Assessment review is pending.")).toBeTruthy();
+  rerender(<VendorActivationPanel relationship={relationship} reviewVersion={4} onActivated={vi.fn()}/>);
+  await waitFor(() => expect(loadVendorActivation).toHaveBeenCalledTimes(2));
+  expect(await screen.findByText("Ready for authorization")).toBeTruthy();
+});

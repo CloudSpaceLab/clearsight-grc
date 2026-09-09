@@ -17,6 +17,22 @@ beforeEach(() => {
   ]);
 });
 
+it("does not attribute an old outcome result to a reassigned reviewer or the definition maker", async () => {
+  const aggregate = { matter: { id: "matter-1", version: 4 }, actions: [], verification_contracts: [{ id: "contract-1", expected_outcome: "Delivery service restored", authority_principal_id: "historical-reviewer", status: "ACTIVE" }], verification_results: [{ id: "result-1", contract_id: "contract-1", result: "PASS", reviewer_principal_id: "historical-reviewer", observed_at: "2026-08-25T00:00:00Z" }], closure: { ready: false, reasons: [] } } as unknown as MatterAggregate;
+  const operations = [
+    { command: "matter.outcome.record", subresource_id: "contract-1", label: "Record", responsibility: "REVIEWER", can_act: false, reason: "", assigned_to: { id: "replacement", display_name: "Replacement Reviewer", kind: "PERSON", role: "Reviewer" } },
+    { command: "matter.outcome.define", label: "Define", responsibility: "ACCOUNTABLE_OWNER", can_act: false, reason: "", assigned_to: { id: "maker", display_name: "Definition Maker", kind: "PERSON", role: "Owner" } },
+  ];
+  const { rerender } = render(<MatterOutcomePanel aggregate={aggregate} operations={operations} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+  expect(screen.getByText("Recorded 2026-08-25 by Reviewer name unavailable")).toBeTruthy();
+  expect(screen.getByText("Recorded 2026-08-25 by Reviewer name unavailable").closest("li")?.textContent).toContain("Outcome confirmed Recorded");
+  expect(screen.queryByText(/Recorded.*Replacement Reviewer/)).toBeNull();
+  rerender(<MatterOutcomePanel aggregate={aggregate} operations={operations.slice(1)} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+  expect(screen.queryByText("Definition Maker")).toBeNull();
+  expect(screen.getByText("Independent reviewer").nextElementSibling?.textContent).toBe("Reviewer name unavailable");
+  await waitFor(() => expect(loadEvidenceSources).toHaveBeenCalled());
+});
+
 it("captures the complete outcome contract in business fields with an eligible reviewer", async () => {
   const aggregate = { matter: { id: "matter-1", legal_entity_id: "entity-1", version: 7 }, actions: [{ id: "action-1", title: "Restore account posting" }], verification_contracts: [], verification_results: [], closure: { ready: false, reasons: [] } } as unknown as MatterAggregate;
   const operations = [{ command: "matter.outcome.define", label: "Define an outcome check", responsibility: "REVIEWER", can_act: true, reason: "", candidates: [{ id: "reviewer-1", display_name: "Ada Okafor", kind: "PERSON", role: "Internal Audit reviewer" }] }];

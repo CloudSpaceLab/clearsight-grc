@@ -23,6 +23,7 @@
     "src/components/ui/TextField.tsx",
     "src/components/ui-gallery/UIComponentGallery.tsx",
     "src/components/FormsWorkspace.tsx",
+    "src/components/VendorEvidenceChecklist.tsx",
     "src/components/documents/DocumentBrowser.tsx",
     "src/components/documents/DocumentPreview.tsx",
     "src/components/documents/DocumentFile.tsx",
@@ -44,7 +45,10 @@
     "src/components/forms/filters/FilterExpressionEditor.tsx",
     "src/components/forms/filters/FilterPicker.tsx",
     "src/components/forms/filters/FormStatusScopes.tsx",
-    "src/components/oversight/OversightWorkspace.tsx"
+    "src/components/oversight/OversightWorkspace.tsx",
+    "src/components/VendorDueDiligence.tsx",
+    "src/components/VendorWorkPanel.tsx",
+    "src/components/EmptyState.tsx"
   ],
   "migratedCss": [
     "src/design-system/components/actions.css",
@@ -64,6 +68,7 @@
     "src/components/forms/form-policies.css",
     "src/document-import.css",
     "src/components/documents/documents.css",
+    "src/components/vendor-evidence-checklist.css",
     "src/oversight.css"
   ],
   "nativeControlExceptions": [
@@ -95,32 +100,171 @@
       "tag": "input",
       "inputType": "text",
       "reason": "The sample demonstrates the public FormField control-slot anatomy; product fields use TextField."
+    },
+    {
+      "file": "src/components/VendorDueDiligence.tsx",
+      "tag": "input",
+      "inputType": "radio",
+      "reason": "Native mutually exclusive reassessment scope radios retain their labelled fieldset and keyboard contract; other fields and actions use shared components."
     }
   ],
   "componentFamilies": {
-    "ActionCard": ["title", "description", "icon", "disabled"],
-    "Button": ["primary", "secondary", "quiet", "destructive", "comfortable", "compact", "disabled", "loading"],
-    "ActionLink": ["navigation"],
-    "IconButton": ["primary", "secondary", "quiet", "destructive", "accessible-name"],
-    "FormField": ["required", "description", "invalid"],
-    "TextField": ["text", "search", "email", "url", "tel", "number", "date", "time", "datetime-local", "disabled", "read-only", "invalid", "loading", "hidden-label"],
-    "SearchField": ["labelled", "loading", "disabled"],
-    "SelectableRecord": ["selected", "unselected", "title", "metadata", "description", "disabled"],
-    "CheckboxField": ["selected", "unselected", "indeterminate", "disabled", "hidden-label", "description"],
-    "TextArea": ["bounded-length", "disabled", "read-only", "invalid", "loading"],
-    "SelectField": ["placeholder", "selected", "disabled", "required", "invalid", "hidden-label", "stable-non-modal-overlay"],
-    "Tabs": ["automatic-activation", "wrapped-compact"],
-    "ScopeBar": ["selected", "counts", "horizontal-overflow"],
-    "StatusBadge": ["neutral", "info", "success", "warning", "error", "unknown"],
-    "Notice": ["info", "success", "warning", "error"],
-    "Surface": ["contained"],
-    "Card": ["record"],
-    "EmptyState": ["population", "next-action"],
-    "FilterBar": ["result-count", "clear", "stacked-compact"],
-    "FilterChip": ["removable", "action", "accent"],
-    "DataTable": ["populated", "selected", "keyboard-selection", "row-action", "loading", "pagination", "stacked-mobile"],
-    "FocusedSheet": ["dismissable", "non-dismissible-in-flight", "focus-contained", "default", "wide", "full-height-mobile"],
-    "FocusedDialog": ["centered-desktop", "full-height-mobile", "dismissable", "focus-contained", "default", "wide"],
-    "PopoverDialog": ["anchored", "dismissable", "focus-contained"]
+    "ActionCard": [
+      "title",
+      "description",
+      "icon",
+      "disabled"
+    ],
+    "Button": [
+      "primary",
+      "secondary",
+      "quiet",
+      "destructive",
+      "comfortable",
+      "compact",
+      "disabled",
+      "loading"
+    ],
+    "ActionLink": [
+      "navigation"
+    ],
+    "IconButton": [
+      "primary",
+      "secondary",
+      "quiet",
+      "destructive",
+      "accessible-name"
+    ],
+    "FormField": [
+      "required",
+      "description",
+      "invalid"
+    ],
+    "TextField": [
+      "text",
+      "search",
+      "email",
+      "url",
+      "tel",
+      "number",
+      "date",
+      "time",
+      "datetime-local",
+      "disabled",
+      "read-only",
+      "invalid",
+      "loading",
+      "hidden-label"
+    ],
+    "SearchField": [
+      "labelled",
+      "loading",
+      "disabled"
+    ],
+    "SelectableRecord": [
+      "selected",
+      "unselected",
+      "title",
+      "metadata",
+      "description",
+      "disabled"
+    ],
+    "CheckboxField": [
+      "selected",
+      "unselected",
+      "indeterminate",
+      "disabled",
+      "hidden-label",
+      "description"
+    ],
+    "TextArea": [
+      "bounded-length",
+      "disabled",
+      "read-only",
+      "invalid",
+      "loading"
+    ],
+    "SelectField": [
+      "placeholder",
+      "selected",
+      "disabled",
+      "required",
+      "invalid",
+      "hidden-label",
+      "stable-non-modal-overlay"
+    ],
+    "Tabs": [
+      "automatic-activation",
+      "wrapped-compact"
+    ],
+    "ScopeBar": [
+      "selected",
+      "counts",
+      "horizontal-overflow"
+    ],
+    "StatusBadge": [
+      "neutral",
+      "info",
+      "success",
+      "warning",
+      "error",
+      "unknown"
+    ],
+    "Notice": [
+      "info",
+      "success",
+      "warning",
+      "error"
+    ],
+    "Surface": [
+      "contained"
+    ],
+    "Card": [
+      "record"
+    ],
+    "EmptyState": [
+      "population",
+      "next-action"
+    ],
+    "FilterBar": [
+      "result-count",
+      "clear",
+      "stacked-compact"
+    ],
+    "FilterChip": [
+      "removable",
+      "action",
+      "accent"
+    ],
+    "DataTable": [
+      "populated",
+      "selected",
+      "keyboard-selection",
+      "row-action",
+      "loading",
+      "pagination",
+      "stacked-mobile"
+    ],
+    "FocusedSheet": [
+      "dismissable",
+      "non-dismissible-in-flight",
+      "focus-contained",
+      "default",
+      "wide",
+      "full-height-mobile"
+    ],
+    "FocusedDialog": [
+      "centered-desktop",
+      "full-height-mobile",
+      "dismissable",
+      "focus-contained",
+      "default",
+      "wide"
+    ],
+    "PopoverDialog": [
+      "anchored",
+      "dismissable",
+      "focus-contained"
+    ]
   }
 }

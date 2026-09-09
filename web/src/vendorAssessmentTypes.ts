@@ -187,6 +187,7 @@ export type VendorAssessmentReviewAnswer = {
     expires_at?: string;
   };
   value?: VendorAssessmentAnswerValue;
+  collection_resolution?: { id: string; version: number; source: { file_name: string }; reconciled_by: string; reconciled_at: string; rationale: string };
   provenance?: {
     origin?: "SOURCE_PREFILLED" | "RESPONDENT_ENTERED" | "RESPONDENT_CORRECTED" | string;
     source?: string;
@@ -294,6 +295,7 @@ export type CompleteVendorAssessmentInput = {
 
 export type ReviewVendorAssessmentDocumentInput = {
   expected_version: number;
+  field_id?: string;
   decision: "VALIDATE" | "REJECT";
   document_type: string;
   evidence_class: "VENDOR_SUPPLIED" | "BANK_VALIDATED" | "OFFICIAL_SOURCE";
@@ -330,7 +332,7 @@ export type VendorAssessmentDeficiencyOutcome = {
 export type VendorAssessmentFieldApplicationDecision = { field_id: string; decision: "ACCEPT" | "REJECT"; rationale: string };
 export type ApplyVendorAssessmentResponseInput = { expected_assessment_version: number; expected_submission_revision: number; decisions: VendorAssessmentFieldApplicationDecision[] };
 export type VendorAssessmentApplicationReceipt = {
-  id: string; assessment_id: string; distribution_id?: string; response_revision_id: string; vendor_id: string; actor_principal_id: string;
+  id: string; assessment_id: string; distribution_id?: string; response_revision_id: string; vendor_id: string; actor_principal_id: string; actor_display_name?: string;
   accepted_field_ids: string[]; rejected_field_ids: string[]; decisions: VendorAssessmentFieldApplicationDecision[];
   prior_vendor_version: number; result_vendor_version: number; result_assessment_version: number; applied_at: string;
 };

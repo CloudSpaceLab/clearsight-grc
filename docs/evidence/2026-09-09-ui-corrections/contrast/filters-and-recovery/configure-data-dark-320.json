@@ -1,0 +1,1655 @@
+{
+  "id": "configure-data-dark-320",
+  "name": "configure-data",
+  "fixture": "",
+  "route": "#configure/data",
+  "theme": "dark",
+  "width": 320,
+  "scale": 1,
+  "generatedAt": "2026-09-09T00:02:19.273Z",
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Meridian Trust Bank</strong>",
+            "target": [
+              ".context-bar > div:nth-child(1) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<summary aria-label=\"Administration\">Admin</summary>",
+                    "target": [
+                      "summary[aria-label=\"Administration\"]"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary aria-label=\"Administration\">Admin</summary>",
+            "target": [
+              "summary[aria-label=\"Administration\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<summary role=\"button\" aria-label=\"Viewing as Chief Risk Officer. Demo environment\">Viewing as Chief Risk Officer</summary>",
+                    "target": [
+                      "summary[role=\"button\"]"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary role=\"button\" aria-label=\"Viewing as Chief Risk Officer. Demo environment\">Viewing as Chief Risk Officer</summary>",
+            "target": [
+              "summary[role=\"button\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Restricted administration</span>",
+            "target": [
+              ".topbar > div > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "25.5pt (34px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h1>Configuration</h1>",
+            "target": [
+              "h1"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Manage access, approval routes, integrations and system settings.</p>",
+            "target": [
+              ".topbar > div > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"configure-navigation\" aria-label=\"Configuration areas\">",
+                    "target": [
+                      ".configure-navigation"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Overview</span>",
+            "target": [
+              ".configure-navigation > button[type=\"button\"]:nth-child(1) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"configure-navigation\" aria-label=\"Configuration areas\">",
+                    "target": [
+                      ".configure-navigation"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>People &amp; access</span>",
+            "target": [
+              ".configure-navigation > button[type=\"button\"]:nth-child(2) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"configure-navigation\" aria-label=\"Configuration areas\">",
+                    "target": [
+                      ".configure-navigation"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Authority &amp; routing</span>",
+            "target": [
+              ".configure-navigation > button[type=\"button\"]:nth-child(3) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"configure-navigation\" aria-label=\"Configuration areas\">",
+                    "target": [
+                      ".configure-navigation"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Automation</span>",
+            "target": [
+              ".configure-navigation > button[type=\"button\"]:nth-child(5) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"configure-navigation\" aria-label=\"Configuration areas\">",
+                    "target": [
+                      ".configure-navigation"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>AI governance</span>",
+            "target": [
+              "button[type=\"button\"]:nth-child(6) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"configure-navigation\" aria-label=\"Configuration areas\">",
+                    "target": [
+                      ".configure-navigation"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>System operations</span>",
+            "target": [
+              "button[type=\"button\"]:nth-child(7) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Configuration · data</span>",
+            "target": [
+              ".configure-domain-header > div > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "18.8pt (25px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2 id=\"data-integrations-heading\">Data &amp; integrations</h2>",
+            "target": [
+              "#data-integrations-heading"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Review imports and connected sources.</p>",
+            "target": [
+              ".configure-domain-header > div > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"configure-area-list compact\">",
+                    "target": [
+                      ".configure-area-list"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Document imports</strong>",
+            "target": [
+              ".configure-area-row[type=\"button\"] > .configure-area-copy > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"configure-area-list compact\">",
+                    "target": [
+                      ".configure-area-list"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<small>Compare source documents with current Programs, controls and evidence.</small>",
+            "target": [
+              ".configure-area-row[type=\"button\"] > .configure-area-copy > small"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"configure-area-list compact\">",
+                    "target": [
+                      ".configure-area-list"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Available</span>",
+            "target": [
+              ".configure-area-state > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"configure-area-list compact\">",
+                    "target": [
+                      ".configure-area-list"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Connected sources</strong>",
+            "target": [
+              ".passive > .configure-area-copy > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"configure-area-list compact\">",
+                    "target": [
+                      ".configure-area-list"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<small>Connection settings are unavailable in this workspace.</small>",
+            "target": [
+              ".passive > .configure-area-copy > small"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Today</span>",
+            "target": [
+              ".mobile-nav > button[type=\"button\"]:nth-child(1) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Programs</span>",
+            "target": [
+              ".mobile-nav > button[type=\"button\"]:nth-child(2) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Work</span>",
+            "target": [
+              ".mobile-nav > button[type=\"button\"]:nth-child(3) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Vendors</span>",
+            "target": [
+              ".mobile-nav > button[type=\"button\"]:nth-child(4) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Forms</span>",
+            "target": [
+              ".mobile-nav > button[type=\"button\"]:nth-child(5) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 1
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 33,
+        "y": 34,
+        "width": 93.34375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Meridian Trust Bank",
+      "foreground": "#d7e0e9",
+      "ratio": 13.464170427534874,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.administration-menu",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 115.71875,
+        "y": 26,
+        "width": 49.28125,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Admin",
+      "foreground": "#8fa0b2",
+      "ratio": 6.675169205499221,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.demo-environment-menu",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 171,
+        "y": 26,
+        "width": 116,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Viewing as Chief Risk Officer",
+      "foreground": "#8fa0b2",
+      "ratio": 6.675169205499221,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.demo-environment-menu",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 171,
+        "y": 26,
+        "width": 116,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.5113027815267686,
+      "outsideRatio": 1.5193364728028564,
+      "insideRatio": 1.5113027815267686,
+      "fillRatio": 1.0053157390923162,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 100,
+        "width": 192.640625,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Restricted administration",
+      "foreground": "#5bc6d6",
+      "ratio": 9.479578580346425,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h1",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 127,
+        "width": 284,
+        "height": 34
+      },
+      "fontSize": "34px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Configuration",
+      "foreground": "#ffffff",
+      "ratio": 18.970954227610815,
+      "minimum": 3,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 165,
+        "width": 284,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Manage access, approval routes, integrations and system settings.",
+      "foreground": "#8fa0b2",
+      "ratio": 7.081695290667391,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 28,
+        "y": 246.375,
+        "width": 123,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Overview",
+      "foreground": "#8fa0b2",
+      "ratio": 6.720970861300164,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 177,
+        "y": 246.375,
+        "width": 123,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "People & access",
+      "foreground": "#8fa0b2",
+      "ratio": 6.720970861300164,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 326,
+        "y": 246.375,
+        "width": 123,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Authority & routing",
+      "foreground": "#8fa0b2",
+      "ratio": 6.720970861300164,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.active",
+      "disabled": false,
+      "background": "#212d47",
+      "uncertain": [],
+      "box": {
+        "x": 475,
+        "y": 246.375,
+        "width": 123,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Data & integrations",
+      "foreground": "#d7e0e9",
+      "ratio": 10.273179442004277,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 624,
+        "y": 246.375,
+        "width": 123,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Automation",
+      "foreground": "#8fa0b2",
+      "ratio": 6.720970861300164,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 773,
+        "y": 246.375,
+        "width": 123,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "AI governance",
+      "foreground": "#8fa0b2",
+      "ratio": 6.720970861300164,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 922,
+        "y": 246.375,
+        "width": 123,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "System operations",
+      "foreground": "#8fa0b2",
+      "ratio": 6.720970861300164,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 304.375,
+        "width": 151.4375,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Configuration · data",
+      "foreground": "#5bc6d6",
+      "ratio": 9.479578580346425,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#data-integrations-heading",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 326.375,
+        "width": 208.453125,
+        "height": 37.5
+      },
+      "fontSize": "25px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Data & integrations",
+      "foreground": "#ffffff",
+      "ratio": 18.970954227610815,
+      "minimum": 3,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 369.875,
+        "width": 208.453125,
+        "height": 18.59375
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Review imports and connected sources.",
+      "foreground": "#8fa0b2",
+      "ratio": 7.081695290667391,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "span.configure-area-copy",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 439.46875,
+        "width": 250,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Document imports",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "span.configure-area-copy",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 464.46875,
+        "width": 250,
+        "height": 31.875
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Compare source documents with current Programs, controls and evidence.",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "span.configure-area-state",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 511.84375,
+        "width": 39.609375,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Available",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "span.configure-area-copy",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 565.34375,
+        "width": 250,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Connected sources",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "span.configure-area-copy",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 590.34375,
+        "width": 250,
+        "height": 31.875
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Connection settings are unavailable in this workspace.",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 34.015625,
+        "y": 809,
+        "width": 20.75,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Today",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 85.296875,
+        "y": 809,
+        "width": 33.796875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Programs",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 150.6875,
+        "y": 809,
+        "width": 18.609375,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Work",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 203.40625,
+        "y": 809,
+        "width": 28.75,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendors",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 264.75,
+        "y": 809,
+        "width": 21.671875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Forms",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    }
+  ],
+  "assetURLs": [
+    "http://127.0.0.1:4179/assets/index-BMWHmGgh.js",
+    "http://127.0.0.1:4179/assets/vendorIdentity-DNAUaTE1.js",
+    "http://127.0.0.1:4179/assets/ui-BKmW7Hgr.js",
+    "http://127.0.0.1:4179/assets/form-policies-B7RQjXrL.js",
+    "http://127.0.0.1:4179/assets/http-CsyLtnQx.js",
+    "http://127.0.0.1:4179/assets/api-4YXod1O7.js",
+    "http://127.0.0.1:4179/assets/monitoringApi-B_rnuu-E.js",
+    "http://127.0.0.1:4179/assets/FocusedSheet-D6A2pfF6.js",
+    "http://127.0.0.1:4179/assets/FileDropzone-D3bjzZCz.js",
+    "http://127.0.0.1:4179/assets/FormPreview-xfiykOdw.js",
+    "http://127.0.0.1:4179/assets/identityAccessApi-DQ4JpP1X.js",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-CP0P4Fzd.js",
+    "http://127.0.0.1:4179/assets/formPoliciesApi-BOB15CUF.js",
+    "http://127.0.0.1:4179/assets/FormBuilder-D0uIMr0F.js",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-DF59NCDq.js",
+    "http://127.0.0.1:4179/assets/preload-helper-Czpn1I53.js",
+    "http://127.0.0.1:4179/assets/EmptyState-CAuvZgjp.js",
+    "http://127.0.0.1:4179/assets/SessionGate-e9miZAkm.js",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-CoL3pBsn.js",
+    "http://127.0.0.1:4179/assets/ui-BqQkgK9q.css",
+    "http://127.0.0.1:4179/assets/form-policies-CXmCjy0e.css",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-Bc4QplLt.css",
+    "http://127.0.0.1:4179/assets/FormBuilder-BR0NOz-_.css",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-xmrvZhbh.css",
+    "http://127.0.0.1:4179/assets/SessionGate-CBT7oevM.css",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-BbMW_Uts.css",
+    "http://127.0.0.1:4179/assets/index-BfD_vL87.css",
+    "http://127.0.0.1:4179/assets/forms-BF_LZwBu.css",
+    "http://127.0.0.1:4179/assets/staticDemoWorkflowRuntime-CCKpbhZb.js",
+    "http://127.0.0.1:4179/assets/staticDemoFixtures-BJo7eiOJ.json",
+    "http://127.0.0.1:4179/assets/App-B4c7mFpZ.js",
+    "http://127.0.0.1:4179/assets/Monogram-k38BLA7P.js",
+    "http://127.0.0.1:4179/assets/VendorWorkPanel-D3NeEmZw.js",
+    "http://127.0.0.1:4179/assets/VendorWorkPanel-CU0uMlLg.css",
+    "http://127.0.0.1:4179/assets/WorkspaceErrorBoundary-Di4hsd7o.js",
+    "http://127.0.0.1:4179/assets/FormProposalReview-siSJwhuo.js",
+    "http://127.0.0.1:4179/assets/App-Bd-YkfrJ.css",
+    "http://127.0.0.1:4179/assets/ConfigureWorkspace-DEI3zZWp.js",
+    "http://127.0.0.1:4179/assets/ConfigureWorkspace-C1GPHIEa.css"
+  ],
+  "layout": {
+    "clientWidth": 320,
+    "scrollWidth": 320
+  },
+  "headings": [
+    "Configuration",
+    "Data & integrations"
+  ],
+  "status": "CAPTURED"
+}

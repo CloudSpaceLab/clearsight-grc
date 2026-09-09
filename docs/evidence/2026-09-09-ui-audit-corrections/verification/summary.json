@@ -1,0 +1,47 @@
+{
+  "frontend": {
+    "command": "vitest run --maxWorkers=4",
+    "passed": 1154,
+    "failed": 0,
+    "report": "frontend-tests.json",
+    "scope": "Full suite before final selected-label correction; final shared control and affected workflows rerun separately."
+  },
+  "affected_frontend": {
+    "passed": 202,
+    "failed": 0,
+    "report": "affected-tests.json"
+  },
+  "recovery_frontend": {
+    "passed": 54,
+    "failed": 0,
+    "report": "recovery-tests.json"
+  },
+  "typecheck": "PASS",
+  "production_build": "PASS",
+  "evidence_build": "PASS",
+  "runtime_and_ui_contracts": {
+    "passed": 12,
+    "failed": 0
+  },
+  "go_test_all": "PASS",
+  "go_vet_affected_packages": "PASS",
+  "go_race": "NOT_RUN: CGO disabled and no available C compiler",
+  "rendered_accessibility": {
+    "passed": 28,
+    "failed": 0,
+    "report": "../../2026-09-09-ui-corrections/contrast/accessibility/accessibility.json"
+  },
+  "source_inventory": "source-hashes.json",
+  "scope": "Local uncommitted audit correction; sample fixtures are isolated from the production import graph.",
+  "final_select_and_workflow": {
+    "passed": 211,
+    "failed": 0,
+    "report": "select-and-workflow-tests.json"
+  },
+  "contrast_capture_matrix": {
+    "captured": 168,
+    "confirmed_violations": 0,
+    "errors": 0,
+    "incomplete_readings": "Retained; see contrast correction receipt"
+  }
+}

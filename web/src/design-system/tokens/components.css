@@ -34,7 +34,7 @@
   --cs-field-padding-inline: var(--cs-primitive-space-3);
   --cs-field-radius: var(--cs-primitive-radius-10);
   --cs-field-border-width: var(--cs-primitive-border-1);
-  --cs-field-border: var(--cs-border-default);
+  --cs-field-border: var(--cs-border-field);
   --cs-field-bg: var(--cs-bg-surface-1);
   --cs-field-bg-readonly: var(--cs-bg-surface-2);
   --cs-field-text: var(--cs-text-primary);
@@ -50,7 +50,7 @@
   --cs-checkbox-size: var(--cs-primitive-icon-20);
   --cs-checkbox-radius: var(--cs-primitive-radius-6);
   --cs-checkbox-border-width: var(--cs-primitive-border-1);
-  --cs-checkbox-border: var(--cs-border-strong);
+  --cs-checkbox-border: var(--cs-border-field);
   --cs-checkbox-bg: var(--cs-bg-surface-1);
   --cs-checkbox-selected-bg: var(--cs-action-primary);
   --cs-checkbox-selected-text: var(--cs-action-primary-text);

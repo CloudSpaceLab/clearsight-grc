@@ -1,0 +1,2768 @@
+{
+  "id": "imports-light-320",
+  "name": "imports",
+  "fixture": "",
+  "route": "#imports",
+  "theme": "light",
+  "width": 320,
+  "scale": 1,
+  "generatedAt": "2026-09-09T00:09:33.864Z",
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Meridian Trust Bank</strong>",
+            "target": [
+              ".context-bar > div:nth-child(1) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<summary aria-label=\"Administration\">Admin</summary>",
+                    "target": [
+                      "summary[aria-label=\"Administration\"]"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary aria-label=\"Administration\">Admin</summary>",
+            "target": [
+              "summary[aria-label=\"Administration\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<summary role=\"button\" aria-label=\"Viewing as Chief Risk Officer. Demo environment\">Viewing as Chief Risk Officer</summary>",
+                    "target": [
+                      "summary[role=\"button\"]"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary role=\"button\" aria-label=\"Viewing as Chief Risk Officer. Demo environment\">Viewing as Chief Risk Officer</summary>",
+            "target": [
+              "summary[role=\"button\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Meridian Trust Bank</span>",
+            "target": [
+              ".topbar > div > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "27.0pt (36px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h1>Imports</h1>",
+            "target": [
+              "h1"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Import documents, compare their obligations with current Programs, controls and evidence, then review proposed updates.</p>",
+            "target": [
+              ".topbar > div > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Document import</span>",
+            "target": [
+              ".document-import-header > div > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "21.0pt (28px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2 id=\"document-import-title\">Imported documents</h2>",
+            "target": [
+              "#document-import-title"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Review imported documents and extracted obligations.</p>",
+            "target": [
+              ".document-import-header > div > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<button type=\"button\" class=\"document-import-row active\"><strong>gaid-annual-return-notice.docx</strong><span>1 proposal to review</span><small>8/6/2026, 4:30:00 PM</small></button>",
+                    "target": [
+                      ".document-import-row"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>gaid-annual-return-notice.docx</strong>",
+            "target": [
+              ".document-import-row > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<button type=\"button\" class=\"document-import-row active\"><strong>gaid-annual-return-notice.docx</strong><span>1 proposal to review</span><small>8/6/2026, 4:30:00 PM</small></button>",
+                    "target": [
+                      ".document-import-row"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>1 proposal to review</span>",
+            "target": [
+              ".document-import-row > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<button type=\"button\" class=\"document-import-row active\"><strong>gaid-annual-return-notice.docx</strong><span>1 proposal to review</span><small>8/6/2026, 4:30:00 PM</small></button>",
+                    "target": [
+                      ".document-import-row"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<small>8/6/2026, 4:30:00 PM</small>",
+            "target": [
+              ".document-import-row > small"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 84
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#fefeff",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 33,
+        "y": 34,
+        "width": 93.34375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Meridian Trust Bank",
+      "foreground": "#152639",
+      "ratio": 15.264677772310213,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.administration-menu",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 115.71875,
+        "y": 26,
+        "width": 49.28125,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Admin",
+      "foreground": "#596c80",
+      "ratio": 5.40494707398212,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.demo-environment-menu",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 171,
+        "y": 26,
+        "width": 116,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Viewing as Chief Risk Officer",
+      "foreground": "#596c80",
+      "ratio": 5.40494707398212,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.demo-environment-menu",
+      "disabled": false,
+      "background": "#fefeff",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 171,
+        "y": 26,
+        "width": 116,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.5114940852526437,
+      "outsideRatio": 1.5114940852526437,
+      "insideRatio": 1.5182939594812732,
+      "fillRatio": 1.0044987766045361,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 100,
+        "width": 148.9375,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Meridian Trust Bank",
+      "foreground": "#0a7080",
+      "ratio": 5.372251539138774,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h1",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 127,
+        "width": 284,
+        "height": 36
+      },
+      "fontSize": "36px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Imports",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 3,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 167,
+        "width": 284,
+        "height": 65.0625
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Import documents, compare their obligations with current Programs, controls and evidence, then review proposed updates.",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 280.0625,
+        "width": 126.5,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Document import",
+      "foreground": "#0a7080",
+      "ratio": 5.372251539138774,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#document-import-title",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 305.0625,
+        "width": 280,
+        "height": 42
+      },
+      "fontSize": "28px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Imported documents",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 3,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 347.0625,
+        "width": 280,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Review imported documents and extracted obligations.",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.primary-button.document-import-open",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#e2eef0",
+      "uncertain": [],
+      "box": {
+        "x": 20,
+        "y": 406.4375,
+        "width": 148.53125,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Import document",
+      "foreground": "#0c1623",
+      "ratio": 15.348002676695126,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.primary-button.document-import-open",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 406.4375,
+        "width": 148.53125,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#6da3b0",
+      "ratio": 2.3578674022398243,
+      "outsideRatio": 2.603396812607299,
+      "insideRatio": 2.3578674022398243,
+      "fillRatio": 1.104131983899619,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.document-import-row.active",
+      "parentSelector": "div.document-import-list",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 490.4375,
+        "width": 284,
+        "height": 92
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#7cabb8",
+      "ratio": 2.0229881049450436,
+      "outsideRatio": 2.336575126567352,
+      "insideRatio": 2.0229881049450436,
+      "fillRatio": 1.155011797081638,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "button.document-import-row.active",
+      "disabled": false,
+      "background": "#dde9ee",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 33,
+        "y": 504.4375,
+        "width": 254,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "gaid-annual-return-notice.docx",
+      "foreground": "#152639",
+      "ratio": 12.381955338689757,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.document-import-row.active",
+      "disabled": false,
+      "background": "#dde9ee",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 33,
+        "y": 530.4375,
+        "width": 254,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "1 proposal to review",
+      "foreground": "#596c80",
+      "ratio": 4.3645917320116885,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "button.document-import-row.active",
+      "disabled": false,
+      "background": "#dde9ee",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 33,
+        "y": 551.9375,
+        "width": 254,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "8/6/2026, 4:30:00 PM",
+      "foreground": "#596c80",
+      "ratio": 4.3645917320116885,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 623.4375,
+        "width": 81.875,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Regulatory",
+      "foreground": "#0a7080",
+      "ratio": 5.765624531625917,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h2",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 648.4375,
+        "width": 246,
+        "height": 66
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "gaid-annual-return-notice.docx",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 714.4375,
+        "width": 246,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Assess updated annual return requirements",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.document-state",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 781.8125,
+        "width": 44.8125,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Extracted",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div.document-state",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 803.3125,
+        "width": 118.46875,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "2 eligible obligations",
+      "foreground": "#8b5b00",
+      "ratio": 5.84270165252351,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.import-review-summary",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 852.3125,
+        "width": 98.015625,
+        "height": 19.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "eligible obligations",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "span",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 853.3125,
+        "width": 7.484375,
+        "height": 17
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "2",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.import-review-summary",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 153.015625,
+        "y": 852.3125,
+        "width": 90.921875,
+        "height": 19.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "loaded for review",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "span",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 153.015625,
+        "y": 853.3125,
+        "width": 7.484375,
+        "height": 17
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "2",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.import-review-summary",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 879.8125,
+        "width": 155.828125,
+        "height": 19.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "awaiting review or authorization",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "span",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 880.8125,
+        "width": 7.484375,
+        "height": 17
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "0",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f7f9fb",
+      "uncertain": [],
+      "box": {
+        "x": 58,
+        "y": 957.3125,
+        "width": 153.5625,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Program comparison",
+      "foreground": "#0a7080",
+      "ratio": 5.463096999559166,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#coverage-assessment-title",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f7f9fb",
+      "uncertain": [],
+      "box": {
+        "x": 58,
+        "y": 980.3125,
+        "width": 204,
+        "height": 30
+      },
+      "fontSize": "20px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Coverage assessment",
+      "foreground": "#152639",
+      "ratio": 14.543141374559983,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f7f9fb",
+      "uncertain": [],
+      "box": {
+        "x": 58,
+        "y": 1014.3125,
+        "width": 204,
+        "height": 74.375
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Verified coverage requires an accepted requirement match, an implemented control, and current supporting evidence.",
+      "foreground": "#596c80",
+      "ratio": 5.126401514512201,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.coverage-primary",
+      "disabled": false,
+      "background": "#e6f0f2",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1121.6875,
+        "width": 174,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Verified document coverage",
+      "foreground": "#596c80",
+      "ratio": 4.666612709558359,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong.coverage-primary-value",
+      "parentSelector": "div.coverage-primary",
+      "disabled": false,
+      "background": "#e6f0f2",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1140.6875,
+        "width": 174,
+        "height": 43.5
+      },
+      "fontSize": "29px",
+      "fontWeight": "680",
+      "kind": "text",
+      "text": "0%",
+      "foreground": "#0a7080",
+      "ratio": 4.973109854841096,
+      "minimum": 3,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "div.coverage-primary",
+      "disabled": false,
+      "background": "#e6f0f2",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1188.1875,
+        "width": 174,
+        "height": 12.59375
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "0  of  2  obligations verified after review",
+      "foreground": "#596c80",
+      "ratio": 4.666612709558359,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1228.78125,
+        "width": 174,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Estimated",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1247.78125,
+        "width": 174,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "680",
+      "kind": "text",
+      "text": "0%",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1284.78125,
+        "width": 174,
+        "height": 12.59375
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "0  of  2  estimated before review",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1326.375,
+        "width": 174,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Mapped to requirements",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1345.375,
+        "width": 174,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "680",
+      "kind": "text",
+      "text": "50%",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1382.375,
+        "width": 174,
+        "height": 12.59375
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "1  of  2",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1423.96875,
+        "width": 174,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Controls implemented",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1442.96875,
+        "width": 174,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "680",
+      "kind": "text",
+      "text": "50%",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1479.96875,
+        "width": 174,
+        "height": 12.59375
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "1  of  2",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1521.5625,
+        "width": 174,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Evidence current",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1540.5625,
+        "width": 174,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "680",
+      "kind": "text",
+      "text": "0%",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 73,
+        "y": 1577.5625,
+        "width": 174,
+        "height": 12.59375
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "0  of  2",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h4",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f7f9fb",
+      "uncertain": [],
+      "box": {
+        "x": 123.640625,
+        "y": 1625.15625,
+        "width": 138.359375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Extracted obligations",
+      "foreground": "#152639",
+      "ratio": 14.543141374559983,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f7f9fb",
+      "uncertain": [],
+      "box": {
+        "x": 123.640625,
+        "y": 1654.15625,
+        "width": 138.359375,
+        "height": 14
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "2  count toward this assessment",
+      "foreground": "#596c80",
+      "ratio": 5.126401514512201,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button",
+      "parentSelector": "div.coverage-filters",
+      "disabled": false,
+      "background": "#e6f0f2",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 1692.15625,
+        "width": 29.296875,
+        "height": 40
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "All",
+      "foreground": "#152639",
+      "ratio": 13.238761767548263,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button",
+      "parentSelector": "div.coverage-filters",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 94.296875,
+        "y": 1692.15625,
+        "width": 62.953125,
+        "height": 40
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Needs review",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button",
+      "parentSelector": "div.coverage-filters",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 160.25,
+        "y": 1692.15625,
+        "width": 40.078125,
+        "height": 40
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Gaps",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button",
+      "parentSelector": "div.coverage-filters",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 203.328125,
+        "y": 1692.15625,
+        "width": 54.671875,
+        "height": 40
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Covered",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 77,
+        "y": 1777.15625,
+        "width": 78.921875,
+        "height": 12
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Source · page 3",
+      "foreground": "#0a7080",
+      "ratio": 5.765624531625917,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h5",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 77,
+        "y": 1797.15625,
+        "width": 79.34375,
+        "height": 263.859375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "The institution must maintain an accountable owner and authoritative source for every required annual return section.",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "mark",
+      "parentSelector": "div.coverage-candidate-heading",
+      "disabled": false,
+      "background": "#efeef9",
+      "uncertain": [],
+      "box": {
+        "x": 176.34375,
+        "y": 1771.15625,
+        "width": 68.65625,
+        "height": 23.5
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Evidence gap",
+      "foreground": "#6356c7",
+      "ratio": 4.954550335471185,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "blockquote",
+      "parentSelector": "article.coverage-candidate.classification-mapped-no-current-evidence",
+      "disabled": false,
+      "background": "#f3f8f9",
+      "uncertain": [],
+      "box": {
+        "x": 77,
+        "y": 2072.015625,
+        "width": 168,
+        "height": 76
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "The institution must maintain an accountable owner and authoritative source for every required annual return section.",
+      "foreground": "#596c80",
+      "ratio": 5.051094889334427,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f3f8f9",
+      "uncertain": [],
+      "box": {
+        "x": 90,
+        "y": 2172.015625,
+        "width": 142,
+        "height": 13.5
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Best existing match ·  89 %",
+      "foreground": "#0a7080",
+      "ratio": 5.382844331700244,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f3f8f9",
+      "uncertain": [],
+      "box": {
+        "x": 90,
+        "y": 2188.515625,
+        "width": 142,
+        "height": 36
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Nigeria Data Protection Programme",
+      "foreground": "#152639",
+      "ratio": 14.329503232229342,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f3f8f9",
+      "uncertain": [],
+      "box": {
+        "x": 90,
+        "y": 2227.515625,
+        "width": 142,
+        "height": 45
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "NDPA  /  NDPA-RET-01  ·  Maintain accountable data-processing governance",
+      "foreground": "#596c80",
+      "ratio": 5.051094889334427,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.active",
+      "parentSelector": "div.coverage-chain",
+      "disabled": false,
+      "background": "#dbeaed",
+      "uncertain": [],
+      "box": {
+        "x": 90,
+        "y": 2290.515625,
+        "width": 59.1875,
+        "height": 22
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Requirement",
+      "foreground": "#0a7080",
+      "ratio": 4.660930040554514,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.active",
+      "parentSelector": "div.coverage-chain",
+      "disabled": false,
+      "background": "#dbeaed",
+      "uncertain": [],
+      "box": {
+        "x": 153.1875,
+        "y": 2290.515625,
+        "width": 40.296875,
+        "height": 22
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Control",
+      "foreground": "#0a7080",
+      "ratio": 4.660930040554514,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.coverage-chain",
+      "disabled": false,
+      "background": "#f3f8f9",
+      "uncertain": [],
+      "box": {
+        "x": 90,
+        "y": 2316.515625,
+        "width": 45.125,
+        "height": 22
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Evidence",
+      "foreground": "#596c80",
+      "ratio": 5.051094889334427,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div.coverage-match",
+      "disabled": false,
+      "background": "#f3f8f9",
+      "uncertain": [],
+      "box": {
+        "x": 90,
+        "y": 2346.515625,
+        "width": 142,
+        "height": 77.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "The obligation and approved requirement share the same accountable-owner, source-record and Nigerian privacy scope.",
+      "foreground": "#596c80",
+      "ratio": 5.051094889334427,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "a.cs-action-link",
+      "parentSelector": "div.coverage-match",
+      "disabled": false,
+      "background": "#f3f8f9",
+      "uncertain": [],
+      "box": {
+        "x": 90,
+        "y": 2432.015625,
+        "width": 142,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Open matched requirement",
+      "foreground": "#152639",
+      "ratio": 14.329503232229342,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details",
+      "disabled": false,
+      "background": "#f3f8f9",
+      "uncertain": [],
+      "box": {
+        "x": 90,
+        "y": 2492.015625,
+        "width": 142,
+        "height": 13.5
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Why this match",
+      "foreground": "#596c80",
+      "ratio": 5.051094889334427,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.coverage-matter",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 89,
+        "y": 2541.515625,
+        "width": 144,
+        "height": 13.5
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Related issue",
+      "foreground": "#0a7080",
+      "ratio": 5.765624531625917,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div.coverage-matter",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 89,
+        "y": 2561.015625,
+        "width": 144,
+        "height": 66
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "CHG-2026-0042  ·  Implement GAID annual-return evidence requirements",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "div.coverage-matter",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 89,
+        "y": 2630.015625,
+        "width": 144,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Action In Progress",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "a.cs-action-link",
+      "parentSelector": "div.coverage-matter",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 89,
+        "y": 2648.015625,
+        "width": 144,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Open related issue",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.primary-button",
+      "parentSelector": "div.coverage-actions",
+      "disabled": false,
+      "background": "#e2eef0",
+      "uncertain": [],
+      "box": {
+        "x": 77,
+        "y": 2714.015625,
+        "width": 168,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Confirm match",
+      "foreground": "#152639",
+      "ratio": 12.952531668011913,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.primary-button",
+      "parentSelector": "div.coverage-actions",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 77,
+        "y": 2714.015625,
+        "width": 168,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#6ba2af",
+      "ratio": 2.3908595055304835,
+      "outsideRatio": 2.8331206183924182,
+      "insideRatio": 2.3908595055304835,
+      "fillRatio": 1.1849799671787096,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "button.secondary-button",
+      "parentSelector": "div.coverage-actions",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 77,
+        "y": 2765.015625,
+        "width": 168,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "No valid match",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.secondary-button",
+      "parentSelector": "div.coverage-actions",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 77,
+        "y": 2765.015625,
+        "width": 168,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c5d0db",
+      "ratio": 1.5649093034865218,
+      "outsideRatio": 1.5649093034865218,
+      "insideRatio": 1.5649093034865218,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "button.text-button",
+      "parentSelector": "div.coverage-actions",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 77,
+        "y": 2816.015625,
+        "width": 168,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Not applicable",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 77,
+        "y": 2910.015625,
+        "width": 70.15625,
+        "height": 33
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Source · page 3",
+      "foreground": "#0a7080",
+      "ratio": 5.765624531625917,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h5",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 77,
+        "y": 2951.015625,
+        "width": 76.78125,
+        "height": 121.78125
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "The completed return shall be reviewed before filing.",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "mark",
+      "parentSelector": "div.coverage-candidate-heading",
+      "disabled": false,
+      "background": "#efeef9",
+      "uncertain": [],
+      "box": {
+        "x": 173.78125,
+        "y": 2904.015625,
+        "width": 71.21875,
+        "height": 23.5
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Coverage gap",
+      "foreground": "#6356c7",
+      "ratio": 4.954550335471185,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "blockquote",
+      "parentSelector": "article.coverage-candidate.classification-gap",
+      "disabled": false,
+      "background": "#f3f8f9",
+      "uncertain": [],
+      "box": {
+        "x": 77,
+        "y": 3083.796875,
+        "width": 168,
+        "height": 46
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "The completed return shall be reviewed before filing.",
+      "foreground": "#596c80",
+      "ratio": 5.051094889334427,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div.coverage-no-match",
+      "disabled": false,
+      "background": "#f3eee5",
+      "uncertain": [],
+      "box": {
+        "x": 89,
+        "y": 3151.796875,
+        "width": 144,
+        "height": 33
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "No reliable requirement match",
+      "foreground": "#152639",
+      "ratio": 13.278539799899663,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div.coverage-no-match",
+      "disabled": false,
+      "background": "#f3eee5",
+      "uncertain": [],
+      "box": {
+        "x": 89,
+        "y": 3187.796875,
+        "width": 144,
+        "height": 46.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Link this obligation to an existing requirement or create a draft Program.",
+      "foreground": "#596c80",
+      "ratio": 4.68063431328472,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.text-button",
+      "parentSelector": "div.coverage-actions",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 77,
+        "y": 3256.296875,
+        "width": 168,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Not applicable",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 89,
+        "y": 3329.296875,
+        "width": 125.390625,
+        "height": 12
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Recommended next step",
+      "foreground": "#0a7080",
+      "ratio": 5.765624531625917,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 89,
+        "y": 3347.296875,
+        "width": 144,
+        "height": 33
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Add the pre-filing review requirement",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 89,
+        "y": 3380.296875,
+        "width": 144,
+        "height": 62
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "The privacy Program is in scope, but no approved requirement captures this review-before-filing duty.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.secondary-button",
+      "parentSelector": "div.coverage-recommendation",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 89,
+        "y": 3460.296875,
+        "width": 144,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Add draft requirement",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.secondary-button",
+      "parentSelector": "div.coverage-recommendation",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 89,
+        "y": 3460.296875,
+        "width": 144,
+        "height": 44
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c5d0db",
+      "ratio": 1.5649093034865218,
+      "outsideRatio": 1.5649093034865218,
+      "insideRatio": 1.5649093034865218,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "p.coverage-disclaimer",
+      "parentSelector": "section.coverage-assessment",
+      "disabled": false,
+      "background": "#f7f9fb",
+      "uncertain": [],
+      "box": {
+        "x": 58,
+        "y": 3550.296875,
+        "width": 204,
+        "height": 54
+      },
+      "fontSize": "9px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Percentages describe coverage against the extracted eligible obligations in this document. They are not a legal opinion ",
+      "foreground": "#596c80",
+      "ratio": 5.126401514512201,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "section.document-limitations",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 3656.296875,
+        "width": 246,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Important limitations",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section.document-limitations",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 3679.296875,
+        "width": 246,
+        "height": 34.09375
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "This sample uses reference content; no customer or bank document is included.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section.document-limitations",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 3718.390625,
+        "width": 246,
+        "height": 34.09375
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Review each proposal before use. The results are not legal advice or a compliance conclusion.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 3788.484375,
+        "width": 184.984375,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Reusable form authoring",
+      "foreground": "#0a7080",
+      "ratio": 5.765624531625917,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#document-form-authoring-title",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 3811.484375,
+        "width": 246,
+        "height": 24
+      },
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Use this source to draft a form",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 3838.484375,
+        "width": 246,
+        "height": 33
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Extracted controls and tabular fields can be reviewed before any draft is created.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.primary-button",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#e2eef0",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 3891.484375,
+        "width": 246,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Turn into form template",
+      "foreground": "#152639",
+      "ratio": 12.952531668011913,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.primary-button",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 3891.484375,
+        "width": 246,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#6ba2af",
+      "ratio": 2.3908595055304835,
+      "outsideRatio": 2.8331206183924182,
+      "insideRatio": 2.3908595055304835,
+      "fillRatio": 1.1849799671787096,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "summary",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 3973.984375,
+        "width": 105.765625,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Extraction proposals",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "summary",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 200.125,
+        "y": 3974.734375,
+        "width": 59.234375,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "600",
+      "kind": "text",
+      "text": "1  unreviewed",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "summary",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 37,
+        "y": 4026.484375,
+        "width": 115.4375,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Original source details",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "summary",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 210.125,
+        "y": 4027.234375,
+        "width": 49.234375,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "600",
+      "kind": "text",
+      "text": "1  extracted",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#fefeff",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 34.015625,
+        "y": 809,
+        "width": 20.75,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Today",
+      "foreground": "#596c80",
+      "ratio": 5.3807403252916135,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#fefeff",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 85.296875,
+        "y": 809,
+        "width": 33.796875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Programs",
+      "foreground": "#596c80",
+      "ratio": 5.3807403252916135,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#fefeff",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 150.6875,
+        "y": 809,
+        "width": 18.609375,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Work",
+      "foreground": "#596c80",
+      "ratio": 5.3807403252916135,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#fefeff",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 203.40625,
+        "y": 809,
+        "width": 28.75,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendors",
+      "foreground": "#596c80",
+      "ratio": 5.3807403252916135,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#fefeff",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 264.75,
+        "y": 809,
+        "width": 21.671875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Forms",
+      "foreground": "#596c80",
+      "ratio": 5.3807403252916135,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    }
+  ],
+  "assetURLs": [
+    "http://127.0.0.1:4179/assets/index-c-wtzmjC.js",
+    "http://127.0.0.1:4179/assets/ui-BKmW7Hgr.js",
+    "http://127.0.0.1:4179/assets/vendorIdentity-DNAUaTE1.js",
+    "http://127.0.0.1:4179/assets/form-policies-B7RQjXrL.js",
+    "http://127.0.0.1:4179/assets/http-CsyLtnQx.js",
+    "http://127.0.0.1:4179/assets/api-4YXod1O7.js",
+    "http://127.0.0.1:4179/assets/monitoringApi-B_rnuu-E.js",
+    "http://127.0.0.1:4179/assets/FocusedSheet-D6A2pfF6.js",
+    "http://127.0.0.1:4179/assets/FileDropzone-D3bjzZCz.js",
+    "http://127.0.0.1:4179/assets/FormPreview-xfiykOdw.js",
+    "http://127.0.0.1:4179/assets/identityAccessApi-DQ4JpP1X.js",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-CP0P4Fzd.js",
+    "http://127.0.0.1:4179/assets/formPoliciesApi-BOB15CUF.js",
+    "http://127.0.0.1:4179/assets/FormBuilder-D0uIMr0F.js",
+    "http://127.0.0.1:4179/assets/preload-helper-Czpn1I53.js",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-DF59NCDq.js",
+    "http://127.0.0.1:4179/assets/EmptyState-CAuvZgjp.js",
+    "http://127.0.0.1:4179/assets/SessionGate-e9miZAkm.js",
+    "http://127.0.0.1:4179/assets/ui-BqQkgK9q.css",
+    "http://127.0.0.1:4179/assets/form-policies-CXmCjy0e.css",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-CoL3pBsn.js",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-Bc4QplLt.css",
+    "http://127.0.0.1:4179/assets/FormBuilder-BR0NOz-_.css",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-xmrvZhbh.css",
+    "http://127.0.0.1:4179/assets/SessionGate-CBT7oevM.css",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-BbMW_Uts.css",
+    "http://127.0.0.1:4179/assets/index-BfD_vL87.css",
+    "http://127.0.0.1:4179/assets/forms-BF_LZwBu.css",
+    "http://127.0.0.1:4179/assets/staticDemoWorkflowRuntime-CCKpbhZb.js",
+    "http://127.0.0.1:4179/assets/staticDemoFixtures-BJo7eiOJ.json",
+    "http://127.0.0.1:4179/assets/App-DiZZLB_H.js",
+    "http://127.0.0.1:4179/assets/Monogram-k38BLA7P.js",
+    "http://127.0.0.1:4179/assets/VendorWorkPanel-D3NeEmZw.js",
+    "http://127.0.0.1:4179/assets/VendorWorkPanel-CU0uMlLg.css",
+    "http://127.0.0.1:4179/assets/WorkspaceErrorBoundary-Di4hsd7o.js",
+    "http://127.0.0.1:4179/assets/FormProposalReview-siSJwhuo.js",
+    "http://127.0.0.1:4179/assets/App-CI3YKleN.css"
+  ],
+  "layout": {
+    "clientWidth": 320,
+    "scrollWidth": 320
+  },
+  "headings": [
+    "Imports",
+    "Imported documents",
+    "gaid-annual-return-notice.docx"
+  ],
+  "status": "CAPTURED"
+}

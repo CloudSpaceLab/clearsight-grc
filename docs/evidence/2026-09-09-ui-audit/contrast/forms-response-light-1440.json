@@ -1,0 +1,775 @@
+{
+  "id": "forms-response-light-1440",
+  "name": "forms-response",
+  "fixture": "forms-response-history",
+  "route": "#forms",
+  "action": "response",
+  "theme": "light",
+  "width": 1440,
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "fgColor": "#596c80",
+                  "bgColor": "#d4e4e3",
+                  "contrastRatio": 4.12,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": null,
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<span class=\"cs-status-badge cs-tone--success\"><span class=\"cs-status-badge__marker\" aria-hidden=\"true\"></span>Low concern</span>",
+                    "target": [
+                      ".forms-response-review__summary > .cs-status-badge.cs-tone--success"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"cs-sheet cs-sheet--wide forms-response-review\" data-rac=\"\">",
+                    "target": [
+                      ".cs-sheet"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element has insufficient color contrast of 4.12 (foreground color: #596c80, background color: #d4e4e3, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-status-badge cs-tone--success\"><span class=\"cs-status-badge__marker\" aria-hidden=\"true\"></span>Low concern</span>",
+            "target": [
+              ".forms-response-review__summary > .cs-status-badge.cs-tone--success"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.12 (foreground color: #596c80, background color: #d4e4e3, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscuring",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Secure link confirmed · Aug 20, 2026, 2:15 PM</span>",
+            "target": [
+              "li:nth-child(1) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscuring",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Revision 2 · Current</strong>",
+            "target": [
+              "li:nth-child(2) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 26
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "#react-aria8564073249-_r_2s_",
+      "text": "",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 1359,
+        "y": 37,
+        "width": 44,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "p",
+      "text": "Completed response",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 37,
+        "width": 690,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h2",
+      "text": "Vendor due diligence review",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 66.6875,
+        "width": 690,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5
+    },
+    {
+      "selector": "p",
+      "text": "Vendor  ·  vendor-acme-processing",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 107.6875,
+        "width": 690,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "p",
+      "text": "Score result",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 617,
+        "y": 173.375,
+        "width": 259.625,
+        "height": 18.59375
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5
+    },
+    {
+      "selector": "#response-score-heading",
+      "text": "86% compliance",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 617,
+        "y": 195.96875,
+        "width": 259.625,
+        "height": 54
+      },
+      "fontSize": "36px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 3
+    },
+    {
+      "selector": "span",
+      "text": "Meets expected level",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 617,
+        "y": 253.96875,
+        "width": 259.625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--success",
+      "text": "Low concern",
+      "disabled": false,
+      "background": "#d3e3e2",
+      "uncertain": [],
+      "box": {
+        "x": 1209.96875,
+        "y": 211.171875,
+        "width": 109.03125,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.097318023348018,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Completed",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 318.96875,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Aug 27, 2026, 2:15 PM",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 340.96875,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Response revision",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 848.328125,
+        "y": 318.96875,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "2  · Current",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 848.328125,
+        "y": 340.96875,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Assurance",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 1099.65625,
+        "y": 318.96875,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Email verified",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 1099.65625,
+        "y": 340.96875,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Score coverage",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 370.96875,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "100%",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 392.96875,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Score state",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 848.328125,
+        "y": 370.96875,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Final",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 848.328125,
+        "y": 392.96875,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Scoring profile",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 1099.65625,
+        "y": 370.96875,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "vendor-review-2026",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 1099.65625,
+        "y": 392.96875,
+        "width": 239.328125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5
+    },
+    {
+      "selector": "p",
+      "text": "Submitted versions",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 434.96875,
+        "width": 742,
+        "height": 18.59375
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#0a7080",
+      "ratio": 5.161262290605977,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h3",
+      "text": "Version history",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 453.5625,
+        "width": 742,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Revision  1",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 609,
+        "y": 502.5625,
+        "width": 67.03125,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Secure link confirmed  ·  Aug 20, 2026, 2:15 PM",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 1044.765625,
+        "y": 502.5625,
+        "width": 282.234375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Revision  2  · Current",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 609,
+        "y": 555.5625,
+        "width": 128.34375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Email verified  ·  Aug 27, 2026, 2:15 PM",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 1095.78125,
+        "y": 555.5625,
+        "width": 231.21875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "div.cs-notice.cs-tone--error",
+      "text": "Static stakeholder demo does not implement GET /api/v1/forms/responses/response-revision-acme-2/assessment",
+      "disabled": false,
+      "background": "#f9f0f1",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 612.5625,
+        "width": 742,
+        "height": 47
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.712895033092146,
+      "minimum": 4.5
+    },
+    {
+      "selector": "#react-aria8564073249-_r_32_",
+      "text": "",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 659.5625,
+        "width": 184.40625,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span",
+      "text": "Reload bank assessment",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 614,
+        "y": 671.0625,
+        "width": 150.40625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5
+    },
+    {
+      "selector": "#react-aria8564073249-_r_2v_",
+      "text": "",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 727.5625,
+        "width": 742,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span",
+      "text": "View submitted documents",
+      "disabled": false,
+      "background": "#e6edf3",
+      "uncertain": [],
+      "box": {
+        "x": 883.6875,
+        "y": 739.0625,
+        "width": 168.625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#0c1623",
+      "ratio": 15.391883683453138,
+      "minimum": 4.5
+    },
+    {
+      "selector": "div.cs-notice.cs-tone--info",
+      "text": "This submitted version cannot be changed. Send an amended form when the subject must provide updated information.",
+      "disabled": false,
+      "background": "#ebf4f5",
+      "uncertain": [],
+      "box": {
+        "x": 597,
+        "y": 795.5625,
+        "width": 742,
+        "height": 68
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.734137343584273,
+      "minimum": 4.5
+    }
+  ],
+  "headings": [
+    "Forms",
+    "Responses",
+    "Vendor due diligence review"
+  ],
+  "status": "CAPTURED"
+}

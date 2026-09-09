@@ -104,7 +104,7 @@ describe("Task 11 governed form views", () => {
   it("shows score-aware immutable response state without mutation controls", async () => {
     render(<ResponsesView/>);
     expect(await screen.findByText("Quarterly control review")).toBeTruthy();
-    expect(screen.getByRole("table", { name: "Completed form responses" })).toBeTruthy();
+    expect(screen.getByRole("table", { name: "Submitted form responses" })).toBeTruthy();
     expect(screen.getByText("92% compliance")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review Quarterly control review response" }));
     expect(await screen.findByText("Email verified")).toBeTruthy();

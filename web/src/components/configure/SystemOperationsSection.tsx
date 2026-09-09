@@ -78,7 +78,7 @@ export function SystemOperationsSection({ canReconcile }: { canReconcile: boolea
 
   return <section className="configure-domain" aria-labelledby="system-operations-heading">
     <header className="configure-domain-header">
-      <div><span className="eyebrow">Configuration · operations</span><h2 id="system-operations-heading">System operations</h2><p>Inspect platform health, recent system activity and the recorded audit trail without mixing operational recovery with governed business work.</p></div>
+      <div><span className="eyebrow">Configuration · operations</span><h2 id="system-operations-heading">System operations</h2><p>Review processing failures, system activity and audit history.</p></div>
       {view === "health" && state === "unavailable" && <Button variant="secondary" onPress={() => void loadHealth()}>Retry</Button>}
     </header>
 

@@ -1,7 +1,7 @@
 import type { ApiErrorKind } from "../../http";
 import type { CaptureAnswerValue, CaptureAnswers, CaptureField, CaptureRequest } from "../../types";
 import type { CaptureAttachment } from "./CaptureFieldControl";
-import { answerText, normalizeFieldType } from "./contract";
+import { answerIsPresent, answerText, documentAlreadyReceived, normalizeFieldType } from "./contract";
 import { reviewProvenanceLabel } from "./sourceProvenance";
 
 type Props = { request: CaptureRequest; fields: CaptureField[]; answers: CaptureAnswers; attachments: Record<string, CaptureAttachment[]>; external?: boolean; submitting: boolean; error: string | null; errorKind: ApiErrorKind | null; onEdit: () => void; onReload?: () => void; onSubmit: () => void };
@@ -24,10 +24,12 @@ function groupReviewFields(fields: CaptureField[], answers: CaptureAnswers) {
     { key: "replacements", label: "Replacement documents", fields: [] as CaptureField[] },
     { key: "new-files", label: "New files and documents", fields: [] as CaptureField[] },
     { key: "other", label: "Other responses", fields: [] as CaptureField[] },
+    { key: "received", label: "Received documents", fields: [] as CaptureField[] },
   ];
   for (const field of fields) {
     const answer = answers[field.id];
-    if (field.collection_intent === "REPLACE_HELD_DOCUMENT") definitions[2]!.fields.push(field);
+    if (documentAlreadyReceived(field) && !answerIsPresent(answer)) definitions[5]!.fields.push(field);
+    else if (field.collection_intent === "REPLACE_HELD_DOCUMENT") definitions[2]!.fields.push(field);
     else if (field.record_baseline && answer?.text === field.record_baseline.display_value) definitions[0]!.fields.push(field);
     else if (field.record_baseline && answer) definitions[1]!.fields.push(field);
     else if (["file", "photo", "vendor_document"].includes(normalizeFieldType(field.type) ?? "")) definitions[3]!.fields.push(field);
@@ -37,6 +39,7 @@ function groupReviewFields(fields: CaptureField[], answers: CaptureAnswers) {
 }
 
 function reviewValue(field: CaptureField, answer?: CaptureAnswerValue, attachments: CaptureAttachment[] = []) {
+  if (documentAlreadyReceived(field) && !answerIsPresent(answer)) return "No upload needed.";
   const type = normalizeFieldType(field.type);
   if (!answer) return "Not provided";
   if (type === "signature") return answer.artifact_ids?.length ? "Signed" : "Not provided";

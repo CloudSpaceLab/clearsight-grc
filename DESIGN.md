@@ -190,9 +190,9 @@ Required fixtures: populated/mixed types, exact response, exact vendor, current/
 
 ### Vendor due diligence
 
-Selected relationships use Overview, Forms, Documents, Due diligence and History. Shared Tabs retain visited panels lazily; at 760px and below the labelled Vendor section selector replaces the tab strip and the selected relationship replaces the register. The persistent header shows vendor, service, relationship status and current owner; Overview owns edit controls and collapsed record metadata. Forms owns its request action, Documents reuses the relationship-scoped browser, and History rechecks current revisions on return without discarding review drafts. An unavailable currency check cannot enable a bank review. Guided and register-summary shortcuts select the relevant section without executing a command or stealing focus on later tab visits.
+Selected relationships use Overview, Forms, Documents, Due diligence and History. Shared Tabs retain visited panels lazily; at 760px and below the labelled Vendor section selector replaces the tab strip and the selected relationship replaces the register. The persistent header shows vendor, service, relationship status and current owner; Overview owns edit controls and collapsed record metadata. Forms owns its request action, Documents reuses the relationship-scoped browser, and History rechecks current revisions on return without discarding review drafts. An unavailable currency check cannot enable a review. Guided and register-summary shortcuts select the relevant section without executing a command or stealing focus on later tab visits.
 
-The Vendors workspace uses one dominant action for the current assessment state: start or restart onboarding, start a scheduled or event-driven reassessment, send the request, review collection status, begin bank review or record the conclusion. A reassessment requires the bank's schedule, change or event reference so a retry reuses the same episode. The selected vendor, service, accountable owner, exact form version and review deadline remain visible around that action.
+The Vendors workspace uses one dominant action for the current assessment state: start or restart onboarding, start a scheduled or event-driven reassessment, send the request, review collection status, begin review or record the conclusion. A reassessment requires the organization's schedule, change or event reference so a retry reuses the same episode. The selected vendor, service, accountable owner, exact form version and review deadline remain visible around that action.
 
 A new vendor records legal name, service, website and registered address in the same focused setup. Website discovery is optional and never blocks creation or due diligence. The reference environment installs its standard due-diligence form through the same draft, maker submission and distinct-checker activation transitions used by configuration commands. A non-reference tenant with no active form opens a focused governed setup that selects a Program, creates the draft, submits it for approval and requires a different authorized checker before activation; the interface never silently activates a form.
 
@@ -230,7 +230,7 @@ A Program or issue or change may link one or more vendor relationships without t
 
 `Link vendor` opens a focused sheet with a blurred, opaque-fallback backdrop. Search is bounded and delayed briefly while typing; each choice shows the stored vendor icon or monogram, legal name, service, criticality and relationship status. The sheet traps keyboard focus, supports Escape, restores focus to its trigger and preserves the search, selection and purpose after a recoverable failure.
 
-The bank review shows the exact current response and AVAILABLE documents before `Accept response` is enabled as the dominant conclusion. Receipt, upload, review, acceptance, implementation and verified outcome remain separate states. Acceptance never closes a Matter, completes an action, changes a Program's status or approves the vendor relationship. Ending a vendor link is unavailable while active vendor work still depends on it; ended links and prior responses remain in history.
+The review shows the exact current response and AVAILABLE documents before `Accept response` is enabled as the dominant conclusion. Receipt, upload, review, acceptance, implementation and verified outcome remain separate states. Acceptance never closes a Matter, completes an action, changes a Program's status or approves the vendor relationship. Ending a vendor link is unavailable while active vendor work still depends on it; ended links and prior responses remain in history.
 
 External capture should minimize normal-path typing. A field-visit verification should ordinarily be completable through known context, tap choices, required photo evidence, an optional exception note and an attestation/signature. The interface target is under four minutes for a representative simple visit; that target is not considered proven until a timed usability run confirms it.
 
@@ -255,6 +255,10 @@ A disabled control explains why. A visible enabled control must perform a real a
 Deadline recovery never relies on colour alone: overdue work has a text badge, a semantic date-time value and a readable elapsed-time label in both themes.
 
 ## Responsive behavior
+
+Vendor due diligence uses **Checklist**, **Missing**, **Awaiting review**, **Accepted** and **Received**. Do not expand these into question-like headings or explanatory status sentences. Retain supporting text only for the actor, source, condition, consequence or recovery. Unresolved applicability is labelled **Applicability pending**, independently of missing evidence. A received or linked document does not imply acceptance or vendor approval.
+
+The due-diligence checklist precedes form history; vendor reference details are expandable. Existing documents are selected in the protected document browser, linked with a reason, and reviewed in a focused sheet with Accept/Reject. On mobile, checklist rows and summary filters stack; selection and review actions remain reachable. See the [decision brief](docs/design/2026-09-08-vendor-evidence-reconciliation.md).
 
 Responsive work is replacement, not shrinking:
 
@@ -292,3 +296,19 @@ Significant UI work requires:
 Vitest/axe semantic checks are executable CI evidence, but jsdom does not prove visual contrast, 200% zoom, responsive replacement or theme parity. Those remain rendered-browser evidence gates.
 
 See `docs/design/ui-delivery-workflow.md` and `docs/quality/rendered-ui-evidence.md`.
+
+## UI audit corrections — 9 September 2026
+
+- Shared input boundaries use `--cs-border-field`; placeholders use opaque `--cs-text-placeholder`. These are distinct from decorative dividers. Placeholder text uses neutral 700 in light mode and neutral 500 in dark mode; field boundaries use neutral 600. Status backgrounds are an opaque 8% tone mix over the theme surface, so selection/tint beneath a badge does not change its text pair.
+- Vendor relationship creation, due-diligence editing/review and linked-work recovery use shared field/action contracts. Specialized document, radio and vendor-identity controls retain their explicit contracts. TextField supports native pattern/inputMode/focus and stable IDs; TextArea supports stable IDs and address autocomplete.
+- FocusedSheet and FocusedDialog share scroll-lock and focus-return mechanics. Their geometry and in-flight dismissal behavior remain separate. Multiple overlays retain the lock until the last closes. The older domain EmptyState is a thin adapter to the shared rendering contract, with an action only when it has a handler.
+- The current vendor checklist leads; **Requests** and **Linked vendor work** are secondary disclosures. Errors and reload controls remain visible outside the Requests disclosure. Attention routes expand their destination. Checklist document coverage is matched per field; uncovered documents remain available even when another field uses the same artifact.
+- Response detail presents identity/history once and a single assessment/result/document entry. Automatic and reviewed results remain distinct. Response list filters are collapsed behind **Filters**; counts, active filters and reset remain visible. This replaces the default vertical filter stack at narrow widths.
+- Forms Imports opens the Imports workspace directly; old section URLs hand off without another launcher. Builder overview shows review counts and configuration errors; selected questions retain detailed rubrics.
+- Shared copy follows the [industry-neutral content standard](docs/product/plain-language-content-standard.md). Required state fixtures include unavailable/stale calculations, absent/invalid schedules, missing/reassigned historical reviewers and nonbank requirement authoring.
+
+The accepted audit is the decision brief. Before-state captures remain under `docs/evidence/2026-09-09-ui-audit`; correction evidence and its limitations are recorded in the acceptance receipt. These changes do not establish product-wide component migration or WCAG conformance.
+
+Selected values in shared SelectField show the option label only. Optional descriptions remain in the option menu; they are not concatenated into the collapsed trigger. Imports mobile actions use the existing `--cs-target-min` target height.
+
+Spreadsheet field review uses one keyboard-focusable scrolling region capped at 720px or 65svh. On narrow screens its fields and preview stack within that region; the draft actions follow it instead of following the full spreadsheet length. New vendor classification fields start empty. The starter's Yes/No assurance declaration reveals either document collection or a required gap explanation, with receipt and review still separate.

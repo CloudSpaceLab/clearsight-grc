@@ -234,6 +234,7 @@ func appendPostgresScoredResponseEvent(ctx context.Context, tx pgx.Tx, session D
 	eventType := fmt.Sprintf("FORM_RESPONSE_SCORED_%d", revision.Revision)
 	payload := map[string]any{
 		"version": revision.Revision, "response_revision_id": revision.ID,
+		"request_id": request.ID, "request_version": request.Version,
 		"form_template_id": request.FormTemplateID, "form_template_version": request.FormTemplateVersion,
 		"score_state": string(scoreState),
 	}

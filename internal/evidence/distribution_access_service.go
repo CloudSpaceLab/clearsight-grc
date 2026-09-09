@@ -273,6 +273,16 @@ func (service *DistributionAccessService) RevokeDistributionAccessRoute(ctx cont
 }
 
 func (service *DistributionAccessService) SessionRequest(ctx context.Context, sessionToken string) (DistributionAccessSession, Request, error) {
+	session, request, err := service.sessionRequest(ctx, sessionToken)
+	if err != nil {
+		return DistributionAccessSession{}, Request{}, err
+	}
+	return session, RespondentRequestAt(request, service.currentTime()), nil
+}
+
+// sessionRequest retains server-owned collection receipts for internal
+// validation. Public callers receive only the respondent-safe projection.
+func (service *DistributionAccessService) sessionRequest(ctx context.Context, sessionToken string) (DistributionAccessSession, Request, error) {
 	if service == nil || strings.TrimSpace(sessionToken) == "" {
 		return DistributionAccessSession{}, Request{}, ErrSessionInvalid
 	}
@@ -313,7 +323,7 @@ func (service *DistributionAccessService) SessionRequest(ctx context.Context, se
 		subtle.ConstantTimeCompare(protected.Hash, request.Recipient.AudienceHash) != 1 {
 		return DistributionAccessSession{}, Request{}, ErrSessionInvalid
 	}
-	return session, RespondentRequest(request), nil
+	return session, request, nil
 }
 
 func (service *DistributionAccessService) resolvePublicRoute(ctx context.Context, routeSelector string) (AccessRoute, DistributionBundle, string, error) {

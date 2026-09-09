@@ -1,0 +1,2586 @@
+{
+  "id": "program-detail-dark-390",
+  "name": "program-detail",
+  "fixture": "",
+  "route": "#programs/program-ndpa/overview",
+  "theme": "dark",
+  "width": 390,
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Meridian Trust Bank</strong>",
+            "target": [
+              ".context-bar > div:nth-child(1) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<summary aria-label=\"Administration\">Admin</summary>",
+                    "target": [
+                      "summary[aria-label=\"Administration\"]"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary aria-label=\"Administration\">Admin</summary>",
+            "target": [
+              "summary[aria-label=\"Administration\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<summary role=\"button\" aria-label=\"Viewing as Chief Risk Officer. Demo environment\">Viewing as Chief Risk Officer</summary>",
+                    "target": [
+                      "summary[role=\"button\"]"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary role=\"button\" aria-label=\"Viewing as Chief Risk Officer. Demo environment\">Viewing as Chief Risk Officer</summary>",
+            "target": [
+              "summary[role=\"button\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Meridian Trust Bank</span>",
+            "target": [
+              ".topbar > div:nth-child(1) > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "27.0pt (36px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h1>Programs</h1>",
+            "target": [
+              ".topbar > div:nth-child(1) > h1"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Ongoing obligations, safeguards, evidence checks and open issues.</p>",
+            "target": [
+              ".topbar > div:nth-child(1) > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<button aria-label=\"Back to Programs\" class=\"text-button program-record-back\" type=\"button\">← Back to Programs</button>",
+            "target": [
+              ".text-button"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Program section</span>",
+            "target": [
+              ".program-section-selector > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h3 tabindex=\"-1\">Overview</h3>",
+            "target": [
+              "#program-panel-overview > h3"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<span><strong>Owner</strong> Data Protection Officer</span>",
+                    "target": [
+                      ".program-position-facts > span:nth-child(1)"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Today</span>",
+            "target": [
+              "button[type=\"button\"]:nth-child(1) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<button type=\"button\" aria-current=\"page\">",
+                    "target": [
+                      "button[aria-current=\"page\"][type=\"button\"]"
+                    ]
+                  },
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<span><strong>Owner</strong> Data Protection Officer</span>",
+                    "target": [
+                      ".program-position-facts > span:nth-child(1)"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Programs</span>",
+            "target": [
+              "button[aria-current=\"page\"][type=\"button\"] > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<span><strong>Owner</strong> Data Protection Officer</span>",
+                    "target": [
+                      ".program-position-facts > span:nth-child(1)"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Work</span>",
+            "target": [
+              "button[type=\"button\"]:nth-child(3) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<span><strong>Owner</strong> Data Protection Officer</span>",
+                    "target": [
+                      ".program-position-facts > span:nth-child(1)"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Vendors</span>",
+            "target": [
+              "button[type=\"button\"]:nth-child(4) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<span><strong>Owner</strong> Data Protection Officer</span>",
+                    "target": [
+                      ".program-position-facts > span:nth-child(1)"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Forms</span>",
+            "target": [
+              "button[type=\"button\"]:nth-child(5) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 65
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "strong",
+      "text": "Meridian Trust Bank",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 33,
+        "y": 34,
+        "width": 113.65625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.464170427534874,
+      "minimum": 4.5
+    },
+    {
+      "selector": "summary",
+      "text": "Admin",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 185.71875,
+        "y": 26,
+        "width": 49.28125,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.675169205499221,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Configuration",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": -60,
+        "y": 83,
+        "width": 280,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.382537400712529,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "People, authority, data, automation and system operations.",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": -60,
+        "y": 105,
+        "width": 280,
+        "height": 14.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.669966095154851,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Open Configuration",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": -60,
+        "y": 131.5,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Open Configuration",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": -60,
+        "y": 131.5,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "summary",
+      "text": "Viewing as Chief Risk Officer",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 241,
+        "y": 26,
+        "width": 116,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.675169205499221,
+      "minimum": 4.5
+    },
+    {
+      "selector": "summary",
+      "text": "Viewing as Chief Risk Officer",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 241,
+        "y": 26,
+        "width": 116,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5193364728028564,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "strong",
+      "text": "Non-production sample data",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 83,
+        "width": 280,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.382537400712529,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "This workspace contains seeded reference records for role-based testing.",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 105,
+        "width": 280,
+        "height": 29
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.669966095154851,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Viewing as",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 157,
+        "width": 280,
+        "height": 14.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.669966095154851,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Chief Risk Officer",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 175.5,
+        "width": 280,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.382537400712529,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Switch account",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 216.5,
+        "width": 280,
+        "height": 14.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.669966095154851,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Data Protection Officer",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 237,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Data Protection Officer",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 237,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Data Protection Compliance Officer",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 282,
+        "width": 280,
+        "height": 60
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Data Protection Compliance Officer",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 282,
+        "width": 280,
+        "height": 60
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Privacy Control Owner",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 348,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Privacy Control Owner",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 348,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button",
+      "text": "Reference journeys",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 399,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Reference journeys",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 399,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span.eyebrow",
+      "text": "Meridian Trust Bank",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 100,
+        "width": 148.9375,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 9.479578580346425,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h1",
+      "text": "Programs",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 127,
+        "width": 354,
+        "height": 36
+      },
+      "fontSize": "36px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 18.970954227610815,
+      "minimum": 3
+    },
+    {
+      "selector": "p",
+      "text": "Ongoing obligations, safeguards, evidence checks and open issues.",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 167,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 7.081695290667391,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Analyze document",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 234.375,
+        "width": 354,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Analyze document",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 234.375,
+        "width": 354,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.603342995694178,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button.text-button.program-record-back",
+      "text": "← Back to Programs",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 301.375,
+        "width": 140.25,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 9.479578580346425,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span.program-kicker",
+      "text": "NDPA  ·  Data Protection Office",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 385.375,
+        "width": 184.984375,
+        "height": 14
+      },
+      "fontSize": "10px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 8.924880061540987,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h1",
+      "text": "Nigeria Data Protection Programme",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 409.375,
+        "width": 320,
+        "height": 55.53125
+      },
+      "fontSize": "24.8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 17.860866883411923,
+      "minimum": 3
+    },
+    {
+      "selector": "p",
+      "text": "Nigeria",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 470.90625,
+        "width": 320,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Operating status",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 516.59375,
+        "width": 87.984375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Active",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 322.71875,
+        "y": 516.59375,
+        "width": 32.28125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Calculated state",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 551.59375,
+        "width": 84.09375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Evidence incomplete",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 245.84375,
+        "y": 551.59375,
+        "width": 109.15625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Record version",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 586.59375,
+        "width": 78.21875,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "12",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 342.0625,
+        "y": 586.59375,
+        "width": 12.9375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span.eyebrow",
+      "text": "Current position",
+      "disabled": false,
+      "background": "#182029",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 669.59375,
+        "width": 124.28125,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 8.21431232495735,
+      "minimum": 4.5
+    },
+    {
+      "selector": "#program-current-position-heading",
+      "text": "Evidence incomplete",
+      "disabled": false,
+      "background": "#182029",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 691.59375,
+        "width": 320,
+        "height": 27.609375
+      },
+      "fontSize": "18.4px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 16.43884712883201,
+      "minimum": 4.5
+    },
+    {
+      "selector": "p",
+      "text": "Status calculated   from the latest Program changes.",
+      "disabled": false,
+      "background": "#182029",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 727.203125,
+        "width": 320,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.136481322948825,
+      "minimum": 4.5
+    },
+    {
+      "selector": "time",
+      "text": "8/6/2026, 4:30:00 PM",
+      "disabled": false,
+      "background": "#182029",
+      "uncertain": [],
+      "box": {
+        "x": 142.328125,
+        "y": 728.203125,
+        "width": 131.125,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.136481322948825,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Data Protection Officer",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 784.578125,
+        "width": 320,
+        "height": 34
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Owner",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 45,
+        "y": 793.578125,
+        "width": 37.203125,
+        "height": 16
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "2",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 826.578125,
+        "width": 320,
+        "height": 34
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Open issues",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 45,
+        "y": 835.578125,
+        "width": 66.609375,
+        "height": 16
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "2",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 868.578125,
+        "width": 320,
+        "height": 34
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Requirements",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 45,
+        "y": 877.578125,
+        "width": 78.046875,
+        "height": 16
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h3",
+      "text": "Why this status",
+      "disabled": false,
+      "background": "#182029",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 933.578125,
+        "width": 320,
+        "height": 21.609375
+      },
+      "fontSize": "14.4px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 16.43884712883201,
+      "minimum": 4.5
+    },
+    {
+      "selector": "li",
+      "text": "Two annual-return evidence sections still need an accountable owner.",
+      "disabled": false,
+      "background": "#182029",
+      "uncertain": [],
+      "box": {
+        "x": 55,
+        "y": 963.1875,
+        "width": 300,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.136481322948825,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.primary-button",
+      "text": "Confirm the Program review",
+      "disabled": false,
+      "background": "#162d3b",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1030.5625,
+        "width": 320,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 14.260274375259133,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.primary-button",
+      "text": "Confirm the Program review",
+      "disabled": false,
+      "background": "#182029",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1030.5625,
+        "width": 320,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "foreground": "#3f7d8f",
+      "ratio": 3.5550436332620445,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "small",
+      "text": "You hold the current responsibility for this Program and can complete this action.",
+      "disabled": false,
+      "background": "#182029",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1083.5625,
+        "width": 300,
+        "height": 33.59375
+      },
+      "fontSize": "11.2px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.136481322948825,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Program section",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 1152.15625,
+        "width": 354,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 7.081695290667391,
+      "minimum": 4.5
+    },
+    {
+      "selector": "select",
+      "text": "",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1177.15625,
+        "width": 354,
+        "height": 44
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.603342995694178,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "h3",
+      "text": "Overview",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 1239.15625,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 18.970954227610815,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span.eyebrow",
+      "text": "Since your last review",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1295.15625,
+        "width": 163.921875,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 8.924880061540987,
+      "minimum": 4.5
+    },
+    {
+      "selector": "#program-review-program-ndpa",
+      "text": "3 changes since your last review",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1312.15625,
+        "width": 320,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 17.860866883411923,
+      "minimum": 4.5
+    },
+    {
+      "selector": "p",
+      "text": "Last reviewed  Aug 4, 2026, 10:00 AM .  Changes made after that review are highlighted here.",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1338.15625,
+        "width": 320,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h4",
+      "text": "What changed",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1381.53125,
+        "width": 320,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 17.860866883411923,
+      "minimum": 4.5
+    },
+    {
+      "selector": "li",
+      "text": "Overall status changed from current to evidence insufficient.",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1402.53125,
+        "width": 320,
+        "height": 42
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "li",
+      "text": "Evidence for Annual return evidence package was assessed as partially supported.",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1444.53125,
+        "width": 320,
+        "height": 42
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "li",
+      "text": "Observed change: requirement changed.",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1486.53125,
+        "width": 320,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h4",
+      "text": "Exceptions still current",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1507.53125,
+        "width": 320,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 17.860866883411923,
+      "minimum": 4.5
+    },
+    {
+      "selector": "li",
+      "text": "Two annual-return evidence sections still need an accountable owner.",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1528.53125,
+        "width": 320,
+        "height": 42
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.primary-button",
+      "text": "Mark current state reviewed",
+      "disabled": false,
+      "background": "#162d3b",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1570.53125,
+        "width": 217.375,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 14.260274375259133,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.primary-button",
+      "text": "Mark current state reviewed",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1570.53125,
+        "width": 217.375,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "foreground": "#3f7d8f",
+      "ratio": 3.8625677701600414,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span.eyebrow",
+      "text": "Program lifecycle",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1669.53125,
+        "width": 131.34375,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 8.924880061540987,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h2",
+      "text": "Operating status",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1691.53125,
+        "width": 131.34375,
+        "height": 25.1875
+      },
+      "fontSize": "16.8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 17.860866883411923,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Current status",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1739.71875,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Active",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1773.71875,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Current authorizer",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1812.71875,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Chief Risk Officer",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1846.71875,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "New operating status",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1907.71875,
+        "width": 320,
+        "height": 18.71875
+      },
+      "fontSize": "12.48px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "select",
+      "text": "",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1932.4375,
+        "width": 320,
+        "height": 44
+      },
+      "fontSize": "12.48px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5095232148557631,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span",
+      "text": "Reason for status change",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1988.4375,
+        "width": 320,
+        "height": 18.71875
+      },
+      "fontSize": "12.48px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "textarea",
+      "text": "",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2013.15625,
+        "width": 320,
+        "height": 58.1875
+      },
+      "fontSize": "12.48px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5095232148557631,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button.primary-button",
+      "text": "Pause Program",
+      "disabled": true,
+      "background": "#162d3b",
+      "uncertain": [
+        "element/group opacity"
+      ],
+      "box": {
+        "x": 35,
+        "y": 2083.34375,
+        "width": 320,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 14.260274375259133,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.primary-button",
+      "text": "Pause Program",
+      "disabled": true,
+      "background": "#0d1826",
+      "uncertain": [
+        "element/group opacity"
+      ],
+      "box": {
+        "x": 35,
+        "y": 2083.34375,
+        "width": 320,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "foreground": "#3f7d8f",
+      "ratio": 3.8625677701600414,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span.eyebrow",
+      "text": "Program details",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2182.34375,
+        "width": 119.375,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 8.924880061540987,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h2",
+      "text": "Scope and ownership",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2204.34375,
+        "width": 196.453125,
+        "height": 25.1875
+      },
+      "fontSize": "16.8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 17.860866883411923,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Change approval authority",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2245.53125,
+        "width": 196.453125,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Change approval authority",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2245.53125,
+        "width": 196.453125,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5095232148557631,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "dt",
+      "text": "Code",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2313.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "NDPA",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2347.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Owning function",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2386.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Data Protection Office",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2420.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Jurisdiction",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2459.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Nigeria",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2493.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Owner",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2532.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Data Protection Officer",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2566.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Approval authority",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2605.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Chief Risk Officer",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2639.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Effective from",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2678.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "2025-01-01",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2712.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Effective until",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2751.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "No end date",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2785.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Business lines",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2824.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Retail, Corporate, Digital",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2858.53125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "p.program-operation-reason",
+      "text": "Assigned to Data Protection Officer for the current Program state.",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2886.53125,
+        "width": 320,
+        "height": 51.6875
+      },
+      "fontSize": "12.48px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Today",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 41.015625,
+        "y": 809,
+        "width": 20.75,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Programs",
+      "disabled": false,
+      "background": "#122533",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 106.296875,
+        "y": 809,
+        "width": 33.796875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 7.7992634804852985,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Work",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 185.6875,
+        "y": 809,
+        "width": 18.609375,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Vendors",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 252.40625,
+        "y": 809,
+        "width": 28.75,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Forms",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 327.75,
+        "y": 809,
+        "width": 21.671875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5
+    }
+  ],
+  "headings": [
+    "Programs",
+    "Nigeria Data Protection Programme",
+    "Evidence incomplete",
+    "Operating status",
+    "Scope and ownership"
+  ],
+  "status": "CAPTURED"
+}

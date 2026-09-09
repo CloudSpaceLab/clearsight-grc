@@ -105,7 +105,7 @@ describe("FormPoliciesView", () => {
   });
 });
 
-it("offers manual-only forms with a bank review rubric", async () => {
+it("offers manual-only forms with a review rubric", async () => {
  monitoring.loadFormTemplates.mockResolvedValue([{...scoredForm,scoring_mode:"NONE",fields:[{id:"report",assessment:{mode:"MANUAL",weight:100,rubric:[{id:"poor",label:"Incomplete",points:90}]}}]}]);
  render(<FormPoliciesView/>);
  await screen.findAllByText("Review poor vendor certification scores");

@@ -41,7 +41,12 @@ func (store *MemoryDistributionAccessStore) GetRequest(ctx context.Context, tena
 	if store == nil || store.distributions == nil || store.distributions.repo == nil {
 		return Request{}, ErrNotFound
 	}
-	return store.distributions.repo.GetRequest(ctx, tenantID, requestID)
+	request, err := store.distributions.repo.GetRequest(ctx, tenantID, requestID)
+	if err != nil {
+		return Request{}, err
+	}
+	request = RefreshCollectionResolutions(ctx, request, store.distributions.repo.GetArtifact, store.distributions.now().UTC())
+	return store.distributions.repo.RefreshCollectionRequestReviews(ctx, request)
 }
 
 func (store *MemoryDistributionAccessStore) CreateAccessRoutes(_ context.Context, routes []AccessRoute) error {

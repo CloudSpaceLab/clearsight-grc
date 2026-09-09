@@ -17,6 +17,9 @@ func TestRenderOperationalNotificationSeparatesAssignmentFromAuthorization(t *te
 		t.Fatal(err)
 	}
 	preview := revealPreview(message)
+	if !strings.Contains(preview.PlainText, "Next action: Confirm the registered address") || !strings.Contains(preview.HTML, "Next action:") {
+		t.Fatal("notification must name the next action in both message formats")
+	}
 	for _, expected := range []string{"assigned issue work", "Verify Cloudspace registered address", "Confirm the registered address", "Open assigned issue"} {
 		if !strings.Contains(preview.PlainText, expected) && !strings.Contains(preview.Subject, expected) {
 			t.Fatalf("rendered message does not contain %q: %#v", expected, preview)

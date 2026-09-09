@@ -226,7 +226,7 @@ export function SystemActivityPanel({ mode }: { mode: Mode }) {
 
   const title = mode === "activity" ? "Recent activity" : "Audit log";
   const description = mode === "activity"
-    ? "A bounded view of recently committed system and business activity. Open the owning record to act on it."
+    ? "Recent system and business activity. Open a record to review it."
     : "Reconstruct recorded activity by actor, object, event type and date range without exposing event payloads.";
 
   return <section className="configure-card system-activity-panel" aria-labelledby={`${mode}-events-heading`}>
@@ -282,7 +282,7 @@ export function SystemActivityPanel({ mode }: { mode: Mode }) {
 
     {exportOpen && <FocusedDialog label="Export audit log" onClose={() => { setExportOpen(false); setExportState("idle"); }}>
       <div className="system-audit-export-dialog">
-        <div><span className="eyebrow">Governed export</span><h2>Export the applied audit view</h2><p>The server fixes an exact as-of boundary and exports only normalized audit fields. Direct exports are limited to 10,000 events and are never silently truncated.</p></div>
+        <div><span className="eyebrow">Governed export</span><h2>Export the applied audit view</h2><p>Export audit events as of the selected time. Each export supports up to 10,000 events; narrow the filters if the limit is exceeded.</p></div>
         <SelectField label="Export format" value={exportFormat} placeholder="Choose a format" options={exportFormatOptions} allowsEmpty={false} onChange={(value) => { if (value) setExportFormat(value); }}/>
         <Notice>Current draft filter edits are not included until you select <strong>Apply filters</strong>. Export files and their checksum manifest expire after seven days.</Notice>
         {exportState === "error" && exportNotice && <Notice tone="error">{exportNotice.text}</Notice>}

@@ -153,3 +153,7 @@ A feature without this chain is not implementation-ready.
 ### T2 product reuse
 
 Forms/capture now retain exact field-level Source Binding references for `PREFILL`, `OPTIONS`, `VALIDATE` and `EVIDENCE`. Connected values carry canonical operation receipts and remain visibly distinct from respondent-entered or corrected answers. Evidence requests can search configured bindings before asking a person, while workflow tasks project only the exact binding IDs/versions and continue to treat the request—not the Binding—as domain truth. See [`acceptance/t2-binding-reuse.md`](acceptance/t2-binding-reuse.md).
+
+## UI audit correction evidence
+
+The September 9 [copy, contrast and component correction receipt](acceptance/ui-audit-corrections.md) records the shared industry-neutral copy rules, vendor/Forms simplification, contrast changes and their tests and rendered limits. The [approved plan](superpowers/plans/2026-09-09-ui-audit-corrections.md) traces the findings to implementation.

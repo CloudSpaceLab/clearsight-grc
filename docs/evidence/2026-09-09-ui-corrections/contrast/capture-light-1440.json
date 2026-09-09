@@ -1,0 +1,1936 @@
+{
+  "id": "capture-light-1440",
+  "name": "capture",
+  "fixture": "forms-vendor-held-actions",
+  "route": "/capture",
+  "theme": "light",
+  "width": 1440,
+  "scale": 1,
+  "generatedAt": "2026-09-09T00:03:17.015Z",
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "shortTextContent",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element content is too short to determine if it is actual text content"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<div class=\"brand-mark\" aria-label=\"ClearSight\">C</div>",
+            "target": [
+              ".brand-mark"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>ClearSight</strong>",
+            "target": [
+              "div:nth-child(2) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Evidence response</span>",
+            "target": [
+              "header > div:nth-child(2) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<div class=\"external-session-hint\">Opened for f***@example.com</div>",
+            "target": [
+              ".external-session-hint"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Evidence request · about 3 min</span>",
+            "target": [
+              ".panel-content > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "22.5pt (30px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2>Confirm current vendor records</h2>",
+            "target": [
+              "h2"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Confirm or correct the held vendor details and replace the certificate only when it changed.</p>",
+            "target": [
+              ".panel-content > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"why-you\"><strong>Why this was sent to you</strong><span>You were asked to confirm the current records for this vendor review.</span></div>",
+                    "target": [
+                      ".why-you"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Why this was sent to you</strong>",
+            "target": [
+              ".why-you > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"why-you\"><strong>Why this was sent to you</strong><span>You were asked to confirm the current records for this vendor review.</span></div>",
+                    "target": [
+                      ".why-you"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>You were asked to confirm the current records for this vendor review.</span>",
+            "target": [
+              ".why-you > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.8pt (13px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h3>Already filled in</h3>",
+            "target": [
+              ".panel-content > h3"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<dt>Atm Id</dt>",
+            "target": [
+              "div:nth-child(1) > dt"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<dd>ATM-LAG-042</dd>",
+            "target": [
+              "div:nth-child(1) > dd"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<dt>Location</dt>",
+            "target": [
+              "div:nth-child(2) > dt"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<dd>Meridian Trust Bank, Lekki Phase 1</dd>",
+            "target": [
+              "div:nth-child(2) > dd"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<dt>Expected Address</dt>",
+            "target": [
+              "div:nth-child(3) > dt"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<dd>12 Admiralty Way, Lekki Phase 1, Lagos</dd>",
+            "target": [
+              "div:nth-child(3) > dd"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<dt>Visit Type</dt>",
+            "target": [
+              "div:nth-child(4) > dt"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<dd>Physical address confirmation</dd>",
+            "target": [
+              "div:nth-child(4) > dd"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Saved to ClearSight</span>",
+            "target": [
+              ".capture-draft-status > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "12.0pt (16px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h3 id=\"capture-section-title-general\">Response</h3>",
+            "target": [
+              "#capture-section-title-general"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Current held record</span>",
+            "target": [
+              "section[aria-labelledby=\"held-value-registered_address\"] > .held-value-heading > div > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "12.0pt (16px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h3 id=\"held-value-registered_address\">Registered address</h3>",
+            "target": [
+              "#held-value-registered_address"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "12.2pt (16.32px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p class=\"held-value-current\">12 Marina Road, Lagos</p>",
+            "target": [
+              "section[aria-labelledby=\"held-value-registered_address\"] > .held-value-current"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.6pt (12.8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p class=\"held-value-source\">Validated vendor record · checked Aug 1, 2026</p>",
+            "target": [
+              "section[aria-labelledby=\"held-value-registered_address\"] > .held-value-source"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Current held record</span>",
+            "target": [
+              "#capture-field-operating_certificate > .held-value-field > .held-value-heading > div > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "12.0pt (16px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h3 id=\"held-value-operating_certificate\">Operating certificate</h3>",
+            "target": [
+              "#held-value-operating_certificate"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "12.2pt (16.32px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p class=\"held-value-current\">Operating certificate · expires 31 Dec 2026</p>",
+            "target": [
+              "#capture-field-operating_certificate > .held-value-field > .held-value-current"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.6pt (12.8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p class=\"held-value-source\">Validated vendor record · checked Aug 1, 2026</p>",
+            "target": [
+              "#capture-field-operating_certificate > .held-value-field > .held-value-source"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 9
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "div.brand-mark",
+      "parentSelector": "header.external-capture-brand",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 408,
+        "y": 20,
+        "width": 42,
+        "height": 42
+      },
+      "fontSize": "14px",
+      "fontWeight": "800",
+      "kind": "text",
+      "text": "C",
+      "foreground": "#0a7080",
+      "ratio": 5.372251539138774,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 460,
+        "y": 21.75,
+        "width": 89.609375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "ClearSight",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 460,
+        "y": 43.75,
+        "width": 89.609375,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Evidence response",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "div.external-session-hint",
+      "parentSelector": "section.external-capture-work",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 119,
+        "width": 562,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Opened for  f***@example.com",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div.panel-content",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 153.5,
+        "width": 220.953125,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Evidence request · about  3  min",
+      "foreground": "#0a7080",
+      "ratio": 5.372251539138774,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h2",
+      "parentSelector": "div.panel-content",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 180.5,
+        "width": 562,
+        "height": 45
+      },
+      "fontSize": "30px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Confirm current vendor records",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 3,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div.panel-content",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 237.5,
+        "width": 562,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Confirm or correct the held vendor details and replace the certificate only when it changed.",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div.external-request-context",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 454,
+        "y": 291.1875,
+        "width": 532,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Due  11 Sept 2026, 01:03 GMT+1",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.external-request-context",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 454,
+        "y": 315.6875,
+        "width": 532,
+        "height": 17.390625
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Your answers and files are shared with the organization that sent this request.",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.external-request-context",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 454,
+        "y": 338.078125,
+        "width": 532,
+        "height": 17.390625
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "For changes to the request or your access, contact the person who sent this link.",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div.why-you",
+      "disabled": false,
+      "background": "#eaf4f7",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 456,
+        "y": 404.46875,
+        "width": 530,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Why this was sent to you",
+      "foreground": "#152639",
+      "ratio": 13.683203254250065,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.why-you",
+      "disabled": false,
+      "background": "#eaf4f7",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 456,
+        "y": 429.46875,
+        "width": 530,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "You were asked to confirm the current records for this vendor review.",
+      "foreground": "#596c80",
+      "ratio": 4.823276627749081,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "div.panel-content",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 484.46875,
+        "width": 562,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Already filled in",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 454,
+        "y": 526.96875,
+        "width": 35.703125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Atm Id",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 911.3125,
+        "y": 526.96875,
+        "width": 74.6875,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "ATM-LAG-042",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 454,
+        "y": 569.96875,
+        "width": 45.125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Location",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 804.640625,
+        "y": 569.96875,
+        "width": 181.359375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Meridian Trust Bank, Lekki Phase 1",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 454,
+        "y": 612.96875,
+        "width": 93.65625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Expected Address",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 779.21875,
+        "y": 612.96875,
+        "width": 206.78125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "12 Admiralty Way, Lekki Phase 1, Lagos",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dt",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 454,
+        "y": 655.96875,
+        "width": 50.484375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Visit Type",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "dd",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 829.25,
+        "y": 655.96875,
+        "width": 156.75,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Physical address confirmation",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.capture-draft-status",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 897.65625,
+        "y": 693.96875,
+        "width": 103.34375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Saved to ClearSight",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#capture-section-title-general",
+      "parentSelector": "section.capture-section",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 736.96875,
+        "width": 562,
+        "height": 24
+      },
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Response",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 457,
+        "y": 798.96875,
+        "width": 150.65625,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Current held record",
+      "foreground": "#0a7080",
+      "ratio": 5.372251539138774,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#held-value-registered_address",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 457,
+        "y": 818.96875,
+        "width": 150.65625,
+        "height": 24
+      },
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Registered address",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.held-value-state",
+      "parentSelector": "div.held-value-heading",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 918.28125,
+        "y": 794.96875,
+        "width": 64.71875,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Version 4",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p.held-value-current",
+      "parentSelector": "section.held-value-field",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 457,
+        "y": 854.96875,
+        "width": 526,
+        "height": 25.28125
+      },
+      "fontSize": "16.32px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "12 Marina Road, Lagos",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p.held-value-source",
+      "parentSelector": "section.held-value-field",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 457,
+        "y": 892.25,
+        "width": 526,
+        "height": 19.828125
+      },
+      "fontSize": "12.8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Validated vendor record  · checked  Aug 1, 2026",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.primary-button",
+      "parentSelector": "div.held-value-actions",
+      "disabled": false,
+      "background": "#e2eef0",
+      "uncertain": [],
+      "box": {
+        "x": 457,
+        "y": 924.078125,
+        "width": 186.8125,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Confirm this is accurate",
+      "foreground": "#0c1623",
+      "ratio": 15.348002676695126,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.primary-button",
+      "parentSelector": "div.held-value-actions",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 457,
+        "y": 924.078125,
+        "width": 186.8125,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#6da3b0",
+      "ratio": 2.3578674022398243,
+      "outsideRatio": 2.603396812607299,
+      "insideRatio": 2.3578674022398243,
+      "fillRatio": 1.104131983899619,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.secondary-button",
+      "parentSelector": "div.held-value-actions",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 652.8125,
+        "y": 924.078125,
+        "width": 179.171875,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Update this information",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.secondary-button",
+      "parentSelector": "div.held-value-actions",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 652.8125,
+        "y": 924.078125,
+        "width": 179.171875,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.4161017655346475,
+      "outsideRatio": 1.4161017655346475,
+      "insideRatio": 1.5197931480241564,
+      "fillRatio": 1.0732231150424139,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 457,
+        "y": 1025.078125,
+        "width": 150.65625,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Current held record",
+      "foreground": "#0a7080",
+      "ratio": 5.372251539138774,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#held-value-operating_certificate",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 457,
+        "y": 1045.078125,
+        "width": 150.65625,
+        "height": 24
+      },
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Operating certificate",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.held-value-state",
+      "parentSelector": "div.held-value-heading",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 918.28125,
+        "y": 1021.078125,
+        "width": 64.71875,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Version 4",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p.held-value-current",
+      "parentSelector": "section.held-value-field",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 457,
+        "y": 1081.078125,
+        "width": 526,
+        "height": 25.28125
+      },
+      "fontSize": "16.32px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Operating certificate · expires 31 Dec 2026",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p.held-value-source",
+      "parentSelector": "section.held-value-field",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 457,
+        "y": 1118.359375,
+        "width": 526,
+        "height": 19.828125
+      },
+      "fontSize": "12.8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Validated vendor record  · checked  Aug 1, 2026",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.primary-button",
+      "parentSelector": "div.held-value-actions",
+      "disabled": false,
+      "background": "#e2eef0",
+      "uncertain": [],
+      "box": {
+        "x": 457,
+        "y": 1150.1875,
+        "width": 185.96875,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Replace held document",
+      "foreground": "#0c1623",
+      "ratio": 15.348002676695126,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.primary-button",
+      "parentSelector": "div.held-value-actions",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 457,
+        "y": 1150.1875,
+        "width": 185.96875,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#6da3b0",
+      "ratio": 2.3578674022398243,
+      "outsideRatio": 2.603396812607299,
+      "insideRatio": 2.3578674022398243,
+      "fillRatio": 1.104131983899619,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.primary-button",
+      "parentSelector": "div.wizard-actions",
+      "disabled": false,
+      "background": "#e2eef0",
+      "uncertain": [],
+      "box": {
+        "x": 439,
+        "y": 1259.1875,
+        "width": 156.640625,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Review and submit",
+      "foreground": "#0c1623",
+      "ratio": 15.348002676695126,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "button.primary-button",
+      "parentSelector": "div.wizard-actions",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 1259.1875,
+        "width": 156.640625,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#6da3b0",
+      "ratio": 2.3578674022398243,
+      "outsideRatio": 2.603396812607299,
+      "insideRatio": 2.3578674022398243,
+      "fillRatio": 1.104131983899619,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    }
+  ],
+  "assetURLs": [
+    "http://127.0.0.1:4179/assets/index-BMWHmGgh.js",
+    "http://127.0.0.1:4179/assets/ui-BKmW7Hgr.js",
+    "http://127.0.0.1:4179/assets/vendorIdentity-DNAUaTE1.js",
+    "http://127.0.0.1:4179/assets/form-policies-B7RQjXrL.js",
+    "http://127.0.0.1:4179/assets/http-CsyLtnQx.js",
+    "http://127.0.0.1:4179/assets/api-4YXod1O7.js",
+    "http://127.0.0.1:4179/assets/monitoringApi-B_rnuu-E.js",
+    "http://127.0.0.1:4179/assets/FocusedSheet-D6A2pfF6.js",
+    "http://127.0.0.1:4179/assets/FileDropzone-D3bjzZCz.js",
+    "http://127.0.0.1:4179/assets/FormPreview-xfiykOdw.js",
+    "http://127.0.0.1:4179/assets/identityAccessApi-DQ4JpP1X.js",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-CP0P4Fzd.js",
+    "http://127.0.0.1:4179/assets/formPoliciesApi-BOB15CUF.js",
+    "http://127.0.0.1:4179/assets/FormBuilder-D0uIMr0F.js",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-DF59NCDq.js",
+    "http://127.0.0.1:4179/assets/preload-helper-Czpn1I53.js",
+    "http://127.0.0.1:4179/assets/EmptyState-CAuvZgjp.js",
+    "http://127.0.0.1:4179/assets/SessionGate-e9miZAkm.js",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-CoL3pBsn.js",
+    "http://127.0.0.1:4179/assets/ui-BqQkgK9q.css",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-Bc4QplLt.css",
+    "http://127.0.0.1:4179/assets/form-policies-CXmCjy0e.css",
+    "http://127.0.0.1:4179/assets/FormBuilder-BR0NOz-_.css",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-xmrvZhbh.css",
+    "http://127.0.0.1:4179/assets/SessionGate-CBT7oevM.css",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-BbMW_Uts.css",
+    "http://127.0.0.1:4179/assets/index-BfD_vL87.css",
+    "http://127.0.0.1:4179/assets/forms-BF_LZwBu.css",
+    "http://127.0.0.1:4179/assets/staticDemoWorkflowRuntime-CCKpbhZb.js",
+    "http://127.0.0.1:4179/assets/staticDemoFixtures-BJo7eiOJ.json"
+  ],
+  "layout": {
+    "clientWidth": 1440,
+    "scrollWidth": 1440
+  },
+  "headings": [
+    "Confirm current vendor records"
+  ],
+  "status": "CAPTURED"
+}

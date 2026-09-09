@@ -1,0 +1,5743 @@
+{
+  "id": "gallery-light-390",
+  "name": "gallery",
+  "fixture": "ui-component-gallery",
+  "route": "#ui-components",
+  "theme": "light",
+  "width": 390,
+  "scale": 1,
+  "generatedAt": "2026-09-09T00:03:25.009Z",
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Sample component data</p>",
+            "target": [
+              ".ui-gallery__header > p:nth-child(1)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "27.0pt (36px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h1>ClearSight interface foundations</h1>",
+            "target": [
+              "h1"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Review the supported component states at this viewport, theme and density before using them in a workflow.</p>",
+            "target": [
+              ".ui-gallery__header > p:nth-child(3)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "16.5pt (22px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2 id=\"gallery-actions\">Actions</h2>",
+            "target": [
+              "#gallery-actions"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "16.5pt (22px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2 id=\"gallery-fields\">Fields</h2>",
+            "target": [
+              "#gallery-fields"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "16.5pt (22px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2 id=\"gallery-selection\">Selection</h2>",
+            "target": [
+              "#gallery-selection"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+            "target": [
+              "#react-aria1995372433-_r_1h_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "16.5pt (22px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2 id=\"gallery-navigation\">Navigation</h2>",
+            "target": [
+              "#gallery-navigation"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "16.5pt (22px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2 id=\"gallery-feedback\">Feedback</h2>",
+            "target": [
+              "#gallery-feedback"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "16.5pt (22px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2 id=\"gallery-surfaces\">Surfaces</h2>",
+            "target": [
+              "#gallery-surfaces"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "16.5pt (22px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2 id=\"gallery-data\">Data</h2>",
+            "target": [
+              "#gallery-data"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+            "target": [
+              "#react-aria1995372433-_r_2c_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "16.5pt (22px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2 id=\"gallery-overlays\">Overlays</h2>",
+            "target": [
+              "#gallery-overlays"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 208
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "p",
+      "parentSelector": "header.ui-gallery__header",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 16,
+        "width": 354,
+        "height": 18.59375
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample component data",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h1",
+      "parentSelector": "header.ui-gallery__header",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 44.59375,
+        "width": 354,
+        "height": 72
+      },
+      "fontSize": "36px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "ClearSight interface foundations",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 3,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header.ui-gallery__header",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 120.59375,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Review the supported component states at this viewport, theme and density before using them in a workflow.",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#gallery-actions",
+      "parentSelector": "section.ui-gallery__group",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 163.96875,
+        "width": 354,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Actions",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 196.96875,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Button",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 217.96875,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Runs one named action.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 239.65625,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Enter or Space activates it.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 240.65625,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 261.34375,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not style a native button in a feature.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 262.34375,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_1_",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 304.71875,
+        "width": 146.171875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#0a7080",
+      "ratio": 5.765624531625917,
+      "outsideRatio": 5.765624531625917,
+      "insideRatio": 1,
+      "fillRatio": 5.765624531625917,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--primary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#0a7080",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 316.21875,
+        "width": 112.171875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Send sample form",
+      "foreground": "#ffffff",
+      "ratio": 5.765624531625917,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_4_",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 176.171875,
+        "y": 304.71875,
+        "width": 143.6875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.5197931480241564,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1.1170958201678571,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 193.171875,
+        "y": 316.21875,
+        "width": 109.6875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Save sample draft",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_7_",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 360.71875,
+        "width": 171.640625,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#ffffff",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 372.21875,
+        "width": 137.640625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Cancel sample change",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_a_",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 416.71875,
+        "width": 176.578125,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#b83e53",
+      "ratio": 5.451676797129856,
+      "outsideRatio": 5.451676797129856,
+      "insideRatio": 1,
+      "fillRatio": 5.451676797129856,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--destructive.cs-button--comfortable",
+      "disabled": false,
+      "background": "#b83e53",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 428.21875,
+        "width": 142.578125,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Revoke sample request",
+      "foreground": "#ffffff",
+      "ratio": 5.451676797129856,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_d_",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": true,
+      "background": "#ffffff",
+      "uncertain": [
+        "element/group opacity"
+      ],
+      "box": {
+        "x": 18,
+        "y": 472.71875,
+        "width": 179.921875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.5197931480241564,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1.1170958201678571,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INACTIVE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": true,
+      "background": "#eef3f7",
+      "uncertain": [
+        "element/group opacity"
+      ],
+      "box": {
+        "x": 59,
+        "y": 484.21875,
+        "width": 121.921875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Saving sample draft",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "INACTIVE"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_g_",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": true,
+      "background": "#ffffff",
+      "uncertain": [
+        "element/group opacity"
+      ],
+      "box": {
+        "x": 209.921875,
+        "y": 472.71875,
+        "width": 147.03125,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.5197931480241564,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1.1170958201678571,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INACTIVE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": true,
+      "background": "#eef3f7",
+      "uncertain": [
+        "element/group opacity"
+      ],
+      "box": {
+        "x": 226.921875,
+        "y": 484.21875,
+        "width": 113.03125,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Unavailable action",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "INACTIVE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 536.71875,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "ActionCard",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 557.71875,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Offers one consequential route with concise supporting context.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 601.09375,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Enter or Space activates it.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 602.09375,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 622.78125,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not rebuild a card-shaped button in a feature.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 623.78125,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_i_",
+      "parentSelector": "div.ui-gallery__sample",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 666.15625,
+        "width": 322.71875,
+        "height": 78
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.5197931480241564,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1.1170958201678571,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "span.cs-action-card__copy",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 87,
+        "y": 683.65625,
+        "width": 221.765625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Create sample request",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "span.cs-action-card__copy",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 87,
+        "y": 708.65625,
+        "width": 221.765625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Start a governed sample evidence request",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 764.15625,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "ActionLink",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 785.15625,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Navigates to another location.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 806.84375,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Enter follows the link.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 807.84375,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 828.53125,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not use it for an in-place command.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 829.53125,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "a.cs-action-link",
+      "parentSelector": "div.ui-gallery__sample",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 871.90625,
+        "width": 166.109375,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Open sample destination",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 935.90625,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "IconButton",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 956.90625,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Runs a compact, named icon action.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 978.59375,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Enter or Space activates it.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 979.59375,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1000.28125,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not omit its accessible business name.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1001.28125,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_k_",
+      "parentSelector": "div.ui-gallery__sample",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1043.65625,
+        "width": 44,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.5197931480241564,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1.1170958201678571,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "#gallery-fields",
+      "parentSelector": "section.ui-gallery__group",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 1087.65625,
+        "width": 354,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Fields",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1120.65625,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "FormField",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1141.65625,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Binds a label, guidance and validation to one control.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1163.34375,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Focus moves to its supplied control.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1164.34375,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1185.03125,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not use placeholder text as the label.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1186.03125,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1228.40625,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample reference",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-sr-only",
+      "parentSelector": "label.cs-field__label",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 141.421875,
+        "y": 1227.40625,
+        "width": 1,
+        "height": 1
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "required",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_n_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1286.40625,
+        "width": 354,
+        "height": 18.59375
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Enter the reference used for this sample.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1325,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "TextField",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1346,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Collects one short text value.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1367.6875,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Tab focuses the field.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1368.6875,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1389.375,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not use it for a bounded option list.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1390.375,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1432.75,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample vendor name",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_p_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1461.75,
+        "width": 354,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.892107034158479,
+      "outsideRatio": 3.892107034158479,
+      "insideRatio": 3.892107034158479,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1521.75,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample response limit",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_s_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1550.75,
+        "width": 354,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.892107034158479,
+      "outsideRatio": 3.892107034158479,
+      "insideRatio": 3.892107034158479,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1610.75,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample invalid value",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_v_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1639.75,
+        "width": 354,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.892107034158479,
+      "outsideRatio": 3.892107034158479,
+      "insideRatio": 3.892107034158479,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1699.75,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample read-only owner",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_12_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1728.75,
+        "width": 354,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.484129976937558,
+      "outsideRatio": 3.892107034158479,
+      "insideRatio": 3.484129976937558,
+      "fillRatio": 1.1170958201678571,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1788.75,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample disabled field",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_15_",
+      "parentSelector": "div.cs-field",
+      "disabled": true,
+      "background": "#ffffff",
+      "uncertain": [
+        "element/group opacity"
+      ],
+      "box": {
+        "x": 18,
+        "y": 1817.75,
+        "width": 354,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.892107034158479,
+      "outsideRatio": 3.892107034158479,
+      "insideRatio": 3.892107034158479,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "INACTIVE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1881.75,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "SearchField",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1902.75,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Searches the current named record population.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1924.4375,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Tab focuses the search field.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1925.4375,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1946.125,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not use it for an unlabeled general input.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1947.125,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-sr-only",
+      "parentSelector": "label.cs-search-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 17,
+        "y": 1988.5,
+        "width": 1,
+        "height": 1
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Search sample requests",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_18_",
+      "parentSelector": "label.cs-search-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1989.5,
+        "width": 354,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "placeholder",
+      "text": "Search sample requests…",
+      "foreground": "#405469",
+      "ratio": 7.806368064067723,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_18_",
+      "parentSelector": "label.cs-search-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 1989.5,
+        "width": 354,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.892107034158479,
+      "outsideRatio": 3.892107034158479,
+      "insideRatio": 3.892107034158479,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2053.5,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "TextArea",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2074.5,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Collects a longer written response.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2096.1875,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Tab focuses the field; line breaks remain available.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2097.1875,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2139.5625,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not use it for file evidence.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2140.5625,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2161.25,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample review note",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_19_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2190.25,
+        "width": 354,
+        "height": 112
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.892107034158479,
+      "outsideRatio": 3.892107034158479,
+      "insideRatio": 3.892107034158479,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_1a_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2310.25,
+        "width": 354,
+        "height": 18.59375
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Describe what the sample reviewer confirmed.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#gallery-selection",
+      "parentSelector": "section.ui-gallery__group",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 2328.84375,
+        "width": 354,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Selection",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2361.84375,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "CheckboxField",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2382.84375,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Includes or excludes one named option.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2404.53125,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Space changes the selection after focus.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2405.53125,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2426.21875,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not use it for mutually exclusive choices.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2427.21875,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-checkbox-field__label",
+      "parentSelector": "span.cs-checkbox-field__content",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 46,
+        "y": 2475.59375,
+        "width": 240.90625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Include sample evidence",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_1c_",
+      "parentSelector": "span.cs-checkbox-field__content",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 46,
+        "y": 2500.59375,
+        "width": 240.90625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Adds the sample evidence to this review only.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2538.59375,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "SelectField",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2559.59375,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Selects one value from a bounded list.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2581.28125,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Arrow keys move; Enter selects; Escape closes.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2582.28125,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2602.96875,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not replace searchable remote results with this control.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2603.96875,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_1i_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2646.34375,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample response status",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_1h_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2675.34375,
+        "width": 354,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.892107034158479,
+      "outsideRatio": 3.892107034158479,
+      "insideRatio": 3.892107034158479,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "span.cs-select-field__value",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 31,
+        "y": 2687.84375,
+        "width": 100.296875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Responses open",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2739.34375,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "SelectableRecord",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2760.34375,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Selects one record for review while preserving its visible context.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2803.71875,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Enter or Space selects the record.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2804.71875,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2825.40625,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not rebuild a raw list button with page-specific selected styles.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2826.40625,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_1p_",
+      "parentSelector": "div.ui-gallery__sample",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 2868.78125,
+        "width": 354,
+        "height": 99
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#0a7080",
+      "ratio": 5.326317531653616,
+      "outsideRatio": 5.765624531625917,
+      "insideRatio": 5.326317531653616,
+      "fillRatio": 1.082478559973482,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-selectable-record__title",
+      "parentSelector": "button.cs-selectable-record",
+      "disabled": false,
+      "background": "#f1f7f8",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2885.78125,
+        "width": 320,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample vendor response",
+      "foreground": "#0c1623",
+      "ratio": 16.801326493278975,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-selectable-record__metadata",
+      "parentSelector": "button.cs-selectable-record",
+      "disabled": false,
+      "background": "#f1f7f8",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2910.78125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Current · Submitted 27 August 2026",
+      "foreground": "#152639",
+      "ratio": 14.179024988003414,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-selectable-record__description",
+      "parentSelector": "button.cs-selectable-record",
+      "disabled": false,
+      "background": "#f1f7f8",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 2932.78125,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Email verified · Compliance score 86%",
+      "foreground": "#596c80",
+      "ratio": 4.9980518858159195,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#gallery-navigation",
+      "parentSelector": "section.ui-gallery__group",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 2967.78125,
+        "width": 354,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Navigation",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3000.78125,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Tabs",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3021.78125,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Moves between peer views in one workspace.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3043.46875,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Arrow keys move and activate; Home and End jump.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3044.46875,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3086.84375,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not add a second selected indicator.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3087.84375,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.cs-tabs__tab",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 56.875,
+        "y": 3141.71875,
+        "width": 97.25,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Awaiting review",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.cs-tabs__tab",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 250.40625,
+        "y": 3141.71875,
+        "width": 68.1875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Completed",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div.cs-tabs__panel",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3195.21875,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Sample requests awaiting review.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3236.90625,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "ScopeBar",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3257.90625,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Changes one bounded result scope and shows stored counts.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3301.28125,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Tab reaches each scope; Enter or Space selects it.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3302.28125,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3344.65625,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not present unknown counts as zero.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3345.65625,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_1v_",
+      "parentSelector": "nav.cs-scope-bar",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3388.03125,
+        "width": 72.71875,
+        "height": 40
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.5197931480241564,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1.1170958201678571,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-scope-bar__item",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 31,
+        "y": 3397.53125,
+        "width": 15.8125,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "All",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "button.cs-scope-bar__item",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 54.8125,
+        "y": 3395.03125,
+        "width": 22.90625,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "8",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_21_",
+      "parentSelector": "nav.cs-scope-bar",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 94.71875,
+        "y": 3388.03125,
+        "width": 90.9375,
+        "height": 40
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#ffffff",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-scope-bar__item",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 107.71875,
+        "y": 3397.53125,
+        "width": 34.03125,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Open",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "button.cs-scope-bar__item",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 149.75,
+        "y": 3395.03125,
+        "width": 22.90625,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "3",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#gallery-feedback",
+      "parentSelector": "section.ui-gallery__group",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 3428.03125,
+        "width": 354,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Feedback",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3461.03125,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "StatusBadge",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3482.03125,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Names a concise stored or sample state.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3503.71875,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "No interaction.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3504.71875,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3525.40625,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not use color without a text label.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3526.40625,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--info",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": false,
+      "background": "#ebf4f5",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3547.09375,
+        "width": 151.875,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample review open",
+      "foreground": "#0a7080",
+      "ratio": 5.1591965298858184,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--success",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": false,
+      "background": "#ecf4f1",
+      "uncertain": [],
+      "box": {
+        "x": 181.875,
+        "y": 3547.09375,
+        "width": 142.8125,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample completed",
+      "foreground": "#14734d",
+      "ratio": 5.231530457309711,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--warning",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": false,
+      "background": "#f6f2eb",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3585.09375,
+        "width": 177.578125,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample evidence needed",
+      "foreground": "#8b5b00",
+      "ratio": 5.235909272739711,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--error",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": false,
+      "background": "#f9f0f1",
+      "uncertain": [],
+      "box": {
+        "x": 207.578125,
+        "y": 3585.09375,
+        "width": 160.296875,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample request failed",
+      "foreground": "#b83e53",
+      "ratio": 4.870724676524284,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--unknown",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": false,
+      "background": "#f0f1f3",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3623.09375,
+        "width": 166.328125,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample state unknown",
+      "foreground": "#405469",
+      "ratio": 6.907291815491755,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3669.09375,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Notice",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3690.09375,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Explains a condition and recovery at the point of work.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3711.78125,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Actions inside follow normal keyboard order.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3712.78125,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3733.46875,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not use it for decorative reassurance.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3734.46875,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "div.cs-notice.cs-tone--warning",
+      "parentSelector": "div.ui-gallery__sample",
+      "disabled": false,
+      "background": "#f6f2eb",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3776.84375,
+        "width": 354,
+        "height": 68
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "The sample certificate has no verified expiry date. Review the document before approval.",
+      "foreground": "#152639",
+      "ratio": 13.754476743306183,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3864.84375,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "EmptyState",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3885.84375,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Replaces a work region when its checked population is empty.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3929.21875,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Its next action follows normal button behavior.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3930.21875,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3972.59375,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not leave an empty table scroll region behind.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 3973.59375,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p.cs-empty-state__population",
+      "parentSelector": "section.cs-empty-state",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 51,
+        "y": 4048.96875,
+        "width": 288,
+        "height": 37.1875
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample sent forms matching this fixture",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_23_",
+      "parentSelector": "section.cs-empty-state",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 51,
+        "y": 4098.15625,
+        "width": 279.375,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "No sample sent forms match",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p.cs-empty-state__description",
+      "parentSelector": "section.cs-empty-state",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 51,
+        "y": 4143.15625,
+        "width": 288,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Change the sample filters or create a sample distribution.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_25_",
+      "parentSelector": "div.cs-empty-state__actions",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 51,
+        "y": 4198.53125,
+        "width": 146.171875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#0a7080",
+      "ratio": 5.765624531625917,
+      "outsideRatio": 5.765624531625917,
+      "insideRatio": 1,
+      "fillRatio": 5.765624531625917,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--primary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#0a7080",
+      "uncertain": [],
+      "box": {
+        "x": 68,
+        "y": 4210.03125,
+        "width": 112.171875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Send sample form",
+      "foreground": "#ffffff",
+      "ratio": 5.765624531625917,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#gallery-surfaces",
+      "parentSelector": "section.ui-gallery__group",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 4275.53125,
+        "width": 354,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Surfaces",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4308.53125,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Surface",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4329.53125,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Groups related work without implying a record.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4351.21875,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "No interaction.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4352.21875,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4372.90625,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not wrap every section in a surface.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4373.90625,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div.cs-surface",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 39,
+        "y": 4437.28125,
+        "width": 312,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Sample supporting information for the current task.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4521.65625,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Card",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4542.65625,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Contains one coherent object or decision.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4564.34375,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Interactive children keep their normal order.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4565.34375,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4586.03125,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not use it as decorative nesting.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4587.03125,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "article.cs-card",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 39,
+        "y": 4628.71875,
+        "width": 312,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Sample evidence request",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "article.cs-card",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 39,
+        "y": 4649.71875,
+        "width": 312,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Owner: Sample Vendor Manager · Due: 12 September 2026",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#gallery-data",
+      "parentSelector": "section.ui-gallery__group",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 4714.09375,
+        "width": 354,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Data",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4747.09375,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "FilterBar",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4768.09375,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Groups filters, result count and reset handling.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4789.78125,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Tab follows the visible field order.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4790.78125,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4811.46875,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not compress fields below their usable width.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4812.46875,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "label.cs-field__label",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4854.84375,
+        "width": 354,
+        "height": 72.5
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample owner",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#_r_27_",
+      "parentSelector": "div.cs-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 4935.34375,
+        "width": 354,
+        "height": 95.5
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.892107034158479,
+      "outsideRatio": 3.892107034158479,
+      "insideRatio": 3.892107034158479,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_2d_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5042.84375,
+        "width": 354,
+        "height": 72.5
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Sample state",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_2c_",
+      "parentSelector": "div.cs-select-field",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5123.34375,
+        "width": 354,
+        "height": 95.5
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": true,
+      "foreground": "#718397",
+      "ratio": 3.892107034158479,
+      "outsideRatio": 3.892107034158479,
+      "insideRatio": 3.892107034158479,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Shared field identification boundary, checked against fill and adjacent surface.",
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_2h_",
+      "parentSelector": "button.cs-select-field__trigger",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 31,
+        "y": 5160.59375,
+        "width": 103.359375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "All sample states",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "output.cs-filter-bar__count",
+      "parentSelector": "div.cs-filter-bar__summary",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5242.34375,
+        "width": 51.515625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "2 results",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_2l_",
+      "parentSelector": "div.cs-filter-bar__summary",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 268.75,
+        "y": 5230.84375,
+        "width": 103.25,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#ffffff",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 285.75,
+        "y": 5242.34375,
+        "width": 69.25,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Clear filters",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5294.84375,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "FilterChip",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5315.84375,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Names and removes one applied filter or reopens advanced logic.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5359.21875,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Enter or Space runs its named action.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5360.21875,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5380.90625,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not use a chip for a lifecycle status.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5381.90625,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_2n_",
+      "parentSelector": "div.ui-gallery__sample",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5424.28125,
+        "width": 176.671875,
+        "height": 40
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.5197931480241564,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1.1170958201678571,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span.cs-filter-chip__label",
+      "parentSelector": "button.cs-filter-chip.cs-filter-chip--default",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 31,
+        "y": 5435.28125,
+        "width": 32.109375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Status",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong.cs-filter-chip__value",
+      "parentSelector": "button.cs-filter-chip.cs-filter-chip--default",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 71.109375,
+        "y": 5435.28125,
+        "width": 90.234375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Responses open",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5484.28125,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "DataTable",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5505.28125,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Presents comparable populated records and page handling.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5548.65625,
+        "width": 354,
+        "height": 65.0625
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Tab reaches the selected row and actions. Arrow keys select rows; Enter or Space opens the selected request.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5549.65625,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5613.71875,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not keep an empty horizontal scroll region.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5614.71875,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "th",
+      "parentSelector": "tr",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5657.09375,
+        "width": 69.171875,
+        "height": 42.5
+      },
+      "fontSize": "12px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Request",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "th",
+      "parentSelector": "tr",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 87.171875,
+        "y": 5657.09375,
+        "width": 58.765625,
+        "height": 42.5
+      },
+      "fontSize": "12px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Status",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "th",
+      "parentSelector": "tr",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 145.9375,
+        "y": 5657.09375,
+        "width": 61.203125,
+        "height": 42.5
+      },
+      "fontSize": "12px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Owner",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "td",
+      "parentSelector": "tr",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 5674.09375,
+        "width": 320,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Sample vendor address review",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--warning",
+      "parentSelector": "td",
+      "disabled": false,
+      "background": "#f6f2eb",
+      "uncertain": [],
+      "box": {
+        "x": 152.1875,
+        "y": 5703.09375,
+        "width": 202.796875,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Evidence needed",
+      "foreground": "#8b5b00",
+      "ratio": 5.235909272739711,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "td",
+      "parentSelector": "tr",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 5737.09375,
+        "width": 320,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Sample Compliance Officer",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "td",
+      "parentSelector": "tr",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 5804.09375,
+        "width": 320,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Sample PCI-DSS certificate",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--success",
+      "parentSelector": "td",
+      "disabled": false,
+      "background": "#ecf4f1",
+      "uncertain": [],
+      "box": {
+        "x": 152.1875,
+        "y": 5833.09375,
+        "width": 202.796875,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Completed",
+      "foreground": "#14734d",
+      "ratio": 5.231530457309711,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "td",
+      "parentSelector": "tr",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 5867.09375,
+        "width": 320,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Sample Vendor Manager",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#gallery-overlays",
+      "parentSelector": "section.ui-gallery__group",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 5905.09375,
+        "width": 354,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Overlays",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5938.09375,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "FocusedSheet",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 5959.09375,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Keeps one focused detail or decision above its source view.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 6002.46875,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Tab remains inside; Escape closes unless consequential submission is in flight.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 6003.46875,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 6045.84375,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not customize the backdrop in a feature.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 6046.84375,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_2q_",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 6089.21875,
+        "width": 153.015625,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.5197931480241564,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1.1170958201678571,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 6100.71875,
+        "width": 119.015625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Open sample sheet",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_2t_",
+      "parentSelector": "div.ui-gallery__row",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 183.015625,
+        "y": 6089.21875,
+        "width": 168.75,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.5197931480241564,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1.1170958201678571,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 200.015625,
+        "y": 6100.71875,
+        "width": 134.75,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Open in-flight sample",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 6153.21875,
+        "width": 354,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "PopoverDialog",
+      "foreground": "#0c1623",
+      "ratio": 18.187075708088937,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 6174.21875,
+        "width": 354,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Keeps short contextual work anchored to its trigger.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 6195.90625,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Escape closes and focus returns to the trigger.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 6196.90625,
+        "width": 66.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Keyboard:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "header",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 6239.28125,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Do not use it for long or consequential workflows.",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "p",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 6240.28125,
+        "width": 118.671875,
+        "height": 19
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Do not substitute:",
+      "foreground": "#596c80",
+      "ratio": 5.410284008030763,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1995372433-_r_30_",
+      "parentSelector": "div.ui-gallery__sample",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 6282.65625,
+        "width": 147.859375,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#c8d3dd",
+      "ratio": 1.3604859319908555,
+      "outsideRatio": 1.5197931480241564,
+      "insideRatio": 1.3604859319908555,
+      "fillRatio": 1.1170958201678571,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 6294.15625,
+        "width": 113.859375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Open sample filter",
+      "foreground": "#0c1623",
+      "ratio": 16.280676536195532,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    }
+  ],
+  "assetURLs": [
+    "http://127.0.0.1:4179/assets/index-BMWHmGgh.js",
+    "http://127.0.0.1:4179/assets/ui-BKmW7Hgr.js",
+    "http://127.0.0.1:4179/assets/vendorIdentity-DNAUaTE1.js",
+    "http://127.0.0.1:4179/assets/form-policies-B7RQjXrL.js",
+    "http://127.0.0.1:4179/assets/http-CsyLtnQx.js",
+    "http://127.0.0.1:4179/assets/api-4YXod1O7.js",
+    "http://127.0.0.1:4179/assets/monitoringApi-B_rnuu-E.js",
+    "http://127.0.0.1:4179/assets/FocusedSheet-D6A2pfF6.js",
+    "http://127.0.0.1:4179/assets/FileDropzone-D3bjzZCz.js",
+    "http://127.0.0.1:4179/assets/FormPreview-xfiykOdw.js",
+    "http://127.0.0.1:4179/assets/identityAccessApi-DQ4JpP1X.js",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-CP0P4Fzd.js",
+    "http://127.0.0.1:4179/assets/formPoliciesApi-BOB15CUF.js",
+    "http://127.0.0.1:4179/assets/FormBuilder-D0uIMr0F.js",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-DF59NCDq.js",
+    "http://127.0.0.1:4179/assets/preload-helper-Czpn1I53.js",
+    "http://127.0.0.1:4179/assets/EmptyState-CAuvZgjp.js",
+    "http://127.0.0.1:4179/assets/SessionGate-e9miZAkm.js",
+    "http://127.0.0.1:4179/assets/ui-BqQkgK9q.css",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-CoL3pBsn.js",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-Bc4QplLt.css",
+    "http://127.0.0.1:4179/assets/form-policies-CXmCjy0e.css",
+    "http://127.0.0.1:4179/assets/FormBuilder-BR0NOz-_.css",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-xmrvZhbh.css",
+    "http://127.0.0.1:4179/assets/SessionGate-CBT7oevM.css",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-BbMW_Uts.css",
+    "http://127.0.0.1:4179/assets/index-BfD_vL87.css",
+    "http://127.0.0.1:4179/assets/forms-BF_LZwBu.css",
+    "http://127.0.0.1:4179/assets/staticDemoWorkflowRuntime-CCKpbhZb.js",
+    "http://127.0.0.1:4179/assets/staticDemoFixtures-BJo7eiOJ.json",
+    "http://127.0.0.1:4179/assets/UIComponentGallery-C0B_-nNs.js",
+    "http://127.0.0.1:4179/assets/UIComponentGallery-NkyqwFG5.css"
+  ],
+  "layout": {
+    "clientWidth": 390,
+    "scrollWidth": 390
+  },
+  "headings": [
+    "ClearSight interface foundations",
+    "Actions",
+    "Fields",
+    "Selection",
+    "Navigation",
+    "Feedback",
+    "Surfaces",
+    "Data",
+    "Overlays"
+  ],
+  "status": "CAPTURED",
+  "keyboardFocus": {
+    "tag": "INPUT",
+    "text": "",
+    "focusVisible": true,
+    "outline": "oklab(0.264188 -0.0130153 -0.0405362) solid 3px",
+    "boxShadow": "none",
+    "background": "rgb(255, 255, 255)",
+    "color": "color(srgb 0.0826667 0.14949 0.224157)"
+  }
+}

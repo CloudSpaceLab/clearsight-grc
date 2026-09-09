@@ -12,6 +12,8 @@
   --cs-bg-overlay: color-mix(in srgb, var(--cs-primitive-color-black) 68%, transparent);
   --cs-border-default: var(--cs-primitive-color-neutral-750);
   --cs-border-strong: var(--cs-primitive-color-neutral-700);
+  --cs-border-field: var(--cs-primitive-color-neutral-600);
+  --cs-text-placeholder: var(--cs-primitive-color-neutral-500);
   --cs-text-primary: var(--cs-primitive-color-neutral-200);
   --cs-text-strong: var(--cs-primitive-color-white);
   --cs-text-muted: var(--cs-primitive-color-neutral-500);
@@ -62,6 +64,8 @@
   --cs-bg-overlay: color-mix(in srgb, var(--cs-primitive-color-neutral-700) 34%, transparent);
   --cs-border-default: var(--cs-primitive-color-neutral-300);
   --cs-border-strong: var(--cs-primitive-color-neutral-400);
+  --cs-border-field: var(--cs-primitive-color-neutral-600);
+  --cs-text-placeholder: var(--cs-primitive-color-neutral-700);
   --cs-text-primary: color-mix(in srgb, var(--cs-primitive-color-neutral-800) 88%, var(--cs-primitive-color-neutral-950));
   --cs-text-strong: color-mix(in srgb, var(--cs-primitive-color-neutral-900) 88%, var(--cs-primitive-color-black));
   --cs-text-muted: color-mix(in srgb, var(--cs-primitive-color-neutral-600) 50%, var(--cs-primitive-color-neutral-700));
@@ -374,11 +378,6 @@ dd {
   font-size: inherit;
 }
 
-.display-preferences-popover {
-  background: var(--surface);
-  border-color: var(--border);
-}
-
 .display-preferences {
   position: fixed;
   left: 106px;
@@ -407,6 +406,8 @@ dd {
 .display-preferences[open] > summary { color: var(--cyan); }
 
 .display-preferences-popover {
+  background: var(--surface);
+  border-color: var(--border);
   position: absolute;
   left: 0;
   bottom: calc(100% + 9px);

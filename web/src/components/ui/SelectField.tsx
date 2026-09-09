@@ -158,7 +158,7 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
   >
     <Label className="cs-select-field__label">{label}{isRequired && <span className="cs-field__required" aria-hidden="true"> *</span>}</Label>
     <AriaButton ref={triggerButton} className="cs-select-field__trigger" onPressStart={() => { if (isOpen) allowClose.current = true; }} onKeyDown={permitClose}>
-      <SelectValue className="cs-select-field__value"/>
+      <SelectValue className="cs-select-field__value">{({ isPlaceholder, selectedText }) => isPlaceholder ? placeholder : selectedText}</SelectValue>
       <span className="cs-select-field__chevron" aria-hidden="true">⌄</span>
     </AriaButton>
     {description && <Text className="cs-select-field__description" slot="description">{description}</Text>}

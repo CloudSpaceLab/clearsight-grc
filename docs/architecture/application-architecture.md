@@ -6,6 +6,14 @@ This is the canonical implementation architecture for the current application.
 
 Build a **modular monolith with separate API and worker processes** over one authoritative PostgreSQL database and versioned object storage. Preserve explicit domain interfaces so selected workloads can split later without changing product semantics.
 
+## Vendor collection reconciliation
+
+Assessment requests may be prepared without distributing access. Bank-owned collection receipts bind the current assessment/request version to an exact prior vendor submission, field and artifact. Migration `000086` stores append-only receipt revisions; the current capture field carries their projection. Reconciliation and per-field review update assessment/request rows with the audit event, outbox and maintenance work in the owning transaction. Actor and scope come from verified request context and the current authority route is re-evaluated at execution.
+
+Collection consumption rechecks source integrity, safety, currency, expiry and rejection. A receipt is never inserted into a respondent answer map or copied into artifact ownership. External capture exposes only `collection_received`; bank reads retain the protected provenance. Held-required and answered-required counts stay distinct, including when the bank completes an unconditional document-only collection without a vendor submission. Scored-submission events include the consumed request version so a later reconstruction can locate the corresponding receipt revisions.
+
+The protected document inventory remains bounded and permission-filtered. Reusing a document does not widen permission to inspect its source or inherit an earlier acceptance decision. See the [implementation plan](../superpowers/plans/2026-09-08-vendor-evidence-reconciliation.md) and [decision brief](../design/2026-09-08-vendor-evidence-reconciliation.md).
+
 ## Technology baseline
 
 | Layer | Initial choice | Reason |

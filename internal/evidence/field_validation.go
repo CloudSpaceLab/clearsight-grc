@@ -85,6 +85,9 @@ func (s *Service) validateAnswerSet(ctx context.Context, request Request, answer
 	if err != nil {
 		return err
 	}
+	if requireComplete && collectionApplicabilityUnknown(contract, answers) {
+		return fmt.Errorf("answer the earlier questions to confirm which required items apply")
+	}
 	visible, err := formcontract.VisibleFields(contract, answers)
 	if err != nil {
 		return err
@@ -105,10 +108,24 @@ func (s *Service) validateAnswerSet(ctx context.Context, request Request, answer
 			return fmt.Errorf("%s was not requested for the current answers", requestByID[fieldID].Label)
 		}
 	}
+	if requireComplete && len(answers) == 0 {
+		required, held := 0, 0
+		for _, field := range visible {
+			if field.Required {
+				required++
+				if CollectionFieldFulfilled(requestByID[field.ID], s.now().UTC()) {
+					held++
+				}
+			}
+		}
+		if required > 0 && held == required {
+			return fmt.Errorf("the bank already holds the required documents; no response is needed")
+		}
+	}
 
 	for _, field := range visible {
 		answer, exists := answers[field.ID]
-		if requireComplete && field.Required && (!exists || !answer.Answered()) {
+		if requireComplete && field.Required && (!exists || !answer.Answered()) && !CollectionFieldFulfilled(requestByID[field.ID], s.now().UTC()) {
 			return fmt.Errorf("%s is required", field.Label)
 		}
 		if !exists || !answer.Answered() {

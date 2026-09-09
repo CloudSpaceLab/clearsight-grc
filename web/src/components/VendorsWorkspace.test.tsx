@@ -11,6 +11,15 @@ import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { createVendorRelationship, loadVendorActivation, loadVendorIdentity, loadVendorRelationship, loadVendorRelationships, removeApprovedVendorLogo, updateVendorIdentity, updateVendorRelationship, uploadApprovedVendorLogo } from "../vendorApi";
 import { VendorsWorkspace } from "./VendorsWorkspace";
 import { loadVendorFormSummaries } from "../vendorFormsApi";
+import { loadVendorCollection, prepareVendorCollection } from "../vendorCollectionApi";
+async function chooseVendorOption(label: string, option: string) {
+	  const triggers = screen.getAllByRole("button", { name: new RegExp(label, "i") }).filter((button) => button.getAttribute("aria-haspopup") === "listbox");
+	  expect(triggers).toHaveLength(1);
+	  fireEvent.click(triggers[0]!);
+  fireEvent.click(await screen.findByRole("option", { name: option }));
+}
+
+vi.mock("../vendorCollectionApi", () => ({ loadVendorCollection: vi.fn().mockResolvedValue({ assessment_id: "assessment-1", assessment_version: 3, prepared: false, can_reconcile: false, fields: [], observed_at: "2026-09-08T10:00:00Z", vendor_pending_count: 0, bank_pending_count: 0 }), prepareVendorCollection: vi.fn() }));
 vi.mock("../vendorFormsApi", () => ({ loadVendorFormSummaries: vi.fn() }));
 vi.mock("./VendorFormsPanel", () => ({ VendorFormsPanel: ({ relationshipID, initialFilter, onRequestForm }: { relationshipID: string; initialFilter?: string; onRequestForm: () => void }) => <section className="vendor-forms-panel" aria-label={`Vendor form work ${relationshipID} ${initialFilter ?? "ALL"}`}><button type="button" onClick={onRequestForm}>Request form</button></section>, VendorResponseHistory: ({ relationshipID }: { relationshipID: string }) => <section aria-label={`Response history for ${relationshipID}`}/> }));
 vi.mock("./VendorFormRequest", () => ({ VendorFormRequest: ({ targets }: { targets: Array<{ relationshipID: string }> }) => <section role="dialog" aria-label="Request vendor forms">{targets.map((target) => <span key={target.relationshipID}>{target.relationshipID}</span>)}</section> }));
@@ -72,7 +81,7 @@ vi.mock("../vendorAssessmentApi", () => ({
 }));
 let showVendorWorkAction = false;
 const vendorWorkAction = vi.fn();
-vi.mock("./VendorWorkPanel", () => ({ VendorWorkPanel: ({ relationshipID }: { relationshipID: string }) => <section className="vendor-work-panel" tabIndex={-1} data-testid={`vendor-work-relationship-${relationshipID}`}>Vendor requests{showVendorWorkAction && <button type="button" className="primary-button" onClick={vendorWorkAction}>Request vendor work</button>}</section> }));
+vi.mock("./VendorWorkPanel", () => ({ VendorWorkPanel: ({ relationshipID }: { relationshipID: string }) => <section className="vendor-work-panel" tabIndex={-1} data-testid={`vendor-work-relationship-${relationshipID}`}>Vendor requests{showVendorWorkAction && <button type="button" className="cs-button--primary" onClick={vendorWorkAction}>Request vendor work</button>}</section> }));
 vi.mock("./VendorFormReadiness", () => ({ VendorFormReadiness: ({ onReady, onClose }: { onReady: (form: FormTemplate) => void; onClose: () => void }) => <div role="dialog" aria-label="Set up due-diligence form"><button type="button" onClick={() => onReady(activeVendorForm)}>Activate test form</button><button type="button" onClick={onClose}>Close setup</button></div> }));
 
 const record: VendorRelationshipAggregate = {
@@ -142,6 +151,19 @@ beforeEach(() => {
 });
 
 describe("VendorsWorkspace", () => {
+  it("requires explicit classification before creating a vendor service", async () => {
+    vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [] });
+    render(<VendorsWorkspace organizationName="Clear Telecom" legalEntityName="Clear Telecom Nigeria"/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Add vendor" }));
+    expect(screen.getByRole("button", { name: /Select criticality/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Select privacy role/ })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Legal name", { exact: false }), { target: { value: "Acme Services" } });
+    fireEvent.change(screen.getByLabelText("Service supplied", { exact: false }), { target: { value: "Customer support" } });
+    fireEvent.submit(screen.getByRole("button", { name: "Add vendor relationship" }).closest("form")!);
+    expect(await screen.findByText("Select the service criticality.")).toBeTruthy();
+    expect(screen.getByText("Select the vendor's privacy role.")).toBeTruthy();
+    expect(createVendorRelationship).not.toHaveBeenCalled();
+  });
   it("organizes a selected vendor into scoped sections without loading documents first", async () => {
     render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" targetID="relationship-1"/>);
     expect(await screen.findByRole("tab", { name: "Overview", selected: true })).toBeTruthy();
@@ -168,10 +190,11 @@ describe("VendorsWorkspace", () => {
     expect(screen.queryByRole("region", { name: "Documents for relationship-1" })).toBeNull();
   });
 
-  it("opens required bank review from the stored register summary", async () => {
+  it("opens required review from the stored register summary", async () => {
     render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria"/>);
-    fireEvent.click(await screen.findByRole("link", { name: "1 awaiting bank review for Acme Processing Limited · Card transaction processing" }));
+    fireEvent.click(await screen.findByRole("link", { name: "1 awaiting review for Acme Processing Limited · Card transaction processing" }));
     expect(await screen.findByRole("region", { name: "Vendor form work relationship-1 AWAITING_REVIEW" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Request form" })).toHaveLength(1);
     expect(loadVendorFormSummaries).toHaveBeenCalledWith(["relationship-1"]);
     fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
     const formsTab = screen.getByRole("tab", { name: "Forms" });
@@ -216,7 +239,7 @@ describe("VendorsWorkspace", () => {
     const completed = vi.fn();
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-due-diligence" }} onGuideIntentCompleted={completed}/>);
 
-    const legalName = await screen.findByLabelText("Legal name");
+    const legalName = await screen.findByLabelText("Legal name", { exact: false });
     await waitFor(() => expect(document.activeElement).toBe(legalName));
     expect(completed).toHaveBeenCalledOnce();
   });
@@ -226,7 +249,7 @@ describe("VendorsWorkspace", () => {
     const completed = vi.fn();
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" guideIntent={{ id: 1, type: "open-vendor-next-action" }} onGuideIntentCompleted={completed}/>);
 
-    const legalName = await screen.findByLabelText("Legal name");
+    const legalName = await screen.findByLabelText("Legal name", { exact: false });
     await waitFor(() => expect(document.activeElement).toBe(legalName));
     await waitFor(() => expect(completed).toHaveBeenCalledWith(1));
   });
@@ -397,7 +420,7 @@ describe("VendorsWorkspace", () => {
     await waitFor(() => expect(loadVendorRelationships).toHaveBeenCalledWith({ cursor: "cursor-1", limit: 50 }));
     expect(await screen.findByRole("button", { name: "Beacon Hosting Limited, Cloud hosting" })).toBeTruthy();
 
-    fireEvent.change(screen.getByLabelText("Search vendors and services"), { target: { value: "Beacon RC-20002" } });
+    fireEvent.change(screen.getByLabelText("Search vendors and services", { exact: false }), { target: { value: "Beacon RC-20002" } });
     fireEvent.click(screen.getByRole("button", { name: "Search vendors" }));
     await waitFor(() => expect(loadVendorRelationships).toHaveBeenCalledWith({ search: "Beacon RC-20002", limit: 50 }));
     expect(screen.getByText("Showing 1 matching relationship")).toBeTruthy();
@@ -411,11 +434,13 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Add vendor" }));
-    fireEvent.change(screen.getByLabelText("Legal name"), { target: { value: "Acme Processing" } });
+    fireEvent.change(screen.getByLabelText("Legal name", { exact: false }), { target: { value: "Acme Processing" } });
     fireEvent.click(screen.getByRole("button", { name: "Find existing vendor" }));
     expect(await screen.findByText("Possible vendor matches")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Use Acme Processing Limited for a new service relationship" }));
-    fireEvent.change(screen.getByLabelText("Service supplied"), { target: { value: "Settlement support" } });
+    fireEvent.change(screen.getByLabelText("Service supplied", { exact: false }), { target: { value: "Settlement support" } });
+    await chooseVendorOption("Criticality", "Important");
+    await chooseVendorOption("Privacy role", "Processor");
     fireEvent.click(screen.getByRole("button", { name: "Add vendor relationship" }));
 
     await waitFor(() => expect(createVendorRelationship).toHaveBeenCalledWith(expect.objectContaining({
@@ -438,7 +463,7 @@ describe("VendorsWorkspace", () => {
     expect(screen.getByText("Vendor security and privacy review")).toBeTruthy();
     expect(screen.queryByText("Access review")).toBeNull();
     expect(loadCurrentVendorAssessment).toHaveBeenCalledWith("relationship-1");
-    expect(screen.getAllByRole("button").filter((button) => button.classList.contains("primary-button") && !(button as HTMLButtonElement).disabled)).toHaveLength(1);
+    expect(screen.getAllByRole("button").filter((button) => button.classList.contains("cs-button--primary") && !(button as HTMLButtonElement).disabled)).toHaveLength(1);
   });
 
   it("does not expose a stored principal identifier when the current owner route cannot be read", async () => {
@@ -492,7 +517,7 @@ describe("VendorsWorkspace", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Due diligence" }));
     await screen.findByText("No due diligence review has been started for this vendor relationship.");
     fireEvent.click(screen.getByRole("button", { name: "Start due diligence" }));
-    fireEvent.change(screen.getByLabelText("Review due date"), { target: { value: "2099-09-30" } });
+    fireEvent.change(screen.getByLabelText("Review due date", { exact: false }), { target: { value: "2099-09-30" } });
     fireEvent.click(screen.getByRole("button", { name: "Start due diligence" }));
 
     await waitFor(() => expect(startVendorAssessment).toHaveBeenCalledWith("relationship-1", {
@@ -512,9 +537,9 @@ describe("VendorsWorkspace", () => {
 
     expect(await screen.findByText(/Independent security testing/)).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: "Start reassessment" }));
-    fireEvent.change(screen.getByLabelText("Review type"), { target: { value: "PERIODIC" } });
-    fireEvent.change(screen.getByLabelText("Review reference"), { target: { value: "annual-review-2099" } });
-    fireEvent.change(screen.getByLabelText("Review due date"), { target: { value: "2099-09-30" } });
+    await chooseVendorOption("Review type", "Scheduled review");
+    fireEvent.change(screen.getByLabelText("Review reference", { exact: false }), { target: { value: "annual-review-2099" } });
+    fireEvent.change(screen.getByLabelText("Review due date", { exact: false }), { target: { value: "2099-09-30" } });
     fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
 
     await waitFor(() => expect(startVendorAssessment).toHaveBeenCalledWith("relationship-1", {
@@ -539,7 +564,7 @@ describe("VendorsWorkspace", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Due diligence" }));
 
     fireEvent.click(await screen.findByRole("button", { name: "Restart due diligence" }));
-    fireEvent.change(screen.getByLabelText("Review due date"), { target: { value: "2099-09-30" } });
+    fireEvent.change(screen.getByLabelText("Review due date", { exact: false }), { target: { value: "2099-09-30" } });
     fireEvent.click(screen.getByRole("button", { name: "Restart due diligence" }));
 
     await waitFor(() => expect(startVendorAssessment).toHaveBeenCalledWith("relationship-1", {
@@ -579,7 +604,7 @@ describe("VendorsWorkspace", () => {
     expect(await screen.findByText("Assessment setup queued. Review setup will continue in the background.")).toBeTruthy();
     expect(screen.getByText("Setup in progress")).toBeTruthy();
     expect(screen.getByRole("button", { name: "View setup status" })).toBeTruthy();
-    expect(screen.getAllByRole("button").filter((button) => button.classList.contains("primary-button") && !(button as HTMLButtonElement).disabled)).toHaveLength(1);
+    expect(screen.getAllByRole("button").filter((button) => button.classList.contains("cs-button--primary") && !(button as HTMLButtonElement).disabled)).toHaveLength(1);
   });
 
   it("opens the exact current evidence request when collection is in progress", async () => {
@@ -594,6 +619,7 @@ describe("VendorsWorkspace", () => {
 
   it("sends the vendor request and preserves a truthful partial-delivery recovery", async () => {
     vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("READY_TO_SEND") });
+    vi.mocked(prepareVendorCollection).mockResolvedValue({ assessment: { ...assessment("READY_TO_SEND"), current_request_id: "request-1", version: 4 }, request: { id: "request-1", status: "READY", deadline: "2099-09-20T23:59:59Z" }, state: "PREPARED" });
     vi.mocked(sendVendorAssessmentRequest).mockResolvedValue({
       assessment: { ...assessment("COLLECTING"), current_request_id: "request-1" },
       request: { id: "request-1", status: "READY", deadline: "2099-09-20T23:59:59Z" },
@@ -602,13 +628,17 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1" onOpenRequest={vi.fn()}/>);
     fireEvent.click(await screen.findByRole("tab", { name: "Due diligence" }));
 
+    fireEvent.click(await screen.findByRole("button", { name: "Prepare request" }));
+    fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Response due date", { exact: false }), { target: { value: "2099-09-20" } });
+    fireEvent.click(screen.getByRole("button", { name: "Prepare request" }));
+    await waitFor(() => expect(prepareVendorCollection).toHaveBeenCalledWith("assessment-1", expect.objectContaining({ audience: "security@vendor.example" })));
     fireEvent.click(await screen.findByRole("button", { name: "Send due diligence request" }));
-    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
-    fireEvent.change(screen.getByLabelText("Response due date"), { target: { value: "2099-09-20" } });
     fireEvent.click(screen.getByRole("button", { name: "Send due diligence request" }));
 
     expect((await screen.findByRole("alert")).textContent).toContain("Email delivery did not complete");
-    expect(sendVendorAssessmentRequest).toHaveBeenCalledWith("assessment-1", expect.objectContaining({ audience: "security@vendor.example", expected_version: 3 }));
+    expect(sendVendorAssessmentRequest).toHaveBeenCalledWith("assessment-1", expect.objectContaining({ audience: "", expected_version: 4 }));
+    expect(loadVendorCollection).toHaveBeenCalled();
     expect(screen.queryByText("security@vendor.example")).toBeNull();
   });
 
@@ -622,7 +652,7 @@ describe("VendorsWorkspace", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Due diligence" }));
 
     fireEvent.click(await screen.findByRole("button", { name: "Send another link" }));
-    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
 
     await waitFor(() => expect(reissueVendorAssessmentRequest).toHaveBeenCalledWith("assessment-1", {
@@ -659,8 +689,8 @@ describe("VendorsWorkspace", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Due diligence" }));
 
     fireEvent.click(await screen.findByRole("button", { name: "Record assessment conclusion" }));
-    fireEvent.change(screen.getByLabelText("Conclusion"), { target: { value: "SATISFACTORY_WITH_CONDITIONS" } });
-    fireEvent.change(screen.getByLabelText("Assessment basis"), { target: { value: "Proceed after the recorded access-control action is complete." } });
+    await chooseVendorOption("Conclusion", "Satisfactory with conditions");
+    fireEvent.change(screen.getByLabelText("Assessment basis", { exact: false }), { target: { value: "Proceed after the recorded access-control action is complete." } });
     fireEvent.click(screen.getByRole("button", { name: "Record assessment conclusion" }));
 
     await waitFor(() => expect(completeVendorAssessment).toHaveBeenCalledWith("assessment-1", expect.objectContaining({
@@ -682,10 +712,10 @@ describe("VendorsWorkspace", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Due diligence" }));
 
     fireEvent.click(await screen.findByRole("button", { name: "Request clarification" }));
-    fireEvent.click(screen.getByLabelText("Independent security testing"));
-    fireEvent.change(screen.getByLabelText("What the vendor must provide"), { target: { value: "Provide the current independent test report." } });
-    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
-    fireEvent.change(screen.getByLabelText("Response due date"), { target: { value: "2099-09-12" } });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Independent security testing" }));
+    fireEvent.change(screen.getByLabelText("What the vendor must provide", { exact: false }), { target: { value: "Provide the current independent test report." } });
+    fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Response due date", { exact: false }), { target: { value: "2099-09-12" } });
     fireEvent.click(screen.getByRole("button", { name: "Send clarification request" }));
 
     await waitFor(() => expect(requestVendorAssessmentClarification).toHaveBeenCalledWith("assessment-1", expect.objectContaining({
@@ -708,10 +738,10 @@ describe("VendorsWorkspace", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Due diligence" }));
 
     fireEvent.click(await screen.findByRole("button", { name: "Record finding" }));
-    fireEvent.change(screen.getByLabelText("Finding reference"), { target: { value: "security-test-report" } });
-    fireEvent.change(screen.getByLabelText("Finding title"), { target: { value: "Current security test required" } });
-    fireEvent.change(screen.getByLabelText("Finding details"), { target: { value: "The submitted report is no longer current for this review." } });
-    fireEvent.change(screen.getByLabelText("Action due date"), { target: { value: "2099-09-20" } });
+    fireEvent.change(screen.getByLabelText("Finding reference", { exact: false }), { target: { value: "security-test-report" } });
+    fireEvent.change(screen.getByLabelText("Finding title", { exact: false }), { target: { value: "Current security test required" } });
+    fireEvent.change(screen.getByLabelText("Finding details", { exact: false }), { target: { value: "The submitted report is no longer current for this review." } });
+    fireEvent.change(screen.getByLabelText("Action due date", { exact: false }), { target: { value: "2099-09-20" } });
     fireEvent.click(screen.getByRole("button", { name: "Record finding" }));
 
     await waitFor(() => expect(createVendorAssessmentDeficiency).toHaveBeenCalledWith("assessment-1", expect.objectContaining({ expected_version: 3, trigger_key: "security-test-report" })));
@@ -729,13 +759,13 @@ describe("VendorsWorkspace", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Due diligence" }));
 
     fireEvent.click(await screen.findByRole("button", { name: "Validate document" }));
-    fireEvent.change(screen.getByLabelText("Evidence class"), { target: { value: "BANK_VALIDATED" } });
+    await chooseVendorOption("Evidence class", "Validated by reviewer");
     fireEvent.click(screen.getByRole("button", { name: "Record validation" }));
 
     await waitFor(() => expect(reviewVendorAssessmentDocument).toHaveBeenCalledWith("assessment-1", "artifact-1", {
-      expected_version: 3, decision: "VALIDATE", document_type: "SECURITY_TEST", evidence_class: "BANK_VALIDATED", valid_until: "2027-08-01",
+      expected_version: 3, field_id: "security-report", decision: "VALIDATE", document_type: "SECURITY_TEST", evidence_class: "BANK_VALIDATED", valid_until: "2027-08-01",
     }));
-    expect(await screen.findByText("Validated · Bank validated evidence")).toBeTruthy();
+    expect(await screen.findByText("Validated · Validated evidence")).toBeTruthy();
   });
 
   it("opens an authorized assessment document in a separate browser context", async () => {
@@ -777,15 +807,15 @@ describe("VendorsWorkspace", () => {
     const onTarget = vi.fn();
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onTarget={onTarget}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Add vendor" }));
-    fireEvent.change(screen.getByLabelText("Legal name"), { target: { value: "Acme Processing Limited" } });
-    const website = screen.getByLabelText("Website") as HTMLInputElement;
+    fireEvent.change(screen.getByLabelText("Legal name", { exact: false }), { target: { value: "Acme Processing Limited" } });
+    const website = screen.getByLabelText("Website", { exact: false }) as HTMLInputElement;
     expect(website.type).toBe("url");
     expect(website.autocomplete).toBe("url");
     fireEvent.change(website, { target: { value: "https://Acme.Example/about" } });
-    fireEvent.change(screen.getByLabelText("Registered address"), { target: { value: " 1 Marina Road\r\n Lagos " } });
-    fireEvent.change(screen.getByLabelText("Service supplied"), { target: { value: "Card transaction processing" } });
-    fireEvent.change(screen.getByLabelText("Criticality"), { target: { value: "IMPORTANT" } });
-    fireEvent.change(screen.getByLabelText("Privacy role"), { target: { value: "PROCESSOR" } });
+    fireEvent.change(screen.getByLabelText("Registered address", { exact: false }), { target: { value: " 1 Marina Road\r\n Lagos " } });
+    fireEvent.change(screen.getByLabelText("Service supplied", { exact: false }), { target: { value: "Card transaction processing" } });
+    await chooseVendorOption("Criticality", "Important");
+    await chooseVendorOption("Privacy role", "Processor");
     fireEvent.click(screen.getByRole("button", { name: "Add vendor relationship" }));
     await waitFor(() => expect(createVendorRelationship).toHaveBeenCalled());
     const call = vi.mocked(createVendorRelationship).mock.calls[0];
@@ -801,8 +831,8 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor relationship" }));
     expect(screen.queryByLabelText("Legal name")).toBeNull();
-    expect(screen.getByText("These details are shared across the bank and cannot be changed from this service relationship.")).toBeTruthy();
-    const service = screen.getByLabelText("Service supplied") as HTMLInputElement;
+    expect(screen.getByText("These details are shared across your organization and cannot be changed from this service relationship.")).toBeTruthy();
+    const service = screen.getByLabelText("Service supplied", { exact: false }) as HTMLInputElement;
     fireEvent.change(service, { target: { value: "Card processing and settlement" } });
     fireEvent.click(screen.getByRole("button", { name: "Save vendor relationship" }));
     expect(await screen.findByText("This record changed. Your entries are still here; reload the record before saving again.")).toBeTruthy();
@@ -814,7 +844,7 @@ describe("VendorsWorkspace", () => {
     vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [record, second] });
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor relationship" }));
-    const service = screen.getByLabelText("Service supplied") as HTMLInputElement;
+    const service = screen.getByLabelText("Service supplied", { exact: false }) as HTMLInputElement;
     fireEvent.change(service, { target: { value: "Card processing draft" } });
     expect(screen.queryByRole("button", { name: "Add vendor" })).toBeNull();
     expect((screen.getByRole("searchbox", { name: "Search vendors and services" }) as HTMLInputElement).disabled).toBe(true);
@@ -828,7 +858,7 @@ describe("VendorsWorkspace", () => {
     vi.mocked(updateVendorRelationship).mockResolvedValue({ ...record, relationship: { ...record.relationship, service_name: "Card settlement", version: 2 } });
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor relationship" }));
-    fireEvent.change(screen.getByLabelText("Service supplied"), { target: { value: "Card settlement" } });
+    fireEvent.change(screen.getByLabelText("Service supplied", { exact: false }), { target: { value: "Card settlement" } });
     fireEvent.click(screen.getByRole("button", { name: "Save vendor relationship" }));
     await waitFor(() => expect(updateVendorRelationship).toHaveBeenCalled());
     const call = vi.mocked(updateVendorRelationship).mock.calls[0];
@@ -874,10 +904,10 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
-    const legalName = await screen.findByLabelText("Legal name");
+    const legalName = await screen.findByLabelText("Legal name", { exact: false });
     fireEvent.change(legalName, { target: { value: "Acme Payments Limited" } });
-    fireEvent.change(screen.getByLabelText("Website domain"), { target: { value: "acme.example" } });
-    fireEvent.change(screen.getByLabelText("Registered address"), { target: { value: "1 Marina Road\r\nLagos" } });
+    fireEvent.change(screen.getByLabelText("Website domain", { exact: false }), { target: { value: "acme.example" } });
+    fireEvent.change(screen.getByLabelText("Registered address", { exact: false }), { target: { value: "1 Marina Road\r\nLagos" } });
     fireEvent.click(screen.getByRole("button", { name: "Save vendor details" }));
 
     await waitFor(() => expect(updateVendorIdentity).toHaveBeenCalledWith("vendor-1", expect.objectContaining({ expected_version: 1, legal_name: "Acme Payments Limited", website_domain: "acme.example", registered_address: "1 Marina Road\nLagos" })));
@@ -892,13 +922,13 @@ describe("VendorsWorkspace", () => {
   it("accepts an HTTPS URL but rejects credentials, ports and IPs before updating a vendor identity", async () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
-    const website = await screen.findByLabelText("Website domain");
+    const website = await screen.findByLabelText("Website domain", { exact: false });
     fireEvent.change(website, { target: { value: "https://Acme.Example/about" } });
     fireEvent.click(screen.getByRole("button", { name: "Save vendor details" }));
     await waitFor(() => expect(updateVendorIdentity).toHaveBeenCalledWith("vendor-1", expect.objectContaining({ website_domain: "acme.example" })));
     vi.mocked(updateVendorIdentity).mockClear();
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
-    const reopenedWebsite = await screen.findByLabelText("Website domain");
+    const reopenedWebsite = await screen.findByLabelText("Website domain", { exact: false });
     for (const value of ["https://user@acme.example", "https://acme.example:443/about", "user@acme.example", "acme.example:443", "127.0.0.1"]) {
       fireEvent.change(reopenedWebsite, { target: { value } });
       fireEvent.click(screen.getByRole("button", { name: "Save vendor details" }));
@@ -910,7 +940,7 @@ describe("VendorsWorkspace", () => {
   it("moves keyboard focus into the vendor identity form and passes axe", async () => {
     const { container } = render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
-    const legalName = await screen.findByLabelText("Legal name");
+    const legalName = await screen.findByLabelText("Legal name", { exact: false });
     await waitFor(() => expect(document.activeElement).toBe(legalName));
     const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
     expect(results.violations.map((violation) => violation.id)).toEqual([]);
@@ -923,7 +953,7 @@ describe("VendorsWorkspace", () => {
     vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [record, second] });
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
-    const legalName = await screen.findByLabelText("Legal name") as HTMLInputElement;
+    const legalName = await screen.findByLabelText("Legal name", { exact: false }) as HTMLInputElement;
     fireEvent.change(legalName, { target: { value: "Acme Payments draft" } });
     expect(screen.queryByRole("button", { name: "Add vendor" })).toBeNull();
     expect(screen.getByRole("button", { name: "Return to relationship" })).toBeTruthy();
@@ -945,11 +975,11 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
     const file = new File([new Uint8Array(30)], "approved.png", { type: "image/png" });
-    fireEvent.change(await screen.findByLabelText("Approved logo file"), { target: { files: [file] } });
+    fireEvent.change(await screen.findByLabelText("Approved logo file", { exact: false }), { target: { files: [file] } });
     fireEvent.click(screen.getByRole("button", { name: "Save vendor details" }));
     await waitFor(() => expect(updateVendorIdentity).toHaveBeenCalledOnce());
     expect(screen.getByRole("button", { name: "Use approved logo" }).hasAttribute("disabled")).toBe(true);
-    expect((screen.getByLabelText("Approved logo file") as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByLabelText("Approved logo file", { exact: false }) as HTMLInputElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));
     expect(uploadApprovedVendorLogo).not.toHaveBeenCalled();
     pending.resolve({ vendor: { ...record.vendor, version: 2 }, brand: { state: "UNAVAILABLE", version: 0, event_version: 0 } });
@@ -961,9 +991,9 @@ describe("VendorsWorkspace", () => {
     vi.mocked(uploadApprovedVendorLogo).mockReturnValue(pending.promise);
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
-    const legalName = await screen.findByLabelText("Legal name") as HTMLInputElement;
+    const legalName = await screen.findByLabelText("Legal name", { exact: false }) as HTMLInputElement;
     const file = new File([new Uint8Array(30)], "approved.png", { type: "image/png" });
-    fireEvent.change(screen.getByLabelText("Approved logo file"), { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText("Approved logo file", { exact: false }), { target: { files: [file] } });
     fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));
     await waitFor(() => expect(uploadApprovedVendorLogo).toHaveBeenCalledOnce());
     expect(legalName.disabled).toBe(true);
@@ -991,7 +1021,7 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
     const file = new File([new Uint8Array(30)], "approved.png", { type: "image/png" });
-    fireEvent.change(await screen.findByLabelText("Approved logo file"), { target: { files: [file] } });
+    fireEvent.change(await screen.findByLabelText("Approved logo file", { exact: false }), { target: { files: [file] } });
     fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));
     expect(await screen.findByText("Approved logo saved.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Return to relationship" }));
@@ -1015,7 +1045,7 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
     const file = new File([new Uint8Array(30)], "approved.png", { type: "image/png" });
-    fireEvent.change(await screen.findByLabelText("Approved logo file"), { target: { files: [file] } });
+    fireEvent.change(await screen.findByLabelText("Approved logo file", { exact: false }), { target: { files: [file] } });
     fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));
     expect(await screen.findByText("Approved logo saved.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Return to relationship" }));
@@ -1032,7 +1062,7 @@ describe("VendorsWorkspace", () => {
       .mockResolvedValueOnce({ vendor: { ...record.vendor, legal_name: "Acme Payments draft", version: 3 }, brand: { state: "PENDING", version: 1, event_version: 1 } });
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
-    const legalName = await screen.findByLabelText("Legal name") as HTMLInputElement;
+    const legalName = await screen.findByLabelText("Legal name", { exact: false }) as HTMLInputElement;
     fireEvent.change(legalName, { target: { value: "Acme Payments draft" } });
     fireEvent.click(screen.getByRole("button", { name: "Save vendor details" }));
     fireEvent.click(await screen.findByRole("button", { name: "Reload current vendor" }));
@@ -1052,7 +1082,7 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
     const file = new File([new Uint8Array(30)], "approved.png", { type: "image/png" });
-    fireEvent.change(await screen.findByLabelText("Approved logo file"), { target: { files: [file] } });
+    fireEvent.change(await screen.findByLabelText("Approved logo file", { exact: false }), { target: { files: [file] } });
     fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));
     fireEvent.click(await screen.findByRole("button", { name: "Reload current vendor" }));
     await screen.findByText("Current vendor details reloaded. Your entries and selected file are unchanged.");
@@ -1068,7 +1098,7 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
     const file = new File([new Uint8Array(30)], "approved.png", { type: "image/png" });
-    fireEvent.change(await screen.findByLabelText("Approved logo file"), { target: { files: [file] } });
+    fireEvent.change(await screen.findByLabelText("Approved logo file", { exact: false }), { target: { files: [file] } });
     fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));
     expect(await screen.findByText("The approved logo was saved, but the updated vendor could not be loaded. Reload the current vendor to confirm the saved icon.")).toBeTruthy();
     expect(screen.getByText("approved.png · 30 B")).toBeTruthy();
@@ -1080,7 +1110,7 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
     expect(await screen.findByRole("button", { name: "Choose logo" })).toBeTruthy();
-    const input = await screen.findByLabelText("Approved logo file");
+    const input = await screen.findByLabelText("Approved logo file", { exact: false });
     const first = new File([new Uint8Array(30)], "first.png", { type: "image/png" });
     const replacement = new File([new Uint8Array(40)], "approved.webp", { type: "image/webp" });
     fireEvent.change(input, { target: { files: [first] } });
@@ -1098,7 +1128,7 @@ describe("VendorsWorkspace", () => {
   it("rejects SVG and files over 512 KiB before upload", async () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
-    const input = await screen.findByLabelText("Approved logo file");
+    const input = await screen.findByLabelText("Approved logo file", { exact: false });
     fireEvent.change(input, { target: { files: [new File(["<svg/>"] , "logo.svg", { type: "image/svg+xml" })] } });
     expect(await screen.findByText("Select a PNG, JPEG, WebP or ICO file.")).toBeTruthy();
     fireEvent.change(input, { target: { files: [new File([new Uint8Array(524289)], "large.png", { type: "image/png" })] } });
@@ -1114,7 +1144,7 @@ describe("VendorsWorkspace", () => {
     vi.mocked(uploadApprovedVendorLogo).mockRejectedValue(new ApiError(status, "failed"));
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
-    const input = await screen.findByLabelText("Approved logo file");
+    const input = await screen.findByLabelText("Approved logo file", { exact: false });
     const file = new File([new Uint8Array(30)], "approved.png", { type: "image/png" });
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));
@@ -1129,7 +1159,7 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit vendor details" }));
     const file = new File([new Uint8Array(30)], "approved.png", { type: "image/png" });
-    fireEvent.change(await screen.findByLabelText("Approved logo file"), { target: { files: [file] } });
+    fireEvent.change(await screen.findByLabelText("Approved logo file", { exact: false }), { target: { files: [file] } });
     fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));
     expect(await screen.findByText(/selected file is still here/i)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Use approved logo" }));

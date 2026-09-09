@@ -84,10 +84,10 @@ describe("FormPolicyEditor", () => {
     expect(save.mock.calls[0]?.[0]).toMatchObject({create_automation_policy:true,blast_radius:{per_run:6,per_day:20}});
   });
 
-  it("defaults forms with bank review to completed bank assessment", () => {
+  it("defaults forms with review to completed assessment", () => {
     render(<FormPolicyEditor forms={[{...forms[0]!,requiresBankAssessment:true}]} onCancel={() => undefined} onCreate={vi.fn()}/>);
-    expect(screen.getByRole("button",{name:/Completed bank assessment/})).toBeTruthy();
-    expect(screen.getByText(/Required bank reviews must be complete/)).toBeTruthy();
+    expect(screen.getByRole("button",{name:/Completed assessment/})).toBeTruthy();
+    expect(screen.getByText(/Required reviews must be complete/)).toBeTruthy();
   });
 
 });

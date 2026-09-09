@@ -80,6 +80,11 @@ func main() {
 	if programID == "" {
 		fatalIf(fmt.Errorf("response-policy acceptance requires an installed Program subject"))
 	}
+	upgradedVendorForm, upgradeErr := upgradeReferenceVendorForm(ctx, pool, seed, programID)
+	fatalIf(upgradeErr)
+	if upgradedVendorForm {
+		fmt.Fprintln(os.Stderr, "Reference vendor form upgraded through owner submission and independent review; prior requests retain their form revision.")
+	}
 	referenceVendor, err := installer.EnsureReferenceVendor(ctx, seed, thirdPartyService)
 	fatalIf(err)
 

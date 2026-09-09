@@ -1,0 +1,1923 @@
+{
+  "id": "issues-dark-390",
+  "name": "issues",
+  "fixture": "",
+  "route": "#work/matters",
+  "theme": "dark",
+  "width": 390,
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Meridian Trust Bank</strong>",
+            "target": [
+              ".context-bar > div:nth-child(1) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<summary aria-label=\"Administration\">Admin</summary>",
+                    "target": [
+                      "summary[aria-label=\"Administration\"]"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary aria-label=\"Administration\">Admin</summary>",
+            "target": [
+              "summary[aria-label=\"Administration\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<summary role=\"button\" aria-label=\"Viewing as Chief Risk Officer. Demo environment\">Viewing as Chief Risk Officer</summary>",
+                    "target": [
+                      "summary[role=\"button\"]"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary role=\"button\" aria-label=\"Viewing as Chief Risk Officer. Demo environment\">Viewing as Chief Risk Officer</summary>",
+            "target": [
+              "summary[role=\"button\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Meridian Trust Bank</span>",
+            "target": [
+              "header > div:nth-child(1) > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "27.0pt (36px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h1>Work</h1>",
+            "target": [
+              "h1"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Review decisions, exceptions and evidence that still need attention.</p>",
+            "target": [
+              "header > div:nth-child(1) > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Issues and changes</span>",
+            "target": [
+              ".workspace-brief > div:nth-child(1) > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "16.5pt (22px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2>1 loaded item</h2>",
+            "target": [
+              "h2"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Open an item to review its current handoff, facts, actions and outcome checks.</p>",
+            "target": [
+              ".workspace-brief > div:nth-child(1) > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span><strong>0</strong> decisions</span>",
+            "target": [
+              ".workspace-brief-facts > span:nth-child(1)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.8pt (13px)",
+                  "fontWeight": "bold",
+                  "messageKey": "shortTextContent",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element content is too short to determine if it is actual text content"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>0</strong>",
+            "target": [
+              "span:nth-child(1) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span><strong>0</strong> overdue</span>",
+            "target": [
+              ".workspace-brief-facts > span:nth-child(2)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.8pt (13px)",
+                  "fontWeight": "bold",
+                  "messageKey": "shortTextContent",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element content is too short to determine if it is actual text content"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>0</strong>",
+            "target": [
+              ".workspace-brief-facts > span:nth-child(2) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span><strong>0</strong> outcome checks</span>",
+            "target": [
+              ".workspace-brief-facts > span:nth-child(3)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.8pt (13px)",
+                  "fontWeight": "bold",
+                  "messageKey": "shortTextContent",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element content is too short to determine if it is actual text content"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>0</strong>",
+            "target": [
+              "span:nth-child(3) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 30
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "strong",
+      "text": "Meridian Trust Bank",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 33,
+        "y": 34,
+        "width": 113.65625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.464170427534874,
+      "minimum": 4.5
+    },
+    {
+      "selector": "summary",
+      "text": "Admin",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 185.71875,
+        "y": 26,
+        "width": 49.28125,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.675169205499221,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Configuration",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": -60,
+        "y": 83,
+        "width": 280,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.382537400712529,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "People, authority, data, automation and system operations.",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": -60,
+        "y": 105,
+        "width": 280,
+        "height": 14.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.669966095154851,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Open Configuration",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": -60,
+        "y": 131.5,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Open Configuration",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": -60,
+        "y": 131.5,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "summary",
+      "text": "Viewing as Chief Risk Officer",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 241,
+        "y": 26,
+        "width": 116,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.675169205499221,
+      "minimum": 4.5
+    },
+    {
+      "selector": "summary",
+      "text": "Viewing as Chief Risk Officer",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 241,
+        "y": 26,
+        "width": 116,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5193364728028564,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "strong",
+      "text": "Non-production sample data",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 83,
+        "width": 280,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.382537400712529,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "This workspace contains seeded reference records for role-based testing.",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 105,
+        "width": 280,
+        "height": 29
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.669966095154851,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Viewing as",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 157,
+        "width": 280,
+        "height": 14.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.669966095154851,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Chief Risk Officer",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 175.5,
+        "width": 280,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.382537400712529,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Switch account",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 216.5,
+        "width": 280,
+        "height": 14.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.669966095154851,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Data Protection Officer",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 237,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Data Protection Officer",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 237,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Data Protection Compliance Officer",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 282,
+        "width": 280,
+        "height": 60
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Data Protection Compliance Officer",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 282,
+        "width": 280,
+        "height": 60
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Privacy Control Owner",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 348,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Privacy Control Owner",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 348,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button",
+      "text": "Reference journeys",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 399,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Reference journeys",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 399,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span.eyebrow",
+      "text": "Meridian Trust Bank",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 100,
+        "width": 148.9375,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 9.479578580346425,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h1",
+      "text": "Work",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 127,
+        "width": 354,
+        "height": 36
+      },
+      "fontSize": "36px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 18.970954227610815,
+      "minimum": 3
+    },
+    {
+      "selector": "p",
+      "text": "Review decisions, exceptions and evidence that still need attention.",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 167,
+        "width": 354,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 7.081695290667391,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Analyze document",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 234.375,
+        "width": 354,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Analyze document",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 234.375,
+        "width": 354,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.603342995694178,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button.active",
+      "text": "Issues and changes",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 24,
+        "y": 319.375,
+        "width": 342,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Evidence review",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 24,
+        "y": 363.375,
+        "width": 342,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span.eyebrow",
+      "text": "Issues and changes",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 440.375,
+        "width": 139.75,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 9.479578580346425,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h2",
+      "text": "1 loaded item",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 464.375,
+        "width": 350,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 18.970954227610815,
+      "minimum": 4.5
+    },
+    {
+      "selector": "p",
+      "text": "Open an item to review its current handoff, facts, actions and outcome checks.",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 502.375,
+        "width": 350,
+        "height": 37.1875
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 7.081695290667391,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "decisions",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 549.5625,
+        "width": 85.546875,
+        "height": 19.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 7.081695290667391,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "0",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 550.5625,
+        "width": 7.484375,
+        "height": 17
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 14.208625761478618,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "overdue",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 573.0625,
+        "width": 85.546875,
+        "height": 19.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 7.081695290667391,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "0",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 574.0625,
+        "width": 7.484375,
+        "height": 17
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 14.208625761478618,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "outcome checks",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 596.5625,
+        "width": 85.546875,
+        "height": 19.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 7.081695290667391,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "0",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 20,
+        "y": 597.5625,
+        "width": 7.484375,
+        "height": 17
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 14.208625761478618,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.primary-button",
+      "text": "New issue or change",
+      "disabled": false,
+      "background": "#162d3b",
+      "uncertain": [],
+      "box": {
+        "x": 20,
+        "y": 630.0625,
+        "width": 350,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 14.260274375259133,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.primary-button",
+      "text": "New issue or change",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [],
+      "box": {
+        "x": 20,
+        "y": 630.0625,
+        "width": 350,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "foreground": "#3f7d8f",
+      "ratio": 4.102633810949329,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span",
+      "text": "Search issues and changes",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 727.0625,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "input",
+      "text": "Reference, title, summary or type",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 751.0625,
+        "width": 320,
+        "height": 44
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "placeholder",
+      "foreground": "#75818f",
+      "ratio": 4.050847977852404,
+      "minimum": 4.5
+    },
+    {
+      "selector": "input",
+      "text": "",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 751.0625,
+        "width": 320,
+        "height": 44
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5095232148557631,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span",
+      "text": "Status",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 807.0625,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "select",
+      "text": "",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 831.0625,
+        "width": 320,
+        "height": 44
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5095232148557631,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span",
+      "text": "Issue type",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 887.0625,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "select",
+      "text": "",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 911.0625,
+        "width": 320,
+        "height": 44
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5095232148557631,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span",
+      "text": "Priority",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 967.0625,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "select",
+      "text": "",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 991.0625,
+        "width": 320,
+        "height": 44
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5095232148557631,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span",
+      "text": "Due",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1047.0625,
+        "width": 320,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "select",
+      "text": "",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1071.0625,
+        "width": 320,
+        "height": 44
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5095232148557631,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span",
+      "text": "Assigned to me",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 72,
+        "y": 1139.3125,
+        "width": 89.171875,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Apply filters",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1183.0625,
+        "width": 320,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Apply filters",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1183.0625,
+        "width": 320,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5095232148557631,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span.matter-kicker",
+      "text": "Regulatory change  ·  CHG-2026-0042",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1276.0625,
+        "width": 276,
+        "height": 15
+      },
+      "fontSize": "10px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#e9b75a",
+      "ratio": 9.683787123351035,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Implement GAID annual-return evidence requirements",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1295.0625,
+        "width": 276,
+        "height": 48
+      },
+      "fontSize": "16px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "small",
+      "text": "Update the annual return process, evidence ownership and internal approval date.",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1347.0625,
+        "width": 276,
+        "height": 31.34375
+      },
+      "fontSize": "11.2px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "High  priority",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1394.40625,
+        "width": 276,
+        "height": 14.84375
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Due 9/12/2026",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1413.25,
+        "width": 276,
+        "height": 14.84375
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "1  open action",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1432.09375,
+        "width": 276,
+        "height": 14.84375
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Work in progress",
+      "disabled": false,
+      "background": "#24292b",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1462.9375,
+        "width": 106.515625,
+        "height": 28.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#e9b75a",
+      "ratio": 8.02221509943723,
+      "minimum": 4.5
+    },
+    {
+      "selector": "small",
+      "text": "Complete the remaining evidence ownership updates",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 1494.4375,
+        "width": 180,
+        "height": 30
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Open issue workspace",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 181.546875,
+        "y": 1544.4375,
+        "width": 169.453125,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Open issue workspace",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 181.546875,
+        "y": 1544.4375,
+        "width": 169.453125,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5095232148557631,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span",
+      "text": "Today",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 41.015625,
+        "y": 809,
+        "width": 20.75,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Programs",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 106.296875,
+        "y": 809,
+        "width": 33.796875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Work",
+      "disabled": false,
+      "background": "#122533",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 185.6875,
+        "y": 809,
+        "width": 18.609375,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 7.7992634804852985,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Vendors",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 252.40625,
+        "y": 809,
+        "width": 28.75,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Forms",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 327.75,
+        "y": 809,
+        "width": 21.671875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5
+    }
+  ],
+  "headings": [
+    "Work",
+    "1 loaded item"
+  ],
+  "status": "CAPTURED"
+}

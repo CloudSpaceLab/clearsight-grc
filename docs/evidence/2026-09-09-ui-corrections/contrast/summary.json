@@ -1,0 +1,733 @@
+{
+  "generatedAt": "2026-09-09T00:04:05.355Z",
+  "results": [
+    {
+      "id": "today-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 58
+    },
+    {
+      "id": "today-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 51
+    },
+    {
+      "id": "today-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 58
+    },
+    {
+      "id": "today-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 51
+    },
+    {
+      "id": "today-empty-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 24
+    },
+    {
+      "id": "today-empty-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 17
+    },
+    {
+      "id": "today-empty-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 24
+    },
+    {
+      "id": "today-empty-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 17
+    },
+    {
+      "id": "today-unavailable-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "today-unavailable-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 16
+    },
+    {
+      "id": "today-unavailable-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "today-unavailable-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 16
+    },
+    {
+      "id": "programs-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 26
+    },
+    {
+      "id": "programs-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 15
+    },
+    {
+      "id": "programs-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 26
+    },
+    {
+      "id": "programs-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 15
+    },
+    {
+      "id": "program-detail-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 19
+    },
+    {
+      "id": "program-detail-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 14
+    },
+    {
+      "id": "program-detail-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 19
+    },
+    {
+      "id": "program-detail-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 14
+    },
+    {
+      "id": "issues-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 26
+    },
+    {
+      "id": "issues-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 15
+    },
+    {
+      "id": "issues-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 26
+    },
+    {
+      "id": "issues-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 15
+    },
+    {
+      "id": "issue-detail-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 19
+    },
+    {
+      "id": "issue-detail-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 13
+    },
+    {
+      "id": "issue-detail-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 19
+    },
+    {
+      "id": "issue-detail-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 13
+    },
+    {
+      "id": "evidence-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 39
+    },
+    {
+      "id": "evidence-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 33
+    },
+    {
+      "id": "evidence-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 39
+    },
+    {
+      "id": "evidence-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 33
+    },
+    {
+      "id": "imports-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 23
+    },
+    {
+      "id": "imports-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 12
+    },
+    {
+      "id": "imports-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 23
+    },
+    {
+      "id": "imports-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 12
+    },
+    {
+      "id": "forms-library-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-library-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "forms-library-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-library-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "forms-builder-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 45
+    },
+    {
+      "id": "forms-builder-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 30
+    },
+    {
+      "id": "forms-builder-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 45
+    },
+    {
+      "id": "forms-builder-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 30
+    },
+    {
+      "id": "forms-sent-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 36
+    },
+    {
+      "id": "forms-sent-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 27
+    },
+    {
+      "id": "forms-sent-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 36
+    },
+    {
+      "id": "forms-sent-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 27
+    },
+    {
+      "id": "forms-response-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 1
+    },
+    {
+      "id": "forms-response-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 0
+    },
+    {
+      "id": "forms-response-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 1
+    },
+    {
+      "id": "forms-response-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 0
+    },
+    {
+      "id": "vendors-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 34
+    },
+    {
+      "id": "vendors-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 26
+    },
+    {
+      "id": "vendors-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 34
+    },
+    {
+      "id": "vendors-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 26
+    },
+    {
+      "id": "vendor-checklist-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 68
+    },
+    {
+      "id": "vendor-checklist-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 50
+    },
+    {
+      "id": "vendor-checklist-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 68
+    },
+    {
+      "id": "vendor-checklist-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 50
+    },
+    {
+      "id": "document-select-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 1
+    },
+    {
+      "id": "document-select-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 2
+    },
+    {
+      "id": "document-select-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 1
+    },
+    {
+      "id": "document-select-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 2
+    },
+    {
+      "id": "document-review-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 3
+    },
+    {
+      "id": "document-review-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 3
+    },
+    {
+      "id": "document-review-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 3
+    },
+    {
+      "id": "document-review-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 3
+    },
+    {
+      "id": "configure-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 48
+    },
+    {
+      "id": "configure-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 36
+    },
+    {
+      "id": "configure-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 48
+    },
+    {
+      "id": "configure-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 36
+    },
+    {
+      "id": "configure-authority-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 51
+    },
+    {
+      "id": "configure-authority-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 39
+    },
+    {
+      "id": "configure-authority-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 51
+    },
+    {
+      "id": "configure-authority-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 39
+    },
+    {
+      "id": "capture-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 28
+    },
+    {
+      "id": "capture-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 27
+    },
+    {
+      "id": "capture-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 28
+    },
+    {
+      "id": "capture-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 27
+    },
+    {
+      "id": "gallery-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 13
+    },
+    {
+      "id": "gallery-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 13
+    },
+    {
+      "id": "gallery-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 13
+    },
+    {
+      "id": "gallery-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 13
+    },
+    {
+      "id": "gallery-select-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 21
+    },
+    {
+      "id": "gallery-select-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 20
+    },
+    {
+      "id": "gallery-select-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 21
+    },
+    {
+      "id": "gallery-select-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 20
+    },
+    {
+      "id": "field-review-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 27
+    },
+    {
+      "id": "field-review-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 27
+    },
+    {
+      "id": "field-review-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 27
+    },
+    {
+      "id": "field-review-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 27
+    },
+    {
+      "id": "field-builder-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 40
+    },
+    {
+      "id": "field-builder-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 17
+    },
+    {
+      "id": "field-builder-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 40
+    },
+    {
+      "id": "field-builder-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 17
+    },
+    {
+      "id": "capture-received-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "capture-received-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 21
+    },
+    {
+      "id": "capture-received-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "capture-received-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 21
+    },
+    {
+      "id": "capture-all-held-light-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 8
+    },
+    {
+      "id": "capture-all-held-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 7
+    },
+    {
+      "id": "capture-all-held-dark-1440",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 8
+    },
+    {
+      "id": "capture-all-held-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 7
+    }
+  ]
+}

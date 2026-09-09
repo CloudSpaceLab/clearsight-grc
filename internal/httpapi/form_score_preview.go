@@ -27,8 +27,16 @@ func (a *API) previewFormScore(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "The score preview must be valid JSON.")
 		return
 	}
-	if request.FormTemplateVersion < 1 || len(request.Answers) > maxScorePreviewAnswers || !boundedPreviewAnswers(request.Answers) {
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "score_preview_invalid", "Choose an exact form revision and provide no more than 500 bounded answers.")
+	if request.FormTemplateVersion < 1 {
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "score_preview_invalid", "Choose a form revision.")
+		return
+	}
+	if len(request.Answers) > maxScorePreviewAnswers {
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "score_preview_invalid", "Use 500 answers or fewer.")
+		return
+	}
+	if message := previewAnswerValidationMessage(request.Answers); message != "" {
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "score_preview_invalid", message)
 		return
 	}
 	form, err := a.deps.Monitoring.GetLibraryForm(r.Context(), r.PathValue("id"), request.FormTemplateVersion)
@@ -49,28 +57,49 @@ func (a *API) previewFormScore(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, result)
 }
 
-func boundedPreviewAnswers(answers map[string]formcontract.AnswerValue) bool {
+func previewAnswerValidationMessage(answers map[string]formcontract.AnswerValue) string {
 	for fieldID, answer := range answers {
-		if len(strings.TrimSpace(fieldID)) == 0 || len(fieldID) > 128 || answer.Text != nil && len(*answer.Text) > 16384 || len(answer.Values) > 100 || len(answer.ArtifactIDs) > 100 {
-			return false
+		if len(strings.TrimSpace(fieldID)) == 0 || len(fieldID) > 128 {
+			return "An answer has an invalid question reference. Reload the form and try again."
+		}
+		if answer.Text != nil && len(*answer.Text) > 16384 {
+			return "Use 16,384 bytes or fewer for each text answer."
+		}
+		if len(answer.Values) > 100 {
+			return "Use 100 selections or fewer for each answer."
+		}
+		if len(answer.ArtifactIDs) > 100 {
+			return "Use 100 files or fewer for each answer."
 		}
 		for _, value := range answer.Values {
 			if len(value) > 2048 {
-				return false
+				return "Use 2,048 bytes or fewer for each selected answer."
 			}
 		}
 		for _, value := range answer.ArtifactIDs {
 			if len(value) > 512 {
-				return false
+				return "An answer has an invalid file reference. Reopen the evidence request and try again."
 			}
 		}
 		if document := answer.Document; document != nil {
-			if len(document.ArtifactID) > 512 || len(document.DocumentType) > 128 || len(document.Reference) > 2048 || len(document.IssuedBy) > 512 || len(document.IssuedOn) > 64 || len(document.ExpiresOn) > 64 {
-				return false
+			if len(document.ArtifactID) > 512 {
+				return "An answer has an invalid file reference. Reopen the evidence request and try again."
+			}
+			if len(document.DocumentType) > 128 {
+				return "Use 128 bytes or fewer for the document type."
+			}
+			if len(document.Reference) > 2048 {
+				return "Use 2,048 bytes or fewer for the document reference."
+			}
+			if len(document.IssuedBy) > 512 {
+				return "Use 512 bytes or fewer for the document issuer."
+			}
+			if len(document.IssuedOn) > 64 || len(document.ExpiresOn) > 64 {
+				return "Use 64 bytes or fewer for each document date."
 			}
 		}
 	}
-	return true
+	return ""
 }
 
 func previewAnswersBelongToForm(answers map[string]formcontract.AnswerValue, fields []formcontract.Field) bool {

@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import type { ProgramAggregate } from "../types";
 import { canCurrentActorTransitionProgram, transitionProgram } from "../continuityCommands";
-import { ProgramLifecycleControls, programTransitionActionLabel } from "./ProgramLifecycleControls";
+import { ProgramLifecycleControls, programTransitionActionLabel } from "./evidence/ProgramLifecycleControls";
 
 vi.mock("../continuityCommands", () => ({
   canCurrentActorTransitionProgram: vi.fn(),

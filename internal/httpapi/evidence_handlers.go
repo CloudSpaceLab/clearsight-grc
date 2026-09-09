@@ -424,7 +424,7 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if tenant == "" || requestID == "" {
-		httpx.WriteError(w, http.StatusBadRequest, "artifact_scope_required", "tenant_id and request_id are required.")
+		httpx.WriteError(w, http.StatusBadRequest, "artifact_scope_required", "Upload unavailable. Reopen the evidence request and try again.")
 		return
 	}
 	if authenticatedActor != nil {

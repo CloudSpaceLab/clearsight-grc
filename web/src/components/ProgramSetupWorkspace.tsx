@@ -6,7 +6,7 @@ import type { ProgramAggregate } from "../types";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { loadProgramOperations } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
-import { Notice } from "./ui";
+import { Notice, SelectField, TextField } from "./ui";
 
 type Props = { actorPrincipalID: string; canConfigureSources: boolean; onCreated: (aggregate: ProgramAggregate) => void; onClose: () => void };
 
@@ -20,6 +20,10 @@ export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, o
   const [ownerCandidateID, setOwnerCandidateID] = useState("");
   const [approvalAuthorityCandidateID, setApprovalAuthorityCandidateID] = useState("");
   const [monitoringOperations, setMonitoringOperations] = useState<ProgramOperation[]>([]);
+  const [obligatedParty, setObligatedParty] = useState("");
+  const [requiredAction, setRequiredAction] = useState("");
+  const [requirementObject, setRequirementObject] = useState("");
+  const [modality, setModality] = useState("");
 
   async function loadCandidates() {
     setCandidateState("loading");
@@ -71,8 +75,10 @@ export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, o
       const updated = await addProgramRequirement(aggregate.program.id, aggregate.program.version, {
         code: String(data.get("code") ?? "").trim(), title: String(data.get("title") ?? "").trim(),
         statement: String(data.get("statement") ?? "").trim(), sourceAnchor: String(data.get("source_anchor") ?? "").trim(),
+        actor: obligatedParty.trim(), action: requiredAction.trim(), object: requirementObject.trim(),
+        modality,
       });
-      setAggregate(updated); onCreated(updated); form.reset(); setNotice("Requirement added.");
+      setAggregate(updated); onCreated(updated); form.reset(); setObligatedParty(""); setRequiredAction(""); setRequirementObject(""); setModality(""); setNotice("Requirement added.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The requirement could not be added.");
     } finally { setSaving(false); }
@@ -87,23 +93,27 @@ export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, o
     {!aggregate && candidateState === "unavailable" && <Notice tone="error">Current Program responsibilities could not be confirmed. Program creation is disabled. <button className="text-button" type="button" onClick={() => void loadCandidates()}>Retry responsibilities</button></Notice>}
     {!aggregate ? <form className="setup-form" onSubmit={saveProgram}>
       <div className="monitoring-form-grid">
-        <label><span>Program name</span><input name="name" required placeholder="Mobile banking"/></label>
-        <label><span>Code</span><input name="code" required placeholder="MOBILE"/></label>
+        <label><span>Program name</span><input name="name" required placeholder="Service availability"/></label>
+        <label><span>Code</span><input name="code" required placeholder="SERVICE"/></label>
         <label><span>Program type</span><select name="type" defaultValue="CHANNEL"><option value="CHANNEL">Channel</option><option value="REGULATORY">Regulatory obligation</option><option value="CYBERSECURITY">Cybersecurity</option><option value="OPERATIONS">Operations</option><option value="THIRD_PARTY">Third party</option><option value="PRIVACY">Privacy</option></select></label>
-        <label><span>Owning function</span><input name="owning_function" required placeholder="Digital Banking"/></label>
+        <label><span>Owning function</span><input name="owning_function" required placeholder="Operations"/></label>
         <label><span>Accountable owner</span><select required disabled={candidateState !== "live"} value={ownerCandidateID} onChange={(event) => { const value = event.target.value; setOwnerCandidateID(value); if (approvalAuthorityCandidateID === value) setApprovalAuthorityCandidateID(""); }}><option value="">Select an eligible owner</option>{candidates?.owner_candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.display_name}{candidate.role ? ` · ${candidate.role}` : ""}</option>)}</select></label>
         <label><span>Approval authority</span><select required disabled={candidateState !== "live"} value={approvalAuthorityCandidateID} onChange={(event) => setApprovalAuthorityCandidateID(event.target.value)}><option value="">Select an eligible approver</option>{candidates?.approval_authority_candidates.filter((candidate) => candidate.id !== ownerCandidateID).map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.display_name}{candidate.role ? ` · ${candidate.role}` : ""}</option>)}</select></label>
-        <label><span>Jurisdiction</span><input name="jurisdiction" placeholder="Nigeria"/></label>
-        <label className="full"><span>Scope</span><textarea name="scope" rows={3} required placeholder="Retail mobile banking channel, including customer authentication and password reset"/></label>
+        <label><span>Jurisdiction</span><input name="jurisdiction" placeholder="Country or region"/></label>
+        <label className="full"><span>Scope</span><textarea name="scope" rows={3} required placeholder="Services, processes or locations covered by this Program"/></label>
       </div>
       <div className="monitoring-form-actions"><button className="text-button" type="button" onClick={onClose}>Cancel</button><button className="primary-button" disabled={saving || candidateState !== "live" || !ownerCandidateID || !approvalAuthorityCandidateID || ownerCandidateID === approvalAuthorityCandidateID} type="submit">{saving ? "Creating…" : "Create Program"}</button></div>
     </form> : <div className="setup-sections">
       <section className="setup-section"><div className="setup-section-title"><div><h3>Requirements</h3><p>Record what must be true for this Program.</p></div><span>{aggregate.requirements.length} added</span></div>
         {aggregate.requirements.length > 0 && <ul className="setup-requirement-list">{aggregate.requirements.map((requirement) => <li key={requirement.id}><strong>{requirement.title}</strong><span>{requirement.statement}</span></li>)}</ul>}
         <form className="requirement-form" onSubmit={saveRequirement}>
-          <label><span>Title</span><input name="title" required placeholder="Live face verification is available"/></label>
-          <label><span>Code</span><input name="code" required placeholder="FACE-VERIFY"/></label>
-          <label className="full"><span>Requirement</span><textarea name="statement" required rows={3} placeholder="The mobile banking channel must complete live face verification during onboarding and high-risk account recovery."/></label>
+          <label><span>Title</span><input name="title" required placeholder="Name the required outcome"/></label>
+          <label><span>Code</span><input name="code" required placeholder="REQ-001"/></label>
+          <label className="full"><span>Requirement</span><textarea name="statement" required rows={3} placeholder="Enter the obligation stated in the source."/></label>
+          <SelectField label="Obligation strength" value={modality || undefined} onChange={(value) => setModality(value ?? "")} placeholder="Select the source's wording" allowsEmpty={false} isRequired options={[{ id: "MUST", label: "Must" }, { id: "MUST_NOT", label: "Must not" }, { id: "SHOULD", label: "Should" }, { id: "MAY", label: "May" }, { id: "EXPECTED", label: "Expected" }]}/>
+          <TextField label="Who must act?" value={obligatedParty} onChange={setObligatedParty} isRequired/>
+          <TextField label="What must they do?" value={requiredAction} onChange={setRequiredAction} isRequired/>
+          <div className="full"><TextField label="What does it apply to?" value={requirementObject} onChange={setRequirementObject} isRequired/></div>
           <label className="full"><span>Source reference (optional)</span><input name="source_anchor" placeholder="Policy, regulation or internal standard"/></label>
           <button className="secondary-button" type="submit" disabled={saving}>{saving ? "Adding…" : "Add requirement"}</button>
         </form>

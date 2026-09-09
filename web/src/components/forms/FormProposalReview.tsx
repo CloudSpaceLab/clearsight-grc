@@ -61,8 +61,11 @@ export function FormProposalReview({ proposal, sourceTitle, sourceElements = [],
       if (accepted.result_template_id && accepted.result_template_version) onDraftCreated?.(accepted.result_template_id, accepted.result_template_version);
     } catch (cause) {
       if (apiErrorKind(cause) === "conflict") {
-        setError("This proposal changed while you were reviewing it. The latest version has been loaded; review the selected fields again.");
-        try { onProposalChange(await loadFormProposal(proposal.id)); } catch { /* Preserve the conflict and current receipt. */ }
+        setError("This proposal changed while you were reviewing it. Reload it before creating a draft.");
+        try {
+          onProposalChange(await loadFormProposal(proposal.id));
+          setError("This proposal changed while you were reviewing it. Latest version loaded. Review the selected fields before creating a draft.");
+        } catch { /* Preserve the conflict and current receipt without claiming a reload. */ }
       } else {
         setError(cause instanceof Error ? cause.message : "The selected fields could not be turned into a draft.");
       }
@@ -100,7 +103,7 @@ export function FormProposalReview({ proposal, sourceTitle, sourceElements = [],
       <label><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(proposal.field_changes.map((change) => change.id)))}/> Select all proposed fields</label>
       <span>{proposal.unresolved_items.length} decision{proposal.unresolved_items.length === 1 ? "" : "s"} need author review</span>
     </div>
-    <div className="form-proposal-layout">
+    <div className="form-proposal-layout" role="region" aria-label="Field review and preview" tabIndex={0}>
       <div className="form-proposal-changes" aria-label="Proposed field changes">
         {proposal.field_changes.map((change) => <ProposalChange key={change.id} change={change} checked={selected.has(change.id)} elements={sourceElements} unresolved={proposal.unresolved_items.filter((item) => item.field_change_id === change.id)} onToggle={() => toggle(change.id)}/>)}
       </div>

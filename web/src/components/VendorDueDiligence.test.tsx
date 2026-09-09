@@ -1,8 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import axe from "axe-core";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAssessmentTypes";
 import { VendorDueDiligence } from "./VendorDueDiligence";
+import { loadVendorCollection } from "../vendorCollectionApi";
+vi.mock("../vendorCollectionApi", () => ({ loadVendorCollection: vi.fn().mockResolvedValue({ assessment_id: "assessment-1", assessment_version: 3, prepared: false, can_reconcile: false, observed_at: "2026-09-08T10:00:00Z", fields: [], vendor_pending_count: 0, bank_pending_count: 0 }) }));
 
 const relationship: VendorRelationshipAggregate = {
   vendor: { id: "vendor-1", tenant_id: "bank", legal_name: "Acme Processing Limited", jurisdiction: "Nigeria", status: "ACTIVE", created_at: "2026-08-25T12:00:00Z", updated_at: "2026-08-25T12:00:00Z", version: 1 },
@@ -26,11 +29,77 @@ function assessment(status: VendorAssessment["status"]): VendorAssessment {
 
 const form = { id: "form-1", version: 3, name: "Vendor security and privacy review", presentation: "WIZARD" as const };
 
+async function chooseOption(label: string, option: string) {
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(label) }));
+  fireEvent.click(await screen.findByRole("option", { name: option }));
+}
+
 function primaryActions() {
-  return screen.queryAllByRole("button").filter((button) => button.classList.contains("primary-button") && !button.hasAttribute("disabled"));
+  return screen.queryAllByRole("button").filter((button) => button.classList.contains("cs-button--primary") && !button.hasAttribute("disabled"));
 }
 
 describe("VendorDueDiligence", () => {
+  it("shows only uncovered document requirements below a mixed checklist", async () => {
+    const current = { ...assessment("UNDER_REVIEW"), current_request_id: "request-1" };
+    const document = { field_id: "covered", artifact_id: "shared-file", file_name: "Covered.pdf", media_type: "application/pdf", size_bytes: 100, artifact_status: "AVAILABLE", status: "SUBMITTED", evidence_class: "VENDOR_SUPPLIED", document_type: "SECURITY_TEST" };
+    const review: VendorAssessmentReviewView = { assessment: current, requests: [], answers: [], coverage: { visible_fields: 0, answered_fields: 0, required_fields: 0, answered_required: 0, ratio: 1 }, documents: [document, { ...document, field_id: "uncovered", file_name: "Supporting.pdf" }], matters: [] };
+    vi.mocked(loadVendorCollection).mockResolvedValueOnce({ assessment_id: current.id, assessment_version: current.version, request_id: "request-1", request_version: 5, prepared: true, can_reconcile: false, observed_at: "2026-09-09T10:00:00Z", fields: [{ field_id: "covered", label: "Covered requirement", type: "vendor_document", required: true, collection_state: "RECEIVED", vendor_action_required: false, bank_review_state: "PENDING" }], vendor_pending_count: 0, bank_pending_count: 1 });
+    render(<VendorDueDiligence relationship={relationship} assessment={current} review={review} form={form} onPrepare={vi.fn()}/>);
+    await screen.findByRole("article", { name: "Covered requirement" });
+    const supporting = screen.getByRole("heading", { name: "Supporting documents" }).parentElement!;
+    await waitFor(() => expect(within(supporting).queryByText("Covered.pdf")).toBeNull());
+    expect(within(supporting).getByText("Supporting.pdf")).toBeTruthy();
+  });
+  it("sends a prepared request using the latest matching collection version", async () => {
+    vi.mocked(loadVendorCollection).mockResolvedValueOnce({ assessment_id: "assessment-1", assessment_version: 7, request_id: "request-1", request_version: 5, prepared: true, can_reconcile: false, deadline: "2099-09-30T16:00:00Z", observed_at: "2026-09-08T10:00:00Z", fields: [], vendor_pending_count: 1, bank_pending_count: 0 });
+    const onSend = vi.fn().mockResolvedValue({ assessment: { ...assessment("COLLECTING"), version: 8 }, request: { id: "request-1", deadline: "2099-09-30T16:00:00Z" }, state: "DELIVERED" });
+    render(<VendorDueDiligence relationship={relationship} assessment={{ ...assessment("READY_TO_SEND"), current_request_id: "request-1", review_due_at: "2099-09-30T23:59:59.000Z" }} form={form} onPrepare={vi.fn()} onSend={onSend}/>);
+    await screen.findByRole("button", { name: "Refresh checklist" });
+    fireEvent.click(screen.getByRole("button", { name: "Send due diligence request" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send due diligence request" }));
+    await waitFor(() => expect(onSend).toHaveBeenCalledWith(expect.objectContaining({ expected_version: 7, audience: "", deadline: "2099-09-30T16:00:00Z" })));
+  });
+
+  it("shows an existing document receipt without labelling it a missing respondent answer", async () => {
+    const review = { assessment: assessment("UNDER_REVIEW"), requests: [], answers: [{ field_id: "security-report", label: "Security report", type: "vendor_document", required: true, visibility: "VISIBLE", collection_resolution: { id: "receipt", version: 1, source: { file_name: "Existing security report.pdf" }, reconciled_by: "reviewer", reconciled_at: "2026-09-08T10:00:00Z", rationale: "Service covered." } }], coverage: { visible_fields: 1, answered_fields: 0, required_fields: 1, answered_required: 0, ratio: 0 }, documents: [], matters: [] } as VendorAssessmentReviewView;
+    render(<VendorDueDiligence relationship={relationship} assessment={review.assessment} review={review} form={form}/>);
+    const answer = screen.getByText(/^Security report/, { selector: "dt" }).parentElement!;
+    expect(within(answer).getByText("Document linked: Existing security report.pdf")).toBeTruthy();
+    expect(within(answer).queryByText("Required response missing")).toBeNull();
+    expect(within(answer).queryByText(/Vendor response:/)).toBeNull();
+    expect((await axe.run(answer.closest("dl")!, { runOnly: { type: "rule", values: ["definition-list", "dlitem"] } })).violations).toEqual([]);
+  });
+
+  it("offers a rejection decision through the checklist review action and submits the exact field", async () => {
+    const document = { field_id: "second-report", artifact_id: "shared-artifact", file_name: "Service assurance.pdf", media_type: "application/pdf", size_bytes: 64000, artifact_status: "AVAILABLE", status: "SUBMITTED", evidence_class: "VENDOR_SUPPLIED", document_type: "SECURITY_TEST" };
+    const review: VendorAssessmentReviewView = { assessment: assessment("UNDER_REVIEW"), requests: [], answers: [], coverage: { visible_fields: 0, answered_fields: 0, required_fields: 0, answered_required: 0, ratio: 1 }, documents: [document], matters: [] };
+    vi.mocked(loadVendorCollection).mockResolvedValueOnce({ assessment_id: "assessment-1", assessment_version: 3, request_id: "request-1", request_version: 5, prepared: true, can_reconcile: true, observed_at: "2026-09-08T10:00:00Z", fields: [{ field_id: "second-report", label: "Service assurance", type: "vendor_document", required: true, collection_state: "REUSED", vendor_action_required: false, bank_review_state: "PENDING" }], vendor_pending_count: 0, bank_pending_count: 1 });
+    const onReviewDocument = vi.fn().mockResolvedValue({ ...review, assessment: { ...review.assessment, version: 4 } });
+    render(<VendorDueDiligence relationship={relationship} assessment={review.assessment} review={review} form={form} onPrepare={vi.fn()} onReviewDocument={onReviewDocument}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Review document" }));
+    expect(screen.getByRole("dialog", { name: "Review document" })).toBeTruthy();
+    await chooseOption("Decision", "Reject");
+    fireEvent.click(screen.getByRole("button", { name: "Record rejection" }));
+    await waitFor(() => expect(onReviewDocument).toHaveBeenCalledWith("assessment-1", "shared-artifact", expect.objectContaining({ field_id: "second-report", decision: "REJECT", evidence_class: "VENDOR_SUPPLIED" })));
+  });
+
+  it("prepares the request without sending and preserves the contact for the send step", async () => {
+    const prepared = { ...assessment("READY_TO_SEND"), current_request_id: "request-1", version: 4 };
+    const onPrepare = vi.fn().mockResolvedValue({ assessment: prepared, request: { id: "request-1", status: "PREPARED", deadline: "2099-09-30T23:59:59.000Z" }, state: "PREPARED" });
+    const onSend = vi.fn().mockResolvedValue({ assessment: { ...prepared, status: "COLLECTING", version: 5 }, request: { id: "request-1", status: "READY" }, state: "DELIVERED" });
+    render(<VendorDueDiligence relationship={relationship} assessment={{ ...assessment("READY_TO_SEND"), review_due_at: "2099-09-30T23:59:59.000Z" }} form={form} onPrepare={onPrepare} onSend={onSend}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Prepare request" }));
+    fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Response due date", { exact: false }), { target: { value: "2099-09-30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Prepare request" }));
+    await waitFor(() => expect(onPrepare).toHaveBeenCalledWith({ expected_version: 3, audience: "security@vendor.example", deadline: "2099-09-30T23:59:59.000Z" }));
+    expect(onSend).not.toHaveBeenCalled();
+    expect(await screen.findByText(/Request prepared/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Send due diligence request" }));
+    expect(screen.getByText(/prepared contact/)).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: "Vendor contact email" })).toBeNull();
+    expect(loadVendorCollection).toHaveBeenCalledWith("assessment-1", expect.any(AbortSignal));
+  });
   it("offers governed form setup when no active form is available", () => {
     const onSetUpForm = vi.fn();
     const onOpenForms = vi.fn();
@@ -53,7 +122,7 @@ describe("VendorDueDiligence", () => {
     expect(primaryActions()).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Start due diligence" }));
 
-    expect((screen.getByLabelText("Review due date") as HTMLInputElement).value).toBe("2026-09-30");
+    expect((screen.getByLabelText("Review due date", { exact: false }) as HTMLInputElement).value).toBe("2026-09-30");
     expect(screen.getByText("Vendor security and privacy review")).toBeTruthy();
     expect(primaryActions()).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Start due diligence" }));
@@ -66,14 +135,14 @@ describe("VendorDueDiligence", () => {
     }));
   });
 
-  it("starts an event-driven reassessment with the bank review reference", async () => {
+  it("starts an event-driven reassessment with the review reference", async () => {
     const managedRelationship = { ...relationship, relationship: { ...relationship.relationship, status: "RESTRICTED" as const } };
     const onStart = vi.fn().mockResolvedValue({ ...assessment("SETUP_PENDING"), review_kind: "TRIGGERED", source_trigger: "change-2099-0042" });
     render(<VendorDueDiligence relationship={managedRelationship} assessment={assessment("COMPLETED")} form={form} defaultReviewDueDate="2099-09-30" onStart={onStart}/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
-    fireEvent.change(screen.getByLabelText("Review type"), { target: { value: "TRIGGERED" } });
-    fireEvent.change(screen.getByLabelText("Review reference"), { target: { value: "change-2099-0042" } });
+    await chooseOption("Review type", "Event or change");
+    fireEvent.change(screen.getByLabelText("Review reference", { exact: false }), { target: { value: "change-2099-0042" } });
     fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
 
     await waitFor(() => expect(onStart).toHaveBeenCalledWith({
@@ -95,8 +164,8 @@ describe("VendorDueDiligence", () => {
     render(<VendorDueDiligence relationship={managedRelationship} assessment={assessment("COMPLETED")} form={focusedForm} defaultReviewDueDate="2099-09-30" onStart={onStart}/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
-    fireEvent.change(screen.getByLabelText("Review reference"), { target: { value: "address-refresh-2099" } });
-    fireEvent.click(screen.getByLabelText("Selected held records only"));
+    fireEvent.change(screen.getByLabelText("Review reference", { exact: false }), { target: { value: "address-refresh-2099" } });
+    fireEvent.click(screen.getByLabelText("Selected held records only", { exact: false }));
     expect((screen.getByLabelText(/Registered address/) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
 
@@ -152,8 +221,8 @@ describe("VendorDueDiligence", () => {
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("READY_TO_SEND")} form={form} onSend={onSend} onOpenRequest={vi.fn()}/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Send due diligence request" }));
-    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
-    fireEvent.change(screen.getByLabelText("Response due date"), { target: { value: "2026-09-20" } });
+    fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Response due date", { exact: false }), { target: { value: "2026-09-20" } });
     fireEvent.click(screen.getByRole("button", { name: "Send due diligence request" }));
 
     await screen.findByText(/The request was sent\. The response is due 20 Sept? 2026\./);
@@ -186,12 +255,12 @@ describe("VendorDueDiligence", () => {
     const onReissue = vi.fn().mockResolvedValue(delivered);
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("COLLECTING")} form={form} onOpenRequest={vi.fn()} onReissue={onReissue}/>);
 
-    expect(screen.getByRole("button", { name: "Review request status" }).classList.contains("primary-button")).toBe(true);
-    expect(screen.getByRole("button", { name: "Send another link" }).classList.contains("secondary-button")).toBe(true);
+    expect(screen.getByRole("button", { name: "Review request status" }).classList.contains("cs-button--primary")).toBe(true);
+    expect(screen.getByRole("button", { name: "Send another link" }).classList.contains("cs-button--secondary")).toBe(true);
     expect(primaryActions()).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
-    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
-    fireEvent.change(screen.getByLabelText("New link valid for"), { target: { value: "10080" } });
+    fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
+    await chooseOption("New link valid for", "7 days");
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
 
     await waitFor(() => expect(onReissue).toHaveBeenCalledWith({ expected_version: 3, audience: "security@vendor.example", invitation_ttl_minutes: 10080 }));
@@ -206,7 +275,7 @@ describe("VendorDueDiligence", () => {
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("COLLECTING")} form={form} onOpenRequest={vi.fn()} onReissue={onReissue}/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
-    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
 
     expect(await screen.findByText("The new link was not sent. Re-enter the vendor contact email before trying again.")).toBeTruthy();
@@ -219,11 +288,11 @@ describe("VendorDueDiligence", () => {
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("COLLECTING")} form={form} onOpenRequest={vi.fn()} onReissue={onReissue}/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
-    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "not-an-email" } });
+    fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "not-an-email" } });
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
 
     expect(await screen.findByText("Enter a valid vendor contact email before sending another link.")).toBeTruthy();
-    expect((screen.getByLabelText("Vendor contact email") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Vendor contact email", { exact: false }) as HTMLInputElement).value).toBe("");
     expect(onReissue).not.toHaveBeenCalled();
   });
 
@@ -238,7 +307,7 @@ describe("VendorDueDiligence", () => {
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("COLLECTING")} form={form} onOpenRequest={vi.fn()} onReissue={vi.fn().mockResolvedValue(failed)}/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
-    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
 
     fireEvent.click(await screen.findByRole("button", { name: "Copy new link" }));
@@ -263,14 +332,14 @@ describe("VendorDueDiligence", () => {
     const reviewRegion = screen.getByRole("region", { name: "Vendor response review" });
     expect(within(reviewRegion).getByText(/14 answers · 2 documents/)).toBeTruthy();
     expect(within(reviewRegion).getByText("independent-security-test.pdf")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Request clarification" }).classList.contains("secondary-button")).toBe(true);
-    expect(screen.getByRole("button", { name: "Record assessment conclusion" }).classList.contains("primary-button")).toBe(true);
+    expect(screen.getByRole("button", { name: "Request clarification" }).classList.contains("cs-button--secondary")).toBe(true);
+    expect(screen.getByRole("button", { name: "Record assessment conclusion" }).classList.contains("cs-button--primary")).toBe(true);
 	fireEvent.click(screen.getByRole("button", { name: "Open finding" }));
 	expect(openMatter).toHaveBeenCalledWith("finding-1");
     expect(primaryActions()).toHaveLength(1);
   });
 
-  it("requires an explicit conclusion and basis without selecting from the provisional score", () => {
+  it("requires an explicit conclusion and basis without selecting from the provisional score", async () => {
     const review: VendorAssessmentReviewView = {
       assessment: assessment("UNDER_REVIEW"), requests: [], answers: [],
       coverage: { visible_fields: 0, answered_fields: 0, required_fields: 0, answered_required: 0, ratio: 1 },
@@ -281,14 +350,14 @@ describe("VendorDueDiligence", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Record assessment conclusion" }));
 
-    const conclusion = screen.getByLabelText("Conclusion") as HTMLSelectElement;
+    const conclusion = screen.getByRole("button", { name: /Conclusion/ });
     const submit = screen.getByRole("button", { name: "Record assessment conclusion" }) as HTMLButtonElement;
-    expect(conclusion.value).toBe("");
+    expect(conclusion.textContent).toContain("Select a conclusion");
     expect(submit.disabled).toBe(true);
 
-    fireEvent.change(conclusion, { target: { value: "SATISFACTORY" } });
+    await chooseOption("Conclusion", "Satisfactory");
     expect(submit.disabled).toBe(true);
-    fireEvent.change(screen.getByLabelText("Assessment basis"), { target: { value: "The submitted evidence supports the stated controls." } });
+    fireEvent.change(screen.getByLabelText("Assessment basis", { exact: false }), { target: { value: "The submitted evidence supports the stated controls." } });
     expect(submit.disabled).toBe(false);
   });
 
@@ -319,13 +388,13 @@ describe("VendorDueDiligence", () => {
     };
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onComplete={vi.fn()}/>);
 
-    const criticality = screen.getByRole("group", { name: "Response: Service criticality" });
+    const criticality = screen.getByText(/^Service criticality/, { selector: "dt" }).parentElement!;
     expect(within(criticality).getByText("Vendor response: Critical")).toBeTruthy();
     expect(within(criticality).getByText("Source value: Important")).toBeTruthy();
     expect(within(criticality).getByText("Critical response: Critical service")).toBeTruthy();
     expect(within(criticality).getByText("Validation out of date · Approved vendor register · Checked 20 Aug 2026")).toBeTruthy();
-    expect(screen.getByRole("group", { name: "Response: Cyber insurance" }).textContent).toContain("Required response missing");
-    expect(screen.getByRole("group", { name: "Response: Insurance limit" }).textContent).toContain("Not requested because its condition was not met");
+    expect(screen.getByText(/^Cyber insurance/, { selector: "dt" }).parentElement!.textContent).toContain("Required response missing");
+    expect(screen.getByText(/^Insurance limit/, { selector: "dt" }).parentElement!.textContent).toContain("Not requested because its condition was not met");
   });
 
   it("opens only an available assessment document before its review actions", () => {
@@ -371,11 +440,11 @@ describe("VendorDueDiligence", () => {
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onRequestClarification={onRequestClarification} onOpenRequest={vi.fn()} onComplete={vi.fn()}/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Request clarification" }));
-    fireEvent.click(screen.getByLabelText("Independent security testing"));
-    fireEvent.change(screen.getByLabelText("What the vendor must provide"), { target: { value: "Provide the current independent security test report." } });
-    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
-    fireEvent.change(screen.getByLabelText("Response due date"), { target: { value: "2026-09-12" } });
-    fireEvent.change(screen.getByLabelText("Secure link valid for"), { target: { value: "60" } });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Independent security testing" }));
+    fireEvent.change(screen.getByLabelText("What the vendor must provide", { exact: false }), { target: { value: "Provide the current independent security test report." } });
+    fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Response due date", { exact: false }), { target: { value: "2026-09-12" } });
+    await chooseOption("Secure link valid for", "1 hour");
     fireEvent.click(screen.getByRole("button", { name: "Send clarification request" }));
 
     await waitFor(() => expect(onRequestClarification).toHaveBeenCalledWith("assessment-1", {
@@ -403,14 +472,14 @@ describe("VendorDueDiligence", () => {
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onRequestClarification={vi.fn().mockRejectedValue(new Error("unavailable"))} onComplete={vi.fn()}/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Request clarification" }));
-    fireEvent.click(screen.getByLabelText("Independent security testing"));
-    fireEvent.change(screen.getByLabelText("What the vendor must provide"), { target: { value: "Provide the current report." } });
-    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
-    fireEvent.change(screen.getByLabelText("Response due date"), { target: { value: "2026-09-12" } });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Independent security testing" }));
+    fireEvent.change(screen.getByLabelText("What the vendor must provide", { exact: false }), { target: { value: "Provide the current report." } });
+    fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Response due date", { exact: false }), { target: { value: "2026-09-12" } });
     fireEvent.click(screen.getByRole("button", { name: "Send clarification request" }));
 
     expect(await screen.findByText("The clarification request was not sent. Re-enter the vendor contact email before trying again.")).toBeTruthy();
-    expect((screen.getByLabelText("Vendor contact email") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Vendor contact email", { exact: false }) as HTMLInputElement).value).toBe("");
   });
 
   it("records a bounded canonical finding without adding a local finding", async () => {
@@ -425,12 +494,12 @@ describe("VendorDueDiligence", () => {
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onCreateDeficiency={onCreateDeficiency} onComplete={vi.fn()}/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Record finding" }));
-    const reference = screen.getByLabelText("Finding reference") as HTMLInputElement;
+    const reference = screen.getByLabelText("Finding reference", { exact: false }) as HTMLInputElement;
     expect(reference.maxLength).toBe(80);
     fireEvent.change(reference, { target: { value: "security-test-report" } });
-    fireEvent.change(screen.getByLabelText("Finding title"), { target: { value: "Current security test required" } });
-    fireEvent.change(screen.getByLabelText("Finding details"), { target: { value: "The submitted report is no longer current for this review." } });
-    fireEvent.change(screen.getByLabelText("Action due date"), { target: { value: "2026-09-20" } });
+    fireEvent.change(screen.getByLabelText("Finding title", { exact: false }), { target: { value: "Current security test required" } });
+    fireEvent.change(screen.getByLabelText("Finding details", { exact: false }), { target: { value: "The submitted report is no longer current for this review." } });
+    fireEvent.change(screen.getByLabelText("Action due date", { exact: false }), { target: { value: "2026-09-20" } });
     fireEvent.click(screen.getByRole("button", { name: "Record finding" }));
 
     await waitFor(() => expect(onCreateDeficiency).toHaveBeenCalledWith("assessment-1", {
@@ -451,22 +520,22 @@ describe("VendorDueDiligence", () => {
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onReviewDocument={onReviewDocument} onComplete={vi.fn()}/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Validate document" }));
-    expect((screen.getByLabelText("Document type") as HTMLInputElement).maxLength).toBe(128);
-    fireEvent.change(screen.getByLabelText("Evidence class"), { target: { value: "BANK_VALIDATED" } });
-    fireEvent.change(screen.getByLabelText("Valid until"), { target: { value: "2027-05-31" } });
+    expect((screen.getByLabelText("Document type", { exact: false }) as HTMLInputElement).maxLength).toBe(128);
+    await chooseOption("Evidence class", "Validated by reviewer");
+    fireEvent.change(screen.getByLabelText("Valid until", { exact: false }), { target: { value: "2027-05-31" } });
     fireEvent.click(screen.getByRole("button", { name: "Record validation" }));
 
     await waitFor(() => expect(onReviewDocument).toHaveBeenCalledWith("assessment-1", "artifact-1", {
-      expected_version: 3, decision: "VALIDATE", document_type: "SOC_2_TYPE_II", evidence_class: "BANK_VALIDATED", valid_until: "2027-05-31",
+      expected_version: 3, field_id: "security-report", decision: "VALIDATE", document_type: "SOC_2_TYPE_II", evidence_class: "BANK_VALIDATED", valid_until: "2027-05-31",
     }));
-    expect(await screen.findByText("Document validation recorded. The response view now shows the current decision.")).toBeTruthy();
+    expect(await screen.findByText("Document accepted.")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Reject document" }));
     fireEvent.click(screen.getByRole("button", { name: "Record rejection" }));
     await waitFor(() => expect(onReviewDocument).toHaveBeenLastCalledWith("assessment-1", "artifact-1", {
-      expected_version: 4, decision: "REJECT", document_type: "SOC_2_TYPE_II", evidence_class: "VENDOR_SUPPLIED", valid_until: "2027-05-31",
+      expected_version: 4, field_id: "security-report", decision: "REJECT", document_type: "SOC_2_TYPE_II", evidence_class: "VENDOR_SUPPLIED", valid_until: "2027-05-31",
     }));
-    expect(await screen.findByText("Document rejection recorded. The response view now shows the current decision.")).toBeTruthy();
+    expect(await screen.findByText("Document rejected.")).toBeTruthy();
   });
 
   it("shows answer provenance and document security status without exposing internal identifiers", () => {
@@ -494,13 +563,13 @@ describe("VendorDueDiligence", () => {
   it("constrains response and next-review dates to the server review window", () => {
     const { rerender } = render(<VendorDueDiligence relationship={relationship} assessment={assessment("READY_TO_SEND")} form={form} onSend={vi.fn()}/>);
     fireEvent.click(screen.getByRole("button", { name: "Send due diligence request" }));
-    const responseDue = screen.getByLabelText("Response due date") as HTMLInputElement;
+    const responseDue = screen.getByLabelText("Response due date", { exact: false }) as HTMLInputElement;
     expect(responseDue.min).not.toBe("");
     expect(responseDue.max).toBe("2026-09-30");
 
     rerender(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} form={form} onComplete={vi.fn()}/>);
     fireEvent.click(screen.getByRole("button", { name: "Record assessment conclusion" }));
-    expect((screen.getByLabelText("Recommended next review") as HTMLInputElement).min).not.toBe("");
+    expect((screen.getByLabelText("Recommended next review", { exact: false }) as HTMLInputElement).min).not.toBe("");
   });
 
   it("shows scoped loading, unavailable and source-warning states", () => {
@@ -532,7 +601,7 @@ describe("VendorDueDiligence", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel assessment" }));
     const confirm = screen.getByRole("button", { name: "Cancel assessment" });
     expect((confirm as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.change(screen.getByLabelText("Reason for cancellation"), { target: { value: "The service is no longer being procured." } });
+    fireEvent.change(screen.getByLabelText("Reason for cancellation", { exact: false }), { target: { value: "The service is no longer being procured." } });
     fireEvent.click(confirm);
 
     await waitFor(() => expect(onCancelAssessment).toHaveBeenCalledWith("assessment-1", { expected_version: 3, reason: "The service is no longer being procured." }));

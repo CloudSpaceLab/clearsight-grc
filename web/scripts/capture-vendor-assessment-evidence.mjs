@@ -19,13 +19,13 @@ const cases=[
  ['vendor-empty','vendor-form-assessment-empty','#vendors/vendor-relationship-payments','Forms and responses'],
  ['vendor-error','vendor-form-assessment-error','#vendors/vendor-relationship-payments','Forms and responses'],
  ['field-authoring','field-assessment-builder','','Sample vendor security review'],
- ['bank-review','field-assessment-review','','Bank assessment'],
+ ['bank-review','field-assessment-review','','Assessment'],
  ['policy-setup','field-assessment-policy','','Create a response policy'],
  ['vendor-partial','vendor-form-assessment-partial','#vendors/vendor-relationship-payments','Forms and responses'],
  ['vendor-history','vendor-form-assessment','#vendors/vendor-relationship-payments','Response history'],
- ['vendor-history-review','vendor-form-assessment','#vendors/vendor-relationship-payments','Bank assessment'],
- ['bank-review-saved','vendor-form-assessment','#vendors/vendor-relationship-payments','Bank assessment'],
- ['bank-review-poor','vendor-form-assessment','#vendors/vendor-relationship-payments','Bank assessment'],
+ ['vendor-history-review','vendor-form-assessment','#vendors/vendor-relationship-payments','Assessment'],
+ ['bank-review-saved','vendor-form-assessment','#vendors/vendor-relationship-payments','Assessment'],
+ ['bank-review-poor','vendor-form-assessment','#vendors/vendor-relationship-payments','Assessment'],
 ];
 try{
  for(const theme of themes)for(const width of widths)for(const [name,fixture,route,heading] of cases.filter(([name])=>!selectedCases||selectedCases.includes(name))){
@@ -48,21 +48,22 @@ try{
    if(name==='vendor-history-review'){
     await page.getByRole('button',{name:'Review Sample · Earlier certification review revision 1',exact:true}).click();
     await page.getByText('Historical response. Review the current submission',{exact:false}).waitFor();
-    if(await page.getByRole('button',{name:'Save bank assessment',exact:true}).count())throw Error('Historical response offers a save command');
-    if(await page.getByRole('button',{name:/Bank judgement for/}).count())throw Error('Historical response offers judgement input');
+    if(await page.getByRole('button',{name:'Save assessment',exact:true}).count())throw Error('Historical response offers a save command');
+    if(await page.getByRole('button',{name:/Decision for/}).count())throw Error('Historical response offers judgement input');
     checks.push('Historical response retains saved judgement and exposes no judgement input or save command.');
    }
   }
   if(name==='bank-review-saved'||name==='bank-review-poor'){
+   await page.locator('.vendor-request-details > summary').click();
    await page.getByRole('button',{name:'Review Sample · Payment-service security evidence response',exact:true}).click();
-   const judgement=page.getByRole('button',{name:/Bank judgement for Independent vulnerability/});
+   const judgement=page.getByRole('button',{name:/Decision for Independent vulnerability/});
    await judgement.scrollIntoViewIfNeeded();
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
    await judgement.click();
    await page.getByRole('option',{name:/Scope or remediation evidence incomplete/}).click();
    await page.getByLabel('Rationale for Independent vulnerability test report',{exact:true}).fill('Sample review: the submitted test excludes the payment processing service.');
-   await page.getByRole('button',{name:'Save bank assessment',exact:true}).click();
-   await page.getByText('Bank assessment saved. Respondent answers remain as submitted.',{exact:true}).waitFor();
+   await page.getByRole('button',{name:'Save assessment',exact:true}).click();
+   await page.getByText('Assessment saved.',{exact:true}).waitFor();
    await page.getByText('1 of 1 required fields reviewed',{exact:true}).waitFor();
    checks.push('Rubric judgement and rationale saved; required review count moved from 0 to 1.');
    if(name==='bank-review-poor'){
@@ -72,7 +73,7 @@ try{
     await filter.click();
     await page.getByRole('option',{name:'Poor results',exact:true}).click();
     await page.getByText('Showing automatic or reviewed fields with at least',{exact:false}).waitFor();
-    const assessment=page.getByRole('region',{name:'Bank assessment',exact:true});
+    const assessment=page.getByRole('region',{name:'Assessment',exact:true});
     if(await assessment.getByRole('article').count()!==2)throw Error('Poor filter failed to retain automatic and bank concerns');
     if(await assessment.getByRole('article',{name:'Service changes since the previous review',exact:true}).count())throw Error('Unscored field remains in poor filter');
     checks.push('Poor-results filter retains the automatic 80-point and bank 80-point concerns and excludes the unscored field.');
@@ -89,7 +90,7 @@ try{
    if(await page.getByRole('button',{name:'Settings',exact:true}).isVisible())await page.getByRole('button',{name:'Settings',exact:true}).click();
    await page.locator('.field-assessment-editor:visible').first().waitFor();
   }else await target.waitFor();
-  if(name==='bank-review-saved')await page.getByText('Bank assessment saved. Respondent answers remain as submitted.',{exact:true}).scrollIntoViewIfNeeded();
+  if(name==='bank-review-saved')await page.getByText('Assessment saved.',{exact:true}).scrollIntoViewIfNeeded();
   else if(name==='vendor-partial')await page.getByText('Later submissions replaced some answers.',{exact:false}).scrollIntoViewIfNeeded();
   else if(name.startsWith('vendor-')&&name!=='vendor-overview')await target.scrollIntoViewIfNeeded();
   await page.evaluate(()=>document.fonts.ready);

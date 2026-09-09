@@ -30,7 +30,7 @@ func (a *API) getResponseAssessment(w http.ResponseWriter, r *http.Request) {
 		writeResponseAssessmentError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, result)
+	httpx.WriteJSON(w, http.StatusOK, a.responseAssessmentWithLabels(r.Context(), actor, entity, result))
 }
 func (a *API) recordResponseAssessment(w http.ResponseWriter, r *http.Request) {
 	documentProtection(w)
@@ -50,7 +50,7 @@ func (a *API) recordResponseAssessment(w http.ResponseWriter, r *http.Request) {
 		ActorID         string                          `json:"actor_id,omitempty"`
 	}
 	if err := httpx.DecodeJSON(w, r, &body); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "assessment_request_invalid", "Check the bank assessment entries and try again.")
+		httpx.WriteError(w, http.StatusBadRequest, "assessment_request_invalid", "Check the assessment entries and try again.")
 		return
 	}
 	if body.ExpectedVersion == nil {
@@ -66,12 +66,12 @@ func (a *API) recordResponseAssessment(w http.ResponseWriter, r *http.Request) {
 		writeResponseAssessmentError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, result)
+	httpx.WriteJSON(w, http.StatusOK, a.responseAssessmentWithLabels(r.Context(), actor, entity, result))
 }
 func writeResponseAssessmentError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, evidence.ErrAssessmentConflict):
-		httpx.WriteError(w, http.StatusConflict, "assessment_changed", "This response or bank assessment has changed. Reload it before recording a decision.")
+		httpx.WriteError(w, http.StatusConflict, "assessment_changed", "This response or assessment has changed. Reload before saving.")
 	case errors.Is(err, evidence.ErrAssessmentForbidden):
 		httpx.WriteError(w, http.StatusForbidden, "assessment_not_permitted", "You cannot assess these fields under the current review route. Ask the form owner to check reviewer responsibilities.")
 	case errors.Is(err, evidence.ErrAssessmentInvalid):
@@ -79,6 +79,6 @@ func writeResponseAssessmentError(w http.ResponseWriter, err error) {
 	case errors.Is(err, evidence.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "response_not_found", "The submitted response was not found in your permitted work.")
 	default:
-		httpx.WriteError(w, http.StatusServiceUnavailable, "assessment_unavailable", "The bank assessment could not be loaded or saved. Try again.")
+		httpx.WriteError(w, http.StatusServiceUnavailable, "assessment_unavailable", "Assessment unavailable. Try again.")
 	}
 }

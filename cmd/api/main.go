@@ -60,6 +60,8 @@ func main() {
 	assessmentMatterReader := thirdparty.NewCanonicalAssessmentReviewMatterReader(services.ThirdPartyAssessmentRepo, services.Continuity)
 	assessmentReviewService := thirdparty.NewAssessmentReviewService(assessmentService, services.ThirdPartyAssessmentRepo, services.Evidence, assessmentMatterReader)
 	assessmentReviewService.ConfigureAuthority(services.Authority)
+	assessmentReviewService.ConfigureCollectionSources(services.FormDistributions, services.MonitoringRepo)
+	services.Evidence.ConfigureCollectionReviewReader(thirdparty.CollectionSourceReviewReader{Documents: services.ThirdPartyAssessmentRepo})
 	assessmentService.ConfigureCompletionReadiness(assessmentReviewService)
 	assessmentApplicationService := thirdparty.NewAssessmentApplicationService(assessmentService, assessmentReviewService, services.ThirdPartyAssessmentRepo)
 	assessmentDeficiencyService := thirdparty.NewAssessmentDeficiencyService(assessmentService, services.ThirdPartyAssessmentRepo, services.Continuity)

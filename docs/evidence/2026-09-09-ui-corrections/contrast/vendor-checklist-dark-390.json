@@ -1,0 +1,4692 @@
+{
+  "id": "vendor-checklist-dark-390",
+  "name": "vendor-checklist",
+  "fixture": "vendor-collection",
+  "route": "#vendors",
+  "action": "checklist",
+  "theme": "dark",
+  "width": 390,
+  "scale": 1,
+  "generatedAt": "2026-09-09T00:02:43.542Z",
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Meridian Trust Bank</strong>",
+            "target": [
+              ".context-bar > div:nth-child(1) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<summary aria-label=\"Administration\">Admin</summary>",
+                    "target": [
+                      "summary[aria-label=\"Administration\"]"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary aria-label=\"Administration\">Admin</summary>",
+            "target": [
+              "summary[aria-label=\"Administration\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<summary role=\"button\" aria-label=\"Viewing as Chief Risk Officer. Demo environment\">Viewing as Chief Risk Officer</summary>",
+                    "target": [
+                      "summary[role=\"button\"]"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary role=\"button\" aria-label=\"Viewing as Chief Risk Officer. Demo environment\">Viewing as Chief Risk Officer</summary>",
+            "target": [
+              "summary[role=\"button\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Meridian Trust Bank · Meridian Trust Bank Nigeria</span>",
+            "target": [
+              ".topbar > div > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "27.0pt (36px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h1>Vendors</h1>",
+            "target": [
+              "h1"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Manage vendors and the services they supply to Meridian Trust Bank Nigeria. Review each relationship's owner, criticality and due-diligence status.</p>",
+            "target": [
+              ".topbar > div > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Back to vendor register</span>",
+            "target": [
+              "#react-aria1058106043-_r_27_ > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Proposed relationship</span>",
+            "target": [
+              ".vendor-detail-identity > div > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "21.0pt (28px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2>Acme Processing Limited</h2>",
+            "target": [
+              ".vendor-detail-identity > div > h2"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Trading as Acme Processing</p>",
+            "target": [
+              ".vendor-detail-identity > div > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<small class=\"vendor-brand-label\">Website icon pending</small>",
+            "target": [
+              ".vendor-brand-label"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary>Vendor details</summary>",
+            "target": [
+              ".vendor-detail > details > summary"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Card transaction processing</span>",
+            "target": [
+              ".vdd-header > div > .eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "16.5pt (22px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2 id=\"vdd-title\" tabindex=\"-1\">Due diligence</h2>",
+            "target": [
+              "#vdd-title"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Review the response, documents and findings before recording a conclusion.</p>",
+            "target": [
+              ".vdd-header > div > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "18.0pt (24px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h3>Checklist</h3>",
+            "target": [
+              ".vendor-checklist__heading > div > h3"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Current request · Checked 8 Sept 2026</p>",
+            "target": [
+              ".vendor-checklist__heading > div > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Refresh checklist</span>",
+            "target": [
+              "#react-aria1058106043-_r_3d_ > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "24.0pt (32px)",
+                  "fontWeight": "bold",
+                  "messageKey": "shortTextContent",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element content is too short to determine if it is actual text content"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong aria-hidden=\"true\">5</strong>",
+            "target": [
+              ".vendor-checklist__stat--all > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "24.0pt (32px)",
+                  "fontWeight": "bold",
+                  "messageKey": "shortTextContent",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element content is too short to determine if it is actual text content"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong aria-hidden=\"true\">1</strong>",
+            "target": [
+              ".vendor-checklist__stat--vendor > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Missing</span>",
+            "target": [
+              "#react-aria1058106043-_r_3j_ > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "24.0pt (32px)",
+                  "fontWeight": "bold",
+                  "messageKey": "shortTextContent",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element content is too short to determine if it is actual text content"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong aria-hidden=\"true\">1</strong>",
+            "target": [
+              ".vendor-checklist__stat--bank > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Awaiting review</span>",
+            "target": [
+              "#react-aria1058106043-_r_3m_ > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "24.0pt (32px)",
+                  "fontWeight": "bold",
+                  "messageKey": "shortTextContent",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element content is too short to determine if it is actual text content"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong aria-hidden=\"true\">1</strong>",
+            "target": [
+              ".vendor-checklist__stat--accepted > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Accepted</span>",
+            "target": [
+              "#react-aria1058106043-_r_3p_ > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "12.6pt (16.8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h4>Vulnerability test report</h4>",
+            "target": [
+              "article[aria-label=\"Vulnerability test report\"] > .vendor-checklist__item-main > .vendor-checklist__item-title > h4"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Vendor</p>",
+            "target": [
+              "article[aria-label=\"Vulnerability test report\"] > .vendor-checklist__item-main > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Use existing document</span>",
+            "target": [
+              "#react-aria1058106043-_r_3s_ > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "12.6pt (16.8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h4>International transfer assessment</h4>",
+            "target": [
+              ".vendor-checklist__item:nth-child(2) > .vendor-checklist__item-main > .vendor-checklist__item-title > h4"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Depends on unanswered questions.</p>",
+            "target": [
+              ".vendor-checklist__item:nth-child(2) > .vendor-checklist__item-main > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "12.6pt (16.8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h4>ISO 27001 assurance</h4>",
+            "target": [
+              "article[aria-label=\"ISO 27001 assurance\"] > .vendor-checklist__item-main > .vendor-checklist__item-title > h4"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>No upload needed.</p>",
+            "target": [
+              "article[aria-label=\"ISO 27001 assurance\"] > .vendor-checklist__item-main > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>ISO 27001 certificate.pdf</strong>",
+            "target": [
+              "article[aria-label=\"ISO 27001 assurance\"] > .vendor-checklist__item-main > .vendor-checklist__evidence > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Submitted 3 Aug 2026 · Linked 8 Sept 2026</span>",
+            "target": [
+              ".vendor-checklist__evidence > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Certificate covers the vendor entity and the payment service under review.</p>",
+            "target": [
+              ".vendor-checklist__evidence > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>View existing document</span>",
+            "target": [
+              "#react-aria1058106043-_r_3v_ > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Replace document</span>",
+            "target": [
+              "#react-aria1058106043-_r_45_ > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "12.6pt (16.8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h4>Service description</h4>",
+            "target": [
+              "article[aria-label=\"Service description\"] > .vendor-checklist__item-main > .vendor-checklist__item-title > h4"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "12.6pt (16.8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h4>Business continuity assurance</h4>",
+            "target": [
+              "article[aria-label=\"Business continuity assurance\"] > .vendor-checklist__item-main > .vendor-checklist__item-title > h4"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Business continuity certificate.pdf</strong>",
+            "target": [
+              "article[aria-label=\"Business continuity assurance\"] > .vendor-checklist__item-main > .vendor-checklist__evidence > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>View submitted document</span>",
+            "target": [
+              "#react-aria1058106043-_r_48_ > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "16.5pt (22px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2>Forms and responses</h2>",
+            "target": [
+              ".vendor-forms-panel > header > div:nth-child(1) > h2"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Requests, submissions and reviews for Card transaction processing.</p>",
+            "target": [
+              ".vendor-forms-panel > header > div:nth-child(1) > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary>Requests · 1 on this page</summary>",
+            "target": [
+              ".vendor-request-details > summary"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary>Linked vendor work</summary>",
+            "target": [
+              ".vendor-linked-work > summary"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Today</span>",
+            "target": [
+              ".mobile-nav > button[type=\"button\"]:nth-child(1) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Programs</span>",
+            "target": [
+              ".mobile-nav > button[type=\"button\"]:nth-child(2) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<span class=\"cs-status-badge cs-tone--neutral\"><span class=\"cs-status-badge__marker\" aria-hidden=\"true\"></span>Received</span>",
+                    "target": [
+                      ".vendor-checklist__item-title > .cs-tone--neutral.cs-status-badge"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Work</span>",
+            "target": [
+              ".mobile-nav > button[type=\"button\"]:nth-child(3) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<button type=\"button\" aria-current=\"page\">",
+                    "target": [
+                      "button[aria-current=\"page\"][type=\"button\"]"
+                    ]
+                  },
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<span class=\"cs-status-badge cs-tone--neutral\"><span class=\"cs-status-badge__marker\" aria-hidden=\"true\"></span>Received</span>",
+                    "target": [
+                      ".vendor-checklist__item-title > .cs-tone--neutral.cs-status-badge"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Vendors</span>",
+            "target": [
+              "button[aria-current=\"page\"][type=\"button\"] > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"vendor-focus\" aria-label=\"Selected vendor relationship\">",
+                    "target": [
+                      ".vendor-focus"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Forms</span>",
+            "target": [
+              "button[type=\"button\"]:nth-child(5) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 49
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 33,
+        "y": 28,
+        "width": 113.65625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Meridian Trust Bank",
+      "foreground": "#d7e0e9",
+      "ratio": 13.464170427534874,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.administration-menu",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 185.71875,
+        "y": 20,
+        "width": 49.28125,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Admin",
+      "foreground": "#8fa0b2",
+      "ratio": 6.675169205499221,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.demo-environment-menu",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 241,
+        "y": 20,
+        "width": 116,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "text": "Viewing as Chief Risk Officer",
+      "foreground": "#8fa0b2",
+      "ratio": 6.675169205499221,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.demo-environment-menu",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 241,
+        "y": 20,
+        "width": 116,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.5113027815267686,
+      "outsideRatio": 1.5193364728028564,
+      "insideRatio": 1.5113027815267686,
+      "fillRatio": 1.0053157390923162,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "button.guide-launcher",
+      "parentSelector": "main",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 227.21875,
+        "y": -1672,
+        "width": 128.78125,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.603342995694178,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1.1798913356411451,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "button.guide-launcher",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 270.21875,
+        "y": -1658.25,
+        "width": 72.78125,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Resume guide",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": -1624,
+        "width": 310.5625,
+        "height": 36
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Meridian Trust Bank  ·  Meridian Trust Bank Nigeria",
+      "foreground": "#5bc6d6",
+      "ratio": 9.479578580346425,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h1",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": -1576,
+        "width": 354,
+        "height": 36
+      },
+      "fontSize": "36px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendors",
+      "foreground": "#ffffff",
+      "ratio": 18.970954227610815,
+      "minimum": 3,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": -1536,
+        "width": 354,
+        "height": 65.0625
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Manage vendors and the services they supply to  Meridian Trust Bank Nigeria . Review each relationship's owner, critical",
+      "foreground": "#8fa0b2",
+      "ratio": 7.081695290667391,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#vendor-add-action",
+      "parentSelector": "header.topbar.vendors-topbar",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": -1446.9375,
+        "width": 354,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.603342995694178,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1.1798913356411451,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 158.6875,
+        "y": -1435.4375,
+        "width": 72.625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Add vendor",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_27_",
+      "parentSelector": "div.vendor-mobile-back",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 36,
+        "y": -1364.9375,
+        "width": 177,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#0d1725",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 53,
+        "y": -1353.4375,
+        "width": 143,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Back to vendor register",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.vendor-brand-icon.vendor-brand-icon-detail.vendor-brand-monogram",
+      "parentSelector": "div.vendor-detail-identity",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 44,
+        "y": -1304.9375,
+        "width": 44,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "750",
+      "kind": "text",
+      "text": "AL",
+      "foreground": "#5bc6d6",
+      "ratio": 8.034281034189716,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 101,
+        "y": -1300.9375,
+        "width": 163.53125,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Proposed  relationship",
+      "foreground": "#5bc6d6",
+      "ratio": 8.971356102880014,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h2",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 101,
+        "y": -1275.9375,
+        "width": 245,
+        "height": 84
+      },
+      "fontSize": "28px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Acme Processing Limited",
+      "foreground": "#ffffff",
+      "ratio": 17.953876804206416,
+      "minimum": 3,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 101,
+        "y": -1187.9375,
+        "width": 245,
+        "height": 18.59375
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Trading as Acme Processing",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "small.vendor-brand-label",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 101,
+        "y": -1162.34375,
+        "width": 245,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Website icon pending",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_2a_",
+      "parentSelector": "div.vendor-detail-actions",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 44,
+        "y": -1125.84375,
+        "width": 302,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.5173840110627816,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1.1166345892933784,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 137.71875,
+        "y": -1114.34375,
+        "width": 114.5625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Edit vendor details",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_2d_",
+      "parentSelector": "div.vendor-detail-actions",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 44,
+        "y": -1073.84375,
+        "width": 302,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.5173840110627816,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1.1166345892933784,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 121.578125,
+        "y": -1062.34375,
+        "width": 146.84375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Edit vendor relationship",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_2g_",
+      "parentSelector": "div.vendor-detail-actions.vendor-detail-work-actions",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 44,
+        "y": -1017.84375,
+        "width": 302,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.5173840110627816,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1.1166345892933784,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 120.34375,
+        "y": -1006.34375,
+        "width": 149.296875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "View vendor documents",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.vendor-service-callout",
+      "disabled": false,
+      "background": "#172c3e",
+      "uncertain": [],
+      "box": {
+        "x": 63,
+        "y": -930.84375,
+        "width": 264,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Service supplied",
+      "foreground": "#d7e0e9",
+      "ratio": 10.726791455281656,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div.vendor-service-callout",
+      "disabled": false,
+      "background": "#172c3e",
+      "uncertain": [],
+      "box": {
+        "x": 63,
+        "y": -909.34375,
+        "width": 264,
+        "height": 30
+      },
+      "fontSize": "20px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Card transaction processing",
+      "foreground": "#d7e0e9",
+      "ratio": 10.726791455281656,
+      "minimum": 3,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "small",
+      "parentSelector": "div.vendor-service-callout",
+      "disabled": false,
+      "background": "#172c3e",
+      "uncertain": [],
+      "box": {
+        "x": 63,
+        "y": -874.34375,
+        "width": 264,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Important  criticality ·  Processor",
+      "foreground": "#d7e0e9",
+      "ratio": 10.726791455281656,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 44,
+        "y": -814.84375,
+        "width": 302,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Vendor details",
+      "foreground": "#ffffff",
+      "ratio": 17.953876804206416,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": -721.84375,
+        "width": 213.46875,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Card transaction processing",
+      "foreground": "#5bc6d6",
+      "ratio": 8.971356102880014,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#vdd-title",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": -697.84375,
+        "width": 320,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Due diligence",
+      "foreground": "#ffffff",
+      "ratio": 17.953876804206416,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": -657.84375,
+        "width": 320,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Review the response, documents and findings before recording a conclusion.",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--warning",
+      "parentSelector": "header.vdd-header",
+      "disabled": false,
+      "background": "#1f252a",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": -594.46875,
+        "width": 113.140625,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Under review",
+      "foreground": "#e9b75a",
+      "ratio": 8.394585008888814,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 52,
+        "y": -537.46875,
+        "width": 286,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendor",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 52,
+        "y": -515.96875,
+        "width": 286,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Acme Processing Limited",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 52,
+        "y": -467.46875,
+        "width": 286,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Service",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 52,
+        "y": -445.96875,
+        "width": 286,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Card transaction processing",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 52,
+        "y": -397.46875,
+        "width": 286,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Accountable owner",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 52,
+        "y": -375.96875,
+        "width": 286,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Chief Risk Officer",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 52,
+        "y": -327.46875,
+        "width": 286,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Review due",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 52,
+        "y": -305.96875,
+        "width": 286,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "30 Sept 2099",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": -234.46875,
+        "width": 237.09375,
+        "height": 36
+      },
+      "fontSize": "24px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Checklist",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 3,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": -192.46875,
+        "width": 237.09375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Current request · Checked  8 Sept 2026",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_3d_",
+      "parentSelector": "header.vendor-checklist__heading",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": -159.46875,
+        "width": 136.15625,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#0d1725",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 52,
+        "y": -147.96875,
+        "width": 102.15625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Refresh checklist",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_3g_",
+      "parentSelector": "div.vendor-checklist__stat.vendor-checklist__stat--all",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 44,
+        "y": -38.46875,
+        "width": 138,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.5173840110627816,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1.1166345892933784,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 86.4375,
+        "y": -26.96875,
+        "width": 53.109375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "All items",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_3j_",
+      "parentSelector": "div.vendor-checklist__stat.vendor-checklist__stat--vendor",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 208,
+        "y": -38.46875,
+        "width": 138,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#0d1725",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 253.296875,
+        "y": -26.96875,
+        "width": 47.40625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Missing",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_3m_",
+      "parentSelector": "div.vendor-checklist__stat.vendor-checklist__stat--bank",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 44,
+        "y": 91.53125,
+        "width": 138,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#0d1725",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 64.375,
+        "y": 103.03125,
+        "width": 97.25,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Awaiting review",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_3p_",
+      "parentSelector": "div.vendor-checklist__stat.vendor-checklist__stat--accepted",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 208,
+        "y": 91.53125,
+        "width": 138,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#0d1725",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 248.078125,
+        "y": 103.03125,
+        "width": 57.828125,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Accepted",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h4",
+      "parentSelector": "div.vendor-checklist__item-title",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 189.9375,
+        "width": 174.46875,
+        "height": 25.1875
+      },
+      "fontSize": "16.8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vulnerability test report",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--warning",
+      "parentSelector": "div.vendor-checklist__item-title",
+      "disabled": false,
+      "background": "#1f252a",
+      "uncertain": [],
+      "box": {
+        "x": 221.46875,
+        "y": 189.53125,
+        "width": 81.5625,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Missing",
+      "foreground": "#e9b75a",
+      "ratio": 8.394585008888814,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div.vendor-checklist__item-main",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 221.53125,
+        "width": 320,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendor",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_3s_",
+      "parentSelector": "div.vendor-checklist__item-actions",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 254.53125,
+        "width": 174.828125,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#0d1725",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 52,
+        "y": 266.03125,
+        "width": 140.828125,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Use existing document",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h4",
+      "parentSelector": "div.vendor-checklist__item-title",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 339.53125,
+        "width": 244.046875,
+        "height": 25.1875
+      },
+      "fontSize": "16.8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "International transfer assessment",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--unknown",
+      "parentSelector": "div.vendor-checklist__item-title",
+      "disabled": false,
+      "background": "#1a2533",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 376.71875,
+        "width": 159.203125,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Applicability pending",
+      "foreground": "#aebdca",
+      "ratio": 8.059574055445276,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div.vendor-checklist__item-main",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 408.71875,
+        "width": 320,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Depends on unanswered questions.",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h4",
+      "parentSelector": "div.vendor-checklist__item-title",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 483.125,
+        "width": 153.21875,
+        "height": 25.1875
+      },
+      "fontSize": "16.8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "ISO 27001 assurance",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--info",
+      "parentSelector": "div.vendor-checklist__item-title",
+      "disabled": false,
+      "background": "#132634",
+      "uncertain": [],
+      "box": {
+        "x": 200.21875,
+        "y": 482.71875,
+        "width": 128.96875,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Awaiting review",
+      "foreground": "#5bc6d6",
+      "ratio": 7.746995155946398,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div.vendor-checklist__item-main",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 514.71875,
+        "width": 320,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "No upload needed.",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div.vendor-checklist__evidence",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 49,
+        "y": 547.71875,
+        "width": 306,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "ISO 27001 certificate.pdf",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.vendor-checklist__evidence",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 49,
+        "y": 574.71875,
+        "width": 306,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Submitted  3 Aug 2026  · Linked  8 Sept 2026",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div.vendor-checklist__evidence",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 49,
+        "y": 607.71875,
+        "width": 306,
+        "height": 42
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Certificate covers the vendor entity and the payment service under review.",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_3v_",
+      "parentSelector": "div.vendor-checklist__evidence",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 49,
+        "y": 655.71875,
+        "width": 181.46875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#0d1725",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 66,
+        "y": 667.21875,
+        "width": 147.46875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "View existing document",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_42_",
+      "parentSelector": "div.vendor-checklist__item-actions",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 711.71875,
+        "width": 143.546875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.5173840110627816,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1.1166345892933784,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 52,
+        "y": 723.21875,
+        "width": 109.546875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Review document",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_45_",
+      "parentSelector": "div.vendor-checklist__item-actions",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 186.546875,
+        "y": 711.71875,
+        "width": 148.546875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#0d1725",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--comfortable",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 203.546875,
+        "y": 723.21875,
+        "width": 114.546875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Replace document",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h4",
+      "parentSelector": "div.vendor-checklist__item-title",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 797.125,
+        "width": 139.203125,
+        "height": 25.1875
+      },
+      "fontSize": "16.8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Service description",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--neutral",
+      "parentSelector": "div.vendor-checklist__item-title",
+      "disabled": false,
+      "background": "#172331",
+      "uncertain": [],
+      "box": {
+        "x": 186.203125,
+        "y": 796.71875,
+        "width": 88,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Received",
+      "foreground": "#8fa0b2",
+      "ratio": 5.93335822306068,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h4",
+      "parentSelector": "div.vendor-checklist__item-title",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 35,
+        "y": 875.71875,
+        "width": 218.5,
+        "height": 25.1875
+      },
+      "fontSize": "16.8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Business continuity assurance",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span.cs-status-badge.cs-tone--success",
+      "parentSelector": "div.vendor-checklist__item-title",
+      "disabled": false,
+      "background": "#13262f",
+      "uncertain": [],
+      "box": {
+        "x": 35,
+        "y": 912.90625,
+        "width": 90.4375,
+        "height": 26
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Accepted",
+      "foreground": "#5bc996",
+      "ratio": 7.607746169899651,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div.vendor-checklist__evidence",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 49,
+        "y": 950.90625,
+        "width": 306,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Business continuity certificate.pdf",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_48_",
+      "parentSelector": "div.vendor-checklist__evidence",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 49,
+        "y": 977.90625,
+        "width": 196.6875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#0d1725",
+      "ratio": 1,
+      "outsideRatio": 1,
+      "insideRatio": 1,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--quiet.cs-button--compact",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 66,
+        "y": 989.40625,
+        "width": 162.6875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "View submitted document",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "h3",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 54,
+        "y": 1109.90625,
+        "width": 282,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendor response",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 54,
+        "y": 1137.90625,
+        "width": 282,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Submitted  08 Sept 2026  ·  2   answers  ·  1   document",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "div.vdd-review-metrics",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 54,
+        "y": 1197.28125,
+        "width": 171.359375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "2  of  5  required answers received",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h4",
+      "parentSelector": "div.vdd-review-group",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 54,
+        "y": 1250.28125,
+        "width": 282,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Submitted answers",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "dt",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 69,
+        "y": 1294.28125,
+        "width": 252,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Service description  · Required",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "dd",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 69,
+        "y": 1316.78125,
+        "width": 252,
+        "height": 36
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendor response: Card payment processing and settlement.",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h4",
+      "parentSelector": "div.vdd-review-group-heading",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 54,
+        "y": 1400.78125,
+        "width": 124.40625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Findings",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_4b_",
+      "parentSelector": "div.vdd-review-group-heading",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 54,
+        "y": 1437.78125,
+        "width": 124.40625,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.3588903886839139,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "REVIEW"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 71,
+        "y": 1449.28125,
+        "width": 90.40625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Record finding",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div.vdd-review-group",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 54,
+        "y": 1491.78125,
+        "width": 282,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "No findings are linked to this assessment.",
+      "foreground": "#8fa0b2",
+      "ratio": 6.001989400845329,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_2j_",
+      "parentSelector": "div.vdd-actions",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 134.171875,
+        "y": 1548.46875,
+        "width": 220.828125,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#5bc6d6",
+      "ratio": 8.971356102880014,
+      "outsideRatio": 8.971356102880014,
+      "insideRatio": 1,
+      "fillRatio": 8.971356102880014,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--primary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#5bc6d6",
+      "uncertain": [],
+      "box": {
+        "x": 151.171875,
+        "y": 1559.96875,
+        "width": 186.828125,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Record assessment conclusion",
+      "foreground": "#07111d",
+      "ratio": 9.479578580346425,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_2m_",
+      "parentSelector": "div.vdd-actions",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 134.171875,
+        "y": 1602.46875,
+        "width": 220.828125,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.5173840110627816,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1.1166345892933784,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 182.5,
+        "y": 1613.96875,
+        "width": 124.15625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Request clarification",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_2p_",
+      "parentSelector": "div.vdd-actions",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 134.171875,
+        "y": 1656.46875,
+        "width": 220.828125,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.5173840110627816,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1.1166345892933784,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 187.09375,
+        "y": 1667.96875,
+        "width": 114.984375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Cancel assessment",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.eyebrow",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#192f41",
+      "uncertain": [],
+      "box": {
+        "x": 50,
+        "y": 1739.46875,
+        "width": 142.09375,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Activation decision",
+      "foreground": "#5bc6d6",
+      "ratio": 6.884253143865693,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#vendor-activation-title",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#192f41",
+      "uncertain": [],
+      "box": {
+        "x": 50,
+        "y": 1763.46875,
+        "width": 222.3125,
+        "height": 27
+      },
+      "fontSize": "18px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Activate vendor relationship",
+      "foreground": "#ffffff",
+      "ratio": 13.77707354568806,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "span.vendor-activation-pending",
+      "parentSelector": "div.vendor-activation-heading",
+      "disabled": false,
+      "background": "#1f252a",
+      "uncertain": [],
+      "box": {
+        "x": 50,
+        "y": 1806.46875,
+        "width": 222.3125,
+        "height": 29
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Checks incomplete",
+      "foreground": "#e9b75a",
+      "ratio": 8.394585008888814,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "section.vendor-activation-panel",
+      "disabled": false,
+      "background": "#192f41",
+      "uncertain": [],
+      "box": {
+        "x": 50,
+        "y": 1844.46875,
+        "width": 290,
+        "height": 18.59375
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Policy  1 , version  1  applies from  9/8/2026, 11:00:00 AM .",
+      "foreground": "#d7e0e9",
+      "ratio": 10.318578588637601,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "strong",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#192f41",
+      "uncertain": [],
+      "box": {
+        "x": 82,
+        "y": 1896.0625,
+        "width": 178.75,
+        "height": 16
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Current onboarding assessment",
+      "foreground": "#d7e0e9",
+      "ratio": 10.318578588637601,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#192f41",
+      "uncertain": [],
+      "box": {
+        "x": 82,
+        "y": 1917.0625,
+        "width": 258,
+        "height": 15.9375
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Sample · Due diligence review is incomplete.",
+      "foreground": "#d7e0e9",
+      "ratio": 10.318578588637601,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "p.inline-notice",
+      "parentSelector": "section.vendor-activation-panel",
+      "disabled": false,
+      "background": "#192f41",
+      "uncertain": [],
+      "box": {
+        "x": 50,
+        "y": 1963,
+        "width": 290,
+        "height": 55.78125
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Complete the first unsatisfied check above. Submission or upload alone cannot activate this relationship.",
+      "foreground": "#d7e0e9",
+      "ratio": 10.318578588637601,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "h2",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 40,
+        "y": 2081.78125,
+        "width": 310,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Forms and responses",
+      "foreground": "#ffffff",
+      "ratio": 17.953876804206416,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "p",
+      "parentSelector": "div",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 40,
+        "y": 2114.78125,
+        "width": 310,
+        "height": 43.375
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Requests, submissions and reviews for  Card transaction processing .",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_2s_",
+      "parentSelector": "div.vendor-forms-list__actions",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 40,
+        "y": 2174.15625,
+        "width": 168.796875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.5173840110627816,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1.1166345892933784,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 57,
+        "y": 2185.65625,
+        "width": 134.796875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "View response history",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "#react-aria1058106043-_r_2v_",
+      "parentSelector": "div.vendor-forms-list__actions",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 224.796875,
+        "y": 2174.15625,
+        "width": 116.8125,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "essential": false,
+      "foreground": "#26394d",
+      "ratio": 1.3588903886839139,
+      "outsideRatio": 1.5173840110627816,
+      "insideRatio": 1.3588903886839139,
+      "fillRatio": 1.1166345892933784,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary identifies the control; a low reading alone is not a violation.",
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button.cs-button.cs-button--secondary.cs-button--comfortable",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 241.796875,
+        "y": 2185.65625,
+        "width": 82.8125,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Request form",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5,
+      "outcome": "PASS"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.vendor-request-details",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 40,
+        "y": 2235.15625,
+        "width": 310,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Requests  · 1 on this page",
+      "foreground": "#ffffff",
+      "ratio": 17.953876804206416,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "summary",
+      "parentSelector": "details.vendor-linked-work",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 19,
+        "y": 2302.15625,
+        "width": 352,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "text": "Linked vendor work",
+      "foreground": "#ffffff",
+      "ratio": 17.953876804206416,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 41.015625,
+        "y": 809,
+        "width": 20.75,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Today",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 106.296875,
+        "y": 809,
+        "width": 33.796875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Programs",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 185.6875,
+        "y": 809,
+        "width": 18.609375,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Work",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#122533",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 252.40625,
+        "y": 809,
+        "width": 28.75,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Vendors",
+      "foreground": "#5bc6d6",
+      "ratio": 7.7992634804852985,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    },
+    {
+      "selector": "span",
+      "parentSelector": "button",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image",
+        "filter"
+      ],
+      "box": {
+        "x": 327.75,
+        "y": 809,
+        "width": 21.671875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "text": "Forms",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5,
+      "outcome": "INCOMPLETE"
+    }
+  ],
+  "assetURLs": [
+    "http://127.0.0.1:4179/assets/index-BMWHmGgh.js",
+    "http://127.0.0.1:4179/assets/ui-BKmW7Hgr.js",
+    "http://127.0.0.1:4179/assets/vendorIdentity-DNAUaTE1.js",
+    "http://127.0.0.1:4179/assets/form-policies-B7RQjXrL.js",
+    "http://127.0.0.1:4179/assets/http-CsyLtnQx.js",
+    "http://127.0.0.1:4179/assets/api-4YXod1O7.js",
+    "http://127.0.0.1:4179/assets/monitoringApi-B_rnuu-E.js",
+    "http://127.0.0.1:4179/assets/FocusedSheet-D6A2pfF6.js",
+    "http://127.0.0.1:4179/assets/FileDropzone-D3bjzZCz.js",
+    "http://127.0.0.1:4179/assets/FormPreview-xfiykOdw.js",
+    "http://127.0.0.1:4179/assets/identityAccessApi-DQ4JpP1X.js",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-CP0P4Fzd.js",
+    "http://127.0.0.1:4179/assets/formPoliciesApi-BOB15CUF.js",
+    "http://127.0.0.1:4179/assets/FormBuilder-D0uIMr0F.js",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-DF59NCDq.js",
+    "http://127.0.0.1:4179/assets/preload-helper-Czpn1I53.js",
+    "http://127.0.0.1:4179/assets/EmptyState-CAuvZgjp.js",
+    "http://127.0.0.1:4179/assets/SessionGate-e9miZAkm.js",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-CoL3pBsn.js",
+    "http://127.0.0.1:4179/assets/ui-BqQkgK9q.css",
+    "http://127.0.0.1:4179/assets/form-policies-CXmCjy0e.css",
+    "http://127.0.0.1:4179/assets/assessmentFieldResults-Bc4QplLt.css",
+    "http://127.0.0.1:4179/assets/FormBuilder-BR0NOz-_.css",
+    "http://127.0.0.1:4179/assets/ResponseAssessment-xmrvZhbh.css",
+    "http://127.0.0.1:4179/assets/SessionGate-CBT7oevM.css",
+    "http://127.0.0.1:4179/assets/OversightWorkspace-BbMW_Uts.css",
+    "http://127.0.0.1:4179/assets/index-BfD_vL87.css",
+    "http://127.0.0.1:4179/assets/forms-BF_LZwBu.css",
+    "http://127.0.0.1:4179/assets/staticDemoWorkflowRuntime-CCKpbhZb.js",
+    "http://127.0.0.1:4179/assets/staticDemoFixtures-BJo7eiOJ.json",
+    "http://127.0.0.1:4179/assets/App-B4c7mFpZ.js",
+    "http://127.0.0.1:4179/assets/Monogram-k38BLA7P.js",
+    "http://127.0.0.1:4179/assets/VendorWorkPanel-D3NeEmZw.js",
+    "http://127.0.0.1:4179/assets/VendorWorkPanel-CU0uMlLg.css",
+    "http://127.0.0.1:4179/assets/WorkspaceErrorBoundary-Di4hsd7o.js",
+    "http://127.0.0.1:4179/assets/FormProposalReview-siSJwhuo.js",
+    "http://127.0.0.1:4179/assets/App-Bd-YkfrJ.css",
+    "http://127.0.0.1:4179/assets/VendorsWorkspace-Chm5Pg7U.js",
+    "http://127.0.0.1:4179/assets/SentFormDetail-DAN60mcz.js",
+    "http://127.0.0.1:4179/assets/SentFormDetail-DFR_kdL0.css",
+    "http://127.0.0.1:4179/assets/VendorsWorkspace-Bfv9eAAt.css"
+  ],
+  "layout": {
+    "clientWidth": 390,
+    "scrollWidth": 390
+  },
+  "headings": [
+    "Vendors",
+    "Vendor register",
+    "Acme Processing Limited",
+    "Due diligence",
+    "Forms and responses",
+    "Vendor requests"
+  ],
+  "status": "CAPTURED"
+}

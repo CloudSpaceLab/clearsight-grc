@@ -1,0 +1,752 @@
+{
+  "generatedAt": "2026-09-08T23:49:28.703Z",
+  "baseURL": "http://127.0.0.1:4176",
+  "captures": [
+    {
+      "id": "program-missing-light-1440",
+      "state": "program-missing",
+      "theme": "light",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUnknown\n\nNo Program status calculation is available.\n\nOwner Amara Cole\nOpen issues Unknown\nRequirements 0\n\nStatus reasons are unavailable.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-missing-light-390",
+      "state": "program-missing",
+      "theme": "light",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUnknown\n\nNo Program status calculation is available.\n\nOwner Amara Cole\nOpen issues Unknown\nRequirements 0\n\nStatus reasons are unavailable.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-missing-light-320",
+      "state": "program-missing",
+      "theme": "light",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUnknown\n\nNo Program status calculation is available.\n\nOwner Amara Cole\nOpen issues Unknown\nRequirements 0\n\nStatus reasons are unavailable.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-missing-light-720",
+      "state": "program-missing",
+      "theme": "light",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUnknown\n\nNo Program status calculation is available.\n\nOwner Amara Cole\nOpen issues Unknown\nRequirements 0\n\nStatus reasons are unavailable.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-missing-dark-1440",
+      "state": "program-missing",
+      "theme": "dark",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUnknown\n\nNo Program status calculation is available.\n\nOwner Amara Cole\nOpen issues Unknown\nRequirements 0\n\nStatus reasons are unavailable.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-missing-dark-390",
+      "state": "program-missing",
+      "theme": "dark",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUnknown\n\nNo Program status calculation is available.\n\nOwner Amara Cole\nOpen issues Unknown\nRequirements 0\n\nStatus reasons are unavailable.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-missing-dark-320",
+      "state": "program-missing",
+      "theme": "dark",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUnknown\n\nNo Program status calculation is available.\n\nOwner Amara Cole\nOpen issues Unknown\nRequirements 0\n\nStatus reasons are unavailable.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-missing-dark-720",
+      "state": "program-missing",
+      "theme": "dark",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUnknown\n\nNo Program status calculation is available.\n\nOwner Amara Cole\nOpen issues Unknown\nRequirements 0\n\nStatus reasons are unavailable.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-stale-light-1440",
+      "state": "program-stale",
+      "theme": "light",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nOut of date\n\nLast assessed at version 2; Program is version 3. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0 (last calculation)\nRequirements 0\n\nNo status reasons were recorded for the previous calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-stale-light-390",
+      "state": "program-stale",
+      "theme": "light",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nOut of date\n\nLast assessed at version 2; Program is version 3. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0 (last calculation)\nRequirements 0\n\nNo status reasons were recorded for the previous calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-stale-light-320",
+      "state": "program-stale",
+      "theme": "light",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nOut of date\n\nLast assessed at version 2; Program is version 3. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0 (last calculation)\nRequirements 0\n\nNo status reasons were recorded for the previous calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-stale-light-720",
+      "state": "program-stale",
+      "theme": "light",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nOut of date\n\nLast assessed at version 2; Program is version 3. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0 (last calculation)\nRequirements 0\n\nNo status reasons were recorded for the previous calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-stale-dark-1440",
+      "state": "program-stale",
+      "theme": "dark",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nOut of date\n\nLast assessed at version 2; Program is version 3. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0 (last calculation)\nRequirements 0\n\nNo status reasons were recorded for the previous calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-stale-dark-390",
+      "state": "program-stale",
+      "theme": "dark",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nOut of date\n\nLast assessed at version 2; Program is version 3. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0 (last calculation)\nRequirements 0\n\nNo status reasons were recorded for the previous calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-stale-dark-320",
+      "state": "program-stale",
+      "theme": "dark",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nOut of date\n\nLast assessed at version 2; Program is version 3. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0 (last calculation)\nRequirements 0\n\nNo status reasons were recorded for the previous calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-stale-dark-720",
+      "state": "program-stale",
+      "theme": "dark",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nOut of date\n\nLast assessed at version 2; Program is version 3. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0 (last calculation)\nRequirements 0\n\nNo status reasons were recorded for the previous calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-current-light-1440",
+      "state": "program-current",
+      "theme": "light",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUp to date\n\nStatus reflects the latest Program version. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0\nRequirements 0\n\nNo status reasons are recorded for this calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-current-light-390",
+      "state": "program-current",
+      "theme": "light",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUp to date\n\nStatus reflects the latest Program version. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0\nRequirements 0\n\nNo status reasons are recorded for this calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-current-light-320",
+      "state": "program-current",
+      "theme": "light",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUp to date\n\nStatus reflects the latest Program version. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0\nRequirements 0\n\nNo status reasons are recorded for this calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-current-light-720",
+      "state": "program-current",
+      "theme": "light",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUp to date\n\nStatus reflects the latest Program version. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0\nRequirements 0\n\nNo status reasons are recorded for this calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-current-dark-1440",
+      "state": "program-current",
+      "theme": "dark",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUp to date\n\nStatus reflects the latest Program version. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0\nRequirements 0\n\nNo status reasons are recorded for this calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-current-dark-390",
+      "state": "program-current",
+      "theme": "dark",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUp to date\n\nStatus reflects the latest Program version. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0\nRequirements 0\n\nNo status reasons are recorded for this calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-current-dark-320",
+      "state": "program-current",
+      "theme": "dark",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUp to date\n\nStatus reflects the latest Program version. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0\nRequirements 0\n\nNo status reasons are recorded for this calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "program-current-dark-720",
+      "state": "program-current",
+      "theme": "dark",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record Program\n\nSample records dated 9 September 2026.\n\nCURRENT POSITION\nUp to date\n\nStatus reflects the latest Program version. Calculated 9/9/2026, 10:00:00 AM.\n\nOwner Amara Cole\nOpen issues 0\nRequirements 0\n\nNo status reasons are recorded for this calculation.\n\nNo change is assigned to you\nCurrent Program details and responsibilities remain visible.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-missing-light-1440",
+      "state": "reviewer-missing",
+      "theme": "light",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Reviewer name unavailable\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-missing-light-390",
+      "state": "reviewer-missing",
+      "theme": "light",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Reviewer name unavailable\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-missing-light-320",
+      "state": "reviewer-missing",
+      "theme": "light",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Reviewer name unavailable\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-missing-light-720",
+      "state": "reviewer-missing",
+      "theme": "light",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Reviewer name unavailable\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-missing-dark-1440",
+      "state": "reviewer-missing",
+      "theme": "dark",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Reviewer name unavailable\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-missing-dark-390",
+      "state": "reviewer-missing",
+      "theme": "dark",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Reviewer name unavailable\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-missing-dark-320",
+      "state": "reviewer-missing",
+      "theme": "dark",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Reviewer name unavailable\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-missing-dark-720",
+      "state": "reviewer-missing",
+      "theme": "dark",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Reviewer name unavailable\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-reassigned-light-1440",
+      "state": "reviewer-reassigned",
+      "theme": "light",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Morgan Reed\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-reassigned-light-390",
+      "state": "reviewer-reassigned",
+      "theme": "light",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Morgan Reed\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-reassigned-light-320",
+      "state": "reviewer-reassigned",
+      "theme": "light",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Morgan Reed\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-reassigned-light-720",
+      "state": "reviewer-reassigned",
+      "theme": "light",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Morgan Reed\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-reassigned-dark-1440",
+      "state": "reviewer-reassigned",
+      "theme": "dark",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Morgan Reed\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-reassigned-dark-390",
+      "state": "reviewer-reassigned",
+      "theme": "dark",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Morgan Reed\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-reassigned-dark-320",
+      "state": "reviewer-reassigned",
+      "theme": "dark",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Morgan Reed\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "reviewer-reassigned-dark-720",
+      "state": "reviewer-reassigned",
+      "theme": "dark",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery outcome review\n\nSample records dated 9 September 2026.\n\nOUTCOME CHECKS\nIndependent results\nAll delivery records remain available for the required retention period\nOutcome confirmed\nScope covered\nCarrier records received in August\nHow the outcome is measured\nSample the retention report and retrieve the selected records\nCurrent baseline\nFour records could not be retrieved\nSuccess threshold\nEvery selected record can be retrieved\nMeasurement source\nNot recorded\nObservation period\n1 day\nIndependent reviewer\nJordan Ellis\n\nRecorded basis: All 25 selected records were retrieved.\n\nView outcome result history (1)\n\nShowing 1 of 1 stored results for issue version 4.\n\nOutcome confirmed Recorded 2026-09-08 by Morgan Reed\n\nAll 25 selected records were retrieved.\n\nIf not achieved: Keep this issue open\n\nCurrent review is assigned to Jordan Ellis.",
+      "passed": true
+    },
+    {
+      "id": "schedule-missing-light-1440",
+      "state": "schedule-missing",
+      "theme": "light",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-missing-light-390",
+      "state": "schedule-missing",
+      "theme": "light",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-missing-light-320",
+      "state": "schedule-missing",
+      "theme": "light",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-missing-light-720",
+      "state": "schedule-missing",
+      "theme": "light",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-missing-dark-1440",
+      "state": "schedule-missing",
+      "theme": "dark",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-missing-dark-390",
+      "state": "schedule-missing",
+      "theme": "dark",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-missing-dark-320",
+      "state": "schedule-missing",
+      "theme": "dark",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-missing-dark-720",
+      "state": "schedule-missing",
+      "theme": "dark",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-invalid-light-1440",
+      "state": "schedule-invalid",
+      "theme": "light",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-invalid-light-390",
+      "state": "schedule-invalid",
+      "theme": "light",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-invalid-light-320",
+      "state": "schedule-invalid",
+      "theme": "light",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-invalid-light-720",
+      "state": "schedule-invalid",
+      "theme": "light",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-invalid-dark-1440",
+      "state": "schedule-invalid",
+      "theme": "dark",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-invalid-dark-390",
+      "state": "schedule-invalid",
+      "theme": "dark",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-invalid-dark-320",
+      "state": "schedule-invalid",
+      "theme": "dark",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "schedule-invalid-dark-720",
+      "state": "schedule-invalid",
+      "theme": "dark",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nAssigned outcome check\n\nSample records dated 9 September 2026.\n\nTODAY\n1 item needs your action\n\nAssigned work and operational exceptions you are permitted to handle.\n\nOUTCOME CHECK\nAWAITING REVIEW\nSEP 12, 1:00 PM\nCheck delivery record retention\n\nThe retention repair needs an independent outcome check.\n\nNorthstar Logistics · August records\nRetention report received 9 September\nJordan Ellis\nNEXT ACTION\nReview the retention report\nOutcome check details\nExpected outcome\nAll selected records can be retrieved\nMethod\nIndependent sample review\nCheck\nNot scheduled\nNo linked record is available.\nStatus checks unavailable\nThe latest status checks could not be loaded. Try again before reviewing readiness.",
+      "passed": true
+    },
+    {
+      "id": "setup-light-1440",
+      "state": "setup",
+      "theme": "light",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nPROGRAM SETUP\nDelivery record retention\n\nAdd requirements and the checks that will monitor them.\n\nClose\n1\nProgram\n2\nRequirements\n3\nMonitoring\nProgram created. Add its requirements and monitoring checks.\nRequirements\n\nRecord what must be true for this Program.\n\n0 added\nTitle\nCode\nRequirement\nObligation strength *\nSelect the source's wording\n⌄\n \nMust\nMust not\nShould\nMay\nExpected\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSource reference (optional)\nAdd requirement\nMonitoring\n\nCollect responses or check connected data and calculate risk.\n\nMonitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available.\n\nNo monitoring checks have been added to this Program.",
+      "passed": true
+    },
+    {
+      "id": "setup-light-390",
+      "state": "setup",
+      "theme": "light",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nPROGRAM SETUP\nDelivery record retention\n\nAdd requirements and the checks that will monitor them.\n\nClose\n1\nProgram\n2\nRequirements\n3\nMonitoring\nProgram created. Add its requirements and monitoring checks.\nRequirements\n\nRecord what must be true for this Program.\n\n0 added\nTitle\nCode\nRequirement\nObligation strength *\nSelect the source's wording\n⌄\n \nMust\nMust not\nShould\nMay\nExpected\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSource reference (optional)\nAdd requirement\nMonitoring\n\nCollect responses or check connected data and calculate risk.\n\nMonitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available.\n\nNo monitoring checks have been added to this Program.",
+      "passed": true
+    },
+    {
+      "id": "setup-light-320",
+      "state": "setup",
+      "theme": "light",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nPROGRAM SETUP\nDelivery record retention\n\nAdd requirements and the checks that will monitor them.\n\nClose\n1\nProgram\n2\nRequirements\n3\nMonitoring\nProgram created. Add its requirements and monitoring checks.\nRequirements\n\nRecord what must be true for this Program.\n\n0 added\nTitle\nCode\nRequirement\nObligation strength *\nSelect the source's wording\n⌄\n \nMust\nMust not\nShould\nMay\nExpected\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSource reference (optional)\nAdd requirement\nMonitoring\n\nCollect responses or check connected data and calculate risk.\n\nMonitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available.\n\nNo monitoring checks have been added to this Program.",
+      "passed": true
+    },
+    {
+      "id": "setup-light-720",
+      "state": "setup",
+      "theme": "light",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nPROGRAM SETUP\nDelivery record retention\n\nAdd requirements and the checks that will monitor them.\n\nClose\n1\nProgram\n2\nRequirements\n3\nMonitoring\nProgram created. Add its requirements and monitoring checks.\nRequirements\n\nRecord what must be true for this Program.\n\n0 added\nTitle\nCode\nRequirement\nObligation strength *\nSelect the source's wording\n⌄\n \nMust\nMust not\nShould\nMay\nExpected\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSource reference (optional)\nAdd requirement\nMonitoring\n\nCollect responses or check connected data and calculate risk.\n\nMonitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available.\n\nNo monitoring checks have been added to this Program.",
+      "passed": true
+    },
+    {
+      "id": "setup-dark-1440",
+      "state": "setup",
+      "theme": "dark",
+      "width": 1440,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nPROGRAM SETUP\nDelivery record retention\n\nAdd requirements and the checks that will monitor them.\n\nClose\n1\nProgram\n2\nRequirements\n3\nMonitoring\nProgram created. Add its requirements and monitoring checks.\nRequirements\n\nRecord what must be true for this Program.\n\n0 added\nTitle\nCode\nRequirement\nObligation strength *\nSelect the source's wording\n⌄\n \nMust\nMust not\nShould\nMay\nExpected\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSource reference (optional)\nAdd requirement\nMonitoring\n\nCollect responses or check connected data and calculate risk.\n\nMonitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available.\n\nNo monitoring checks have been added to this Program.",
+      "passed": true
+    },
+    {
+      "id": "setup-dark-390",
+      "state": "setup",
+      "theme": "dark",
+      "width": 390,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nPROGRAM SETUP\nDelivery record retention\n\nAdd requirements and the checks that will monitor them.\n\nClose\n1\nProgram\n2\nRequirements\n3\nMonitoring\nProgram created. Add its requirements and monitoring checks.\nRequirements\n\nRecord what must be true for this Program.\n\n0 added\nTitle\nCode\nRequirement\nObligation strength *\nSelect the source's wording\n⌄\n \nMust\nMust not\nShould\nMay\nExpected\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSource reference (optional)\nAdd requirement\nMonitoring\n\nCollect responses or check connected data and calculate risk.\n\nMonitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available.\n\nNo monitoring checks have been added to this Program.",
+      "passed": true
+    },
+    {
+      "id": "setup-dark-320",
+      "state": "setup",
+      "theme": "dark",
+      "width": 320,
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nPROGRAM SETUP\nDelivery record retention\n\nAdd requirements and the checks that will monitor them.\n\nClose\n1\nProgram\n2\nRequirements\n3\nMonitoring\nProgram created. Add its requirements and monitoring checks.\nRequirements\n\nRecord what must be true for this Program.\n\n0 added\nTitle\nCode\nRequirement\nObligation strength *\nSelect the source's wording\n⌄\n \nMust\nMust not\nShould\nMay\nExpected\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSource reference (optional)\nAdd requirement\nMonitoring\n\nCollect responses or check connected data and calculate risk.\n\nMonitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available.\n\nNo monitoring checks have been added to this Program.",
+      "passed": true
+    },
+    {
+      "id": "setup-dark-720",
+      "state": "setup",
+      "theme": "dark",
+      "width": 720,
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nPROGRAM SETUP\nDelivery record retention\n\nAdd requirements and the checks that will monitor them.\n\nClose\n1\nProgram\n2\nRequirements\n3\nMonitoring\nProgram created. Add its requirements and monitoring checks.\nRequirements\n\nRecord what must be true for this Program.\n\n0 added\nTitle\nCode\nRequirement\nObligation strength *\nSelect the source's wording\n⌄\n \nMust\nMust not\nShould\nMay\nExpected\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSource reference (optional)\nAdd requirement\nMonitoring\n\nCollect responses or check connected data and calculate risk.\n\nMonitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available.\n\nNo monitoring checks have been added to this Program.",
+      "passed": true
+    },
+    {
+      "id": "requirement-light-1440",
+      "state": "requirement",
+      "theme": "light",
+      "width": 1440,
+      "capturedAt": "2026-09-08T23:49:21.637Z",
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nREQUIREMENTS\nObligations and applicability\nNo requirements are recorded\n\nAdd a source-anchored obligation before deciding whether it applies or defining its safeguards.\n\nRequirement code\nRequirement title\nRequirement statement\nOfficial source and section\nObligation strength\nSelect the source's wording\nMust\nMust not\nShould\nMay\nExpected\nEffective from\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSave requirement\nCancel",
+      "passed": true
+    },
+    {
+      "id": "requirement-light-390",
+      "state": "requirement",
+      "theme": "light",
+      "width": 390,
+      "capturedAt": "2026-09-08T23:49:22.661Z",
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nREQUIREMENTS\nObligations and applicability\nNo requirements are recorded\n\nAdd a source-anchored obligation before deciding whether it applies or defining its safeguards.\n\nRequirement code\nRequirement title\nRequirement statement\nOfficial source and section\nObligation strength\nSelect the source's wording\nMust\nMust not\nShould\nMay\nExpected\nEffective from\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSave requirement\nCancel",
+      "passed": true
+    },
+    {
+      "id": "requirement-light-320",
+      "state": "requirement",
+      "theme": "light",
+      "width": 320,
+      "capturedAt": "2026-09-08T23:49:23.510Z",
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nREQUIREMENTS\nObligations and applicability\nNo requirements are recorded\n\nAdd a source-anchored obligation before deciding whether it applies or defining its safeguards.\n\nRequirement code\nRequirement title\nRequirement statement\nOfficial source and section\nObligation strength\nSelect the source's wording\nMust\nMust not\nShould\nMay\nExpected\nEffective from\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSave requirement\nCancel",
+      "passed": true
+    },
+    {
+      "id": "requirement-light-720",
+      "state": "requirement",
+      "theme": "light",
+      "width": 720,
+      "capturedAt": "2026-09-08T23:49:24.335Z",
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nREQUIREMENTS\nObligations and applicability\nNo requirements are recorded\n\nAdd a source-anchored obligation before deciding whether it applies or defining its safeguards.\n\nRequirement code\nRequirement title\nRequirement statement\nOfficial source and section\nObligation strength\nSelect the source's wording\nMust\nMust not\nShould\nMay\nExpected\nEffective from\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSave requirement\nCancel",
+      "passed": true
+    },
+    {
+      "id": "requirement-dark-1440",
+      "state": "requirement",
+      "theme": "dark",
+      "width": 1440,
+      "capturedAt": "2026-09-08T23:49:25.205Z",
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nREQUIREMENTS\nObligations and applicability\nNo requirements are recorded\n\nAdd a source-anchored obligation before deciding whether it applies or defining its safeguards.\n\nRequirement code\nRequirement title\nRequirement statement\nOfficial source and section\nObligation strength\nSelect the source's wording\nMust\nMust not\nShould\nMay\nExpected\nEffective from\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSave requirement\nCancel",
+      "passed": true
+    },
+    {
+      "id": "requirement-dark-390",
+      "state": "requirement",
+      "theme": "dark",
+      "width": 390,
+      "capturedAt": "2026-09-08T23:49:26.119Z",
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nREQUIREMENTS\nObligations and applicability\nNo requirements are recorded\n\nAdd a source-anchored obligation before deciding whether it applies or defining its safeguards.\n\nRequirement code\nRequirement title\nRequirement statement\nOfficial source and section\nObligation strength\nSelect the source's wording\nMust\nMust not\nShould\nMay\nExpected\nEffective from\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSave requirement\nCancel",
+      "passed": true
+    },
+    {
+      "id": "requirement-dark-320",
+      "state": "requirement",
+      "theme": "dark",
+      "width": 320,
+      "capturedAt": "2026-09-08T23:49:26.947Z",
+      "errors": [],
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nREQUIREMENTS\nObligations and applicability\nNo requirements are recorded\n\nAdd a source-anchored obligation before deciding whether it applies or defining its safeguards.\n\nRequirement code\nRequirement title\nRequirement statement\nOfficial source and section\nObligation strength\nSelect the source's wording\nMust\nMust not\nShould\nMay\nExpected\nEffective from\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSave requirement\nCancel",
+      "passed": true
+    },
+    {
+      "id": "requirement-dark-720",
+      "state": "requirement",
+      "theme": "dark",
+      "width": 720,
+      "capturedAt": "2026-09-08T23:49:27.752Z",
+      "errors": [],
+      "reflowNote": "720 CSS px approximates the layout viewport of 1440px at 200% browser zoom; not an actual browser zoom measurement.",
+      "overflow": false,
+      "bodyText": "SAMPLE DATA · NORTHSTAR LOGISTICS\nDelivery record requirements\n\nSample records dated 9 September 2026.\n\nREQUIREMENTS\nObligations and applicability\nNo requirements are recorded\n\nAdd a source-anchored obligation before deciding whether it applies or defining its safeguards.\n\nRequirement code\nRequirement title\nRequirement statement\nOfficial source and section\nObligation strength\nSelect the source's wording\nMust\nMust not\nShould\nMay\nExpected\nEffective from\nWho must act? *\nrequired\nWhat must they do? *\nrequired\nWhat does it apply to? *\nrequired\nSave requirement\nCancel",
+      "passed": true
+    }
+  ]
+}

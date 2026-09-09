@@ -38,6 +38,7 @@ type sectionCollector struct {
 	omitted      int
 	textBytes    int64
 	truncated    bool
+	tableValues  map[string][][]string
 }
 
 func newSectionCollector(policy ExtractionPolicy) *sectionCollector {
@@ -117,9 +118,15 @@ func (c *sectionCollector) result(status ExtractionStatus, method string, limita
 	for _, degradation := range c.degradations {
 		limitations = append(limitations, degradation.Message)
 	}
+	elements := elementsFromSections(c.sections)
+	for index := range elements {
+		if values, ok := c.tableValues[elements[index].Ref]; ok {
+			elements[index].Values = values
+		}
+	}
 	return ExtractionResult{
 		Status: status, Method: method, ParserVersion: method, AdapterVersion: extractionElementAdapterVersion,
-		Sections: c.sections, Elements: elementsFromSections(c.sections), Degradations: cloneDegradations(c.degradations),
+		Sections: c.sections, Elements: elements, Degradations: cloneDegradations(c.degradations),
 		Limitations: limitations, SectionsTotal: c.total, SectionsOmitted: c.omitted, ContentTruncated: c.truncated,
 	}
 }
@@ -155,7 +162,7 @@ func ExtractWithPolicy(ctx context.Context, fileName, mediaType string, data []b
 		}
 		err = docxErr
 	case ".xlsx":
-		method = "XLSX_XML_STREAM_V2"
+		method = "XLSX_XML_STREAM_V3"
 		err = xlsxSections(ctx, data, collector, policy)
 	case ".pdf":
 		return extractPDF(ctx, data, collector, policy)

@@ -138,7 +138,7 @@ export function MatterDecisionResponsePanel({ aggregate, operations, onUpdated, 
     <section className="matter-governance-section" aria-labelledby="matter-decision-history"><h3 id="matter-decision-history">Decision history</h3>
       {aggregate.decisions.length ? <div className="matter-governance-list">{aggregate.decisions.map((decision) => {
         const operation = operationsFor(operations, "matter.decision.record", decision.id);
-        return <div className="matter-governance-row" key={decision.id}><div><strong>{decision.type}</strong><span>{statusLabel(decision.status)}</span><p>{decision.rationale}</p>{decision.selected_option && <small>Selected option: {decision.selected_option}</small>}{operation?.assigned_to && <small>Current responsibility: {operation.assigned_to.display_name}</small>}</div>{!active && operation?.can_act && <button className="secondary-button" type="button" aria-label={`Continue ${decision.type} decision`} onClick={() => beginDecision(decision.id)}>{operation.label}</button>}</div>;
+        return <div className="matter-governance-row" key={decision.id}><div><strong>{decisionLabel(decision.type)}</strong><span>{statusLabel(decision.status)}</span><p>{decision.rationale}</p>{decision.selected_option && <small>Selected option: {decisionLabel(decision.selected_option)}</small>}{operation?.assigned_to && <small>Current responsibility: {operation.assigned_to.display_name}</small>}</div>{!active && operation?.can_act && <button className="secondary-button" type="button" aria-label={`Continue ${decisionLabel(decision.type)} decision`} onClick={() => beginDecision(decision.id)}>{operation.label}</button>}</div>;
       })}</div> : <p>No decision has been recorded for this issue.</p>}
     </section>
 
@@ -180,4 +180,14 @@ export function MatterDecisionResponsePanel({ aggregate, operations, onUpdated, 
     </FocusedSheet>}
     {notice && <Notice tone="success">{notice}</Notice>}
   </article>;
+}
+
+function decisionLabel(value: string) {
+  const labels: Record<string, string> = {
+    IMPLEMENTATION_APPROACH: "Implementation approach",
+    UPDATE_CURRENT_PROCESS: "Update current process",
+    CREATE_SEPARATE_GAID_PROCESS: "Create separate GAID process",
+    NO_CHANGE_REQUIRED: "No change required",
+  };
+  return labels[value] ?? value;
 }

@@ -1,0 +1,33 @@
+{
+  "generatedAt": "2026-09-09T00:09:37.282Z",
+  "results": [
+    {
+      "id": "imports-light-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 12
+    },
+    {
+      "id": "imports-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 12
+    },
+    {
+      "id": "imports-dark-390",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 12
+    },
+    {
+      "id": "imports-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 12
+    }
+  ]
+}

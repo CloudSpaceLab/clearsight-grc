@@ -24,20 +24,20 @@ it("retains judgement, rationale and conflict across response sections and viewp
   expect(await screen.findByText("Payment service omitted")).toBeTruthy();
   expect(screen.queryByLabelText("Rationale for Test coverage")).toBeNull();
   fireEvent.click(screen.getByRole("tab", { name: "Review" }));
-  fireEvent.click(await screen.findByRole("button", { name: /Bank judgement for Test coverage/ }));
+  fireEvent.click(await screen.findByRole("button", { name: /Decision for Test coverage/ }));
   fireEvent.click(screen.getByRole("option", { name: "Scope missing · 80 points" }));
   fireEvent.change(screen.getByLabelText("Rationale for Test coverage"), { target: { value: "The report excludes payment processing." } });
   const input = screen.getByLabelText("Rationale for Test coverage");
-  fireEvent.click(screen.getByRole("button", { name: "Save bank assessment" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save assessment" }));
   await screen.findByText("Assessment changed");
-  for (const section of ["Documents", "History", "Answers"]) { fireEvent.click(screen.getByRole("tab", { name: section })); expect(screen.queryByRole("button", { name: "Save bank assessment" })).toBeNull(); }
+  for (const section of ["Documents", "History", "Answers"]) { fireEvent.click(screen.getByRole("tab", { name: section })); expect(screen.queryByRole("button", { name: "Save assessment" })).toBeNull(); }
   fireEvent.resize(window);
   fireEvent.click(screen.getByRole("button", { name: "Answers Response section" }));
   fireEvent.click(screen.getByRole("option", { name: "Review" }));
   expect(screen.getByLabelText("Rationale for Test coverage")).toBe(input);
   expect((input as HTMLTextAreaElement).value).toBe("The report excludes payment processing.");
   expect(screen.getByText("Assessment changed")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Save bank assessment" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("button", { name: "Save assessment" }).hasAttribute("disabled")).toBe(true);
   expect(assessment.loadResponseAssessment).toHaveBeenCalledTimes(2);
 });
 

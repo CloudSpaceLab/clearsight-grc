@@ -1,7 +1,6 @@
 .workspace-tabs { display: inline-flex; gap: 5px; margin: 34px 0 18px; padding: 5px; border: 1px solid var(--border); border-radius: 13px; background: rgba(13,24,38,.78); }
 .workspace-tabs button { border: 0; border-radius: 9px; padding: 9px 13px; background: transparent; color: var(--muted); cursor: pointer; }
 .workspace-tabs button.active { background: var(--surface-2); color: var(--text); box-shadow: inset 0 0 0 1px rgba(91,198,214,.22); }
-.workspace-loading { min-height: 280px; display: grid; place-items: center; color: var(--muted); border: 1px dashed var(--border); border-radius: 18px; margin-top: 32px; }
 .program-hero,.matter-hero { margin: 36px 0 18px; display: grid; grid-template-columns: minmax(0,1.15fr) minmax(260px,.85fr); align-items: center; border-radius: 22px; padding: 22px 28px; overflow: hidden; }
 .program-hero { border: 1px solid rgba(91,198,214,.25); background: linear-gradient(135deg,rgba(12,27,43,.98),rgba(20,37,56,.82)); }
 .matter-hero { border: 1px solid rgba(158,146,244,.26); background: linear-gradient(135deg,rgba(21,27,48,.94),rgba(13,24,38,.96)); }
@@ -54,7 +53,7 @@
 .program-section-panel > h3 { margin: 0 0 14px; }
 .program-section-panel > h3:focus { outline: 2px solid var(--cyan); outline-offset: 4px; }
 .program-section-selector { display: grid; gap: 7px; color: var(--muted); font-size: 12px; }
-.program-section-selector select { width: 100%; min-height: 44px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; color: var(--text); background: var(--surface); }
+.program-section-selector select { width: 100%; min-height: 44px; padding: 9px 12px; border: 1px solid var(--cs-border-field); border-radius: 10px; color: var(--text); background: var(--surface); }
 .program-section-stack { display: grid; gap: 18px; }
 .program-section-stack > section, .program-section-empty, .program-history-facts { padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .program-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
@@ -82,7 +81,7 @@
 .workspace-toolbar { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; align-items:end; margin:18px 0 10px; padding:16px; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
 .workspace-toolbar label { display:grid; gap:6px; color:var(--muted); font-size:12px; }
 .workspace-toolbar .workspace-search-field { grid-column:span 2; }
-.workspace-toolbar input, .workspace-toolbar select { min-height:44px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2); color:var(--text); padding:0 12px; font:inherit; }
+.workspace-toolbar input, .workspace-toolbar select { min-height:44px; border:1px solid var(--cs-border-field); border-radius:10px; background:var(--surface-2); color:var(--text); padding:0 12px; font:inherit; }
 .workspace-toolbar input:focus, .workspace-toolbar select:focus { outline:2px solid var(--cyan); outline-offset:2px; }
 .workspace-toolbar .workspace-check-filter { min-height:44px; display:flex; flex-direction:row; align-items:center; gap:9px; padding:0 11px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2); color:var(--text); font-size:13px; }
 .workspace-toolbar .workspace-check-filter input { width:16px; min-height:16px; height:16px; margin:0; padding:0; accent-color:var(--cyan); }
@@ -90,7 +89,7 @@
 .workspace-filter-chips span { display:inline-flex; align-items:center; min-height:28px; padding:3px 9px; border:1px solid color-mix(in srgb,var(--cyan) 28%,var(--border)); border-radius:999px; background:color-mix(in srgb,var(--cyan) 8%,var(--surface)); color:var(--text); font-size:12px; line-height:1.2; }
 .load-more { display:flex; justify-content:center; padding:20px 0 8px; }
 .inline-error { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px; border:1px solid color-mix(in srgb, var(--coral) 45%, var(--border)); border-radius:10px; }
-.workspace-loading { min-height:220px; display:grid; place-items:center; color:var(--muted); border:1px solid var(--border); border-radius:16px; background:var(--surface); }
+.workspace-loading { margin-top: 32px; min-height:220px; display:grid; place-items:center; color:var(--muted); border:1px solid var(--border); border-radius:16px; background:var(--surface); }
 @media (max-width: 800px) { .workspace-toolbar { grid-template-columns:1fr; } .workspace-toolbar .workspace-search-field { grid-column:auto; } .workspace-toolbar .secondary-button { width:100%; } }
 
 .projection-health-card .section-header { align-items:flex-start; }

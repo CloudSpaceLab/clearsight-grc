@@ -24,7 +24,7 @@ export function AutomationSection() {
 
   return <section className="configure-domain" aria-labelledby="automation-heading">
     <header className="configure-domain-header">
-      <div><span className="eyebrow">Configuration · governed execution</span><h2 id="automation-heading">Automation</h2><p>Review approved automation guardrails without mixing them with AI model and workload governance.</p></div>
+      <div><span className="eyebrow">Configuration · governed execution</span><h2 id="automation-heading">Automation</h2><p>Review automation policies and action limits.</p></div>
       {state === "unavailable" && <button className="secondary-button" type="button" onClick={() => void load()}>Retry automation data</button>}
     </header>
     <AutomationPolicies policies={policies} state={state}/>

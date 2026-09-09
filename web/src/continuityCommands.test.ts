@@ -1,12 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadContext } from "./api";
-import { createMatter, createProgram, loadProgramSetupCandidates } from "./continuityCommands";
+import { addProgramRequirement, createMatter, createProgram, loadProgramSetupCandidates } from "./continuityCommands";
 import { requestJSON } from "./http";
 
 vi.mock("./api", () => ({ loadContext: vi.fn(), resolveAuthority: vi.fn() }));
 vi.mock("./http", () => ({ requestJSON: vi.fn() }));
 
 describe("continuity commands", () => {
+  it("preserves the obligated party, action and object without making that party the command actor", async () => {
+    await addProgramRequirement("program-1", 3, { code: "RETENTION", title: "Retain delivery records", statement: "The carrier should retain delivery records.", actor: "The carrier", action: "retain", object: "delivery records", modality: "SHOULD" });
+    const body = JSON.parse(String(vi.mocked(requestJSON).mock.calls[0]![2]?.body));
+    expect(body).toMatchObject({ actor: "The carrier", action: "retain", object: "delivery records", expected_version: 3, modality: "SHOULD" });
+    expect(body).not.toHaveProperty("actor_id");
+    expect(body).not.toHaveProperty("actor_principal_id");
+  });
+
+  it.each(["actor", "action", "object"])("rejects absent requirement meaning: %s", async (field) => {
+    const input = { code: "RETENTION", title: "Retain delivery records", statement: "The carrier must retain delivery records.", actor: "The carrier", action: "retain", object: "delivery records", modality: "MUST", [field]: "  " };
+    await expect(addProgramRequirement("program-1", 3, input)).rejects.toThrow("Enter who must act, what they must do and what the requirement applies to.");
+    expect(requestJSON).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(loadContext).mockResolvedValue({

@@ -30,13 +30,9 @@ type Props = {
   removable: boolean;
   first: boolean;
   last: boolean;
-  inspector?: boolean;
 };
 
-export function FormFieldPropertyEditor(props: Props) {
-  if (props.inspector) return <InspectorEditor {...props}/>;
-  return <LegacyEditor {...props}/>;
-}
+export function FormFieldPropertyEditor(props: Props) { return <InspectorEditor {...props}/>; }
 
 function InspectorEditor({ field, index, scoringMode, sections, earlierFields, onChange, onTypeChange, onConstraint, onScoringToggle, onMove, onRemove, removable, first, last }: Props) {
   return <div className="question-inspector-editor">
@@ -71,23 +67,6 @@ function InspectorEditor({ field, index, scoringMode, sections, earlierFields, o
       </div>
     </details>
   </div>;
-}
-
-function LegacyEditor({ field, index, scoringMode, sections, earlierFields, onChange, onTypeChange, onConstraint, onScoringToggle, onMove, onRemove, removable, first, last }: Props) {
-  return <article className="question-editor typed-question-editor">
-    <div className="question-editor-heading"><div className="question-number">{index + 1}</div><strong>{field.label.trim() || `Question ${index + 1}`}</strong><div className="builder-row-actions"><button className="text-button" type="button" disabled={first} onClick={() => onMove(-1)} aria-label={`Move ${field.label.trim() || `Question ${index + 1}`} up`}>Up</button><button className="text-button" type="button" disabled={last} onClick={() => onMove(1)} aria-label={`Move ${field.label.trim() || `Question ${index + 1}`} down`}>Down</button>{removable && <button className="text-button danger-text" type="button" onClick={onRemove}>Remove</button>}</div></div>
-    <div className="builder-control-grid question-core-fields">
-      <label className="full"><span>Question</span><input aria-label="Question" value={field.label} maxLength={200} onChange={(event) => onChange({ label: event.target.value })} required/></label>
-      <EditorSelect label="Response type" value={field.type} options={fieldTypes.map((type) => ({ id: type.value, label: type.label }))} onChange={(value) => onTypeChange(value as FormFieldType)}/>
-      <EditorSelect label="Section" value={field.section_id ?? sections[0]?.id ?? ""} options={sections.map((section, sectionIndex) => ({ id: section.id, label: section.title.trim() || `Section ${sectionIndex + 1}` }))} onChange={(value) => onChange({ section_id: value })}/>
-      <label className="full"><span>Response guidance</span><input value={field.description ?? ""} maxLength={1000} onChange={(event) => onChange({ description: event.target.value })}/></label>
-      <label className="compact-control"><input type="checkbox" checked={field.required} onChange={(event) => onChange({ required: event.target.checked })}/> Required response</label>
-    </div>
-    <TypeSettings field={field} scoringMode={scoringMode} onChange={onChange} onConstraint={onConstraint} onScoringToggle={onScoringToggle}/>
-    <FieldAssessmentEditor field={field} onChange={onChange} scoringMode={scoringMode}/>
-    <fieldset className="builder-subpanel"><legend>Data handling</legend><CollectionSettings field={field} onChange={onChange}/></fieldset>
-    <fieldset className="builder-subpanel condition-editor"><legend>Logic</legend><ConditionSettings field={field} earlierFields={earlierFields} onChange={onChange}/></fieldset>
-  </article>;
 }
 
 function CollectionSettings({ field, onChange }: { field: AuthoringField; onChange: (change: Partial<AuthoringField>) => void }) {

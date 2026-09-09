@@ -1,0 +1,42 @@
+[
+  {
+    "theme": "light",
+    "raw": {
+      "html": "<input id=\"_r_p_\" class=\"cs-field__control\" type=\"text\" value=\"Sample vendor\" style=\"\">",
+      "color": "color(srgb 0.0826667 0.14949 0.224157)",
+      "background": "rgb(255, 255, 255)",
+      "border": "rgb(200, 211, 221)",
+      "parentBackground": "rgba(0, 0, 0, 0)",
+      "placeholderColor": "color(srgb 0.0826667 0.14949 0.224157)",
+      "placeholderOpacity": "1"
+    },
+    "focus": {
+      "outline": "color(srgb 0.0313726 0.498039 0.568627 / 0.78) solid 3px",
+      "outlineOffset": "3px",
+      "border": "rgb(10, 112, 128)",
+      "boxShadow": "none",
+      "focusVisible": true
+    },
+    "styles": []
+  },
+  {
+    "theme": "dark",
+    "raw": {
+      "html": "<input id=\"_r_p_\" class=\"cs-field__control\" type=\"text\" value=\"Sample vendor\" style=\"\">",
+      "color": "rgb(215, 224, 233)",
+      "background": "rgb(13, 24, 38)",
+      "border": "rgb(38, 57, 77)",
+      "parentBackground": "rgba(0, 0, 0, 0)",
+      "placeholderColor": "rgb(215, 224, 233)",
+      "placeholderOpacity": "1"
+    },
+    "focus": {
+      "outline": "color(srgb 0.545098 0.886275 0.933333 / 0.78) solid 3px",
+      "outlineOffset": "3px",
+      "border": "rgb(91, 198, 214)",
+      "boxShadow": "none",
+      "focusVisible": true
+    },
+    "styles": []
+  }
+]

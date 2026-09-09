@@ -540,7 +540,7 @@ function ProfileEditor({
       {error && <Notice tone="error">{error}</Notice>}
       <div className="forms-task-grid">
         <TextField
-          label="Bank or organization name"
+          label="Organization name"
           value={bank}
           isRequired
           onChange={setBank}

@@ -13,18 +13,20 @@ import (
 )
 
 type MemoryRepository struct {
-	mu           sync.RWMutex
-	sources      map[string]Source
-	observations map[string]SourceObservation
-	requests     map[string]Request
-	submissions  map[string]Submission
-	invitations  map[string]Invitation
-	sessions     map[string]Session
-	drafts       map[string]ResponseDraft
-	artifacts    map[string]Artifact
-	scanJobs     map[string]ArtifactScanJob
-	scanReceipts []ArtifactScanReceipt
-	candidates   map[string]RecipientCandidate
+	collectionReviews  CollectionSourceReviewReader
+	collectionCurrency *MemoryDistributionStore
+	mu                 sync.RWMutex
+	sources            map[string]Source
+	observations       map[string]SourceObservation
+	requests           map[string]Request
+	submissions        map[string]Submission
+	invitations        map[string]Invitation
+	sessions           map[string]Session
+	drafts             map[string]ResponseDraft
+	artifacts          map[string]Artifact
+	scanJobs           map[string]ArtifactScanJob
+	scanReceipts       []ArtifactScanReceipt
+	candidates         map[string]RecipientCandidate
 }
 
 func NewMemoryRepository(sources []Source, requests []Request) *MemoryRepository {

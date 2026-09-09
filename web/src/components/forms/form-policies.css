@@ -4,7 +4,7 @@
 .forms-policies__heading :is(h2, p, span), .forms-policy-section-heading :is(h4, p), .forms-policy-editor :is(h2, h3, p, span), .forms-policy-detail :is(h3, h4, p), .forms-advanced-scoring :is(h4, p) { margin: 0; }
 .forms-policies__heading > div > p, .forms-policy-editor > header > p { color: var(--cs-action-primary); font-size: var(--cs-font-size-caption); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .forms-policies__heading h2, .forms-policy-editor h2, .forms-policy-detail h3, .forms-advanced-scoring strong { color: var(--cs-text-strong); }
-.forms-policies__heading span, .forms-policy-editor > header > span, .forms-policy-section-heading p, .forms-policy-muted { max-inline-size: var(--cs-reading-measure); color: var(--cs-text-muted); line-height: var(--cs-leading-body); }
+.forms-policies__heading > div > span, .forms-policy-editor > header > span, .forms-policy-section-heading p, .forms-policy-muted { max-inline-size: var(--cs-reading-measure); color: var(--cs-text-muted); line-height: var(--cs-leading-body); }
 .forms-policies__layout { display: grid; grid-template-columns: minmax(17rem, .75fr) minmax(0, 2fr); gap: var(--cs-space-group); align-items: start; }
 .forms-policies__list { display: grid; gap: var(--cs-primitive-space-2); position: sticky; inset-block-start: var(--cs-primitive-space-4); }
 .forms-policy-detail, .forms-policy-editor > section, .forms-score-rule, .forms-score-preview { display: grid; gap: var(--cs-space-group); padding: var(--cs-primitive-space-5); border: var(--cs-primitive-border-1) solid var(--cs-border-default); border-radius: var(--cs-primitive-radius-14); background: var(--cs-bg-surface-1); }

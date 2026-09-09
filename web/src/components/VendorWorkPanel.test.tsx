@@ -106,7 +106,7 @@ describe("VendorWorkPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Request vendor work" }));
     await chooseRequestOption("Request type", "ISO 27001 and PCI DSS evidence");
     expect(screen.getByText(/asked for current ISO 27001 and PCI DSS evidence/i)).toBeTruthy();
-    expect(screen.getByText(/submission does not mean the bank accepted it/i)).toBeTruthy();
+    expect(screen.getByText(/submission does not mean it was accepted/i)).toBeTruthy();
     expect(screen.getByLabelText(/Vendor contact email/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Send certification request" })).toBeTruthy();
   });
@@ -253,6 +253,7 @@ describe("VendorWorkPanel", () => {
     render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
     const card = await screen.findByTestId("vendor-work-work-1");
     fireEvent.change(within(card).getByLabelText("Vendor contact"), { target: { value: "assurance@vendor.example" } });
+    expect(within(card).getByRole("button", { name: "Retry delivery" }).classList.contains("cs-button--primary")).toBe(true);
     fireEvent.click(within(card).getByRole("button", { name: "Retry delivery" }));
     await waitFor(() => expect(retryVendorWorkDelivery).toHaveBeenCalledWith("relationship-1", "work-1", { expected_version: 2, vendor_audience: "assurance@vendor.example", invitation_ttl_minutes: 10080 }));
   });

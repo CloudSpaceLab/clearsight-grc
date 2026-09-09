@@ -18,6 +18,11 @@ func (store *PostgresDistributionStore) GetRequest(ctx context.Context, tenantID
 	if err != nil {
 		return Request{}, err
 	}
+	request = RefreshCollectionResolutions(ctx, request, store.repo.GetArtifact, store.now().UTC())
+	request, err = store.repo.RefreshCollectionRequestReviews(ctx, request)
+	if err != nil {
+		return Request{}, err
+	}
 	return hydrateRequestRecipient(ctx, store.repo, request)
 }
 

@@ -22,7 +22,8 @@
 
 .vdd-header h2 { margin-top: 7px; }
 .vdd-header p,
-.vdd-panel p,
+.vdd-panel > p,
+.vdd-panel > div:not([class]) > p,
 .vdd-review p { max-width: 68ch; margin: 7px 0 0; }
 
 .vdd-scope {
@@ -46,6 +47,7 @@
 .vdd-preview dd { display: block; margin-top: 5px; overflow-wrap: anywhere; font-size: 13px; }
 
 .vdd-limitation {
+  color: var(--muted);
   margin: 0;
   padding: 12px 14px;
   border: 1px solid var(--border);
@@ -54,8 +56,6 @@
   font-size: 13px;
 }
 
-.vdd-limitation { color: var(--muted); }
-
 .vdd-actions,
 .vdd-panel-actions {
   display: flex;
@@ -63,6 +63,8 @@
   justify-content: flex-end;
   gap: 10px;
 }
+
+.vdd-document-sheet { clear: both; padding-block-start: var(--cs-space-inline); }
 
 .vdd-panel {
   display: grid;
@@ -92,32 +94,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
-
-.vdd-field {
-  display: grid;
-  gap: 7px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.vdd-field input,
-.vdd-field select,
-.vdd-field textarea {
-  width: 100%;
-  min-height: 44px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--text);
-  padding: 10px 12px;
-  font: inherit;
-}
-
-.vdd-field textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
-.vdd-field input:focus,
-.vdd-field select:focus,
-.vdd-field textarea:focus,
-.vdd-fieldset input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.vdd-fieldset input[type="radio"]:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .vdd-wide { grid-column: 1 / -1; }
 
 .vdd-fieldset {
@@ -130,8 +107,8 @@
 }
 
 .vdd-fieldset legend { padding: 0 6px; color: var(--muted); font-size: 12px; }
-.vdd-fieldset label { display: flex; min-height: 44px; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 8px; background: var(--surface); }
-.vdd-fieldset input { width: 18px; height: 18px; }
+.vdd-fieldset label:has(> input[type="radio"]) { display: flex; min-height: 44px; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 8px; background: var(--surface); }
+.vdd-fieldset input[type="radio"] { width: 18px; height: 18px; }
 
 .vdd-review {
   display: grid;
@@ -171,13 +148,11 @@
 .vdd-answer-list .vdd-answer-limitation { color: var(--amber); font-weight: 700; }
 .vdd-refresh-fields { display: grid; gap: 8px; width: 100%; margin-top: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
 .vdd-refresh-fields > label { align-items: flex-start; }
-.vdd-refresh-fields span { display: grid; gap: 3px; }
-.vdd-refresh-fields small { color: var(--muted); font-size: 11px; font-weight: 500; }
 .vdd-answer-list .vdd-critical-response { color: var(--coral); font-weight: 700; }
 .vdd-document .vdd-document-decision { font-weight: 700; }
 .vdd-document { padding: 12px 0; border-top: 1px solid var(--border); }
 .vdd-document > div:first-child { display: grid; gap: 4px; min-width: 0; }
-.vdd-document span { color: var(--muted); font-size: 11px; }
+.vdd-document > div:first-child > span { color: var(--muted); font-size: 11px; }
 .vdd-document .vdd-document-recovery { color: var(--amber); max-width: 68ch; line-height: 1.45; }
 .vdd-document > div:last-child { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .vdd-review-group ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
@@ -201,7 +176,6 @@
 .vdd-state h2,
 .vdd-state p { margin: 0; }
 .vdd-state-error { border-color: color-mix(in srgb, var(--coral) 38%, var(--border)); }
-.vdd-workspace button:disabled { cursor: not-allowed; opacity: .52; }
 
 .vendor-form-readiness-sheet { width: min(600px, 100%); }
 .vendor-form-readiness-backdrop { backdrop-filter: blur(var(--overlay-blur, 5px)); }
@@ -239,7 +213,7 @@
   .vdd-actions,
   .vdd-panel-actions { display: grid; }
   .vdd-actions button,
-  .vdd-panel-actions button { width: 100%; min-height: 44px; }
+  .vdd-panel-actions button { width: 100%; }
   .vdd-document > div:last-child { display: grid; justify-content: stretch; }
   .vdd-review-group li { display: grid; }
   .vendor-form-readiness { padding: 60px 18px 24px; }

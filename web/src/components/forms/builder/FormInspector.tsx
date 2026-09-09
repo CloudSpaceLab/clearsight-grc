@@ -5,7 +5,7 @@ import { FormFieldPropertyEditor } from "../FormFieldPropertyEditor";
 import type { BuilderSelection } from "./builderSelection";
 import { ActionLink, Button, SelectField } from "../../ui";
 import { AdvancedScoringEditor } from "./AdvancedScoringEditor";
-import { assessmentConfigurationErrors, fieldAssessmentLabel, needsBankReview } from "../fieldAssessment";
+import { assessmentConfigurationErrors, needsBankReview } from "../fieldAssessment";
 import "../field-assessment.css";
 
 type Props = {
@@ -55,15 +55,8 @@ function OverviewInspector({ draft, templateRevision, onPatch, onScoringMode, on
       <details open>
         <summary>Assessment and scoring</summary>
         <div className="form-inspector-group">
-          <ul className="assessment-summary">{draft.fields.map((field, index) => <li key={field.id}>
-            <strong>{field.label.trim() || `Question ${index + 1}`}</strong>
-            <span>{fieldAssessmentLabel(field)}{field.assessment && field.assessment.mode !== "NONE" ? ` · Weight ${field.assessment.weight}` : ""}</span>
-            {needsBankReview(field) && <span>{field.assessment?.rubric?.length ?? 0} rubric outcomes · {field.assessment?.required ? "Required review" : "Optional review"} · {field.assessment?.reviewer_role?.replaceAll("_", " ") || "Current bank review route"}</span>}
-            {field.assessment?.rubric?.map((outcome) => <small key={outcome.id}>{outcome.label || "Outcome needs a name"}: {outcome.points} points</small>)}
-            {field.condition && <small>Assessed when this question’s display condition is met.</small>}
-            {assessmentConfigurationErrors(field).map((error, errorIndex) => <small key={errorIndex}>{error}</small>)}
-            <Button variant="quiet" aria-label={`Edit assessment for ${field.label.trim() || `Question ${index + 1}`}`} onPress={() => onSelectField(field.id)}>Edit field assessment</Button>
-          </li>)}</ul>
+          <p>{draft.fields.filter(needsBankReview).length} questions require review · {draft.fields.filter((field) => field.assessment?.required).length} mandatory</p>
+          {draft.fields.some((field) => assessmentConfigurationErrors(field).length > 0) ? <ul className="assessment-summary">{draft.fields.map((field, index) => ({ field, index, errors: assessmentConfigurationErrors(field) })).filter(({ errors }) => errors.length > 0).map(({ field, index, errors }) => <li key={field.id}><strong>{field.label.trim() || `Question ${index + 1}`}</strong>{errors.map((error) => <small key={error}>{error}</small>)}<Button variant="quiet" onPress={() => onSelectField(field.id)}>Edit assessment</Button></li>)}</ul> : <p>No assessment configuration errors.</p>}
           <ActionLink href="#forms?section=policies">Review response policies</ActionLink>
         </div>
       </details>
@@ -133,7 +126,6 @@ function QuestionInspector(props: Props & { fieldID: string }) {
         removable={props.draft.fields.length > 1}
         first={peerIndex <= 0}
         last={peerIndex === peers.length - 1}
-        inspector
       />
     </div>
   </aside>;

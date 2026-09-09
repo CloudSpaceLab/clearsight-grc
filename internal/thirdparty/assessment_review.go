@@ -63,14 +63,15 @@ type AssessmentReviewCoverage struct {
 }
 
 type AssessmentReviewAnswer struct {
-	FieldID    string                     `json:"field_id"`
-	Label      string                     `json:"label"`
-	Type       formcontract.Type          `json:"type"`
-	Required   bool                       `json:"required"`
-	Visibility AssessmentAnswerVisibility `json:"visibility"`
-	Value      *formcontract.AnswerValue  `json:"value,omitempty"`
-	Provenance *evidence.AnswerProvenance `json:"provenance,omitempty"`
-	Baseline   *evidence.RecordBaseline   `json:"baseline,omitempty"`
+	CollectionResolution *evidence.CollectionResolution `json:"collection_resolution,omitempty"`
+	FieldID              string                         `json:"field_id"`
+	Label                string                         `json:"label"`
+	Type                 formcontract.Type              `json:"type"`
+	Required             bool                           `json:"required"`
+	Visibility           AssessmentAnswerVisibility     `json:"visibility"`
+	Value                *formcontract.AnswerValue      `json:"value,omitempty"`
+	Provenance           *evidence.AnswerProvenance     `json:"provenance,omitempty"`
+	Baseline             *evidence.RecordBaseline       `json:"baseline,omitempty"`
 }
 
 type AssessmentReviewDocument struct {
@@ -144,11 +145,13 @@ type AssessmentReviewRelationshipReader interface {
 }
 
 type AssessmentReviewService struct {
-	assessments *AssessmentService
-	links       AssessmentReviewLinkReader
-	evidence    AssessmentReviewEvidenceReader
-	matters     AssessmentReviewMatterReader
-	authority   AssessmentReviewAuthority
+	collectionSources collectionDocumentReader
+	collectionForms   assessmentFormReader
+	assessments       *AssessmentService
+	links             AssessmentReviewLinkReader
+	evidence          AssessmentReviewEvidenceReader
+	matters           AssessmentReviewMatterReader
+	authority         AssessmentReviewAuthority
 }
 
 func NewAssessmentReviewService(assessments *AssessmentService, links AssessmentReviewLinkReader, evidenceReader AssessmentReviewEvidenceReader, matters AssessmentReviewMatterReader) *AssessmentReviewService {
@@ -193,7 +196,10 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		if readErr != nil {
 			return AssessmentReviewView{}, readErr
 		}
-		if request.ID != link.RequestID || request.TenantID != scope.TenantID || request.SubjectType != "VENDOR_RELATIONSHIP" || request.SubjectID != assessment.RelationshipID ||
+		// GetRequest is tenant-scoped; PostgreSQL capture returns the tenant UUID
+		// while assessment reads retain the tenant slug. Compare entity and exact
+		// workflow membership here instead of comparing those two aliases.
+		if request.ID != link.RequestID || (request.LegalEntityID != "" && request.LegalEntityID != scope.LegalEntityID) || request.SubjectType != "VENDOR_RELATIONSHIP" || request.SubjectID != assessment.RelationshipID ||
 			request.Origin.Type != AssessmentRequestOrigin || request.Origin.ID != assessment.ID || request.Origin.Version != int64(link.OriginSequence) ||
 			request.FormTemplateID != assessment.FormTemplateID || request.FormTemplateVersion != assessment.FormTemplateVersion {
 			return AssessmentReviewView{}, ErrNotFound
@@ -212,7 +218,7 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 	if assessment.CurrentRequestID == "" && assessment.SubmissionID != "" {
 		return AssessmentReviewView{}, ErrNotFound
 	}
-	if (assessment.Status == AssessmentSubmitted || assessment.Status == AssessmentUnderReview || assessment.Status == AssessmentCompleted) && (assessment.CurrentRequestID == "" || assessment.SubmissionID == "") {
+	if (assessment.Status == AssessmentSubmitted || assessment.Status == AssessmentUnderReview || assessment.Status == AssessmentCompleted) && (assessment.CurrentRequestID == "" || (assessment.SubmissionID == "" && assessment.CollectionCompletedAt == nil)) {
 		return AssessmentReviewView{}, ErrNotFound
 	}
 	if (assessment.Status == AssessmentSetupPending || assessment.Status == AssessmentReadyToSend || assessment.Status == AssessmentCollecting) && assessment.SubmissionID != "" {
@@ -227,12 +233,15 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		if readErr != nil {
 			return AssessmentReviewView{}, readErr
 		}
-		if submission.ID != assessment.SubmissionID || submission.TenantID != scope.TenantID || submission.RequestID != currentRequest.ID {
+		if submission.ID != assessment.SubmissionID || submission.TenantID != currentRequest.TenantID || submission.RequestID != currentRequest.ID {
 			return AssessmentReviewView{}, ErrNotFound
 		}
 		if err = s.addSubmission(ctx, &view, currentRequest, submission); err != nil {
 			return AssessmentReviewView{}, err
 		}
+	}
+	if hasCurrent {
+		s.addCollectionEvidence(&view, currentRequest)
 	}
 	if documents, ok := s.links.(AssessmentReviewDocumentReader); ok {
 		values, readErr := documents.ListAssessmentDocuments(ctx, scope, assessment.ID, assessmentReviewMaxArtifacts+1)
@@ -244,6 +253,11 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		}
 		byArtifact := make(map[string]AssessmentDocument, len(values))
 		for _, document := range values {
+			if document.TenantID == scope.TenantID && document.LegalEntityID == scope.LegalEntityID && document.AssessmentID == assessment.ID && document.RequestID != assessment.CurrentRequestID {
+				if _, linked := requests[document.RequestID]; linked {
+					continue
+				}
+			}
 			if document.TenantID != scope.TenantID || document.LegalEntityID != scope.LegalEntityID || document.AssessmentID != assessment.ID || document.RelationshipID != assessment.RelationshipID || document.RequestID != assessment.CurrentRequestID || !validAssessmentIdentifier(document.ArtifactID) || !validAssessmentDocumentEvidenceClass(document.EvidenceClass) || (document.Status != AssessmentDocumentValidated && document.Status != AssessmentDocumentRejected) {
 				return AssessmentReviewView{}, ErrNotFound
 			}

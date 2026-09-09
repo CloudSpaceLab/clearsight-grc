@@ -142,6 +142,7 @@
 
 .form-builder-inspector {
   position: sticky;
+  border-left: 1px solid var(--builder-border);
   top: 60px;
   max-height: calc(100vh - 172px);
   align-self: start;
@@ -612,10 +613,6 @@
 .form-canvas-add-section:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--forms-accent, var(--cyan)) 36%, var(--builder-border));
   color: var(--text);
-}
-
-.form-builder-inspector {
-  border-left: 1px solid var(--builder-border);
 }
 
 .form-inspector-heading {

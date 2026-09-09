@@ -173,6 +173,9 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/vendor-assessments/{id}/reissue-request", "thirdparty.assessment.reissue_request", a.reissueVendorAssessmentRequest, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 		material("/api/v1/vendor-assessments/{id}/setup/retry", thirdparty.AssessmentSetupRetryCommand, a.retryVendorAssessmentSetup, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 		read("/api/v1/vendor-assessments/{id}", a.getVendorAssessmentReview),
+		read("/api/v1/vendor-assessments/{id}/collection", a.getVendorAssessmentCollection),
+		material("/api/v1/vendor-assessments/{id}/prepare-request", thirdparty.AssessmentSendRequestCommand, a.prepareVendorAssessmentRequest, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityOwner, Materiality: 3, ActorField: noActorField}),
+		material("/api/v1/vendor-assessments/{id}/collection/{field_id}/reconcile", thirdparty.AssessmentCollectionReconcileCommand, a.reconcileVendorAssessmentCollection, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}),
 		read("/api/v1/vendor-assessments/{id}/requests/{request_id}/documents/{artifact_id}/open", a.openVendorAssessmentDocument),
 		material("/api/v1/vendor-assessments/{id}/review/start", "thirdparty.assessment.review", a.startVendorAssessmentReview, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
 		material("/api/v1/vendor-assessments/{id}/documents/{artifact_id}/validate", thirdparty.AssessmentDocumentReviewCommand, a.reviewVendorAssessmentDocument, commandPolicy{ObjectType: "THIRD_PARTY_ASSESSMENT", Responsibility: authority.ResponsibilityReviewer, Materiality: 3}),
@@ -442,7 +445,7 @@ func (a *API) routeAccess(spec routeSpec, handler http.HandlerFunc) http.Handler
 func bindRouteTenant(w http.ResponseWriter, r *http.Request, actor identity.Actor) bool {
 	query := r.URL.Query()
 	if tenant := strings.TrimSpace(query.Get("tenant_id")); tenant != "" && tenant != actor.TenantID {
-		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This request is outside your signed-in bank scope.")
+		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This request is outside your organization.")
 		return false
 	}
 	query.Set("tenant_id", actor.TenantID)
@@ -500,7 +503,7 @@ func (a *API) bindArtifactIdentity() routeBinder {
 			return false
 		}
 		if tenant := strings.TrimSpace(r.FormValue("tenant_id")); tenant != "" && tenant != actor.TenantID {
-			httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This upload is outside your signed-in bank scope.")
+			httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This upload is outside your organization.")
 			return false
 		}
 		if r.MultipartForm.Value == nil {

@@ -1,0 +1,145 @@
+{
+  "generatedAt": "2026-09-09T00:04:29.310Z",
+  "results": [
+    {
+      "id": "forms-builder-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-builder-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-response-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 1
+    },
+    {
+      "id": "forms-response-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 1
+    },
+    {
+      "id": "vendor-checklist-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 50
+    },
+    {
+      "id": "vendor-checklist-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 50
+    },
+    {
+      "id": "document-select-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 5
+    },
+    {
+      "id": "document-select-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 5
+    },
+    {
+      "id": "gallery-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 13
+    },
+    {
+      "id": "gallery-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 13
+    },
+    {
+      "id": "field-review-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 27
+    },
+    {
+      "id": "field-review-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 27
+    },
+    {
+      "id": "field-builder-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 17
+    },
+    {
+      "id": "field-builder-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 17
+    },
+    {
+      "id": "forms-response-list-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "forms-response-list-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 22
+    },
+    {
+      "id": "forms-response-filters-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-response-filters-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 31
+    },
+    {
+      "id": "forms-response-unavailable-light-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 0
+    },
+    {
+      "id": "forms-response-unavailable-dark-320",
+      "status": "CAPTURED",
+      "errors": [],
+      "violations": 0,
+      "incomplete": 0
+    }
+  ]
+}

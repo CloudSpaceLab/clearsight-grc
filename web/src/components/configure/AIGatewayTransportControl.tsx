@@ -73,7 +73,7 @@ export function AIGatewayTransportControl() {
       switch (action) {
         case "submit": return "Routing revision submitted for independent approval.";
         case "approve": return "Routing revision approved. Activation will atomically supersede the previous active revision.";
-        case "activate": return "Routing revision is now the desired active configuration. Gateway instances apply it through bounded refresh and retain their prior known-good snapshot if validation fails.";
+        case "activate": return "Routing activated. Gateways may still be applying the change; check their status before relying on the new route.";
         case "suspend": return "Routing revision suspended. Gateway instances will no longer receive it as active desired configuration.";
         default: return "Routing revision retired and retained for reconstruction.";
       }
@@ -108,7 +108,7 @@ export function AIGatewayTransportControl() {
 
     <div className="ai-gateway-transport__status-grid" aria-label="Gateway configuration status">
       <Status label="Desired authority" value={active ? `v${active.version} · active` : loading ? "Checking…" : "Not configured"} note={active ? shortChecksum(active.checksum) : "No database transport revision is active."}/>
-      <Status label="Providers" value={active ? String(active.definition.providers.filter((provider) => provider.state === "ENABLED").length) : "—"} note={active ? `${active.definition.providers.length} configured in the active revision` : "Defined per governed revision"}/>
+      <Status label="Providers" value={active ? String(active.definition.providers.filter((provider) => provider.state === "ENABLED").length) : "—"} note={active ? `${active.definition.providers.length} configured in the active revision` : "No active revision"}/>
       <Status label="Logical models" value={active ? String(active.definition.models.length) : "—"} note="Applications use aliases rather than raw upstream providers."/>
       <Status label="Runtime apply" value={runtimeValue(runtimeStatus, active, loading)} note={runtimeNote(runtimeStatus, active)}/>
     </div>

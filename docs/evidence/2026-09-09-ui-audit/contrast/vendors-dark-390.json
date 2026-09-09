@@ -1,0 +1,2179 @@
+{
+  "id": "vendors-dark-390",
+  "name": "vendors",
+  "fixture": "vendor-collection",
+  "route": "#vendors",
+  "theme": "dark",
+  "width": 390,
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Meridian Trust Bank</strong>",
+            "target": [
+              ".context-bar > div:nth-child(1) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<summary aria-label=\"Administration\">Admin</summary>",
+                    "target": [
+                      "summary[aria-label=\"Administration\"]"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary aria-label=\"Administration\">Admin</summary>",
+            "target": [
+              "summary[aria-label=\"Administration\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "7.5pt (10px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<summary role=\"button\" aria-label=\"Viewing as Chief Risk Officer. Demo environment\">Viewing as Chief Risk Officer</summary>",
+                    "target": [
+                      "summary[role=\"button\"]"
+                    ]
+                  },
+                  {
+                    "html": "<div class=\"context-bar\" aria-label=\"Active workspace context\">",
+                    "target": [
+                      ".context-bar"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<summary role=\"button\" aria-label=\"Viewing as Chief Risk Officer. Demo environment\">Viewing as Chief Risk Officer</summary>",
+            "target": [
+              "summary[role=\"button\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Meridian Trust Bank · Meridian Trust Bank Nigeria</span>",
+            "target": [
+              ".eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "27.0pt (36px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h1>Vendors</h1>",
+            "target": [
+              "h1"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Manage vendors and the services they supply to Meridian Trust Bank Nigeria. Review each relationship's owner, criticality and due-diligence status.</p>",
+            "target": [
+              "header > div > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "16.5pt (22px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2>Vendor register</h2>",
+            "target": [
+              ".vendor-register-header > div > h2"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Showing 1 relationship in this legal entity</p>",
+            "target": [
+              ".vendor-register-header > div > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Search vendors and services</span>",
+            "target": [
+              "label > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__label\" id=\"react-aria5755788443-_r_3_\">Form work in loaded relationships</span>",
+            "target": [
+              "#react-aria5755788443-_r_3_"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+            "target": [
+              ".cs-select-field__chevron"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.4pt (11.2px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<small>Select up to 50 vendor services to request the same approved form.</small>",
+            "target": [
+              "small"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Acme Processing Limited</strong>",
+            "target": [
+              ".vendor-row-main > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Service: Card transaction processing</span>",
+            "target": [
+              ".vendor-row-main > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-action-link\" data-rac=\"\" aria-label=\"1 outstanding forms for Acme Processing Limited · Card transaction processing\" tabindex=\"0\" data-react-aria-pressable=\"true\" role=\"link\">1 outstanding form</span>",
+            "target": [
+              ".cs-action-link[role=\"link\"][data-react-aria-pressable=\"true\"]:nth-child(1)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "shortTextContent",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element content is too short to determine if it is actual text content"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>·</span>",
+            "target": [
+              ".vendor-form-summary__counts > span:nth-child(2)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-action-link\" data-rac=\"\" aria-label=\"0 overdue forms for Acme Processing Limited · Card transaction processing\" tabindex=\"0\" data-react-aria-pressable=\"true\" role=\"link\">0 overdue</span>",
+            "target": [
+              ".vendor-form-summary__counts > .cs-action-link[role=\"link\"][data-react-aria-pressable=\"true\"]:nth-child(3)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-action-link\" data-rac=\"\" aria-label=\"1 awaiting bank review for Acme Processing Limited · Card transaction processing\" tabindex=\"0\" data-react-aria-pressable=\"true\" role=\"link\">1 awaiting bank review</span>",
+            "target": [
+              ".cs-action-link[role=\"link\"][data-react-aria-pressable=\"true\"]:nth-child(2)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"cs-action-link\" data-rac=\"\" aria-label=\"Highest assessed concern for Acme Processing Limited · Card transaction processing\" tabindex=\"0\" data-react-aria-pressable=\"true\" role=\"link\">No assessed concern recorded</span>",
+            "target": [
+              ".vendor-form-summary > .cs-action-link[role=\"link\"][data-react-aria-pressable=\"true\"]:nth-child(3)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Checked <time datetime=\"2026-09-08T10:00:00Z\">Sep 8, 2026, 11:00 AM</time></span>",
+            "target": [
+              ".vendor-form-summary > span:nth-child(4)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<time datetime=\"2026-09-08T10:00:00Z\">Sep 8, 2026, 11:00 AM</time>",
+            "target": [
+              "time"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Today</span>",
+            "target": [
+              ".mobile-nav > button[type=\"button\"]:nth-child(1) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Programs</span>",
+            "target": [
+              ".mobile-nav > button[type=\"button\"]:nth-child(2) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Work</span>",
+            "target": [
+              ".mobile-nav > button[type=\"button\"]:nth-child(3) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<button type=\"button\" aria-current=\"page\">",
+                    "target": [
+                      "button[aria-current=\"page\"][type=\"button\"]"
+                    ]
+                  },
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Vendors</span>",
+            "target": [
+              "button[aria-current=\"page\"][type=\"button\"] > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "6.0pt (8px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<nav class=\"mobile-nav\" aria-label=\"Mobile navigation\">",
+                    "target": [
+                      ".mobile-nav"
+                    ]
+                  },
+                  {
+                    "html": "<section class=\"vendor-register\" aria-label=\"Vendor relationships for Meridian Trust Bank Nigeria\">",
+                    "target": [
+                      ".vendor-register"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Forms</span>",
+            "target": [
+              "button[type=\"button\"]:nth-child(5) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 7
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "strong",
+      "text": "Meridian Trust Bank",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 33,
+        "y": 34,
+        "width": 113.65625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.464170427534874,
+      "minimum": 4.5
+    },
+    {
+      "selector": "summary",
+      "text": "Admin",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 185.71875,
+        "y": 26,
+        "width": 49.28125,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.675169205499221,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Configuration",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": -60,
+        "y": 83,
+        "width": 280,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.382537400712529,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "People, authority, data, automation and system operations.",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": -60,
+        "y": 105,
+        "width": 280,
+        "height": 14.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.669966095154851,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Open Configuration",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": -60,
+        "y": 131.5,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Open Configuration",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": -60,
+        "y": 131.5,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "summary",
+      "text": "Viewing as Chief Risk Officer",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 241,
+        "y": 26,
+        "width": 116,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.675169205499221,
+      "minimum": 4.5
+    },
+    {
+      "selector": "summary",
+      "text": "Viewing as Chief Risk Officer",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 241,
+        "y": 26,
+        "width": 116,
+        "height": 34
+      },
+      "fontSize": "10px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5193364728028564,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "strong",
+      "text": "Non-production sample data",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 83,
+        "width": 280,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.382537400712529,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "This workspace contains seeded reference records for role-based testing.",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 105,
+        "width": 280,
+        "height": 29
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.669966095154851,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Viewing as",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 157,
+        "width": 280,
+        "height": 14.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.669966095154851,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Chief Risk Officer",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 175.5,
+        "width": 280,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.382537400712529,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Switch account",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 62,
+        "y": 216.5,
+        "width": 280,
+        "height": 14.5
+      },
+      "fontSize": "10px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.669966095154851,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Data Protection Officer",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 237,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Data Protection Officer",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 237,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Data Protection Compliance Officer",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 282,
+        "width": 280,
+        "height": 60
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Data Protection Compliance Officer",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 282,
+        "width": 280,
+        "height": 60
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Privacy Control Owner",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 348,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Switch to  Privacy Control Owner",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 348,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button",
+      "text": "Reference journeys",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 399,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button",
+      "text": "Reference journeys",
+      "disabled": false,
+      "background": "#0c1827",
+      "uncertain": [],
+      "box": {
+        "x": 62,
+        "y": 399,
+        "width": 280,
+        "height": 39
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5101247626790129,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button.guide-launcher",
+      "text": "",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [],
+      "box": {
+        "x": 227.21875,
+        "y": 96,
+        "width": 128.78125,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.603342995694178,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "strong",
+      "text": "Resume guide",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 270.21875,
+        "y": 109.75,
+        "width": 72.78125,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 12.042317230643741,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span.eyebrow",
+      "text": "Meridian Trust Bank  ·  Meridian Trust Bank Nigeria",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 144,
+        "width": 310.5625,
+        "height": 36
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 9.479578580346425,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h1",
+      "text": "Vendors",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 192,
+        "width": 354,
+        "height": 36
+      },
+      "fontSize": "36px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 18.970954227610815,
+      "minimum": 3
+    },
+    {
+      "selector": "p",
+      "text": "Manage vendors and the services they supply to  Meridian Trust Bank Nigeria . Review each relationship's owner, critical",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 18,
+        "y": 232,
+        "width": 354,
+        "height": 65.0625
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 7.081695290667391,
+      "minimum": 4.5
+    },
+    {
+      "selector": "#vendor-add-action",
+      "text": "Add vendor",
+      "disabled": false,
+      "background": "#162d3b",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 321.0625,
+        "width": 354,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 14.260274375259133,
+      "minimum": 4.5
+    },
+    {
+      "selector": "#vendor-add-action",
+      "text": "Add vendor",
+      "disabled": false,
+      "background": "#07111d",
+      "uncertain": [],
+      "box": {
+        "x": 18,
+        "y": 321.0625,
+        "width": 354,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "foreground": "#3f7d8f",
+      "ratio": 4.102633810949329,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "h2",
+      "text": "Vendor register",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 39,
+        "y": 407.0625,
+        "width": 312,
+        "height": 33
+      },
+      "fontSize": "22px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 17.953876804206416,
+      "minimum": 4.5
+    },
+    {
+      "selector": "p",
+      "text": "Showing 1 relationship in this legal entity",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 39,
+        "y": 445.0625,
+        "width": 312,
+        "height": 18.59375
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Search vendors and services",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 39,
+        "y": 481.65625,
+        "width": 312,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5
+    },
+    {
+      "selector": "input",
+      "text": "Name, service or reference",
+      "disabled": false,
+      "background": "#132234",
+      "uncertain": [],
+      "box": {
+        "x": 39,
+        "y": 505.65625,
+        "width": 312,
+        "height": 42
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "placeholder",
+      "foreground": "#75818f",
+      "ratio": 4.050847977852404,
+      "minimum": 4.5
+    },
+    {
+      "selector": "input",
+      "text": "",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [],
+      "box": {
+        "x": 39,
+        "y": 505.65625,
+        "width": 312,
+        "height": 42
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5173840110627816,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Search vendors",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 39,
+        "y": 555.65625,
+        "width": 312,
+        "height": 44
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.377206558889451,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Search vendors",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [],
+      "box": {
+        "x": 39,
+        "y": 555.65625,
+        "width": 312,
+        "height": 44
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5173840110627816,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "#react-aria5755788443-_r_3_",
+      "text": "Form work in loaded relationships",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 39,
+        "y": 637.65625,
+        "width": 224.546875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 17.953876804206416,
+      "minimum": 4.5
+    },
+    {
+      "selector": "#react-aria5755788443-_r_2_",
+      "text": "",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [],
+      "box": {
+        "x": 39,
+        "y": 666.65625,
+        "width": 224.546875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5173840110627816,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "#react-aria5755788443-_r_7_",
+      "text": "All loaded relationships",
+      "disabled": false,
+      "background": "#0d1826",
+      "uncertain": [],
+      "box": {
+        "x": 52,
+        "y": 678.15625,
+        "width": 144.40625,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.667309159989725,
+      "minimum": 4.5
+    },
+    {
+      "selector": "#react-aria5755788443-_r_b_",
+      "text": "",
+      "disabled": true,
+      "background": "#0d1725",
+      "uncertain": [
+        "element/group opacity"
+      ],
+      "box": {
+        "x": 39,
+        "y": 718.65625,
+        "width": 201.296875,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#26394d",
+      "ratio": 1.5173840110627816,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "span",
+      "text": "Request form for  0   services",
+      "disabled": true,
+      "background": "#132234",
+      "uncertain": [
+        "element/group opacity"
+      ],
+      "box": {
+        "x": 56,
+        "y": 730.15625,
+        "width": 167.296875,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#ffffff",
+      "ratio": 16.078560503456977,
+      "minimum": 4.5
+    },
+    {
+      "selector": "small",
+      "text": "Select up to 50 vendor services to request the same approved form.",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 39,
+        "y": 770.65625,
+        "width": 312,
+        "height": 33.59375
+      },
+      "fontSize": "11.2px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Acme Processing Limited",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 110,
+        "y": 841.25,
+        "width": 231,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Service:  Card transaction processing",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 110,
+        "y": 866.25,
+        "width": 231,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span.cs-action-link",
+      "text": "1  outstanding  form",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 64,
+        "y": 898.75,
+        "width": 111.75,
+        "height": 24
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "·",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 183.75,
+        "y": 901.75,
+        "width": 2.609375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span.cs-action-link",
+      "text": "0  overdue",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 194.359375,
+        "y": 898.75,
+        "width": 58.34375,
+        "height": 24
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span.cs-action-link",
+      "text": "1  awaiting bank review",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 64,
+        "y": 926.75,
+        "width": 132.453125,
+        "height": 24
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span.cs-action-link",
+      "text": "No assessed concern recorded",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 64,
+        "y": 954.75,
+        "width": 171.8125,
+        "height": 24
+      },
+      "fontSize": "12px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#d7e0e9",
+      "ratio": 13.446867954980448,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Checked",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 64,
+        "y": 982.75,
+        "width": 166.046875,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5
+    },
+    {
+      "selector": "time",
+      "text": "Sep 8, 2026, 11:00 AM",
+      "disabled": false,
+      "background": "#0d1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 112.640625,
+        "y": 983.75,
+        "width": 117.40625,
+        "height": 16
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.702028969556134,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Today",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 41.015625,
+        "y": 809,
+        "width": 20.75,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Programs",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 106.296875,
+        "y": 809,
+        "width": 33.796875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Work",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 185.6875,
+        "y": 809,
+        "width": 18.609375,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Vendors",
+      "disabled": false,
+      "background": "#122533",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 252.40625,
+        "y": 809,
+        "width": 28.75,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#5bc6d6",
+      "ratio": 7.7992634804852985,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Forms",
+      "disabled": false,
+      "background": "#0c1725",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 327.75,
+        "y": 809,
+        "width": 21.671875,
+        "height": 12
+      },
+      "fontSize": "8px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#8fa0b2",
+      "ratio": 6.710652663392718,
+      "minimum": 4.5
+    }
+  ],
+  "headings": [
+    "Vendors",
+    "Vendor register",
+    "Select a vendor"
+  ],
+  "status": "CAPTURED"
+}

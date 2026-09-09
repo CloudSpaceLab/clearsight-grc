@@ -1,0 +1,5626 @@
+{
+  "generatedAt": "2026-09-08T23:08:31.267Z",
+  "methodology": "Static relative-import reachability from web/src/main.tsx, including lazy imports, CSS imports, type imports and barrel exports. JSX opening tags and useState are regex source-site counts, not rendered/control/component counts. CSS repeated selectors are exact selector plus at-rule context within one file; not defects by themselves. No tree-shaking, runtime coverage or dead-code proof.",
+  "totals": {
+    "tsxFiles": 169,
+    "tsxLines": 22379,
+    "cssFiles": 76,
+    "cssLines": 8682,
+    "cssRules": 3330,
+    "cssImportant": 53,
+    "manifestReachableTsx": 45,
+    "raw": {
+      "button": 486,
+      "input": 219,
+      "select": 94,
+      "textarea": 82,
+      "table": 2,
+      "form": 71
+    }
+  },
+  "tsx": [
+    {
+      "file": "web/src/components/VendorsWorkspace.tsx",
+      "lines": 927,
+      "bytes": 65113,
+      "raw": {
+        "button": 15,
+        "input": 12,
+        "select": 2,
+        "textarea": 1,
+        "table": 0,
+        "form": 2
+      },
+      "shared": {
+        "Button": 5,
+        "IconButton": 0,
+        "ActionLink": 4,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 1,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 2,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 35
+    },
+    {
+      "file": "web/src/components/VendorDueDiligence.tsx",
+      "lines": 872,
+      "bytes": 74920,
+      "raw": {
+        "button": 40,
+        "input": 17,
+        "select": 8,
+        "textarea": 5,
+        "table": 0,
+        "form": 8
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 10,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 39
+    },
+    {
+      "file": "web/src/components/forms/CommunicationsView.tsx",
+      "lines": 665,
+      "bytes": 23639,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 18,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 7,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 2,
+        "StatusBadge": 0,
+        "Notice": 3,
+        "EmptyState": 3,
+        "DataTable": 0
+      },
+      "stateCalls": 19
+    },
+    {
+      "file": "web/src/components/FormBuilder.tsx",
+      "lines": 562,
+      "bytes": 23625,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 3,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 1,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 10
+    },
+    {
+      "file": "web/src/components/DocumentImportWorkspace.tsx",
+      "lines": 551,
+      "bytes": 40951,
+      "raw": {
+        "button": 16,
+        "input": 1,
+        "select": 1,
+        "textarea": 1,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 3,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 2,
+        "DataTable": 0
+      },
+      "stateCalls": 20
+    },
+    {
+      "file": "web/src/components/FormsWorkspace.tsx",
+      "lines": 536,
+      "bytes": 25010,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 14,
+        "IconButton": 2,
+        "ActionLink": 0,
+        "TextField": 1,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 2,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 19
+    },
+    {
+      "file": "web/src/components/forms/CommunicationTemplateEditor.tsx",
+      "lines": 504,
+      "bytes": 15034,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 9,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 4,
+        "TextArea": 0,
+        "SelectField": 1,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 6
+    },
+    {
+      "file": "web/src/components/CapturePanel.tsx",
+      "lines": 450,
+      "bytes": 28695,
+      "raw": {
+        "button": 3,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 5,
+        "DataTable": 0
+      },
+      "stateCalls": 11
+    },
+    {
+      "file": "web/src/App.tsx",
+      "lines": 441,
+      "bytes": 28749,
+      "raw": {
+        "button": 3,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 24
+    },
+    {
+      "file": "web/src/components/VendorWorkPanel.tsx",
+      "lines": 440,
+      "bytes": 43338,
+      "raw": {
+        "button": 19,
+        "input": 6,
+        "select": 0,
+        "textarea": 3,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 4,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 3,
+        "TextArea": 1,
+        "SelectField": 4,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 5,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 35
+    },
+    {
+      "file": "web/src/components/GovernanceAdminWorkspace.tsx",
+      "lines": 403,
+      "bytes": 29983,
+      "raw": {
+        "button": 11,
+        "input": 9,
+        "select": 7,
+        "textarea": 1,
+        "table": 0,
+        "form": 4
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 2,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 22
+    },
+    {
+      "file": "web/src/components/MonitoringSetup.tsx",
+      "lines": 372,
+      "bytes": 29762,
+      "raw": {
+        "button": 25,
+        "input": 3,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 2,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 12
+    },
+    {
+      "file": "web/src/components/MatterOutcomePanel.tsx",
+      "lines": 356,
+      "bytes": 28516,
+      "raw": {
+        "button": 7,
+        "input": 1,
+        "select": 5,
+        "textarea": 10,
+        "table": 0,
+        "form": 2
+      },
+      "shared": {
+        "Button": 4,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 1,
+        "SelectField": 1,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 3,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 22
+    },
+    {
+      "file": "web/src/components/MattersWorkspace.tsx",
+      "lines": 317,
+      "bytes": 24151,
+      "raw": {
+        "button": 7,
+        "input": 2,
+        "select": 4,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 1,
+        "EmptyState": 2,
+        "DataTable": 0
+      },
+      "stateCalls": 21
+    },
+    {
+      "file": "web/src/components/forms/ResponsesView.tsx",
+      "lines": 316,
+      "bytes": 22436,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 3,
+        "IconButton": 0,
+        "ActionLink": 1,
+        "TextField": 3,
+        "TextArea": 0,
+        "SelectField": 4,
+        "CheckboxField": 0,
+        "FocusedSheet": 2,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 4,
+        "EmptyState": 4,
+        "DataTable": 1
+      },
+      "stateCalls": 13
+    },
+    {
+      "file": "web/src/components/IdentityAccessPanel.tsx",
+      "lines": 302,
+      "bytes": 21836,
+      "raw": {
+        "button": 8,
+        "input": 2,
+        "select": 6,
+        "textarea": 0,
+        "table": 0,
+        "form": 3
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 16
+    },
+    {
+      "file": "web/src/components/configure/SystemActivityPanel.tsx",
+      "lines": 297,
+      "bytes": 14960,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 6,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 6,
+        "TextArea": 0,
+        "SelectField": 3,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 1,
+        "StatusBadge": 1,
+        "Notice": 5,
+        "EmptyState": 1,
+        "DataTable": 1
+      },
+      "stateCalls": 10
+    },
+    {
+      "file": "web/src/components/ProgramsWorkspace.tsx",
+      "lines": 292,
+      "bytes": 20831,
+      "raw": {
+        "button": 7,
+        "input": 3,
+        "select": 2,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 3,
+        "DataTable": 0
+      },
+      "stateCalls": 18
+    },
+    {
+      "file": "web/src/components/VendorRelationshipLinks.tsx",
+      "lines": 291,
+      "bytes": 18049,
+      "raw": {
+        "button": 12,
+        "input": 3,
+        "select": 1,
+        "textarea": 1,
+        "table": 0,
+        "form": 2
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 22
+    },
+    {
+      "file": "web/src/components/VendorIdentityEditor.tsx",
+      "lines": 285,
+      "bytes": 19324,
+      "raw": {
+        "button": 9,
+        "input": 5,
+        "select": 0,
+        "textarea": 1,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 1,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 13
+    },
+    {
+      "file": "web/src/components/ExternalCaptureApp.tsx",
+      "lines": 278,
+      "bytes": 13463,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 10
+    },
+    {
+      "file": "web/src/components/ProgramSafeguardsPanel.tsx",
+      "lines": 272,
+      "bytes": 23274,
+      "raw": {
+        "button": 22,
+        "input": 6,
+        "select": 8,
+        "textarea": 7,
+        "table": 0,
+        "form": 5
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 19
+    },
+    {
+      "file": "web/src/components/EvidenceRequestAdminPanel.tsx",
+      "lines": 255,
+      "bytes": 13677,
+      "raw": {
+        "button": 5,
+        "input": 2,
+        "select": 2,
+        "textarea": 1,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 7
+    },
+    {
+      "file": "web/src/components/ProgramRecordWorkspace.tsx",
+      "lines": 247,
+      "bytes": 19324,
+      "raw": {
+        "button": 7,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 1,
+        "EmptyState": 1,
+        "DataTable": 0
+      },
+      "stateCalls": 8
+    },
+    {
+      "file": "web/src/components/EvidenceWorkspace.tsx",
+      "lines": 238,
+      "bytes": 22174,
+      "raw": {
+        "button": 4,
+        "input": 2,
+        "select": 1,
+        "textarea": 2,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 5,
+        "DataTable": 0
+      },
+      "stateCalls": 6
+    },
+    {
+      "file": "web/src/components/ProgramEvidencePanel.tsx",
+      "lines": 227,
+      "bytes": 24971,
+      "raw": {
+        "button": 14,
+        "input": 13,
+        "select": 8,
+        "textarea": 7,
+        "table": 0,
+        "form": 3
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 25
+    },
+    {
+      "file": "web/src/components/forms/FormPolicyEditor.tsx",
+      "lines": 224,
+      "bytes": 17413,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 4,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 6,
+        "TextArea": 4,
+        "SelectField": 7,
+        "CheckboxField": 2,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 5,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 2
+    },
+    {
+      "file": "web/src/components/capture/ExternalAccessGate.tsx",
+      "lines": 209,
+      "bytes": 9016,
+      "raw": {
+        "button": 4,
+        "input": 2,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 2
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 8
+    },
+    {
+      "file": "web/src/components/configure/AIGatewayTransportDraftForm.tsx",
+      "lines": 194,
+      "bytes": 12493,
+      "raw": {
+        "button": 5,
+        "input": 15,
+        "select": 3,
+        "textarea": 1,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 5
+    },
+    {
+      "file": "web/src/components/MatterDetailsPanel.tsx",
+      "lines": 191,
+      "bytes": 15806,
+      "raw": {
+        "button": 12,
+        "input": 3,
+        "select": 3,
+        "textarea": 3,
+        "table": 0,
+        "form": 4
+      },
+      "shared": {
+        "Button": 4,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 1,
+        "SelectField": 1,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 3,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 21
+    },
+    {
+      "file": "web/src/components/RoleAwareOnboarding.tsx",
+      "lines": 191,
+      "bytes": 7213,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 6
+    },
+    {
+      "file": "web/src/components/MatterDecisionResponsePanel.tsx",
+      "lines": 184,
+      "bytes": 15747,
+      "raw": {
+        "button": 6,
+        "input": 4,
+        "select": 1,
+        "textarea": 3,
+        "table": 0,
+        "form": 2
+      },
+      "shared": {
+        "Button": 4,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 1,
+        "SelectField": 1,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 3,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 14
+    },
+    {
+      "file": "web/src/components/configure/AIGatewaySimulationPanel.tsx",
+      "lines": 180,
+      "bytes": 12409,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 4,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 10
+    },
+    {
+      "file": "web/src/components/GovernanceAdminPanel.tsx",
+      "lines": 177,
+      "bytes": 8355,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 5
+    },
+    {
+      "file": "web/src/components/forms/DistributionChangePanel.tsx",
+      "lines": 176,
+      "bytes": 14877,
+      "raw": {
+        "button": 10,
+        "input": 7,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 2,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 16
+    },
+    {
+      "file": "web/src/components/forms/builder/FormCanvas.tsx",
+      "lines": 175,
+      "bytes": 10320,
+      "raw": {
+        "button": 6,
+        "input": 6,
+        "select": 0,
+        "textarea": 1,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 1,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/DocumentProposalHandoff.tsx",
+      "lines": 175,
+      "bytes": 11816,
+      "raw": {
+        "button": 6,
+        "input": 1,
+        "select": 2,
+        "textarea": 3,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 1,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 11
+    },
+    {
+      "file": "web/src/components/MatterRecordWorkspace.tsx",
+      "lines": 173,
+      "bytes": 10814,
+      "raw": {
+        "button": 5,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 1,
+        "DataTable": 0
+      },
+      "stateCalls": 6
+    },
+    {
+      "file": "web/src/components/configure/AIGatewayTransportControl.tsx",
+      "lines": 171,
+      "bytes": 11264,
+      "raw": {
+        "button": 4,
+        "input": 0,
+        "select": 1,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 10
+    },
+    {
+      "file": "web/src/components/forms/SentFormsView.tsx",
+      "lines": 168,
+      "bytes": 10617,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 2,
+        "IconButton": 0,
+        "ActionLink": 1,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 2,
+        "EmptyState": 3,
+        "DataTable": 0
+      },
+      "stateCalls": 14
+    },
+    {
+      "file": "web/src/components/forms/FormProposalReview.tsx",
+      "lines": 165,
+      "bytes": 11154,
+      "raw": {
+        "button": 2,
+        "input": 2,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 3
+    },
+    {
+      "file": "web/src/components/forms/builder/AdvancedScoringEditor.tsx",
+      "lines": 162,
+      "bytes": 18349,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 7,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 9,
+        "TextArea": 0,
+        "SelectField": 6,
+        "CheckboxField": 1,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 1,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 4
+    },
+    {
+      "file": "web/src/components/forms/FormPoliciesView.tsx",
+      "lines": 161,
+      "bytes": 17414,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 7,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 1,
+        "StatusBadge": 1,
+        "Notice": 4,
+        "EmptyState": 3,
+        "DataTable": 0
+      },
+      "stateCalls": 18
+    },
+    {
+      "file": "web/src/components/forms/creation/NewFormLauncher.tsx",
+      "lines": 159,
+      "bytes": 7242,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 2,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 1,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 1,
+        "DataTable": 0
+      },
+      "stateCalls": 1
+    },
+    {
+      "file": "web/src/components/forms/DistributionComposer.tsx",
+      "lines": 158,
+      "bytes": 12568,
+      "raw": {
+        "button": 5,
+        "input": 9,
+        "select": 0,
+        "textarea": 1,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 3,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 17
+    },
+    {
+      "file": "web/src/components/TodayInterventions.tsx",
+      "lines": 156,
+      "bytes": 9580,
+      "raw": {
+        "button": 2,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 2,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/configure/AIGatewayControlPlane.tsx",
+      "lines": 156,
+      "bytes": 9927,
+      "raw": {
+        "button": 6,
+        "input": 2,
+        "select": 1,
+        "textarea": 1,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 10
+    },
+    {
+      "file": "web/src/components/forms/ResponseAssessment.tsx",
+      "lines": 155,
+      "bytes": 15057,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 4,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 1,
+        "SelectField": 2,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 7,
+        "EmptyState": 1,
+        "DataTable": 0
+      },
+      "stateCalls": 9
+    },
+    {
+      "file": "web/src/components/MatterActionsPanel.tsx",
+      "lines": 154,
+      "bytes": 14799,
+      "raw": {
+        "button": 7,
+        "input": 2,
+        "select": 2,
+        "textarea": 2,
+        "table": 0,
+        "form": 2
+      },
+      "shared": {
+        "Button": 3,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 1,
+        "SelectField": 1,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 2,
+        "Notice": 4,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 11
+    },
+    {
+      "file": "web/src/components/ui/SelectField.tsx",
+      "lines": 153,
+      "bytes": 6615,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 2
+    },
+    {
+      "file": "web/src/components/VendorEvidenceChecklist.tsx",
+      "lines": 152,
+      "bytes": 14041,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 11,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 1,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 5,
+        "EmptyState": 1,
+        "DataTable": 0
+      },
+      "stateCalls": 13
+    },
+    {
+      "file": "web/src/components/ProgramDetailsPanel.tsx",
+      "lines": 149,
+      "bytes": 12219,
+      "raw": {
+        "button": 10,
+        "input": 6,
+        "select": 2,
+        "textarea": 4,
+        "table": 0,
+        "form": 3
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 15
+    },
+    {
+      "file": "web/src/components/BankJourneysWorkspace.tsx",
+      "lines": 148,
+      "bytes": 11709,
+      "raw": {
+        "button": 5,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 2,
+        "DataTable": 0
+      },
+      "stateCalls": 4
+    },
+    {
+      "file": "web/src/components/forms/FormFieldPropertyEditor.tsx",
+      "lines": 148,
+      "bytes": 19143,
+      "raw": {
+        "button": 6,
+        "input": 13,
+        "select": 0,
+        "textarea": 2,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 2,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/MatterWorkCommandPanel.tsx",
+      "lines": 147,
+      "bytes": 9376,
+      "raw": {
+        "button": 1,
+        "input": 1,
+        "select": 2,
+        "textarea": 1,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 9
+    },
+    {
+      "file": "web/src/components/forms/builder/FormInspector.tsx",
+      "lines": 141,
+      "bytes": 9847,
+      "raw": {
+        "button": 4,
+        "input": 4,
+        "select": 0,
+        "textarea": 1,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 1,
+        "IconButton": 0,
+        "ActionLink": 1,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 2,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/capture/CaptureFieldControl.tsx",
+      "lines": 136,
+      "bytes": 14545,
+      "raw": {
+        "button": 2,
+        "input": 8,
+        "select": 1,
+        "textarea": 2,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/SessionGate.tsx",
+      "lines": 135,
+      "bytes": 4817,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 5
+    },
+    {
+      "file": "web/src/components/MatterInformationPanel.tsx",
+      "lines": 133,
+      "bytes": 11254,
+      "raw": {
+        "button": 10,
+        "input": 5,
+        "select": 0,
+        "textarea": 2,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 1,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 10
+    },
+    {
+      "file": "web/src/components/oversight/OversightWorkspace.tsx",
+      "lines": 132,
+      "bytes": 15442,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 2,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 4,
+        "DataTable": 2
+      },
+      "stateCalls": 3
+    },
+    {
+      "file": "web/src/components/SignatureCapture.tsx",
+      "lines": 131,
+      "bytes": 6350,
+      "raw": {
+        "button": 8,
+        "input": 1,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 3
+    },
+    {
+      "file": "web/src/components/MatterFormRemediationPanel.tsx",
+      "lines": 129,
+      "bytes": 11621,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 6,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 2,
+        "TextArea": 1,
+        "SelectField": 3,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 3,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 12
+    },
+    {
+      "file": "web/src/components/VendorFormReadiness.tsx",
+      "lines": 129,
+      "bytes": 9320,
+      "raw": {
+        "button": 7,
+        "input": 0,
+        "select": 1,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 3,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 9
+    },
+    {
+      "file": "web/src/components/EvidenceRequestAdminContainer.tsx",
+      "lines": 128,
+      "bytes": 5483,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 5
+    },
+    {
+      "file": "web/src/components/forms/filters/FilterExpressionEditor.tsx",
+      "lines": 125,
+      "bytes": 5858,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 3,
+        "IconButton": 1,
+        "ActionLink": 0,
+        "TextField": 1,
+        "TextArea": 0,
+        "SelectField": 3,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/VendorFormsPanel.tsx",
+      "lines": 125,
+      "bytes": 16133,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 15,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 1,
+        "CheckboxField": 0,
+        "FocusedSheet": 5,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 4,
+        "EmptyState": 2,
+        "DataTable": 0
+      },
+      "stateCalls": 18
+    },
+    {
+      "file": "web/src/components/access/OrganizationInventory.tsx",
+      "lines": 122,
+      "bytes": 6896,
+      "raw": {
+        "button": 0,
+        "input": 1,
+        "select": 0,
+        "textarea": 0,
+        "table": 1,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 1
+    },
+    {
+      "file": "web/src/components/CinematicGuidePanel.tsx",
+      "lines": 120,
+      "bytes": 6343,
+      "raw": {
+        "button": 2,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/configure/AIGatewayEmergencyControl.tsx",
+      "lines": 119,
+      "bytes": 6963,
+      "raw": {
+        "button": 3,
+        "input": 1,
+        "select": 0,
+        "textarea": 1,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 5
+    },
+    {
+      "file": "web/src/components/DisplayPreferences.tsx",
+      "lines": 118,
+      "bytes": 4525,
+      "raw": {
+        "button": 2,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 2
+    },
+    {
+      "file": "web/src/components/ProgramSetupWorkspace.tsx",
+      "lines": 115,
+      "bytes": 9835,
+      "raw": {
+        "button": 5,
+        "input": 7,
+        "select": 3,
+        "textarea": 2,
+        "table": 0,
+        "form": 2
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 3,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 9
+    },
+    {
+      "file": "web/src/components/ProgramReviewDigest.tsx",
+      "lines": 114,
+      "bytes": 6761,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 4
+    },
+    {
+      "file": "web/src/components/capture/CaptureForm.tsx",
+      "lines": 111,
+      "bytes": 8456,
+      "raw": {
+        "button": 6,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 3
+    },
+    {
+      "file": "web/src/components/forms/dashboard/TemplateDetailDrawer.tsx",
+      "lines": 110,
+      "bytes": 6048,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 10,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/MatterSetupWorkspace.tsx",
+      "lines": 102,
+      "bytes": 6179,
+      "raw": {
+        "button": 2,
+        "input": 3,
+        "select": 3,
+        "textarea": 3,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 1,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 5
+    },
+    {
+      "file": "web/src/components/FileDropzone.tsx",
+      "lines": 101,
+      "bytes": 2988,
+      "raw": {
+        "button": 1,
+        "input": 1,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 1
+    },
+    {
+      "file": "web/src/components/forms/filters/FilterBar.tsx",
+      "lines": 101,
+      "bytes": 3856,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 3,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 2
+    },
+    {
+      "file": "web/src/components/access/IdentityAccessComposers.tsx",
+      "lines": 90,
+      "bytes": 5014,
+      "raw": {
+        "button": 2,
+        "input": 3,
+        "select": 3,
+        "textarea": 0,
+        "table": 0,
+        "form": 2
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 2,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 6
+    },
+    {
+      "file": "web/src/components/configure/SystemOperationsSection.tsx",
+      "lines": 90,
+      "bytes": 5127,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 4,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 1,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 1,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 5
+    },
+    {
+      "file": "web/src/components/ProgramRequirementsPanel.tsx",
+      "lines": 87,
+      "bytes": 10954,
+      "raw": {
+        "button": 8,
+        "input": 8,
+        "select": 3,
+        "textarea": 4,
+        "table": 0,
+        "form": 2
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 17
+    },
+    {
+      "file": "web/src/components/AIGovernancePanel.tsx",
+      "lines": 85,
+      "bytes": 5508,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 3,
+        "Notice": 0,
+        "EmptyState": 4,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ProgramCurrentPosition.tsx",
+      "lines": 84,
+      "bytes": 4936,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/forms/VendorResponseReview.tsx",
+      "lines": 81,
+      "bytes": 9034,
+      "raw": {
+        "button": 1,
+        "input": 2,
+        "select": 0,
+        "textarea": 1,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 3,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 4
+    },
+    {
+      "file": "web/src/components/capture/sourceProvenance.tsx",
+      "lines": 80,
+      "bytes": 5100,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/forms/builder/FormOutline.tsx",
+      "lines": 79,
+      "bytes": 3904,
+      "raw": {
+        "button": 5,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/DataTable.tsx",
+      "lines": 78,
+      "bytes": 3846,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 1,
+        "form": 0
+      },
+      "shared": {
+        "Button": 2,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ProgramDetailSections.tsx",
+      "lines": 77,
+      "bytes": 3892,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 1,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 1
+    },
+    {
+      "file": "web/src/components/VendorActivationPanel.tsx",
+      "lines": 77,
+      "bytes": 6447,
+      "raw": {
+        "button": 2,
+        "input": 0,
+        "select": 0,
+        "textarea": 1,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 5
+    },
+    {
+      "file": "web/src/components/AutomationPolicies.tsx",
+      "lines": 77,
+      "bytes": 4132,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 0,
+        "EmptyState": 2,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/TextField.tsx",
+      "lines": 73,
+      "bytes": 1903,
+      "raw": {
+        "button": 0,
+        "input": 1,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/DataSourceBuilder.tsx",
+      "lines": 70,
+      "bytes": 4995,
+      "raw": {
+        "button": 4,
+        "input": 6,
+        "select": 1,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 2,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 8
+    },
+    {
+      "file": "web/src/components/documents/DocumentBrowser.tsx",
+      "lines": 70,
+      "bytes": 7842,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 7,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 1,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 1,
+        "EmptyState": 1,
+        "DataTable": 1
+      },
+      "stateCalls": 11
+    },
+    {
+      "file": "web/src/components/forms/dashboard/TemplateLibraryTable.tsx",
+      "lines": 70,
+      "bytes": 3880,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 1,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 1,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 1
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/forms/builder/FormReviewDrawer.tsx",
+      "lines": 69,
+      "bytes": 3128,
+      "raw": {
+        "button": 2,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ProjectionHealthCard.tsx",
+      "lines": 69,
+      "bytes": 4270,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 1,
+        "EmptyState": 1,
+        "DataTable": 0
+      },
+      "stateCalls": 3
+    },
+    {
+      "file": "web/src/components/forms/filters/FilterPicker.tsx",
+      "lines": 68,
+      "bytes": 2868,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 3,
+        "IconButton": 1,
+        "ActionLink": 0,
+        "TextField": 1,
+        "TextArea": 0,
+        "SelectField": 1,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 2
+    },
+    {
+      "file": "web/src/components/DemoLoginPage.tsx",
+      "lines": 67,
+      "bytes": 3066,
+      "raw": {
+        "button": 2,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 3
+    },
+    {
+      "file": "web/src/components/forms/builder/ReusableSectionPicker.tsx",
+      "lines": 67,
+      "bytes": 3441,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 2,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 1,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 4
+    },
+    {
+      "file": "web/src/components/VendorFormRequest.tsx",
+      "lines": 67,
+      "bytes": 7057,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 3,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 1,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 3,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 9
+    },
+    {
+      "file": "web/src/components/forms/filters/AdvancedFilterEditor.tsx",
+      "lines": 65,
+      "bytes": 2447,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 3,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 1
+    },
+    {
+      "file": "web/src/components/configure/AuthorityRoutingSection.tsx",
+      "lines": 65,
+      "bytes": 5172,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 2,
+        "DataTable": 0
+      },
+      "stateCalls": 4
+    },
+    {
+      "file": "web/src/components/ui/Button.tsx",
+      "lines": 64,
+      "bytes": 2076,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/CollectionPolicyForm.tsx",
+      "lines": 64,
+      "bytes": 3666,
+      "raw": {
+        "button": 2,
+        "input": 3,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 5
+    },
+    {
+      "file": "web/src/components/forms/FieldAssessmentEditor.tsx",
+      "lines": 62,
+      "bytes": 5911,
+      "raw": {
+        "button": 0,
+        "input": 1,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 2,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 3,
+        "TextArea": 0,
+        "SelectField": 2,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 1,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 2
+    },
+    {
+      "file": "web/src/components/access/IdentityAccessInventory.tsx",
+      "lines": 61,
+      "bytes": 4250,
+      "raw": {
+        "button": 5,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/CollectionRecord.tsx",
+      "lines": 59,
+      "bytes": 3706,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/configure/AIGatewayProxyCard.tsx",
+      "lines": 59,
+      "bytes": 2856,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 1
+    },
+    {
+      "file": "web/src/AppViews.tsx",
+      "lines": 58,
+      "bytes": 10148,
+      "raw": {
+        "button": 7,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 3,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/capture/CaptureReview.tsx",
+      "lines": 57,
+      "bytes": 5832,
+      "raw": {
+        "button": 3,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/MatterCurrentHandoff.tsx",
+      "lines": 57,
+      "bytes": 3401,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/forms/FormAIComposer.tsx",
+      "lines": 56,
+      "bytes": 4408,
+      "raw": {
+        "button": 3,
+        "input": 1,
+        "select": 0,
+        "textarea": 1,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 4
+    },
+    {
+      "file": "web/src/components/configure/ConfigureWorkspace.tsx",
+      "lines": 56,
+      "bytes": 2780,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 1
+    },
+    {
+      "file": "web/src/components/forms/builder/FormApprovalSheet.tsx",
+      "lines": 55,
+      "bytes": 2237,
+      "raw": {
+        "button": 2,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 1,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/EvidenceRecipientCandidateSelect.tsx",
+      "lines": 54,
+      "bytes": 3125,
+      "raw": {
+        "button": 1,
+        "input": 1,
+        "select": 1,
+        "textarea": 0,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 4
+    },
+    {
+      "file": "web/src/components/configure/AIGovernanceSection.tsx",
+      "lines": 54,
+      "bytes": 2626,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 4
+    },
+    {
+      "file": "web/src/components/ui/FocusedSheet.tsx",
+      "lines": 52,
+      "bytes": 2260,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 1,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/IntroGuide.tsx",
+      "lines": 47,
+      "bytes": 2240,
+      "raw": {
+        "button": 4,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ProgramStatusPanel.tsx",
+      "lines": 45,
+      "bytes": 3390,
+      "raw": {
+        "button": 2,
+        "input": 0,
+        "select": 1,
+        "textarea": 1,
+        "table": 0,
+        "form": 1
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 4
+    },
+    {
+      "file": "web/src/main.tsx",
+      "lines": 43,
+      "bytes": 1780,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/capture/WorkspaceConflictPanel.tsx",
+      "lines": 43,
+      "bytes": 2152,
+      "raw": {
+        "button": 2,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/FocusedDialog.tsx",
+      "lines": 43,
+      "bytes": 1956,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 1,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/PremiumIllustration.tsx",
+      "lines": 41,
+      "bytes": 3491,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/FormField.tsx",
+      "lines": 41,
+      "bytes": 1659,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/documents/DocumentPreview.tsx",
+      "lines": 41,
+      "bytes": 3752,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 1,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 1,
+        "StatusBadge": 0,
+        "Notice": 2,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 3
+    },
+    {
+      "file": "web/src/components/RecordSnapshotControl.tsx",
+      "lines": 40,
+      "bytes": 2428,
+      "raw": {
+        "button": 1,
+        "input": 1,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 4
+    },
+    {
+      "file": "web/src/components/ProgramIssuesPanel.tsx",
+      "lines": 40,
+      "bytes": 3194,
+      "raw": {
+        "button": 3,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 3
+    },
+    {
+      "file": "web/src/components/forms/filters/FormStatusScopes.tsx",
+      "lines": 40,
+      "bytes": 1579,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/forms/HeldValueField.tsx",
+      "lines": 39,
+      "bytes": 2667,
+      "raw": {
+        "button": 3,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 1
+    },
+    {
+      "file": "web/src/components/ui/TextArea.tsx",
+      "lines": 39,
+      "bytes": 1305,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 1,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/ScopeBar.tsx",
+      "lines": 35,
+      "bytes": 1111,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/forms/FormsBrandHeader.tsx",
+      "lines": 35,
+      "bytes": 1401,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 1
+    },
+    {
+      "file": "web/src/components/forms/sent/SentFormDetail.tsx",
+      "lines": 35,
+      "bytes": 2813,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 5,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 1,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/configure/ConfigureOverview.tsx",
+      "lines": 35,
+      "bytes": 1777,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/WorkItemIcon.tsx",
+      "lines": 33,
+      "bytes": 1296,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/SearchField.tsx",
+      "lines": 33,
+      "bytes": 1077,
+      "raw": {
+        "button": 0,
+        "input": 1,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/WorkspaceErrorBoundary.tsx",
+      "lines": 33,
+      "bytes": 978,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/configure/AutomationSection.tsx",
+      "lines": 33,
+      "bytes": 1360,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 2
+    },
+    {
+      "file": "web/src/components/forms/FormPreview.tsx",
+      "lines": 32,
+      "bytes": 2631,
+      "raw": {
+        "button": 3,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 3
+    },
+    {
+      "file": "web/src/components/forms/builder/FormBuilderToolbar.tsx",
+      "lines": 32,
+      "bytes": 1734,
+      "raw": {
+        "button": 5,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/Tabs.tsx",
+      "lines": 31,
+      "bytes": 1223,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/documents/DocumentFile.tsx",
+      "lines": 30,
+      "bytes": 3159,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 1,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/CheckboxField.tsx",
+      "lines": 29,
+      "bytes": 1211,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/EmptyState.tsx",
+      "lines": 26,
+      "bytes": 944,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/FilterChip.tsx",
+      "lines": 25,
+      "bytes": 889,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/DemoEnvironmentMenu.tsx",
+      "lines": 24,
+      "bytes": 1561,
+      "raw": {
+        "button": 2,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/forms/sent/SentFormsFilters.tsx",
+      "lines": 24,
+      "bytes": 1850,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 3,
+        "TextArea": 0,
+        "SelectField": 2,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/forms/sent/SentFormsTable.tsx",
+      "lines": 24,
+      "bytes": 2419,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 1,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 1,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 1
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/VendorBrandIcon.tsx",
+      "lines": 23,
+      "bytes": 1409,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 1
+    },
+    {
+      "file": "web/src/components/ui/FilterBar.tsx",
+      "lines": 22,
+      "bytes": 877,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 1,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/SelectableRecord.tsx",
+      "lines": 22,
+      "bytes": 792,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 1,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/ActionCard.tsx",
+      "lines": 21,
+      "bytes": 880,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/PopoverDialog.tsx",
+      "lines": 21,
+      "bytes": 749,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/forms/FormsTabContent.tsx",
+      "lines": 21,
+      "bytes": 1699,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 1,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/EmptyState.tsx",
+      "lines": 19,
+      "bytes": 652,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/capture/CaptureWorkspaceRecoveryContext.tsx",
+      "lines": 18,
+      "bytes": 726,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/configure/ConfigureNavigation.tsx",
+      "lines": 18,
+      "bytes": 930,
+      "raw": {
+        "button": 2,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/configure/DataIntegrationsSection.tsx",
+      "lines": 18,
+      "bytes": 1510,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/NavigationIcon.tsx",
+      "lines": 15,
+      "bytes": 1826,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/Monogram.tsx",
+      "lines": 14,
+      "bytes": 639,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/forms/FormsEmptyState.tsx",
+      "lines": 14,
+      "bytes": 372,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 1,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/forms/builder/FormBuilderResponsiveNav.tsx",
+      "lines": 13,
+      "bytes": 444,
+      "raw": {
+        "button": 2,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/StatusBadge.tsx",
+      "lines": 11,
+      "bytes": 407,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/AdministrationMenu.tsx",
+      "lines": 11,
+      "bytes": 548,
+      "raw": {
+        "button": 1,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/forms/FormsNavigation.tsx",
+      "lines": 11,
+      "bytes": 605,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/configure/PeopleAccessSection.tsx",
+      "lines": 11,
+      "bytes": 576,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/Surface.tsx",
+      "lines": 10,
+      "bytes": 297,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/ui/Notice.tsx",
+      "lines": 9,
+      "bytes": 379,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/CloseIcon.tsx",
+      "lines": 6,
+      "bytes": 260,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    },
+    {
+      "file": "web/src/components/FocusedSheet.tsx",
+      "lines": 3,
+      "bytes": 112,
+      "raw": {
+        "button": 0,
+        "input": 0,
+        "select": 0,
+        "textarea": 0,
+        "table": 0,
+        "form": 0
+      },
+      "shared": {
+        "Button": 0,
+        "IconButton": 0,
+        "ActionLink": 0,
+        "TextField": 0,
+        "TextArea": 0,
+        "SelectField": 0,
+        "CheckboxField": 0,
+        "FocusedSheet": 0,
+        "FocusedDialog": 0,
+        "StatusBadge": 0,
+        "Notice": 0,
+        "EmptyState": 0,
+        "DataTable": 0
+      },
+      "stateCalls": 0
+    }
+  ],
+  "css": [
+    {
+      "file": "web/src/form-builder-workspace.css",
+      "lines": 1170,
+      "rules": 165,
+      "declarations": 631,
+      "important": 3,
+      "repeatedSelectorBlocks": [
+        {
+          "selector": " | .form-builder-inspector",
+          "lines": [
+            143,
+            617
+          ]
+        }
+      ]
+    },
+    {
+      "file": "web/src/ui-preferences.css",
+      "lines": 502,
+      "rules": 53,
+      "declarations": 273,
+      "important": 1,
+      "repeatedSelectorBlocks": [
+        {
+          "selector": " | .display-preferences-popover",
+          "lines": [
+            377,
+            409
+          ]
+        }
+      ]
+    },
+    {
+      "file": "web/src/forms-task11.css",
+      "lines": 473,
+      "rules": 89,
+      "declarations": 222,
+      "important": 0,
+      "repeatedSelectorBlocks": [
+        {
+          "selector": " | .forms-response-layout",
+          "lines": [
+            80,
+            329
+          ]
+        }
+      ]
+    },
+    {
+      "file": "web/src/journeys.css",
+      "lines": 352,
+      "rules": 54,
+      "declarations": 178,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/components/fields.css",
+      "lines": 277,
+      "rules": 46,
+      "declarations": 152,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/cinematic-guide.css",
+      "lines": 263,
+      "rules": 49,
+      "declarations": 130,
+      "important": 2,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/components/vendor-due-diligence.css",
+      "lines": 256,
+      "rules": 107,
+      "declarations": 316,
+      "important": 2,
+      "repeatedSelectorBlocks": [
+        {
+          "selector": " | .vdd-limitation",
+          "lines": [
+            48,
+            57
+          ]
+        }
+      ]
+    },
+    {
+      "file": "web/src/components/configure/AIGatewayTransportControl.css",
+      "lines": 233,
+      "rules": 35,
+      "declarations": 103,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/components/configure/AIGatewaySimulationPanel.css",
+      "lines": 215,
+      "rules": 32,
+      "declarations": 102,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/visual-review-fixes.css",
+      "lines": 211,
+      "rules": 52,
+      "declarations": 163,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/components/actions.css",
+      "lines": 201,
+      "rules": 42,
+      "declarations": 132,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/matter-record.css",
+      "lines": 184,
+      "rules": 125,
+      "declarations": 345,
+      "important": 1,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/capture-inputs.css",
+      "lines": 171,
+      "rules": 140,
+      "declarations": 477,
+      "important": 3,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/forms-creation-gallery.css",
+      "lines": 158,
+      "rules": 26,
+      "declarations": 76,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/document-import.css",
+      "lines": 157,
+      "rules": 149,
+      "declarations": 478,
+      "important": 0,
+      "repeatedSelectorBlocks": [
+        {
+          "selector": " | .document-import-inspector",
+          "lines": [
+            19,
+            120
+          ]
+        }
+      ]
+    },
+    {
+      "file": "web/src/design-system/tokens/components.css",
+      "lines": 156,
+      "rules": 1,
+      "declarations": 153,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/components/configure/AIGatewayControlPlane.css",
+      "lines": 154,
+      "rules": 22,
+      "declarations": 79,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/styles.css",
+      "lines": 152,
+      "rules": 160,
+      "declarations": 557,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/monitoring.css",
+      "lines": 146,
+      "rules": 138,
+      "declarations": 394,
+      "important": 1,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/form-builder-responsive.css",
+      "lines": 141,
+      "rules": 21,
+      "declarations": 68,
+      "important": 1,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/operating-mutations.css",
+      "lines": 136,
+      "rules": 21,
+      "declarations": 56,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/components/configure/AIGatewayEmergencyControl.css",
+      "lines": 133,
+      "rules": 19,
+      "declarations": 61,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/form-builder-approval.css",
+      "lines": 128,
+      "rules": 21,
+      "declarations": 61,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/configure-workspace.css",
+      "lines": 124,
+      "rules": 101,
+      "declarations": 239,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/identity-access.css",
+      "lines": 122,
+      "rules": 104,
+      "declarations": 328,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/product-finish.css",
+      "lines": 121,
+      "rules": 93,
+      "declarations": 237,
+      "important": 16,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/forms-filter-advanced.css",
+      "lines": 115,
+      "rules": 33,
+      "declarations": 90,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/vendors.css",
+      "lines": 110,
+      "rules": 125,
+      "declarations": 390,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/components/configure/AIGatewayProxyCard.css",
+      "lines": 109,
+      "rules": 17,
+      "declarations": 52,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/interventions.css",
+      "lines": 106,
+      "rules": 97,
+      "declarations": 281,
+      "important": 3,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/continuity.css",
+      "lines": 105,
+      "rules": 113,
+      "declarations": 368,
+      "important": 0,
+      "repeatedSelectorBlocks": [
+        {
+          "selector": " | .workspace-loading",
+          "lines": [
+            4,
+            93
+          ]
+        }
+      ]
+    },
+    {
+      "file": "web/src/design-system/components/overlays.css",
+      "lines": 95,
+      "rules": 30,
+      "declarations": 80,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/program-record.css",
+      "lines": 91,
+      "rules": 99,
+      "declarations": 291,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/components/navigation.css",
+      "lines": 90,
+      "rules": 20,
+      "declarations": 68,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/tokens/primitives.css",
+      "lines": 79,
+      "rules": 1,
+      "declarations": 76,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/oversight.css",
+      "lines": 79,
+      "rules": 73,
+      "declarations": 213,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/forms-filter-bar.css",
+      "lines": 76,
+      "rules": 21,
+      "declarations": 59,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/capture-access.css",
+      "lines": 71,
+      "rules": 10,
+      "declarations": 39,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/tokens/semantic.css",
+      "lines": 65,
+      "rules": 2,
+      "declarations": 57,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/components/forms/responses-view.css",
+      "lines": 63,
+      "rules": 35,
+      "declarations": 97,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/evidence.css",
+      "lines": 62,
+      "rules": 73,
+      "declarations": 234,
+      "important": 11,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/forms-dashboard-drawer.css",
+      "lines": 61,
+      "rules": 19,
+      "declarations": 63,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/components/data-display.css",
+      "lines": 57,
+      "rules": 32,
+      "declarations": 84,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/forms-dashboard-shell.css",
+      "lines": 56,
+      "rules": 8,
+      "declarations": 32,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/demo-login.css",
+      "lines": 54,
+      "rules": 26,
+      "declarations": 96,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/vendor-work.css",
+      "lines": 53,
+      "rules": 56,
+      "declarations": 163,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/components/documents/documents.css",
+      "lines": 53,
+      "rules": 48,
+      "declarations": 126,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/components/forms/form-policies.css",
+      "lines": 52,
+      "rules": 47,
+      "declarations": 126,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/components/surfaces.css",
+      "lines": 50,
+      "rules": 8,
+      "declarations": 22,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/defect-review-fixes.css",
+      "lines": 50,
+      "rules": 7,
+      "declarations": 11,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/vendor-relationship-links.css",
+      "lines": 46,
+      "rules": 43,
+      "declarations": 140,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/components/feedback.css",
+      "lines": 40,
+      "rules": 10,
+      "declarations": 26,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/forms-creation-shell.css",
+      "lines": 40,
+      "rules": 7,
+      "declarations": 19,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/components/ui/FocusedDialog.css",
+      "lines": 37,
+      "rules": 14,
+      "declarations": 39,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/components/forms/distribution-change.css",
+      "lines": 36,
+      "rules": 6,
+      "declarations": 18,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/enterprise-shell.css",
+      "lines": 35,
+      "rules": 25,
+      "declarations": 69,
+      "important": 2,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/forms-dashboard-table.css",
+      "lines": 34,
+      "rules": 4,
+      "declarations": 16,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/forms-foundation.css",
+      "lines": 33,
+      "rules": 193,
+      "declarations": 476,
+      "important": 7,
+      "repeatedSelectorBlocks": [
+        {
+          "selector": " | .forms-workspace",
+          "lines": [
+            1,
+            10
+          ]
+        },
+        {
+          "selector": " | .forms-layout-toggle",
+          "lines": [
+            1,
+            16
+          ]
+        },
+        {
+          "selector": " | .forms-summary-metric",
+          "lines": [
+            1,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "file": "web/src/components/vendor-evidence-checklist.css",
+      "lines": 30,
+      "rules": 27,
+      "declarations": 74,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/forms-sent.css",
+      "lines": 29,
+      "rules": 25,
+      "declarations": 65,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/document-handoff.css",
+      "lines": 25,
+      "rules": 26,
+      "declarations": 76,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/automation-policies.css",
+      "lines": 22,
+      "rules": 22,
+      "declarations": 60,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/components/forms/field-assessment.css",
+      "lines": 21,
+      "rules": 16,
+      "declarations": 41,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/components/vendor-forms.css",
+      "lines": 21,
+      "rules": 20,
+      "declarations": 58,
+      "important": 0,
+      "repeatedSelectorBlocks": [
+        {
+          "selector": " | .vendor-form-summary",
+          "lines": [
+            15,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "file": "web/src/ai-governance.css",
+      "lines": 20,
+      "rules": 22,
+      "declarations": 63,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/utilities.css",
+      "lines": 12,
+      "rules": 1,
+      "declarations": 9,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/base.css",
+      "lines": 11,
+      "rules": 2,
+      "declarations": 5,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/index.css",
+      "lines": 10,
+      "rules": 0,
+      "declarations": 0,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/reset.css",
+      "lines": 8,
+      "rules": 2,
+      "declarations": 2,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/components/index.css",
+      "lines": 8,
+      "rules": 0,
+      "declarations": 0,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/forms.css",
+      "lines": 7,
+      "rules": 0,
+      "declarations": 0,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/forms-dashboard.css",
+      "lines": 6,
+      "rules": 0,
+      "declarations": 0,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/tokens/index.css",
+      "lines": 4,
+      "rules": 0,
+      "declarations": 0,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/form-authoring.css",
+      "lines": 4,
+      "rules": 0,
+      "declarations": 0,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/forms-creation.css",
+      "lines": 3,
+      "rules": 0,
+      "declarations": 0,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    },
+    {
+      "file": "web/src/design-system/overrides.css",
+      "lines": 2,
+      "rules": 0,
+      "declarations": 0,
+      "important": 0,
+      "repeatedSelectorBlocks": []
+    }
+  ],
+  "unreachedTsx": [
+    "web/src/components/forms/FormPropertyPanel.tsx",
+    "web/src/components/forms/FormQualityPanel.tsx",
+    "web/src/components/LifecycleTodayEvidencePage.tsx",
+    "web/src/components/OperatingMutationsEvidencePage.tsx",
+    "web/src/components/oversight/OversightEvidencePage.tsx",
+    "web/src/components/ProgramLifecycleControls.tsx",
+    "web/src/components/ReadinessPanel.tsx",
+    "web/src/components/ui-gallery/UIComponentGallery.tsx",
+    "web/src/evidenceMain.tsx",
+    "web/src/PolicyAssessmentEvidence.tsx",
+    "web/src/vendorAssessmentEvidence.tsx",
+    "web/src/vendorCaptureEvidence.tsx"
+  ]
+}

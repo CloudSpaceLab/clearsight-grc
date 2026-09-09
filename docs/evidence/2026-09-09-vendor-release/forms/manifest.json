@@ -1,0 +1,967 @@
+{
+  "generatedAt": "2026-09-09T03:15:48.766Z",
+  "base": "http://127.0.0.1:4187",
+  "source": "Local isolated evidence build; HEAD 470ad3c2e90e84750c43985ddd835ee69be36d84 plus integrated origin/main and staged audit fixes. Not hosted/live data.",
+  "captures": [
+    {
+      "file": "responses-light-1440.png",
+      "id": "responses",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Submitted response stays separate from review and score."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-answers-light-1440.png",
+      "id": "response-answers",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-documents-light-1440.png",
+      "id": "response-documents",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-review-light-1440.png",
+      "id": "response-review",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-history-light-1440.png",
+      "id": "response-history",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "policy-editor-light-1440.png",
+      "id": "policy-editor",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Approved form, result basis, issue limits and outcome checks remain editable."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "policy-detail-light-1440.png",
+      "id": "policy-detail",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Synthetic approved policy fixture separates historical approval simulation from current counts."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "policy-result-light-1440.png",
+      "id": "policy-result",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Synthetic execution result provides the permitted response link."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-overview-light-1440.png",
+      "id": "vendor-overview",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-forms-light-1440.png",
+      "id": "vendor-forms",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-documents-light-1440.png",
+      "id": "vendor-documents",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-due-diligence-light-1440.png",
+      "id": "vendor-due-diligence",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-history-light-1440.png",
+      "id": "vendor-history",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "checklist-light-1440.png",
+      "id": "checklist",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Missing, Pending review and Accepted are separately counted."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "reuse-document-light-1440.png",
+      "id": "reuse-document",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Existing evidence is selected with source context and a recorded reason."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "reused-pending-review-light-1440.png",
+      "id": "reused-pending-review",
+      "theme": "light",
+      "width": 1440,
+      "checks": [
+        "Reused evidence removes the vendor request but still requires review."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "responses-light-390.png",
+      "id": "responses",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Submitted response stays separate from review and score."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-answers-light-390.png",
+      "id": "response-answers",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-documents-light-390.png",
+      "id": "response-documents",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-review-light-390.png",
+      "id": "response-review",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-history-light-390.png",
+      "id": "response-history",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "policy-editor-light-390.png",
+      "id": "policy-editor",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Approved form, result basis, issue limits and outcome checks remain editable."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "policy-detail-light-390.png",
+      "id": "policy-detail",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Synthetic approved policy fixture separates historical approval simulation from current counts."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "policy-result-light-390.png",
+      "id": "policy-result",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Synthetic execution result provides the permitted response link."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-overview-light-390.png",
+      "id": "vendor-overview",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-forms-light-390.png",
+      "id": "vendor-forms",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-documents-light-390.png",
+      "id": "vendor-documents",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-due-diligence-light-390.png",
+      "id": "vendor-due-diligence",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-history-light-390.png",
+      "id": "vendor-history",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "checklist-light-390.png",
+      "id": "checklist",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Missing, Pending review and Accepted are separately counted."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "reuse-document-light-390.png",
+      "id": "reuse-document",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Existing evidence is selected with source context and a recorded reason."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "reused-pending-review-light-390.png",
+      "id": "reused-pending-review",
+      "theme": "light",
+      "width": 390,
+      "checks": [
+        "Reused evidence removes the vendor request but still requires review."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "responses-dark-1440.png",
+      "id": "responses",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Submitted response stays separate from review and score."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-answers-dark-1440.png",
+      "id": "response-answers",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-documents-dark-1440.png",
+      "id": "response-documents",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-review-dark-1440.png",
+      "id": "response-review",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-history-dark-1440.png",
+      "id": "response-history",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "policy-editor-dark-1440.png",
+      "id": "policy-editor",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Approved form, result basis, issue limits and outcome checks remain editable."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "policy-detail-dark-1440.png",
+      "id": "policy-detail",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Synthetic approved policy fixture separates historical approval simulation from current counts."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "policy-result-dark-1440.png",
+      "id": "policy-result",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Synthetic execution result provides the permitted response link."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-overview-dark-1440.png",
+      "id": "vendor-overview",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-forms-dark-1440.png",
+      "id": "vendor-forms",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-documents-dark-1440.png",
+      "id": "vendor-documents",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-due-diligence-dark-1440.png",
+      "id": "vendor-due-diligence",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-history-dark-1440.png",
+      "id": "vendor-history",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "checklist-dark-1440.png",
+      "id": "checklist",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Missing, Pending review and Accepted are separately counted."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "reuse-document-dark-1440.png",
+      "id": "reuse-document",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Existing evidence is selected with source context and a recorded reason."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "reused-pending-review-dark-1440.png",
+      "id": "reused-pending-review",
+      "theme": "dark",
+      "width": 1440,
+      "checks": [
+        "Reused evidence removes the vendor request but still requires review."
+      ],
+      "metrics": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "responses-dark-390.png",
+      "id": "responses",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Submitted response stays separate from review and score."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-answers-dark-390.png",
+      "id": "response-answers",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-documents-dark-390.png",
+      "id": "response-documents",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-review-dark-390.png",
+      "id": "response-review",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "response-history-dark-390.png",
+      "id": "response-history",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Response tabs use a compact select on mobile; documents use the selected revision."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "policy-editor-dark-390.png",
+      "id": "policy-editor",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Approved form, result basis, issue limits and outcome checks remain editable."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "policy-detail-dark-390.png",
+      "id": "policy-detail",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Synthetic approved policy fixture separates historical approval simulation from current counts."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "policy-result-dark-390.png",
+      "id": "policy-result",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Synthetic execution result provides the permitted response link."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-overview-dark-390.png",
+      "id": "vendor-overview",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-forms-dark-390.png",
+      "id": "vendor-forms",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-documents-dark-390.png",
+      "id": "vendor-documents",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-due-diligence-dark-390.png",
+      "id": "vendor-due-diligence",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "vendor-history-dark-390.png",
+      "id": "vendor-history",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Vendor sections retain separate evidence collection, assessment and history."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "checklist-dark-390.png",
+      "id": "checklist",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Missing, Pending review and Accepted are separately counted."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "reuse-document-dark-390.png",
+      "id": "reuse-document",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Existing evidence is selected with source context and a recorded reason."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    },
+    {
+      "file": "reused-pending-review-dark-390.png",
+      "id": "reused-pending-review",
+      "theme": "dark",
+      "width": 390,
+      "checks": [
+        "Reused evidence removes the vendor request but still requires review."
+      ],
+      "metrics": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "violations": [],
+      "passed": true
+    }
+  ]
+}

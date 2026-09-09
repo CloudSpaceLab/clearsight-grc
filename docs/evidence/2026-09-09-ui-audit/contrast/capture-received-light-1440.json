@@ -1,0 +1,1440 @@
+{
+  "id": "capture-received-light-1440",
+  "name": "capture-received",
+  "fixture": "vendor-capture-received",
+  "route": "",
+  "theme": "light",
+  "width": 1440,
+  "errors": [],
+  "axe": {
+    "version": "4.12.1",
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "shortTextContent",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element content is too short to determine if it is actual text content"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<div class=\"brand-mark\" aria-label=\"ClearSight\">C</div>",
+            "target": [
+              ".brand-mark"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>ClearSight</strong>",
+            "target": [
+              "div:nth-child(2) > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Evidence response</span>",
+            "target": [
+              "header > div:nth-child(2) > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<div class=\"external-session-hint\">Sample invited respondent · Delta Payment Services</div>",
+            "target": [
+              ".external-session-hint"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "8.3pt (11px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"eyebrow\">Evidence request · about 2 min</span>",
+            "target": [
+              ".eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "22.5pt (30px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h2>Sample · Payment service evidence</h2>",
+            "target": [
+              "h2"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p>Confirm the service contact and provide the requested service evidence.</p>",
+            "target": [
+              ".panel-content > p"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"why-you\"><strong>Why this was sent to you</strong><span>You maintain your company's service records.</span></div>",
+                    "target": [
+                      ".why-you"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong>Why this was sent to you</strong>",
+            "target": [
+              ".why-you > strong"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"why-you\"><strong>Why this was sent to you</strong><span>You maintain your company's service records.</span></div>",
+                    "target": [
+                      ".why-you"
+                    ]
+                  },
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>You maintain your company's service records.</span>",
+            "target": [
+              ".why-you > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.8pt (13px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h3>Already filled in</h3>",
+            "target": [
+              ".panel-content > h3"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<dt>Vendor</dt>",
+            "target": [
+              "div:nth-child(1) > dt"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<dd>Sample · Delta Payment Services</dd>",
+            "target": [
+              "div:nth-child(1) > dd"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<dt>Service</dt>",
+            "target": [
+              "div:nth-child(2) > dt"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<dd>Payment processing</dd>",
+            "target": [
+              "div:nth-child(2) > dd"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Saved to ClearSight</span>",
+            "target": [
+              ".capture-draft-status > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "12.0pt (16px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<h3 id=\"capture-section-title-service\">Service evidence</h3>",
+            "target": [
+              "#capture-section-title-service"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.8pt (13px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>Service contact *</span>",
+            "target": [
+              "label[for=\"capture-input-contact\"] > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<strong id=\"capture-received-certificate\">Operating certificate</strong>",
+            "target": [
+              "#capture-received-certificate"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p role=\"status\">Document received</p>",
+            "target": [
+              "p[role=\"status\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p class=\"field-help\">No upload needed. Bank review is separate.</p>",
+            "target": [
+              ".field-help"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.8pt (13px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<legend>Response confirmation *</legend>",
+            "target": [
+              "legend"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "9.8pt (13px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgGradient",
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<body>",
+                    "target": [
+                      "body"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined due to a background gradient"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span>I confirm that I am authorized to provide this service response.</span>",
+            "target": [
+              ".capture-check-option > span"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      {
+        "id": "color-contrast",
+        "nodes": 8
+      }
+    ],
+    "inapplicable": []
+  },
+  "measurements": [
+    {
+      "selector": "div.brand-mark",
+      "text": "C",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 408,
+        "y": 20,
+        "width": 42,
+        "height": 42
+      },
+      "fontSize": "14px",
+      "fontWeight": "800",
+      "kind": "text",
+      "foreground": "#0a7080",
+      "ratio": 5.372251539138774,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "ClearSight",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 460,
+        "y": 21.75,
+        "width": 89.609375,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Evidence response",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 460,
+        "y": 43.75,
+        "width": 89.609375,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5
+    },
+    {
+      "selector": "div.cs-notice.cs-tone--info",
+      "text": "Sample data · Vendor evidence request, 8 September 2026. Responses and files in this example are not sent to a bank.",
+      "disabled": false,
+      "background": "#ebf4f5",
+      "uncertain": [],
+      "box": {
+        "x": 408,
+        "y": 92,
+        "width": 624,
+        "height": 68
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.734137343584273,
+      "minimum": 4.5
+    },
+    {
+      "selector": "div.external-session-hint",
+      "text": "Sample invited respondent · Delta Payment Services",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 187,
+        "width": 562,
+        "height": 16.5
+      },
+      "fontSize": "11px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span.eyebrow",
+      "text": "Evidence request · about  2  min",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 221.5,
+        "width": 220.953125,
+        "height": 15
+      },
+      "fontSize": "11px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#0a7080",
+      "ratio": 5.372251539138774,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h2",
+      "text": "Sample · Payment service evidence",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 248.5,
+        "width": 562,
+        "height": 45
+      },
+      "fontSize": "30px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 3
+    },
+    {
+      "selector": "p",
+      "text": "Confirm the service contact and provide the requested service evidence.",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 305.5,
+        "width": 562,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Due  30 Sept 2099, 17:00 GMT+1",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 454,
+        "y": 359.1875,
+        "width": 532,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.73963654123749,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Your answers and files are shared with the organization that sent this request.",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 454,
+        "y": 383.6875,
+        "width": 532,
+        "height": 17.390625
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "For changes to the request or your access, contact the person who sent this link.",
+      "disabled": false,
+      "background": "#eef3f7",
+      "uncertain": [],
+      "box": {
+        "x": 454,
+        "y": 406.078125,
+        "width": 532,
+        "height": 17.390625
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.84316914480783,
+      "minimum": 4.5
+    },
+    {
+      "selector": "strong",
+      "text": "Why this was sent to you",
+      "disabled": false,
+      "background": "#eaf4f7",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 456,
+        "y": 472.46875,
+        "width": 530,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 13.683203254250065,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "You maintain your company's service records.",
+      "disabled": false,
+      "background": "#eaf4f7",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 456,
+        "y": 497.46875,
+        "width": 530,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 4.823276627749081,
+      "minimum": 4.5
+    },
+    {
+      "selector": "h3",
+      "text": "Already filled in",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 552.46875,
+        "width": 562,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#0c1623",
+      "ratio": 16.946220644316053,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Vendor",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 454,
+        "y": 594.96875,
+        "width": 38.03125,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Sample · Delta Payment Services",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 815.34375,
+        "y": 594.96875,
+        "width": 170.65625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dt",
+      "text": "Service",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 454,
+        "y": 637.96875,
+        "width": 37.296875,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5
+    },
+    {
+      "selector": "dd",
+      "text": "Payment processing",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 879.984375,
+        "y": 637.96875,
+        "width": 106.015625,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Saved to ClearSight",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 897.65625,
+        "y": 675.96875,
+        "width": 103.34375,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Show all questions",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 439,
+        "y": 718.96875,
+        "width": 146.890625,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Show all questions",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [],
+      "box": {
+        "x": 439,
+        "y": 718.96875,
+        "width": 146.890625,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Show one section at a time",
+      "disabled": false,
+      "background": "#ffffff",
+      "uncertain": [],
+      "box": {
+        "x": 593.890625,
+        "y": 718.96875,
+        "width": 198.796875,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 15.348490550841955,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.secondary-button",
+      "text": "Show one section at a time",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [],
+      "box": {
+        "x": 593.890625,
+        "y": 718.96875,
+        "width": 198.796875,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#c8d3dd",
+      "ratio": 1.4161017655346475,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "#capture-section-title-service",
+      "text": "Service evidence",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 781.96875,
+        "width": 562,
+        "height": 24
+      },
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "Service contact *",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 821.96875,
+        "width": 562,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5
+    },
+    {
+      "selector": "#capture-input-contact",
+      "text": "",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [],
+      "box": {
+        "x": 439,
+        "y": 849.46875,
+        "width": 562,
+        "height": 44
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "control-border",
+      "foreground": "#c8d3dd",
+      "ratio": 1.4161017655346475,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    },
+    {
+      "selector": "#capture-received-certificate",
+      "text": "Operating certificate",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 909.46875,
+        "width": 562,
+        "height": 21
+      },
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5
+    },
+    {
+      "selector": "p",
+      "text": "Document received",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 938.46875,
+        "width": 562,
+        "height": 21.6875
+      },
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5
+    },
+    {
+      "selector": "p.field-help",
+      "text": "No upload needed. Bank review is separate.",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 968.15625,
+        "width": 562,
+        "height": 18
+      },
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#596c80",
+      "ratio": 5.04115493991848,
+      "minimum": 4.5
+    },
+    {
+      "selector": "legend",
+      "text": "Response confirmation *",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 439,
+        "y": 1002.15625,
+        "width": 150.046875,
+        "height": 19.5
+      },
+      "fontSize": "13px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5
+    },
+    {
+      "selector": "span",
+      "text": "I confirm that I am authorized to provide this service response.",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [
+        "background image"
+      ],
+      "box": {
+        "x": 471,
+        "y": 1021.65625,
+        "width": 358.046875,
+        "height": 18.84375
+      },
+      "fontSize": "13px",
+      "fontWeight": "400",
+      "kind": "text",
+      "foreground": "#152639",
+      "ratio": 14.301304487124638,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.primary-button",
+      "text": "Review and submit",
+      "disabled": false,
+      "background": "#e2eef0",
+      "uncertain": [],
+      "box": {
+        "x": 439,
+        "y": 1089.65625,
+        "width": 156.640625,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "text",
+      "foreground": "#0c1623",
+      "ratio": 15.348002676695126,
+      "minimum": 4.5
+    },
+    {
+      "selector": "button.primary-button",
+      "text": "Review and submit",
+      "disabled": false,
+      "background": "#f5f7fa",
+      "uncertain": [],
+      "box": {
+        "x": 439,
+        "y": 1089.65625,
+        "width": 156.640625,
+        "height": 45
+      },
+      "fontSize": "14px",
+      "fontWeight": "650",
+      "kind": "control-border",
+      "foreground": "#6da3b0",
+      "ratio": 2.603396812607299,
+      "minimum": 3,
+      "interpretation": "Review whether this boundary is necessary to identify the control; low ratio alone is not a WCAG failure."
+    }
+  ],
+  "headings": [
+    "Sample · Payment service evidence"
+  ],
+  "status": "CAPTURED"
+}

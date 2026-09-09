@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
@@ -695,6 +696,7 @@ func (r *PostgresRepository) ListAssessmentRequestLinks(ctx context.Context, sco
 		if err != nil {
 			return nil, err
 		}
+		value.TenantID = scope.TenantID
 		links = append(links, value)
 	}
 	return links, rows.Err()
@@ -934,7 +936,7 @@ func (r *PostgresRepository) ResolveAssessmentRequest(ctx context.Context, tenan
 
 const assessmentProjection = `a.id::text,t.slug,a.legal_entity_id::text,a.relationship_id::text,a.review_kind,a.source_trigger,a.stable_episode_key,a.status,
 	a.form_template_id::text,a.form_template_version,a.scope_kind,a.scope_version,a.selected_field_ids,COALESCE(a.current_request_id::text,''),COALESCE(a.submission_id::text,''),COALESCE(a.review_matter_id::text,''),
-	a.review_due_at,a.started_by_principal_id::text,a.started_at,a.submitted_at,a.review_started_at,a.completed_at,
+	a.review_due_at,a.started_by_principal_id::text,a.started_at,a.submitted_at,a.review_started_at,a.completed_at,a.collection_completed_at,
 	COALESCE(a.reviewer_principal_id::text,''),COALESCE(a.conclusion,''),a.conclusion_uncertainty,a.conclusion_rationale,a.next_review_recommended_at,
 	a.cancellation_reason,a.version,a.created_at,a.updated_at`
 
@@ -950,7 +952,7 @@ func scanAssessment(row rowScanner) (Assessment, error) {
 	err := row.Scan(
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.RelationshipID, &value.ReviewKind, &value.SourceTrigger, &value.StableEpisodeKey, &value.Status,
 		&value.FormTemplateID, &value.FormTemplateVersion, &value.ScopeKind, &value.ScopeVersion, &selectedFieldIDs, &value.CurrentRequestID, &value.SubmissionID, &value.ReviewMatterID,
-		&value.ReviewDueAt, &value.StartedByPrincipalID, &value.StartedAt, &value.SubmittedAt, &value.ReviewStartedAt, &value.CompletedAt,
+		&value.ReviewDueAt, &value.StartedByPrincipalID, &value.StartedAt, &value.SubmittedAt, &value.ReviewStartedAt, &value.CompletedAt, &value.CollectionCompletedAt,
 		&value.ReviewerPrincipalID, &value.Conclusion, &value.ConclusionUncertainty, &value.ConclusionRationale, &value.NextReviewRecommendedAt,
 		&value.CancellationReason, &value.Version, &value.CreatedAt, &value.UpdatedAt,
 	)
@@ -979,11 +981,11 @@ func updateAssessment(ctx context.Context, tx pgx.Tx, tenantID string, value Ass
 			status=$4,current_request_id=NULLIF($5,'')::uuid,submission_id=NULLIF($6,'')::uuid,review_matter_id=NULLIF($7,'')::uuid,
 			submitted_at=$8,review_started_at=$9,completed_at=$10,reviewer_principal_id=NULLIF($11,'')::uuid,
 			conclusion=NULLIF($12,''),conclusion_uncertainty=$13,conclusion_rationale=$14,next_review_recommended_at=$15,
-			cancellation_reason=$16,version=$17,updated_at=$18
+			cancellation_reason=$16,version=$17,updated_at=$18,collection_completed_at=$19
 		WHERE tenant_id=$1::uuid AND legal_entity_id::text=$2 AND id::text=$3`, tenantID, value.LegalEntityID, value.ID,
 		value.Status, value.CurrentRequestID, value.SubmissionID, value.ReviewMatterID, value.SubmittedAt, value.ReviewStartedAt, value.CompletedAt,
 		value.ReviewerPrincipalID, value.Conclusion, value.ConclusionUncertainty, value.ConclusionRationale,
-		value.NextReviewRecommendedAt, value.CancellationReason, value.Version, value.UpdatedAt)
+		value.NextReviewRecommendedAt, value.CancellationReason, value.Version, value.UpdatedAt, value.CollectionCompletedAt)
 	if err != nil {
 		return fmt.Errorf("update assessment: %w", err)
 	}
@@ -1044,13 +1046,13 @@ func verifyPostgresAssessmentCompletionReady(ctx context.Context, tx pgx.Tx, ten
 	var requestStatus evidence.RequestStatus
 	var presentationJSON, sectionsJSON, fieldsJSON, answersJSON []byte
 	err := tx.QueryRow(ctx, `
-		SELECT req.status,req.presentation,req.sections,req.fields,s.answers
+		SELECT req.status,req.presentation,req.sections,req.fields,COALESCE(s.answers,'{}'::jsonb)
 		FROM capture_requests req
-		JOIN capture_submissions s ON s.id=$3::uuid AND s.tenant_id=req.tenant_id AND s.request_id=req.id
+		LEFT JOIN capture_submissions s ON s.id=NULLIF($3,'')::uuid AND s.tenant_id=req.tenant_id AND s.request_id=req.id
 		WHERE req.tenant_id=$1::uuid AND req.id=$2::uuid
 		  AND req.subject_type='VENDOR_RELATIONSHIP' AND req.subject_id=$4
 		  AND req.origin_type=$5 AND req.origin_id=$6 AND req.form_template_id=$7::uuid AND req.form_template_version=$8
-		FOR SHARE OF req,s`, tenantID, assessment.CurrentRequestID, assessment.SubmissionID, assessment.RelationshipID,
+		FOR SHARE OF req`, tenantID, assessment.CurrentRequestID, assessment.SubmissionID, assessment.RelationshipID,
 		AssessmentRequestOrigin, assessment.ID, assessment.FormTemplateID, assessment.FormTemplateVersion).Scan(
 		&requestStatus, &presentationJSON, &sectionsJSON, &fieldsJSON, &answersJSON,
 	)
@@ -1060,7 +1062,7 @@ func verifyPostgresAssessmentCompletionReady(ctx context.Context, tx pgx.Tx, ten
 	if err != nil {
 		return fmt.Errorf("load assessment completion evidence: %w", err)
 	}
-	if requestStatus != evidence.RequestSubmitted {
+	if requestStatus != evidence.RequestSubmitted && assessment.CollectionCompletedAt == nil {
 		return ErrAssessmentCompletionBlocked
 	}
 	var presentation formcontract.Presentation
@@ -1070,6 +1072,11 @@ func verifyPostgresAssessmentCompletionReady(ctx context.Context, tx pgx.Tx, ten
 	if json.Unmarshal(presentationJSON, &presentation) != nil || json.Unmarshal(sectionsJSON, &sections) != nil || json.Unmarshal(fieldsJSON, &fields) != nil || json.Unmarshal(answersJSON, &answers) != nil {
 		return ErrAssessmentCompletionBlocked
 	}
+	refreshed, refreshErr := evidence.RefreshCollectionReviewsPostgres(ctx, tx, evidence.Request{TenantID: tenantID, LegalEntityID: assessment.LegalEntityID, Fields: fields})
+	if refreshErr != nil {
+		return ErrAssessmentCompletionBlocked
+	}
+	fields = refreshed.Fields
 	contractFields := make([]formcontract.Field, len(fields))
 	for index, field := range fields {
 		contractFields[index] = formcontract.Field{
@@ -1082,9 +1089,26 @@ func verifyPostgresAssessmentCompletionReady(ctx context.Context, tx pgx.Tx, ten
 	if err != nil {
 		return ErrAssessmentCompletionBlocked
 	}
+	requestFields := map[string]evidence.Field{}
+	for _, field := range fields {
+		requestFields[field.ID] = field
+	}
 	artifactIDs := make(map[string]struct{})
 	for _, field := range visible {
 		answer, answered := answers[field.ID]
+		storedField := requestFields[field.ID]
+		if storedField.CollectionResolution != nil {
+			receipt := storedField.CollectionResolution
+			if !evidence.CollectionFieldFulfilled(storedField, time.Now().UTC()) || receipt.BankReviewState != "VALIDATED" {
+				return ErrAssessmentCompletionBlocked
+			}
+			var available bool
+			err := tx.QueryRow(ctx, `SELECT status='AVAILABLE' AND sha256=$4 AND size_bytes=$5 FROM capture_artifacts WHERE tenant_id=$1::uuid AND request_id=$2::uuid AND id=$3::uuid FOR SHARE`, tenantID, receipt.SourceArtifactRequestID, receipt.Source.ArtifactID, receipt.Source.SHA256, receipt.Source.SizeBytes).Scan(&available)
+			if err != nil || !available {
+				return ErrAssessmentCompletionBlocked
+			}
+			continue
+		}
 		if field.Required && (!answered || !answer.Answered()) {
 			return ErrAssessmentCompletionBlocked
 		}

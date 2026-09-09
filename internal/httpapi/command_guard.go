@@ -233,7 +233,7 @@ func restoreJSONBody(r *http.Request, raw []byte) {
 
 func bindPayloadIdentity(w http.ResponseWriter, payload map[string]any, actor identity.Actor, injectLegalEntity bool) bool {
 	if tenant := stringValue(payload["tenant_id"]); tenant != "" && tenant != actor.TenantID {
-		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This command is outside your signed-in bank scope.")
+		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This request is outside your organization.")
 		return false
 	}
 	payload["tenant_id"] = actor.TenantID
@@ -257,7 +257,7 @@ func writeCommandAuthorizationError(w http.ResponseWriter, err error) {
 	case errors.Is(err, commandauth.ErrIdentityRequired):
 		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to continue.")
 	case errors.Is(err, commandauth.ErrTenantMismatch):
-		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This command is outside your signed-in bank scope.")
+		httpx.WriteError(w, http.StatusForbidden, "tenant_not_allowed", "This request is outside your organization.")
 	case errors.Is(err, commandauth.ErrLegalEntityMismatch):
 		httpx.WriteError(w, http.StatusForbidden, "legal_entity_not_allowed", "This command is outside your signed-in legal-entity scope.")
 	case errors.Is(err, commandauth.ErrGuardUnavailable):

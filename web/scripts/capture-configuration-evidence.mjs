@@ -1,6 +1,7 @@
-import { chromium } from "playwright";
+import { createRequire } from "node:module";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
@@ -66,7 +67,7 @@ async function capture(scenario) {
 }
 
 async function assertOverview(page, name) {
-  await page.getByRole("heading", { name: "Control plane", exact: true }).waitFor({ state: "visible" });
+  await page.getByRole("heading", { name: "Configuration areas", exact: true }).waitFor({ state: "visible" });
   const overview = page.locator(".configure-area-list");
   for (const label of ["People & access", "Authority & routing", "Data & integrations", "Automation", "AI governance", "System operations"]) {
     await overview.getByRole("button", { name: new RegExp(`^${label}\\b`, "i") }).waitFor({ state: "visible" });
