@@ -33,7 +33,13 @@ jobs:
           cache: true
       - run: go mod download
       - name: Install PDF and PostgreSQL tools
-        run: sudo apt-get update -qq && sudo apt-get install -y poppler-utils postgresql-client
+        run: |
+          # Chrome is preinstalled on the runner and is not used by this job.
+          # Excluding its external package index prevents an unrelated mirror
+          # rotation from blocking backend verification.
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update -qq
+          sudo apt-get install -y poppler-utils postgresql-client
       - name: Format
         run: |
           files="$(gofmt -l $(find cmd internal -name '*.go' -type f))"
