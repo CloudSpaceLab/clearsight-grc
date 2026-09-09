@@ -69,8 +69,9 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
         // Scrolling the trigger into view can deliver its queued event after
         // pointerdown opens the list. Ignore only that unchanged scroll's
         // synchronous close callback, never a later outside press or key.
+        // Native events can drain microtasks between listeners; eventPhase
+        // bounds this guard to dispatch without clearing it prematurely.
         unchangedOpeningScroll.current = event;
-        queueMicrotask(() => { if (unchangedOpeningScroll.current === event) unchangedOpeningScroll.current = undefined; });
       }
       if (!scrollShifted) return;
       restoringScroll.current = true;
@@ -100,6 +101,7 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
 
   function finishClose() {
     allowClose.current = false;
+    unchangedOpeningScroll.current = undefined;
     restoringScroll.current = false;
     openScrollPosition.current = undefined;
     setIsOpen(false);
@@ -138,6 +140,13 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
     if (event.key === "Escape" || event.key === "Tab") allowClose.current = true;
   }
 
+  function permitOutsideClose(element: Element) {
+    // Let the trigger's press handler toggle its own menu.
+    if (triggerButton.current?.contains(element)) return false;
+    allowClose.current = true;
+    return true;
+  }
+
   function change(key: Key | null) {
     allowClose.current = true;
     finishClose();
@@ -157,13 +166,13 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
     onOpenChange={handleOpenChange}
   >
     <Label className="cs-select-field__label">{label}{isRequired && <span className="cs-field__required" aria-hidden="true"> *</span>}</Label>
-    <AriaButton ref={triggerButton} className="cs-select-field__trigger" onPressStart={() => { if (isOpen) allowClose.current = true; }} onKeyDown={permitClose}>
+    <AriaButton ref={triggerButton} className="cs-select-field__trigger" onPressStart={(event) => { if (!isOpen) return; allowClose.current = true; if (event.pointerType !== "touch" && event.pointerType !== "keyboard") finishClose(); }} onKeyDown={permitClose}>
       <SelectValue className="cs-select-field__value">{({ isPlaceholder, selectedText }) => isPlaceholder ? placeholder : selectedText}</SelectValue>
       <span className="cs-select-field__chevron" aria-hidden="true">⌄</span>
     </AriaButton>
     {description && <Text className="cs-select-field__description" slot="description">{description}</Text>}
     {isInvalid && errorMessage && <FieldError className="cs-select-field__error">{errorMessage}</FieldError>}
-    <Popover className="cs-select-field__popover" isNonModal UNSTABLE_portalContainer={portalContainer}>
+    <Popover className="cs-select-field__popover" isNonModal UNSTABLE_portalContainer={portalContainer} shouldCloseOnInteractOutside={permitOutsideClose}>
       <div onKeyDownCapture={permitClose}>
         <ListBox className="cs-select-field__listbox">
           {allowsEmpty && <ListBoxItem id={emptyKey} textValue={placeholder} className="cs-select-field__option">{placeholder}</ListBoxItem>}

@@ -1,5 +1,5 @@
 import axe from "axe-core";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { SelectField, type SelectOption } from "./index";
@@ -30,6 +30,16 @@ describe("SelectField", () => {
 
     expect(change).toHaveBeenCalledWith("LOCKED");
     await waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
+
+  it("closes an open list when its trigger is pressed again", async () => {
+    render(<SelectField label="File type" value="OPEN" placeholder="File type" options={options} onChange={() => undefined}/>);
+    const trigger = screen.getByRole("button", { name: /File type/ });
+    fireEvent.click(trigger);
+    await screen.findByRole("listbox");
+    fireEvent.click(trigger);
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
   });
 
   it("supports keyboard End selection and Escape cancellation", async () => {
@@ -143,6 +153,50 @@ describe("SelectField", () => {
       fireEvent.click(screen.getByRole("option", { name: "Responses locked" }));
       expect(change).toHaveBeenCalledExactlyOnceWith("LOCKED");
     } finally { now.mockRestore(); }
+  });
+
+  it("retains the opening scroll guard across native listener microtask checkpoints", async () => {
+    const now = vi.spyOn(performance, "now").mockReturnValue(1_000);
+    try {
+      render(<main><SelectField label="File type" value="OPEN" placeholder="File type" options={options} onChange={() => undefined}/><div id="cs-overlay-root"/></main>);
+      fireEvent.click(screen.getByRole("button", { name: /File type/ }));
+      await screen.findByRole("listbox");
+
+      // Native scroll delivery may drain microtasks between listeners. Synthetic
+      // dispatch normally drains them only after the entire event has returned.
+      const checkpoint = vi.spyOn(globalThis, "queueMicrotask").mockImplementation((callback) => callback());
+      try { fireEvent.scroll(document); } finally { checkpoint.mockRestore(); }
+
+      expect(screen.getByRole("listbox")).toBeTruthy();
+      fireEvent.keyDown(window, { key: "Escape" });
+      await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+    } finally { now.mockRestore(); }
+  });
+
+  it("closes for outside focus while restoring the opening scroll position", async () => {
+    let scrollY = 0;
+    const originalScrollY = Object.getOwnPropertyDescriptor(window, "scrollY");
+    Object.defineProperty(window, "scrollY", { configurable: true, get: () => scrollY });
+    const now = vi.spyOn(performance, "now").mockReturnValue(1_000);
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => { scrollY = 0; });
+    try {
+      render(<main><SelectField label="File type" value="OPEN" placeholder="File type" options={options} onChange={() => undefined}/><input aria-label="Search file names"/><div id="cs-overlay-root"/></main>);
+      fireEvent.click(screen.getByRole("button", { name: /File type/ }));
+      await screen.findByRole("listbox");
+      scrollY = 11;
+      fireEvent.scroll(document);
+      expect(scrollTo).toHaveBeenCalled();
+
+      const search = screen.getByRole("textbox", { name: "Search file names" });
+      act(() => search.focus());
+      await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+      expect(document.activeElement).toBe(search);
+    } finally {
+      now.mockRestore();
+      scrollTo.mockRestore();
+      if (originalScrollY) Object.defineProperty(window, "scrollY", originalScrollY);
+      else Reflect.deleteProperty(window, "scrollY");
+    }
   });
 
   it("still closes an open option list when the user scrolls after positioning completes", async () => {
