@@ -30,17 +30,29 @@ func (s *Service) ensureGovernedVendorForm(ctx context.Context, config SeedConfi
 		return monitoring.ErrMakerChecker
 	}
 
-	forms, err := s.monitoring.ListForms(ctx, maker, input.ProgramID, 100)
-	if err != nil {
-		return fmt.Errorf("list reference vendor due-diligence forms: %w", err)
-	}
 	var current monitoring.FormTemplate
-	for _, form := range forms {
-		if !strings.EqualFold(form.Code, input.Code) {
-			continue
+	var err error
+	if input.Code == vendorComplianceFormCode {
+		current, err = s.monitoring.LatestFormByCode(ctx, maker, input.ProgramID, input.Code)
+		if err == nil {
+			return nil
 		}
-		if current.ID == "" || form.Version > current.Version {
-			current = form
+		if !errors.Is(err, monitoring.ErrNotFound) {
+			return fmt.Errorf("find reference %s form: %w", purpose, err)
+		}
+	} else {
+		forms, listErr := s.monitoring.ListForms(ctx, maker, input.ProgramID, 100)
+		err = listErr
+		if err != nil {
+			return fmt.Errorf("list reference vendor due-diligence forms: %w", err)
+		}
+		for _, form := range forms {
+			if !strings.EqualFold(form.Code, input.Code) {
+				continue
+			}
+			if current.ID == "" || form.Version > current.Version {
+				current = form
+			}
 		}
 	}
 	if current.ID == "" {

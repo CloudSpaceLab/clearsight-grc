@@ -1,0 +1,43 @@
+{
+  "name": "app-unavailable-light-320",
+  "state": "unavailable",
+  "theme": "light",
+  "width": 320,
+  "integrated": true,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 320,
+    "pageScrollWidth": 320,
+    "scrollY": 96,
+    "componentWidth": 238,
+    "componentScrollWidth": 238,
+    "buttons": [
+      {
+        "label": "Manage forms",
+        "x": 41,
+        "right": 279,
+        "height": 44
+      },
+      {
+        "label": "Retry",
+        "x": 58,
+        "right": 127.484375,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 19
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 399.78125,
+    "firstRequirementTop": null
+  },
+  "status": "PASS"
+}

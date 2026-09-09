@@ -39,7 +39,12 @@ try {
     try {
       await page.goto(`${base}/?tour=off&fixture=${fixture}#vendors`, { waitUntil: 'networkidle' });
       await page.getByRole('button', { name: /Acme Processing Limited.*Card transaction processing/ }).click();
-      await page.getByRole('button', { name: 'Open due diligence', exact: true }).click();
+      const dueDiligenceTab = page.getByRole('tab', { name: 'Due diligence', exact: true });
+      if (await dueDiligenceTab.isVisible()) await dueDiligenceTab.click();
+      else {
+        await page.getByRole('button', { name: / Vendor section$/ }).click();
+        await page.getByRole('listbox').getByRole('option', { name: 'Due diligence', exact: true }).click();
+      }
       const checklist = page.locator('.vendor-checklist');
       const iso = checklist.getByRole('article', { name: 'ISO 27001 assurance', exact: true });
       await iso.waitFor();

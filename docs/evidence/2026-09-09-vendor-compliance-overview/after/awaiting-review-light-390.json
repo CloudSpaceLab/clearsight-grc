@@ -1,0 +1,43 @@
+{
+  "name": "awaiting-review-light-390",
+  "state": "awaiting-review",
+  "theme": "light",
+  "width": 390,
+  "integrated": false,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 390,
+    "pageScrollWidth": 390,
+    "scrollY": 0,
+    "componentWidth": 326,
+    "componentScrollWidth": 326,
+    "buttons": [
+      {
+        "label": "Review response",
+        "x": 32,
+        "right": 358,
+        "height": 44
+      },
+      {
+        "label": "Review Sample · Third Party Risk Compliance",
+        "x": 277.328125,
+        "right": 358,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 13
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 186,
+    "firstRequirementTop": null
+  },
+  "status": "PASS"
+}

@@ -743,7 +743,7 @@ for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"],
         }
         else {
           await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
-          await page.getByRole("button", { name: "View vendor documents" }).click();
+          await selectVendorSection(page, "Documents");
         }
         await page.getByRole("row", { name: /Sample security certification/ }).waitFor();
         await assertDocumentHeader(page);
@@ -895,7 +895,7 @@ for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"
       if (surface === "forms") await openFormsTab(page, "Documents");
       else {
         await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
-        await page.getByRole("button", { name: "View vendor documents" }).click();
+        await selectVendorSection(page, "Documents");
       }
       const filename = state === "preview" ? "sample-office-statement.png" : "Supplier office statement.png";
       const row = page.getByRole("row", { name: new RegExp(filename.replaceAll(".", "\\.")) });

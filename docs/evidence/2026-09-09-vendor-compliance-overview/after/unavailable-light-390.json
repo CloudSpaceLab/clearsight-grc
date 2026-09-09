@@ -1,0 +1,44 @@
+{
+  "name": "unavailable-light-390",
+  "state": "unavailable",
+  "theme": "light",
+  "width": 390,
+  "integrated": false,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 390,
+    "pageScrollWidth": 390,
+    "scrollY": 0,
+    "componentWidth": 326,
+    "componentScrollWidth": 326,
+    "buttons": [
+      {
+        "label": "Manage forms",
+        "x": 32,
+        "right": 358,
+        "height": 44
+      },
+      {
+        "label": "Retry",
+        "x": 49,
+        "right": 118.484375,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 2
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 186,
+    "firstRequirementTop": null
+  },
+  "retry": "Reloaded the authorized empty population after recovery.",
+  "status": "PASS"
+}

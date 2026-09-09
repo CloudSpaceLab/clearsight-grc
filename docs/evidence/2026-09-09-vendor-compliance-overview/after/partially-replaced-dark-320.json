@@ -1,0 +1,43 @@
+{
+  "name": "partially-replaced-dark-320",
+  "state": "partially-replaced",
+  "theme": "dark",
+  "width": 320,
+  "integrated": false,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 320,
+    "pageScrollWidth": 320,
+    "scrollY": 0,
+    "componentWidth": 256,
+    "componentScrollWidth": 256,
+    "buttons": [
+      {
+        "label": "Manage forms",
+        "x": 32,
+        "right": 288,
+        "height": 44
+      },
+      {
+        "label": "Review Sample · Third Party Risk Compliance",
+        "x": 32,
+        "right": 112.671875,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 14
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 186,
+    "firstRequirementTop": null
+  },
+  "status": "PASS"
+}

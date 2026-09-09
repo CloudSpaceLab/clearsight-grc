@@ -1,0 +1,46 @@
+{
+  "name": "app-gaps-light-320",
+  "state": "gaps",
+  "theme": "light",
+  "width": 320,
+  "integrated": true,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 320,
+    "pageScrollWidth": 320,
+    "scrollY": 96,
+    "componentWidth": 238,
+    "componentScrollWidth": 238,
+    "buttons": [
+      {
+        "label": "Review response",
+        "x": 41,
+        "right": 279,
+        "height": 44
+      },
+      {
+        "label": "Review Sample · Card processing service checks",
+        "x": 41,
+        "right": 121.671875,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 36
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 399.78125,
+    "firstRequirementTop": 667.78125,
+    "firstRequirementBottom": 693.78125,
+    "navigationTop": 727
+  },
+  "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+  "status": "PASS"
+}

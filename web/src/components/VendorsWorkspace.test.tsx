@@ -10,7 +10,7 @@ import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAsse
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { createVendorRelationship, loadVendorActivation, loadVendorIdentity, loadVendorRelationship, loadVendorRelationships, removeApprovedVendorLogo, updateVendorIdentity, updateVendorRelationship, uploadApprovedVendorLogo } from "../vendorApi";
 import { VendorsWorkspace } from "./VendorsWorkspace";
-import { loadVendorFormSummaries } from "../vendorFormsApi";
+import { loadVendorForms, loadVendorFormSummaries } from "../vendorFormsApi";
 import { loadVendorCollection, prepareVendorCollection } from "../vendorCollectionApi";
 async function chooseVendorOption(label: string, option: string) {
 	  const triggers = screen.getAllByRole("button", { name: new RegExp(label, "i") }).filter((button) => button.getAttribute("aria-haspopup") === "listbox");
@@ -20,14 +20,14 @@ async function chooseVendorOption(label: string, option: string) {
 }
 
 vi.mock("../vendorCollectionApi", () => ({ loadVendorCollection: vi.fn().mockResolvedValue({ assessment_id: "assessment-1", assessment_version: 3, prepared: false, can_reconcile: false, fields: [], observed_at: "2026-09-08T10:00:00Z", vendor_pending_count: 0, bank_pending_count: 0 }), prepareVendorCollection: vi.fn() }));
-vi.mock("../vendorFormsApi", () => ({ loadVendorFormSummaries: vi.fn() }));
+vi.mock("../vendorFormsApi", () => ({ loadVendorForms: vi.fn(), loadVendorFormSummaries: vi.fn() }));
 vi.mock("./VendorFormsPanel", () => ({ VendorFormsPanel: ({ relationshipID, initialFilter, onRequestForm }: { relationshipID: string; initialFilter?: string; onRequestForm: () => void }) => <section className="vendor-forms-panel" aria-label={`Vendor form work ${relationshipID} ${initialFilter ?? "ALL"}`}><button type="button" onClick={onRequestForm}>Request form</button></section>, VendorResponseHistory: ({ relationshipID }: { relationshipID: string }) => <section aria-label={`Response history for ${relationshipID}`}/> }));
 vi.mock("./VendorFormRequest", () => ({ VendorFormRequest: ({ targets }: { targets: Array<{ relationshipID: string }> }) => <section role="dialog" aria-label="Request vendor forms">{targets.map((target) => <span key={target.relationshipID}>{target.relationshipID}</span>)}</section> }));
 vi.mock("./documents/DocumentBrowser", () => ({ DocumentBrowser: ({ relationshipID }: { relationshipID?: string }) => <section aria-label={`Documents for ${relationshipID}`}/> }));
 
 it("opens the shared document browser for the selected vendor relationship", async () => {
   render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" targetID="relationship-1"/>);
-  fireEvent.click(await screen.findByRole("button", { name: "View vendor documents" }));
+  fireEvent.click(await screen.findByRole("tab", { name: "Documents" }));
   expect(await screen.findByRole("region", { name: "Documents for relationship-1" })).toBeTruthy();
 });
 
@@ -139,6 +139,7 @@ function deferred<T>() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(loadVendorForms).mockResolvedValue({ items: [], observed_at: "2026-09-09T12:00:00Z" });
   vi.mocked(loadVendorFormSummaries).mockResolvedValue({ items: [{ relationship_id: "relationship-1", outstanding_forms: 2, overdue_forms: 1, submitted_forms: 1, awaiting_review: 1, unassessed_forms: 1, assessed_forms: 0, observed_at: "2026-09-08T12:00:00Z" }] });
   showVendorWorkAction = false;
   vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [record] });
@@ -151,6 +152,16 @@ beforeEach(() => {
 });
 
 describe("VendorsWorkspace", () => {
+  it("shows a custom form's failed requirements directly in the vendor overview after submission", async () => {
+    vi.mocked(loadVendorForms).mockResolvedValue({ items: [{ request_id: "request-1", relationship_id: "relationship-1", response_id: "submitted-custom-form", form_template_id: "custom-form", form_template_version: 2, title: "Third Party Risk Compliance", response_state: "SUBMITTED", deadline: "2099-10-01T12:00:00Z", updated_at: "2026-09-09T12:00:00Z", required_count: 3, answered_required: 3, missing_fields: [], current: true, required_reviews: 2, completed_reviews: 0, outdated: true, attention_items: [{ field_id: "iso", label: "ISO 27001 certificate", state: "MISSING", source: "RESPONSE" }, { rule_id: "audit-rights", label: "SLA audit rights", state: "GAP", source: "RESPONSE" }] }], observed_at: "2026-09-09T12:00:00Z" });
+    render(<VendorsWorkspace organizationName="Clear Telecom" legalEntityName="Clear Telecom Nigeria" targetID="relationship-1"/>);
+    expect(await screen.findByText("ISO 27001 certificate")).toBeTruthy();
+    expect(screen.getByText("SLA audit rights")).toBeTruthy();
+    expect(screen.getByText("Not met")).toBeTruthy();
+    expect(screen.getByText("Submitted")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Overview", selected: true })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Review Third Party Risk Compliance" })).toBeTruthy();
+  });
   it("requires explicit classification before creating a vendor service", async () => {
     vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [] });
     render(<VendorsWorkspace organizationName="Clear Telecom" legalEntityName="Clear Telecom Nigeria"/>);

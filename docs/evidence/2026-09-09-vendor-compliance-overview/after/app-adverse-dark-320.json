@@ -1,0 +1,43 @@
+{
+  "name": "app-adverse-dark-320",
+  "state": "adverse",
+  "theme": "dark",
+  "width": 320,
+  "integrated": true,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 320,
+    "pageScrollWidth": 320,
+    "scrollY": 96,
+    "componentWidth": 238,
+    "componentScrollWidth": 238,
+    "buttons": [
+      {
+        "label": "Review compliance",
+        "x": 41,
+        "right": 279,
+        "height": 44
+      },
+      {
+        "label": "Review Sample · Third Party Risk Compliance",
+        "x": 198.328125,
+        "right": 279,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 30
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 399.78125,
+    "firstRequirementTop": null
+  },
+  "status": "PASS"
+}

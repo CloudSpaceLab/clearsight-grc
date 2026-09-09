@@ -1,0 +1,208 @@
+{
+  "capturedAt": "2026-09-09T13:37:58.002Z",
+  "base": "http://127.0.0.1:4188",
+  "fixtureOnly": true,
+  "fileBytesPreviewed": false,
+  "results": [
+    {
+      "allowance": "allowed",
+      "state": "review",
+      "name": "allowed-review-light-1440",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "light",
+      "width": 1440,
+      "capturedAt": "2026-09-09T13:37:50.473Z",
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      },
+      "surfaceLayout": {
+        "clientWidth": 559,
+        "scrollWidth": 559
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria5968875826-_r_59_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "#react-aria5968875826-_r_5m_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-review-light-1440-viewport.png",
+      "surfaceFile": "allowed-review-light-1440-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "review",
+      "name": "allowed-review-light-390",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "light",
+      "width": 390,
+      "capturedAt": "2026-09-09T13:37:52.457Z",
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390
+      },
+      "surfaceLayout": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria2730750087-_r_5u_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "#react-aria2730750087-_r_6b_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-review-light-390-viewport.png",
+      "surfaceFile": "allowed-review-light-390-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "review",
+      "name": "allowed-review-dark-1440",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "dark",
+      "width": 1440,
+      "capturedAt": "2026-09-09T13:37:54.167Z",
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      },
+      "surfaceLayout": {
+        "clientWidth": 559,
+        "scrollWidth": 559
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria5734075363-_r_59_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "#react-aria5734075363-_r_5m_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-review-dark-1440-viewport.png",
+      "surfaceFile": "allowed-review-dark-1440-surface.png",
+      "status": "CAPTURED"
+    },
+    {
+      "allowance": "allowed",
+      "state": "review",
+      "name": "allowed-review-dark-390",
+      "fixture": "vendor-collection-unscanned-allowed",
+      "theme": "dark",
+      "width": 390,
+      "capturedAt": "2026-09-09T13:37:56.239Z",
+      "pageErrors": [],
+      "protectedContentRequests": [],
+      "receiptReviewEnabled": true,
+      "actionReachable": true,
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390
+      },
+      "surfaceLayout": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+            "nodeCount": 2,
+            "examples": [
+              {
+                "target": [
+                  "#react-aria6612679778-_r_5u_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              },
+              {
+                "target": [
+                  "#react-aria6612679778-_r_6b_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                ],
+                "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+              }
+            ]
+          }
+        ]
+      },
+      "viewportFile": "allowed-review-dark-390-viewport.png",
+      "surfaceFile": "allowed-review-dark-390-surface.png",
+      "status": "CAPTURED"
+    }
+  ]
+}

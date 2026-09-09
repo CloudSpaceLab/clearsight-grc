@@ -25,6 +25,7 @@ func vendorFormsScopedSQL(allowUnscanned bool) string {
 	access = regexp.MustCompile(`\br\.(tenant_id|legal_entity_id)\b`).ReplaceAllString(access, "req.$1")
 	return `WITH scoped AS MATERIALIZED (
  SELECT req.*,d.status AS distribution_status,recipient.state AS delivery_state,recipient.audience_hint,
+ document_facts.facts AS document_facts,document_facts.expired AS documents_expired,document_facts.known AS document_freshness_known,bank.decisions AS field_review_decisions,
  r.id AS response_id,r.created_at AS submitted_at,r.score_result AS automatic_score,
  CASE WHEN bank.response_revision_id IS NOT NULL THEN bank.score_result WHEN COALESCE((r.score_result->>'assessment_review_count')::int,0)>0 THEN NULL ELSE r.score_result END AS effective_score,bank.score_result AS assessed_score,
  COALESCE(bank.state,CASE WHEN COALESCE((r.score_result->>'assessment_review_count')::int,0)>0 THEN 'AWAITING_REVIEW' ELSE 'NOT_REQUIRED' END) AS assessment_state,
@@ -40,6 +41,7 @@ func vendorFormsScopedSQL(allowUnscanned bool) string {
  LEFT JOIN LATERAL (SELECT sub.* FROM capture_submissions sub WHERE sub.tenant_id=req.tenant_id AND sub.request_id=req.id ORDER BY sub.submitted_at DESC,sub.id DESC LIMIT 1) submission ON true
  LEFT JOIN capture_response_revisions r ON r.submission_id=submission.id AND r.tenant_id=req.tenant_id AND r.legal_entity_id=req.legal_entity_id AND r.is_current
  ` + documentWorkflowJoinsSQL() + `
+ ` + vendorDocumentFactsSQL(allowUnscanned) + `
  LEFT JOIN LATERAL (SELECT count(*) AS total,count(*) FILTER(WHERE ` + documentCurrentSQL() + `) AS remaining FROM jsonb_array_elements(req.fields) field) currency ON true
  LEFT JOIN LATERAL (SELECT a.* FROM capture_response_assessments a WHERE a.tenant_id=req.tenant_id AND a.legal_entity_id=req.legal_entity_id AND a.response_revision_id=r.id ORDER BY a.version DESC LIMIT 1) bank ON true
  LEFT JOIN capture_distribution_recipients recipient ON recipient.request_id=req.id AND recipient.tenant_id=req.tenant_id AND recipient.legal_entity_id=req.legal_entity_id
@@ -66,7 +68,7 @@ func (s *PostgresDistributionStore) ListVendorForms(ctx context.Context, q Vendo
 	rows, err := s.repo.pool.Query(ctx, vendorFormsScopedSQL(s.repo.demoUnscannedAllowed)+`
  SELECT to_jsonb(f)||jsonb_build_object('origin',jsonb_build_object('type',f.origin_type,'id',f.origin_id,'version',f.origin_version)),
  jsonb_build_object('request_id',f.id::text,'relationship_id',f.subject_id,'distribution_id',f.distribution_id::text,'response_id',f.response_id::text,'form_template_id',f.form_template_id::text,'form_template_version',f.form_template_version,'title',f.title,'purpose',f.purpose,'origin_type',f.origin_type,'origin_id',f.origin_id,'response_state',f.response_state,'recipient_hint',f.audience_hint,'delivery_state',f.delivery_state,'deadline',f.deadline,'updated_at',f.updated_at,'submitted_at',f.submitted_at,'score',f.automatic_score,'assessed_score',f.assessed_score,'assessment_state',f.assessment_state,'required_reviews',f.required_reviews,'completed_reviews',f.completed_reviews,'current',f.current,'response_currency',f.response_currency),
- COALESCE(submission.answers,edits.answers,draft.answers,'{}'::jsonb),
+ COALESCE(submission.answers,edits.answers,draft.answers,'{}'::jsonb),f.document_facts,ARRAY(SELECT jsonb_object_keys(COALESCE(f.field_review_decisions,'{}'::jsonb))),
  submission.id IS NOT NULL OR edits.answers IS NOT NULL OR draft.id IS NOT NULL OR f.status IN ('READY','DRAFT')
  FROM (SELECT * FROM filtered WHERE ($8='' OR (updated_at,id::text)<($9,$8)) ORDER BY updated_at DESC,id DESC LIMIT $10) f
  LEFT JOIN LATERAL (SELECT sub.id,sub.answers FROM capture_submissions sub WHERE sub.tenant_id=f.tenant_id AND sub.request_id=f.id ORDER BY sub.submitted_at DESC,sub.id DESC LIMIT 1) submission ON true
@@ -84,12 +86,14 @@ func (s *PostgresDistributionStore) ListVendorForms(ctx context.Context, q Vendo
 		row     VendorFormRow
 		answers map[string]formcontract.AnswerValue
 		known   bool
+		facts   map[string]vendorDocumentFact
 	}
 	inputs := make([]progressInput, 0, q.Limit+1)
 	for rows.Next() {
-		var reqJSON, rowJSON, answerJSON []byte
+		var reqJSON, rowJSON, answerJSON, factJSON []byte
 		var known bool
-		if err := rows.Scan(&reqJSON, &rowJSON, &answerJSON, &known); err != nil {
+		var reviewedIDs []string
+		if err := rows.Scan(&reqJSON, &rowJSON, &answerJSON, &factJSON, &reviewedIDs, &known); err != nil {
 			return VendorFormsPage{}, err
 		}
 		var req Request
@@ -101,10 +105,18 @@ func (s *PostgresDistributionStore) ListVendorForms(ctx context.Context, q Vendo
 		if err := json.Unmarshal(rowJSON, &row); err != nil {
 			return VendorFormsPage{}, err
 		}
+		row.reviewedFields = map[string]bool{}
+		for _, fieldID := range reviewedIDs {
+			row.reviewedFields[fieldID] = true
+		}
 		if err := json.Unmarshal(answerJSON, &answers); err != nil {
 			return VendorFormsPage{}, err
 		}
-		inputs = append(inputs, progressInput{req, row, answers, known})
+		var facts map[string]vendorDocumentFact
+		if err := json.Unmarshal(factJSON, &facts); err != nil {
+			return VendorFormsPage{}, err
+		}
+		inputs = append(inputs, progressInput{req, row, answers, known, facts})
 	}
 	if err := rows.Err(); err != nil {
 		return VendorFormsPage{}, err
@@ -127,6 +139,7 @@ func (s *PostgresDistributionStore) ListVendorForms(ctx context.Context, q Vendo
 		if row.ResponseState == "IN_PROGRESS" || row.ResponseState == "AWAITING_RESPONSE" || row.ResponseState == "NO_VENDOR_ACTION" || row.ResponseState == "REQUEST_READY" || row.ResponseState == "EXPIRED" {
 			row.ResponseState = progress.ResponseState
 		}
+		populateVendorFormAttention(req, answers, known, &row, input.facts, now)
 		values = append(values, row)
 	}
 	return vendorFormsPage(values, q.Limit, now), nil
@@ -141,6 +154,8 @@ func (s *PostgresDistributionStore) VendorFormSummaries(ctx context.Context, q V
  count(*) FILTER(WHERE response_state IN ('REQUEST_READY','AWAITING_RESPONSE','IN_PROGRESS','EXPIRED') AND deadline<$4),
  count(*) FILTER(WHERE response_state='SUBMITTED'),
  count(*) FILTER(WHERE response_currency='PARTIALLY_REPLACED'),
+ count(*) FILTER(WHERE response_state='SUBMITTED' AND (response_currency='PARTIALLY_REPLACED' OR documents_expired)),
+ count(*) FILTER(WHERE response_state='SUBMITTED' AND response_currency<>'PARTIALLY_REPLACED' AND NOT documents_expired AND NOT document_freshness_known),
  count(*) FILTER(WHERE response_state='SUBMITTED' AND assessment_state IN ('AWAITING_REVIEW','IN_REVIEW')),
  count(*) FILTER(WHERE response_state='SUBMITTED' AND COALESCE(effective_score->>'state','')<>'FINAL'),
  count(*) FILTER(WHERE response_state='SUBMITTED' AND effective_score->>'state'='FINAL'),
@@ -154,7 +169,7 @@ func (s *PostgresDistributionStore) VendorFormSummaries(ctx context.Context, q V
 	for rows.Next() {
 		var v VendorFormSummary
 		var band int
-		if err := rows.Scan(&v.RelationshipID, &v.OutstandingForms, &v.OverdueForms, &v.SubmittedForms, &v.PartiallyReplacedForms, &v.AwaitingReview, &v.UnassessedForms, &v.AssessedForms, &band); err != nil {
+		if err := rows.Scan(&v.RelationshipID, &v.OutstandingForms, &v.OverdueForms, &v.SubmittedForms, &v.PartiallyReplacedForms, &v.OutdatedForms, &v.FreshnessUnknownForms, &v.AwaitingReview, &v.UnassessedForms, &v.AssessedForms, &band); err != nil {
 			return nil, err
 		}
 		v.ObservedAt = now

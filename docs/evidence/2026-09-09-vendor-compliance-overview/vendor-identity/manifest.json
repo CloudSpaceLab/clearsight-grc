@@ -1,0 +1,243 @@
+{
+  "generatedAt": "2026-09-09T13:37:50.118Z",
+  "baseURL": "http://127.0.0.1:4188",
+  "sourceSha256": {
+    "web/scripts/capture-premium-first-run-evidence.mjs": "d48c9fc9582fec3d4f40d791b06c5f548d10754c410088c4d06822bd3e9fdd1b",
+    "web/src/components/VendorsWorkspace.tsx": "8dc86cb5216f8280396658c2fce6505bbef69eaa3334efb7a89e235cdab7411b",
+    "web/src/vendors.css": "e4b9ee2bb380ec663a1aca9a25f5e0a84482cfa2bc154f166edd42078753af07",
+    "web/dist-evidence/index.html": "5c3a830f4d479cbf346c0e94481090c74881c17eecb2eafedf619614d3baebef"
+  },
+  "captures": [
+    {
+      "name": "68-vendor-brand-website-light-1440x900",
+      "route": "#vendors",
+      "fixture": "vendor-brand-website",
+      "state": "vendor-brand-website-icon",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1392,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "69-vendor-brand-approved-dark-1440x900",
+      "route": "#vendors",
+      "fixture": "vendor-brand-approved",
+      "state": "vendor-brand-approved-logo",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1392,
+        "scrollY": 0,
+        "theme": "dark",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "70-vendor-brand-pending-light-1440x900",
+      "route": "#vendors",
+      "fixture": "vendor-brand-pending",
+      "state": "vendor-brand-pending",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1392,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "71-vendor-brand-unavailable-light-1440x900",
+      "route": "#vendors",
+      "fixture": "vendor-brand-unavailable",
+      "state": "vendor-brand-unavailable",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1392,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "72-vendor-brand-broken-fallback-light-1440x900",
+      "route": "#vendors",
+      "fixture": "vendor-brand-broken",
+      "state": "vendor-brand-broken-monogram",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1392,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "73-vendor-identity-validation-staged-light-1440x900",
+      "route": "#vendors",
+      "fixture": "vendor-brand-pending",
+      "state": "vendor-identity-validation-and-staged-upload",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1290,
+        "scrollY": 236,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "74-vendor-identity-conflict-preserves-entry-light-1440x900",
+      "route": "#vendors",
+      "fixture": "vendor-identity-brand-errors",
+      "state": "vendor-identity-optimistic-conflict",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1254,
+        "scrollY": 354,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "75-vendor-brand-permission-error-preserves-upload-light-1440x900",
+      "route": "#vendors",
+      "fixture": "vendor-identity-brand-errors",
+      "state": "vendor-brand-permission-error-preserves-upload",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1348,
+        "scrollY": 370,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "76-vendor-brand-remove-restores-website-light-1440x900",
+      "route": "#vendors",
+      "fixture": "vendor-brand-approved",
+      "state": "vendor-brand-remove-restores-website",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1183,
+        "scrollY": 283,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "77-vendor-brand-remove-restores-monogram-light-1440x900",
+      "route": "#vendors",
+      "fixture": "vendor-brand-approved-no-discovered",
+      "state": "vendor-brand-remove-restores-monogram",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1183,
+        "scrollY": 283,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "78-vendor-identity-mobile-dark-390x844",
+      "route": "#vendors",
+      "fixture": "vendor-brand-approved",
+      "state": "vendor-identity-mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1823,
+        "scrollY": 120,
+        "theme": "dark",
+        "density": "comfortable"
+      }
+    }
+  ]
+}

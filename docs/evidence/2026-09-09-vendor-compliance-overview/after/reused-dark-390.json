@@ -1,0 +1,44 @@
+{
+  "name": "reused-dark-390",
+  "state": "reused",
+  "theme": "dark",
+  "width": 390,
+  "integrated": false,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 390,
+    "pageScrollWidth": 390,
+    "scrollY": 0,
+    "componentWidth": 326,
+    "componentScrollWidth": 326,
+    "buttons": [
+      {
+        "label": "Manage forms",
+        "x": 32,
+        "right": 358,
+        "height": 44
+      },
+      {
+        "label": "Review evidence for Sample · Third Party Risk Compliance",
+        "x": 215.3125,
+        "right": 358,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 14
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 186,
+    "firstRequirementTop": null
+  },
+  "navigation": "Opened Vendor due diligence from the visible action.",
+  "status": "PASS"
+}

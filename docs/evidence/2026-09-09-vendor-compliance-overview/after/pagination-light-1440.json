@@ -1,0 +1,50 @@
+{
+  "name": "pagination-light-1440",
+  "state": "pagination",
+  "theme": "light",
+  "width": 1440,
+  "integrated": false,
+  "errors": [],
+  "geometry": {
+    "pageWidth": 1440,
+    "pageScrollWidth": 1440,
+    "scrollY": 0,
+    "componentWidth": 960,
+    "componentScrollWidth": 960,
+    "buttons": [
+      {
+        "label": "Review compliance",
+        "x": 1040.421875,
+        "right": 1200,
+        "height": 44
+      },
+      {
+        "label": "Review Sample · Third Party Risk Compliance",
+        "x": 1119.328125,
+        "right": 1200,
+        "height": 44
+      },
+      {
+        "label": "Load more forms",
+        "x": 240,
+        "right": 1200,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 14
+      }
+    ]
+  },
+  "initialViewport": {
+    "overviewTop": 149,
+    "firstRequirementTop": null
+  },
+  "pagination": "Second page appended with exact cursor.",
+  "status": "PASS"
+}

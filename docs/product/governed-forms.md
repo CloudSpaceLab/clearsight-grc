@@ -14,6 +14,10 @@ Replacing only part of a response retains its outstanding concerns and labels it
 
 ## Template lifecycle
 
+The [vendor compliance overview](../design/2026-09-09-vendor-compliance-overview.md) shows failed requirements from custom submitted forms directly on the vendor service. Missing answers, expired evidence and adverse configured rule results remain separate from form submission and independent review. Automatic findings remain visible while required review is pending; an unconfigured negative answer is not interpreted as a failure. Unknown freshness and incomplete assessment do not become favourable compliance claims.
+
+The default [Third Party Risk Compliance sample](../acceptance/2026-09-09-third-party-compliance-form.md) covers certification, security testing and contractual audit evidence. It is configurable through the ordinary form builder, with immutable revisions and independent approval. Its topics follow the supplied sample register; it does not import source vendor identities or ratings.
+
 The Forms navigation opens a searchable, filterable library. A template records its bank purpose, owner or responsible team, approved uses, tags, jurisdiction, industry, sensitivity, presentation mode, sections, typed fields and scoring policy. A field may carry a percentage weight; compliance scoring is valid only when the governed weighted population totals 100. File, date and date-time questions render their native task-appropriate controls.
 
 Manual authoring, reusable starter templates, deterministic document proposals and AI proposals all produce an ordinary draft. DOCX and XLSX structure is retained where extraction supports it; searchable PDF text retains page anchors; XLS is converted through the bounded tabular adapter. Extraction limitations and unresolved fields remain visible. A maker must review the exact proposal, and a distinct checker must approve the revision before it becomes reusable. AI and document imports never activate a form.

@@ -1,0 +1,3634 @@
+{
+  "generatedAt": "2026-09-09T13:03:38.996Z",
+  "base": "http://127.0.0.1:4188",
+  "browser": "140.0.7339.16",
+  "sourceSha256": {
+    "web/src/components/VendorComplianceOverview.tsx": "fdb47cdcd2fdd7aaef157dccaeaf5eb848fa956c558cd3289cf8aaec5fd7d484",
+    "web/src/components/vendor-compliance-overview.css": "c8adac5580dede4fb0ba5ec36d9fae84b946b780777e1bdcd404f5a92b51dcfa",
+    "web/src/components/VendorsWorkspace.tsx": "dad3f7f3afae01c1805f28aa3e3daec70f94935466492d358a3dd11fb17c0555",
+    "web/src/vendors.css": "193e46ea283db06581e624247255a978606ba4b6d0d7da54a5dd5693616dd2a6",
+    "web/src/vendorComplianceEvidence.tsx": "409e3be6065d59c05ed328c7434684b8ac193b1c28137c4de4b68a900dab3fd1",
+    "web/src/vendorFormsApi.ts": "1b622ce987df135754e0e152e4818a53d0de1f521d6a7db8f0da35b603e7174b",
+    "web/dist-evidence/index.html": "20fd39b603805a74c6a92c9a8c8205c23a8469d6aed9823c567cb71bea06a290"
+  },
+  "results": [
+    {
+      "name": "app-empty-light-1440",
+      "state": "empty",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Request form",
+            "x": 1236.484375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 51
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-gaps-light-1440",
+      "state": "gaps",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 1216.171875,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Card processing service checks",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 58
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": 579.59375
+      },
+      "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+      "status": "PASS"
+    },
+    {
+      "name": "app-incomplete-light-1440",
+      "state": "incomplete",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 1229.84375,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Open Sample · Third Party Risk Compliance request",
+            "x": 1236.78125,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 56
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": 579.59375
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-reused-light-1440",
+      "state": "reused",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 1229.84375,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review evidence for Sample · Third Party Risk Compliance",
+            "x": 1216.71875,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 53
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-expired-light-1440",
+      "state": "expired",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 1216.171875,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 53
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": 579.59375
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-partially-replaced-light-1440",
+      "state": "partially-replaced",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 1229.84375,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 54
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-awaiting-review-light-1440",
+      "state": "awaiting-review",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 1216.171875,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 52
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-satisfactory-light-1440",
+      "state": "satisfactory",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 1199.828125,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 52
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-conditional-light-1440",
+      "state": "conditional",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 1199.828125,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 52
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-adverse-light-1440",
+      "state": "adverse",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 1199.828125,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 52
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-unavailable-light-1440",
+      "state": "unavailable",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 1229.84375,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Retry",
+            "x": 644.921875,
+            "right": 714.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 35
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-pagination-light-1440",
+      "state": "pagination",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 1199.828125,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Load more forms",
+            "x": 627.921875,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 53
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-restricted-light-1440",
+      "state": "restricted",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 1229.84375,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Authorized payment-service review",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 51
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-freshness-unknown-light-1440",
+      "state": "freshness-unknown",
+      "theme": "light",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 1199.828125,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 53
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-empty-light-390",
+      "state": "empty",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Request form",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 29
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-gaps-light-390",
+      "state": "gaps",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Card processing service checks",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 36
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": 576.1875
+      },
+      "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+      "status": "PASS"
+    },
+    {
+      "name": "app-incomplete-light-390",
+      "state": "incomplete",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Open Sample · Third Party Risk Compliance request",
+            "x": 226.375,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 34
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": 605.1875
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-reused-light-390",
+      "state": "reused",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review evidence for Sample · Third Party Risk Compliance",
+            "x": 206.3125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-expired-light-390",
+      "state": "expired",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": 576.1875
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-partially-replaced-light-390",
+      "state": "partially-replaced",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-awaiting-review-light-390",
+      "state": "awaiting-review",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-satisfactory-light-390",
+      "state": "satisfactory",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-conditional-light-390",
+      "state": "conditional",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-adverse-light-390",
+      "state": "adverse",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-unavailable-light-390",
+      "state": "unavailable",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Retry",
+            "x": 58,
+            "right": 127.484375,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 19
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-pagination-light-390",
+      "state": "pagination",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Load more forms",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-restricted-light-390",
+      "state": "restricted",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Authorized payment-service review",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 29
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-freshness-unknown-light-390",
+      "state": "freshness-unknown",
+      "theme": "light",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-empty-light-320",
+      "state": "empty",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Request form",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 29
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-gaps-light-320",
+      "state": "gaps",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Card processing service checks",
+            "x": 41,
+            "right": 121.671875,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 36
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": 667.78125
+      },
+      "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+      "status": "PASS"
+    },
+    {
+      "name": "app-incomplete-light-320",
+      "state": "incomplete",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Open Sample · Third Party Risk Compliance request",
+            "x": 41,
+            "right": 163.625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 34
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": 667.78125
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-reused-light-320",
+      "state": "reused",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review evidence for Sample · Third Party Risk Compliance",
+            "x": 41,
+            "right": 183.6875,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-expired-light-320",
+      "state": "expired",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 41,
+            "right": 121.671875,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": 667.78125
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-partially-replaced-light-320",
+      "state": "partially-replaced",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 41,
+            "right": 121.671875,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-awaiting-review-light-320",
+      "state": "awaiting-review",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-satisfactory-light-320",
+      "state": "satisfactory",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-conditional-light-320",
+      "state": "conditional",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-adverse-light-320",
+      "state": "adverse",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-unavailable-light-320",
+      "state": "unavailable",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Retry",
+            "x": 58,
+            "right": 127.484375,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 19
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-pagination-light-320",
+      "state": "pagination",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Load more forms",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-restricted-light-320",
+      "state": "restricted",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Authorized payment-service review",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 29
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-freshness-unknown-light-320",
+      "state": "freshness-unknown",
+      "theme": "light",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-empty-dark-1440",
+      "state": "empty",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Request form",
+            "x": 1236.484375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 51
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-gaps-dark-1440",
+      "state": "gaps",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 1216.171875,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Card processing service checks",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 58
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": 579.59375
+      },
+      "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+      "status": "PASS"
+    },
+    {
+      "name": "app-incomplete-dark-1440",
+      "state": "incomplete",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 1229.84375,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Open Sample · Third Party Risk Compliance request",
+            "x": 1236.78125,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 56
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": 579.59375
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-reused-dark-1440",
+      "state": "reused",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 1229.84375,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review evidence for Sample · Third Party Risk Compliance",
+            "x": 1216.71875,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 53
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-expired-dark-1440",
+      "state": "expired",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 1216.171875,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 53
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": 579.59375
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-partially-replaced-dark-1440",
+      "state": "partially-replaced",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 1229.84375,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 54
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-awaiting-review-dark-1440",
+      "state": "awaiting-review",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 1216.171875,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 52
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-satisfactory-dark-1440",
+      "state": "satisfactory",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 1199.828125,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 52
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-conditional-dark-1440",
+      "state": "conditional",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 1199.828125,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 52
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-adverse-dark-1440",
+      "state": "adverse",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 1199.828125,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 52
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-unavailable-dark-1440",
+      "state": "unavailable",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 1229.84375,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Retry",
+            "x": 644.921875,
+            "right": 714.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 35
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-pagination-dark-1440",
+      "state": "pagination",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 1199.828125,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Load more forms",
+            "x": 627.921875,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 53
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-restricted-dark-1440",
+      "state": "restricted",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 1229.84375,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Authorized payment-service review",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 51
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-freshness-unknown-dark-1440",
+      "state": "freshness-unknown",
+      "theme": "dark",
+      "width": 1440,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 1440,
+        "pageScrollWidth": 1440,
+        "scrollY": 0,
+        "componentWidth": 731,
+        "componentScrollWidth": 731,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 1199.828125,
+            "right": 1359.40625,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 1278.734375,
+            "right": 1359.40625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 53
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 425.59375,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-empty-dark-390",
+      "state": "empty",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Request form",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 29
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-gaps-dark-390",
+      "state": "gaps",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Card processing service checks",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 36
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": 576.1875
+      },
+      "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+      "status": "PASS"
+    },
+    {
+      "name": "app-incomplete-dark-390",
+      "state": "incomplete",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Open Sample · Third Party Risk Compliance request",
+            "x": 226.375,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 34
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": 605.1875
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-reused-dark-390",
+      "state": "reused",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review evidence for Sample · Third Party Risk Compliance",
+            "x": 206.3125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-expired-dark-390",
+      "state": "expired",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": 576.1875
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-partially-replaced-dark-390",
+      "state": "partially-replaced",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-awaiting-review-dark-390",
+      "state": "awaiting-review",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-satisfactory-dark-390",
+      "state": "satisfactory",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-conditional-dark-390",
+      "state": "conditional",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-adverse-dark-390",
+      "state": "adverse",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-unavailable-dark-390",
+      "state": "unavailable",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Retry",
+            "x": 58,
+            "right": 127.484375,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 19
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-pagination-dark-390",
+      "state": "pagination",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Load more forms",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-restricted-dark-390",
+      "state": "restricted",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Authorized payment-service review",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 29
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-freshness-unknown-dark-390",
+      "state": "freshness-unknown",
+      "theme": "dark",
+      "width": 390,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 390,
+        "pageScrollWidth": 390,
+        "scrollY": 96,
+        "componentWidth": 308,
+        "componentScrollWidth": 308,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 349,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 268.328125,
+            "right": 349,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 371.1875,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-empty-dark-320",
+      "state": "empty",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Request form",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 29
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-gaps-dark-320",
+      "state": "gaps",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Card processing service checks",
+            "x": 41,
+            "right": 121.671875,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 36
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": 667.78125
+      },
+      "keyboardReview": "Primary and row actions opened the exact response; Escape restored each originating action.",
+      "status": "PASS"
+    },
+    {
+      "name": "app-incomplete-dark-320",
+      "state": "incomplete",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Open Sample · Third Party Risk Compliance request",
+            "x": 41,
+            "right": 163.625,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 34
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": 667.78125
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-reused-dark-320",
+      "state": "reused",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review evidence for Sample · Third Party Risk Compliance",
+            "x": 41,
+            "right": 183.6875,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-expired-dark-320",
+      "state": "expired",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 41,
+            "right": 121.671875,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": 667.78125
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-partially-replaced-dark-320",
+      "state": "partially-replaced",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 41,
+            "right": 121.671875,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-awaiting-review-dark-320",
+      "state": "awaiting-review",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review response",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-satisfactory-dark-320",
+      "state": "satisfactory",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-conditional-dark-320",
+      "state": "conditional",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-adverse-dark-320",
+      "state": "adverse",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 30
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-unavailable-dark-320",
+      "state": "unavailable",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Retry",
+            "x": 58,
+            "right": 127.484375,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 19
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-pagination-dark-320",
+      "state": "pagination",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Load more forms",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-restricted-dark-320",
+      "state": "restricted",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Manage forms",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Authorized payment-service review",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 29
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "app-freshness-unknown-dark-320",
+      "state": "freshness-unknown",
+      "theme": "dark",
+      "width": 320,
+      "integrated": true,
+      "errors": [],
+      "geometry": {
+        "pageWidth": 320,
+        "pageScrollWidth": 320,
+        "scrollY": 96,
+        "componentWidth": 238,
+        "componentScrollWidth": 238,
+        "buttons": [
+          {
+            "label": "Review compliance",
+            "x": 41,
+            "right": 279,
+            "height": 44
+          },
+          {
+            "label": "Review Sample · Third Party Risk Compliance",
+            "x": 198.328125,
+            "right": 279,
+            "height": 44
+          }
+        ]
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 31
+          }
+        ]
+      },
+      "initialViewport": {
+        "overviewTop": 399.78125,
+        "firstRequirementTop": null
+      },
+      "status": "PASS"
+    }
+  ]
+}
