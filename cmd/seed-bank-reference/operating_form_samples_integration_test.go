@@ -78,10 +78,6 @@ func TestCloudspaceRiskRegisterSampleIsSubmittedAndRepeatSafe(t *testing.T) {
 	if _, err = legacyAccess.IssueDistributionAccessRoutes(ctx, seed.TenantID, seed.LegalEntityID, legacy.Distribution.ID, seed.ActorID); err != nil {
 		t.Fatal(err)
 	}
-	legacy, err = legacyDistributions.Open(ctx, seed.TenantID, seed.LegalEntityID, legacy.Distribution.ID, legacy.Distribution.Version, seed.ActorID)
-	if err != nil {
-		t.Fatal(err)
-	}
 	draft := legacyForm
 	draft.Version++
 	draft.Status = monitoring.LifecycleDraft
