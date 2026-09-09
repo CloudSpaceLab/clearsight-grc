@@ -1,4 +1,5 @@
-import { chromium } from "playwright";
+import { createRequire } from "node:module";
+const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -8,7 +9,7 @@ const base = process.env.PAGE_URL ?? "http://127.0.0.1:4187";
 const browser = await chromium.launch({ headless: true });
 const results = [];
 try {
-  for (const theme of ["light", "dark"]) for (const width of [1440, 390]) for (const state of ["assurance-missing", "assurance-available", "spreadsheet", "create"]) {
+  for (const theme of ["light", "dark"]) for (const width of [1440, 390]) for (const state of ["assurance-missing", "assurance-available", "spreadsheet", "spreadsheet-unsectioned", "create"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, colorScheme: theme, reducedMotion: "reduce" });
     page.setDefaultTimeout(10000);
     await page.addInitScript((theme) => localStorage.setItem("clearsight.theme", theme), theme);
@@ -21,10 +22,12 @@ try {
         await page.getByRole("button", { name: "Add vendor", exact: true }).click();
         await page.getByRole("button", { name: /Select criticality/ }).waitFor();
         await page.getByRole("button", { name: /Select privacy role/ }).waitFor();
-      } else if (state === "spreadsheet") {
+      } else if (state.startsWith("spreadsheet")) {
         await page.getByRole("heading", { name: "Review proposed form fields" }).waitFor();
         result.rows = await page.getByRole("checkbox", { name: /^Include Sample requirement/ }).count();
-        if (result.rows !== 47) throw new Error(`Expected 47 rows; received ${result.rows}`);
+        const expected = state === "spreadsheet" ? 47 : 3;
+        if (result.rows !== expected) throw new Error(`Expected ${expected} rows; received ${result.rows}`);
+        if (await page.getByRole("textbox", { name: /^Sample requirement/ }).count() !== expected) throw new Error("Proposal preview omitted source fields");
       } else {
         await page.getByText("Missing assurance requires review before approval.").waitFor();
         if (state === "assurance-missing") {

@@ -47,6 +47,26 @@ beforeEach(() => {
 });
 
 describe("FormProposalReview", () => {
+  it("reviews an unsectioned server proposal with null optional lists and creates its selected draft", async () => {
+    const wireProposal = JSON.parse(JSON.stringify({
+      ...proposal,
+      proposed_contract: { ...proposal.proposed_contract, sections: null, fields: proposal.proposed_contract.fields.map((field) => ({ ...field, section_id: undefined })) },
+      unresolved_items: null,
+    })) as FormTemplateProposal;
+    render(<FormProposalReview proposal={wireProposal} onProposalChange={() => undefined}/>);
+    expect(screen.getByRole("textbox", { name: "Registered name" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Include Certificate of operation" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create draft from selected fields" }));
+    await waitFor(() => expect(acceptFormProposal).toHaveBeenCalledWith("proposal-1", 2, ["change-name"]));
+  });
+
+  it.each(["GENERATING", "FAILED"] as const)("renders %s before proposal lists are populated", (status) => {
+    const wireProposal = JSON.parse(JSON.stringify({ ...proposal, status, field_changes: null, unresolved_items: null, proposed_contract: { ...proposal.proposed_contract, fields: null, sections: null } })) as FormTemplateProposal;
+    render(<FormProposalReview proposal={wireProposal} onProposalChange={() => undefined}/>);
+    expect(screen.getByText(status === "GENERATING" ? "Preparing proposed fields from the imported document…" : "Field proposal needs attention")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Create draft from selected fields" })).toBeNull();
+  });
+
   it("shows source anchors, confidence, unresolved decisions, and the real capture preview", () => {
     render(<FormProposalReview proposal={proposal} sourceTitle="vendor-questionnaire.docx" sourceElements={[{ ref: "p-4", kind: "FORM_CONTROL", text: "Registered name", anchor: { page: 2, paragraph: "p-4" } }]} onProposalChange={() => undefined}/>);
     expect(screen.getByRole("heading", { name: "Review proposed form fields" })).toBeTruthy();

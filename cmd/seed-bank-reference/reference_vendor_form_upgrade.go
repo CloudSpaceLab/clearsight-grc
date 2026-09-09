@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -129,6 +130,7 @@ func upgradeReferenceVendorForm(ctx context.Context, pool *pgxpool.Pool, seed ba
 }
 
 func knownLegacyVendorForm(form monitoring.FormTemplate, desired monitoring.CreateFormInput) bool {
+	desired.Sections = append([]formcontract.Section(nil), desired.Sections...)
 	var fields []formcontract.Field
 	for _, f := range desired.Fields {
 		f.Options = append([]string(nil), f.Options...)
@@ -144,6 +146,15 @@ func knownLegacyVendorForm(form monitoring.FormTemplate, desired monitoring.Crea
 	}
 	desired.Fields = fields
 	for _, bankWords := range []bool{true, false} {
+		for n := range desired.Sections {
+			if desired.Sections[n].ID == "service" {
+				if bankWords {
+					desired.Sections[n].Help = "Describe the service and the bank information it uses."
+				} else {
+					desired.Sections[n].Help = "Describe the service and the information it uses."
+				}
+			}
+		}
 		for n := range desired.Fields {
 			f := &desired.Fields[n]
 			switch f.ID {
@@ -174,14 +185,33 @@ func matchesReferenceVendorForm(form monitoring.FormTemplate, input monitoring.C
 	if form.StarterCatalogCode != "" || form.StarterCatalogVersion != 0 {
 		return false
 	}
-	contract, err := formcontract.Normalize(formcontract.Contract{Presentation: input.Presentation, ScoringMode: input.ScoringMode, ScoreProfile: input.ScoreProfile, Sections: input.Sections, Fields: input.Fields})
+	contract, err := normalizeReferenceVendorContract(formcontract.Contract{Presentation: input.Presentation, ScoringMode: input.ScoringMode, ScoreProfile: input.ScoreProfile, Sections: input.Sections, Fields: input.Fields})
 	if err != nil {
 		return false
 	}
-	input.Presentation, input.Sections, input.Fields, input.ScoringMode = contract.Presentation, contract.Sections, contract.Fields, contract.ScoringMode
+	input.Presentation, input.Sections, input.Fields, input.ScoringMode, input.ScoreProfile = contract.Presentation, contract.Sections, contract.Fields, contract.ScoringMode, contract.ScoreProfile
+	actualContract, err := normalizeReferenceVendorContract(formcontract.Contract{Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile, Sections: form.Sections, Fields: form.Fields})
+	if err != nil {
+		return false
+	}
+	form.Presentation, form.Sections, form.Fields, form.ScoringMode, form.ScoreProfile = actualContract.Presentation, actualContract.Sections, actualContract.Fields, actualContract.ScoringMode, actualContract.ScoreProfile
 	input.Sensitivity = "INTERNAL"
 	input.ApprovedUses = []string{}
 	input.Tags = []string{}
 	actual := monitoring.CreateFormInput{ProgramID: form.ProgramID, LegalEntityID: form.LegalEntityID, Code: form.Code, Name: form.Name, Purpose: form.Purpose, OwnerPrincipalID: form.OwnerPrincipalID, ResponsibleTeam: form.ResponsibleTeam, ApprovedUses: form.ApprovedUses, Tags: form.Tags, Jurisdiction: form.Jurisdiction, Industry: form.Industry, Sensitivity: form.Sensitivity, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile, NextReviewAt: form.NextReviewAt, Presentation: form.Presentation, Sections: form.Sections, Fields: form.Fields}
 	return sameSampleJSON(actual, input)
+}
+
+// Normalize a copy: old stored contracts may omit defaults introduced later,
+// but comparison must not alter either the saved snapshot or its replacement.
+func normalizeReferenceVendorContract(contract formcontract.Contract) (formcontract.Contract, error) {
+	raw, err := json.Marshal(contract)
+	if err != nil {
+		return formcontract.Contract{}, err
+	}
+	var copied formcontract.Contract
+	if err = json.Unmarshal(raw, &copied); err != nil {
+		return formcontract.Contract{}, err
+	}
+	return formcontract.Normalize(copied)
 }
