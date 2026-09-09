@@ -10,12 +10,13 @@ import {
   type RecipientCandidate,
   type CreateDistributionInput,
 } from "../../formsDistributionApi";
-import { SelectField } from "../ui";
+import { SelectField, TextArea, TextField } from "../ui";
+import "../../forms-task11.css";
 
 const policies: Array<{ value: DistributionAccessPolicy; label: string; detail: string }> = [
-  { value: "DIRECT_MAGIC_LINK", label: "Direct magic link", detail: "Possession of the recipient-specific link grants access." },
-  { value: "SHARED_LINK_EMAIL_OTP", label: "Shared link + email OTP", detail: "A shared route requires recipient selection and email verification." },
-  { value: "DIRECT_LINK_EMAIL_OTP", label: "Direct link + email OTP", detail: "A recipient-specific route also requires email verification." },
+  { value: "DIRECT_LINK_EMAIL_OTP", label: "Email verification", detail: "The vendor opens a private link and verifies their email." },
+  { value: "DIRECT_MAGIC_LINK", label: "Secure link", detail: "The vendor opens a private link without an additional email code." },
+  { value: "SHARED_LINK_EMAIL_OTP", label: "Shared link with email verification", detail: "The vendor selects their address and verifies their email." },
 ];
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,8 +35,8 @@ export function DistributionComposer({ onCreated, onCancel, scopedDelivery }: Pr
   const [purpose, setPurpose] = useState("");
   const [policy, setPolicy] = useState<DistributionAccessPolicy>("DIRECT_LINK_EMAIL_OTP");
   const [estimatedMinutes, setEstimatedMinutes] = useState(15);
-  const [deadline, setDeadline] = useState("");
-  const [routeExpiry, setRouteExpiry] = useState("");
+  const [deadline, setDeadline] = useState(() => futureLocalDateTime(21));
+  const [routeExpiry, setRouteExpiry] = useState(() => futureLocalDateTime(7));
   const [internalQuery, setInternalQuery] = useState("");
   const [candidates, setCandidates] = useState<RecipientCandidate[]>([]);
   const [recipients, setRecipients] = useState<CreateDistributionRecipient[]>([]);
@@ -49,7 +50,11 @@ export function DistributionComposer({ onCreated, onCancel, scopedDelivery }: Pr
     void loadReusableFormTemplateRefs().then((values) => {
       if (!active) return;
       setTemplates(values);
-      if (values[0]) setTemplateKey(`${values[0].id}:${values[0].version}`);
+      if (values[0]) {
+        setTemplateKey(`${values[0].id}:${values[0].version}`);
+        setTitle(values[0].name);
+        setPurpose(`Provide the information and evidence requested in ${values[0].name}.`);
+      }
     }).catch((cause) => active && setError(cause instanceof Error ? cause.message : "Active form revisions could not be loaded."));
     return () => { active = false; };
   }, []);
@@ -115,20 +120,35 @@ export function DistributionComposer({ onCreated, onCancel, scopedDelivery }: Pr
     }
   }
 
+  function selectTemplate(value?: string) {
+    setTemplateKey(value ?? "");
+    const next = templates.find((item) => `${item.id}:${item.version}` === value);
+    if (next) {
+      setTitle(next.name);
+      setPurpose(`Provide the information and evidence requested in ${next.name}.`);
+    }
+  }
+
+  const deliverySettings = <>
+    <TextField label="Estimated time" type="number" min={1} max={60} value={String(estimatedMinutes)} onChange={(value) => setEstimatedMinutes(Number(value))} description="Minutes shown to the vendor."/>
+    <TextField label="Link expiry" type="datetime-local" value={routeExpiry} onChange={setRouteExpiry} description="Must be no later than the response deadline."/>
+    <div className="forms-task-span"><SelectField label="Recipient verification" value={policy} placeholder="Choose verification" description={policies.find((item) => item.value === policy)?.detail} allowsEmpty={false} options={policies.map((item) => ({ id: item.value, label: item.label }))} onChange={(value) => { if (value) setPolicy(value); }}/></div>
+  </>;
+
   return <section className="forms-task-card forms-composer" aria-labelledby="distribution-composer-title">
-    <div className="forms-task-heading"><div><span>Send form</span><h2 id="distribution-composer-title">{scopedDelivery ? "Request vendor forms" : "Create form distribution"}</h2><p>Choose the approved form, who must respond, the deadline and how recipients verify access.</p></div>{onCancel && <button type="button" onClick={onCancel}>Close</button>}</div>
+    <div className="forms-task-heading"><div><span>Form request</span><h2 id="distribution-composer-title">{scopedDelivery ? "Request form" : "Create form distribution"}</h2><p>{scopedDelivery ? "Choose the form, confirm the deadline and add the vendor contact." : "Choose the approved form, who must respond, the deadline and how recipients verify access."}</p></div>{onCancel && <button type="button" onClick={onCancel}>Close</button>}</div>
     {error && <div className="forms-message error" role="alert">{error}</div>}
     <div className="forms-task-grid">
-      <SelectField label="Active form revision" value={templateKey || undefined} placeholder="Select active revision" description="The selected form version cannot change after sending." options={templates.map((item) => ({ id: `${item.id}:${item.version}`, label: `${item.name} · ${item.code} · v${item.version}` }))} onChange={(value) => setTemplateKey(value ?? "")}/>
-      {scopedDelivery ? <p className="forms-readonly-scope">{scopedDelivery.label}</p> : <><label><span>Subject type</span><input value={subjectType} maxLength={80} onChange={(event) => setSubjectType(event.target.value)}/></label>
-      <label><span>Subject identifier</span><input value={subjectID} maxLength={160} onChange={(event) => setSubjectID(event.target.value)}/></label></>}
-      <label><span>Estimated minutes</span><input type="number" min={1} max={60} value={estimatedMinutes} onChange={(event) => setEstimatedMinutes(Number(event.target.value))}/></label>
-      <label className="forms-task-span"><span>Title</span><input value={title} maxLength={240} onChange={(event) => setTitle(event.target.value)}/></label>
-      <label className="forms-task-span"><span>Purpose</span><textarea value={purpose} maxLength={1600} rows={3} onChange={(event) => setPurpose(event.target.value)}/></label>
-      <label><span>Deadline</span><input type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)}/><small>The saved deadline includes the {timezone} timezone.</small></label>
-      <label><span>Access route expiry</span><input type="datetime-local" value={routeExpiry} onChange={(event) => setRouteExpiry(event.target.value)}/><small>Must be no later than the deadline.</small></label>
-      <div className="forms-task-span"><SelectField label="Access policy" value={policy} placeholder="Choose access policy" description={policies.find((item) => item.value === policy)?.detail} allowsEmpty={false} options={policies.map((item) => ({ id: item.value, label: item.label }))} onChange={(value) => { if (value) setPolicy(value); }}/></div>
+      <SelectField label="Form" value={templateKey || undefined} placeholder="Select form" description={selectedTemplate ? `Version ${selectedTemplate.version}` : undefined} options={templates.map((item) => ({ id: `${item.id}:${item.version}`, label: item.name }))} onChange={selectTemplate}/>
+      {!scopedDelivery && <><TextField label="Subject type" value={subjectType} maxLength={80} onChange={setSubjectType}/>
+      <TextField label="Subject identifier" value={subjectID} maxLength={160} onChange={setSubjectID}/>
+      <div className="forms-task-span"><TextField label="Title" value={title} maxLength={240} onChange={setTitle}/></div>
+      <div className="forms-task-span"><TextArea label="Purpose" value={purpose} maxLength={1600} rows={3} onChange={setPurpose}/></div></>}
+      <TextField label="Response deadline" type="datetime-local" value={deadline} onChange={setDeadline} description={`${timezone} timezone`}/>
+      {!scopedDelivery && deliverySettings}
     </div>
+
+    {scopedDelivery && <details className="forms-composer__advanced"><summary>More options</summary><div className="forms-task-grid"><div className="forms-task-span"><TextField label="Request title" value={title} maxLength={240} onChange={setTitle}/></div><div className="forms-task-span"><TextArea label="Message to vendor" value={purpose} maxLength={1600} rows={3} onChange={setPurpose}/></div>{deliverySettings}</div></details>}
 
     {scopedDelivery ? scopedDelivery.recipients : <div className="forms-recipient-panel">
       <div><h3>Recipients</h3><p>Add at least one To recipient to complete the form. CC recipients receive the communication without a response task.</p></div>
@@ -140,8 +160,8 @@ export function DistributionComposer({ onCreated, onCancel, scopedDelivery }: Pr
       {recipients.length === 0 && <p className="forms-muted">No recipients selected.</p>}
     </div>}
 
-    <div className="forms-readonly-scope"><span>Owner</span><strong>Current signed-in sender</strong><span>Timezone</span><strong>{timezone}</strong></div>
-    <div className="forms-task-actions"><button className="forms-primary" type="button" disabled={!ready || busy} onClick={() => void submit()}>{busy ? scopedDelivery ? "Preparing preview…" : "Creating…" : scopedDelivery?.submitLabel ?? "Create and dispatch"}</button>{!ready && <small>{scopedDelivery ? "Choose an active revision, enter a recipient for every vendor service, and complete the purpose and dates." : "Add an active revision, scoped subject, valid dates, purpose and at least one To recipient."}</small>}</div>
+    {!scopedDelivery && <div className="forms-readonly-scope"><span>Owner</span><strong>Current signed-in sender</strong><span>Timezone</span><strong>{timezone}</strong></div>}
+    <div className="forms-task-actions"><button className="forms-primary" type="button" disabled={!ready || busy} onClick={() => void submit()}>{busy ? scopedDelivery ? "Preparing review…" : "Creating…" : scopedDelivery?.submitLabel ?? "Create and dispatch"}</button>{!ready && <small>{scopedDelivery ? "Complete the highlighted fields." : "Add an active revision, scoped subject, valid dates, purpose and at least one To recipient."}</small>}</div>
   </section>;
 }
 
@@ -154,4 +174,10 @@ function maskAddress(value?: string) {
   if (!value) return "External recipient";
   const [local, domain] = value.split("@");
   return domain ? `${(local ?? "").slice(0, 1)}***@${domain}` : "External recipient";
+}
+
+function futureLocalDateTime(days: number) {
+  const value = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  value.setMinutes(value.getMinutes() - value.getTimezoneOffset());
+  return value.toISOString().slice(0, 16);
 }

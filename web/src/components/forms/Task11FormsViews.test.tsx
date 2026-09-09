@@ -62,8 +62,8 @@ describe("Task 11 governed form views", () => {
     fireEvent.change(screen.getByLabelText("Subject identifier"), { target: { value: "control-a" } });
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Quarterly control review" } });
     fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "Collect operating evidence" } });
-    fireEvent.change(screen.getByLabelText(/Deadline/), { target: { value: "2027-09-01T12:00" } });
-    fireEvent.change(screen.getByLabelText(/Access route expiry/), { target: { value: "2027-09-01T11:00" } });
+    fireEvent.change(screen.getByLabelText("Response deadline"), { target: { value: "2027-09-01T12:00" } });
+    fireEvent.change(screen.getByLabelText("Link expiry"), { target: { value: "2027-09-01T11:00" } });
     fireEvent.change(screen.getByLabelText("Find internal recipient"), { target: { value: "Jane" } });
     fireEvent.click(await screen.findByRole("option", { name: /Jane Reviewer/ }));
     fireEvent.click(screen.getByRole("button", { name: "Create and dispatch" }));
