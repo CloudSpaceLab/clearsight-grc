@@ -8,6 +8,10 @@
 .vendor-forms-list dd { margin: 0; overflow-wrap: anywhere; }
 .vendor-forms-list dt, .vendor-form-summary { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
 .vendor-form-request__recipients > div { display: grid; gap: var(--cs-primitive-space-2); }
+.vendor-form-request__recipients > div + div { padding-block-start: var(--cs-space-group); border-block-start: var(--cs-surface-border-width) solid var(--cs-border-subtle); }
+.forms-composer__advanced { margin-block-start: var(--cs-space-group); border-block: var(--cs-surface-border-width) solid var(--cs-border-default); padding-block: var(--cs-primitive-space-3); }
+.forms-composer__advanced > summary { min-block-size: var(--cs-control-height); display: flex; align-items: center; cursor: pointer; font-weight: 650; color: var(--cs-text-strong); }
+.forms-composer__advanced > .forms-task-grid { padding-block-start: var(--cs-primitive-space-3); }
 .vendor-form-request [hidden] { display: none; }
 .vendor-register-entry { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; border-block-end: var(--cs-surface-border-width) solid var(--cs-border-default); }
 .vendor-register-entry > label { padding-block-start: var(--cs-surface-padding); padding-inline-start: var(--cs-primitive-space-3); }

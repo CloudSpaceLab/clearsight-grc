@@ -40,9 +40,9 @@ export function VendorFormRequest({ targets, onClose, onUpdated }: { targets: Ve
   const pending = input?.targets.filter((target) => !receipt?.items.some((item) => item.relationship_id === target.relationship_id && item.status === "CREATED")) ?? [];
   return <FocusedSheet label="Request vendor forms" size="wide" onClose={onClose}>
     <div className="vendor-form-request">
-      <div hidden={phase !== "setup"}><DistributionComposer scopedDelivery={{ label: `${targets.length} selected vendor ${targets.length === 1 ? "service" : "services"}`, ready, submitLabel: "Preview vendor requests", onSubmit: preview, recipients: <section className="vendor-form-request__recipients" aria-label="Vendor recipients"><h3>Who must respond</h3><p>Each service receives a separate request. Enter the permitted recipient for each vendor.</p>{targets.map((target) => <div key={target.relationshipID}><strong>{target.vendorName} · {target.serviceName}</strong><TextField label={`Email for ${target.vendorName} · ${target.serviceName}`} type="email" value={recipients[target.relationshipID] ?? ""} onChange={(address) => setRecipients((current) => ({ ...current, [target.relationshipID]: address }))}/></div>)}</section> }}/></div>
+      <div hidden={phase !== "setup"}><DistributionComposer scopedDelivery={{ label: `${targets.length} vendor ${targets.length === 1 ? "service" : "services"}`, ready, submitLabel: "Review request", onSubmit: preview, recipients: <section className="vendor-form-request__recipients" aria-label="Vendor contacts"><h3>{targets.length === 1 ? "Vendor contact" : "Vendor contacts"}</h3>{targets.map((target) => <div key={target.relationshipID}><strong>{target.vendorName}</strong><span>{target.serviceName}</span><TextField label={`Email — ${target.vendorName}`} type="email" value={recipients[target.relationshipID] ?? ""} onChange={(address) => setRecipients((current) => ({ ...current, [target.relationshipID]: address }))}/></div>)}</section> }}/></div>
       {phase !== "setup" && input && <>
-        <header><h2>{phase === "preview" ? "Review vendor requests" : "Vendor request receipts"}</h2><p>{input.title} · Form revision {input.form_template_version}</p><p>{input.purpose}</p></header>
+        <header><h2>{phase === "preview" ? "Review request" : "Request status"}</h2><p>{input.title} · Version {input.form_template_version}</p><p>{input.purpose}</p></header>
         <dl className="cs-sheet-facts"><div><dt>Response deadline</dt><dd>{new Date(input.deadline).toLocaleString()}</dd></div><div><dt>Access expires</dt><dd>{new Date(input.route_expires_at).toLocaleString()}</dd></div></dl>
         {summaryError && <Notice tone="warning">Existing requests for this form could not be checked. Review the vendor’s current requests before sending another.</Notice>}
         {error && <Notice tone="error">{error} The same request attempt will be reused when you retry.</Notice>}
@@ -59,7 +59,7 @@ export function VendorFormRequest({ targets, onClose, onUpdated }: { targets: Ve
           </li>;
         })}</ul>
         <Notice tone="info">Creating a request does not mean the email was delivered, the vendor responded or the evidence was accepted.</Notice>
-        <div className="vendor-form-request__actions">{!attempted && <Button onPress={() => setPhase("setup")}>Edit request details</Button>}{pending.length > 0 ? <Button variant="primary" isLoading={busy} onPress={() => void dispatch()}>{phase === "receipt" ? "Retry failed vendor requests" : attempted ? "Retry vendor requests" : "Create and dispatch vendor requests"}</Button> : <Button variant="primary" onPress={onClose}>Return to vendor forms</Button>}</div>
+        <div className="vendor-form-request__actions">{!attempted && <Button onPress={() => setPhase("setup")}>Edit request</Button>}{pending.length > 0 ? <Button variant="primary" isLoading={busy} onPress={() => void dispatch()}>{phase === "receipt" ? "Retry failed requests" : attempted ? "Retry requests" : "Send request"}</Button> : <Button variant="primary" onPress={onClose}>Return to vendor forms</Button>}</div>
       </>}
     </div>
   </FocusedSheet>;
