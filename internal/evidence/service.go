@@ -270,7 +270,9 @@ func (s *Service) GetRequest(ctx context.Context, tenant, requestID string) (Req
 	}
 	value = RefreshCollectionResolutions(ctx, value, s.repo.GetArtifact, s.now().UTC())
 	value, err = refreshCollectionRequestReviews(ctx, s.repo, value)
-	if err != nil { return Request{},err }
+	if err != nil {
+		return Request{}, err
+	}
 	return effectiveRequest(value, s.now().UTC()), nil
 }
 

@@ -192,7 +192,7 @@ type RecordBaseline struct {
 }
 
 type Field struct {
-	CollectionReceived bool `json:"collection_received,omitempty"`
+	CollectionReceived   bool                              `json:"collection_received,omitempty"`
 	CollectionResolution *CollectionResolution             `json:"collection_resolution,omitempty"`
 	Assessment           *formcontract.FieldAssessment     `json:"assessment,omitempty"`
 	ID                   string                            `json:"id"`
