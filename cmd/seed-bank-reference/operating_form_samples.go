@@ -157,14 +157,28 @@ func existingOperatingFormSample(ctx context.Context, distributions *evidence.Di
 	if err != nil {
 		return "", nil, err
 	}
-	want := evidence.RequestReady
-	if spec.state == "IN_PROGRESS" {
-		want = evidence.RequestInProgress
-	} else if spec.state == "COMPLETED_HIGH" || spec.state == "COMPLETED_GAP" {
-		want = evidence.RequestSubmitted
+	if request.Status != evidence.RequestReady && request.Status != evidence.RequestInProgress {
+		return "", nil, fmt.Errorf("existing sample request is %s", request.Status)
 	}
-	if request.Status != want {
-		return "", nil, fmt.Errorf("existing sample is %s, want %s", request.Status, want)
+	revisions, err := distributions.ListResponseRevisions(ctx, seed.TenantID, seed.LegalEntityID, distributionID, 2)
+	if err != nil {
+		return "", nil, err
 	}
-	return string(request.Status), nil, nil
+	switch spec.state {
+	case "COMPLETED_HIGH", "COMPLETED_GAP":
+		if len(revisions) != 1 || !revisions[0].Current || revisions[0].Score == nil || !revisions[0].Score.Final {
+			return "", nil, fmt.Errorf("existing completed sample has no current final scored response")
+		}
+		return string(evidence.RequestSubmitted), revisions[0].Score, nil
+	case "IN_PROGRESS":
+		if len(revisions) != 0 || bundle.Workspace.Version < 2 {
+			return "", nil, fmt.Errorf("existing in-progress sample has unexpected response history")
+		}
+		return string(evidence.RequestInProgress), nil, nil
+	default:
+		if len(revisions) != 0 || bundle.Workspace.Version != 1 {
+			return "", nil, fmt.Errorf("existing outstanding sample has unexpected response work")
+		}
+		return string(evidence.RequestReady), nil, nil
+	}
 }
