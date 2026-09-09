@@ -193,7 +193,10 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		if readErr != nil {
 			return AssessmentReviewView{}, readErr
 		}
-		if request.ID != link.RequestID || request.TenantID != scope.TenantID || request.SubjectType != "VENDOR_RELATIONSHIP" || request.SubjectID != assessment.RelationshipID ||
+		// Evidence reads are tenant-scoped. Their Postgres projections return the
+		// tenant UUID while the assessment scope carries the tenant slug, so a
+		// direct string comparison would hide an otherwise authorized response.
+		if request.ID != link.RequestID || request.SubjectType != "VENDOR_RELATIONSHIP" || request.SubjectID != assessment.RelationshipID ||
 			request.Origin.Type != AssessmentRequestOrigin || request.Origin.ID != assessment.ID || request.Origin.Version != int64(link.OriginSequence) ||
 			request.FormTemplateID != assessment.FormTemplateID || request.FormTemplateVersion != assessment.FormTemplateVersion {
 			return AssessmentReviewView{}, ErrNotFound
@@ -227,7 +230,7 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		if readErr != nil {
 			return AssessmentReviewView{}, readErr
 		}
-		if submission.ID != assessment.SubmissionID || submission.TenantID != scope.TenantID || submission.RequestID != currentRequest.ID {
+		if submission.ID != assessment.SubmissionID || submission.RequestID != currentRequest.ID {
 			return AssessmentReviewView{}, ErrNotFound
 		}
 		if err = s.addSubmission(ctx, &view, currentRequest, submission); err != nil {
@@ -271,7 +274,13 @@ func (s *AssessmentReviewService) GetReview(ctx context.Context, actor Actor, as
 		}
 	}
 	if s.matters != nil {
-		values, readErr := s.matters.ListAssessmentReviewMatters(ctx, actor, scope, assessment.ID, assessmentReviewMaxMatters+1)
+		// Assessment reads expose the canonical tenant slug while the verified
+		// session carries the durable tenant ID. The matter reader is already
+		// bound to this resolved assessment scope, so pass that same scope with
+		// the verified principal retained for restricted-matter filtering.
+		scopedActor := actor
+		scopedActor.TenantID, scopedActor.LegalEntityID = scope.TenantID, scope.LegalEntityID
+		values, readErr := s.matters.ListAssessmentReviewMatters(ctx, scopedActor, scope, assessment.ID, assessmentReviewMaxMatters+1)
 		if readErr != nil {
 			return AssessmentReviewView{}, readErr
 		}

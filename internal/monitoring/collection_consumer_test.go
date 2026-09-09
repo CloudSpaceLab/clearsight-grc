@@ -139,20 +139,48 @@ func TestCollectionConsumerCancelsOpenCycleWhenCheckIsRetired(t *testing.T) {
 	}
 }
 
+func TestCollectionConsumerIgnoresNonCollectionSubmissionWhenScopedReadsUseTenantAliases(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2027, 2, 1, 10, 0, 0, 0, time.UTC)
+	request := evidence.Request{
+		ID: "request-tenant-alias", TenantID: "00000000-0000-4000-8000-000000000001",
+		Origin: evidence.RequestOrigin{Type: "THIRD_PARTY_ASSESSMENT", ID: "assessment-1", Version: 1},
+	}
+	submission := evidence.Submission{
+		ID: "submission-tenant-alias", TenantID: request.TenantID, RequestID: request.ID, SubmittedAt: now,
+	}
+	consumer := &CollectionConsumer{
+		Inbox: workflowruntime.NewMemoryRepository(), Repository: NewMemoryRepository(),
+		Evidence: staticCollectionEvidence{request: request, submission: submission}, Now: func() time.Time { return now },
+	}
+	payload, _ := json.Marshal(map[string]string{"submission_id": submission.ID, "channel": "MAGIC_LINK"})
+	event := workflowruntime.OutboxEvent{
+		ID: "event-tenant-alias", TenantID: "bank-a", AggregateType: "EVIDENCE_REQUEST", AggregateID: request.ID,
+		EventType: "EvidenceResponseSubmitted", Payload: payload, OccurredAt: now,
+	}
+	if err := consumer.Publish(ctx, event); err != nil {
+		t.Fatalf("non-collection submission should be ignored after scoped reads: %v", err)
+	}
+	processed, err := consumer.Inbox.InboxProcessed(ctx, event.TenantID, collectionSubmissionConsumer, event.ID)
+	if err != nil || !processed {
+		t.Fatalf("inbox processed=%v err=%v", processed, err)
+	}
+}
+
 type staticCollectionEvidence struct {
 	request    evidence.Request
 	submission evidence.Submission
 }
 
 func (r staticCollectionEvidence) GetRequest(_ context.Context, tenant, id string) (evidence.Request, error) {
-	if r.request.TenantID != tenant || r.request.ID != id {
+	if r.request.ID != id {
 		return evidence.Request{}, evidence.ErrNotFound
 	}
 	return r.request, nil
 }
 
 func (r staticCollectionEvidence) GetSubmission(_ context.Context, tenant, id string) (evidence.Submission, error) {
-	if r.submission.TenantID != tenant || r.submission.ID != id {
+	if r.submission.ID != id {
 		return evidence.Submission{}, evidence.ErrNotFound
 	}
 	return r.submission, nil

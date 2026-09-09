@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -20,7 +21,29 @@ func (a *API) listEvidenceInvitationMetadata(w http.ResponseWriter, r *http.Requ
 	if writeEvidenceInvitationAdminError(w, err) {
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
+	workflowAccess, err := a.activeWorkflowAccessMetadata(r.Context(), actor, r.PathValue("id"))
+	if err != nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "workflow_access_unavailable", "The current workflow access status could not be loaded. Refresh the evidence request before changing access.")
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values, "workflow_access": workflowAccess})
+}
+
+func (a *API) activeWorkflowAccessMetadata(ctx context.Context, actor identity.Actor, requestID string) ([]evidence.DistributionAccessRouteMetadata, error) {
+	if a.deps.FormDistributions == nil {
+		return []evidence.DistributionAccessRouteMetadata{}, nil
+	}
+	bundle, err := a.deps.FormDistributions.GetForRequest(ctx, actor.TenantID, actor.LegalEntityID, requestID)
+	if errors.Is(err, evidence.ErrNotFound) {
+		return []evidence.DistributionAccessRouteMetadata{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if a.deps.FormDistributionAccess == nil {
+		return nil, evidence.ErrDistributionAccessUnavailable
+	}
+	return a.deps.FormDistributionAccess.ListActiveRouteMetadata(ctx, actor.TenantID, actor.LegalEntityID, bundle.Distribution.ID)
 }
 
 func (a *API) replaceEvidenceInvitation(w http.ResponseWriter, r *http.Request) {

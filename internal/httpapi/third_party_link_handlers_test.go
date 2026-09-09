@@ -16,7 +16,9 @@ import (
 func thirdPartyLinkTestHandler() http.Handler {
 	repo := thirdparty.NewMemoryRelationshipLinkRepository()
 	repo.AllowRelationship("bank", "entity-a", "relationship-1")
+	repo.AllowRelationship("bank", "entity-a", "relationship-2")
 	repo.AllowTarget("bank", "entity-a", thirdparty.LinkTargetProgram, "program-1")
+	repo.AllowTarget("bank", "entity-a", thirdparty.LinkTargetProgram, "program-2")
 	return New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Mode: "test-memory",
 		Identity:                    identity.NewDevelopmentAuthenticator("bank", "verified-owner", "entity-a"),
@@ -49,5 +51,24 @@ func TestVendorRelationshipLinkUsesVerifiedScope(t *testing.T) {
 	handler.ServeHTTP(list, httptest.NewRequest(http.MethodGet, "/api/v1/vendors/relationship-1/links", nil))
 	if list.Code != http.StatusOK {
 		t.Fatalf("expected list 200, got %d: %s", list.Code, list.Body.String())
+	}
+
+	second := httptest.NewRecorder()
+	handler.ServeHTTP(second, httptest.NewRequest(http.MethodPost, "/api/v1/vendors/relationship-2/links", bytes.NewBufferString(`{"target_type":"PROGRAM","target_id":"program-2","purpose_code":"RELEASE_SUPPORT","purpose_label":"Release support"}`)))
+	if second.Code != http.StatusCreated {
+		t.Fatalf("expected second link 201, got %d: %s", second.Code, second.Body.String())
+	}
+
+	filtered := httptest.NewRecorder()
+	handler.ServeHTTP(filtered, httptest.NewRequest(http.MethodGet, "/api/v1/vendor-links?relationship_id=relationship-1", nil))
+	if filtered.Code != http.StatusOK {
+		t.Fatalf("expected filtered list 200, got %d: %s", filtered.Code, filtered.Body.String())
+	}
+	var page thirdparty.RelationshipLinkPage
+	if err := json.NewDecoder(filtered.Body).Decode(&page); err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.Items[0].RelationshipID != "relationship-1" {
+		t.Fatalf("relationship-scoped links = %#v", page.Items)
 	}
 }

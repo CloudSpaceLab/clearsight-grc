@@ -57,7 +57,7 @@ func (r *PostgresRepository) LinkAssessmentDeficiency(ctx context.Context, recor
 	if current.Version != record.ExpectedVersion {
 		return AssessmentMatterLink{}, Assessment{}, ErrVersionConflict
 	}
-	if current.Status != AssessmentUnderReview {
+	if !canRecordAssessmentDeficiency(current) {
 		return AssessmentMatterLink{}, Assessment{}, ErrInvalidAssessmentTransition
 	}
 	var proof bool

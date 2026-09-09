@@ -161,6 +161,7 @@ func (a *API) sendVendorAssessmentRequest(w http.ResponseWriter, r *http.Request
 	}
 	outcome, err := a.deps.ThirdPartyAssessmentRequests.SendRequest(r.Context(), actor, r.PathValue("id"), request.SendAssessmentRequestInput)
 	if err != nil {
+		a.deps.Logger.Error("vendor due-diligence request failed", "assessment_id", r.PathValue("id"), "error", err)
 		writeThirdPartyAssessmentError(w, err)
 		return
 	}

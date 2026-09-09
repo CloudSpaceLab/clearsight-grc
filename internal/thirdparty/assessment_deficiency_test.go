@@ -272,6 +272,31 @@ func TestCreateAssessmentDeficiencyRejectsStaleWrongStateScopeAndInvalidTrigger(
 	}
 }
 
+func TestCreateAssessmentDeficiencyAllowsConcreteFollowUpForConditionalConclusion(t *testing.T) {
+	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
+	assessment := assessmentUnderReviewFixture(t, assessmentService, repo, relationship)
+	repo.assessmentMu.Lock()
+	current := repo.assessments[assessment.ID]
+	current.Status = AssessmentCompleted
+	current.Conclusion = AssessmentSatisfactoryWithConditions
+	repo.assessments[assessment.ID] = current
+	repo.assessmentMu.Unlock()
+	service := NewAssessmentDeficiencyService(assessmentService, repo, continuity.NewService(continuity.NewMemoryRepository()))
+
+	outcome, err := service.CreateDeficiency(assessmentContext(), assessmentActor(), assessment.ID, CreateAssessmentDeficiencyInput{
+		ExpectedVersion: current.Version,
+		TriggerKey:      "updated-iso-certificate",
+		Title:           "Provide the updated ISO 27001 certificate",
+		Summary:         "The conditional assessment requires the current certificate before the relationship can proceed.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if outcome.Assessment.Status != AssessmentCompleted || outcome.Assessment.Conclusion != AssessmentSatisfactoryWithConditions || outcome.Matter.Matter.Type != continuity.MatterVendorDeficiency {
+		t.Fatalf("conditional follow-up = %#v", outcome)
+	}
+}
+
 func TestConcurrentDeficiencyLinkCreatesOneMaterialMutation(t *testing.T) {
 	assessmentService, repo, relationship := newAssessmentServiceFixture(t, newAssessmentGuard())
 	assessment := assessmentUnderReviewFixture(t, assessmentService, repo, relationship)

@@ -182,6 +182,7 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 	var editCount, revisionCount, currentCount, submissionCount, legacySessionCount, scoredEventCount, scoredOutboxCount int
 	var workspaceStatus ResponseWorkspaceStatus
 	var distributionStatus DistributionStatus
+	var requestStatus RequestStatus
 	var firstAddress, secondAddress, currentScoreState string
 	var currentRawScore float64
 	var currentScoreCalculatedAt time.Time
@@ -196,13 +197,14 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 		  (SELECT count(*) FROM outbox_events WHERE aggregate_id=$1::uuid AND event_type='FORM_RESPONSE_SCORED'),
 		  (SELECT status FROM capture_response_workspaces WHERE distribution_id=$1::uuid),
 		  (SELECT status FROM capture_form_distributions WHERE id=$1::uuid),
+		  (SELECT status FROM capture_requests WHERE id=$4::uuid),
 		  (SELECT answers->'registered_address'->>'text' FROM capture_submissions WHERE id=$2::uuid),
 		  (SELECT answers->'registered_address'->>'text' FROM capture_submissions WHERE id=$3::uuid),
 		  (SELECT score_state FROM capture_response_revisions WHERE distribution_id=$1::uuid AND is_current),
 		  (SELECT raw_score FROM capture_response_revisions WHERE distribution_id=$1::uuid AND is_current),
 		  (SELECT score_calculated_at FROM capture_response_revisions WHERE distribution_id=$1::uuid AND is_current)`,
-		bundle.Distribution.ID, firstSubmission.Submission.SubmissionID, secondSubmission.Submission.SubmissionID,
-	).Scan(&editCount, &revisionCount, &currentCount, &submissionCount, &legacySessionCount, &scoredEventCount, &scoredOutboxCount, &workspaceStatus, &distributionStatus, &firstAddress, &secondAddress, &currentScoreState, &currentRawScore, &currentScoreCalculatedAt); err != nil {
+		bundle.Distribution.ID, firstSubmission.Submission.SubmissionID, secondSubmission.Submission.SubmissionID, firstSubmission.Submission.RequestID,
+	).Scan(&editCount, &revisionCount, &currentCount, &submissionCount, &legacySessionCount, &scoredEventCount, &scoredOutboxCount, &workspaceStatus, &distributionStatus, &requestStatus, &firstAddress, &secondAddress, &currentScoreState, &currentRawScore, &currentScoreCalculatedAt); err != nil {
 		t.Fatal(err)
 	}
 	if editCount != 3 || revisionCount != 2 || currentCount != 1 || submissionCount != 2 || legacySessionCount != 0 {
@@ -213,6 +215,9 @@ func TestPostgresResponseWorkspaceMergesAndPersistsImmutableAmendments(t *testin
 	}
 	if workspaceStatus != ResponseWorkspaceOpen || distributionStatus != DistributionOpen {
 		t.Fatalf("submission prematurely closed runtime: workspace=%s distribution=%s", workspaceStatus, distributionStatus)
+	}
+	if requestStatus != RequestSubmitted || firstSubmission.Submission.Status != RequestSubmitted || secondSubmission.Submission.Status != RequestSubmitted {
+		t.Fatalf("submission did not make the evidence request reviewable: request=%s first=%+v second=%+v", requestStatus, firstSubmission.Submission, secondSubmission.Submission)
 	}
 	if firstAddress != "Lagos" || secondAddress != "Abuja" {
 		t.Fatalf("immutable submission snapshots changed: first=%q second=%q", firstAddress, secondAddress)

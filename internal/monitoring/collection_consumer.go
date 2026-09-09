@@ -71,7 +71,11 @@ func (c *CollectionConsumer) Publish(ctx context.Context, event workflowruntime.
 	if err != nil {
 		return fmt.Errorf("load collection submission: %w", err)
 	}
-	if submission.RequestID != request.ID || request.TenantID != event.TenantID {
+	// Both reads above are already scoped to the event tenant. Postgres request
+	// projections return the tenant UUID while outbox delivery uses its slug, so
+	// comparing those representations would incorrectly block unrelated
+	// assessment submissions before their own consumer can handle them.
+	if submission.RequestID != request.ID {
 		return fmt.Errorf("collection submission does not match the event request")
 	}
 	if request.Origin.Type != evidence.OriginMonitoringCollection {

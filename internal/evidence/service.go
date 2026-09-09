@@ -658,6 +658,14 @@ func requestOpenAt(request Request, at time.Time) bool {
 	return (request.Status == RequestReady || request.Status == RequestInProgress) && at.Before(request.Deadline)
 }
 
+// workspaceRequestOpenAt keeps an issued distribution response workspace
+// available for amendments after its first immutable submission. The request
+// remains submitted for the bank-side review queue while the distribution and
+// its workspace remain open until their own lifecycle closes them.
+func workspaceRequestOpenAt(request Request, at time.Time) bool {
+	return (request.Status == RequestReady || request.Status == RequestInProgress || request.Status == RequestSubmitted) && at.Before(request.Deadline)
+}
+
 func effectiveRequest(request Request, at time.Time) Request {
 	if (request.Status == RequestReady || request.Status == RequestInProgress) && !at.Before(request.Deadline) {
 		request.Status = RequestExpired

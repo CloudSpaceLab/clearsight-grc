@@ -8,11 +8,13 @@ import {
   revokeEvidenceSession,
   type EvidenceInvitationMetadata,
   type EvidenceActiveSessionMetadata,
+  type EvidenceWorkflowAccessMetadata,
 } from "../evidenceRequestAdminApi";
-import { EvidenceRequestAdminPanel, type EvidenceInvitationAdminItem, type EvidenceRequestAdminLoadState } from "./EvidenceRequestAdminPanel";
+import { EvidenceRequestAdminPanel, type EvidenceInvitationAdminItem, type EvidenceRequestAdminLoadState, type EvidenceWorkflowAccessItem } from "./EvidenceRequestAdminPanel";
 
 export function EvidenceRequestAdminContainer({ requestID, requestTitle }: { requestID: string; requestTitle: string }) {
   const [records, setRecords] = useState<EvidenceInvitationMetadata[]>([]);
+  const [workflowAccessRecords, setWorkflowAccessRecords] = useState<EvidenceWorkflowAccessMetadata[]>([]);
   const [sessionRecords, setSessionRecords] = useState<EvidenceActiveSessionMetadata[]>([]);
   const [sessionsHaveMore, setSessionsHaveMore] = useState(false);
   const [state, setState] = useState<EvidenceRequestAdminLoadState>("loading");
@@ -29,7 +31,8 @@ export function EvidenceRequestAdminContainer({ requestID, requestTitle }: { req
     try {
       const next = await listEvidenceInvitationMetadata(requestID);
       if (!mounted.current || generation !== invitationLoadGeneration.current) return;
-      setRecords(next);
+      setRecords(next.items);
+      setWorkflowAccessRecords(next.workflowAccess);
       setState("ready");
     } catch {
       if (!mounted.current || generation !== invitationLoadGeneration.current) return;
@@ -55,6 +58,7 @@ export function EvidenceRequestAdminContainer({ requestID, requestTitle }: { req
   useEffect(() => {
     mounted.current = true;
     setRecords([]);
+    setWorkflowAccessRecords([]);
     setSessionRecords([]);
     setSessionsHaveMore(false);
     setState("loading");
@@ -80,12 +84,18 @@ export function EvidenceRequestAdminContainer({ requestID, requestTitle }: { req
     expiresAt: record.expires_at,
     startedAt: record.created_at,
   }));
+  const workflowAccess: EvidenceWorkflowAccessItem[] = workflowAccessRecords.map((record) => ({
+    audienceHint: record.audience_hint,
+    expiresAt: record.expires_at,
+    issuedAt: record.issued_at,
+  }));
 
   return <EvidenceRequestAdminPanel
     key={requestID}
     requestTitle={requestTitle}
     recipients={[]}
     invitations={invitations}
+    workflowAccess={workflowAccess}
     activeSessions={activeSessions}
     activeSessionsHasMore={sessionsHaveMore}
     canManage

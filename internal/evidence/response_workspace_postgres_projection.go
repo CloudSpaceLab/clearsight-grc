@@ -59,7 +59,7 @@ func loadPostgresWorkspaceState(ctx context.Context, tx pgx.Tx, session Distribu
 		  AND d.status='OPEN'
 		  AND w.status='OPEN'
 		  AND r.role='TO' AND r.state NOT IN ('REVOKED','COMPLETED') AND r.request_id=s.request_id
-		  AND er.status IN ('READY','IN_PROGRESS') AND er.deadline>$9`+lockSQL,
+		  AND er.status IN ('READY','IN_PROGRESS','SUBMITTED') AND er.deadline>$9`+lockSQL,
 		session.DistributionID, session.ID, session.TenantID, session.LegalEntityID,
 		session.RecipientID, session.RequestID, session.RouteID, session.Assurance, now,
 	).Scan(&workspace.ID, &workspace.TenantID, &workspace.LegalEntityID, &workspace.DistributionID,

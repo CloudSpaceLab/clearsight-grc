@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { ApiError } from "../http";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAssessmentTypes";
 import { VendorDueDiligence } from "./VendorDueDiligence";
@@ -162,6 +163,19 @@ describe("VendorDueDiligence", () => {
     expect(onSend).toHaveBeenCalledWith({ expected_version: 3, audience: "security@vendor.example", deadline: "2026-09-20T23:59:59.000Z", invitation_ttl_minutes: 1440 });
   });
 
+  it("explains when the assessment changed before the request was sent", async () => {
+    const onSend = vi.fn().mockRejectedValue(new ApiError(409, "The assessment version is stale.", "assessment_version_conflict"));
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("READY_TO_SEND")} form={form} onSend={onSend}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Send due diligence request" }));
+    fireEvent.change(screen.getByLabelText("Vendor contact email"), { target: { value: "security@vendor.example" } });
+    fireEvent.change(screen.getByLabelText("Response due date"), { target: { value: "2026-09-20" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send due diligence request" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("This due-diligence record changed before the request was sent. Reload the vendor record, then try again.");
+    expect(screen.queryByDisplayValue("security@vendor.example")).toBeNull();
+  });
+
   it("offers safe recovery when email delivery did not complete", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
@@ -268,6 +282,15 @@ describe("VendorDueDiligence", () => {
 	fireEvent.click(screen.getByRole("button", { name: "Open finding" }));
 	expect(openMatter).toHaveBeenCalledWith("finding-1");
     expect(primaryActions()).toHaveLength(1);
+  });
+
+  it("keeps a finding action available after a conditional conclusion", () => {
+	const review: VendorAssessmentReviewView = {
+	  assessment: assessment("COMPLETED"), requests: [], answers: [], documents: [], matters: [],
+	  coverage: { visible_fields: 0, answered_fields: 0, required_fields: 0, answered_required: 0, ratio: 1 },
+	};
+    render(<VendorDueDiligence relationship={relationship} assessment={assessment("COMPLETED")} review={review} form={form} onCreateDeficiency={vi.fn()} onComplete={vi.fn()}/>);
+    expect(screen.getByRole("button", { name: "Record finding" })).toBeTruthy();
   });
 
   it("requires an explicit conclusion and basis without selecting from the provisional score", () => {

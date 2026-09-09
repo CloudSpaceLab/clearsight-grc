@@ -31,7 +31,7 @@ type Props = {
   onOpenForms?: () => void;
 };
 
-type LoadState = "loading" | "live" | "unavailable";
+type LoadState = "loading" | "live" | "unavailable" | "review_access_required";
 
 type FormValues = {
   legalName: string;
@@ -260,10 +260,10 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           if (loadID !== assessmentLoadID.current) return;
           setReview(value);
           setReviewState("live");
-        } catch {
+        } catch (error) {
           if (loadID !== assessmentLoadID.current) return;
           setReview(undefined);
-          setReviewState("unavailable");
+          setReviewState(apiErrorKind(error) === "not_found" || apiErrorKind(error) === "forbidden" ? "review_access_required" : "unavailable");
         }
       } else {
         setReviewState("live");
@@ -330,10 +330,10 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       setReview(value);
       setAssessment(value.assessment);
       setReviewState("live");
-    } catch {
+    } catch (error) {
       if (loadID !== assessmentLoadID.current) return;
       setReview(undefined);
-      setReviewState("unavailable");
+      setReviewState(apiErrorKind(error) === "not_found" || apiErrorKind(error) === "forbidden" ? "review_access_required" : "unavailable");
     }
   }
 

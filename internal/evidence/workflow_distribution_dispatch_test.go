@@ -72,6 +72,13 @@ func TestWorkflowDistributionDispatcherIssuesRedeemableCanonicalRoute(t *testing
 	if len(active) != 3 {
 		t.Fatalf("each reissue must mint exactly one link; got %d active routes after two reissues", len(active))
 	}
+	metadata, err := access.ListActiveRouteMetadata(context.Background(), requestInput.TenantID, requestInput.LegalEntityID, result.Distribution.ID)
+	if err != nil || len(metadata) != 3 {
+		t.Fatalf("active workflow route metadata = %#v, %v", metadata, err)
+	}
+	if metadata[0].AudienceHint != "v***@example.test" || metadata[0].ExpiresAt.IsZero() || metadata[0].IssuedAt.IsZero() {
+		t.Fatalf("workflow route metadata was incomplete: %#v", metadata[0])
+	}
 	if err := dispatcher.RevokeRequestCapabilities(context.Background(), requestInput.TenantID, result.Request.ID); err != nil {
 		t.Fatal(err)
 	}

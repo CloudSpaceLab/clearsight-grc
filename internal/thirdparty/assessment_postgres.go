@@ -940,7 +940,7 @@ const assessmentProjection = `a.id::text,t.slug,a.legal_entity_id::text,a.relati
 
 const assessmentSelect = `SELECT ` + assessmentProjection + ` FROM third_party_assessments a JOIN tenants t ON t.id=a.tenant_id `
 
-const assessmentRequestLinkSelect = `SELECT l.tenant_id::text,l.legal_entity_id::text,l.assessment_id::text,l.request_id::text,l.purpose,l.sequence,
+const assessmentRequestLinkSelect = `SELECT t.slug,l.legal_entity_id::text,l.assessment_id::text,l.request_id::text,l.purpose,l.sequence,
 	l.origin_type,l.origin_id::text,l.origin_sequence,COALESCE(l.invitation_id::text,''),l.created_at
 	FROM third_party_assessment_request_links l JOIN tenants t ON t.id=l.tenant_id `
 

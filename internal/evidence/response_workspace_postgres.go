@@ -170,6 +170,9 @@ func (store *PostgresDistributionStore) SubmitResponseWorkspace(ctx context.Cont
 	if err != nil {
 		return WorkspaceSubmissionResult{}, err
 	}
+	if err := markPostgresWorkspaceRequestSubmitted(ctx, tx, command, &receipt); err != nil {
+		return WorkspaceSubmissionResult{}, err
+	}
 	if err := insertPostgresResponseRevision(ctx, tx, metadata, state.View.CurrentRevision); err != nil {
 		return WorkspaceSubmissionResult{}, err
 	}

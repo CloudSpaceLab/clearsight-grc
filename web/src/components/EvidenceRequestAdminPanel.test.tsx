@@ -136,6 +136,18 @@ it("does not claim an empty population when the current administration read is u
   expect((screen.getByRole("button", { name: "Create invitation" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
+it("separates active workflow access from manually managed invitations", () => {
+  renderPanel({
+    invitations: [],
+    workflowAccess: [{ audienceHint: "m***@vendor.example", issuedAt: "2026-08-26T12:00:00Z", expiresAt: "2099-09-01T12:00:00Z" }],
+  });
+
+  expect(screen.getByRole("heading", { name: "Workflow access" })).toBeTruthy();
+  expect(screen.getByText("m***@vendor.example")).toBeTruthy();
+  expect(screen.getByText(/No manually managed invitations have been issued/i)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Create invitation" })).toBeNull();
+});
+
 function renderPanel(overrides: Partial<EvidenceRequestAdminPanelProps> = {}) {
   const props: EvidenceRequestAdminPanelProps = {
     requestTitle: "Quarter-end privileged access review",

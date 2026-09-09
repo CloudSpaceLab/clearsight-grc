@@ -74,7 +74,7 @@ func (s *AssessmentDeficiencyService) CreateDeficiency(ctx context.Context, _ Ac
 	if err != nil {
 		return AssessmentDeficiencyOutcome{}, err
 	}
-	if assessment.Status != AssessmentUnderReview || !validAssessmentIdentifier(assessment.ReviewMatterID) {
+	if !canRecordAssessmentDeficiency(assessment) || !validAssessmentIdentifier(assessment.ReviewMatterID) {
 		return AssessmentDeficiencyOutcome{}, ErrInvalidAssessmentTransition
 	}
 	relationship, err := s.repo.GetRelationship(ctx, scope, assessment.RelationshipID)
@@ -120,6 +120,14 @@ func (s *AssessmentDeficiencyService) CreateDeficiency(ctx context.Context, _ Ac
 		return AssessmentDeficiencyOutcome{}, err
 	}
 	return AssessmentDeficiencyOutcome{Assessment: updated, Matter: matter}, nil
+}
+
+// A conditional conclusion is not a closure of its outstanding conditions. A
+// reviewer may record the concrete finding after the conclusion so it remains
+// linked to the vendor relationship and can drive a normal vendor-work request.
+// Other completed conclusions remain immutable.
+func canRecordAssessmentDeficiency(assessment Assessment) bool {
+	return assessment.Status == AssessmentUnderReview || (assessment.Status == AssessmentCompleted && assessment.Conclusion == AssessmentSatisfactoryWithConditions)
 }
 
 func (s *AssessmentDeficiencyService) reconcileDeficiencyLink(ctx context.Context, scope Scope, assessment Assessment, matter continuity.MatterAggregate) (AssessmentDeficiencyOutcome, bool, bool) {

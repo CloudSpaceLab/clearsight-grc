@@ -28,7 +28,7 @@ func (r *MemoryAssessmentRepository) LinkAssessmentDeficiency(_ context.Context,
 	if current.Version != record.ExpectedVersion {
 		return AssessmentMatterLink{}, Assessment{}, ErrVersionConflict
 	}
-	if current.Status != AssessmentUnderReview {
+	if !canRecordAssessmentDeficiency(current) {
 		return AssessmentMatterLink{}, Assessment{}, ErrInvalidAssessmentTransition
 	}
 	canonical, err := r.ensureMemoryAssessmentMatterRelationshipLink(current, record.MatterID, AssessmentMatterDeficiency, record.ActorPrincipalID, record.LinkedAt)

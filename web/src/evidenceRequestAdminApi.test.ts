@@ -25,11 +25,12 @@ describe("evidence requester administration API", () => {
     }] }));
     vi.stubGlobal("fetch", fetch);
 
-    const items = await listEvidenceInvitationMetadata("request/2026");
+    const administration = await listEvidenceInvitationMetadata("request/2026");
 
-    expect(items).toHaveLength(1);
-    expect(items[0]?.audience_hint).toBe("a***@supplier.example");
-    expect(items[0]).not.toHaveProperty("token");
+    expect(administration.items).toHaveLength(1);
+    expect(administration.items[0]?.audience_hint).toBe("a***@supplier.example");
+    expect(administration.items[0]).not.toHaveProperty("token");
+    expect(administration.workflowAccess).toEqual([]);
     expect(fetch).toHaveBeenCalledWith("/api/v1/evidence/requests/request%2F2026/invitations", expect.objectContaining({
       credentials: "include",
       method: "GET",
@@ -39,7 +40,19 @@ describe("evidence requester administration API", () => {
   it("normalizes a null invitation collection to an empty bounded inventory", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ items: null })));
 
-    await expect(listEvidenceInvitationMetadata("request-1")).resolves.toEqual([]);
+    await expect(listEvidenceInvitationMetadata("request-1")).resolves.toEqual({ items: [], workflowAccess: [] });
+  });
+
+  it("returns safe workflow access status without a route selector", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({
+      items: [],
+      workflow_access: [{ audience_hint: "m***@vendor.example", expires_at: "2026-09-01T12:00:00Z", issued_at: "2026-08-26T12:00:00Z" }],
+    })));
+
+    const administration = await listEvidenceInvitationMetadata("request-1");
+
+    expect(administration.workflowAccess).toEqual([{ audience_hint: "m***@vendor.example", expires_at: "2026-09-01T12:00:00Z", issued_at: "2026-08-26T12:00:00Z" }]);
+    expect(administration.workflowAccess[0]).not.toHaveProperty("selector");
   });
 
   it("loads a bounded sanitized active-session page from the exact request route", async () => {

@@ -143,6 +143,10 @@ func (store *MemoryDistributionAccessStore) SubmitResponseWorkspace(_ context.Co
 			repo.artifacts[artifactID] = artifact
 		}
 	}
+	request.Status = RequestSubmitted
+	request.Version++
+	request.UpdatedAt = command.Now.UTC()
+	repo.requests[request.ID] = request
 
 	revisionNumber := int64(len(state.revisions) + 1)
 	metadata.ID = revisionID

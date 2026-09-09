@@ -90,7 +90,7 @@ export function VendorWorkPanel(props: Props) {
     if (relationshipID) {
       const value = await loadVendorRelationship(relationshipID).catch(() => null);
       if (sequence !== loadSequence.current) return;
-      const links = linksResult.status === "fulfilled" ? linksResult.value.items.filter((item) => item.state === "ACTIVE") : [];
+      const links = linksResult.status === "fulfilled" ? linksResult.value.items.filter((item) => item.state === "ACTIVE" && item.relationship_id === relationshipID) : [];
       setRelationships(value ? links.map((link) => ({ link, relationship: value })) : []);
     } else if (linksResult.status === "fulfilled") {
       const active = linksResult.value.items.filter((item) => item.state === "ACTIVE");
@@ -137,7 +137,7 @@ export function VendorWorkPanel(props: Props) {
       let hydrated: LinkedRelationship[];
       if (relationshipID) {
         const value = relationships.find((item) => item.relationship)?.relationship ?? await loadVendorRelationship(relationshipID).catch(() => null);
-        hydrated = value ? active.map((link) => ({ link, relationship: value })) : [];
+        hydrated = value ? active.filter((link) => link.relationship_id === relationshipID).map((link) => ({ link, relationship: value })) : [];
       } else {
         hydrated = await Promise.all(active.map(async (link) => ({ link, relationship: await loadVendorRelationship(link.relationship_id).catch(() => null) })));
       }

@@ -566,6 +566,16 @@ describe("VendorsWorkspace", () => {
     expect(await screen.findByRole("button", { name: "Record assessment conclusion" })).toBeTruthy();
   });
 
+  it("explains when the signed-in role is not assigned to review a submitted vendor response", async () => {
+    vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("SUBMITTED") });
+    vi.mocked(loadVendorAssessment).mockRejectedValue(new ApiError(404, "This due-diligence record was not found in your current legal-entity scope."));
+    render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1"/>);
+
+    expect(await screen.findByText("Reviewer access is required")).toBeTruthy();
+    expect(screen.getByText(/Switch to the Internal Auditor demo account to review it/)).toBeTruthy();
+    expect(screen.queryByText("Vendor response is unavailable")).toBeNull();
+  });
+
   it("records the reviewer conclusion without changing the vendor relationship", async () => {
     vi.mocked(loadCurrentVendorAssessment).mockResolvedValue({ assessment: assessment("UNDER_REVIEW") });
     vi.mocked(loadVendorAssessment).mockResolvedValue(review("UNDER_REVIEW"));

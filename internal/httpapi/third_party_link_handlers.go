@@ -90,9 +90,17 @@ func (a *API) listVendorRelationshipLinks(w http.ResponseWriter, r *http.Request
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	relationshipID := strings.TrimSpace(r.PathValue("id"))
+	if relationshipID == "" {
+		relationshipID = strings.TrimSpace(r.URL.Query().Get("relationship_id"))
+	}
 	input := thirdparty.RelationshipLinkListInput{
-		RelationshipID: strings.TrimSpace(r.PathValue("id")), TargetType: thirdparty.LinkTargetType(strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("target_type")))),
+		RelationshipID: relationshipID, TargetType: thirdparty.LinkTargetType(strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("target_type")))),
 		TargetID: r.URL.Query().Get("target_id"), IncludeEnded: strings.EqualFold(r.URL.Query().Get("include_ended"), "true"), Cursor: r.URL.Query().Get("cursor"), Limit: limit,
+	}
+	if (input.RelationshipID == "" && (input.TargetType == "" || input.TargetID == "")) || (input.RelationshipID != "" && (input.TargetType != "" || strings.TrimSpace(input.TargetID) != "")) {
+		writeThirdPartyLinkError(w, thirdparty.ErrInvalid)
+		return
 	}
 	page, err := service.List(r.Context(), actor, input)
 	if err != nil {

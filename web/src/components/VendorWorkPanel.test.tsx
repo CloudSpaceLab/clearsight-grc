@@ -187,6 +187,13 @@ describe("VendorWorkPanel", () => {
     await waitFor(() => expect(prepareVendorWork).toHaveBeenCalledWith("relationship-1", expect.objectContaining({ relationship_link_id: "link-1" })));
   });
 
+  it("does not offer links returned for a different vendor relationship", async () => {
+    vi.mocked(loadVendorRelationshipLinks).mockResolvedValue({ items: [{ ...link, relationship_id: "relationship-2" }] });
+    render(<VendorWorkPanel relationshipID="relationship-1"/>);
+
+    expect(await screen.findByText("Link this vendor relationship to a Program or issue before requesting vendor work.")).toBeTruthy();
+  });
+
   it("keeps entered values when preparation fails", async () => {
     vi.mocked(prepareVendorWork).mockRejectedValue(new Error("unavailable"));
     render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);

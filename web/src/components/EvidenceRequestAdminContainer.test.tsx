@@ -21,7 +21,7 @@ function deferred<T>() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  listEvidenceInvitationMetadata.mockResolvedValue([{ id: "invitation-1", request_id: "request-1", audience_hint: "m***@example.com", purpose: "Provide the return", expires_at: "2099-09-01T12:00:00Z", max_redemptions: 1, redemptions: 0, created_at: "2026-08-26T12:00:00Z" }]);
+  listEvidenceInvitationMetadata.mockResolvedValue({ items: [{ id: "invitation-1", request_id: "request-1", audience_hint: "m***@example.com", purpose: "Provide the return", expires_at: "2099-09-01T12:00:00Z", max_redemptions: 1, redemptions: 0, created_at: "2026-08-26T12:00:00Z" }], workflowAccess: [] });
   listEvidenceActiveSessions.mockResolvedValue({ items: [], has_more: false });
   revokeEvidenceInvitation.mockResolvedValue(undefined);
   revokeEvidenceSession.mockResolvedValue(undefined);
@@ -39,7 +39,7 @@ it("loads sanitized requester metadata and refreshes after revocation", async ()
 });
 
 it("keeps a created invitation available when the follow-up inventory refresh fails", async () => {
-  listEvidenceInvitationMetadata.mockResolvedValueOnce([]).mockRejectedValueOnce(new Error("refresh unavailable"));
+  listEvidenceInvitationMetadata.mockResolvedValueOnce({ items: [], workflowAccess: [] }).mockRejectedValueOnce(new Error("refresh unavailable"));
   issueEvidenceInvitation.mockResolvedValue({ invitation_id: "new-invitation", token: "one-time-token", audience_hint: "m***@example.com", expires_at: "2099-09-01T12:00:00Z" });
   render(<EvidenceRequestAdminContainer requestID="request-1" requestTitle="Annual return evidence"/>);
 
@@ -55,7 +55,7 @@ it("keeps a created invitation available when the follow-up inventory refresh fa
 });
 
 it("does not expose an old request token or records after the request scope changes", async () => {
-  listEvidenceInvitationMetadata.mockResolvedValue([]);
+  listEvidenceInvitationMetadata.mockResolvedValue({ items: [], workflowAccess: [] });
   const command = deferred<{ invitation_id: string; token: string; audience_hint: string; expires_at: string }>();
   issueEvidenceInvitation.mockReturnValue(command.promise);
   const view = render(<EvidenceRequestAdminContainer requestID="request-1" requestTitle="First request"/>);
@@ -94,6 +94,19 @@ it("keeps invitation administration usable when active sessions are unavailable"
   expect(await screen.findByText("m***@example.com")).toBeTruthy();
   expect((screen.getByRole("button", { name: "Revoke invitation for m***@example.com" }) as HTMLButtonElement).disabled).toBe(false);
   expect(screen.getByRole("alert").textContent).toMatch(/active external sessions could not be loaded/i);
+});
+
+it("shows workflow-issued vendor access without offering a duplicate manual invitation", async () => {
+  listEvidenceInvitationMetadata.mockResolvedValue({
+    items: [],
+    workflowAccess: [{ audience_hint: "m***@vendor.example", issued_at: "2026-08-26T12:00:00Z", expires_at: "2099-09-01T12:00:00Z" }],
+  });
+  render(<EvidenceRequestAdminContainer requestID="request-1" requestTitle="Vendor due diligence"/>);
+
+  expect(await screen.findByRole("heading", { name: "Workflow access" })).toBeTruthy();
+  expect(screen.getByText("m***@vendor.example")).toBeTruthy();
+  expect(screen.getByText(/No manually managed invitations have been issued/i)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Create invitation" })).toBeNull();
 });
 
 it("keeps a committed session revocation applied when its refresh fails", async () => {

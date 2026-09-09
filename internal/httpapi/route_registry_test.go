@@ -179,6 +179,9 @@ func TestCORSAllowsBearerCapabilityHeader(t *testing.T) {
 	if !strings.Contains(allowed, "Authorization") {
 		t.Fatalf("bearer capability header missing from CORS allowlist: %q", allowed)
 	}
+	if methods := response.Header().Get("Access-Control-Allow-Methods"); !strings.Contains(methods, http.MethodPatch) {
+		t.Fatalf("workspace autosave method missing from CORS allowlist: %q", methods)
+	}
 }
 
 func TestMatterEditRoutesAreMaterialCommands(t *testing.T) {

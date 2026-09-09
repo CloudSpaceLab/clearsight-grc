@@ -67,7 +67,7 @@ func CORS(allowedOrigin string) func(http.Handler) http.Handler {
 				w.Header().Set("Vary", "Origin")
 				w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID, X-ClearSight-Identity, X-ClearSight-Identity-Timestamp, X-ClearSight-Identity-Signature, X-ClearSight-Demo-Tenant, X-ClearSight-Demo-Principal, X-ClearSight-Demo-Legal-Entity")
 				w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, X-ClearSight-Command-Authorization")
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, OPTIONS")
 			}
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)

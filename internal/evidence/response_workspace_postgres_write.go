@@ -120,6 +120,33 @@ func insertPostgresWorkspaceSubmission(ctx context.Context, tx pgx.Tx, command w
 	}, nil
 }
 
+func markPostgresWorkspaceRequestSubmitted(ctx context.Context, tx pgx.Tx, command workspaceSubmitCommand, receipt *SubmissionReceipt) error {
+	if receipt == nil {
+		return ErrWorkspaceUnavailable
+	}
+	var version int64
+	if err := tx.QueryRow(ctx, `
+		UPDATE capture_requests
+		SET status='SUBMITTED',version=version+1,updated_at=$4
+		WHERE id=$1::uuid AND tenant_id=$2::uuid AND legal_entity_id=$3::uuid
+		  AND status IN ('READY','IN_PROGRESS','SUBMITTED') AND deadline>$4
+		RETURNING version`,
+		command.Session.RequestID, command.Session.TenantID, command.Session.LegalEntityID, command.Now.UTC(),
+	).Scan(&version); err != nil {
+		return ErrWorkspaceUnavailable
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at)
+		VALUES($1::uuid,'EVIDENCE_REQUEST',$2::uuid,'EvidenceResponseSubmitted',jsonb_build_object('submission_id',$3::text,'channel','MAGIC_LINK'),$4,$4,$4)`,
+		command.Session.TenantID, command.Session.RequestID, receipt.SubmissionID, command.Now.UTC(),
+	); err != nil {
+		return ErrWorkspaceUnavailable
+	}
+	receipt.Status = RequestSubmitted
+	receipt.Version = version
+	return nil
+}
+
 func insertPostgresResponseRevision(ctx context.Context, tx pgx.Tx, revision ResponseRevision, previous *ResponseRevision) error {
 	if previous != nil {
 		tag, err := tx.Exec(ctx, `

@@ -24,9 +24,10 @@ import type {
 } from "../vendorAssessmentTypes";
 import { VendorResponseReview } from "./forms/VendorResponseReview";
 import { Notice, StatusBadge, type StatusTone } from "./ui";
+import { apiErrorKind } from "../http";
 import "./vendor-due-diligence.css";
 
-type ViewState = "live" | "loading" | "unavailable";
+type ViewState = "live" | "loading" | "unavailable" | "review_access_required";
 
 type Props = {
   relationship: VendorRelationshipAggregate;
@@ -253,10 +254,10 @@ export function VendorDueDiligence({
       setLocalOutcomeKind("initial");
       setPanel(null);
       if (outcome.state === "DELIVERED") setNotice(`The request was sent. The response is due ${formatDate(outcome.request.deadline)}.`);
-    } catch {
+    } catch (cause) {
       setRecipient("");
       setPanel(null);
-      setError("The request was not sent. Re-enter the vendor contact email before trying again.");
+      setError(sendRequestError(cause));
     } finally {
       setBusy(false);
     }
@@ -495,6 +496,7 @@ export function VendorDueDiligence({
     {error && <Notice tone="error">{error}</Notice>}
 
     {effectiveAssessment && needsReviewView(status) && reviewState === "loading" && <div className="vdd-review-state" aria-live="polite" aria-busy="true">Loading the submitted response and supporting documents…</div>}
+    {effectiveAssessment && needsReviewView(status) && reviewState === "review_access_required" && <Notice tone="warning"><strong>Reviewer access is required</strong> The submitted response is available to the assigned owner or reviewer. Switch to the Internal Auditor demo account to review it.</Notice>}
     {effectiveAssessment && needsReviewView(status) && reviewState === "unavailable" && <Notice tone="error"><strong>Vendor response is unavailable</strong> The submitted answers and documents could not be loaded. Reload them before starting or completing the review. {onRefreshReview && <button type="button" className="secondary-button" onClick={() => void onRefreshReview(effectiveAssessment.id)}>Reload vendor response</button>}</Notice>}
 
     {reviewState === "live" && review && <ReviewSummary review={review} assessment={effectiveAssessment} onOpenMatter={onOpenMatter} onOpenDocument={!panel && onOpenDocument ? onOpenDocument : undefined} onReviewDocument={!panel && onReviewDocument ? openDocumentReview : undefined} onCreateDeficiency={!panel && onCreateDeficiency ? () => openPanel("deficiency") : undefined}/>}
@@ -526,6 +528,15 @@ export function VendorDueDiligence({
 
     {!availableForms.length && !effectiveAssessment && <p className="vdd-limitation">No active due-diligence form was found in this legal entity. Create a new form draft or open Forms to review and approve an existing template before starting this vendor review.</p>}
   </section>;
+}
+
+function sendRequestError(cause: unknown): string {
+  const kind = apiErrorKind(cause);
+  if (kind === "conflict") return "This due-diligence record changed before the request was sent. Reload the vendor record, then try again.";
+  if (kind === "forbidden" || kind === "unauthorized") return "Your current access does not allow this due-diligence request to be sent.";
+  if (kind === "validation") return "Check the vendor contact email and response due date, then try again.";
+  if (kind === "unavailable") return "The due-diligence request service is temporarily unavailable. No invitation was issued; try again shortly.";
+  return "The request was not sent. Re-enter the vendor contact email before trying again.";
 }
 
 function CancelAssessmentPanel({ reason, busy, onReason, onCancel, onSubmit }: { reason: string; busy: boolean; onReason: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
@@ -630,12 +641,13 @@ function ConclusionPanel({ conclusion, rationale, uncertainty, nextReviewDate, m
 }
 
 function ReviewSummary({ review, assessment, onOpenMatter, onOpenDocument, onReviewDocument, onCreateDeficiency }: { review: VendorAssessmentReviewView; assessment?: VendorAssessment | null; onOpenMatter?: (matterID: string) => void; onOpenDocument?: (assessmentID: string, requestID: string, artifactID: string) => void; onReviewDocument?: (document: VendorAssessmentDocument, decision: "VALIDATE" | "REJECT") => void; onCreateDeficiency?: () => void }) {
+	const canRecordFinding = assessment?.status === "UNDER_REVIEW" || (assessment?.status === "COMPLETED" && assessment.conclusion === "SATISFACTORY_WITH_CONDITIONS");
   const criticalResponses = new Map(review.provisional_score?.critical_failures?.map((failure) => [failure.field_id, failure.outcome]) ?? []);
   return <section className="vdd-review" aria-label="Vendor response review">
     <div className="vdd-review-header"><div><h3>Vendor response</h3>{review.response ? <p>Submitted {formatDate(review.response.submitted_at)} · {review.response.answer_count} {itemLabel(review.response.answer_count, "answer")} · {review.response.artifact_count} {itemLabel(review.response.artifact_count, "document")}</p> : <p>No submitted response summary is available.</p>}</div><div className="vdd-review-metrics"><span>{review.coverage.answered_required} of {review.coverage.required_fields} required answers received</span>{review.provisional_score?.score !== undefined && <span>Provisional score: {formatScore(review.provisional_score.score)} of 100 · Form version {review.assessment.form_template_version}</span>}</div></div>
     <div className="vdd-review-group"><h4>Submitted answers</h4>{review.answers.length ? <dl className="vdd-answer-list">{review.answers.map((answer) => <ReviewAnswer key={answer.field_id} answer={answer} criticalResponse={criticalResponses.get(answer.field_id)}/>)}</dl> : <p>No answers were submitted for this form version.</p>}</div>
     {review.documents.length > 0 && <div className="vdd-review-group"><h4>Supporting documents</h4>{review.documents.map((document) => <ReviewDocument key={document.artifact_id} document={document} assessment={assessment} requestID={review.response?.request_id} onOpenDocument={onOpenDocument} onReviewDocument={onReviewDocument}/>)}</div>}
-    <div className="vdd-review-group"><div className="vdd-review-group-heading"><h4>Findings</h4>{assessment?.status === "UNDER_REVIEW" && onCreateDeficiency && <button type="button" className="secondary-button" onClick={onCreateDeficiency}>Record finding</button>}</div>{review.matters.length ? <ul>{review.matters.map((finding) => <li key={finding.matter_id}><strong>{finding.title}</strong><span>{humanizeStatus(finding.status)}</span>{onOpenMatter && <button type="button" className="text-button" onClick={() => onOpenMatter(finding.matter_id)}>Open finding</button>}</li>)}</ul> : <p>No findings are linked to this assessment.</p>}</div>
+	    <div className="vdd-review-group"><div className="vdd-review-group-heading"><h4>Findings</h4>{canRecordFinding && onCreateDeficiency && <button type="button" className="secondary-button" onClick={onCreateDeficiency}>Record finding</button>}</div>{review.matters.length ? <ul>{review.matters.map((finding) => <li key={finding.matter_id}><strong>{finding.title}</strong><span>{humanizeStatus(finding.status)}</span>{onOpenMatter && <button type="button" className="text-button" onClick={() => onOpenMatter(finding.matter_id)}>Open finding</button>}</li>)}</ul> : <p>No findings are linked to this assessment.</p>}</div>
     {assessment?.status === "COMPLETED" && <div className="vdd-review-group"><h4>Recorded conclusion</h4><dl className="vdd-conclusion"><div><dt>Conclusion</dt><dd>{conclusionLabel(assessment.conclusion)}</dd></div><div><dt>Assessment basis</dt><dd>{assessment.conclusion_rationale || "No assessment basis was recorded."}</dd></div>{assessment.conclusion_uncertainty && <div><dt>Remaining uncertainty</dt><dd>{assessment.conclusion_uncertainty}</dd></div>}<div><dt>Completed</dt><dd>{formatDate(assessment.completed_at)}</dd></div></dl></div>}
   </section>;
 }

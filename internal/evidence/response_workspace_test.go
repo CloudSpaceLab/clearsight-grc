@@ -102,6 +102,12 @@ func TestResponseWorkspaceCreatesImmutableAmendmentWithoutClosingDistribution(t 
 	}
 
 	store := fixture.access.store.(*MemoryDistributionAccessStore)
+	store.distributions.repo.mu.RLock()
+	requestAfterFirst := store.distributions.repo.requests[first.Submission.RequestID]
+	store.distributions.repo.mu.RUnlock()
+	if requestAfterFirst.Status != RequestSubmitted || first.Submission.Status != RequestSubmitted {
+		t.Fatalf("submission did not make the bank review request available: request=%+v receipt=%+v", requestAfterFirst, first.Submission)
+	}
 	var scoredEventFound bool
 	for _, event := range store.distributions.outbox {
 		if event.EventType == "FORM_RESPONSE_SCORED_1" {

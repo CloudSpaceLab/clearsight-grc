@@ -26,10 +26,17 @@ export type EvidenceExternalSessionAdminItem = {
   startedAt: string;
 };
 
+export type EvidenceWorkflowAccessItem = {
+  audienceHint?: string;
+  expiresAt: string;
+  issuedAt: string;
+};
+
 export type EvidenceRequestAdminPanelProps = {
   requestTitle: string;
   recipients: EvidenceAdminRecipient[];
   invitations: EvidenceInvitationAdminItem[];
+  workflowAccess?: EvidenceWorkflowAccessItem[];
   activeSessions?: EvidenceExternalSessionAdminItem[];
   activeSessionsHasMore?: boolean;
   canManage: boolean;
@@ -47,6 +54,7 @@ export function EvidenceRequestAdminPanel({
   requestTitle,
   recipients,
   invitations,
+  workflowAccess = [],
   activeSessions,
   activeSessionsHasMore = false,
   canManage,
@@ -71,6 +79,7 @@ export function EvidenceRequestAdminPanel({
   const sessionMutationsEnabled = canManage && sessionLoadState === "ready";
   const visibleInvitations = invitations.slice(0, INVENTORY_LIMIT);
   const visibleSessions = activeSessions?.slice(0, INVENTORY_LIMIT) ?? [];
+  const workflowManaged = workflowAccess.length > 0;
 
   useEffect(() => {
     if (activeInvitation?.purpose) setPurpose((current) => current || activeInvitation.purpose);
@@ -169,7 +178,16 @@ export function EvidenceRequestAdminPanel({
       <button className="text-button" type="button" onClick={hideIssuedLink}>Hide invitation link</button>
     </div>}
 
-    <section className="evidence-invitation-form" aria-labelledby="evidence-invitation-action">
+    {workflowManaged && <section aria-labelledby="workflow-access-status">
+      <h3 id="workflow-access-status">Workflow access</h3>
+      <p>This vendor request has an active secure link. Use the vendor assessment to send another link or change the recipient.</p>
+      {workflowAccess.map((item, index) => <article key={`${item.audienceHint ?? "recipient"}-${item.issuedAt}-${index}`}>
+        <header><div><span className="eyebrow">Recipient</span><h4>{item.audienceHint || "External recipient"}</h4></div><strong>Active</strong></header>
+        <dl><div><dt>Issued</dt><dd>{formatDateTime(item.issuedAt)}</dd></div><div><dt>Expires</dt><dd>{formatDateTime(item.expiresAt)}</dd></div></dl>
+      </article>)}
+    </section>}
+
+    {!workflowManaged && <section className="evidence-invitation-form" aria-labelledby="evidence-invitation-action">
       <h3 id="evidence-invitation-action">{activeInvitation ? "Replace active invitation" : "Create an invitation"}</h3>
       <p>{activeInvitation
         ? "Replacing the invitation ends the current invitation and its external sessions before a new one is issued."
@@ -194,12 +212,12 @@ export function EvidenceRequestAdminPanel({
           {busy === "issue" ? "Creating invitation…" : busy === "replace" ? "Replacing invitation…" : activeInvitation ? "Replace invitation" : "Create invitation"}
         </button>
       </form>
-    </section>
+    </section>}
 
     <section aria-labelledby="evidence-invitation-inventory">
       <h3 id="evidence-invitation-inventory">Invitation history</h3>
       {invitations.length > INVENTORY_LIMIT && <p>Showing the first {INVENTORY_LIMIT} invitations. More records are available.</p>}
-      {loadState === "ready" && invitations.length === 0 && <p>No invitations have been issued for this evidence request.</p>}
+      {loadState === "ready" && invitations.length === 0 && <p>{workflowManaged ? "No manually managed invitations have been issued for this evidence request." : "No invitations have been issued for this evidence request."}</p>}
       {visibleInvitations.map((item) => <article key={item.id}>
         <header><div><span className="eyebrow">Recipient</span><h4>{item.audienceHint}</h4></div><strong>{invitationState(item)}</strong></header>
         <dl>

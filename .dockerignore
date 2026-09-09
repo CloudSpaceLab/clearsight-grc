@@ -5,6 +5,7 @@
 !.env.example
 coverage
 coverage.out
+.cache
 var
 web/node_modules
 web/dist

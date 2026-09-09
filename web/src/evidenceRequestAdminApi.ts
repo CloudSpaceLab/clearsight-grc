@@ -14,6 +14,17 @@ export type EvidenceInvitationMetadata = {
   created_at: string;
 };
 
+export type EvidenceWorkflowAccessMetadata = {
+  audience_hint?: string;
+  expires_at: string;
+  issued_at: string;
+};
+
+export type EvidenceInvitationAdministration = {
+  items: EvidenceInvitationMetadata[];
+  workflowAccess: EvidenceWorkflowAccessMetadata[];
+};
+
 export type EvidenceInvitationCommand = {
   audience: string;
   purpose: string;
@@ -39,11 +50,17 @@ export type EvidenceActiveSessionMetadata = {
 
 export type EvidenceActiveSessionPage = { items: EvidenceActiveSessionMetadata[]; has_more: boolean };
 
-type InvitationMetadataResponse = { items?: EvidenceInvitationMetadata[] | null };
+type InvitationMetadataResponse = {
+  items?: EvidenceInvitationMetadata[] | null;
+  workflow_access?: EvidenceWorkflowAccessMetadata[] | null;
+};
 
-export async function listEvidenceInvitationMetadata(requestID: string): Promise<EvidenceInvitationMetadata[]> {
+export async function listEvidenceInvitationMetadata(requestID: string): Promise<EvidenceInvitationAdministration> {
   const response = await requestJSON<InvitationMetadataResponse>(apiBase, invitationCollectionPath(requestID), { method: "GET" });
-  return Array.isArray(response.items) ? response.items : [];
+  return {
+    items: Array.isArray(response.items) ? response.items : [],
+    workflowAccess: Array.isArray(response.workflow_access) ? response.workflow_access : [],
+  };
 }
 
 export async function listEvidenceRecipientCandidates(requestID: string, query = ""): Promise<EvidenceRecipientCandidatePage> {

@@ -24,6 +24,15 @@ type DistributionAccessService struct {
 	sessionTTL time.Duration
 }
 
+// DistributionAccessRouteMetadata is the requester-safe status of an active
+// workflow access route. It deliberately omits route IDs, selectors and the
+// protected recipient identity because this read model is informational only.
+type DistributionAccessRouteMetadata struct {
+	AudienceHint string    `json:"audience_hint,omitempty"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	IssuedAt     time.Time `json:"issued_at"`
+}
+
 func NewDistributionAccessService(store DistributionAccessStore, revealer recipientAddressRevealer, delivery OTPDelivery, hmacKey [32]byte, sessionTTL time.Duration) (*DistributionAccessService, error) {
 	if store == nil || revealer == nil || !securityKeyConfigured(hmacKey) || sessionTTL <= 0 {
 		return nil, ErrDistributionAccessUnavailable
@@ -36,6 +45,29 @@ func NewDistributionAccessService(store DistributionAccessStore, revealer recipi
 	service.engine.now = func() time.Time { return service.currentTime() }
 	service.otp.now = func() time.Time { return service.currentTime() }
 	return service, nil
+}
+
+// ListActiveRouteMetadata returns the current, safe-to-display access status
+// for one exact distribution. It is intentionally not an administration
+// command: workflow-owned routes continue to be replaced or revoked by their
+// originating workflow.
+func (service *DistributionAccessService) ListActiveRouteMetadata(ctx context.Context, tenantID, legalEntityID, distributionID string) ([]DistributionAccessRouteMetadata, error) {
+	if service == nil || service.store == nil {
+		return nil, ErrDistributionAccessUnavailable
+	}
+	routes, err := service.store.ListActiveAccessRoutes(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(legalEntityID), strings.TrimSpace(distributionID), service.currentTime())
+	if err != nil {
+		return nil, ErrDistributionAccessUnavailable
+	}
+	values := make([]DistributionAccessRouteMetadata, 0, len(routes))
+	for _, route := range routes {
+		values = append(values, DistributionAccessRouteMetadata{
+			AudienceHint: route.AudienceHint,
+			ExpiresAt:    route.ExpiresAt,
+			IssuedAt:     route.CreatedAt,
+		})
+	}
+	return values, nil
 }
 
 func (service *DistributionAccessService) IssueDistributionAccessRoutes(ctx context.Context, tenantID, legalEntityID, distributionID, createdBy string) ([]IssuedAccessRoute, error) {
@@ -304,7 +336,7 @@ func (service *DistributionAccessService) SessionRequest(ctx context.Context, se
 		return DistributionAccessSession{}, Request{}, ErrSessionInvalid
 	}
 	request, err := service.store.GetRequest(ctx, session.TenantID, session.RequestID)
-	if err != nil || !requestOpenAt(request, now) || !externalRecipientRequest(request) {
+	if err != nil || !workspaceRequestOpenAt(request, now) || !externalRecipientRequest(request) {
 		return DistributionAccessSession{}, Request{}, ErrSessionInvalid
 	}
 	recipient, protected, err := service.store.ProtectedRecipientForAccess(ctx, route, session.RecipientID)
