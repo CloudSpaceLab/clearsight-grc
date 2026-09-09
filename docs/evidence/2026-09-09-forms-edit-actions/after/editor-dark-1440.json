@@ -1,0 +1,69 @@
+{
+  "name": "editor-dark-1440",
+  "state": "editor",
+  "theme": "dark",
+  "width": 1440,
+  "errors": [],
+  "fixture": "forms-library-lifecycle",
+  "fixtureOverrides": [
+    "active author permission"
+  ],
+  "keyboard": {
+    "entry": "named editor region",
+    "back": "originating row Edit draft"
+  },
+  "layout": {
+    "width": 1440,
+    "scrollWidth": 1440,
+    "heading": [
+      "Forms"
+    ],
+    "controls": [
+      {
+        "text": "‹ Forms",
+        "disabled": false,
+        "x": 214.59375,
+        "right": 276.765625,
+        "height": 44
+      },
+      {
+        "text": "Preview",
+        "disabled": false,
+        "x": 925.71875,
+        "right": 989.296875,
+        "height": 38
+      },
+      {
+        "text": "Review",
+        "disabled": false,
+        "x": 995.296875,
+        "right": 1065.96875,
+        "height": 38
+      },
+      {
+        "text": "Save draft",
+        "disabled": false,
+        "x": 1071.96875,
+        "right": 1165.765625,
+        "height": 45
+      },
+      {
+        "text": "Send for approval",
+        "disabled": false,
+        "x": 1171.765625,
+        "right": 1321.40625,
+        "height": 45
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 99
+      }
+    ]
+  },
+  "status": "PASS"
+}

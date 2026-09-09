@@ -87,7 +87,7 @@ describe("Forms workspace location state", () => {
     fireEvent(window, new Event(event));
     await act(async () => finish({ items: [draftItem] }));
 
-    expect(await screen.findByRole("button", { name: "Open Vendor due diligence" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Details for Vendor due diligence" })).toBeTruthy();
     expect(screen.queryByText("Loading form templates…")).toBeNull();
     expect(api.loadFormTemplatePage).toHaveBeenCalledTimes(1);
   });
@@ -106,7 +106,7 @@ describe("Forms workspace location state", () => {
     fireEvent(window, new Event("hashchange"));
     await act(async () => finish({ items: [draftItem] }));
 
-    expect(await screen.findByRole("button", { name: "Open Vendor due diligence" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Details for Vendor due diligence" })).toBeTruthy();
     expect(api.loadFormTemplatePage.mock.calls[0]?.[1].aborted).toBe(false);
     expect(api.loadFormTemplatePage).toHaveBeenCalledTimes(1);
   });
@@ -122,10 +122,10 @@ describe("Forms workspace location state", () => {
     fireEvent(window, new Event("popstate"));
     fireEvent(window, new Event("hashchange"));
     expect(api.loadFormTemplatePage.mock.calls[0]?.[1].aborted).toBe(true);
-    await screen.findByRole("button", { name: "Open Current template" });
+    await screen.findByRole("button", { name: "Details for Current template" });
     await act(async () => finishOld({ items: [draftItem] }));
-    expect(screen.queryByRole("button", { name: "Open Vendor due diligence" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Open Current template" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Details for Vendor due diligence" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Details for Current template" })).toBeTruthy();
   });
 
   it("rejects an obsolete additional page when history changes the actual template query", async () => {
@@ -140,10 +140,10 @@ describe("Forms workspace location state", () => {
     await waitFor(() => expect(api.loadFormTemplatePage).toHaveBeenCalledTimes(2));
     window.history.replaceState(null, "", "#forms?search=current");
     fireEvent(window, new Event("popstate"));
-    await screen.findByRole("button", { name: "Open Current template" });
+    await screen.findByRole("button", { name: "Details for Current template" });
     await act(async () => finishPage({ items: [old] }));
-    expect(screen.queryByRole("button", { name: "Open Old additional template" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Open Current template" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Details for Old additional template" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Details for Current template" })).toBeTruthy();
   });
 
   it("opens Documents from a direct section URL and re-fetches after remount", async () => {

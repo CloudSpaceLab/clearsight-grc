@@ -1,0 +1,55 @@
+{
+  "name": "denied-light-1440",
+  "state": "denied",
+  "theme": "light",
+  "width": 1440,
+  "errors": [],
+  "fixture": "forms-library-lifecycle",
+  "fixtureOverrides": [
+    "active author permission",
+    "denied"
+  ],
+  "layout": {
+    "width": 1440,
+    "scrollWidth": 1440,
+    "heading": [
+      "Forms",
+      "Customer complaint review draft"
+    ],
+    "controls": [
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      }
+    ]
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": []
+  },
+  "status": "PASS"
+}

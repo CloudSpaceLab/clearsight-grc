@@ -1,0 +1,94 @@
+{
+  "name": "library-dark-320",
+  "state": "library",
+  "theme": "dark",
+  "width": 320,
+  "errors": [],
+  "fixture": "forms-library-lifecycle",
+  "fixtureOverrides": [
+    "active author permission"
+  ],
+  "layout": {
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": [
+      "Forms"
+    ],
+    "controls": [
+      {
+        "text": "Edit draft",
+        "disabled": false,
+        "x": 65,
+        "right": 161.265625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 169.265625,
+        "right": 248.265625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 65,
+        "right": 144,
+        "height": 44
+      },
+      {
+        "text": "Edit form",
+        "disabled": false,
+        "x": 65,
+        "right": 160.78125,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 168.78125,
+        "right": 247.78125,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 65,
+        "right": 144,
+        "height": 44
+      }
+    ]
+  },
+  "versionLabels": [
+    {
+      "text": "Not available",
+      "wrap": "normal",
+      "ellipsis": "clip"
+    },
+    {
+      "text": "Not available",
+      "wrap": "normal",
+      "ellipsis": "clip"
+    },
+    {
+      "text": "Published v3",
+      "wrap": "normal",
+      "ellipsis": "clip"
+    },
+    {
+      "text": "Not available",
+      "wrap": "normal",
+      "ellipsis": "clip"
+    }
+  ],
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 17
+      }
+    ]
+  },
+  "status": "PASS"
+}

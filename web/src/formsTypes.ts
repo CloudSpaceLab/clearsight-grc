@@ -1,4 +1,4 @@
-import type { CapturePresentation } from "./types";
+import type { AuthorityPrincipal, CapturePresentation } from "./types";
 import type { CreateFormTemplateInput, FormScoringMode, FormScoreProfile, FormTemplate as MonitoringFormTemplate, FormTemplateField, FormTemplateSection, LifecycleStatus } from "./monitoringTypes";
 import type { DocumentSourceAnchor } from "./documentTypes";
 
@@ -26,6 +26,7 @@ export type FormLibraryOperation = {
   label: string;
   responsibility: string;
   can_act: boolean;
+  assigned_to?: AuthorityPrincipal;
   reason: string;
   allowed_targets?: LifecycleStatus[];
 };

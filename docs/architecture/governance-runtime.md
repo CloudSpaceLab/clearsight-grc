@@ -27,6 +27,8 @@ DRAFT
 
 The maker submits the exact version and checksum. A different authorized checker approves it. Activation is blocked when selectors are unresolved, ambiguous, or violate static routing constraints. Every transition records actor, rationale, prior state, new state and time, and emits an outbox event in the same transaction.
 
+ROLE selectors use the existing candidate-set resolution contract: approval requires at least one distinct currently eligible role holder, and execution may authorize any eligible candidate. Direct PRINCIPAL and POSITION selectors require exactly one distinct eligible person. Approval checks current role, binding, position and principal validity, active principal status, tenant identity and legal-entity scope; an explicit binding entity restriction must match. Duplicate bindings do not create additional people. Independent checker and material-command authority checks remain separate from candidate cardinality.
+
 ## Delegation lifecycle
 
 ```text

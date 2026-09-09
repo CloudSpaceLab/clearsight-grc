@@ -138,3 +138,35 @@
     transition: none !important;
   }
 }
+
+@media (max-width: 700px) {
+  .forms-workspace:has(.forms-editor-shell) {
+    padding-inline: var(--cs-primitive-space-3);
+  }
+
+  .forms-editor-shell {
+    scroll-margin-block-start: calc(var(--cs-primitive-space-12) + var(--cs-primitive-space-10));
+  }
+
+  .forms-editor-shell .form-builder-workspace {
+    display: block;
+    padding: 0;
+  }
+
+  .forms-editor-shell .form-builder-canvas,
+  .forms-editor-shell .form-canvas-header,
+  .forms-editor-shell .form-canvas-section,
+  .forms-editor-shell .form-canvas-question {
+    padding-inline: var(--cs-primitive-space-2);
+  }
+
+  .forms-editor-shell .form-question-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--cs-primitive-space-2);
+  }
+
+  .forms-editor-shell .form-question-required {
+    min-block-size: calc(var(--cs-primitive-space-10) + var(--cs-primitive-space-1));
+  }
+}

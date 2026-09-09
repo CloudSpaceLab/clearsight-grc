@@ -1,0 +1,132 @@
+{
+  "source": "Preserved web/dist-evidence build, copied before rebuilding the changed source. Exact source revision of this local build is not certified.",
+  "browser": "140.0.7339.16",
+  "captures": [
+    {
+      "name": "before/library-light-1440.png",
+      "theme": "light",
+      "width": 1440,
+      "state": "library",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/detail-light-1440.png",
+      "theme": "light",
+      "width": 1440,
+      "state": "detail",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/editor-light-1440.png",
+      "theme": "light",
+      "width": 1440,
+      "state": "editor",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/library-light-390.png",
+      "theme": "light",
+      "width": 390,
+      "state": "library",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/detail-light-390.png",
+      "theme": "light",
+      "width": 390,
+      "state": "detail",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/editor-light-390.png",
+      "theme": "light",
+      "width": 390,
+      "state": "editor",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/library-light-320.png",
+      "theme": "light",
+      "width": 320,
+      "state": "library",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/detail-light-320.png",
+      "theme": "light",
+      "width": 320,
+      "state": "detail",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/editor-light-320.png",
+      "theme": "light",
+      "width": 320,
+      "state": "editor",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/library-dark-1440.png",
+      "theme": "dark",
+      "width": 1440,
+      "state": "library",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/detail-dark-1440.png",
+      "theme": "dark",
+      "width": 1440,
+      "state": "detail",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/editor-dark-1440.png",
+      "theme": "dark",
+      "width": 1440,
+      "state": "editor",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/library-dark-390.png",
+      "theme": "dark",
+      "width": 390,
+      "state": "library",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/detail-dark-390.png",
+      "theme": "dark",
+      "width": 390,
+      "state": "detail",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/editor-dark-390.png",
+      "theme": "dark",
+      "width": 390,
+      "state": "editor",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/library-dark-320.png",
+      "theme": "dark",
+      "width": 320,
+      "state": "library",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/detail-dark-320.png",
+      "theme": "dark",
+      "width": 320,
+      "state": "detail",
+      "fixture": "forms-library-lifecycle"
+    },
+    {
+      "name": "before/editor-dark-320.png",
+      "theme": "dark",
+      "width": 320,
+      "state": "editor",
+      "fixture": "forms-library-lifecycle"
+    }
+  ]
+}

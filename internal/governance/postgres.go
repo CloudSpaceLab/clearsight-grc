@@ -291,25 +291,52 @@ func policyConflicts(ctx context.Context, querier policyConflictQuerier, policy 
 		if entity == "" {
 			entity = "*"
 		}
-		switch strings.ToUpper(rule.Selector.Kind) {
+		kind := strings.ToUpper(strings.TrimSpace(rule.Selector.Kind))
+		switch kind {
 		case "ROLE":
-			err := querier.QueryRow(ctx, `SELECT count(*) FROM role_templates rt JOIN position_role_bindings prb ON prb.role_template_id=rt.id AND prb.valid_until IS NULL JOIN org_positions op ON op.id=prb.position_id AND op.valid_until IS NULL JOIN principals p ON p.id=op.occupant_principal_id AND p.valid_until IS NULL WHERE rt.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND rt.code=$2 AND op.legal_entity_id=$3::uuid`, policy.TenantID, rule.Selector.Ref, entity).Scan(&count)
+			err := querier.QueryRow(ctx, `SELECT count(DISTINCT p.id)
+				FROM role_templates rt
+				JOIN position_role_bindings prb ON prb.role_template_id=rt.id AND prb.tenant_id=rt.tenant_id
+				JOIN org_positions op ON op.id=prb.position_id AND op.tenant_id=rt.tenant_id
+				JOIN principals p ON p.id=op.occupant_principal_id AND p.tenant_id=rt.tenant_id
+				JOIN legal_entities le ON le.id=op.legal_entity_id AND le.tenant_id=rt.tenant_id
+				WHERE rt.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+				  AND rt.code=$2 AND le.id=$3::uuid
+				  AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id'=le.id::text)
+				  AND rt.valid_from<=statement_timestamp() AND (rt.valid_until IS NULL OR statement_timestamp()<rt.valid_until)
+				  AND prb.valid_from<=statement_timestamp() AND (prb.valid_until IS NULL OR statement_timestamp()<prb.valid_until)
+				  AND op.valid_from<=statement_timestamp() AND (op.valid_until IS NULL OR statement_timestamp()<op.valid_until)
+				  AND p.status='ACTIVE' AND p.valid_from<=statement_timestamp() AND (p.valid_until IS NULL OR statement_timestamp()<p.valid_until)`, policy.TenantID, rule.Selector.Ref, entity).Scan(&count)
 			if err != nil {
 				return nil, err
 			}
 		case "POSITION":
-			err := querier.QueryRow(ctx, `SELECT count(*) FROM org_positions op JOIN principals p ON p.id=op.occupant_principal_id AND p.valid_until IS NULL WHERE op.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND op.code=$2 AND op.valid_until IS NULL AND op.legal_entity_id=$3::uuid`, policy.TenantID, rule.Selector.Ref, entity).Scan(&count)
+			err := querier.QueryRow(ctx, `SELECT count(DISTINCT p.id)
+				FROM org_positions op
+				JOIN principals p ON p.id=op.occupant_principal_id AND p.tenant_id=op.tenant_id
+				JOIN legal_entities le ON le.id=op.legal_entity_id AND le.tenant_id=op.tenant_id
+				WHERE op.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+				  AND op.code=$2 AND le.id=$3::uuid
+				  AND op.valid_from<=statement_timestamp() AND (op.valid_until IS NULL OR statement_timestamp()<op.valid_until)
+				  AND p.status='ACTIVE' AND p.valid_from<=statement_timestamp() AND (p.valid_until IS NULL OR statement_timestamp()<p.valid_until)`, policy.TenantID, rule.Selector.Ref, entity).Scan(&count)
 			if err != nil {
 				return nil, err
 			}
 		default:
-			err := querier.QueryRow(ctx, `SELECT count(*) FROM principals WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND (id::text=$2 OR external_ref=$2) AND valid_until IS NULL`, policy.TenantID, rule.Selector.Ref).Scan(&count)
+			err := querier.QueryRow(ctx, `SELECT count(DISTINCT id) FROM principals
+				WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+				  AND (id::text=$2 OR external_ref=$2) AND status='ACTIVE'
+				  AND valid_from<=statement_timestamp() AND (valid_until IS NULL OR statement_timestamp()<valid_until)`, policy.TenantID, rule.Selector.Ref).Scan(&count)
 			if err != nil {
 				return nil, err
 			}
 		}
-		if count != 1 {
-			findings = append(findings, ConflictFinding{Code: "SELECTOR_CARDINALITY", Summary: fmt.Sprintf("Rule %s selector resolved to %d active principals; exactly one is required before activation.", rule.ID, count)})
+		// ROLE projects to CANDIDATE_SET; distinct eligible holders are all valid
+		// candidates. Direct principal and position routes still require one.
+		if kind == "ROLE" && count == 0 {
+			findings = append(findings, ConflictFinding{Code: "SELECTOR_CARDINALITY", Summary: fmt.Sprintf("Rule %s has no eligible people. Assign an active role holder in this legal entity before approving the policy.", rule.ID)})
+		} else if kind != "ROLE" && count != 1 {
+			findings = append(findings, ConflictFinding{Code: "SELECTOR_CARDINALITY", Summary: fmt.Sprintf("Rule %s needs exactly one eligible person before approval; %d were found.", rule.ID, count)})
 		}
 	}
 	return findings, nil

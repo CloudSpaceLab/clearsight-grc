@@ -1,0 +1,128 @@
+{
+  "name": "library-dark-1440",
+  "state": "library",
+  "theme": "dark",
+  "width": 1440,
+  "errors": [],
+  "fixture": "forms-library-lifecycle",
+  "fixtureOverrides": [
+    "active author permission"
+  ],
+  "layout": {
+    "width": 1440,
+    "scrollWidth": 1440,
+    "heading": [
+      "Forms"
+    ],
+    "controls": [
+      {
+        "text": "Edit draft",
+        "disabled": false,
+        "x": 1156.140625,
+        "right": 1252.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Edit form",
+        "disabled": false,
+        "x": 1156.625,
+        "right": 1252.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      },
+      {
+        "text": "Details",
+        "disabled": false,
+        "x": 1260.40625,
+        "right": 1339.40625,
+        "height": 44
+      }
+    ]
+  },
+  "versionLabels": [
+    {
+      "text": "Not available",
+      "wrap": "normal",
+      "ellipsis": "clip"
+    },
+    {
+      "text": "Not available",
+      "wrap": "normal",
+      "ellipsis": "clip"
+    },
+    {
+      "text": "Published v3",
+      "wrap": "normal",
+      "ellipsis": "clip"
+    },
+    {
+      "text": "Not available",
+      "wrap": "normal",
+      "ellipsis": "clip"
+    }
+  ],
+  "actionRows": [
+    [
+      {
+        "y": 529.078125,
+        "height": 44
+      },
+      {
+        "y": 529.078125,
+        "height": 44
+      }
+    ],
+    [
+      {
+        "y": 610.875,
+        "height": 44
+      }
+    ],
+    [
+      {
+        "y": 692.671875,
+        "height": 44
+      },
+      {
+        "y": 692.671875,
+        "height": 44
+      }
+    ],
+    [
+      {
+        "y": 774.46875,
+        "height": 44
+      }
+    ]
+  ],
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": 31
+      }
+    ]
+  },
+  "status": "PASS"
+}

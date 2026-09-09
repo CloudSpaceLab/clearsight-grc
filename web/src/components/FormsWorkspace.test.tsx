@@ -107,8 +107,8 @@ describe("Forms workspace", () => {
   it("keeps latest draft state separate from the exact reusable active revision", async () => {
     render(<FormsWorkspace targetID="template-a"/>);
     expect((await screen.findAllByText("Vendor due diligence")).length).toBeGreaterThan(0);
-    const latest = screen.getByText("Latest stored").parentElement;
-    const reusable = screen.getByText("Reusable now").parentElement;
+    const latest = screen.getByText("Latest version").parentElement;
+    const reusable = screen.getByText("Published version").parentElement;
     expect(latest?.textContent).toMatch(/Draft.*v2/);
     expect(reusable?.textContent).toMatch(/Active.*v1/);
   });
@@ -245,7 +245,7 @@ describe("Forms workspace", () => {
     render(<FormsWorkspace targetID="template-a"/>);
     const button = await screen.findByRole("button", { name: "Send for approval" });
     expect((button as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText(/resolve approval-quality checks/i)).toBeTruthy();
+    expect(screen.getByText(/Resolve the form checks/i)).toBeTruthy();
   });
 
   it("passes semantic accessibility checks for the loaded library", async () => {

@@ -6,6 +6,7 @@ const interfaceSources = import.meta.glob(
 ) as Record<string, string>;
 
 const productCommentary = [
+  /\b(?:latest stored|reusable now)\b/i,
   /\b(?:awaiting|require|needs|pending) bank review\b/i,
   /\bbank (?:assessment|judgement|rubric|reviewer|decision)\b/i,
   /\bwithout mixing\b/i,

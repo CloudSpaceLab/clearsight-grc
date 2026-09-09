@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FormLibraryItem } from "../formsTypes";
 import { FormsWorkspace } from "./FormsWorkspace";
@@ -66,16 +66,84 @@ beforeEach(() => {
 });
 
 describe("Forms template dashboard", () => {
+  it("opens an authorized draft directly from its row without a details detour", async () => {
+    render(<FormsWorkspace/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit draft Vendor due diligence" }));
+    expect(await screen.findByRole("button", { name: "Save draft" })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Selected form template" })).toBeNull();
+    expect(api.createLibraryFormRevision).not.toHaveBeenCalled();
+  });
+
+  it("saves a row-edited draft through its existing form and expected version", async () => {
+    api.createLibraryFormRevision.mockResolvedValue({ ...item.template, version: 3 });
+    render(<FormsWorkspace/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit draft Vendor due diligence" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Save draft" }));
+    await waitFor(() => expect(api.createLibraryFormRevision).toHaveBeenCalledWith(
+      "template-a", 2, expect.objectContaining({ name: "Vendor due diligence" }),
+    ));
+    expect(api.createLibraryFormDraft).not.toHaveBeenCalled();
+  });
+
+  it("moves focus into row editing and returns it to the same form on cancel", async () => {
+    render(<FormsWorkspace/>);
+    const edit = await screen.findByRole("button", { name: "Edit draft Vendor due diligence" });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Vendor due diligence" }));
+    edit.focus();
+    fireEvent.click(edit);
+    const editor = await screen.findByRole("region", { name: "Edit Vendor due diligence" });
+    await waitFor(() => expect(document.activeElement).toBe(editor));
+    fireEvent.click(screen.getByRole("button", { name: "Back to Forms" }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Edit draft Vendor due diligence" })));
+    expect((screen.getByRole("checkbox", { name: "Select Vendor due diligence" }) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it("disables row and detail editing while a form transition is pending", async () => {
+    let finish!: (value: FormLibraryItem["template"]) => void;
+    api.transitionFormTemplateRevision.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    render(<FormsWorkspace targetID="template-a"/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Send for approval" }));
+    expect((screen.getByRole("button", { name: "Edit draft" }) as HTMLButtonElement).disabled).toBe(true);
+    const rowEdit = document.getElementById("forms-edit-template-a") as HTMLButtonElement;
+    expect(rowEdit.disabled).toBe(true);
+    fireEvent.click(rowEdit);
+    expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();
+    await act(async () => finish({ ...item.template, status: "PENDING_APPROVAL" }));
+  });
+
+  it("identifies the routed editor when editing is not permitted", async () => {
+    api.loadFormTemplatePage.mockResolvedValue({ items: [{
+      ...item,
+      operations: item.operations?.map((operation) => ({ ...operation, can_act: false,
+        assigned_to: { id: "owner", display_name: "Alex Morgan", kind: "PERSON", role: "FORM_AUTHOR" },
+      })),
+    }] });
+    render(<FormsWorkspace targetID="template-a"/>);
+    expect(await screen.findByText("Editor: Alex Morgan")).toBeTruthy();
+  });
+
+  it.each(["denied", "unavailable", "pending"])("does not offer direct editing for %s authority or workflow state", async (state) => {
+    api.loadFormTemplatePage.mockResolvedValue({ items: [{
+      ...item,
+      authority_available: state !== "unavailable",
+      template: { ...item.template, status: state === "pending" ? "PENDING_APPROVAL" : "DRAFT" },
+      operations: item.operations?.map((operation) => ({ ...operation, can_act: state !== "denied" })),
+    }] });
+    render(<FormsWorkspace/>);
+    await screen.findByRole("button", { name: "Details for Vendor due diligence" });
+    expect(screen.queryByRole("button", { name: /^Edit (draft|form) Vendor/ })).toBeNull();
+  });
+
   it("keeps the result surface full-width until a template is selected", async () => {
     const view = render(<FormsWorkspace/>);
-    expect(await screen.findByRole("button", { name: "Open Vendor due diligence" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Details for Vendor due diligence" })).toBeTruthy();
     expect(screen.queryByLabelText("Selected form template")).toBeNull();
     expect(screen.queryByText("Recently updated")).toBeNull();
     expect(screen.queryByRole("button", { name: "Cards" })).toBeNull();
     expect(view.container.querySelector(".cs-data-table")).toBeTruthy();
     expect(view.container.querySelector(".forms-library-table")).toBeNull();
     expect(screen.getByRole("checkbox", { name: "Select Vendor due diligence" }).closest(".cs-checkbox-field")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Open Vendor due diligence" }).className).toContain("cs-button");
+    expect(screen.getByRole("button", { name: "Details for Vendor due diligence" }).className).toContain("cs-button");
   });
 
   it("opens template detail contextually and dismisses it without changing library data", async () => {
@@ -86,12 +154,12 @@ describe("Forms template dashboard", () => {
     }
 
     render(<Harness/>);
-    const openButton = await screen.findByRole("button", { name: "Open Vendor due diligence" });
+    const openButton = await screen.findByRole("button", { name: "Details for Vendor due diligence" });
     openButton.focus();
     fireEvent.click(openButton);
     const drawer = await screen.findByRole("dialog", { name: "Selected form template" });
-    expect(drawer.textContent).toMatch(/Latest stored.*Draft.*v2/);
-    expect(drawer.textContent).toMatch(/Reusable now.*Active.*v1/);
+    expect(drawer.textContent).toMatch(/Latest version.*Draft.*v2/);
+    expect(drawer.textContent).toMatch(/Published version.*Active.*v1/);
     const closeButton = screen.getByRole("button", { name: "Close form detail" });
     await waitFor(() => expect(document.activeElement).toBe(closeButton));
     const editButton = screen.getByRole("button", { name: "Edit draft" });
@@ -101,17 +169,17 @@ describe("Forms template dashboard", () => {
     fireEvent.keyDown(drawer, { key: "Escape" });
     await waitFor(() => expect(screen.queryByLabelText("Selected form template")).toBeNull());
     expect(document.activeElement).toBe(openButton);
-    expect(screen.getByRole("button", { name: "Open Vendor due diligence" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Details for Vendor due diligence" })).toBeTruthy();
   });
 
   it("keeps every record field labelled when rows stack on narrow screens", async () => {
     render(<FormsWorkspace/>);
-    const openButton = await screen.findByRole("button", { name: "Open Vendor due diligence" });
+    const openButton = await screen.findByRole("button", { name: "Details for Vendor due diligence" });
     const row = openButton.closest("tr");
 
     expect(row).not.toBeNull();
     expect(row?.querySelector('[data-label="State"]')?.textContent).toBe("Draft");
-    expect(row?.querySelector('[data-label="Revision"]')?.textContent).toMatch(/v2.*Reusable v1/);
+    expect(row?.querySelector('[data-label="Revision"]')?.textContent).toMatch(/v2.*Published v1/);
     expect(row?.querySelector('[data-label="Owner"]')?.textContent).toBe("Not assigned");
     expect(row?.querySelector('[data-label="Updated"]')?.textContent).toBe("Aug 30, 2026");
   });
@@ -128,7 +196,7 @@ describe("Forms template dashboard", () => {
       return <FormsWorkspace targetID={target} onTarget={setTarget}/>;
     }
     render(<Harness/>);
-    fireEvent.click(await screen.findByRole("button", { name: "Open Vendor due diligence" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Details for Vendor due diligence" }));
 
     expect(screen.queryByRole("button", { name: "Edit draft" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Send for approval" })).toBeNull();
@@ -152,8 +220,8 @@ describe("Forms template dashboard", () => {
     }
     render(<Harness/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Open Vendor due diligence" }));
-    fireEvent.click(screen.getByRole("button", { name: "Create revision" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Details for Vendor due diligence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit form" }));
 
     expect(await screen.findByText("Vendor due diligence", { selector: "strong" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Save draft" })).toBeTruthy();
@@ -166,16 +234,16 @@ describe("Forms template dashboard", () => {
       return <FormsWorkspace targetID={target} onTarget={setTarget}/>;
     }
     render(<Harness/>);
-    fireEvent.click(await screen.findByRole("button", { name: "Open Vendor due diligence" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Details for Vendor due diligence" }));
 
     expect(screen.queryByRole("button", { name: "Edit draft" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Send for approval" })).toBeNull();
-    expect(screen.getByText(/Current responsibilities could not be checked/)).toBeTruthy();
+    expect(screen.getByText(/Permissions unavailable/)).toBeTruthy();
   });
 
   it("keeps saved-view controls quiet until the current query is customized", async () => {
     render(<FormsWorkspace/>);
-    await screen.findByRole("button", { name: "Open Vendor due diligence" });
+    await screen.findByRole("button", { name: "Details for Vendor due diligence" });
     expect(screen.queryByRole("button", { name: "Save view" })).toBeNull();
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "vendor" } });
     expect(await screen.findByRole("button", { name: "Save view" })).toBeTruthy();
@@ -183,7 +251,7 @@ describe("Forms template dashboard", () => {
 
   it("adds and removes a typed filter while keeping the URL canonical", async () => {
     render(<FormsWorkspace/>);
-    await screen.findByRole("button", { name: "Open Vendor due diligence" });
+    await screen.findByRole("button", { name: "Details for Vendor due diligence" });
 
     fireEvent.click(screen.getByRole("button", { name: "+ Filter" }));
     const picker = screen.getByRole("dialog", { name: "Add filter" });
@@ -202,7 +270,7 @@ describe("Forms template dashboard", () => {
 
   it("keeps the current table visible while a superseding query revalidates", async () => {
     render(<FormsWorkspace/>);
-    await screen.findByRole("button", { name: "Open Vendor due diligence" });
+    await screen.findByRole("button", { name: "Details for Vendor due diligence" });
 
     let resolveNext!: (value: { items: FormLibraryItem[] }) => void;
     const pending = new Promise<{ items: FormLibraryItem[] }>((resolve) => { resolveNext = resolve; });
@@ -210,7 +278,7 @@ describe("Forms template dashboard", () => {
 
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "no match" } });
     await waitFor(() => expect(api.loadFormTemplatePage.mock.calls.length).toBeGreaterThan(1));
-    expect(screen.getByRole("button", { name: "Open Vendor due diligence" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Details for Vendor due diligence" })).toBeTruthy();
     expect(screen.getByText("Updating…")).toBeTruthy();
 
     resolveNext({ items: [] });
@@ -222,7 +290,7 @@ describe("Forms template dashboard", () => {
     const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => now);
     try {
       render(<FormsWorkspace/>);
-      await screen.findByRole("button", { name: "Open Vendor due diligence" });
+      await screen.findByRole("button", { name: "Details for Vendor due diligence" });
       const initialCalls = api.loadFormTemplatePage.mock.calls.length;
 
       window.dispatchEvent(new Event("focus"));
@@ -258,16 +326,16 @@ describe("Forms template dashboard", () => {
 
     try {
       render(<FormsWorkspace/>);
-      await screen.findByRole("button", { name: "Open Vendor due diligence" });
+      await screen.findByRole("button", { name: "Details for Vendor due diligence" });
       fireEvent.click(screen.getByRole("button", { name: "Load more" }));
-      await screen.findByRole("button", { name: "Open Extra form 25" });
+      await screen.findByRole("button", { name: "Details for Extra form 25" });
       expect(api.loadFormTemplatePage.mock.calls.length).toBe(2);
 
       now += 31_000;
       window.dispatchEvent(new Event("focus"));
       await Promise.resolve();
       expect(api.loadFormTemplatePage.mock.calls.length).toBe(2);
-      expect(screen.getByRole("button", { name: "Open Extra form 25" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Details for Extra form 25" })).toBeTruthy();
     } finally {
       nowSpy.mockRestore();
     }

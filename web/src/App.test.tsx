@@ -217,7 +217,7 @@ describe("runtime navigation", () => {
     } }] });
     window.history.replaceState(null, "", "#forms?search=vendor&limit=50");
     render(<App/>);
-    fireEvent.click(await screen.findByRole("button", { name: "Open Vendor due diligence" }, { timeout: 5000 }));
+    fireEvent.click(await screen.findByRole("button", { name: "Details for Vendor due diligence" }, { timeout: 5000 }));
     expect(await screen.findByRole("dialog", { name: "Selected form template" })).toBeTruthy();
     expect(window.location.hash).toBe("#forms/template-a?search=vendor&limit=50");
     fireEvent.click(screen.getByRole("button", { name: "Close form detail" }));

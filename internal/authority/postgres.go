@@ -240,13 +240,15 @@ WITH RECURSIVE requests AS (
 		UNION ALL
 		SELECT p.id::text,p.display_name,p.kind,rt.name,rt.code
 		FROM role_templates rt
-		JOIN position_role_bindings prb ON prb.role_template_id=rt.id
-		JOIN org_positions op ON op.id=prb.position_id
-		JOIN principals p ON p.id=op.occupant_principal_id
+		JOIN position_role_bindings prb ON prb.role_template_id=rt.id AND prb.tenant_id=rt.tenant_id
+		JOIN org_positions op ON op.id=prb.position_id AND op.tenant_id=rt.tenant_id
+		JOIN principals p ON p.id=op.occupant_principal_id AND p.tenant_id=rt.tenant_id
+		JOIN legal_entities le ON le.id=op.legal_entity_id AND le.tenant_id=rt.tenant_id
 		WHERE rd.selector_kind IN ('ROLE','ROLE_ID') AND rt.tenant_id=r.tenant_uuid
 		  AND ((rd.selector_kind='ROLE' AND (rt.code=rd.selector_ref OR rt.id::text=rd.selector_ref)) OR
 		       (rd.selector_kind='ROLE_ID' AND rt.id::text=rd.selector_ref))
-		  AND (op.legal_entity_id IS NULL OR EXISTS (SELECT 1 FROM legal_entities le WHERE le.id=op.legal_entity_id AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id)))
+		  AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id)
+		  AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id'=le.id::text)
 		  AND rt.valid_from <= r.at AND (rt.valid_until IS NULL OR r.at < rt.valid_until)
 		  AND prb.valid_from <= r.at AND (prb.valid_until IS NULL OR r.at < prb.valid_until)
 		  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
@@ -500,15 +502,15 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 				UNION ALL
 				SELECT p.id::text,p.display_name,p.kind,rt.name,rt.code
 				FROM role_templates rt
-				JOIN position_role_bindings prb ON prb.role_template_id=rt.id
-				JOIN org_positions op ON op.id=prb.position_id
-				JOIN principals p ON p.id=op.occupant_principal_id
+				JOIN position_role_bindings prb ON prb.role_template_id=rt.id AND prb.tenant_id=rt.tenant_id
+				JOIN org_positions op ON op.id=prb.position_id AND op.tenant_id=rt.tenant_id
+				JOIN principals p ON p.id=op.occupant_principal_id AND p.tenant_id=rt.tenant_id
+				JOIN legal_entities le ON le.id=op.legal_entity_id AND le.tenant_id=rt.tenant_id
 				WHERE rd.selector_kind IN ('ROLE','ROLE_ID')
 				  AND rt.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 				  AND ((rd.selector_kind='ROLE' AND (rt.code=rd.selector_ref OR rt.id::text=rd.selector_ref)) OR (rd.selector_kind='ROLE_ID' AND rt.id::text=rd.selector_ref))
-				  AND (op.legal_entity_id IS NULL OR op.legal_entity_id IN (
-					SELECT le.id FROM legal_entities le WHERE le.tenant_id=op.tenant_id AND (le.id::text=$2 OR le.code=$2)
-				  ))
+				  AND (le.id::text=$2 OR le.code=$2)
+				  AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id'=le.id::text)
 				  AND rt.valid_from <= $8 AND (rt.valid_until IS NULL OR $8 < rt.valid_until)
 				  AND prb.valid_from <= $8 AND (prb.valid_until IS NULL OR $8 < prb.valid_until)
 				  AND op.valid_from <= $8 AND (op.valid_until IS NULL OR $8 < op.valid_until)

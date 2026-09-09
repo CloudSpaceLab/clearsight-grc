@@ -1,6 +1,7 @@
 import type { FormLibraryItem } from "../../../formsTypes";
 import type { LifecycleStatus } from "../../../monitoringTypes";
 import { Button, CheckboxField, DataTable, StatusBadge, type DataColumn, type StatusTone } from "../../ui";
+import { canEditTemplate, templateEditLabel } from "./templateActions";
 
 type Props = {
   items: FormLibraryItem[];
@@ -8,9 +9,11 @@ type Props = {
   targetID?: string;
   onToggle: (id: string) => void;
   onOpen: (id: string) => void;
+  onEdit: (item: FormLibraryItem) => void;
+  busy: boolean;
 };
 
-export function TemplateLibraryTable({ items, selectedIDs, targetID, onToggle, onOpen }: Props) {
+export function TemplateLibraryTable({ items, selectedIDs, targetID, onToggle, onOpen, onEdit, busy }: Props) {
   const columns: readonly DataColumn<FormLibraryItem>[] = [
     {
       id: "selection",
@@ -26,13 +29,17 @@ export function TemplateLibraryTable({ items, selectedIDs, targetID, onToggle, o
       accessibleText: ({ template }) => `${template.name}. ${template.purpose || template.code}`,
     },
     { id: "state", header: "State", kind: "status", render: ({ template }) => <StatusPill status={template.status}/>, accessibleText: ({ template }) => statusLabel(template.status) },
-    { id: "revision", header: "Revision", kind: "number", render: (item) => <div className="forms-library-revision"><strong>v{item.template.version}</strong><span>{item.active_version ? `Reusable v${item.active_version}` : "No reusable revision"}</span></div>, accessibleText: (item) => `Version ${item.template.version}. ${item.active_version ? `Reusable version ${item.active_version}` : "No reusable revision"}` },
+    { id: "revision", header: "Revision", kind: "number", render: (item) => <div className="forms-library-revision"><strong>v{item.template.version}</strong><span>{item.active_version ? `Published v${item.active_version}` : "Not available"}</span></div>, accessibleText: (item) => `Version ${item.template.version}. ${item.active_version ? `Published version ${item.active_version}` : "Not available"}` },
     { id: "owner", header: "Owner", render: ({ template }) => ownerLabel(template), accessibleText: ({ template }) => ownerLabel(template) },
     { id: "updated", header: "Updated", render: ({ template }) => formatDate(template.updated_at), accessibleText: ({ template }) => formatDate(template.updated_at) },
-    { id: "open", header: "Open", kind: "action", render: ({ template }) => <Button variant="quiet" aria-label={`Open ${template.name}`} onPress={() => onOpen(template.id)}>Open</Button>, accessibleText: ({ template }) => `Open ${template.name}` },
+    { id: "actions", header: "Actions", kind: "action", render: (item) => <div className="forms-library-actions">
+      {canEditTemplate(item) && <Button id={`forms-edit-${item.template.id}`} isDisabled={busy} aria-label={`${templateEditLabel(item)} ${item.template.name}`} onPress={() => onEdit(item)}>{templateEditLabel(item)}</Button>}
+      <Button variant="quiet" aria-label={`Details for ${item.template.name}`} onPress={() => onOpen(item.template.id)}>Details</Button>
+    </div>, accessibleText: (item) => `${canEditTemplate(item) ? `${templateEditLabel(item)}. ` : ""}Details for ${item.template.name}` },
   ];
   return <DataTable
     ariaLabel="Form templates"
+    responsiveTo="container"
     rows={items}
     rowKey={(item) => item.template.id}
     rowName={(item) => `${item.template.name}, ${statusLabel(item.template.status)}, version ${item.template.version}, owned by ${ownerLabel(item.template)}`}

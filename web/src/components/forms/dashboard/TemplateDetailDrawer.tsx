@@ -4,6 +4,7 @@ import type { LifecycleStatus } from "../../../monitoringTypes";
 import { Button, FocusedSheet } from "../../ui";
 import { isTemplateApprovalReady } from "../formQuality";
 import { formatDate, StatusPill } from "./TemplateLibraryTable";
+import { canEditTemplate, templateEditLabel } from "./templateActions";
 
 type Props = {
   item?: FormLibraryItem;
@@ -48,49 +49,29 @@ function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibrar
   const revise = item.operations?.find((operation) => operation.command === "forms.template.revise");
   const transition = item.operations?.find((operation) => operation.command === "forms.template.transition");
   const authorityReady = item.authority_available === true;
-  const canRevise = Boolean(authorityReady && revise?.can_act);
-  const reviseLabel = form.status === "DRAFT" ? "Edit draft" : "Create revision";
+  const canRevise = canEditTemplate(item);
+  const reviseLabel = templateEditLabel(item);
   const canTransition = (to: LifecycleStatus) => Boolean(authorityReady && transition?.can_act && transition.allowed_targets?.includes(to));
   const unavailable = !authorityReady;
   const unavailableReason = unavailable
-    ? "Current responsibilities could not be checked. Form changes are unavailable until the authority route is restored."
-    : revise?.reason || transition?.reason;
+    ? "Permissions unavailable. Reload Forms to retry."
+    : revise?.assigned_to?.display_name ? `Editor: ${revise.assigned_to.display_name}`
+      : transition?.assigned_to?.display_name ? `${form.status === "PENDING_APPROVAL" ? "Awaiting review from" : "Form manager:"} ${transition.assigned_to.display_name}`
+        : revise?.reason || transition?.reason;
 
   return <div className="forms-detail-drawer-body">
     <header className="forms-detail-heading">
-      <span className="forms-detail-kicker">{form.code}</span>
       <h2>{form.name}</h2>
       <p>{form.purpose}</p>
     </header>
 
-    <div className="forms-detail-state">
-      <div>
-        <span>Latest stored</span>
-        <strong><StatusPill status={form.status}/> v{form.version}</strong>
-      </div>
-      <div>
-        <span>Reusable now</span>
-        <strong>{item.active_version ? <><StatusPill status={item.active_status ?? "ACTIVE"}/> v{item.active_version}</> : "None"}</strong>
-      </div>
-    </div>
-
-    <dl className="forms-detail-facts">
-      <div><dt>Owner</dt><dd>{owner}</dd></div>
-      <div><dt>Questions</dt><dd>{form.fields.length}</dd></div>
-      <div><dt>Scoring</dt><dd>{form.scoring_mode || "NONE"}</dd></div>
-      <div><dt>Updated</dt><dd>{formatDate(form.updated_at)}</dd></div>
-      <div><dt>Next review</dt><dd>{form.next_review_at ? formatDate(form.next_review_at) : "Not scheduled"}</dd></div>
-    </dl>
-
-    {form.tags?.length ? <div className="forms-tags">{form.tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
-
     <div className="forms-detail-actions">
-      {form.status !== "DRAFT" && canRevise && <Button onPress={onEdit}>{reviseLabel}</Button>}
+      {form.status !== "DRAFT" && canRevise && <Button variant="primary" isDisabled={busy !== null} onPress={onEdit}>{reviseLabel}</Button>}
       {form.status === "DRAFT" && <>
-        {canRevise && <Button onPress={onEdit}>{reviseLabel}</Button>}
-        {canTransition("PENDING_APPROVAL") && <Button variant="primary" isDisabled={busy !== null || !approvalReady} onPress={() => onTransition("PENDING_APPROVAL")}>Send for approval</Button>}
+        {canRevise && <Button variant="primary" isDisabled={busy !== null} onPress={onEdit}>{reviseLabel}</Button>}
+        {canTransition("PENDING_APPROVAL") && <Button variant={canRevise ? "secondary" : "primary"} isDisabled={busy !== null || !approvalReady} onPress={() => onTransition("PENDING_APPROVAL")}>Send for approval</Button>}
       </>}
-      {form.status === "DRAFT" && canTransition("PENDING_APPROVAL") && !approvalReady && <small className="forms-muted">Open the editor to resolve approval-quality checks before submission.</small>}
+      {form.status === "DRAFT" && canTransition("PENDING_APPROVAL") && !approvalReady && <small className="forms-muted">Resolve the form checks before submitting.</small>}
       {form.status === "PENDING_APPROVAL" && <>
         {canTransition("ACTIVE") && <Button variant="primary" isDisabled={busy !== null} onPress={() => onTransition("ACTIVE")}>Approve and activate</Button>}
         {canTransition("REJECTED") && <Button variant="destructive" isDisabled={busy !== null} onPress={() => onTransition("REJECTED")}>Reject</Button>}
@@ -100,10 +81,32 @@ function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibrar
         {canTransition("RETIRED") && <Button variant="destructive" isDisabled={busy !== null} onPress={() => onTransition("RETIRED")}>Retire revision</Button>}
       </>}
       {form.status === "PAUSED" && <>
-        {canTransition("ACTIVE") && <Button variant="primary" isDisabled={busy !== null} onPress={() => onTransition("ACTIVE")}>Resume revision</Button>}
+        {canTransition("ACTIVE") && <Button variant={canRevise ? "secondary" : "primary"} isDisabled={busy !== null} onPress={() => onTransition("ACTIVE")}>Resume revision</Button>}
         {canTransition("RETIRED") && <Button variant="destructive" isDisabled={busy !== null} onPress={() => onTransition("RETIRED")}>Retire revision</Button>}
       </>}
       {!canRevise && !canTransition("PENDING_APPROVAL") && !canTransition("ACTIVE") && !canTransition("REJECTED") && !canTransition("PAUSED") && !canTransition("RETIRED") && unavailableReason && <small className="forms-muted">{unavailableReason}</small>}
     </div>
+
+    <div className="forms-detail-state">
+      <div>
+        <span>Latest version</span>
+        <strong><StatusPill status={form.status}/> v{form.version}</strong>
+      </div>
+      <div>
+        <span>Published version</span>
+        <strong>{item.active_version ? <><StatusPill status={item.active_status ?? "ACTIVE"}/> v{item.active_version}</> : "Not available"}</strong>
+      </div>
+    </div>
+
+    <dl className="forms-detail-facts">
+      <div><dt>Reference</dt><dd>{form.code}</dd></div>
+      <div><dt>Owner</dt><dd>{owner}</dd></div>
+      <div><dt>Questions</dt><dd>{form.fields.length}</dd></div>
+      <div><dt>Scoring</dt><dd>{form.scoring_mode === "RISK" ? "Risk" : form.scoring_mode === "COMPLIANCE" ? "Compliance" : "Not scored"}</dd></div>
+      <div><dt>Updated</dt><dd>{formatDate(form.updated_at)}</dd></div>
+      <div><dt>Next review</dt><dd>{form.next_review_at ? formatDate(form.next_review_at) : "Not scheduled"}</dd></div>
+    </dl>
+
+    {form.tags?.length ? <div className="forms-tags">{form.tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
   </div>;
 }
