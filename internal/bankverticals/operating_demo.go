@@ -98,6 +98,7 @@ func (s *Service) EnsureOperatingDemo(ctx context.Context, config SeedConfig) (O
 		{"vendor_due_diligence", "third_party_risk", vendorDueDiligenceFormInput(programs["third_party_risk"].Program.ID, entityID)},
 		{"vendor_compliance", "third_party_risk", ReferenceThirdPartyRiskComplianceForm(programs["third_party_risk"].Program.ID, entityID)},
 		{"certification_refresh", "third_party_risk", vendorCertificationRefreshFormInput(programs["third_party_risk"].Program.ID, entityID)},
+		{"vendor_control_attestation", "third_party_risk", vendorControlAttestationForm(programs["third_party_risk"].Program.ID, entityID)},
 		{"access_review", "it_risk_security", operatingForm(programs["it_risk_security"].Program.ID, entityID, "IT-ACCESS-REVIEW", "Access review", "Confirm access review results and record unresolved access.", "review", "Review result", []formcontract.Field{
 			{ID: "review_completed", SectionID: "review", Label: "Was the access review completed?", Type: formcontract.TypeYesNo, Required: true},
 			{ID: "unresolved_access", SectionID: "review", Label: "Unresolved access", Type: formcontract.TypeLongText, Required: true},
@@ -175,6 +176,42 @@ func (s *Service) ensureOperatingProgram(ctx context.Context, config SeedConfig,
 		return continuity.ProgramAggregate{}, fmt.Errorf("add %s sample requirement: %w", spec.name, err)
 	}
 	return s.continuity.TransitionProgram(ctx, continuity.ProgramTransitionInput{TenantID: config.TenantID, ID: program.Program.ID, ExpectedVersion: program.Program.Version, To: continuity.ProgramActive, ActorID: config.SignatoryPrincipalID, Rationale: "The sample operating scope and ownership were reviewed."})
+}
+
+func vendorControlAttestationForm(programID, entityID string) monitoring.CreateFormInput {
+	weightedYes := func(id, fieldID, label string, weight int) formcontract.ScoreContribution {
+		return formcontract.ScoreContribution{ID: id, Label: label, Weight: weight, Required: true,
+			Predicate:   formcontract.Predicate{FieldID: fieldID, Operator: formcontract.PredicateEquals, Values: []string{"Yes"}},
+			MatchPoints: 100, NonMatchPoints: 0, Missing: formcontract.MissingIndeterminate}
+	}
+	return monitoring.CreateFormInput{
+		ProgramID: programID, LegalEntityID: entityID, Code: "VENDOR-CONTROL-ATTESTATION", Name: "Vendor control confirmation",
+		Purpose:         "Confirm the current controls used to protect the service and identify unresolved weaknesses for review.",
+		ResponsibleTeam: "Third-Party Risk", Tags: []string{"sample", operatingDemoMarker}, Jurisdiction: "Nigeria", Industry: "Banking",
+		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
+		ScoringMode:  formcontract.ScoringCompliance,
+		ScoreProfile: &formcontract.ScoreProfile{
+			Version: "vendor-control-confirmation-v1", Mode: formcontract.ScoringCompliance, Direction: formcontract.DirectionLowIsPoor,
+			Contributions: []formcontract.ScoreContribution{
+				weightedYes("encryption", "encryption_enabled", "Service data is encrypted", 35),
+				weightedYes("mfa", "admin_mfa", "Administrator access uses MFA", 35),
+				weightedYes("testing", "annual_security_test", "Security testing is current", 30),
+			},
+			Rules: []formcontract.ScoreRule{{
+				ID: "critical-weakness", Label: "An unresolved critical weakness is reported",
+				Predicate: formcontract.Predicate{FieldID: "critical_weakness", Operator: formcontract.PredicateEquals, Values: []string{"Yes"}},
+				Effect:    formcontract.RuleEffect{Kind: formcontract.EffectDisqualify},
+			}},
+			Bands: formcontract.DefaultConcernBands(),
+		},
+		Sections: []formcontract.Section{{ID: "controls", Title: "Current controls"}},
+		Fields: []formcontract.Field{
+			{ID: "encryption_enabled", SectionID: "controls", Label: "Is service data encrypted at rest and in transit?", Type: formcontract.TypeYesNo, Required: true},
+			{ID: "admin_mfa", SectionID: "controls", Label: "Is MFA required for administrator access?", Type: formcontract.TypeYesNo, Required: true},
+			{ID: "annual_security_test", SectionID: "controls", Label: "Was independent security testing completed in the last 12 months?", Type: formcontract.TypeYesNo, Required: true},
+			{ID: "critical_weakness", SectionID: "controls", Label: "Is any critical security weakness unresolved?", Type: formcontract.TypeYesNo, Required: true},
+		},
+	}
 }
 
 func operatingForm(programID, entityID, code, name, purpose, sectionID, sectionTitle string, fields []formcontract.Field) monitoring.CreateFormInput {

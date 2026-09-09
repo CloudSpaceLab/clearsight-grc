@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 )
 
@@ -27,7 +28,7 @@ func TestOperatingDemoCreatesConnectedPopulationAndStableTimeline(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Programs) != 5 || len(got.Forms) != 7 || len(got.Matters) != 7 {
+	if len(got.Programs) != 5 || len(got.Forms) != 8 || len(got.Matters) != 7 {
 		t.Fatalf("incomplete catalogue %+v", got)
 	}
 	for key, p := range got.Programs {
@@ -39,6 +40,21 @@ func TestOperatingDemoCreatesConnectedPopulationAndStableTimeline(t *testing.T) 
 		if !f.Eligible || f.Status != "ACTIVE" || f.ProgramID == "" {
 			t.Fatalf("form %s unavailable %+v", key, f)
 		}
+	}
+	controlForm := got.Forms["vendor_control_attestation"]
+	actor := monitoring.Actor{TenantID: c.TenantID, LegalEntityID: c.LegalEntityID, PrincipalID: c.ActorID}
+	form, err := s.monitoring.LatestFormByCode(context.Background(), actor, controlForm.ProgramID, "VENDOR-CONTROL-ATTESTATION")
+	if err != nil || form.ScoringMode != "COMPLIANCE" || form.ScoreProfile == nil {
+		t.Fatalf("vendor control scoring form unavailable form=%+v err=%v", form, err)
+	}
+	contract := formcontract.Contract{Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile, Sections: form.Sections, Fields: form.Fields}
+	high, err := formcontract.EvaluateScoreProfile(*form.ScoreProfile, contract, formcontract.TextAnswers(map[string]string{"encryption_enabled": "Yes", "admin_mfa": "Yes", "annual_security_test": "Yes", "critical_weakness": "No"}))
+	if err != nil || !high.Final || high.RawScore == nil || *high.RawScore != 100 || high.Disqualified {
+		t.Fatalf("high compliance fixture did not score cleanly: %+v err=%v", high, err)
+	}
+	gap, err := formcontract.EvaluateScoreProfile(*form.ScoreProfile, contract, formcontract.TextAnswers(map[string]string{"encryption_enabled": "Yes", "admin_mfa": "No", "annual_security_test": "No", "critical_weakness": "Yes"}))
+	if err != nil || !gap.Final || gap.RawScore == nil || *gap.RawScore >= 50 || !gap.Disqualified {
+		t.Fatalf("gap compliance fixture did not expose concern: %+v err=%v", gap, err)
 	}
 	ctx := continuity.WithTrustedSystemEntityScope(context.Background(), c.TenantID, c.LegalEntityID)
 	access, err := s.continuity.GetMatter(ctx, c.TenantID, got.Matters["access_remediation"].ID)
