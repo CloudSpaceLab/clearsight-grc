@@ -299,9 +299,10 @@ describe("FormBuilder", () => {
     chooseSelect(/Default layout/, "Show one section at a time");
     fireEvent.click(screen.getByLabelText("Allow respondents to switch layouts"));
     fireEvent.click(screen.getByRole("button", { name: "Preview" }));
-    fireEvent.click(screen.getByRole("button", { name: "Preview Classic" }));
+    expect(screen.getByText("Step 1 of 1")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show all questions" }));
     expect(screen.getByLabelText("Primary contact *").getAttribute("type")).toBe("email");
-    fireEvent.click(screen.getByRole("button", { name: "Preview Wizard" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show one section at a time" }));
     expect(screen.getByText("Step 1 of 1")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Close form preview" }));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));

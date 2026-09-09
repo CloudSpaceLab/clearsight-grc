@@ -1,0 +1,58 @@
+[
+  {
+    "theme": "light",
+    "width": 1440,
+    "state": "immediate",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "state": "all-questions",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "state": "immediate",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "state": "all-questions",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "state": "immediate",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "state": "all-questions",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "state": "immediate",
+    "errors": [],
+    "overflow": false
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "state": "all-questions",
+    "errors": [],
+    "overflow": false
+  }
+]
