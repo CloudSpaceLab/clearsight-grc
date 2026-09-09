@@ -14,6 +14,22 @@ const columns: readonly DataColumn<Row>[] = [
 ];
 
 describe("DataTable", () => {
+  it("opts into container layout without replacing selected rows or their keyboard actions", () => {
+    const open = vi.fn();
+    const props = { ariaLabel: "Documents", rows, rowKey: (row: Row) => row.id, rowName: (row: Row) => row.title, columns, selectedKey: rows[0]!.id, onRowAction: open };
+    const { rerender } = render(<DataTable {...props}/>);
+    const row = screen.getByRole("row", { name: rows[0]!.title });
+    row.focus();
+    expect(row.closest(".cs-data-table")?.getAttribute("data-responsive-to")).toBe("viewport");
+    rerender(<DataTable {...props} responsiveTo="container"/>);
+    expect(screen.getByRole("row", { name: rows[0]!.title })).toBe(row);
+    expect(document.activeElement).toBe(row);
+    expect(row.getAttribute("aria-selected")).toBe("true");
+    expect(row.closest(".cs-data-table")?.getAttribute("data-responsive-to")).toBe("container");
+    fireEvent.keyDown(row, { key: "Enter" });
+    expect(open).toHaveBeenCalledWith(rows[0]);
+  });
+
   it("opts one column into full-width mobile cells while retaining labels and complete values", () => {
     render(<DataTable ariaLabel="Documents" rows={rows} rowKey={(row) => row.id} rowName={(row) => row.title}
       columns={columns.map((column) => column.id === "title" ? { ...column, mobileLayout: "full-width" } : column)}/>);

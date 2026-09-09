@@ -61,7 +61,7 @@ export function DocumentBrowser({ scopeLabel, relationshipID, responseRevisionID
         {state === "loading" && <p role="status">Loading documents…</p>}
         {state === "error" && <Notice tone="error"><strong>Documents could not be loaded.</strong> Check your connection and access, then try again. <Button onPress={() => setReload((value) => value + 1)}>Reload documents</Button></Notice>}
         {state === "ready" && (items.length ? <>
-          <DataTable ariaLabel={scopeLabel} rows={items} rowKey={(file) => file.id} rowName={(file) => `${file.file_name}, ${fileKindLabel(file.file_kind)}, ${fileStatus(file)}`}
+          <DataTable ariaLabel={scopeLabel} responsiveTo="container" rows={items} rowKey={(file) => file.id} rowName={(file) => `${file.file_name}, ${fileKindLabel(file.file_kind)}, ${fileStatus(file)}`}
             columns={columns} selectedKey={selectedID} onSelectionChange={(file) => setSelectedID(file.id)} onRowAction={open}
             pagination={{ label: "Document pages", onPrevious: pages.length ? () => setPages((value) => value.slice(0, -1)) : undefined, onNext: nextCursor ? () => setPages((value) => [...value, nextCursor]) : undefined }}/>
           <footer className="document-list-footer"><span>{items.length} {items.length === 1 ? "file" : "files"} on this page{nextCursor ? " · More available" : ""}</span><span>Select a file · Press Space to preview</span></footer>

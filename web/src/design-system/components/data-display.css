@@ -19,6 +19,7 @@
 .cs-filter-bar__count { color: var(--cs-filter-count-text); white-space: nowrap; }
 
 .cs-data-table { min-inline-size: 0; }
+.cs-data-table[data-responsive-to="container"] { container: cs-data-table / inline-size; }
 .cs-data-table__viewport { overflow-x: auto; border: var(--cs-table-border-width) solid var(--cs-table-border); border-radius: var(--cs-table-radius); }
 .cs-data-table table { inline-size: 100%; border-collapse: collapse; color: var(--cs-table-text); background: var(--cs-table-bg); }
 .cs-data-table th, .cs-data-table td { padding: var(--cs-table-row-padding); border-block-end: var(--cs-table-border-width) solid var(--cs-table-border); text-align: start; vertical-align: middle; }
@@ -50,6 +51,23 @@
 @media (max-width: 380px) {
   .cs-filter-bar__summary { align-items: stretch; flex-direction: column; }
   .cs-filter-bar__summary .cs-button { inline-size: 100%; }
+}
+
+@container cs-data-table (max-width: 700px) {
+  .cs-data-table__viewport { overflow: visible; border: 0; }
+  .cs-data-table table, .cs-data-table tbody { display: block; }
+  .cs-data-table thead { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+  .cs-data-table tbody { display: grid; gap: var(--cs-table-mobile-gap); }
+  .cs-data-table tbody tr { display: grid; gap: var(--cs-table-mobile-row-gap); padding: var(--cs-table-mobile-padding); border: var(--cs-table-border-width) solid var(--cs-table-border); border-radius: var(--cs-table-radius); background: var(--cs-table-bg); }
+  .cs-data-table tbody tr td { display: grid; min-inline-size: 0; grid-template-columns: minmax(var(--cs-table-mobile-label-width), 0.7fr) minmax(0, 1.3fr); gap: var(--cs-table-mobile-row-gap); padding: 0; border: 0; overflow-wrap: anywhere; text-align: start; }
+  .cs-data-table tbody tr td::before { color: var(--cs-table-heading-text); font-size: var(--cs-table-heading-size); font-weight: var(--cs-table-heading-weight); content: attr(data-label); }
+  .cs-data-table tbody tr td[data-mobile-layout="full-width"] { grid-template-columns: minmax(0, 1fr); }
+  .cs-data-table[data-responsive-to="container"] tbody tr td { text-align: start; }
+  .cs-data-table[data-responsive-to="container"] tbody tr td:not([data-mobile-layout="full-width"]) > * { justify-self: start; }
+}
+
+@container cs-data-table (max-width: 360px) {
+  .cs-data-table[data-responsive-to="container"] tbody tr td { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (forced-colors: active) {

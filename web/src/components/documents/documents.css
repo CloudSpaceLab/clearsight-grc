@@ -1,11 +1,13 @@
+@layer reset, tokens, base, components, features, utilities, overrides;
+
 @layer features {
-  .document-browser { min-inline-size: 0; border: 1px solid var(--cs-border-default); border-radius: var(--cs-surface-radius); background: var(--cs-bg-surface-1); overflow: clip; }
+  .document-browser { container: document-browser / inline-size; min-inline-size: 0; border: 1px solid var(--cs-border-default); border-radius: var(--cs-surface-radius); background: var(--cs-bg-surface-1); overflow: clip; }
   .document-browser-heading, .document-toolbar, .document-list-footer, .document-preview-heading, .document-preview-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--cs-space-inline); }
   .document-browser-heading { padding: var(--cs-space-group); border-block-end: 1px solid var(--cs-border-default); }
   .document-browser-heading h2, .document-preview-heading h2 { margin: 0; font-size: var(--cs-font-size-body); color: var(--cs-text-primary); overflow-wrap: anywhere; }
   .document-browser-heading p, .document-preview-heading p { margin: 0; color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
   .document-browser-body { display: flex; min-inline-size: 0; }
-  .document-kinds { flex: 0 0 13rem; display: flex; flex-direction: column; align-items: stretch; gap: var(--cs-primitive-space-1); padding: var(--cs-space-inline); background: var(--cs-bg-surface-2); border-inline-end: 1px solid var(--cs-border-default); }
+  .document-kinds { flex: 0 0 14rem; display: flex; flex-direction: column; align-items: stretch; gap: var(--cs-primitive-space-1); padding: var(--cs-space-inline); background: var(--cs-bg-surface-2); border-inline-end: 1px solid var(--cs-border-default); }
   .document-kinds > button > span { inline-size: 100%; }
   .document-kind-label { display: grid; grid-template-columns: var(--cs-primitive-icon-20) minmax(0, 1fr) var(--cs-primitive-icon-16); align-items: center; gap: var(--cs-space-inline); text-align: start; }
   .document-kind-label > .document-file-icon { inline-size: var(--cs-primitive-icon-20); block-size: var(--cs-primitive-icon-24); }
@@ -45,6 +47,19 @@
   .document-preview-details h3 { margin-block-start: 0; font-size: var(--cs-font-size-body); }
   .document-preview-details > p { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
   @media (max-width: 1200px) { .document-inspector { display: none; } }
+  @container document-browser (max-width: 1100px) {
+    .document-inspector { display: none; }
+  }
+  @container document-browser (max-width: 960px) {
+    .document-browser:not(.document-browser--selecting) > .document-browser-body { display: block; }
+    .document-browser:not(.document-browser--selecting) > .document-browser-body > .document-kinds { display: none; }
+    .document-browser:not(.document-browser--selecting) > .document-browser-body > .document-browser-content > .document-kind-selector { display: block; }
+  }
+  @container document-browser (max-width: 760px) {
+    .document-browser-heading { flex-direction: column; align-items: stretch; }
+    .document-browser--selecting > .document-browser-body > .document-kinds { display: none; }
+    .document-browser--selecting > .document-browser-body > .document-browser-content > .document-kind-selector { display: block; }
+  }
   @media (max-width: 760px) {
     .document-browser-heading { flex-direction: column; align-items: stretch; }
     .document-browser-body { display: block; }

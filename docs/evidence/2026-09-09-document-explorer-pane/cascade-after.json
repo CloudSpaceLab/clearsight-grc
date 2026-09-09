@@ -1,0 +1,96 @@
+{
+  "density": "comfortable",
+  "padding": "16px",
+  "group": "16px",
+  "matches": [
+    {
+      "sheet": "http://127.0.0.1:4187/assets/ResponseAssessment-Biq23Opc.css",
+      "layer": "features",
+      "selector": ".document-browser-heading",
+      "padding": "var(--cs-space-group)"
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/index-DJ5VhWUW.css",
+      "layer": "base",
+      "selector": "*, ::after, ::before",
+      "padding": "0px"
+    }
+  ],
+  "layers": [
+    {
+      "sheet": null,
+      "type": "CSSLayerBlockRule",
+      "name": ""
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/ResponseAssessment-Biq23Opc.css",
+      "type": "CSSLayerStatementRule",
+      "name": [
+        "reset",
+        "tokens",
+        "base",
+        "components"
+      ]
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/ResponseAssessment-Biq23Opc.css",
+      "type": "CSSLayerBlockRule",
+      "name": "features"
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/ResponseAssessment-Biq23Opc.css",
+      "type": "CSSLayerStatementRule",
+      "name": [
+        "utilities",
+        "overrides"
+      ]
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/index-DJ5VhWUW.css",
+      "type": "CSSLayerBlockRule",
+      "name": "properties"
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/index-DJ5VhWUW.css",
+      "type": "CSSLayerBlockRule",
+      "name": "theme"
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/index-DJ5VhWUW.css",
+      "type": "CSSLayerBlockRule",
+      "name": "base"
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/index-DJ5VhWUW.css",
+      "type": "CSSLayerBlockRule",
+      "name": "components"
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/index-DJ5VhWUW.css",
+      "type": "CSSLayerBlockRule",
+      "name": "utilities"
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/index-DJ5VhWUW.css",
+      "type": "CSSLayerBlockRule",
+      "name": "reset"
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/index-DJ5VhWUW.css",
+      "type": "CSSLayerBlockRule",
+      "name": "tokens"
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/index-DJ5VhWUW.css",
+      "type": "CSSLayerBlockRule",
+      "name": "features"
+    },
+    {
+      "sheet": "http://127.0.0.1:4187/assets/index-DJ5VhWUW.css",
+      "type": "CSSLayerStatementRule",
+      "name": [
+        "overrides"
+      ]
+    }
+  ]
+}

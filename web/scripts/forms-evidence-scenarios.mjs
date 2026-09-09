@@ -119,7 +119,8 @@ async function selectFileType(page, name) {
 }
 
 async function assertFileTypeSelected(page, name) {
-  const narrow = await page.evaluate(() => matchMedia("(max-width: 760px)").matches);
+  const narrow = await page.locator(".document-browser").evaluate((browser) => matchMedia("(max-width: 760px)").matches
+    || browser.clientWidth <= (browser.classList.contains("document-browser--selecting") ? 760 : 960));
   const compact = page.getByRole("button", { name: `${name} File type`, exact: true });
   const sidebar = page.locator(".document-kinds");
   if (await compact.isVisible() !== narrow || await sidebar.isVisible() === narrow) throw new Error("File types must use one visible labelled navigation at the current width.");
@@ -130,7 +131,8 @@ async function assertFileTypeSelected(page, name) {
 }
 
 async function assertDocumentNameWidth(page) {
-  if (!await page.evaluate(() => matchMedia("(max-width: 700px)").matches)) return;
+  const cards = await page.locator(".document-browser .cs-data-table").evaluate((table) => matchMedia("(max-width: 700px)").matches || table.clientWidth <= 700);
+  if (!cards) return;
   // Even the reduced-motion transition duration needs a rendering frame when
   // resize changes cell padding. Wait for the exact final width contract.
   await page.waitForFunction(() => {
@@ -141,10 +143,10 @@ async function assertDocumentNameWidth(page) {
       const fullName = name?.querySelector("strong");
       const rowStyle = getComputedStyle(row);
       const available = row.clientWidth - parseFloat(rowStyle.paddingLeft) - parseFloat(rowStyle.paddingRight);
-      return cell.getAttribute("data-mobile-layout") === "full-width" && Math.abs(cell.getBoundingClientRect().width - available) <= 2
+      return rowStyle.display === "grid" && cell.getAttribute("data-mobile-layout") === "full-width" && Math.abs(cell.getBoundingClientRect().width - available) <= 2
         && Math.abs(name.getBoundingClientRect().width - cell.getBoundingClientRect().width) <= 2 && fullName.textContent === fullName.title;
     });
-  }).catch((error) => { throw new Error(`Complete document names must use the full available mobile card width: ${error.message}`); });
+  }).catch((error) => { throw new Error(`Complete document names must use the full available card width in narrow workspaces: ${error.message}`); });
 }
 
 async function assertDocumentHeader(page) {
@@ -305,13 +307,16 @@ const scenarios = [
         const observer = new MutationObserver(() => {
           if (!field.hasAttribute("data-open")) return;
           observer.disconnect();
-          window.setTimeout(() => window.scrollBy({ top: 11, behavior: "instant" }), 10);
+          // Exercise an opening scroll in this commit, before a delayed timer
+          // can turn it into a later user scroll outside the opening guard.
+          window.scrollBy({ top: 11, behavior: "instant" });
+          document.dispatchEvent(new Event("scroll"));
         });
         observer.observe(field, { attributes: true, attributeFilter: ["data-open"] });
       });
       await select.click();
       await page.getByRole("option", { name: "Vendor document", exact: true }).waitFor({ state: "visible" });
-      await page.waitForTimeout(50);
+      await page.waitForFunction((expected) => window.scrollY === expected, before.scrollTop);
       const after = await builderGeometry(page);
       if (JSON.stringify(after) !== JSON.stringify(before)) throw new Error(`Opening the response-type menu changed builder geometry: before=${JSON.stringify(before)} after=${JSON.stringify(after)}.`);
       const popup = page.locator(".cs-select-field__popover");
@@ -718,7 +723,7 @@ async function verifyMobileBuilder(page) {
 }
 
 for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"], ["vendors", "forms-vendor-review-conflict", "#vendors"]]) {
-  for (const [theme, viewport] of [["light", desktop], ["dark", reflow], ...(surface === "forms" ? [["dark", desktop], ["light", reflow], ["light", mobile], ["dark", mobile]] : [])]) {
+  for (const [theme, viewport] of [["light", desktop], ["dark", reflow], ...(surface === "forms" ? [["dark", desktop], ["light", reflow], ["light", mobile], ["dark", mobile]] : [["light", { width: 1280, height: 900 }], ["dark", { width: 1280, height: 900 }]])]) {
     scenarios.push({
       name: `${125 + (surface === "vendors" ? 2 : 0) + (theme === "dark" ? 1 : 0)}-forms-documents-${surface}-${theme}-${viewport.width}`, fixture, route,
       state: "submitted-document-browser", theme, viewport, zoom: 1, reducedMotion: "reduce",
