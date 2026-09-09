@@ -10,7 +10,7 @@ export function documentDate(value?: string) { return value && Number.isFinite(D
 export function fileStatus(file: DocumentOccurrence) { return documentEligibility(file) === "demo" ? "Demo check complete" : ({ AVAILABLE: "Ready to view", STORED_UNSCANNED: "Safety check pending", QUARANTINED: "Quarantined", DELETED: "Removed" })[file.artifact_status] ?? "File unavailable"; }
 
 export function DocumentDemoNotice({ file }: { file: DocumentOccurrence }) {
-  return documentEligibility(file) === "demo" ? <Notice tone="warning"><strong>Demo check complete</strong><p>No antivirus scan was performed. This fictional sample is available for demonstration only; it is not evidence for a bank decision.</p></Notice> : null;
+  return documentEligibility(file) === "demo" ? <Notice tone="warning"><strong>Demo check complete</strong><p>No antivirus scan was performed. This sample is for demonstration only and cannot support an approval.</p></Notice> : null;
 }
 
 export function DocumentFacts({ file }: { file: DocumentOccurrence }) {

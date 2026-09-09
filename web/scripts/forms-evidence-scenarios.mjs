@@ -75,16 +75,36 @@ async function assertFormsSectionSelected(page, name) {
   if (!linked) throw new Error("The selected Forms section must name and control its single mounted panel in both navigation layouts.");
 }
 
-async function verifyCompactSelectDismissal(page) {
+export async function verifyCompactSelectDismissal(page) {
   const trigger = page.getByRole("button", { name: "Sent forms Forms section", exact: true });
   for (const action of ["Escape", "Tab", "outside"]) {
-    await trigger.click();
-    await page.getByRole("listbox").waitFor({ state: "visible" });
-    await page.evaluate(() => document.dispatchEvent(new Event("scroll")));
-    await page.getByRole("listbox").waitFor({ state: "visible" });
-    if (action === "outside") await page.getByRole("textbox", { name: "Subject type", exact: true }).click();
-    else await page.keyboard.press(action);
-    await page.getByRole("listbox").waitFor({ state: "hidden" }).catch((error) => { throw new Error(`Compact selector did not dismiss after ${action}: ${error.message}`); });
+    try {
+      await trigger.click();
+      const listbox = page.getByRole("listbox");
+      await listbox.waitFor({ state: "visible" });
+      await page.evaluate(() => document.dispatchEvent(new Event("scroll")));
+      await listbox.waitFor({ state: "visible" });
+      if (action === "outside") await page.getByRole("textbox", { name: "Subject type", exact: true }).click();
+      else {
+        // The popup can paint before its selected option receives focus.
+        await page.waitForFunction((element) => element.contains(document.activeElement), await listbox.elementHandle());
+        await page.keyboard.press(action);
+      }
+      await listbox.waitFor({ state: "hidden" });
+      const nextFocus = action === "Tab" ? page.getByRole("button", { name: "Send form", exact: true })
+        : action === "Escape" ? trigger : page.getByRole("textbox", { name: "Subject type", exact: true });
+      await page.waitForFunction((element) => document.activeElement === element, await nextFocus.elementHandle());
+    } catch (error) {
+      const focus = await trigger.evaluate((element) => ({
+        expanded: element.getAttribute("aria-expanded"),
+        activeRole: document.activeElement?.getAttribute("role"),
+        activeTag: document.activeElement?.tagName,
+        activeID: document.activeElement?.id,
+        activeText: document.activeElement?.textContent?.slice(0, 120),
+        focusInListbox: Boolean(document.activeElement?.closest('[role="listbox"]')),
+      }));
+      throw new Error(`Compact selector ${action} dismissal or focus progression failed: ${error.message}; ${JSON.stringify(focus)}`);
+    }
   }
 }
 

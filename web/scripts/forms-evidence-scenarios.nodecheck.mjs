@@ -3,7 +3,41 @@ import test from "node:test";
 import { runInNewContext } from "node:vm";
 import { setImmediate } from "node:timers/promises";
 
-import { formsEvidenceScenarios, requiredFormsCapabilities, installDemoDocumentScenario, waitForNativePDFPage, assertSheetRecoveryVisible } from "./forms-evidence-scenarios.mjs";
+import { formsEvidenceScenarios, requiredFormsCapabilities, installDemoDocumentScenario, waitForNativePDFPage, assertSheetRecoveryVisible, verifyCompactSelectDismissal } from "./forms-evidence-scenarios.mjs";
+
+test("compact selector keyboard checks wait for focus and verify Tab advances", async () => {
+  let open = false;
+  let focus;
+  let pendingFocus;
+  const keys = [];
+  const button = { textContent: "Sent forms", getAttribute: () => String(open) };
+  const next = { textContent: "Send form" };
+  const textbox = {};
+  const menu = { contains: (element) => element === menu };
+  const locator = (element) => ({
+    elementHandle: async () => element,
+    click: async () => {
+      if (element === button) { open = true; pendingFocus = menu; }
+      else { focus = element; open = false; pendingFocus = undefined; }
+    },
+    waitFor: async ({ state }) => assert.equal(open, state === "visible"),
+    evaluate: (callback) => runInNewContext(`(${callback})(element)`, { element, document: { activeElement: focus } }),
+  });
+  const page = {
+    getByRole: (role, options) => locator(role === "listbox" ? menu : role === "textbox" ? textbox : options.name === "Send form" ? next : button),
+    evaluate: async () => undefined,
+    waitForFunction: async (callback, element) => {
+      if (pendingFocus) { await setImmediate(); focus = pendingFocus; pendingFocus = undefined; }
+      assert.equal(runInNewContext(`(${callback})(element)`, { element, document: { activeElement: focus } }), true);
+    },
+    keyboard: { press: async (key) => {
+      assert.equal(focus, menu, "listbox visibility alone must not permit a keyboard action");
+      keys.push(key); open = false; focus = key === "Tab" ? next : button;
+    } },
+  };
+  await verifyCompactSelectDismissal(page);
+  assert.deepEqual(keys, ["Escape", "Tab"]);
+});
 
 const task22Capabilities = [
   "library-empty", "library-list", "library-search", "library-saved-filter", "library-context-detail", "library-bulk-action",

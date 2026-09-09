@@ -911,7 +911,7 @@ function VendorForm({ mode, form, errors, formError, saving, existingVendor, can
   onSubmit: (event: React.FormEvent) => void;
 }) {
   return <form className="vendor-form" onSubmit={onSubmit} noValidate>
-    <div><span className="eyebrow">{mode === "create" ? "New relationship" : "Current relationship"}</span><h2>{mode === "create" ? "Add a vendor and service" : "Edit vendor relationship"}</h2><p>{mode === "create" ? "Record the organization and the service it supplies. Your verified identity will be recorded as the initial accountable owner." : "Update the supplied service, criticality, privacy role or dates using the current relationship version."}</p></div>
+    <div><span className="eyebrow">{mode === "create" ? "New relationship" : "Current relationship"}</span><h2>{mode === "create" ? "Add a vendor and service" : "Edit vendor relationship"}</h2><p>{mode === "create" ? "Record the organization and its service. You are the initial accountable owner." : "Update the service, criticality, privacy role or dates."}</p></div>
     {formError && <div className="vendor-form-error" role="alert">{formError}</div>}
     <div className="vendor-form-grid">
       {mode === "create" ? <>

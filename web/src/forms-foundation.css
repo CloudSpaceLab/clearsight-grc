@@ -26,3 +26,5 @@
 .form-proposal-layout { max-height: min(720px, 65svh); overflow: auto; overscroll-behavior: contain; }
 .form-proposal-layout:focus-visible { outline: 2px solid var(--cs-focus-ring); outline-offset: -2px; }
 .form-proposal-layout .form-proposal-changes { max-height: none; overflow: visible; }
+.form-proposal-feedback { padding: 16px 24px 0; }
+@media (max-width: 650px) { .form-proposal-feedback { padding-inline: 16px; } }

@@ -143,7 +143,11 @@ func writeFormProposalError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "form_ai_unavailable", "Governed AI form authoring is not available. Manual and deterministic authoring remain available.")
 	case errors.Is(err, monitoring.ErrNotFound), errors.Is(err, documentimport.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "form_proposal_not_found", "The form proposal or its exact source document was not found in this legal entity.")
-	case errors.Is(err, monitoring.ErrConflict), errors.Is(err, documentimport.ErrVersionConflict), errors.Is(err, monitoring.ErrFormProposalSourceChanged), errors.Is(err, monitoring.ErrFormProposalState):
+	case errors.Is(err, monitoring.ErrFormProposalSourceChanged):
+		httpx.WriteError(w, http.StatusConflict, "form_proposal_source_changed", "The source document changed. Reload the import and create a new proposal.")
+	case errors.Is(err, monitoring.ErrFormProposalState):
+		httpx.WriteError(w, http.StatusConflict, "form_proposal_state_conflict", "This proposal cannot create a draft in its current state. Reload the import.")
+	case errors.Is(err, monitoring.ErrConflict), errors.Is(err, documentimport.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "form_proposal_conflict", err.Error())
 	case errors.Is(err, monitoring.ErrFormProposalSelection), errors.Is(err, monitoring.ErrInvalid):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "form_proposal_invalid", err.Error())

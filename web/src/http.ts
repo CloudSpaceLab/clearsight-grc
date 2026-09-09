@@ -1,6 +1,6 @@
 export type ApiErrorKind = "unauthorized" | "forbidden" | "not_found" | "conflict" | "validation" | "unavailable" | "unknown";
 
-type ErrorEnvelope = { message?: string; error?: { code?: string; message?: string } };
+type ErrorEnvelope = { message?: string; error?: string | { code?: string; message?: string } };
 
 export class ApiError extends Error {
   readonly status: number;
@@ -49,10 +49,11 @@ export function apiErrorKind(error: unknown): ApiErrorKind {
 
 async function responseError(response: Response): Promise<ApiError> {
   const body = await response.json().catch(() => null) as ErrorEnvelope | null;
+  const detail = typeof body?.error === "object" ? body.error : undefined;
   return new ApiError(
     response.status,
-    body?.error?.message ?? body?.message ?? recoveryMessage(response.status),
-    body?.error?.code,
+    detail?.message ?? body?.message ?? recoveryMessage(response.status),
+    typeof body?.error === "string" ? body.error : detail?.code,
   );
 }
 

@@ -105,6 +105,18 @@ describe("FormProposalReview", () => {
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Latest version loaded. Review the selected fields before creating a draft."));
   });
 
+  it.each([
+    ["form_proposal_source_changed", "The source document changed. Reload the import and create a new proposal."],
+    ["form_proposal_state_conflict", "This proposal cannot create a draft in its current state. Reload the import."],
+  ])("preserves the recovery for %s without claiming a version changed", async (code, message) => {
+    vi.mocked(acceptFormProposal).mockRejectedValueOnce(new ApiError(409, message, code));
+    render(<FormProposalReview proposal={proposal} onProposalChange={() => undefined}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Create draft from selected fields" }));
+    expect((await screen.findByRole("alert")).textContent).toBe(message);
+    expect(loadFormProposal).not.toHaveBeenCalled();
+    expect((screen.getByRole("checkbox", { name: "Include Registered name" }) as HTMLInputElement).checked).toBe(true);
+  });
+
   it("does not claim a conflicting proposal was reloaded while its refresh is pending or failed", async () => {
     vi.mocked(acceptFormProposal).mockRejectedValueOnce(new ApiError(409, "proposal changed", "form_proposal_conflict"));
     let failRefresh!: (error: Error) => void;

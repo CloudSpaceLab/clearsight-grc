@@ -4,6 +4,7 @@ package monitoring
 
 import (
 	"context"
+	"errors"
 	"os"
 	"slices"
 	"strings"
@@ -17,6 +18,16 @@ import (
 )
 
 func TestPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T) {
+	for _, useTenantUUID := range []bool{false, true} {
+		name := "tenant_slug"
+		if useTenantUUID {
+			name = "verified_tenant_uuid"
+		}
+		t.Run(name, func(t *testing.T) { testPostgresFormProposalAcceptanceIsAtomicAndAuditable(t, useTenantUUID) })
+	}
+}
+
+func testPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T, useTenantUUID bool) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL is not configured")
@@ -38,6 +49,10 @@ func TestPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T) {
 		changeID    = "change_legal_name"
 	)
 	const tenantSlug = "form-proposal-atomic-test"
+	actorTenantID := tenantSlug
+	if useTenantUUID {
+		actorTenantID = tenantID
+	}
 	sha256 := strings.Repeat("a", 64)
 	now := time.Date(2026, 8, 29, 15, 45, 0, 0, time.UTC)
 
@@ -100,15 +115,44 @@ func TestPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T) {
 	}
 
 	draft := FormTemplate{
-		ID: templateID, TenantID: tenantSlug, LegalEntityID: entityID,
+		ID: templateID, TenantID: actorTenantID, LegalEntityID: entityID,
 		Code: "IMPORTED-VENDOR", Name: "Imported vendor questionnaire", Purpose: "Review imported vendor facts.",
 		OwnerPrincipalID: principalID, ScoringMode: contract.ScoringMode, Presentation: contract.Presentation,
 		Sections: contract.Sections, Fields: contract.Fields,
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: principalID, CreatedAt: now.Add(2 * time.Second), UpdatedAt: now.Add(2 * time.Second)},
 	}
 	mutation := FormProposalReviewMutation{
-		TenantID: tenantSlug, LegalEntityID: entityID, ProposalID: proposalID, ExpectedVersion: generated.Version,
+		TenantID: actorTenantID, LegalEntityID: entityID, ProposalID: proposalID, ExpectedVersion: generated.Version,
 		Status: FormProposalAccepted, ReviewerID: principalID, ChangeIDs: []string{changeID}, At: now.Add(2 * time.Second),
+	}
+
+	const otherTenantID = "9d111111-1111-7111-8111-111111111119"
+	cleanupFormProposalIntegration(ctx, pool, otherTenantID)
+	defer cleanupFormProposalIntegration(context.Background(), pool, otherTenantID)
+	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'other-form-proposal-tenant','Other proposal tenant')`, otherTenantID); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, mismatch := range []struct{ name, tenant, entity string }{
+		{"unknown tenant", "unknown-form-proposal-tenant", entityID},
+		{"another tenant UUID", "9d111111-1111-7111-8111-111111111119", entityID},
+		{"another legal entity", actorTenantID, "9d111111-1111-7111-8111-111111111118"},
+	} {
+		invalidDraft := draft
+		invalidDraft.TenantID, invalidDraft.LegalEntityID = mismatch.tenant, mismatch.entity
+		if _, err := store.AcceptWithDraft(ctx, mutation, invalidDraft); !errors.Is(err, ErrFormProposalSourceChanged) {
+			t.Fatalf("%s acceptance error = %v, want source changed", mismatch.name, err)
+		}
+	}
+	// A source version change must still reject the whole material transaction.
+	if _, err := pool.Exec(ctx, `UPDATE document_imports SET version=2 WHERE id=$1::uuid`, documentID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.AcceptWithDraft(ctx, mutation, draft); !errors.Is(err, ErrFormProposalSourceChanged) {
+		t.Fatalf("changed source acceptance error = %v, want source changed", err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE document_imports SET version=1 WHERE id=$1::uuid`, documentID); err != nil {
+		t.Fatal(err)
 	}
 
 	if _, err := pool.Exec(ctx, `
@@ -157,6 +201,10 @@ func TestPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T) {
 	}
 	if accepted.Status != FormProposalAccepted || accepted.ResultTemplateID != templateID || accepted.ResultTemplateVersion != 1 || !slices.Equal(accepted.AcceptedChangeIDs, []string{changeID}) {
 		t.Fatalf("accepted proposal lost audit state: %#v", accepted)
+	}
+	repeated, err := store.AcceptWithDraft(ctx, mutation, draft)
+	if err != nil || repeated.Version != accepted.Version || repeated.ResultTemplateID != accepted.ResultTemplateID {
+		t.Fatalf("repeated acceptance changed the result: proposal=%#v error=%v", repeated, err)
 	}
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM monitoring_form_templates WHERE tenant_id=$1::uuid AND id=$2::uuid AND version=1 AND status='DRAFT'`, tenantID, templateID).Scan(&draftRows); err != nil {
 		t.Fatal(err)
