@@ -22,6 +22,7 @@ func TestCloudspaceRiskRegisterSampleIsSubmittedAndRepeatSafe(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	seed.Now = time.Date(2026, 9, 9, 12, 0, 0, 0, time.UTC)
+	seed.SignatoryPrincipalID = "00000000-0000-4000-8000-000000000102"
 
 	continuityRepo := continuity.NewPostgresRepository(pool)
 	continuityService := continuity.NewServiceWithClock(continuityRepo, func() time.Time { return seed.Now })
