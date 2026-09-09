@@ -56,6 +56,12 @@ func TestCloudspaceRiskRegisterSampleIsSubmittedAndRepeatSafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if legacyForm.EffectiveFrom == nil {
+		t.Fatal("legacy form has no effective timestamp")
+	}
+	// Form activation uses the monitoring service clock. Advance the fixture
+	// clock from the persisted effective timestamp before retiring that revision.
+	seed.Now = legacyForm.EffectiveFrom.Add(time.Hour)
 	keyring, err := evidence.NewRecipientKeyring(cfg.RecipientSecurity.ActiveKeyID, cfg.RecipientSecurity.Keyring)
 	if err != nil {
 		t.Fatal(err)
