@@ -1,0 +1,14 @@
+import {registerHooks} from 'node:module';
+import {mkdir,writeFile,readFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
+process.chdir(fileURLToPath(new URL('../../../web/',import.meta.url)));
+const output=fileURLToPath(new URL('vendor-identity/',import.meta.url));
+process.env.PAGE_URL='http://127.0.0.1:4188';process.env.UI_EVIDENCE_DIR=output;
+await mkdir(output,{recursive:true});
+const sourceSha256={};
+for(const file of ['web/scripts/capture-premium-first-run-evidence.mjs','web/src/components/VendorsWorkspace.tsx','web/src/vendors.css','web/dist-evidence/index.html'])sourceSha256[file]=createHash('sha256').update(await readFile(new URL(`../../../${file}`,import.meta.url))).digest('hex');
+await writeFile(`${output}/manifest.json`,JSON.stringify({generatedAt:new Date().toISOString(),baseURL:process.env.PAGE_URL,sourceSha256,captures:[]},null,2));
+registerHooks({resolve(specifier,context,nextResolve){if(specifier==='playwright')return{url:new URL('../../../.codex-tmp/playwright-ci/node_modules/playwright/index.mjs',import.meta.url).href,shortCircuit:true};return nextResolve(specifier,context)},load(url,context,nextLoad){const result=nextLoad(url,context);if(url.endsWith('/web/scripts/capture-premium-first-run-evidence.mjs')){let source=typeof result.source==='string'?result.source:new TextDecoder().decode(result.source);for(const call of ['await captureTodayIntroductions();','await captureVendorIntroductions();','await capturePresentationCover();'])source=source.replace(call,'');return {...result,source};}return result;}});
+await import('../../../web/scripts/capture-premium-first-run-evidence.mjs');
+const result=JSON.parse(await readFile(`${output}/manifest.json`,'utf8'));console.log(`${result.captures.length} vendor brand and identity scenarios passed.`);

@@ -193,6 +193,8 @@ async function openVendor(capture) {
   const opened = await openPage({ ...capture, viewport: capture.viewport ?? { width: 1440, height: 900 }, route: "#vendors", tour: "off", reducedMotion: "reduce" });
   await opened.page.getByRole("button", { name: /Acme Processing Limited/ }).first().click();
   await opened.page.getByRole("heading", { name: "Acme Processing Limited", exact: true }).waitFor({ state: "visible" });
+  await opened.page.getByText("Vendor details and record history", { exact: true }).click();
+  await opened.page.getByRole("button", { name: "Edit vendor details", exact: true }).waitFor({ state: "visible" });
   return opened;
 }
 
