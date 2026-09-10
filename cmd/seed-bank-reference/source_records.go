@@ -77,6 +77,13 @@ type sourceRecordReceipt struct {
 	Items    []map[string]any `json:"items"`
 }
 
+type sourceMatterProjectionValue struct {
+	Summary      string
+	Scope        json.RawMessage
+	KnownFacts   json.RawMessage
+	MissingFacts json.RawMessage
+}
+
 func sourceJSON(value any) json.RawMessage { data, _ := json.Marshal(value); return data }
 func sourceShort(value string, limit int) string {
 	value = strings.TrimSpace(value)
@@ -88,6 +95,68 @@ func sourceShort(value string, limit int) string {
 		end--
 	}
 	return value[:end] + "…"
+}
+
+func sourceFieldValue(record sourceRecord, labels ...string) string {
+	for _, label := range labels {
+		for _, field := range record.Fields {
+			if strings.EqualFold(strings.TrimSpace(field.Label), strings.TrimSpace(label)) {
+				return strings.TrimSpace(field.Value)
+			}
+		}
+	}
+	return ""
+}
+
+func sourceMatterProjection(group sourceRecordGroup, record sourceRecord) sourceMatterProjectionValue {
+	finding := sourceFieldValue(record, "FINDINGS", "RISK DESCRIPTION", "Risk Event Description", "Threat", "ROOT CAUSE ANALYSIS", "DELIVERABLE", "RISK AREAS", "TRAN_PARTICULAR")
+	implication := sourceFieldValue(record, "RISK/ IMPLICATIONS", "Vulnerability", "Rationale", "Risk Driver Descriptions Level 1")
+	if finding == "" {
+		finding = strings.TrimSpace(record.Title)
+	}
+	summary := finding
+	if implication != "" && !strings.EqualFold(implication, finding) {
+		summary += "\n\nRisk implication: " + implication
+	}
+
+	affectedArea := sourceFieldValue(record, "SERVICES OFFERED", "APPLICATION/ SERVICES AFFECTED", "Application", "RISK AREAS", "Asset Name", "Asset inventory / ASSET NAME", "SERVICE", "Branch", "Business unit")
+	accountableFunction := sourceFieldValue(record, "BUSINESS OWNER", "Business unit", "Asset inventory / ASSET OWNER", "Risk Owner", "INTERNAL BUSINESS")
+	vendor := sourceFieldValue(record, "SERVICE PROVIDER", "VENDOR")
+	scope := map[string]any{"sample": true, "seed_package": sourceRecordPackage, "source_group": group.Key}
+	if affectedArea != "" {
+		scope["affected_area"] = affectedArea
+	}
+	if accountableFunction != "" {
+		scope["accountable_function"] = accountableFunction
+	}
+	if vendor != "" {
+		scope["vendor"] = vendor
+	}
+
+	facts := map[string]any{
+		"source_file": group.SourceFile, "source_sha256": group.SourceSHA256, "source_sheet": group.SourceSheet,
+		"source_range": record.SourceRange, "source_period": group.Period, "source_status": record.Status,
+		"source_rating": record.Rating, "source_owner": record.Owner, "source_assessor": record.Assessor,
+		"source_fields": record.Fields, "source_limitations": group.Limitations, "source_projection_version": 2, "sample": true,
+	}
+	for key, value := range map[string]string{
+		"finding":              finding,
+		"risk_implication":     implication,
+		"severity":             sourceFieldValue(record, "Severity", "RISK LEVEL", "Risk Level (Inherent Risk)", "Inherent Risk Rating"),
+		"recommendation":       sourceFieldValue(record, "RECOMMENDATIONS", "Required Actions", "Additional/Proposed controls"),
+		"assessment_date":      sourceFieldValue(record, "DATE OF ASSESSMENT", "Source assessment date", "RISK ASSESSMENT PUBLICATION DATE"),
+		"source_comment":       sourceFieldValue(record, "RISK OWNER COMMENT", "IT RISK COMMENT", "Comments"),
+		"internal_assessor":    strings.TrimSpace(record.Assessor),
+		"action_performer":     strings.TrimSpace(record.Owner),
+		"accountable_function": accountableFunction,
+		"affected_area":        affectedArea,
+		"service_provider":     vendor,
+	} {
+		if value != "" {
+			facts[key] = value
+		}
+	}
+	return sourceMatterProjectionValue{Summary: summary, Scope: sourceJSON(scope), KnownFacts: sourceJSON(facts), MissingFacts: sourceJSON([]string{})}
 }
 
 func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, seed bankverticals.SeedConfig) (sourceRecordReceipt, error) {
@@ -270,6 +339,7 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 
 func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.Service, seed bankverticals.SeedConfig, programID string, group sourceRecordGroup, record sourceRecord) (continuity.MatterAggregate, error) {
 	key := sourceRecordPackage + ":" + record.Key
+	projection := sourceMatterProjection(group, record)
 	matter, err := cs.MatterByTriggerKey(ctx, seed.TenantID, key)
 	owner := seed.OwnerPrincipalID
 	if strings.EqualFold(strings.TrimSpace(record.Owner), "CISO") {
@@ -295,8 +365,6 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 		due = &value
 	}
 	if errors.Is(err, continuity.ErrNotFound) {
-		facts := map[string]any{"source_file": group.SourceFile, "source_sha256": group.SourceSHA256, "source_sheet": group.SourceSheet, "source_range": record.SourceRange, "source_period": group.Period, "source_status": record.Status, "source_rating": record.Rating, "source_owner": record.Owner, "source_assessor": record.Assessor, "source_fields": record.Fields, "sample": true}
-		summary := sourceRecordText(record) + "\n\nSource: " + group.SourceFile + " · " + record.SourceRange + ". Sample data; source outcomes have not been independently verified."
 		priority := 3
 		if strings.Contains(strings.ToLower(record.Rating), "high") {
 			priority = 4
@@ -304,7 +372,7 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 		if strings.Contains(strings.ToLower(record.Rating), "critical") {
 			priority = 5
 		}
-		matter, err = cs.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, ProgramID: programID, Type: continuity.MatterType(record.Kind), Priority: priority, Title: sourceShort(record.Title, 250), Summary: summary, Scope: sourceJSON(map[string]any{"sample": true, "seed_package": sourceRecordPackage, "source_group": group.Key}), KnownFacts: sourceJSON(facts), MissingFacts: sourceJSON(group.Limitations), Contradictions: sourceJSON([]string{}), TriggerType: "SOURCE_REGISTER_IMPORT", TriggerKey: key, OwnerPrincipalID: seed.OwnerPrincipalID, DueAt: due, ActorID: seed.ActorID})
+		matter, err = cs.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, ProgramID: programID, Type: continuity.MatterType(record.Kind), Priority: priority, Title: sourceShort(record.Title, 250), Summary: projection.Summary, Scope: projection.Scope, KnownFacts: projection.KnownFacts, MissingFacts: projection.MissingFacts, Contradictions: sourceJSON([]string{}), TriggerType: "SOURCE_REGISTER_IMPORT", TriggerKey: key, OwnerPrincipalID: seed.OwnerPrincipalID, DueAt: due, ActorID: seed.ActorID})
 	}
 	if err != nil {
 		return matter, err
