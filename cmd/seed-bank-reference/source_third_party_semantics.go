@@ -112,7 +112,7 @@ func buildThirdPartySemanticForm(group sourceRecordGroup) (monitoring.CreateForm
 	if err != nil || !ok {
 		return monitoring.CreateFormInput{}, nil, err
 	}
-	input := monitoring.CreateFormInput{Name: "Third-party security and continuity review", Purpose: "Review current vendor responses and supporting evidence for the identified service requirements. Sample data; bank assessment and source history remain separate.", ScoringMode: formcontract.ScoringRisk, Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true}}
+	input := monitoring.CreateFormInput{Name: "Third-party security and continuity review", Purpose: "Review current vendor responses and supporting evidence for the identified service requirements. Sample data; bank assessment and source history remain separate.", ScoringMode: formcontract.ScoringNone, Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true}}
 	answers := map[string]formcontract.AnswerValue{}
 	sections := map[string]string{}
 	for index, requirement := range semantic.Requirements {

@@ -412,7 +412,7 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 		}
 		input.ProgramID, input.LegalEntityID, input.Code = programID, seed.LegalEntityID, code
 		input.OwnerPrincipalID, input.ResponsibleTeam = seed.OwnerPrincipalID, "Risk and Compliance"
-		input.Tags = []string{"sample-data", "fidelity-source-records-v2", group.Key, "semantic-capture"}
+		input.Tags = []string{"sample-data", "fidelity-source-records-v3", group.Key, "semantic-capture"}
 		name, purpose = input.Name, input.Purpose
 	} else {
 		input.Sections = []formcontract.Section{{ID: "source", Title: "Source and limitations"}}
@@ -486,13 +486,13 @@ func sourceFormIdentity(group sourceRecordGroup, index int) (string, string) {
 	packageID := sourceRecordPackage
 	key := group.Key
 	if strings.HasPrefix(group.Key, "third-party-risk-register") {
-		packageID = "fidelity-source-records-v2"
-		key += ":semantic-v2"
+		packageID = "fidelity-source-records-v3"
+		key += ":semantic-v3"
 	}
 	digest := sha256.Sum256([]byte(key))
 	code := fmt.Sprintf("SOURCE-%X-%02d", digest[:8], index+1)
 	if packageID != sourceRecordPackage {
-		code = fmt.Sprintf("SOURCE-TPR-V2-%X-%02d", digest[:6], index+1)
+		code = fmt.Sprintf("SOURCE-TPR-V3-%X-%02d", digest[:6], index+1)
 	}
 	return code, fmt.Sprintf("%s:%s:%d", packageID, group.Key, index)
 }
@@ -501,36 +501,41 @@ func retireFlattenedThirdPartyCapture(ctx context.Context, pool *pgxpool.Pool, d
 	if !strings.HasPrefix(group.Key, "third-party-risk-register") {
 		return nil
 	}
-	var previousID, replacementID string
-	previousKey := fmt.Sprintf("%s:%s:0", sourceRecordPackage, group.Key)
+	var replacementID string
 	_, replacementKey := sourceFormIdentity(group, 0)
-	err := pool.QueryRow(ctx, `SELECT distribution_id::text FROM capture_distribution_creation_receipts WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND idempotency_key=$3`, seed.TenantID, seed.LegalEntityID, previousKey).Scan(&previousID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil
-	}
-	if err != nil {
+	if err := pool.QueryRow(ctx, `SELECT distribution_id::text FROM capture_distribution_creation_receipts WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND idempotency_key=$3`, seed.TenantID, seed.LegalEntityID, replacementKey).Scan(&replacementID); err != nil {
 		return err
 	}
-	if err = pool.QueryRow(ctx, `SELECT distribution_id::text FROM capture_distribution_creation_receipts WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND idempotency_key=$3`, seed.TenantID, seed.LegalEntityID, replacementKey).Scan(&replacementID); err != nil {
-		return err
+	priorKeys := []string{fmt.Sprintf("%s:%s:0", sourceRecordPackage, group.Key), fmt.Sprintf("fidelity-source-records-v2:%s:0", group.Key)}
+	for _, priorKey := range priorKeys {
+		var previousID string
+		err := pool.QueryRow(ctx, `SELECT distribution_id::text FROM capture_distribution_creation_receipts WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND idempotency_key=$3`, seed.TenantID, seed.LegalEntityID, priorKey).Scan(&previousID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if previousID == replacementID {
+			return fmt.Errorf("third-party semantic replacement reused a prior distribution")
+		}
+		previous, err := distributions.Get(ctx, seed.TenantID, seed.LegalEntityID, previousID)
+		if err != nil {
+			return err
+		}
+		if previous.Distribution.SubjectType != "VENDOR_RELATIONSHIP" || previous.Distribution.SubjectID != sourceCloudspaceRelationship || previous.Distribution.FormTemplateID == "" {
+			return fmt.Errorf("prior third-party distribution identity changed")
+		}
+		switch previous.Distribution.Status {
+		case evidence.DistributionRevoked, evidence.DistributionSuperseded:
+			continue
+		case evidence.DistributionCompleted:
+			return fmt.Errorf("completed prior third-party distribution requires governed historical conversion")
+		default:
+			if _, err = distributions.Revoke(ctx, seed.TenantID, seed.LegalEntityID, previousID, previous.Distribution.Version, seed.ActorID); err != nil {
+				return err
+			}
+		}
 	}
-	if previousID == replacementID {
-		return fmt.Errorf("third-party semantic replacement reused the flattened distribution")
-	}
-	previous, err := distributions.Get(ctx, seed.TenantID, seed.LegalEntityID, previousID)
-	if err != nil {
-		return err
-	}
-	if previous.Distribution.SubjectType != "VENDOR_RELATIONSHIP" || previous.Distribution.SubjectID != sourceCloudspaceRelationship || previous.Distribution.FormTemplateID == "" {
-		return fmt.Errorf("flattened third-party distribution identity changed")
-	}
-	switch previous.Distribution.Status {
-	case evidence.DistributionRevoked, evidence.DistributionSuperseded:
-		return nil
-	case evidence.DistributionCompleted:
-		return fmt.Errorf("completed flattened third-party distribution requires governed historical conversion")
-	default:
-		_, err = distributions.Revoke(ctx, seed.TenantID, seed.LegalEntityID, previousID, previous.Distribution.Version, seed.ActorID)
-		return err
-	}
+	return nil
 }
