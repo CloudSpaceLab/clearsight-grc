@@ -38,13 +38,13 @@ func (s *PostgresDistributionStore) ListCompletedResponses(ctx context.Context, 
 	cursorSQL, orderSQL := postgresCompletedResponseOrder(query.Sort, cursor, &args)
 	currentIndexSQL := ""
 	if query.CurrentOnly {
-		currentIndexSQL = " AND r.is_current"
+		currentIndexSQL = " AND r.is_current AND d.status NOT IN ('REVOKED','SUPERSEDED')"
 	}
 	scoreStateIndexSQL := postgresCompletedResponseScoreStateIndexPredicate(query.States)
 	limitPlaceholder := fmt.Sprintf("$%d", len(args)+1)
 	args = append(args, query.Limit+1)
 	rows, err := s.repo.pool.Query(ctx, `
-		SELECT `+responseRevisionProjection+`,d.form_template_id::text,d.form_template_version,d.title,d.subject_type,d.subject_id::text
+		SELECT `+completedResponseRevisionProjection()+`,d.form_template_id::text,d.form_template_version,d.title,d.subject_type,d.subject_id::text
 		FROM capture_response_revisions r
 		JOIN tenants t ON t.id=r.tenant_id
 		JOIN capture_form_distributions d
@@ -59,7 +59,7 @@ func (s *PostgresDistributionStore) ListCompletedResponses(ctx context.Context, 
 		  AND ($10::numeric IS NULL OR r.raw_score >= $10) AND ($11::numeric IS NULL OR r.raw_score <= $11)
 		  AND ($12::numeric IS NULL OR r.adverse_score >= $12) AND ($13::numeric IS NULL OR r.adverse_score <= $13)
 		  AND ($14::timestamptz IS NULL OR r.created_at >= $14) AND ($15::timestamptz IS NULL OR r.created_at <= $15)
-		  AND (NOT $16::boolean OR r.is_current)`+currentIndexSQL+scoreStateIndexSQL+`
+		  AND (NOT $16::boolean OR (r.is_current AND d.status NOT IN ('REVOKED','SUPERSEDED')))`+currentIndexSQL+scoreStateIndexSQL+`
 		  AND (`+completedResponseDiscoverySQL(17, 18)+`)
 		  AND (`+cursorSQL+`)
 		ORDER BY `+orderSQL+`
@@ -97,7 +97,7 @@ func (s *PostgresDistributionStore) GetCompletedResponse(ctx context.Context, te
 	var formID, title, subjectType, subjectID string
 	var formVersion int64
 	revision, err := scanPostgresResponseRevisionWithExtra(s.repo.pool.QueryRow(ctx, `
-		SELECT `+responseRevisionProjection+`,d.form_template_id::text,d.form_template_version,d.title,d.subject_type,d.subject_id::text
+		SELECT `+completedResponseRevisionProjection()+`,d.form_template_id::text,d.form_template_version,d.title,d.subject_type,d.subject_id::text
 		FROM capture_response_revisions r
 		JOIN tenants t ON t.id=r.tenant_id
 		JOIN capture_form_distributions d
@@ -127,12 +127,12 @@ func (s *PostgresDistributionStore) GetCompletedResponseForExecution(ctx context
 	var formID, title, subjectType, subjectID string
 	var formVersion int64
 	revision, err := scanPostgresResponseRevisionWithExtra(s.repo.pool.QueryRow(ctx, `
-		SELECT `+responseRevisionProjection+`,d.form_template_id::text,d.form_template_version,d.title,d.subject_type,d.subject_id::text
+		SELECT `+completedResponseRevisionProjection()+`,d.form_template_id::text,d.form_template_version,d.title,d.subject_type,d.subject_id::text
 		FROM capture_response_revisions r
 		JOIN tenants t ON t.id=r.tenant_id
 		JOIN capture_form_distributions d
 		  ON d.id=r.distribution_id AND d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id
-		WHERE (t.id::text=$1 OR t.slug=$1) AND r.id::text=$2
+		WHERE (t.id::text=$1 OR t.slug=$1) AND r.id::text=$2 AND r.is_current AND d.status NOT IN ('REVOKED','SUPERSEDED')
 		  AND r.state IN ('FINAL','PROVISIONAL') AND (r.score_state IN ('FINAL','PROVISIONAL') OR EXISTS(SELECT 1 FROM capture_response_assessments a WHERE a.tenant_id=r.tenant_id AND a.response_revision_id=r.id))`, tenantID, revisionID), &formID, &formVersion, &title, &subjectType, &subjectID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return CompletedResponseSummary{}, ErrNotFound
@@ -145,6 +145,10 @@ func (s *PostgresDistributionStore) GetCompletedResponseForExecution(ctx context
 		FormTemplateID: formID, FormTemplateVersion: formVersion, Title: title, SubjectType: subjectType, SubjectID: subjectID,
 		Revision: revision.Revision, Current: revision.Current, State: revision.State, Score: revision.Score, CompletedAt: revision.CreatedAt.UTC(),
 	}, nil
+}
+
+func completedResponseRevisionProjection() string {
+	return strings.Replace(responseRevisionProjection, "r.is_current", "(r.is_current AND d.status NOT IN ('REVOKED','SUPERSEDED'))", 1)
 }
 
 func postgresCompletedResponseOrder(sortOrder ResponseSort, cursor completedResponseCursor, args *[]any) (string, string) {
