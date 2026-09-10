@@ -10,4 +10,6 @@ The operator first verifies the source hashes and backup. The installer uses exi
 
 Ordinary risk registers retain a form field per source column. Large historical tables retain each complete source row as a labelled multiline answer. Captures split before the existing 200-field/20-section limits. Overlapping source views must not be interpreted as distinct incidents or added into a portfolio denominator.
 
+Source-only calendar deadlines use West Africa Time. Bank accountability for initial review remains with the configured Program owner; named source employees remain action performers and the original source owner/assessor values remain intact. A guarded repair uses normal reassignment events only for untouched initial import records. Blank and whitespace-only source cells remain unanswered, matching the submitted response contract on retries.
+
 Verification is intentionally limited for this demo: build, synthetic contract check, optional source-contract check with `CLEARSIGHT_SOURCE_MANIFEST_DIR`, scoped source/count reconciliation and hosted representative reads. New source responses remain unscored and outcomes unverified. The previous generic Cloudspace questionnaire is revoked only after replacement captures exist; its history remains available. Archived generic work is recoverable through attributed archive restoration.

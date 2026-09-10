@@ -282,7 +282,7 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 	}
 	var due *time.Time
 	if record.DueDate != "" {
-		value, e := time.Parse("2006-01-02", record.DueDate)
+		value, e := time.ParseInLocation("2006-01-02", record.DueDate, time.FixedZone("WAT", 3600))
 		if e != nil {
 			return matter, fmt.Errorf("invalid source deadline %q", record.DueDate)
 		}
@@ -299,7 +299,7 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 		if strings.Contains(strings.ToLower(record.Rating), "critical") {
 			priority = 5
 		}
-		matter, err = cs.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, ProgramID: programID, Type: continuity.MatterType(record.Kind), Priority: priority, Title: sourceShort(record.Title, 250), Summary: summary, Scope: sourceJSON(map[string]any{"sample": true, "seed_package": sourceRecordPackage, "source_group": group.Key}), KnownFacts: sourceJSON(facts), MissingFacts: sourceJSON(group.Limitations), Contradictions: sourceJSON([]string{}), TriggerType: "SOURCE_REGISTER_IMPORT", TriggerKey: key, OwnerPrincipalID: owner, DueAt: due, ActorID: seed.ActorID})
+		matter, err = cs.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, ProgramID: programID, Type: continuity.MatterType(record.Kind), Priority: priority, Title: sourceShort(record.Title, 250), Summary: summary, Scope: sourceJSON(map[string]any{"sample": true, "seed_package": sourceRecordPackage, "source_group": group.Key}), KnownFacts: sourceJSON(facts), MissingFacts: sourceJSON(group.Limitations), Contradictions: sourceJSON([]string{}), TriggerType: "SOURCE_REGISTER_IMPORT", TriggerKey: key, OwnerPrincipalID: seed.OwnerPrincipalID, DueAt: due, ActorID: seed.ActorID})
 	}
 	if err != nil {
 		return matter, err
@@ -314,6 +314,28 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 		matter, err = cs.UpdateMatterDetails(ctx, continuity.UpdateMatterDetailsInput{TenantID: seed.TenantID, MatterID: matter.Matter.ID, ExpectedVersion: 2, Title: matter.Matter.Title, Summary: matter.Matter.Summary, Priority: 4, DueAt: matter.Matter.DueAt, Scope: matter.Matter.Scope, ActorID: seed.ActorID, Rationale: "Correct the source-import priority scale; the recorded source rating is unchanged."})
 		if err != nil {
 			return matter, err
+		}
+	}
+	// Source dates are Nigerian calendar dates, not end-of-day UTC. Repair only
+	// untouched rows from this install; retain the source value and event history.
+	previousOwner := matter.Matter.OwnerPrincipalID
+	matter, err = repairSourceMatterOwner(ctx, cs, seed, matter, owner)
+	if err != nil {
+		return matter, err
+	}
+	ownerRepaired := previousOwner != matter.Matter.OwnerPrincipalID
+	if due != nil && matter.Matter.DueAt != nil && matter.Matter.DueAt.Equal(due.Add(time.Hour)) && (matter.Matter.Version == 3 || ownerRepaired && matter.Matter.Version == 4) {
+		matter, err = cs.UpdateMatterDetails(ctx, continuity.UpdateMatterDetailsInput{TenantID: seed.TenantID, MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, Title: matter.Matter.Title, Summary: matter.Matter.Summary, Priority: matter.Matter.Priority, DueAt: due, Scope: matter.Matter.Scope, ActorID: seed.ActorID, Rationale: "Preserve the source calendar deadline in West Africa Time."})
+		if err != nil {
+			return matter, err
+		}
+	}
+	for _, action := range matter.Actions {
+		if due != nil && action.DueAt != nil && action.DueAt.Equal(due.Add(time.Hour)) && action.Version == 1 {
+			matter, err = cs.UpdateAction(ctx, continuity.UpdateActionInput{TenantID: seed.TenantID, MatterID: matter.Matter.ID, ActionID: action.ID, ExpectedVersion: matter.Matter.Version, Title: action.Title, Description: action.Description, DueAt: due, ActorID: seed.ActorID, Rationale: "Preserve the source calendar deadline in West Africa Time."})
+			if err != nil {
+				return matter, err
+			}
 		}
 	}
 	if len(matter.Actions) == 0 && strings.TrimSpace(record.Action) != "" {
@@ -401,7 +423,9 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 				label = "Source value"
 			}
 			input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceShort(label, 200), Type: formcontract.TypeLongText, Description: sourceShort(field.SourceCell, 1000)})
-			if field.Value != "" {
+			// The response workspace omits unanswered whitespace-only cells.
+			// Preserve every nonblank source value exactly for immutable retries.
+			if strings.TrimSpace(field.Value) != "" {
 				answers[fieldID] = formcontract.TextAnswer(field.Value)
 			}
 		}

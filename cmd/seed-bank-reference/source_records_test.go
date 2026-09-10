@@ -71,7 +71,11 @@ func TestSourceRecordCaptureContractAndITVendorCoverage(t *testing.T) {
 							if answer != nil {
 								value = *answer
 							}
-							if value != field.Value {
+							expected := field.Value
+							if strings.TrimSpace(expected) == "" {
+								expected = ""
+							}
+							if value != expected {
 								t.Fatalf("source answer changed: %s / %s", record.Key, field.Label)
 							}
 						}
