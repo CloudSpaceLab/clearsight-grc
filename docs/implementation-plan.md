@@ -1,5 +1,11 @@
 # ClearSight implementation ledger
 
+## 10 September source-record correction
+
+The user authorized a source-faithful demo correction after the generic vendor questionnaire and request-count metrics proved insufficient. [Decision and focused acceptance](design/2026-09-10-source-register-correction.md): actual IT/vendor/Ops captures, linked issues/actions, real named demo ownership, reversible generic-sample cleanup and findings-based vendor metrics. Source manifests remain private operator inputs because this repository is public; [installation contract](engineering/source-record-demo-installation.md).
+
+The manual source run installed 86 source groups, 3,427 source rows, 40 linked issues and 109 completed captures. Historical overlapping tables do not represent 3,427 unique risks. Migration `000090` removes the obsolete 50-field capture constraint left behind by `000036`; the shared 200-field cap remains. Source submission is not evidence approval or verified closure. UI and Oversight corrections are part of this release; hosted verification is limited to the requested demo scope.
+
 **Status date:** 2026-09-09
 **Current execution:** User-authorized vendor workflow merge and deployment, integrating the Forms/Policies/vendor completeness changes with evidence reconciliation and the copy/contrast corrections.
 

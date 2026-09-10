@@ -49,7 +49,9 @@ function ComplianceOverview({ relationshipID, serviceName, summary, summaryState
   else if (conclusion === "Unsatisfactory") { status = conclusion; tone = "error"; }
   else if (attention || adverse || summary.outstanding_forms > 0) { status = "Action required"; tone = "warning"; }
   else if ((outdated ?? 0) > 0 || overdueReview) { status = "Outdated"; tone = "warning"; }
-  else if (summary.awaiting_review > 0 || assessment && assessment.status !== "COMPLETED" && assessment.status !== "CANCELLED") { status = "Awaiting review"; tone = "info"; }
+  else if (summary.awaiting_review > 0 || assessment?.status === "SUBMITTED" || assessment?.status === "UNDER_REVIEW") { status = "Awaiting review"; tone = "info"; }
+  else if (assessment?.status === "COLLECTING") { status = "Collecting evidence"; tone = "info"; }
+  else if (assessment?.status === "SETUP_PENDING" || assessment?.status === "READY_TO_SEND") status = "Due diligence not started";
   else if (summary.unassessed_forms > 0) status = "Not assessed";
   else if (assessmentState !== "live" || outdated === undefined || (summary.freshness_unknown_forms ?? 0) > 0 || unchecked || page.next_cursor) status = "Unknown";
   else if (conclusion) { status = conclusion; tone = conclusion === "Satisfactory" ? "success" : "warning"; }
@@ -71,12 +73,13 @@ function ComplianceOverview({ relationshipID, serviceName, summary, summaryState
     {empty && <p>No forms requested</p>}
     {!!rows.length && <>
       <ul className="vendor-compliance__forms">{rows.map((row) => {
-        const items = itemsFor(row);
+        const historical = !row.current || ["SUPERSEDED", "REVOKED", "CANCELLED"].includes(row.response_state);
+        const items = historical ? [] : itemsFor(row);
         const score = row.assessed_score ?? row.score;
         const received = row.response_state === "NO_VENDOR_ACTION";
         const submitted = row.response_state === "SUBMITTED";
         return <li key={`${row.request_id}:${row.response_id ?? "pending"}`}>
-          <div className="vendor-compliance__form-heading"><strong>{row.title}</strong><div className="vendor-compliance__form-status">{score?.raw_score != null && <span className="vendor-compliance__score">{scoreValue(score.raw_score)}% {score.mode === "RISK" ? "risk" : "compliance"}</span>}{score?.band && <StatusBadge tone={concernTone(score.band)}>{concernLabel(score.band)}</StatusBadge>}<StatusBadge tone={submitted || received ? "neutral" : "info"}>{received ? "Received" : submitted ? "Submitted" : row.response_state === "READY_TO_SUBMIT" ? "Awaiting submission" : row.response_state === "REQUEST_READY" ? "Ready to send" : "Incomplete"}</StatusBadge></div></div>
+          <div className="vendor-compliance__form-heading"><strong>{row.title}</strong><div className="vendor-compliance__form-status">{!historical && score?.raw_score != null && <span className="vendor-compliance__score">{scoreValue(score.raw_score)}% {score.mode === "RISK" ? "risk" : "compliance"}</span>}{!historical && score?.band && <StatusBadge tone={concernTone(score.band)}>{concernLabel(score.band)}</StatusBadge>}<StatusBadge tone={historical || submitted || received ? "neutral" : "info"}>{formStateLabel(row)}</StatusBadge></div></div>
           {items.length > 0 && <ul className="vendor-compliance__items">{items.map((item) => <li key={`${item.field_id ?? item.rule_id ?? item.label}:${item.state}`}><span>{item.label}</span><StatusBadge tone={item.state === "GAP" ? "warning" : "error"}>{item.state === "MISSING" ? "Missing" : item.state === "EXPIRED" ? "Expired" : "Not met"}</StatusBadge></li>)}</ul>}
           <div className="vendor-compliance__form-footer"><div>
             {items.some((item) => item.source === "RESPONSE") && <p>Based on submitted answers</p>}
@@ -84,10 +87,10 @@ function ComplianceOverview({ relationshipID, serviceName, summary, summaryState
             {(row.held_required ?? 0) > 0 && <p>{row.held_required} {row.held_required === 1 ? "document" : "documents"} received</p>}
             {row.response_currency === "PARTIALLY_REPLACED" && <p>Partly replaced · Review required</p>}
             {row.outdated && !items.some((item) => item.state === "EXPIRED") && <p>Outdated response</p>}
-            {row.required_reviews > row.completed_reviews && <p>{row.required_reviews - row.completed_reviews} {row.required_reviews - row.completed_reviews === 1 ? "check" : "checks"} awaiting review</p>}
+            {!historical && row.required_reviews > row.completed_reviews && <p>{row.required_reviews - row.completed_reviews} {row.required_reviews - row.completed_reviews === 1 ? "check" : "checks"} awaiting review</p>}
             {submitted && items.length === 0 && row.attention_items === undefined && <p>Evidence gaps not checked</p>}
-            {!submitted && !received && <p>Due {dateTime(row.deadline)}</p>}
-          </div>{submitted && row.response_id ? <Button aria-label={`Review ${row.title}`} onPress={() => setResponse(row)}>Review</Button> : received ? <Button aria-label={`Review evidence for ${row.title}`} onPress={onOpenDueDiligence}>Review evidence</Button> : <Button aria-label={`Open ${row.title} request`} onPress={() => onOpenRequest ? onOpenRequest(row.request_id) : onOpenForms()}>Open request</Button>}</div>
+            {!historical && !submitted && !received && <p>Due {dateTime(row.deadline)}</p>}
+          </div>{historical ? <Button onPress={onOpenForms}>Review requests</Button> : submitted && row.response_id ? <Button aria-label={`Review ${row.title}`} onPress={() => setResponse(row)}>Review</Button> : received ? <Button aria-label={`Review evidence for ${row.title}`} onPress={onOpenDueDiligence}>Review evidence</Button> : <Button aria-label={`Open ${row.title} request`} onPress={() => onOpenRequest ? onOpenRequest(row.request_id) : onOpenForms()}>Open request</Button>}</div>
         </li>;
       })}</ul>
       {page?.next_cursor && <><p className="vendor-compliance__scope">{rows.length} forms shown</p><Button isLoading={loading} onPress={() => void load(page.next_cursor)}>Load more forms</Button></>}
@@ -96,6 +99,12 @@ function ComplianceOverview({ relationshipID, serviceName, summary, summaryState
     {summary && <p className="vendor-compliance__scope">Checked <time dateTime={summary.observed_at}>{dateTime(summary.observed_at)}</time> · {serviceName}</p>}
     {response?.response_id && <FocusedSheet label={`Review ${response.title}`} size="wide" onClose={() => setResponse(undefined)}><ResponseAssessment responseID={response.response_id} submissionScore={response.score} onUpdated={updated}/></FocusedSheet>}
   </section>;
+}
+
+function formStateLabel(row: VendorFormRow) {
+  const labels: Record<string, string> = { SUPERSEDED: "Superseded", REVOKED: "Revoked", CANCELLED: "Cancelled", EXPIRED: "Access expired", NO_VENDOR_ACTION: "Received", SUBMITTED: "Submitted", READY_TO_SUBMIT: "Awaiting submission", REQUEST_READY: "Ready to send", IN_PROGRESS: "In progress", AWAITING_RESPONSE: "Awaiting vendor" };
+  if (!row.current && !["SUPERSEDED", "REVOKED", "CANCELLED"].includes(row.response_state)) return "Historical";
+  return labels[row.response_state] ?? "Status unknown";
 }
 
 function itemsFor(row: VendorFormRow) {

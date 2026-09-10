@@ -12,6 +12,19 @@ const props = { relationshipID: "vendor-1", serviceName: "Payments", summary, su
 beforeEach(() => { vi.clearAllMocks(); api.loadVendorForms.mockResolvedValue({ items: [row], observed_at: summary.observed_at }); });
 
 describe("vendor compliance overview", () => {
+  it("does not treat a superseded request as incomplete current work", async () => {
+    api.loadVendorForms.mockResolvedValue({ items: [{ ...row, response_id: undefined, response_state: "SUPERSEDED", current: false, missing_fields: [{ id: "old", label: "Old required answer" }] }, row], observed_at: summary.observed_at });
+    render(<VendorComplianceOverview {...props}/>);
+    expect(await screen.findByText("Superseded")).toBeTruthy();
+    expect(screen.queryByText("Old required answer")).toBeNull();
+    expect(screen.queryByText("Action required")).toBeNull();
+  });
+  it("does not call due-diligence collection an awaiting bank review", async () => {
+    render(<VendorComplianceOverview {...props} assessment={{ id: "assessment", status: "COLLECTING" } as NonNullable<typeof props.assessment>} summary={{ ...summary, unassessed_forms: 1, assessed_forms: 0, highest_concern: undefined }}/>);
+    await screen.findByText("Third Party Risk Compliance");
+    expect(screen.getByText("Collecting evidence")).toBeTruthy();
+    expect(screen.getAllByText("Awaiting review")).toHaveLength(1);
+  });
   it("shows submitted gaps without describing the form as incomplete and opens its exact review", async () => {
     api.loadVendorForms.mockResolvedValue({ items: [{ ...row, score: { mode: "COMPLIANCE", direction: "LOW_IS_POOR", raw_score: 35, adverse_score: 65, band: "CRITICAL", coverage: 1, final: true, state: "FINAL", profile_version: "third-party-risk-v3", profile_checksum: "checksum", evaluator_version: "formcontract-advanced-v1", calculated_at: summary.observed_at }, attention_items: [{ field_id: "iso", label: "ISO 27001 certificate", state: "MISSING", source: "RESPONSE" }] }], observed_at: summary.observed_at });
     render(<VendorComplianceOverview {...props} summary={{ ...summary, highest_concern: "CRITICAL" }}/>);

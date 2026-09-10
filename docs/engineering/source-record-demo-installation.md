@@ -1,0 +1,13 @@
+# Private source-record demo installation
+
+The demo operator may install completed source captures and source-linked work with `clearsight-seed-bank-reference -source-records-only -source-manifest-dir <private-directory>` and the existing explicit tenant/entity/actor/owner/reviewer flags. This operation refuses production and any scope other than the canonical Clear Bank demo.
+
+The directory supplies `source_records_it_vendor.json` and `source_records_ops.json`. Their contents are not embedded or committed: the repository is public and source workbooks may contain confidential bank information. Keep the originals, manifests, extraction coverage, database backup and installation receipt under operator-controlled storage. Do not upload source-bearing screenshots or logs as public CI evidence.
+
+Each manifest has `version: 1` and `groups`. Each group contains `key`, `program_code`, `title`, `source_file`, `source_sha256`, `source_sheet`, `period`, `limitations` and `records`. Each record has `key`, `title`, `source_range`, ordered `fields` (`label`, `value`, `source_cell`), `owner`, `assessor`, `status`, `rating`, ISO `due_date`, `action`, an existing Matter `kind`, and `create_matter`. Additional extraction metadata may remain in private manifests. Empty source values remain empty; unknown dates are not replaced with today's date.
+
+The operator first verifies the source hashes and backup. The installer uses existing Program identities, canonical Matter/Action commands, governed form approval, immutable response submissions and vendor links. It does not send emails or create compliance decisions. Exact keys and receipts support retry after interruption; changed source digests or form contracts require review instead of silent overwrite. A single-operator advisory lock prevents concurrent installers.
+
+Ordinary risk registers retain a form field per source column. Large historical tables retain each complete source row as a labelled multiline answer. Captures split before the existing 200-field/20-section limits. Overlapping source views must not be interpreted as distinct incidents or added into a portfolio denominator.
+
+Verification is intentionally limited for this demo: build, synthetic contract check, optional source-contract check with `CLEARSIGHT_SOURCE_MANIFEST_DIR`, scoped source/count reconciliation and hosted representative reads. New source responses remain unscored and outcomes unverified. The previous generic Cloudspace questionnaire is revoked only after replacement captures exist; its history remains available. Archived generic work is recoverable through attributed archive restoration.

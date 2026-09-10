@@ -662,7 +662,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     {notice && <Notice tone="success">{notice}</Notice>}
     {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships for {legalEntityName}…</div>}
     {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><Button  type="button" onPress={() => void refresh(targetID, "")}>Try again</Button></section>}
-    {state === "live" && !selected && !registerLocked && <VendorPortfolio records={records} summaries={formSummaries} summaryState={summaryState} hasMore={!!nextCursor} onFilter={(filter) => { setWorkFilter(filter || undefined); document.getElementById("vendor-portfolio-register")?.scrollIntoView?.({ block: "start" }); }}/>}
+    {state === "live" && !selected && !registerLocked && <VendorPortfolio records={records} hasMore={!!nextCursor} onOpenMatter={onOpenMatter} refreshKey={formsRefreshKey}/>}
     {state === "live" && <div className="vendor-layout">
       <section id="vendor-portfolio-register" tabIndex={-1} className="vendor-register" aria-label={`Vendor relationships for ${legalEntityName}`} aria-describedby={registerLocked ? "vendor-register-lock-note" : undefined}>
         <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{submittedQuery ? `Showing ${records.length} matching ${records.length === 1 ? "relationship" : "relationships"}` : `Showing ${records.length} ${records.length === 1 ? "relationship" : "relationships"} in this legal entity`}</p>{nextCursor && <small>More relationships are available.</small>}</div></div>
@@ -800,6 +800,7 @@ function VendorDetail({ record, formSummary, summaryState, section, onSectionCha
   </article>
   <Tabs ariaLabel="Vendor sections" compactLabel="Vendor section" retainVisitedPanels items={vendorSections} selectedKey={section} onSelectionChange={onSectionChange}>{(current) => <>
   {current === "OVERVIEW" && <section className="vendor-detail" aria-label="Vendor overview">
+    <VendorPortfolio records={[record]} hasMore={false} onOpenMatter={onOpenMatter} detail refreshKey={formsRefreshKey}/>
     <VendorComplianceOverview relationshipID={relationship.id} serviceName={relationship.service_name} summary={formSummary} summaryState={summaryState} assessment={assessment} assessmentState={assessmentState} refreshKey={formsRefreshKey} onOpenForms={() => onSectionChange("FORMS")} onOpenDueDiligence={() => onSectionChange("DUE_DILIGENCE")} onRequestForm={onRequestForm} onUpdated={onFormWorkUpdated} onOpenRequest={onOpenRequest}/>
     <details className="vendor-record-details"><summary>Vendor details and record history</summary>
     <div className="vendor-detail-actions"><Button onPress={onEditIdentity}>Edit vendor details</Button><Button onPress={onEdit}>Edit vendor relationship</Button></div>

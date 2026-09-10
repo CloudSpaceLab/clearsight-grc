@@ -26,6 +26,7 @@ function sampleAssessment(responseID: string): ResponseAssessmentDetail {
 }
 const rowBase = { relationship_id: "vendor-relationship-payments", form_template_id: assessmentEvidenceTemplate.id, form_template_version: 4, deadline: "2026-09-18T16:00:00Z", updated_at: now, current: true, required_reviews: 0, completed_reviews: 0, missing_fields: [] };
 const sampleRows: VendorFormRow[] = [
+  { ...rowBase, request_id: "sample-superseded-request", title: "Sample · Previous vendor assurance request", response_state: "SUPERSEDED", current: false, required_count: 4, answered_required: 0, missing_fields: [{ id: "historical-question", label: "Historical assurance document" }] },
   { ...rowBase, request_id: "sample-missing-request", title: "Sample · Resilience evidence refresh", purpose: "Confirm the recovery exercise and remediation dates.", response_state: "IN_PROGRESS", recipient_hint: "r***@example.test", required_count: 5, answered_required: 3, deadline: "2026-09-05T16:00:00Z", missing_fields: [{ id: "recovery-test", label: "Latest recovery exercise report" }, { id: "remediation", label: "Remediation owner and due date" }] },
   { ...rowBase, request_id: "sample-review-request", response_id: "sample-response-review", title: "Sample · Payment-service security evidence", purpose: "Review current control and vulnerability testing evidence.", response_state: "SUBMITTED", recipient_hint: "s***@example.test", required_count: 3, answered_required: 3, submitted_at: now, assessment_state: "AWAITING_REVIEW", required_reviews: 1, score: sampleAssessment("sample-response-review").automatic_score, assessed_score: sampleAssessment("sample-response-review").assessed_score },
   { ...rowBase, request_id: "sample-certificate-request", response_id: "sample-response-certificate", title: "Sample · Certification review", response_state: "SUBMITTED", recipient_hint: "c***@example.test", required_count: 2, answered_required: 2, submitted_at: "2026-09-07T10:00:00Z", assessment_state: "ASSESSED", required_reviews: 1, completed_reviews: 1, score: sampleAssessment("sample-response-certificate").automatic_score, assessed_score: { ...sampleAssessment("sample-response-certificate").automatic_score!, band: "HIGH" } },
@@ -42,6 +43,18 @@ export function installVendorAssessmentEvidence() {
     const url = new URL(raw, window.location.origin), method = init?.method ?? "GET";
     const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
     const path = url.pathname;
+    const findingLabels = ["Recovery exercise evidence missing", "Support escalation contacts outdated", "Service reporting schedule incomplete", "Access review evidence missing", "Data retention schedule unconfirmed"];
+    const actionLabels = ["Provide the recovery exercise results", "Confirm the support escalation contacts", "Agree the service reporting schedule", "Complete the access review", "Confirm the data retention schedule"];
+    if (/^\/api\/v1\/vendors\/[^/]+\/links$/.test(path)) {
+      if (params.get("fixture") === "vendor-form-assessment-error") return json({ error: { message: "Sample linked findings unavailable" } }, 503);
+      const relationship = decodeURIComponent(path.split("/")[4]!);
+      return json({ items: relationship === "sample-relationship-hosting" || params.get("fixture") === "vendor-form-assessment-empty" ? [] : findingLabels.map((_, index) => ({ id: `sample-finding-link-${index}`, relationship_id: relationship, target_type: "MATTER", target_id: `sample-portfolio-finding-${index}`, state: "ACTIVE", purpose_code: "SOURCE_REGISTER_FINDING" })) });
+    }
+    const finding = /^\/api\/v1\/matters\/sample-portfolio-finding-([0-4])$/.exec(path);
+    if (finding) {
+      const index = Number(finding[1]);
+      return json({ matter: { id: `sample-portfolio-finding-${index}`, type: "VENDOR_DEFICIENCY", title: findingLabels[index], status: "TRIAGE", known_facts: { sample: true, source_file: "Example vendor register.xlsx", source_range: `Example assessment · Finding ${index + 1}`, source_owner: "Morgan Ellis", source_rating: "High", source_period: "Q1 2026" }, due_at: "2026-03-31T16:00:00Z", updated_at: now }, type_label: "Vendor finding", status_label: "Initial review", next_action: "Review finding", actions: [{ id: `sample-portfolio-action-${index}`, title: actionLabels[index], description: "Synthetic example action", status: "PLANNED", due_at: "2026-03-31T16:00:00Z" }], links: [], decisions: [], verification_contracts: [], verification_results: [], response_packages: [], closure: { ready: false, reasons: [] } });
+    }
     if (path === "/api/v1/access/overview") return json({ roles: [{ id: "sample-reviewer-role", code: "RISK_REVIEWER", name: "Risk reviewer", capabilities: [] }], can_configure: true });
     if (path === "/api/v1/forms/templates" && method === "GET") return json({ items: [{ template: assessmentEvidenceTemplate, active_version: 4, active_status: "ACTIVE" }] });
     if (path === "/api/v1/forms/responses" && method === "GET" && url.searchParams.get("subject_type") === "VENDOR_RELATIONSHIP") {

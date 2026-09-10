@@ -26,6 +26,10 @@ func main() {
 	var documentSamplesOnly bool
 	var sourceEmployeesOnly bool
 	var cloudspaceRelationshipID string
+	var sourceRecordsOnly bool
+	var sourceManifestDir string
+	flag.StringVar(&sourceManifestDir, "source-manifest-dir", "", "private directory containing the source-record manifests")
+	flag.BoolVar(&sourceRecordsOnly, "source-records-only", false, "install the supplied IT, vendor and operational risk captures and linked issues only")
 	flag.BoolVar(&sourceEmployeesOnly, "source-employees-only", false, "install named Fidelity and Ops Risk demo employees with scoped performer assignments")
 	flag.StringVar(&cloudspaceRelationshipID, "cloudspace-relationship", "", "install only the Cloudspace sample response for this exact existing demo relationship UUID")
 	flag.BoolVar(&documentSamplesOnly, "document-samples-only", false, "install only fictional submitted document samples after the normal worker is ready")
@@ -38,7 +42,7 @@ func main() {
 	flag.StringVar(&seed.ReviewerPrincipalID, "reviewer", "", "independent reviewer principal UUID")
 	flag.StringVar(&seed.SignatoryPrincipalID, "signatory", "", "authorized signatory principal UUID")
 	flag.Parse()
-	if (sourceEmployeesOnly && (documentSamplesOnly || cloudspaceRelationshipID != "")) || (documentSamplesOnly && cloudspaceRelationshipID != "") {
+	if (sourceRecordsOnly && (sourceEmployeesOnly || documentSamplesOnly || cloudspaceRelationshipID != "")) || (sourceEmployeesOnly && (documentSamplesOnly || cloudspaceRelationshipID != "")) || (documentSamplesOnly && cloudspaceRelationshipID != "") {
 		fatalIf(fmt.Errorf("choose one scoped sample operation"))
 	}
 
@@ -54,11 +58,21 @@ func main() {
 		fatalIf(fmt.Errorf("DATABASE_URL is required"))
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 	pool, err := database.Open(ctx, cfg)
 	fatalIf(err)
 	defer pool.Close()
+	if sourceRecordsOnly {
+		if strings.TrimSpace(sourceManifestDir) == "" {
+			fatalIf(fmt.Errorf("source-records-only requires -source-manifest-dir"))
+		}
+		sourceRecordFiles = os.DirFS(sourceManifestDir)
+		receipt, installErr := installSourceRecords(ctx, cfg, pool, seed)
+		fatalIf(installErr)
+		fatalIf(json.NewEncoder(os.Stdout).Encode(receipt))
+		return
+	}
 	if sourceEmployeesOnly {
 		receipt, installErr := seedSourceEmployees(ctx, pool, seed)
 		fatalIf(installErr)

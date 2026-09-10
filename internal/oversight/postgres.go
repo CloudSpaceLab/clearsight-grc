@@ -137,13 +137,13 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 	var excluded, unknown int
 	err := r.pool.QueryRow(ctx, `
 		WITH scoped AS (
-		  SELECT matters.*,
+		  SELECT m.*,
 		         CASE
 		           WHEN NOT (scope ? 'access') OR upper(btrim(scope->>'access')) IN ('PUBLIC','INTERNAL') THEN 'INCLUDED'
 		           WHEN upper(btrim(scope->>'access'))='RESTRICTED' THEN 'EXCLUDED'
 		           ELSE 'UNKNOWN'
 		         END scope_state
-		  FROM matters WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid
+		  FROM matters m WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL)
 		)
 		SELECT count(*),
 		       count(*) FILTER (WHERE scope_state='EXCLUDED'),
@@ -171,7 +171,7 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='DECISION_ADDED' AND ce.payload->>'status'='RETURNED') returned,
 		         EXISTS (SELECT 1 FROM continuity_events ce WHERE ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id AND ce.event_type='ACTION_STATE_CHANGED' AND ce.payload->>'status'='BLOCKED') blocked,
 		         m.reopen_count>0 reopened
-		  FROM matters m WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.status='CLOSED' AND m.closed_at>=$3
+		  FROM matters m WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL) AND m.status='CLOSED' AND m.closed_at>=$3
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
 		)
 		SELECT count(*),count(*) FILTER (WHERE created_ok AND terminal_ok),count(*) FILTER (WHERE NOT created_ok),count(*) FILTER (WHERE NOT terminal_ok),
@@ -190,7 +190,7 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		LEFT JOIN matters m ON wi.subject_type='MATTER' AND m.tenant_id=wi.tenant_id AND m.id=wi.subject_id
 		LEFT JOIN programs p ON wi.subject_type='PROGRAM' AND p.tenant_id=wi.tenant_id AND p.id=wi.subject_id
 		WHERE wt.tenant_id=$1::uuid AND wt.status IN ('READY','BLOCKED','ESCALATED') AND wt.principal_id IS NULL
-		  AND COALESCE(m.legal_entity_id,p.legal_entity_id)=$2::uuid
+		  AND COALESCE(m.legal_entity_id,p.legal_entity_id)=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL)
 		  AND ((m.id IS NOT NULL AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')))
 		    OR (p.id IS NOT NULL AND (NOT (p.scope ? 'access') OR upper(btrim(p.scope->>'access')) IN ('PUBLIC','INTERNAL'))))`, scope.TenantID, scope.LegalEntityID).Scan(&value.Counts.RoutingFailures); err != nil {
 		return Snapshot{}, err
@@ -199,7 +199,7 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 	rows, err := r.pool.Query(ctx, `
 		SELECT m.id::text,m.title,m.matter_type,m.status,m.priority,COALESCE(m.owner_principal_id::text,''),COALESCE(p.display_name,''),m.due_at
 		FROM matters m LEFT JOIN principals p ON p.tenant_id=m.tenant_id AND p.id=m.owner_principal_id
-		WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.status NOT IN ('CLOSED','CANCELLED')
+		WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL) AND m.status NOT IN ('CLOSED','CANCELLED')
 		  AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
 		  AND (m.priority>=4 OR m.due_at<$3::timestamptz OR m.owner_principal_id IS NULL)
 		ORDER BY (m.due_at<$3::timestamptz) DESC,m.priority DESC,m.due_at NULLS LAST,m.updated_at DESC,m.id DESC LIMIT 30`, scope.TenantID, scope.LegalEntityID, now)
@@ -224,7 +224,7 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 
 	rows, err = r.pool.Query(ctx, `
 		SELECT matter_type,count(*) FILTER (WHERE priority=5),count(*) FILTER (WHERE priority=4),count(*) FILTER (WHERE priority<4),count(*) FILTER (WHERE due_at<$3::timestamptz)
-		FROM matters WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND status NOT IN ('CLOSED','CANCELLED')
+		FROM matters m WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL) AND status NOT IN ('CLOSED','CANCELLED')
 		  AND (NOT (scope ? 'access') OR upper(btrim(scope->>'access')) IN ('PUBLIC','INTERNAL'))
 		GROUP BY matter_type ORDER BY count(*) DESC,matter_type LIMIT 30`, scope.TenantID, scope.LegalEntityID, now)
 	if err != nil {
@@ -250,7 +250,7 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		       count(*) FILTER (WHERE created_at<$3::timestamptz-interval '7 days' AND created_at>=$3::timestamptz-interval '30 days'),
 		       count(*) FILTER (WHERE created_at<$3::timestamptz-interval '30 days' AND created_at>=$3::timestamptz-interval '90 days'),
 		       count(*) FILTER (WHERE created_at<$3::timestamptz-interval '90 days')
-		FROM matters WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND status NOT IN ('CLOSED','CANCELLED')
+		FROM matters m WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL) AND status NOT IN ('CLOSED','CANCELLED')
 		  AND (NOT (scope ? 'access') OR upper(btrim(scope->>'access')) IN ('PUBLIC','INTERNAL'))`, scope.TenantID, scope.LegalEntityID, now).
 		Scan(&age0, &age8, &age31, &age91); err != nil {
 		return Snapshot{}, err
@@ -267,7 +267,7 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		         count(*) FILTER (WHERE ce.event_type='ACTION_STATE_CHANGED' AND ce.payload->>'status'='BLOCKED') blocks,
 		         max(m.reopen_count) reopen_count
 		  FROM matters m LEFT JOIN continuity_events ce ON ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id
-		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid GROUP BY m.id
+		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL) GROUP BY m.id
 		), owner_work AS (
 		  SELECT m.owner_principal_id,count(*) FILTER (WHERE m.status NOT IN ('CLOSED','CANCELLED')) current_load,
 		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3) completed,
@@ -277,23 +277,23 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND m.due_at IS NOT NULL AND l.finished_at<=m.due_at AND l.started_at IS NOT NULL AND l.owner_changes=0 AND l.returns=0 AND l.blocks=0 AND l.reopen_count=0) sla_met,
 		         count(*) FILTER (WHERE m.status='CLOSED' AND m.closed_at>=$3 AND l.started_at IS NOT NULL AND l.finished_at IS NOT NULL AND l.owner_changes=0 AND l.returns=0 AND l.blocks=0 AND l.reopen_count=0) measurement_samples,
 		         sum(m.reopen_count) FILTER (WHERE m.updated_at>=$3) reopened
-		  FROM matters m JOIN lifecycle l ON l.id=m.id WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.owner_principal_id IS NOT NULL
+		  FROM matters m JOIN lifecycle l ON l.id=m.id WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL) AND m.owner_principal_id IS NOT NULL
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')) GROUP BY m.owner_principal_id
 		), blocked AS (
 		  SELECT ma.owner_principal_id,count(*) blocked FROM matter_actions ma JOIN matters m ON m.tenant_id=ma.tenant_id AND m.id=ma.matter_id
-		  WHERE ma.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND ma.status='BLOCKED'
+		  WHERE ma.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL) AND ma.status='BLOCKED'
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')) GROUP BY ma.owner_principal_id
 		), reassignments AS (
 		  SELECT (e.payload->>'previous_owner_principal_id')::uuid owner_principal_id,count(*) reassigned
 		  FROM matters m JOIN continuity_events e ON e.tenant_id=m.tenant_id AND e.aggregate_type='MATTER' AND e.aggregate_id=m.id
-		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND e.event_type='MATTER_OWNER_CHANGED' AND e.occurred_at>=$3
+		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL) AND e.event_type='MATTER_OWNER_CHANGED' AND e.occurred_at>=$3
 		    AND NULLIF(e.payload->>'previous_owner_principal_id','') IS NOT NULL
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
 		  GROUP BY (e.payload->>'previous_owner_principal_id')::uuid
 		), returned_decisions AS (
 		  SELECT m.owner_principal_id,count(*) returned
 		  FROM matters m JOIN continuity_events e ON e.tenant_id=m.tenant_id AND e.aggregate_type='MATTER' AND e.aggregate_id=m.id
-		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND e.event_type='DECISION_ADDED' AND e.occurred_at>=$3
+		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL) AND e.event_type='DECISION_ADDED' AND e.occurred_at>=$3
 		    AND e.payload->>'status'='RETURNED'
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
 		  GROUP BY m.owner_principal_id
@@ -341,7 +341,7 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		         min(e.occurred_at) FILTER (WHERE e.event_type='MATTER_CREATED') started_at,
 		         max(e.occurred_at) FILTER (WHERE e.event_type='MATTER_STATE_CHANGED' AND e.payload->>'status'='CLOSED') finished_at
 		  FROM matters m LEFT JOIN continuity_events e ON e.tenant_id=m.tenant_id AND e.aggregate_type='MATTER' AND e.aggregate_id=m.id
-		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.status='CLOSED' AND m.closed_at>=$3
+		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL) AND m.status='CLOSED' AND m.closed_at>=$3
 		    AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))
 		  GROUP BY m.id
 		), changes AS (
@@ -453,7 +453,7 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 		         min(ce.occurred_at) FILTER (WHERE ce.event_type='MATTER_CREATED') started_at,
 		         max(ce.occurred_at) FILTER (WHERE ce.event_type='MATTER_STATE_CHANGED' AND ce.payload->>'status'='CLOSED') finished_at
 		  FROM matters m LEFT JOIN continuity_events ce ON ce.tenant_id=m.tenant_id AND ce.aggregate_type='MATTER' AND ce.aggregate_id=m.id
-		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.status='CLOSED' AND m.closed_at>=$3 GROUP BY m.id
+		  WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL) AND m.status='CLOSED' AND m.closed_at>=$3 GROUP BY m.id
 		)
 		SELECT matter_type,count(*),percentile_cont(.5) WITHIN GROUP (ORDER BY extract(epoch FROM (finished_at-started_at))/3600.0),
 		       percentile_cont(.25) WITHIN GROUP (ORDER BY extract(epoch FROM (finished_at-started_at))/3600.0),
@@ -482,11 +482,11 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Ti
 	var matterHW, actionHW, taskHW, verificationHW, eventHW *time.Time
 	if err := r.pool.QueryRow(ctx, `
 		SELECT max(m.updated_at),
-		       (SELECT max(ma.updated_at) FROM matter_actions ma JOIN matters linked ON linked.tenant_id=ma.tenant_id AND linked.id=ma.matter_id WHERE linked.tenant_id=$1::uuid AND linked.legal_entity_id=$2::uuid AND (NOT (linked.scope ? 'access') OR upper(btrim(linked.scope->>'access')) IN ('PUBLIC','INTERNAL'))),
-		       (SELECT max(wt.updated_at) FROM workflow_tasks wt JOIN workflow_instances wi ON wi.tenant_id=wt.tenant_id AND wi.id=wt.workflow_id LEFT JOIN matters linked_m ON wi.subject_type='MATTER' AND linked_m.tenant_id=wi.tenant_id AND linked_m.id=wi.subject_id LEFT JOIN programs linked_p ON wi.subject_type='PROGRAM' AND linked_p.tenant_id=wi.tenant_id AND linked_p.id=wi.subject_id WHERE wt.tenant_id=$1::uuid AND COALESCE(linked_m.legal_entity_id,linked_p.legal_entity_id)=$2::uuid AND ((linked_m.id IS NOT NULL AND (NOT (linked_m.scope ? 'access') OR upper(btrim(linked_m.scope->>'access')) IN ('PUBLIC','INTERNAL'))) OR (linked_p.id IS NOT NULL AND (NOT (linked_p.scope ? 'access') OR upper(btrim(linked_p.scope->>'access')) IN ('PUBLIC','INTERNAL'))))),
-		       (SELECT max(vr.observed_at) FROM verification_results vr JOIN matters linked ON linked.tenant_id=vr.tenant_id AND linked.id=vr.matter_id WHERE linked.tenant_id=$1::uuid AND linked.legal_entity_id=$2::uuid AND (NOT (linked.scope ? 'access') OR upper(btrim(linked.scope->>'access')) IN ('PUBLIC','INTERNAL')))
-		       ,(SELECT max(ce.occurred_at) FROM continuity_events ce JOIN matters linked ON linked.tenant_id=ce.tenant_id AND linked.id=ce.aggregate_id WHERE ce.aggregate_type='MATTER' AND linked.tenant_id=$1::uuid AND linked.legal_entity_id=$2::uuid AND (NOT (linked.scope ? 'access') OR upper(btrim(linked.scope->>'access')) IN ('PUBLIC','INTERNAL')))
-		FROM matters m WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid
+		       (SELECT max(ma.updated_at) FROM matter_actions ma JOIN matters linked ON linked.tenant_id=ma.tenant_id AND linked.id=ma.matter_id WHERE linked.tenant_id=$1::uuid AND linked.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=linked.tenant_id AND archive.legal_entity_id=linked.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=linked.id AND archive.restored_at IS NULL) AND (NOT (linked.scope ? 'access') OR upper(btrim(linked.scope->>'access')) IN ('PUBLIC','INTERNAL'))),
+		       (SELECT max(wt.updated_at) FROM workflow_tasks wt JOIN workflow_instances wi ON wi.tenant_id=wt.tenant_id AND wi.id=wt.workflow_id LEFT JOIN matters linked_m ON wi.subject_type='MATTER' AND linked_m.tenant_id=wi.tenant_id AND linked_m.id=wi.subject_id LEFT JOIN programs linked_p ON wi.subject_type='PROGRAM' AND linked_p.tenant_id=wi.tenant_id AND linked_p.id=wi.subject_id WHERE wt.tenant_id=$1::uuid AND COALESCE(linked_m.legal_entity_id,linked_p.legal_entity_id)=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=linked_m.tenant_id AND archive.legal_entity_id=linked_m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=linked_m.id AND archive.restored_at IS NULL) AND ((linked_m.id IS NOT NULL AND (NOT (linked_m.scope ? 'access') OR upper(btrim(linked_m.scope->>'access')) IN ('PUBLIC','INTERNAL'))) OR (linked_p.id IS NOT NULL AND (NOT (linked_p.scope ? 'access') OR upper(btrim(linked_p.scope->>'access')) IN ('PUBLIC','INTERNAL'))))),
+		       (SELECT max(vr.observed_at) FROM verification_results vr JOIN matters linked ON linked.tenant_id=vr.tenant_id AND linked.id=vr.matter_id WHERE linked.tenant_id=$1::uuid AND linked.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=linked.tenant_id AND archive.legal_entity_id=linked.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=linked.id AND archive.restored_at IS NULL) AND (NOT (linked.scope ? 'access') OR upper(btrim(linked.scope->>'access')) IN ('PUBLIC','INTERNAL')))
+		       ,(SELECT max(ce.occurred_at) FROM continuity_events ce JOIN matters linked ON linked.tenant_id=ce.tenant_id AND linked.id=ce.aggregate_id WHERE ce.aggregate_type='MATTER' AND linked.tenant_id=$1::uuid AND linked.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=linked.tenant_id AND archive.legal_entity_id=linked.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=linked.id AND archive.restored_at IS NULL) AND (NOT (linked.scope ? 'access') OR upper(btrim(linked.scope->>'access')) IN ('PUBLIC','INTERNAL')))
+		FROM matters m WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL)
 		  AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL'))`, scope.TenantID, scope.LegalEntityID).
 		Scan(&matterHW, &actionHW, &taskHW, &verificationHW, &eventHW); err != nil {
 		return Snapshot{}, err
