@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
@@ -29,6 +30,9 @@ func configuredCommunicationDelivery(cfg config.Config) (*evidence.InvitationDel
 	}, config.EnvironmentSecretResolver{})
 	if err != nil {
 		return nil, err
+	}
+	if strings.EqualFold(cfg.Environment, "development") {
+		return evidence.NewDevelopmentInvitationDeliveryService(adapter), nil
 	}
 	return evidence.NewInvitationDeliveryService(adapter), nil
 }

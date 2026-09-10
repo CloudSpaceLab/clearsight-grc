@@ -202,6 +202,21 @@ func TestCommunicationDeliveryOwnershipUsesReservedWorkflowNamespace(t *testing.
 	}
 }
 
+func TestDevelopmentCommunicationWorkerAllowsLoopbackHTTPOnly(t *testing.T) {
+	t.Parallel()
+
+	worker, err := NewDevelopmentCommunicationDeliveryWorker(&communicationDeliveryRepositoryStub{}, NewCommunicationService(NewMemoryCommunicationStore()), &DistributionAccessService{}, NewInvitationDeliveryService(nil), "http://localhost:5173/respond")
+	if err != nil || worker == nil {
+		t.Fatalf("development localhost worker = (%v, %v)", worker, err)
+	}
+	if _, err := NewCommunicationDeliveryWorker(&communicationDeliveryRepositoryStub{}, NewCommunicationService(NewMemoryCommunicationStore()), &DistributionAccessService{}, NewInvitationDeliveryService(nil), "http://localhost:5173/respond"); !errors.Is(err, ErrCommunicationUnavailable) {
+		t.Fatalf("production localhost worker error = %v", err)
+	}
+	if _, err := NewDevelopmentCommunicationDeliveryWorker(&communicationDeliveryRepositoryStub{}, NewCommunicationService(NewMemoryCommunicationStore()), &DistributionAccessService{}, NewInvitationDeliveryService(nil), "http://forms.example.test/respond"); !errors.Is(err, ErrCommunicationUnavailable) {
+		t.Fatalf("development remote HTTP worker error = %v", err)
+	}
+}
+
 func TestCommunicationDeliveryWorkerKeepsGenericDeliveryForOrdinaryAndMatterForms(t *testing.T) {
 	t.Parallel()
 

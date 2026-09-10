@@ -387,7 +387,7 @@ func TestRequestVendorWorkChangesPersistsRoutePreparationFailureForReloadAndRetr
 	}
 }
 
-func TestRequestVendorWorkChangesRejectsMismatchedRecoveredCaptureRequest(t *testing.T) {
+func TestRequestVendorWorkChangesResumesPreparedCaptureWhenRetryDetailsDiffer(t *testing.T) {
 	fixture := newVendorWorkFixture(t)
 	prepared, reviewing := vendorWorkUnderReview(t, fixture)
 	fixture.service.repo = &failOnceVendorWorkChangesRepository{MemoryVendorWorkRepository: fixture.repository, failures: 1}
@@ -400,16 +400,42 @@ func TestRequestVendorWorkChangesRejectsMismatchedRecoveredCaptureRequest(t *tes
 	if firstErr == nil {
 		t.Fatal("interrupted clarification unexpectedly succeeded")
 	}
-	_, secondErr := fixture.service.RequestChanges(context.Background(), reviewer, reviewing.ID, RequestVendorWorkChangesInput{
+	resumed, secondErr := fixture.service.RequestChanges(context.Background(), reviewer, reviewing.ID, RequestVendorWorkChangesInput{
 		ExpectedVersion: reviewing.Version, Message: "Send a different clarification.", FieldIDs: []string{"service_current"},
-		VendorAudience: "different@vendor.example", DueAt: fixture.now.Add(6 * 24 * time.Hour), InvitationTTLMinutes: 60,
+		VendorAudience: fixture.audience, DueAt: fixture.now.Add(6 * 24 * time.Hour), InvitationTTLMinutes: 60,
 	})
-	if !errors.Is(secondErr, ErrInvalid) {
-		t.Fatalf("mismatched recovered clarification error = %v, want invalid", secondErr)
+	if secondErr != nil {
+		t.Fatalf("resume prepared clarification: %v", secondErr)
+	}
+	if resumed.Work.State != VendorWorkChangesRequested || resumed.Recovery == "" {
+		t.Fatalf("resumed clarification = %#v", resumed)
 	}
 	stored, readErr := fixture.repository.GetVendorWork(context.Background(), scopeFrom(fixture.actor), reviewing.ID)
-	if readErr != nil || stored.State != VendorWorkUnderReview || stored.CurrentRequestID != prepared.CurrentRequestID || stored.Version != reviewing.Version {
-		t.Fatalf("mismatched recovery changed work = %#v err=%v", stored, readErr)
+	if readErr != nil || stored.State != VendorWorkChangesRequested || stored.CurrentRequestID == prepared.CurrentRequestID || stored.Version <= reviewing.Version {
+		t.Fatalf("prepared recovery did not become current = %#v err=%v", stored, readErr)
+	}
+}
+
+func TestRequestVendorWorkChangesRejectsPreparedCaptureForDifferentRecipient(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	_, reviewing := vendorWorkUnderReview(t, fixture)
+	fixture.service.repo = &failOnceVendorWorkChangesRepository{MemoryVendorWorkRepository: fixture.repository, failures: 1}
+	reviewer := Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}
+	firstInput := RequestVendorWorkChangesInput{
+		ExpectedVersion: reviewing.Version, Message: "Confirm the updated service owner.", FieldIDs: []string{"service_current"},
+		VendorAudience: fixture.audience, DueAt: fixture.now.Add(5 * 24 * time.Hour), InvitationTTLMinutes: 60,
+	}
+	if _, err := fixture.service.RequestChanges(context.Background(), reviewer, reviewing.ID, firstInput); err == nil {
+		t.Fatal("interrupted clarification unexpectedly succeeded")
+	}
+	secondInput := firstInput
+	secondInput.VendorAudience = "different-recipient@vendor.example"
+	if _, err := fixture.service.RequestChanges(context.Background(), reviewer, reviewing.ID, secondInput); !errors.Is(err, ErrVendorWorkReplacementMismatch) {
+		t.Fatalf("different recipient error = %v, want %v", err, ErrVendorWorkReplacementMismatch)
+	}
+	stored, err := fixture.repository.GetVendorWork(context.Background(), scopeFrom(fixture.actor), reviewing.ID)
+	if err != nil || stored.State != VendorWorkUnderReview || stored.Version != reviewing.Version {
+		t.Fatalf("mismatched recipient changed work = %#v err=%v", stored, err)
 	}
 }
 
@@ -706,6 +732,60 @@ func TestAcceptVendorWorkUsesAcceptAuthorityDecision(t *testing.T) {
 	}
 	if len(guard.requests) != 1 || guard.requests[0].DecisionType != "thirdparty.work.accept" || guard.requests[0].Responsibility != authority.ResponsibilityReviewer {
 		t.Fatalf("accept authority request = %#v", guard.requests)
+	}
+}
+
+func TestRetryVendorWorkUsesReviewerAuthorityWhenTheReviewerIsNotTheWorkOwner(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID,
+		Purpose: "Confirm service information.", Instructions: "Review the request.",
+		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := fixture.service.Send(context.Background(), fixture.actor, prepared.ID, SendVendorWorkInput{
+		ExpectedVersion: prepared.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	guard := &recordingVendorWorkGuard{}
+	fixture.service.ConfigureAuthority(guard)
+	reviewer := Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-1"}
+	ctx := identity.WithActor(context.Background(), identity.Actor{TenantID: reviewer.TenantID, LegalEntityID: reviewer.LegalEntityID, PrincipalID: reviewer.PrincipalID, Kind: "PERSON", IssuedAt: fixture.now.Add(-time.Minute), ExpiresAt: fixture.now.Add(time.Hour)})
+
+	if _, err := fixture.service.Retry(ctx, reviewer, first.Work.ID, RetryVendorWorkInput{
+		ExpectedVersion: first.Work.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(guard.requests) != 1 || guard.requests[0].DecisionType != "thirdparty.work.retry" || guard.requests[0].Responsibility != authority.ResponsibilityReviewer {
+		t.Fatalf("retry authority request = %#v", guard.requests)
+	}
+}
+
+func TestRetryVendorWorkRejectsAChangedVendorContact(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID,
+		Purpose: "Confirm service information.", Instructions: "Review the request.",
+		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := fixture.service.Send(context.Background(), fixture.actor, prepared.ID, SendVendorWorkInput{
+		ExpectedVersion: prepared.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.service.Retry(context.Background(), fixture.actor, first.Work.ID, RetryVendorWorkInput{
+		ExpectedVersion: first.Work.Version, VendorAudience: "different@vendor.example", InvitationTTLMinutes: 60,
+	}); !errors.Is(err, ErrVendorWorkRecipientMismatch) {
+		t.Fatalf("changed recipient error = %v", err)
 	}
 }
 

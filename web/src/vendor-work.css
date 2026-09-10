@@ -20,8 +20,12 @@
 .vendor-work-secure-link label { display: grid; gap: .35rem; min-width: 0; }
 .vendor-work-secure-link small { grid-column: 1 / -1; color: var(--muted); }
 .vendor-work-action label, .vendor-work-form > label, .vendor-work-decision label { display: grid; gap: .35rem; }
+.vendor-work-action label, .vendor-work-contact { min-width: 0; }
+.vendor-work-contact { display: grid; gap: .35rem; }
+.vendor-work-action input { min-width: 0; max-width: 100%; width: 100%; }
+.vendor-work-contact small { color: var(--muted); }
 .vendor-work-form { min-width: 0; display: grid; gap: 1rem; margin-top: 1rem; padding: 1rem; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); }
-.vendor-work-form input, .vendor-work-form select, .vendor-work-form textarea, .vendor-work-decision input, .vendor-work-decision textarea { min-width: 0; max-width: 100%; width: 100%; }
+.vendor-work-form input, .vendor-work-form select, .vendor-work-form textarea, .vendor-work-decision input, .vendor-work-decision textarea { min-width: 0; max-width: 100%; width: 100%; min-height: 42px; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; }
 .vendor-work-form textarea, .vendor-work-decision textarea { resize: vertical; }
 .vendor-work-form-summary, .vendor-work-prefill, .vendor-work-outcome { display: grid; gap: .25rem; padding: .75rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
 .vendor-work-scope-note { margin: 0; padding: .75rem; border-left: 3px solid var(--violet); border-radius: 0 8px 8px 0; background: var(--surface-2); color: var(--muted); }

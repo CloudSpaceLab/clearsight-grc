@@ -50,22 +50,33 @@ type communicationDeliveryRepository interface {
 }
 
 type CommunicationDeliveryWorker struct {
-	repository     communicationDeliveryRepository
-	communications *CommunicationService
-	access         *DistributionAccessService
-	delivery       *InvitationDeliveryService
-	captureBaseURL string
-	now            func() time.Time
+	repository             communicationDeliveryRepository
+	communications         *CommunicationService
+	access                 *DistributionAccessService
+	delivery               *InvitationDeliveryService
+	captureBaseURL         string
+	allowInsecureLocalhost bool
+	now                    func() time.Time
 }
 
 func NewCommunicationDeliveryWorker(repository communicationDeliveryRepository, communications *CommunicationService, access *DistributionAccessService, delivery *InvitationDeliveryService, captureBaseURL string) (*CommunicationDeliveryWorker, error) {
+	return newCommunicationDeliveryWorker(repository, communications, access, delivery, captureBaseURL, false)
+}
+
+// NewDevelopmentCommunicationDeliveryWorker permits loopback HTTP only for a
+// local development capture page. Production communication links stay HTTPS-only.
+func NewDevelopmentCommunicationDeliveryWorker(repository communicationDeliveryRepository, communications *CommunicationService, access *DistributionAccessService, delivery *InvitationDeliveryService, captureBaseURL string) (*CommunicationDeliveryWorker, error) {
+	return newCommunicationDeliveryWorker(repository, communications, access, delivery, captureBaseURL, true)
+}
+
+func newCommunicationDeliveryWorker(repository communicationDeliveryRepository, communications *CommunicationService, access *DistributionAccessService, delivery *InvitationDeliveryService, captureBaseURL string, allowInsecureLocalhost bool) (*CommunicationDeliveryWorker, error) {
 	captureBaseURL = strings.TrimSpace(captureBaseURL)
-	if repository == nil || communications == nil || access == nil || delivery == nil || validateCommunicationCaptureBaseURL(captureBaseURL) != nil {
+	if repository == nil || communications == nil || access == nil || delivery == nil || validateCommunicationCaptureBaseURLWithLocalhostHTTP(captureBaseURL, allowInsecureLocalhost) != nil {
 		return nil, ErrCommunicationUnavailable
 	}
 	return &CommunicationDeliveryWorker{
 		repository: repository, communications: communications, access: access, delivery: delivery,
-		captureBaseURL: captureBaseURL, now: time.Now,
+		captureBaseURL: captureBaseURL, allowInsecureLocalhost: allowInsecureLocalhost, now: time.Now,
 	}, nil
 }
 
@@ -131,7 +142,7 @@ func (worker *CommunicationDeliveryWorker) Publish(ctx context.Context, event wo
 				retryErrors = append(retryErrors, issueErr)
 				continue
 			}
-			link, issueErr = buildCommunicationAccessLink(worker.captureBaseURL, issued.Selector)
+			link, issueErr = buildCommunicationAccessLinkWithLocalhostHTTP(worker.captureBaseURL, issued.Selector, worker.allowInsecureLocalhost)
 			if issueErr != nil {
 				retryErrors = append(retryErrors, issueErr)
 				continue

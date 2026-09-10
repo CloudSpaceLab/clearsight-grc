@@ -496,6 +496,32 @@ func TestRetryVendorWorkReissuesAndRevokesPreviousCapability(t *testing.T) {
 	}
 }
 
+func TestRetryVendorWorkReissuesAConfirmedDelivery(t *testing.T) {
+	fixture := newVendorWorkFixture(t)
+	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{
+		RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, Purpose: "Confirm service information.", Instructions: "Review the request.",
+		FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := fixture.service.Send(context.Background(), fixture.actor, prepared.ID, SendVendorWorkInput{ExpectedVersion: prepared.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60})
+	if err != nil {
+		t.Fatal(err)
+	}
+	delivered, err := fixture.repository.MarkVendorWorkSent(context.Background(), scopeFrom(fixture.actor), first.Work.ID, first.Work.Version, "", VendorWorkDeliveryDelivered, "", fixture.now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reissued, err := fixture.service.Retry(context.Background(), fixture.actor, delivered.ID, RetryVendorWorkInput{ExpectedVersion: delivered.Version, VendorAudience: fixture.audience, InvitationTTLMinutes: 60})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reissued.Work.DeliveryState != VendorWorkDeliveryLinkAvailable || reissued.Work.CurrentInvitationID == delivered.CurrentInvitationID {
+		t.Fatalf("reissued delivery = %#v", reissued)
+	}
+}
+
 func TestEndRelationshipLinkConflictsWhileVendorWorkIsActive(t *testing.T) {
 	fixture := newVendorWorkFixture(t)
 	prepared, err := fixture.service.Prepare(context.Background(), fixture.actor, PrepareVendorWorkInput{RelationshipID: "relationship-1", RelationshipLinkID: fixture.link.ID, Purpose: "Confirm service information.", Instructions: "Review the request.", FormTemplateID: "form-1", FormTemplateVersion: 3, VendorAudience: fixture.audience, DueAt: fixture.now.Add(24 * time.Hour)})

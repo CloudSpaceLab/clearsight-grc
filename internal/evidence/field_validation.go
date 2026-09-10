@@ -113,14 +113,14 @@ func (s *Service) validateAnswerSet(ctx context.Context, request Request, answer
 		if !exists || !answer.Answered() {
 			continue
 		}
-		if err := s.validateTypedAnswer(ctx, request, requestByID[field.ID], field, answer); err != nil {
+		if err := s.validateTypedAnswer(ctx, request, requestByID[field.ID], field, answer, requireComplete); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *Service) validateTypedAnswer(ctx context.Context, request Request, requestField Field, field formcontract.Field, answer formcontract.AnswerValue) error {
+func (s *Service) validateTypedAnswer(ctx context.Context, request Request, requestField Field, field formcontract.Field, answer formcontract.AnswerValue, requireComplete bool) error {
 	fieldType := field.Type
 	switch fieldType {
 	case formcontract.TypeShortText, formcontract.TypeLongText, formcontract.TypeEmail, formcontract.TypeTelephone, formcontract.TypeURL:
@@ -251,6 +251,9 @@ func (s *Service) validateTypedAnswer(ctx context.Context, request Request, requ
 			return fmt.Errorf("%s must be confirmed", field.Label)
 		}
 	case formcontract.TypeFile, formcontract.TypePhoto, formcontract.TypeSignature, formcontract.TypeVendorDocument:
+		if fieldType == formcontract.TypeVendorDocument && !requireComplete {
+			return s.validateDraftVendorDocument(ctx, request, requestField, field, answer)
+		}
 		artifactIDs, err := answerArtifactIDs(field, answer)
 		if err != nil {
 			return err
@@ -291,6 +294,38 @@ func (s *Service) validateTypedAnswer(ctx context.Context, request Request, requ
 		}
 	default:
 		return fmt.Errorf("%s uses an unsupported response type", field.Label)
+	}
+	return nil
+}
+
+// validateDraftVendorDocument permits a respondent to save an uploaded file
+// before completing its descriptive metadata. Final submission still requires
+// both the file and its document type through answerArtifactIDs.
+func (s *Service) validateDraftVendorDocument(ctx context.Context, request Request, requestField Field, field formcontract.Field, answer formcontract.AnswerValue) error {
+	if answer.Text != nil || len(answer.Values) != 0 || len(answer.ArtifactIDs) != 0 || answer.Document == nil {
+		return fmt.Errorf("%s must contain document details", field.Label)
+	}
+	document := answer.Document
+	for _, value := range []string{document.IssuedOn, document.ExpiresOn} {
+		if value != "" {
+			if _, err := time.Parse("2006-01-02", value); err != nil {
+				return fmt.Errorf("%s contains an invalid document date", field.Label)
+			}
+		}
+	}
+	artifactID := strings.TrimSpace(document.ArtifactID)
+	if artifactID == "" {
+		return nil
+	}
+	artifact, err := s.repo.GetArtifact(ctx, request.TenantID, request.ID, artifactID)
+	if err != nil {
+		return fmt.Errorf("%s must reference a file uploaded for this request", field.Label)
+	}
+	if err := validateArtifactForField(requestField, artifact); err != nil {
+		return err
+	}
+	if field.Constraints.MaxFileBytes != nil && artifact.SizeBytes > *field.Constraints.MaxFileBytes {
+		return fmt.Errorf("%s contains a file larger than permitted", field.Label)
 	}
 	return nil
 }

@@ -132,6 +132,9 @@ func (a *API) requestVendorWorkChanges(w http.ResponseWriter, r *http.Request) {
 	}
 	value, err := service.RequestChanges(r.Context(), actor, work.ID, input.RequestVendorWorkChangesInput)
 	if err != nil {
+		if a.deps.Logger != nil {
+			a.deps.Logger.Error("vendor work change request failed", "work_request_id", work.ID, "relationship_id", work.RelationshipID, "error", err)
+		}
 		writeVendorWorkError(w, err)
 		return
 	}
@@ -220,8 +223,16 @@ func (a *API) getVendorWorkResponse(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to review this vendor response.")
 		return
 	}
+	if err := service.AuthorizeResponseReview(r.Context(), actor, r.PathValue("request_id")); err != nil {
+		writeVendorWorkError(w, err)
+		return
+	}
 	view, err := service.Response(r.Context(), actor, r.PathValue("request_id"))
-	if err != nil || view.Work.RelationshipID != r.PathValue("id") {
+	if err != nil {
+		writeVendorWorkError(w, err)
+		return
+	}
+	if view.Work.RelationshipID != r.PathValue("id") {
 		writeVendorWorkError(w, thirdparty.ErrNotFound)
 		return
 	}
@@ -282,6 +293,10 @@ func writeVendorWorkError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusConflict, "vendor_work_state_changed", "This action is not available in the current request state. Reload the request to continue.")
 	case errors.Is(err, thirdparty.ErrVendorWorkAcceptanceBlocked):
 		httpx.WriteError(w, http.StatusConflict, "vendor_work_acceptance_blocked", "A submitted document is pending inspection, quarantined or unavailable. Wait for inspection or request a replacement before accepting this response.")
+	case errors.Is(err, thirdparty.ErrVendorWorkRecipientMismatch):
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "vendor_work_recipient_mismatch", "Enter the contact used when this request was created. Create a new request if the vendor contact has changed.")
+	case errors.Is(err, thirdparty.ErrVendorWorkReplacementMismatch):
+		httpx.WriteError(w, http.StatusConflict, "vendor_work_replacement_mismatch", "A replacement request was already prepared with different details. Restore the original instruction, recipient and deadline, then send it again.")
 	case errors.Is(err, thirdparty.ErrInvalid):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "vendor_work_invalid", "Check the request details, current version and due date, then try again.")
 	default:

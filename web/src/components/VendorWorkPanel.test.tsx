@@ -107,7 +107,7 @@ describe("VendorWorkPanel", () => {
     await chooseRequestOption("Request type", "ISO 27001 and PCI DSS evidence");
     expect(screen.getByText(/asked for current ISO 27001 and PCI DSS evidence/i)).toBeTruthy();
     expect(screen.getByText(/submission does not mean the bank accepted it/i)).toBeTruthy();
-    expect(screen.getByLabelText(/Vendor contact email/)).toBeTruthy();
+    expect(screen.getAllByLabelText(/Vendor contact email/)).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Send certification request" })).toBeTruthy();
   });
 
@@ -275,6 +275,17 @@ describe("VendorWorkPanel", () => {
     await waitFor(() => expect(retryVendorWorkDelivery).toHaveBeenCalledWith("relationship-1", "work-1", { expected_version: 2, vendor_audience: "assurance@vendor.example", invitation_ttl_minutes: 10080 }));
   });
 
+  it("allows a delivered request to be sent again", async () => {
+    vi.mocked(loadVendorWork).mockResolvedValue({ items: [{ ...work, state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 3 }] });
+    vi.mocked(retryVendorWorkDelivery).mockResolvedValue({ work: { ...work, state: "AWAITING_VENDOR", delivery_state: "DELIVERED", version: 4 }, state: "DELIVERED" });
+    render(<VendorWorkPanel targetType="PROGRAM" targetID="program-1"/>);
+    const card = await screen.findByTestId("vendor-work-work-1");
+    expect(within(card).getByRole("button", { name: "Send again" })).toBeTruthy();
+    fireEvent.change(within(card).getByLabelText("Vendor contact"), { target: { value: "assurance@vendor.example" } });
+    fireEvent.click(within(card).getByRole("button", { name: "Send again" }));
+    await waitFor(() => expect(retryVendorWorkDelivery).toHaveBeenCalledWith("relationship-1", "work-1", { expected_version: 3, vendor_audience: "assurance@vendor.example", invitation_ttl_minutes: 10080 }));
+  });
+
   it("labels incomplete setup separately from delivery recovery", async () => {
     const incomplete = { ...work, current_request_id: undefined, delivery_state: "RETRY_REQUIRED" as const, recovery: "Retry sending this vendor request." };
     vi.mocked(loadVendorWork).mockResolvedValue({ items: [incomplete] });
@@ -361,11 +372,14 @@ describe("VendorWorkPanel", () => {
     fireEvent.click(within(card).getByRole("button", { name: "Review response" }));
     expect(await within(card).findByText("Vendor response: Yes")).toBeTruthy();
     fireEvent.click(within(card).getByRole("button", { name: "Request changes" }));
+    expect((within(card).getByLabelText("Revised due date") as HTMLInputElement).value).toBe("2026-09-30");
     fireEvent.change(within(card).getByLabelText("What the vendor must change"), { target: { value: "Upload a clean replacement." } });
     fireEvent.click(within(card).getByLabelText("Are the controls operating?"));
     fireEvent.change(within(card).getByLabelText("Vendor contact"), { target: { value: "assurance@vendor.example" } });
     fireEvent.change(within(card).getByLabelText("Revised due date"), { target: { value: "2099-09-30" } });
-    fireEvent.click(within(card).getByRole("button", { name: "Send change request" }));
+    const sendChanges = within(card).getByRole("button", { name: "Send change request" }) as HTMLButtonElement;
+    expect(sendChanges.disabled).toBe(false);
+    fireEvent.click(sendChanges);
 
     await waitFor(() => expect(requestVendorWorkChanges).toHaveBeenCalled());
     await waitFor(() => expect(within(card).queryByLabelText("Vendor response")).toBeNull());

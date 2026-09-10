@@ -292,7 +292,7 @@ func buildSupersessionPreview(snapshot supersessionSnapshot, target Distribution
 			requestField.Options = append([]string(nil), targetField.Options...)
 			requestField.Constraints = targetField.Constraints
 			requestField.Attestation = targetField.Attestation
-			if err := (&Service{}).validateTypedAnswer(context.Background(), snapshot.Request, requestField, targetField, answer); err != nil {
+			if err := (&Service{}).validateTypedAnswer(context.Background(), snapshot.Request, requestField, targetField, answer, true); err != nil {
 				decision.Reason = "answer_invalid_for_replacement"
 			}
 		}

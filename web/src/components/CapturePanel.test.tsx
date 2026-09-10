@@ -232,6 +232,11 @@ describe("CapturePanel", () => {
     const file = new File(["certificate"], "iso.pdf", { type: "application/pdf" });
     fireEvent.change(screen.getByLabelText(/ISO certificate file/), { target: { files: [file] } });
 	await waitFor(() => expect(upload).toHaveBeenCalledWith(request.id, file, "certificate"));
+	// Uploading a document stores an attachment only. A vendor must still review
+	// and explicitly submit the response.
+	expect(submit).not.toHaveBeenCalled();
+	expect(screen.queryByText("Submitted")).toBeNull();
+	expect(screen.getByRole("status").textContent).toContain("Document attached. Complete the remaining details, then review and submit when ready.");
 
     fireEvent.click(screen.getByRole("button", { name: "Review response" }));
     expect(screen.getByText(/ISO 27001 certificate · CERT-2026-81/)).toBeTruthy();

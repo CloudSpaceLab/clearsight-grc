@@ -15,16 +15,19 @@ type emailFact struct {
 }
 
 type emailPresentationInput struct {
-	BrandName      string
-	Preheader      string
-	Heading        string
-	Intro          string
-	BodyPlain      string
-	BodyHTML       string
-	ActionLabel    string
-	ActionURL      string
-	Facts          []emailFact
-	SupportContact string
+	BrandName   string
+	Preheader   string
+	Heading     string
+	Intro       string
+	BodyPlain   string
+	BodyHTML    string
+	ActionLabel string
+	ActionURL   string
+	// AllowInsecureLocalhost is restricted to local development invitation
+	// delivery. Production action links remain HTTPS-only.
+	AllowInsecureLocalhost bool
+	Facts                  []emailFact
+	SupportContact         string
 }
 
 type renderedEmailPresentation struct {
@@ -50,7 +53,7 @@ func renderEmailPresentation(input emailPresentationInput) (renderedEmailPresent
 	}
 	if input.ActionURL != "" {
 		parsed, err := url.Parse(input.ActionURL)
-		if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || strings.ContainsAny(input.ActionURL, "\r\n") {
+		if err != nil || !safeEmailActionURL(parsed, input.AllowInsecureLocalhost) || parsed.User != nil || strings.ContainsAny(input.ActionURL, "\r\n") {
 			return renderedEmailPresentation{}, errEmailPresentationInvalid
 		}
 	}
@@ -114,6 +117,20 @@ func renderEmailPresentation(input emailPresentationInput) (renderedEmailPresent
 	}
 	body.WriteString(`</td></tr></table></td></tr></table></body></html>`)
 	return renderedEmailPresentation{PlainText: strings.Join(plain, "\n\n"), HTML: body.String()}, nil
+}
+
+func safeEmailActionURL(parsed *url.URL, allowInsecureLocalhost bool) bool {
+	if parsed.Host == "" {
+		return false
+	}
+	if parsed.Scheme == "https" {
+		return true
+	}
+	if !allowInsecureLocalhost || parsed.Scheme != "http" {
+		return false
+	}
+	host := strings.ToLower(parsed.Hostname())
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
 
 func boundedEmailText(value string, limit int, required bool) bool {

@@ -240,14 +240,14 @@ func TestAssessmentReviewReadUsesCurrentReviewerRouteAndRejectsRevokedReviewer(t
 	}
 }
 
-func TestAssessmentReviewReadAllowsStarterAndCurrentRelationshipOwner(t *testing.T) {
+func TestAssessmentReviewReadDeniesStarterAndCurrentRelationshipOwnerWithoutReviewerRoute(t *testing.T) {
 	service, _, assessment, _ := assessmentReviewFixture(t)
 	service.authority = nil
 	for _, principalID := range []string{"starter-a", "owner-a"} {
 		t.Run(principalID, func(t *testing.T) {
 			actor := Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: principalID}
-			if _, err := service.GetReview(context.Background(), actor, assessment.ID); err != nil {
-				t.Fatalf("assessment starter or current relationship owner should be allowed: %v", err)
+			if _, err := service.GetReview(context.Background(), actor, assessment.ID); !errors.Is(err, ErrNotFound) {
+				t.Fatalf("assessment starter or current relationship owner must not read without the reviewer route: %v", err)
 			}
 		})
 	}

@@ -315,15 +315,11 @@ func (s *AssessmentReviewService) authorizeRead(ctx context.Context, actor Actor
 	if !ok {
 		return ErrNotFound
 	}
-	aggregate, err := relationships.GetRelationship(ctx, scope, assessment.RelationshipID)
-	if err != nil {
+	if _, err := relationships.GetRelationship(ctx, scope, assessment.RelationshipID); err != nil {
 		return ErrNotFound
 	}
 	principalID := strings.TrimSpace(actor.PrincipalID)
-	if principalID != "" && (principalID == strings.TrimSpace(assessment.StartedByPrincipalID) || principalID == strings.TrimSpace(aggregate.Relationship.BusinessOwnerPrincipalID)) {
-		return nil
-	}
-	if s.authority == nil {
+	if principalID == "" || s.authority == nil {
 		return ErrNotFound
 	}
 	resolution, err := s.authority.Resolve(ctx, authority.ResolveInput{

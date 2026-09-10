@@ -496,7 +496,7 @@ export function VendorDueDiligence({
     {error && <Notice tone="error">{error}</Notice>}
 
     {effectiveAssessment && needsReviewView(status) && reviewState === "loading" && <div className="vdd-review-state" aria-live="polite" aria-busy="true">Loading the submitted response and supporting documents…</div>}
-    {effectiveAssessment && needsReviewView(status) && reviewState === "review_access_required" && <Notice tone="warning"><strong>Reviewer access is required</strong> The submitted response is available to the assigned owner or reviewer. Switch to the Internal Auditor demo account to review it.</Notice>}
+    {effectiveAssessment && needsReviewView(status) && reviewState === "review_access_required" && <Notice tone="warning"><strong>Reviewer access is required</strong> The submitted response is available to the assigned owner or reviewer.</Notice>}
     {effectiveAssessment && needsReviewView(status) && reviewState === "unavailable" && <Notice tone="error"><strong>Vendor response is unavailable</strong> The submitted answers and documents could not be loaded. Reload them before starting or completing the review. {onRefreshReview && <button type="button" className="secondary-button" onClick={() => void onRefreshReview(effectiveAssessment.id)}>Reload vendor response</button>}</Notice>}
 
     {reviewState === "live" && review && <ReviewSummary review={review} assessment={effectiveAssessment} onOpenMatter={onOpenMatter} onOpenDocument={!panel && onOpenDocument ? onOpenDocument : undefined} onReviewDocument={!panel && onReviewDocument ? openDocumentReview : undefined} onCreateDeficiency={!panel && onCreateDeficiency ? () => openPanel("deficiency") : undefined}/>}

@@ -95,11 +95,19 @@ type InvitationDeliveryReceipt struct {
 }
 
 type InvitationDeliveryService struct {
-	adapter InvitationDelivery
+	adapter                InvitationDelivery
+	allowInsecureLocalhost bool
 }
 
 func NewInvitationDeliveryService(adapter InvitationDelivery) *InvitationDeliveryService {
 	return &InvitationDeliveryService{adapter: adapter}
+}
+
+// NewDevelopmentInvitationDeliveryService permits HTTP action URLs only for
+// loopback hosts, allowing local invitation demos without weakening production
+// delivery requirements.
+func NewDevelopmentInvitationDeliveryService(adapter InvitationDelivery) *InvitationDeliveryService {
+	return &InvitationDeliveryService{adapter: adapter, allowInsecureLocalhost: true}
 }
 
 func (service *InvitationDeliveryService) Deliver(ctx context.Context, request InvitationDeliveryRequest) (InvitationDeliveryReceipt, error) {
@@ -112,7 +120,7 @@ func (service *InvitationDeliveryService) Deliver(ctx context.Context, request I
 	request.InvitationLink = link
 	if strings.TrimSpace(request.Subject) == "" && strings.TrimSpace(request.PlainText) == "" && strings.TrimSpace(request.HTML) == "" {
 		var err error
-		request, err = renderDefaultInvitationMessage(request)
+		request, err = renderDefaultInvitationMessage(request, service != nil && service.allowInsecureLocalhost)
 		if err != nil {
 			return InvitationDeliveryReceipt{}, ErrInvitationDeliveryRequestInvalid
 		}
@@ -138,7 +146,7 @@ func (service *InvitationDeliveryService) Deliver(ctx context.Context, request I
 	return receipt, nil
 }
 
-func renderDefaultInvitationMessage(request InvitationDeliveryRequest) (InvitationDeliveryRequest, error) {
+func renderDefaultInvitationMessage(request InvitationDeliveryRequest, allowInsecureLocalhost bool) (InvitationDeliveryRequest, error) {
 	message := request.Message
 	message.Kind = InvitationMessageKind(strings.ToUpper(strings.TrimSpace(string(message.Kind))))
 	if message.Kind == "" {
@@ -152,7 +160,8 @@ func renderDefaultInvitationMessage(request InvitationDeliveryRequest) (Invitati
 	if taskTitle == "" {
 		taskTitle = "Secure form request"
 	}
-	heading, subject, action, preheader := taskTitle, "Action needed: "+taskTitle, "Open secure form", strings.TrimSpace(message.TaskSummary)
+	taskSummary := compactInvitationEmailText(message.TaskSummary)
+	heading, subject, action, preheader := taskTitle, "Action needed: Complete the secure form", "Open secure form", taskSummary
 	journeyPlain := ""
 	journeyHTML := ""
 	switch message.Kind {
@@ -171,6 +180,12 @@ func renderDefaultInvitationMessage(request InvitationDeliveryRequest) (Invitati
 	if preheader == "" {
 		preheader = taskTitle
 	}
+	// The email presentation has bounded display fields. Keep the full request
+	// title and instructions in the message body and vendor form, while using
+	// short, valid summaries in the subject, heading and inbox preview.
+	heading = truncateInvitationEmailText(heading, 300)
+	subject = truncateInvitationEmailText(subject, 120)
+	preheader = truncateInvitationEmailText(preheader, 500)
 	facts := make([]emailFact, 0, 3)
 	if role := strings.TrimSpace(message.RecipientRole); role != "" {
 		facts = append(facts, emailFact{Label: "Your role", Value: role})
@@ -181,7 +196,7 @@ func renderDefaultInvitationMessage(request InvitationDeliveryRequest) (Invitati
 	if !message.ExpiresAt.IsZero() {
 		facts = append(facts, emailFact{Label: "Link expires", Value: message.ExpiresAt.UTC().Format("2 Jan 2006, 15:04 UTC")})
 	}
-	intro := strings.TrimSpace(message.TaskSummary)
+	intro := taskSummary
 	if intro == "" {
 		intro = "Use the secure link below to complete this request. Verify the invited email address when prompted."
 	}
@@ -196,13 +211,40 @@ func renderDefaultInvitationMessage(request InvitationDeliveryRequest) (Invitati
 		BrandName: bankName, Preheader: preheader, Heading: heading, Intro: intro,
 		BodyPlain:   bodyPlain,
 		BodyHTML:    bodyHTML,
-		ActionLabel: action, ActionURL: request.InvitationLink, Facts: facts, SupportContact: strings.TrimSpace(message.SupportContact),
+		ActionLabel: action, ActionURL: request.InvitationLink, AllowInsecureLocalhost: allowInsecureLocalhost, Facts: facts, SupportContact: strings.TrimSpace(message.SupportContact),
 	})
-	if err != nil || len(subject) > 200 || strings.ContainsAny(subject, "\r\n") {
+	if err != nil || len(subject) > 120 || strings.ContainsAny(subject, "\r\n") {
 		return InvitationDeliveryRequest{}, ErrInvitationDeliveryRequestInvalid
 	}
 	request.Subject, request.PlainText, request.HTML, request.Message = subject, presentation.PlainText, presentation.HTML, message
 	return request, nil
+}
+
+func truncateInvitationEmailText(value string, limit int) string {
+	value = strings.TrimSpace(value)
+	if limit <= 0 || len(value) <= limit {
+		return value
+	}
+
+	const ellipsis = "…"
+	if limit <= len(ellipsis) {
+		return ellipsis
+	}
+
+	budget := limit - len(ellipsis)
+	var shortened strings.Builder
+	shortened.Grow(limit)
+	for _, character := range value {
+		if shortened.Len()+len(string(character)) > budget {
+			break
+		}
+		shortened.WriteRune(character)
+	}
+	return shortened.String() + ellipsis
+}
+
+func compactInvitationEmailText(value string) string {
+	return strings.Join(strings.Fields(value), " ")
 }
 
 func invitationFallbackReceipt(hint string) InvitationDeliveryReceipt {

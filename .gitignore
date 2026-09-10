@@ -36,3 +36,7 @@ Thumbs.db
 .superpowers/
 *.log
 .cache/
+.gomodcache/
+
+# Local build and demo artifacts
+/output/

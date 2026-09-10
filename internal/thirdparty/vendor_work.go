@@ -24,6 +24,8 @@ var (
 	ErrVendorWorkAuthorityUnavailable = errors.New("vendor work authority is unavailable")
 	ErrVendorWorkIdentityMismatch     = errors.New("vendor work authority identity does not match the request identity")
 	ErrVendorWorkAcceptanceBlocked    = errors.New("vendor work response contains an unavailable document")
+	ErrVendorWorkRecipientMismatch    = errors.New("vendor work recipient does not match the existing request")
+	ErrVendorWorkReplacementMismatch  = errors.New("replacement request details do not match the recovered secure request")
 	ErrRelationshipNotActive          = errors.New("vendor relationship is not active")
 )
 
@@ -529,7 +531,7 @@ func (s *VendorWorkService) ensureCaptureRequest(ctx context.Context, actor Acto
 		return evidence.Request{}, err
 	}
 	if !sameVendorWorkCaptureRequest(request, requestInput) {
-		return evidence.Request{}, ErrInvalid
+		return evidence.Request{}, ErrVendorWorkReplacementMismatch
 	}
 	return request, nil
 }
@@ -590,8 +592,11 @@ func (s *VendorWorkService) sendCurrent(ctx context.Context, actor Actor, work V
 	if err != nil {
 		return VendorWorkSendOutcome{}, err
 	}
-	if request.ID != work.CurrentRequestID || !evidence.ExternalAudienceMatches(request, audience) {
+	if request.ID != work.CurrentRequestID {
 		return VendorWorkSendOutcome{}, ErrInvalid
+	}
+	if !evidence.ExternalAudienceMatches(request, audience) {
+		return VendorWorkSendOutcome{}, ErrVendorWorkRecipientMismatch
 	}
 	if s.captureBase == nil {
 		updated, updateErr := s.repo.MarkVendorWorkSent(ctx, scopeFrom(actor), work.ID, work.Version, "", VendorWorkDeliveryRetryRequired, "Set the secure capture address, then retry sending this vendor request.", s.now().UTC())
@@ -652,6 +657,9 @@ func (s *VendorWorkService) sendCurrent(ctx context.Context, actor Actor, work V
 		Message: vendorWorkInvitationMessage(work, issued),
 	})
 	if deliveryErr != nil || receipt.Status != evidence.InvitationDelivered {
+		if s.logger != nil {
+			s.logger.Warn("vendor work invitation delivery was not confirmed", "work_request_id", work.ID, "delivery_status", receipt.Status, "failure_code", receipt.FailureCode, "error", deliveryErr)
+		}
 		issued.Token = ""
 		return VendorWorkSendOutcome{Work: ready, Invitation: &issued, Delivery: &receipt, State: VendorWorkDeliveryLinkAvailable, CaptureURL: linkURL, Recovery: recovery}, nil
 	}
@@ -811,7 +819,7 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 	if err := s.authorizeWorkTarget(ctx, actor, work); err != nil {
 		return VendorWorkSendOutcome{}, err
 	}
-	if err := s.authorize(ctx, actor, work.RelationshipID, authority.ResponsibilityReviewer, "thirdparty.work.request_changes"); err != nil {
+	if err := s.authorize(ctx, actor, work.RelationshipID, authority.ResponsibilityReviewer, "thirdparty.work.review"); err != nil {
 		return VendorWorkSendOutcome{}, err
 	}
 	form, err := s.forms.ReusableFormRevision(ctx, work.TenantID, work.LegalEntityID, work.FormTemplateID, work.FormTemplateVersion)
@@ -892,6 +900,11 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 	}
 	sequence := work.CurrentCaptureSequence + 1
 	request, err := s.ensureCaptureRequest(ctx, actor, work, form, input.VendorAudience, input.Message, input.DueAt.UTC(), sequence)
+	resumedPreparedReplacement := false
+	if errors.Is(err, ErrVendorWorkReplacementMismatch) {
+		request, err = s.recoverPreparedReplacement(ctx, work, form, input.VendorAudience, sequence)
+		resumedPreparedReplacement = err == nil
+	}
 	if err != nil {
 		return VendorWorkSendOutcome{}, err
 	}
@@ -902,10 +915,10 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 	updated, err := s.repo.RecordVendorWorkChanges(ctx, scopeFrom(actor), work.ID, work.Version, VendorWorkCaptureLink{
 		ID: linkID, TenantID: work.TenantID, LegalEntityID: work.LegalEntityID, WorkRequestID: work.ID, RequestID: request.ID,
 		Sequence: sequence, Purpose: "CLARIFICATION", OriginVersion: int64(sequence), CreatedAt: s.now().UTC(),
-	}, actor.PrincipalID, input.Message, input.DueAt.UTC(), s.now().UTC())
+	}, actor.PrincipalID, firstNonEmpty(request.WhyYou, input.Message), request.Deadline.UTC(), s.now().UTC())
 	if err != nil {
 		stored, readErr := s.repo.GetVendorWork(ctx, scopeFrom(actor), work.ID)
-		if readErr != nil || stored.Version != work.Version+1 || stored.State != VendorWorkChangesRequested || stored.CurrentRequestID != request.ID || stored.CurrentCaptureSequence != sequence || stored.ReviewerPrincipalID != actor.PrincipalID || stored.ReviewRationale != input.Message || !stored.DueAt.Equal(input.DueAt.UTC()) {
+		if readErr != nil || stored.Version != work.Version+1 || stored.State != VendorWorkChangesRequested || stored.CurrentRequestID != request.ID || stored.CurrentCaptureSequence != sequence || stored.ReviewerPrincipalID != actor.PrincipalID || stored.ReviewRationale != firstNonEmpty(request.WhyYou, input.Message) || !stored.DueAt.Equal(request.Deadline.UTC()) {
 			_ = s.dispatch.RevokeRequestCapabilities(ctx, work.TenantID, request.ID)
 			return VendorWorkSendOutcome{}, err
 		}
@@ -913,10 +926,39 @@ func (s *VendorWorkService) RequestChanges(ctx context.Context, actor Actor, wor
 	}
 	outcome, sendErr := s.sendCurrent(ctx, actor, updated, input.VendorAudience, input.InvitationTTLMinutes)
 	if sendErr == nil {
+		if resumedPreparedReplacement {
+			outcome.Recovery = "A prepared replacement request was resumed and sent using its original instruction and deadline."
+		}
 		return outcome, nil
 	}
 	recovery := "The clarification was recorded, but secure delivery could not be prepared. Retry sending from this request."
 	return s.persistVendorWorkDeliveryRecovery(ctx, actor, updated, recovery), nil
+}
+
+// recoverPreparedReplacement attaches the immutable request created before an
+// interrupted command completed. It never replaces that request's instruction,
+// fields, recipient or deadline with a later browser retry.
+func (s *VendorWorkService) recoverPreparedReplacement(ctx context.Context, work VendorWorkRequest, form monitoring.FormTemplate, audience string, sequence int) (evidence.Request, error) {
+	request, err := s.evidence.GetRequestByOrigin(ctx, work.TenantID, evidence.RequestOrigin{Type: VendorWorkOrigin, ID: work.ID, Version: int64(sequence)})
+	if err != nil {
+		return evidence.Request{}, err
+	}
+	if !evidence.ExternalAudienceMatches(request, audience) || !sameVendorWorkPreparedFields(request, form.Fields) {
+		return evidence.Request{}, ErrVendorWorkReplacementMismatch
+	}
+	return request, nil
+}
+
+func sameVendorWorkPreparedFields(request evidence.Request, fields []monitoring.TemplateField) bool {
+	if len(request.Fields) != len(fields) {
+		return false
+	}
+	for index, field := range fields {
+		if request.Fields[index].ID != field.ID {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *VendorWorkService) RecordSubmission(ctx context.Context, input VendorWorkSubmissionInput) (VendorWorkRequest, error) {
@@ -1096,6 +1138,16 @@ func (s *VendorWorkService) Response(ctx context.Context, actor Actor, id string
 	return view, nil
 }
 
+// AuthorizeResponseReview keeps submitted answers and documents within the
+// reviewer route before an HTTP handler returns them to a caller.
+func (s *VendorWorkService) AuthorizeResponseReview(ctx context.Context, actor Actor, id string) error {
+	work, err := s.Get(ctx, actor, id)
+	if err != nil {
+		return err
+	}
+	return s.authorize(ctx, actor, work.RelationshipID, authority.ResponsibilityReviewer, "thirdparty.work.review")
+}
+
 func (s *VendorWorkService) authorizeRead(ctx context.Context, actor Actor, work VendorWorkRequest) error {
 	if err := s.authorizeWorkTarget(ctx, actor, work); err != nil {
 		return err
@@ -1143,8 +1195,13 @@ func (s *VendorWorkService) Retry(ctx context.Context, actor Actor, workID strin
 	if err := s.authorizeWorkTarget(ctx, actor, work); err != nil {
 		return VendorWorkSendOutcome{}, err
 	}
-	if err := s.authorize(ctx, actor, work.RelationshipID, authority.ResponsibilityOwner, "thirdparty.work.retry"); err != nil {
-		return VendorWorkSendOutcome{}, err
+	if actor.PrincipalID != work.OwnerPrincipalID {
+		// A reviewer may reissue an existing request when delivery needs recovery.
+		// Creating or cancelling a request remains an owner action; retrying only
+		// replaces the vendor's delivery capability for the same tracked work.
+		if err := s.authorize(ctx, actor, work.RelationshipID, authority.ResponsibilityReviewer, "thirdparty.work.retry"); err != nil {
+			return VendorWorkSendOutcome{}, err
+		}
 	}
 	if work.CurrentRequestID == "" && work.State == VendorWorkPreparing && work.DeliveryState == VendorWorkDeliveryRetryRequired {
 		form, formErr := s.forms.ReusableFormRevision(ctx, work.TenantID, work.LegalEntityID, work.FormTemplateID, work.FormTemplateVersion)
@@ -1161,7 +1218,7 @@ func (s *VendorWorkService) Retry(ctx context.Context, actor Actor, workID strin
 		return s.sendCurrent(ctx, actor, prepared, input.VendorAudience, input.InvitationTTLMinutes)
 	}
 	retryableUnsentClarification := work.State == VendorWorkChangesRequested && work.DeliveryState == VendorWorkDeliveryNotSent
-	if work.CurrentRequestID == "" || (!retryableUnsentClarification && work.DeliveryState != VendorWorkDeliveryLinkAvailable && work.DeliveryState != VendorWorkDeliveryRetryRequired) || (work.State != VendorWorkPreparing && work.State != VendorWorkAwaitingVendor && work.State != VendorWorkChangesRequested) {
+	if work.CurrentRequestID == "" || (!retryableUnsentClarification && work.DeliveryState != VendorWorkDeliveryLinkAvailable && work.DeliveryState != VendorWorkDeliveryRetryRequired && work.DeliveryState != VendorWorkDeliveryDelivered) || (work.State != VendorWorkPreparing && work.State != VendorWorkAwaitingVendor && work.State != VendorWorkChangesRequested) {
 		return VendorWorkSendOutcome{}, ErrInvalidAssessmentTransition
 	}
 	if work.CurrentRequestID != "" {

@@ -95,15 +95,23 @@ func communicationAccessInstructions(policy AccessPolicy, role RecipientRole) st
 }
 
 func validateCommunicationCaptureBaseURL(value string) error {
+	return validateCommunicationCaptureBaseURLWithLocalhostHTTP(value, false)
+}
+
+func validateCommunicationCaptureBaseURLWithLocalhostHTTP(value string, allowInsecureLocalhost bool) error {
 	parsed, err := url.Parse(strings.TrimSpace(value))
-	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+	if err != nil || !safeEmailActionURL(parsed, allowInsecureLocalhost) || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
 		return ErrCommunicationInvalid
 	}
 	return nil
 }
 
 func buildCommunicationAccessLink(baseURL, selector string) (string, error) {
-	if validateCommunicationCaptureBaseURL(baseURL) != nil || strings.TrimSpace(selector) == "" || selector != strings.TrimSpace(selector) {
+	return buildCommunicationAccessLinkWithLocalhostHTTP(baseURL, selector, false)
+}
+
+func buildCommunicationAccessLinkWithLocalhostHTTP(baseURL, selector string, allowInsecureLocalhost bool) (string, error) {
+	if validateCommunicationCaptureBaseURLWithLocalhostHTTP(baseURL, allowInsecureLocalhost) != nil || strings.TrimSpace(selector) == "" || selector != strings.TrimSpace(selector) {
 		return "", ErrCommunicationInvalid
 	}
 	parsed, err := url.Parse(baseURL)

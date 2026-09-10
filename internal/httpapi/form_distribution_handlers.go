@@ -350,6 +350,10 @@ func (a *API) saveFormResponseWorkspace(w http.ResponseWriter, r *http.Request) 
 			httpx.WriteJSON(w, http.StatusConflict, conflict)
 			return
 		}
+		if errors.Is(err, evidence.ErrDraftInvalid) {
+			httpx.WriteError(w, http.StatusBadRequest, "workspace_invalid", "The response update is invalid.")
+			return
+		}
 		writeGenericFormSessionFailure(w)
 		return
 	}

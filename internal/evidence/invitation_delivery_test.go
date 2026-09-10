@@ -122,6 +122,41 @@ func TestInvitationDeliveryBuildsDefaultVendorRegistrationMessage(t *testing.T) 
 	assertInvitationDeliveryValueRedacted(t, request, "security@vendor.example", "opaque-token")
 }
 
+func TestInvitationDeliveryBoundsLongEmailSummariesWithoutLosingRequestDetails(t *testing.T) {
+	t.Parallel()
+
+	taskTitle := strings.Repeat("Signed right-to-audit addendum evidence ", 7)
+	taskSummary := strings.Repeat("Upload the signed addendum for the Moneytor GetPaid service so the assessment condition can be closed.\n", 6)
+	var delivered InvitationDeliveryRequest
+	deliveredAt := time.Date(2026, 9, 9, 21, 30, 0, 0, time.UTC)
+	adapter := invitationDeliveryFunc(func(_ context.Context, request InvitationDeliveryRequest) (InvitationDeliveryReceipt, error) {
+		delivered = request
+		return InvitationDeliveryReceipt{Status: InvitationDelivered, DeliveredAt: &deliveredAt}, nil
+	})
+
+	request := InvitationDeliveryRequest{
+		RecipientAddress: "support@vendor.example",
+		InvitationLink:   "http://localhost:5173/respond#form_access=opaque-token",
+		Message: InvitationMessageContext{
+			Kind: InvitationMessageGeneric, BankName: "Example Bank", TaskTitle: taskTitle,
+			TaskSummary: taskSummary, RecipientRole: "Vendor contact",
+		},
+	}
+	if _, err := NewDevelopmentInvitationDeliveryService(adapter).Deliver(context.Background(), request); err != nil {
+		t.Fatalf("delivery with long request text failed: %v", err)
+	}
+	if delivered.Subject != "Action needed: Complete the secure form" {
+		t.Fatalf("subject should stay concise while the request details remain in the email body: %q", delivered.Subject)
+	}
+	compactSummary := strings.Join(strings.Fields(taskSummary), " ")
+	if !strings.Contains(delivered.PlainText, strings.TrimSpace(taskTitle)) || !strings.Contains(delivered.PlainText, compactSummary) {
+		t.Fatalf("plain-text email lost request details: %q", delivered.PlainText)
+	}
+	if !strings.Contains(delivered.HTML, strings.TrimSpace(taskTitle)) || !strings.Contains(delivered.HTML, compactSummary) {
+		t.Fatalf("HTML email lost request details")
+	}
+}
+
 func TestInvitationDeliveryBuildsPurposeBoundVendorJourneyMessages(t *testing.T) {
 	t.Parallel()
 

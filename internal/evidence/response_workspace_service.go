@@ -44,7 +44,10 @@ func (service *DistributionAccessService) SaveResponseWorkspace(ctx context.Cont
 		Input:   input,
 		Now:     service.currentTime(),
 		Validate: func(answers map[string]formcontract.AnswerValue) error {
-			return validator.ValidateWorkspaceAnswers(ctx, session, request, answers, false)
+			if err := validator.ValidateWorkspaceAnswers(ctx, session, request, answers, false); err != nil {
+				return fmt.Errorf("%w: %v", ErrDraftInvalid, err)
+			}
+			return nil
 		},
 	})
 	if err != nil {
@@ -193,6 +196,9 @@ func normalizeWorkspaceError(err error) error {
 		return conflict
 	}
 	if errors.Is(err, ErrWorkspaceConflict) {
+		return err
+	}
+	if errors.Is(err, ErrDraftInvalid) {
 		return err
 	}
 	return ErrWorkspaceUnavailable

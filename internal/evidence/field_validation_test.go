@@ -218,6 +218,27 @@ func TestCapturePhotoMustReferenceArtifactFromExactRequest(t *testing.T) {
 	}
 }
 
+func TestDraftVendorDocumentAllowsAttachmentBeforeMetadataButSubmissionDoesNot(t *testing.T) {
+	service, repo, now := testCaptureService()
+	request, err := service.CreateRequest(context.Background(), testRequestInput(now, []Field{{
+		ID: "addendum", Label: "Signed right-to-audit addendum", Type: "vendor_document", Required: true, AcceptedFormats: []string{"application/pdf"},
+	}}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifact := Artifact{ID: "addendum-pdf", TenantID: "bank", RequestID: request.ID, FileName: "addendum.pdf", MediaType: "application/pdf", SizeBytes: 1200, SHA256: "addendum", StorageKey: "addendum", Status: ArtifactStoredUnscanned, CreatedAt: now}
+	if _, err := repo.CreateArtifact(context.Background(), artifact); err != nil {
+		t.Fatal(err)
+	}
+	answers := map[string]formcontract.AnswerValue{"addendum": {Document: &formcontract.DocumentAnswer{ArtifactID: artifact.ID}}}
+	if err := service.validateDraftAnswers(context.Background(), request, answers); err != nil {
+		t.Fatalf("draft should retain an uploaded document while its type is still being completed: %v", err)
+	}
+	if err := service.validateAnswers(context.Background(), request, answers); err == nil || !strings.Contains(err.Error(), "requires one uploaded document and its type") {
+		t.Fatalf("submission should still require document metadata, got %v", err)
+	}
+}
+
 func TestCaptureFilesEnforceMinimumCountAndCombinedSizeAtSubmission(t *testing.T) {
 	service, repo, now := testCaptureService()
 	minimum, maximum := 2, 3

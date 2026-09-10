@@ -54,3 +54,27 @@ func TestRenderEmailPresentationRejectsUnsafeOrAmbiguousAction(t *testing.T) {
 		})
 	}
 }
+
+func TestRenderEmailPresentationAllowsLoopbackHTTPOnlyWhenEnabledForDevelopment(t *testing.T) {
+	t.Parallel()
+
+	for name, test := range map[string]struct {
+		url   string
+		allow bool
+		want  bool
+	}{
+		"development localhost": {url: "http://localhost:5173/respond#form_access=opaque", allow: true, want: true},
+		"development loopback":  {url: "http://127.0.0.1:5173/respond#form_access=opaque", allow: true, want: true},
+		"production localhost":  {url: "http://localhost:5173/respond#form_access=opaque", allow: false, want: false},
+		"development remote":    {url: "http://forms.example.test/respond#form_access=opaque", allow: true, want: false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := renderEmailPresentation(emailPresentationInput{
+				Heading: "Review request", Intro: "Complete the request.", ActionLabel: "Open request", ActionURL: test.url, AllowInsecureLocalhost: test.allow,
+			})
+			if (err == nil) != test.want {
+				t.Fatalf("render error = %v, want success %t", err, test.want)
+			}
+		})
+	}
+}

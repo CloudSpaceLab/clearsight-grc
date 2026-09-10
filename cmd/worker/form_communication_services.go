@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
@@ -46,11 +47,15 @@ func buildFormCommunicationWorker(cfg config.Config, pool *pgxpool.Pool, evidenc
 		return nil, nil, err
 	}
 	communications := evidence.NewCommunicationService(evidence.NewPostgresCommunicationStore(evidenceRepo))
-	worker, err := evidence.NewCommunicationDeliveryWorker(
+	workerBuilder := evidence.NewCommunicationDeliveryWorker
+	if strings.EqualFold(cfg.Environment, "development") {
+		workerBuilder = evidence.NewDevelopmentCommunicationDeliveryWorker
+	}
+	worker, err := workerBuilder(
 		evidence.NewPostgresCommunicationDeliveryRepository(evidenceRepo),
 		communications,
 		access,
-		evidence.NewInvitationDeliveryService(adapter),
+		communicationDeliveryService(cfg, adapter),
 		cfg.CapturePublicBaseURL,
 	)
 	if err != nil {
@@ -58,4 +63,11 @@ func buildFormCommunicationWorker(cfg config.Config, pool *pgxpool.Pool, evidenc
 	}
 	reminders := evidence.NewCommunicationReminderScheduler(evidence.NewPostgresCommunicationReminderRepository(pool))
 	return worker, reminders, nil
+}
+
+func communicationDeliveryService(cfg config.Config, adapter evidence.InvitationDelivery) *evidence.InvitationDeliveryService {
+	if strings.EqualFold(cfg.Environment, "development") {
+		return evidence.NewDevelopmentInvitationDeliveryService(adapter)
+	}
+	return evidence.NewInvitationDeliveryService(adapter)
 }

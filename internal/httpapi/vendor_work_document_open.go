@@ -24,6 +24,10 @@ func (a *API) openVendorWorkDocument(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to open this document.")
 		return
 	}
+	if err := service.AuthorizeResponseReview(r.Context(), actor, r.PathValue("request_id")); err != nil {
+		writeVendorWorkError(w, err)
+		return
+	}
 	view, err := service.Response(r.Context(), actor, r.PathValue("request_id"))
 	captureRequestID := r.PathValue("capture_request_id")
 	if err != nil || view.Work.RelationshipID != r.PathValue("id") || !vendorWorkDocumentAvailable(view, captureRequestID, r.PathValue("artifact_id")) {

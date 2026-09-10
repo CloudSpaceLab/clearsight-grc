@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
@@ -193,6 +194,37 @@ func TestVendorWorkAcceptanceBlockedReturnsActionableConflict(t *testing.T) {
 	if body.Error != "vendor_work_acceptance_blocked" || body.Message != "A submitted document is pending inspection, quarantined or unavailable. Wait for inspection or request a replacement before accepting this response." {
 		t.Fatalf("error = %#v", body)
 	}
+}
+
+func TestVendorWorkRecipientMismatchExplainsHowToRecover(t *testing.T) {
+	response := httptest.NewRecorder()
+	writeVendorWorkError(response, thirdparty.ErrVendorWorkRecipientMismatch)
+	if response.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	var body struct {
+		Error   string `json:"error"`
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Error != "vendor_work_recipient_mismatch" || body.Message != "Enter the contact used when this request was created. Create a new request if the vendor contact has changed." {
+		t.Fatalf("error = %#v", body)
+	}
+}
+
+func TestRetryVendorWorkRouteRequiresOwnerMaterialAuthority(t *testing.T) {
+	routes := (&API{}).routes()
+	for _, route := range routes {
+		if route.Method == http.MethodPost && route.Path == "/api/v1/vendors/{id}/work/{request_id}/retry" {
+			if route.Class != routeMaterialCommand || route.Command == nil || route.Command.Name != "thirdparty.work.retry" || route.Command.Policy.ObjectType != "VENDOR_RELATIONSHIP" || route.Command.Policy.Responsibility != authority.ResponsibilityOwner {
+				t.Fatalf("retry route = %#v", route)
+			}
+			return
+		}
+	}
+	t.Fatal("vendor work retry route is missing")
 }
 
 func jsonNumber(value int64) string { raw, _ := json.Marshal(value); return string(raw) }
