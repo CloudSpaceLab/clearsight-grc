@@ -125,8 +125,8 @@ func buildThirdPartySemanticForm(group sourceRecordGroup) (monitoring.CreateForm
 		responseID := fmt.Sprintf("requirement_%d_response", index+1)
 		evidenceID := fmt.Sprintf("requirement_%d_evidence", index+1)
 		input.Fields = append(input.Fields,
-			formcontract.Field{ID: responseID, SectionID: sectionID, Label: sourceShort(requirement.Finding, 200), Type: formcontract.TypeLongText, Required: true, Description: "Vendor response", Assessment: &formcontract.FieldAssessment{Mode: formcontract.AssessmentManual, Required: true, Weight: 20, ReviewerRole: "REVIEWER", Rubric: thirdPartyReviewRubric()}},
-			formcontract.Field{ID: evidenceID, SectionID: sectionID, Label: requirement.EvidenceLabel, Type: formcontract.TypeVendorDocument, Description: "Supporting evidence"},
+			formcontract.Field{ID: responseID, SectionID: sectionID, Label: sourceShort(requirement.Finding, 200), Type: formcontract.TypeLongText, Description: "Vendor response · Service: " + requirement.Service, Assessment: &formcontract.FieldAssessment{Mode: formcontract.AssessmentManual, Required: true, Weight: 20, ReviewerRole: "REVIEWER", Rubric: thirdPartyReviewRubric()}},
+			formcontract.Field{ID: evidenceID, SectionID: sectionID, Label: requirement.EvidenceLabel, Type: formcontract.TypeVendorDocument, Description: "Supporting evidence · Service: " + requirement.Service},
 		)
 		if requirement.VendorResponse != "" {
 			answers[responseID] = formcontract.TextAnswer(requirement.VendorResponse)

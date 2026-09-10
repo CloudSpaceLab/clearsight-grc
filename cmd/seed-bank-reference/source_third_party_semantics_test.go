@@ -40,6 +40,9 @@ func TestThirdPartySemanticCaptureSeparatesAnswersAssessmentsAndAssignments(t *t
 	if len(form.Fields) != 4 || len(form.Sections) != 2 {
 		t.Fatalf("fields=%d sections=%d", len(form.Fields), len(form.Sections))
 	}
+	if !strings.Contains(form.Fields[0].Description, "Service: Moneytor GetPaid application") || !strings.Contains(form.Fields[2].Description, "Service: Payment Terminal Service Provider (PTSP)") {
+		t.Fatalf("service context missing from semantic fields: %+v", form.Fields)
+	}
 	if len(answers) != 1 {
 		t.Fatalf("answers=%d, want only the recorded vendor response", len(answers))
 	}

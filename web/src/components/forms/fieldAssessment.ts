@@ -12,7 +12,7 @@ export function needsBankReview(field: FormTemplateField) {
 }
 
 export function fieldAssessmentLabel(field: FormTemplateField) {
-  if (!field.assessment) return field.scoring ? "Automatic rules" : "Existing form rules";
+  if (!field.assessment) return field.scoring ? "Automatic rules" : "";
   return assessmentModes.find((mode) => mode.id === field.assessment?.mode)?.label ?? "Assessment unavailable";
 }
 

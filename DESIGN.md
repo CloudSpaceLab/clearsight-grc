@@ -10,6 +10,8 @@ Forms library rows expose a server-authorized Edit draft or Edit form action alo
 
 Vendor form work follows the [8 September field assessment decision brief](docs/design/2026-09-08-vendor-field-assessment.md): compact vendor status links, separate completion and risk, side-by-side submitted answer/bank judgement with narrow-sheet stacking, and explicit per-vendor request confirmation. Existing tokens and variants apply; fixture and render requirements are in the brief.
 
+Imported third-party registers follow the [10 September semantic capture design](docs/superpowers/specs/2026-09-10-third-party-semantic-capture-design.md). Vendor responses and requested evidence are grouped by service with stored counts; internal assessor, accountable function, action performer, source rating and deadline remain internal finding or action metadata. The response summary uses four metric cards, compact service navigation and disclosure rows. Four columns become two at 700px and one at 420px; disclosure summaries and answer/evidence detail become one column at 700px. Existing surface, status, focus and spacing tokens remain authoritative. No new palette, motion or density mode is introduced.
+
 ClearSight is repeated-use operating software for bank executives, risk and compliance leaders, reviewers, authorizers, business owners, administrators and invited respondents. It should feel calm, exact, premium and institutional—not theatrical, playful or generic.
 
 The interface optimizes for:
