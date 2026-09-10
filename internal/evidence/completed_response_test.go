@@ -19,6 +19,7 @@ func TestMemoryCompletedResponsesIsolateFilterAndUseStableCursor(t *testing.T) {
 	store := NewMemoryDistributionStore(repo, nil, nil)
 	store.distributions = map[string]FormDistribution{
 		"distribution-a":          {ID: "distribution-a", TenantID: "tenant-a", LegalEntityID: "entity-a", FormTemplateID: "form-a", FormTemplateVersion: 3, SubjectType: "PROGRAM", SubjectID: "program-visible", Title: "Vendor certification refresh"},
+		"distribution-retired":    {ID: "distribution-retired", TenantID: "tenant-a", LegalEntityID: "entity-a", FormTemplateID: "form-a", FormTemplateVersion: 3, SubjectType: "PROGRAM", SubjectID: "program-visible", Title: "Retired response", Status: DistributionRevoked},
 		"distribution-restricted": {ID: "distribution-restricted", TenantID: "tenant-a", LegalEntityID: "entity-a", FormTemplateID: "form-a", FormTemplateVersion: 3, SubjectType: "PROGRAM", SubjectID: "program-restricted", Title: "Restricted response"},
 		"distribution-b":          {ID: "distribution-b", TenantID: "tenant-a", LegalEntityID: "entity-b", FormTemplateID: "form-a", FormTemplateVersion: 3, SubjectType: "VENDOR", SubjectID: "vendor-b", Title: "Other entity response"},
 	}
@@ -30,6 +31,7 @@ func TestMemoryCompletedResponsesIsolateFilterAndUseStableCursor(t *testing.T) {
 			completedRevision("response-1", "tenant-a", "entity-a", "distribution-a", base.Add(time.Minute), 72, formcontract.ConcernHigh),
 			completedRevision("response-low", "tenant-a", "entity-a", "distribution-a", base, 20, formcontract.ConcernLow),
 		},
+		"distribution-retired":    {completedRevision("response-retired", "tenant-a", "entity-a", "distribution-retired", base.Add(6*time.Minute), 100, formcontract.ConcernCritical)},
 		"distribution-restricted": {completedRevision("response-restricted", "tenant-a", "entity-a", "distribution-restricted", base.Add(5*time.Minute), 100, formcontract.ConcernCritical)},
 		"distribution-b":          {completedRevision("response-other-entity", "tenant-a", "entity-b", "distribution-b", base.Add(4*time.Minute), 99, formcontract.ConcernCritical)},
 	}
@@ -63,6 +65,10 @@ func TestMemoryCompletedResponsesIsolateFilterAndUseStableCursor(t *testing.T) {
 	}
 	if _, _, err := store.GetCompletedResponse(context.Background(), "tenant-a", "entity-a", "principal-a", "response-restricted"); err != ErrNotFound {
 		t.Fatalf("restricted response detail leaked: %v", err)
+	}
+	retired, _, err := store.GetCompletedResponse(context.Background(), "tenant-a", "entity-a", "principal-a", "response-retired")
+	if err != nil || retired.Current {
+		t.Fatalf("retired response presented as current: %+v %v", retired, err)
 	}
 	workerValue, err := store.GetCompletedResponseForExecution(context.Background(), "tenant-a", "response-restricted")
 	if err != nil || workerValue.ID != "response-restricted" || workerValue.LegalEntityID != "entity-a" || workerValue.Score == nil {
