@@ -666,6 +666,22 @@ func (a *API) addMatterComment(w http.ResponseWriter, r *http.Request) {
 		writeContinuityError(w, continuity.ErrNotFound)
 		return
 	}
+	if len(input.MentionedPrincipalIDs) > 25 {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_mention", "A comment can mention up to 25 colleagues.")
+		return
+	}
+	if len(input.MentionedPrincipalIDs) > 0 {
+		if a.deps.Access == nil {
+			httpx.WriteError(w, http.StatusServiceUnavailable, "directory_unavailable", "Colleagues cannot be mentioned while staff identity is unavailable.")
+			return
+		}
+		for _, principalID := range input.MentionedPrincipalIDs {
+			if _, err := a.deps.Access.ResolvePrincipal(r.Context(), actor.TenantID, strings.TrimSpace(principalID), actor.LegalEntityID); err != nil || !continuity.MatterVisibleTo(aggregate.Matter, strings.TrimSpace(principalID)) {
+				httpx.WriteError(w, http.StatusBadRequest, "invalid_mention", "Each mentioned colleague must have access to this issue.")
+				return
+			}
+		}
+	}
 	input.TenantID = actor.TenantID
 	value, err := service.AddMatterComment(r.Context(), input)
 	writeContinuityResult(w, value, err, http.StatusCreated)

@@ -53,7 +53,10 @@
 .matter-readonly-next { display: grid; gap: 5px; max-width: 290px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .matter-readonly-next span { color: var(--muted); font-size: .75rem; line-height: 1.45; }
 
-.matter-record-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.matter-workspace-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .42fr); gap: 16px; align-items: start; }
+.matter-workspace-main { min-width: 0; }
+.matter-workspace-tab-content { display: grid; gap: 16px; margin-top: 16px; }
+.matter-workspace-tab-content .matter-record-panel { width: 100%; }
 .matter-record-panel { min-width: 0; padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 .matter-record-section-heading { display: flex; justify-content: space-between; gap: 16px; align-items: start; margin-bottom: 12px; }
 .matter-record-section-heading h2 { margin: 5px 0 0; font-size: 1.05rem; }
@@ -114,6 +117,26 @@
 .matter-action-deadline.is-overdue { color: var(--coral); font-weight: 750; }
 .matter-action-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .matter-action-controls button { min-height: 40px; }
+.matter-activity { position: sticky; top: 18px; display: grid; gap: 14px; min-width: 0; max-height: calc(100vh - 36px); overflow: auto; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.matter-activity header { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+.matter-activity header h2 { margin: 5px 0 0; font-size: 1.05rem; }
+.matter-activity header > span { color: var(--muted); font-size: .75rem; white-space: nowrap; }
+.matter-activity-composer { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.matter-activity-composer .cs-field { min-width: 0; }
+.matter-activity-composer button { justify-self: start; min-height: 40px; }
+.matter-comment-mentions { display: grid; gap: 8px; }
+.matter-comment-mentions label { display: grid; gap: 5px; color: var(--muted); font-size: .75rem; }
+.matter-comment-mentions select { width: 100%; min-height: 38px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
+.matter-comment-mention-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.matter-comment-mention-list button { min-height: 30px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font-size: .72rem; }
+.matter-activity-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.matter-activity-list > li { position: relative; display: grid; gap: 7px; padding: 0 0 18px 18px; border-left: 2px solid var(--border); }
+.matter-activity-list > li::before { position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border: 2px solid var(--surface); border-radius: 50%; background: var(--cyan); content: ""; }
+.matter-activity-list > li:last-child { padding-bottom: 0; }
+.matter-activity-entry-heading { display: flex; justify-content: space-between; gap: 8px; font-size: .8rem; }
+.matter-activity-entry-heading time, .matter-activity-list small, .matter-activity-state { color: var(--muted); font-size: .72rem; }
+.matter-activity-list p { margin: 0; color: var(--text); font-size: .82rem; line-height: 1.45; overflow-wrap: anywhere; }
+.matter-activity-list small { font-weight: 650; }
 .matter-outcome-list { display: grid; gap: 12px; }
 .matter-outcome-card { padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
 .matter-outcome-card > button { min-height: 40px; margin-top: 12px; }
@@ -142,7 +165,8 @@
 @media (max-width: 900px) {
   .matter-record-header,
   .matter-current-handoff,
-  .matter-record-grid { grid-template-columns: 1fr; }
+  .matter-workspace-layout { grid-template-columns: 1fr; }
+  .matter-activity { position: static; max-height: none; }
   .matter-dominant-next { justify-items: start; }
 }
 
@@ -170,6 +194,9 @@
   .matter-action-state { justify-content: flex-start; }
   .matter-action-controls { display: grid; }
   .matter-action-controls button { width: 100%; min-height: 44px; }
+  .matter-activity { padding: 16px; }
+  .matter-activity header { display: grid; }
+  .matter-activity-composer button { width: 100%; }
   .matter-outcome-meta { grid-template-columns: 1fr; }
   .matter-outcome-card > button,
   .matter-status-button { width: 100%; min-height: 44px; }

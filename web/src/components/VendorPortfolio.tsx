@@ -31,7 +31,8 @@ export function VendorPortfolio({ records, hasMore, onOpenMatter, detail = false
   const [vendor, setVendor] = useState(initialView.vendor);
   const [owner, setOwner] = useState(initialView.owner);
   const [rating, setRating] = useState(initialView.rating);
-  const [limit, setLimit] = useState(20);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
   const list = useRef<HTMLElement>(null);
   const ids = records.map(record => record.relationship.id).join(",");
 
@@ -65,9 +66,13 @@ export function VendorPortfolio({ records, hasMore, onOpenMatter, detail = false
     return (!vendor || linked.some(record => record.vendor.id === vendor)) && (!owner || row.owner === owner) && (!rating || row.sourceRating === rating);
   });
   const sampleData = allRows.some(row => row.item.record.matter.known_facts?.sample === true);
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const visibleRows = rows.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
 
   function select(value: VendorExceptionFilter) {
-    setFilter(value); setLimit(20);
+    setFilter(value); setPage(1);
     list.current?.scrollIntoView?.({ block: "start" });
   }
 
@@ -104,9 +109,9 @@ export function VendorPortfolio({ records, hasMore, onOpenMatter, detail = false
         </div>
         <label className="vendor-mobile-status-filter">Status<select aria-label="Exception status" value={filter} onChange={event => select(event.target.value as VendorExceptionFilter)}><option value="ATTENTION">Needs attention</option><option value="OVERDUE">Overdue</option><option value="OPEN">All open</option><option value="ALL">All exceptions</option></select></label>
         <div className="vendor-facet-filters">
-          <label>Vendor<select aria-label="Vendor" value={vendor} onChange={event => { setVendor(event.target.value); setLimit(20); }}><option value="">All vendors</option>{vendorOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
-          <label>Owner<select aria-label="Owner" value={owner} onChange={event => { setOwner(event.target.value); setLimit(20); }}><option value="">All owners</option>{ownerOptions.map(value => <option key={value}>{value}</option>)}</select></label>
-          <label>Source rating<select aria-label="Source rating" value={rating} onChange={event => { setRating(event.target.value); setLimit(20); }}><option value="">All ratings</option>{ratingOptions.map(value => <option key={value}>{value}</option>)}</select></label>
+          <label>Vendor<select aria-label="Vendor" value={vendor} onChange={event => { setVendor(event.target.value); setPage(1); }}><option value="">All vendors</option>{vendorOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+          <label>Owner<select aria-label="Owner" value={owner} onChange={event => { setOwner(event.target.value); setPage(1); }}><option value="">All owners</option>{ownerOptions.map(value => <option key={value}>{value}</option>)}</select></label>
+          <label>Source rating<select aria-label="Source rating" value={rating} onChange={event => { setRating(event.target.value); setPage(1); }}><option value="">All ratings</option>{ratingOptions.map(value => <option key={value}>{value}</option>)}</select></label>
         </div>
       </header>
 
@@ -116,7 +121,7 @@ export function VendorPortfolio({ records, hasMore, onOpenMatter, detail = false
       {!loading && !error && rows.length === 0 && <p className="vendor-queue-state">No vendor exceptions match the current filters.</p>}
 
       <ol className="vendor-exception-list">
-        {rows.slice(0, limit).map(row => {
+        {visibleRows.map(row => {
           const { record, relationshipIDs } = row.item;
           const services = records.filter(item => relationshipIDs.includes(item.relationship.id));
           return <li key={record.matter.id} className={`vendor-exception-row vendor-exception-row--${row.band.toLowerCase()}`}>
@@ -131,7 +136,7 @@ export function VendorPortfolio({ records, hasMore, onOpenMatter, detail = false
           </li>;
         })}
       </ol>
-      {rows.length > limit && <Button onPress={() => setLimit(value => value + 20)}>Load more exceptions</Button>}
+      {rows.length > pageSize && <nav className="vendor-exception-pagination" aria-label="Exception pages"><Button variant="secondary" isDisabled={page === 1} onPress={() => { setPage(value => value - 1); list.current?.scrollIntoView?.({ block: "start" }); }}>Previous</Button><span>Page {page} of {pageCount}</span><Button variant="secondary" isDisabled={page === pageCount} onPress={() => { setPage(value => value + 1); list.current?.scrollIntoView?.({ block: "start" }); }}>Next</Button></nav>}
       {!!totals?.implementedActions && <p className="vendor-queue-state">{totals.implementedActions} implemented {totals.implementedActions === 1 ? "action requires" : "actions require"} outcome verification.</p>}
     </section>
   </section>;

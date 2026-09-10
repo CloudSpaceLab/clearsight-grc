@@ -4,6 +4,7 @@ import { apiErrorKind } from "../http";
 import { assignMatterAction, updateMatterAction } from "../matterOperationsApi";
 import type { MatterOperation } from "../matterOperationsApi";
 import { addMatterAction, transitionMatterAction } from "../continuityCommands";
+import { requestMatterActionUpdate } from "../matterCollaborationApi";
 import type { MatterAction, MatterAggregate, RecordResponsibleParty } from "../types";
 import { actionDeadlinePresentation, selectedDateEndOfLocalDay, storedDeadlineLocalDate } from "../dueDate";
 import { Button, FocusedSheet, Notice, SelectField, StatusBadge, TextArea } from "./ui";
@@ -17,7 +18,7 @@ type Props = {
   onReload: () => void;
 };
 
-type Active = { kind: "add" } | { kind: "edit" | "assign" | "status"; actionID: string } | null;
+type Active = { kind: "add" } | { kind: "edit" | "assign" | "status" | "request"; actionID: string } | null;
 
 function operationFor(operations: MatterOperation[], command: string, actionID?: string) {
   return operations.find((operation) => operation.command === command && (actionID === undefined || operation.subresource_id === actionID));
@@ -47,6 +48,8 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
   const [date, setDate] = useState("");
   const [target, setTarget] = useState("");
   const [rationale, setRationale] = useState("");
+  const [requestMessage, setRequestMessage] = useState("");
+  const [requestDueDate, setRequestDueDate] = useState("");
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -59,11 +62,15 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
     setOwner(addOperation?.candidates?.[0]?.id ?? aggregate.matter.owner_principal_id ?? "");
   }
 
-  function startAction(kind: "edit" | "assign" | "status", action: MatterAction) {
+  function startAction(kind: "edit" | "assign" | "status" | "request", action: MatterAction) {
     setActive({ kind, actionID: action.id }); setTitle(action.title); setDescription(action.description); setDate(storedDeadlineLocalDate(action.due_at)); setRationale(""); setError(""); setNotice("");
-    const operation = operationFor(operations, kind === "assign" ? "matter.action.assign" : kind === "status" ? "matter.action.transition" : "matter.action.update", action.id);
+    const operation = operationFor(operations, kind === "assign" ? "matter.action.assign" : kind === "status" ? "matter.action.transition" : kind === "request" ? "matter.action.update.request" : "matter.action.update", action.id);
     setOwner(kind === "assign" ? "" : operation?.candidates?.[0]?.id ?? action.owner_principal_id ?? "");
     setTarget(operation?.allowed_targets?.[0] ?? "");
+    if (kind === "request") {
+      setRequestMessage("Please confirm the current status, expected completion date and any blocker.");
+      setRequestDueDate("");
+    }
   }
 
   function handleError(cause: unknown) {
@@ -84,18 +91,20 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
         updated = await updateMatterAction(aggregate.matter.id, active.actionID, aggregate.matter.version, { title: title.trim(), description: description.trim(), dueAt: selectedDateEndOfLocalDay(date), rationale: rationale.trim() });
       } else if (active.kind === "assign") {
         updated = await assignMatterAction(aggregate.matter.id, active.actionID, aggregate.matter.version, owner, rationale.trim());
-      } else {
+      } else if (active.kind === "status") {
         updated = await transitionMatterAction(aggregate.matter.id, active.actionID, aggregate.matter.version, target, rationale.trim());
+      } else {
+        updated = await requestMatterActionUpdate(aggregate.matter.id, active.actionID, aggregate.matter.version, requestMessage.trim(), selectedDateEndOfLocalDay(requestDueDate));
       }
       const completedKind = active.kind;
       await onUpdated(updated);
       setActive(null);
-      setNotice(completedKind === "add" ? "Action added." : completedKind === "assign" ? "Action owner updated." : completedKind === "status" ? "Action status updated." : "Action updated.");
+      setNotice(completedKind === "add" ? "Action added." : completedKind === "assign" ? "Action owner updated." : completedKind === "status" ? "Action status updated." : completedKind === "request" ? "Status update requested." : "Action updated.");
     } catch (cause) { handleError(cause); } finally { setSaving(false); }
   }
 
   const activeAction = active && active.kind !== "add" ? actionFor(active.actionID) : undefined;
-  const activeOperation = active && active.kind !== "add" ? operationFor(operations, active.kind === "edit" ? "matter.action.update" : active.kind === "assign" ? "matter.action.assign" : "matter.action.transition", active.actionID) : addOperation;
+  const activeOperation = active && active.kind !== "add" ? operationFor(operations, active.kind === "edit" ? "matter.action.update" : active.kind === "assign" ? "matter.action.assign" : active.kind === "request" ? "matter.action.update.request" : "matter.action.transition", active.actionID) : addOperation;
   const candidates = activeOperation?.candidates ?? addOperation?.candidates ?? [];
   const activePerformerOperation = activeAction ? operationFor(operations, "matter.action.transition", activeAction.id) : undefined;
   const activeResponsibility = activeAction?.required_responsibility || "PERFORMER";
@@ -111,6 +120,7 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
       const editOperation = operationFor(operations, "matter.action.update", action.id);
       const assignOperation = operationFor(operations, "matter.action.assign", action.id);
       const statusOperation = operationFor(operations, "matter.action.transition", action.id);
+      const requestOperation = operationFor(operations, "matter.action.update.request", action.id);
       const terminal = ["IMPLEMENTED", "CANCELLED"].includes(action.status);
       const deadline = actionDeadlinePresentation(action.due_at, terminal);
       const actionResponsibility = action.required_responsibility || "PERFORMER";
@@ -123,12 +133,13 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
         {!active && <div className="matter-action-controls">
           {editOperation?.can_act && !terminal && <button id={matterOperationControlID(editOperation)} className="secondary-button" type="button" aria-label={`Edit ${action.title}`} onClick={() => startAction("edit", action)}>Edit action</button>}
           {assignOperation?.can_act && !terminal && <button id={matterOperationControlID(assignOperation)} className="secondary-button" type="button" aria-label={`Change owner for ${action.title}`} onClick={() => startAction("assign", action)}>Change owner</button>}
+          {requestOperation?.can_act && !terminal && <button id={matterOperationControlID(requestOperation)} className="secondary-button" type="button" aria-label={`Request update for ${action.title}`} onClick={() => startAction("request", action)}>Request update</button>}
           {statusOperation?.can_act && !terminal && <button id={matterOperationControlID(statusOperation)} className="secondary-button" type="button" aria-label={`Update status for ${action.title}`} onClick={() => startAction("status", action)}>Update status</button>}
         </div>}
         {!statusOperation?.can_act && statusOperation?.reason && <p className="matter-operation-reason">{statusOperation.reason}</p>}
       </section>;
     })}</div> : <p>No actions have been recorded for this issue.</p>}
-    {active && active.kind !== "assign" && <form className="matter-operation-form" onSubmit={submit}>
+    {active && active.kind !== "assign" && active.kind !== "request" && <form className="matter-operation-form" onSubmit={submit}>
       {(active.kind === "add" || active.kind === "edit") && <><label><span>Action title</span><input value={title} onChange={(event) => setTitle(event.target.value)} required/></label><label className="wide"><span>Action description</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} required/></label><label><span>Action due date</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)}/></label></>}
       {active.kind === "add" && <label><span>Action owner</span><select value={owner} onChange={(event) => setOwner(event.target.value)} required><option value="">Select an eligible performer</option>{candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.display_name} · {candidate.role}</option>)}</select></label>}
       {active.kind === "status" && <label><span>Next action status</span><select value={target} onChange={(event) => setTarget(event.target.value)} required>{activeOperation?.allowed_targets?.map((value) => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label>}
@@ -147,6 +158,16 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
         <TextArea label="Reason for action reassignment" value={rationale} onChange={setRationale} rows={3} isRequired description="This reason remains with the action assignment history."/>
         {error && <Notice tone="error"><span>{error}</span>{conflict && <Button variant="secondary" onPress={onReload}>Reload current issue</Button>}</Notice>}
         <div className="cs-sheet-actions"><Button type="button" variant="quiet" isDisabled={saving} onPress={() => setActive(null)}>Cancel</Button><Button type="submit" variant="primary" isDisabled={!owner || !rationale.trim()} isLoading={saving}>Assign action owner</Button></div>
+      </form>
+    </FocusedSheet>}
+    {active?.kind === "request" && <FocusedSheet label="Request action update" closeLabel="Close update request" onClose={() => setActive(null)}>
+      <div className="cs-sheet-heading"><span className="eyebrow">Action follow-up</span><h2>Request a status update</h2><p>The assigned performer receives an email request and can report progress or a blocker in the issue activity.</p></div>
+      <form className="cs-sheet-form" onSubmit={submit}>
+        <dl className="cs-sheet-facts"><div><dt>Action</dt><dd>{activeAction?.title ?? "Selected action"}</dd></div><div><dt>Assigned performer</dt><dd>{currentPerformerName ?? "Recorded performer unavailable"}</dd></div></dl>
+        <TextArea label="Update requested" value={requestMessage} onChange={setRequestMessage} rows={4} isRequired description="Ask for the status, expected completion date or blocker needed for the next decision."/>
+        <label className="cs-sheet-date"><span>Response due date</span><input type="date" value={requestDueDate} onChange={(event) => setRequestDueDate(event.target.value)}/></label>
+        {error && <Notice tone="error"><span>{error}</span>{conflict && <Button variant="secondary" onPress={onReload}>Reload current issue</Button>}</Notice>}
+        <div className="cs-sheet-actions"><Button type="button" variant="quiet" isDisabled={saving} onPress={() => setActive(null)}>Cancel</Button><Button type="submit" variant="primary" isDisabled={!requestMessage.trim()} isLoading={saving}>Send update request</Button></div>
       </form>
     </FocusedSheet>}
     {notice && <Notice tone="success">{notice}</Notice>}
