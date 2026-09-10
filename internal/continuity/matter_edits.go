@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
 
 type MatterContextChangeKind string
@@ -80,6 +82,26 @@ type AssignActionInput struct {
 	Rationale                   string `json:"rationale"`
 	ReassignmentBasis           string `json:"reassignment_basis,omitempty"`
 	OrganizationPositionVersion int64  `json:"organization_position_version,omitempty"`
+}
+
+type AddMatterCommentInput struct {
+	TenantID              string   `json:"tenant_id"`
+	MatterID              string   `json:"matter_id"`
+	ExpectedVersion       int64    `json:"expected_version"`
+	ActorID               string   `json:"actor_id,omitempty"`
+	ActionID              string   `json:"action_id,omitempty"`
+	Body                  string   `json:"body"`
+	MentionedPrincipalIDs []string `json:"mentioned_principal_ids,omitempty"`
+}
+
+type RequestMatterActionUpdateInput struct {
+	TenantID        string     `json:"tenant_id"`
+	MatterID        string     `json:"matter_id"`
+	ActionID        string     `json:"action_id"`
+	ExpectedVersion int64      `json:"expected_version"`
+	ActorID         string     `json:"actor_id,omitempty"`
+	Message         string     `json:"message,omitempty"`
+	DueAt           *time.Time `json:"due_at,omitempty"`
 }
 
 type matterDetailsUpdatedEvent struct {
@@ -394,6 +416,74 @@ func (s *Service) AssignAction(ctx context.Context, input AssignActionInput) (Ma
 		OrganizationPositionVersion: input.OrganizationPositionVersion,
 	}
 	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventActionAssigned, value, input.ActorID)
+}
+
+func (s *Service) AddMatterComment(ctx context.Context, input AddMatterCommentInput) (MatterAggregate, error) {
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	if err != nil {
+		return MatterAggregate{}, err
+	}
+	body := strings.TrimSpace(input.Body)
+	if strings.TrimSpace(input.ActorID) == "" || body == "" || len(body) > 4000 {
+		return MatterAggregate{}, fmt.Errorf("actor_id and a comment up to 4000 characters are required")
+	}
+	if input.ActionID != "" && !containsAction(aggregate.Actions, input.ActionID) {
+		return MatterAggregate{}, fmt.Errorf("action_id does not belong to this matter")
+	}
+	mentions := uniquePrincipalIDs(input.MentionedPrincipalIDs)
+	if len(mentions) > 25 {
+		return MatterAggregate{}, fmt.Errorf("a comment can mention at most 25 people")
+	}
+	valueID, err := id.NewUUIDv7()
+	if err != nil {
+		return MatterAggregate{}, err
+	}
+	value := MatterComment{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, ActionID: strings.TrimSpace(input.ActionID), Body: body, MentionedPrincipalIDs: mentions, CreatedAt: s.now().UTC()}
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterCommentAdded, value, input.ActorID)
+}
+
+func (s *Service) RequestMatterActionUpdate(ctx context.Context, input RequestMatterActionUpdateInput) (MatterAggregate, error) {
+	aggregate, err := s.matterForMutation(ctx, input.TenantID, input.MatterID, input.ExpectedVersion)
+	if err != nil {
+		return MatterAggregate{}, err
+	}
+	if strings.TrimSpace(input.ActorID) == "" {
+		return MatterAggregate{}, fmt.Errorf("actor_id is required")
+	}
+	action, err := findAction(aggregate.Actions, input.ActionID)
+	if err != nil {
+		return MatterAggregate{}, err
+	}
+	if action.Status == ActionImplemented || action.Status == ActionCancelled {
+		return MatterAggregate{}, ErrInvalidState
+	}
+	message := strings.TrimSpace(input.Message)
+	if len(message) > 2000 {
+		return MatterAggregate{}, fmt.Errorf("update request message must not exceed 2000 characters")
+	}
+	valueID, err := id.NewUUIDv7()
+	if err != nil {
+		return MatterAggregate{}, err
+	}
+	value := MatterActionUpdateRequest{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, ActionID: action.ID, Message: message, DueAt: input.DueAt, CreatedAt: s.now().UTC()}
+	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterActionUpdateRequested, value, input.ActorID)
+}
+
+func uniquePrincipalIDs(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
 }
 
 func normalizedJSONObject(value json.RawMessage, fallback string) (json.RawMessage, error) {

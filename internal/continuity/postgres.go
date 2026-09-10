@@ -625,6 +625,10 @@ func programProjectionProgram(event Event) (Program, bool, error) {
 
 func applyMatterProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 	switch event.Type {
+	case EventMatterCommentAdded, EventMatterActionUpdateRequested:
+		// The durable continuity/outbox event is the collaboration record. No
+		// separate mutable projection is required for reconstruction.
+		return nil
 	case EventMatterLinked:
 		var v MatterLink
 		if err := json.Unmarshal(event.Payload, &v); err != nil {

@@ -38,6 +38,8 @@ const (
 	EventMatterOwnerChanged             = "MATTER_OWNER_CHANGED"
 	EventMatterFormApplied              = "MATTER_FORM_RESPONSE_APPLIED"
 	EventMatterFormVerificationDue      = "MATTER_FORM_VERIFICATION_DUE"
+	EventMatterCommentAdded             = "MATTER_COMMENT_ADDED"
+	EventMatterActionUpdateRequested    = "MATTER_ACTION_UPDATE_REQUESTED"
 	EventDecisionAdded                  = "DECISION_ADDED"
 	EventActionAdded                    = "ACTION_ADDED"
 	EventActionStateChanged             = "ACTION_STATE_CHANGED"
@@ -241,6 +243,9 @@ func reconstructMatter(events []Event) (MatterAggregate, error) {
 				return MatterAggregate{}, err
 			}
 			aggregate.Matter = value.Matter
+		case EventMatterCommentAdded, EventMatterActionUpdateRequested:
+			// Collaboration events intentionally leave the material Matter state
+			// unchanged while retaining their own event history.
 		case EventDecisionAdded:
 			var value Decision
 			if err := json.Unmarshal(event.Payload, &value); err != nil {

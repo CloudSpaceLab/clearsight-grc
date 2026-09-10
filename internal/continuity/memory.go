@@ -594,6 +594,8 @@ func applyMatterEventToAggregate(aggregate *MatterAggregate, event Event) error 
 			return err
 		}
 		aggregate.Matter = value.Matter
+	case EventMatterCommentAdded, EventMatterActionUpdateRequested:
+		// Activity-only events advance the record version but not its projection.
 	case EventDecisionAdded:
 		var value Decision
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
