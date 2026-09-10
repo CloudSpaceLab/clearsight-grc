@@ -6,7 +6,7 @@ import { VendorPortfolio } from "./VendorPortfolio";
 const api = vi.hoisted(() => ({ loadVendorRiskWork: vi.fn() }));
 vi.mock("../vendorRiskWork", async original => ({ ...await original<object>(), ...api }));
 const records = [{ vendor: { id: "v1", legal_name: "Sample provider" }, relationship: { id: "r1", service_name: "Payment service" } }] as VendorRelationshipAggregate[];
-const work = { complete: true, checkedAt: "2026-09-10T12:00:00Z", items: [{ relationshipIDs: ["r1"], record: { matter: { id: "finding-1", type: "VENDOR_DEFICIENCY", title: "Contract audit rights missing", status: "TRIAGE", known_facts: { source_file: "Risk register.xlsx", source_rating: "High", source_assessor: "Blessing", source_owner: "Hakeem" }, due_at: "2026-03-31T00:00:00Z" }, status_label: "Initial review", actions: [{ id: "action-1", title: "Agree the audit addendum", status: "PLANNED", due_at: "2026-03-31T00:00:00Z" }] } }] } as unknown as VendorRiskWork;
+const work = { complete: true, checkedAt: "2026-09-10T12:00:00Z", items: [{ relationshipIDs: ["r1"], record: { matter: { id: "finding-1", type: "VENDOR_DEFICIENCY", title: "Contract audit rights missing", status: "TRIAGE", known_facts: { source_file: "Risk register.xlsx", source_rating: "High", source_assessor: "Blessing", source_owner: "Hakeem", source_fields: [{ label: "BUSINESS OWNER", value: "POS Business" }] }, due_at: "2026-03-31T00:00:00Z" }, status_label: "Initial review", actions: [{ id: "action-1", title: "Agree the audit addendum", status: "PLANNED", due_at: "2026-03-31T00:00:00Z" }] } }] } as unknown as VendorRiskWork;
 beforeEach(() => { vi.clearAllMocks(); api.loadVendorRiskWork.mockResolvedValue(work); });
 describe("vendor source-linked portfolio", () => {
   it("shows stored finding/action counts and opens the exact issue", async () => {
@@ -17,6 +17,7 @@ describe("vendor source-linked portfolio", () => {
     expect(within(screen.getByRole("group", { name: "Overdue actions" })).getByText("1")).toBeTruthy();
     expect(screen.getByText("Source rating: High")).toBeTruthy();
     expect(screen.getByText("Internal assessor: Blessing")).toBeTruthy();
+    expect(screen.getByText("Accountable function: POS Business")).toBeTruthy();
     expect(screen.getByText("Action performer: Hakeem")).toBeTruthy();
     expect(screen.queryByText("Source owner: Hakeem")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Review Contract audit rights missing" }));
