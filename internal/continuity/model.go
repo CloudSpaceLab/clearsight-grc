@@ -460,13 +460,14 @@ type MatterComment struct {
 // MatterActionUpdateRequest asks the current performer for a status update.
 // It never transitions the Action or closes the Matter.
 type MatterActionUpdateRequest struct {
-	ID        string     `json:"id"`
-	TenantID  string     `json:"tenant_id"`
-	MatterID  string     `json:"matter_id"`
-	ActionID  string     `json:"action_id"`
-	Message   string     `json:"message,omitempty"`
-	DueAt     *time.Time `json:"due_at,omitempty"`
-	CreatedAt time.Time  `json:"created_at"`
+	ID                   string     `json:"id"`
+	TenantID             string     `json:"tenant_id"`
+	MatterID             string     `json:"matter_id"`
+	ActionID             string     `json:"action_id"`
+	RecipientPrincipalID string     `json:"recipient_principal_id"`
+	Message              string     `json:"message,omitempty"`
+	DueAt                *time.Time `json:"due_at,omitempty"`
+	CreatedAt            time.Time  `json:"created_at"`
 }
 
 type VerificationContract struct {

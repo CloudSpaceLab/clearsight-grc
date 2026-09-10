@@ -131,6 +131,7 @@ func (a *API) buildMatterOperations(ctx context.Context, actor identity.Actor, a
 		}
 		actionResponsibility := authority.Responsibility(continuity.ActionResponsibility(action))
 		add(recordOperationSpec{Command: "matter.action.update", SubresourceID: action.ID, ObjectType: "ACTION", ObjectID: action.ID, Label: "Edit action", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID})
+		add(recordOperationSpec{Command: "matter.action.update.request", SubresourceID: action.ID, ObjectType: "ACTION", ObjectID: action.ID, Label: "Request action update", Responsibility: authority.ResponsibilityOwner, Materiality: max(2, aggregate.Matter.Priority), RequiredPrincipalID: ownerID})
 		add(recordOperationSpec{Command: "matter.action.assign", SubresourceID: action.ID, ObjectType: "ACTION", ObjectID: action.ID, Label: "Change action owner", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: max(3, aggregate.Matter.Priority), RequiredPrincipalID: ownerID, ReassignmentPrincipalID: action.OwnerPrincipalID, IncludeCandidates: true, AssignmentGrantsAccess: true})
 		targets := continuity.AllowedActionTargets(action.Status)
 		allowed := make([]string, len(targets))
@@ -296,7 +297,7 @@ func (a *API) resolveMatterOperations(ctx context.Context, actor identity.Actor,
 
 func matterOperationObjectType(command, subresourceType string) string {
 	switch command {
-	case "matter.action.update", "matter.action.assign", "matter.action.transition":
+	case "matter.action.update", "matter.action.update.request", "matter.action.assign", "matter.action.transition":
 		return "ACTION"
 	case "matter.outcome.supersede", "matter.outcome.retire", "matter.outcome.record":
 		return "VERIFICATION_CONTRACT"

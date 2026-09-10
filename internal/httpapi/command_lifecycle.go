@@ -582,7 +582,7 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 		policy.Materiality = max(policy.Materiality, matterPriority)
 		return policy, nil
 
-	case "matter.action.update":
+	case "matter.action.update", "matter.action.update.request":
 		if aggregate == nil {
 			return policy, nil
 		}

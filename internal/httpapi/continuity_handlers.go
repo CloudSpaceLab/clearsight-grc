@@ -671,6 +671,26 @@ func (a *API) addMatterComment(w http.ResponseWriter, r *http.Request) {
 	writeContinuityResult(w, value, err, http.StatusCreated)
 }
 
+func (a *API) requestMatterActionUpdate(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to request an update.")
+		return
+	}
+	var input continuity.RequestMatterActionUpdateInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.TenantID, input.MatterID, input.ActionID, input.ActorID = actor.TenantID, r.PathValue("id"), r.PathValue("action_id"), actor.PrincipalID
+	value, err := service.RequestMatterActionUpdate(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusCreated)
+}
+
 func (a *API) addMatterLink(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.continuityService(w)
 	if !ok {

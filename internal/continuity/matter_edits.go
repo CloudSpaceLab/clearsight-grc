@@ -457,6 +457,9 @@ func (s *Service) RequestMatterActionUpdate(ctx context.Context, input RequestMa
 	if action.Status == ActionImplemented || action.Status == ActionCancelled {
 		return MatterAggregate{}, ErrInvalidState
 	}
+	if strings.TrimSpace(action.OwnerPrincipalID) == "" {
+		return MatterAggregate{}, fmt.Errorf("an action owner is required before requesting an update")
+	}
 	message := strings.TrimSpace(input.Message)
 	if len(message) > 2000 {
 		return MatterAggregate{}, fmt.Errorf("update request message must not exceed 2000 characters")
@@ -465,7 +468,7 @@ func (s *Service) RequestMatterActionUpdate(ctx context.Context, input RequestMa
 	if err != nil {
 		return MatterAggregate{}, err
 	}
-	value := MatterActionUpdateRequest{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, ActionID: action.ID, Message: message, DueAt: input.DueAt, CreatedAt: s.now().UTC()}
+	value := MatterActionUpdateRequest{ID: valueID, TenantID: input.TenantID, MatterID: input.MatterID, ActionID: action.ID, RecipientPrincipalID: action.OwnerPrincipalID, Message: message, DueAt: input.DueAt, CreatedAt: s.now().UTC()}
 	return s.applyMatterValueAndResult(ctx, aggregate, input.TenantID, input.MatterID, input.ExpectedVersion, EventMatterActionUpdateRequested, value, input.ActorID)
 }
 
