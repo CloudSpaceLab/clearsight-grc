@@ -337,6 +337,42 @@ func (r *PostgresRepository) MatterEvents(ctx context.Context, tenant, id string
 	return r.scanEvents(ctx, query, args...)
 }
 
+func (r *PostgresRepository) MatterEventsPage(ctx context.Context, tenant, id string, beforeVersion int64, limit int) ([]Event, bool, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 50 {
+		limit = 50
+	}
+	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
+	rows, err := r.pool.Query(ctx, `SELECT ce.id::text,t.slug,ce.aggregate_type,ce.aggregate_id::text,ce.aggregate_version,ce.event_type,ce.payload,ce.actor_type,COALESCE(ce.actor_id::text,''),ce.occurred_at
+		FROM continuity_events ce JOIN tenants t ON t.id=ce.tenant_id JOIN matters m ON m.tenant_id=ce.tenant_id AND m.id=ce.aggregate_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND ce.aggregate_type='MATTER' AND ce.aggregate_id=$2::uuid
+		  AND ($3::bigint=0 OR ce.aggregate_version<$3)
+		  AND (NOT $4 OR ((t.id::text=$5 OR t.slug=$5) AND m.legal_entity_id IS NOT NULL AND ($6='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$6 OR le.code=$6) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
+		ORDER BY ce.aggregate_version DESC LIMIT $7`, tenant, id, beforeVersion, enforce, actorTenant, actorEntity, limit+1)
+	if err != nil {
+		return nil, false, err
+	}
+	defer rows.Close()
+	values := make([]Event, 0, limit+1)
+	for rows.Next() {
+		var value Event
+		if err := rows.Scan(&value.ID, &value.TenantID, &value.AggregateType, &value.AggregateID, &value.AggregateVersion, &value.Type, &value.Payload, &value.ActorType, &value.ActorID, &value.OccurredAt); err != nil {
+			return nil, false, err
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false, err
+	}
+	hasMore := len(values) > limit
+	if hasMore {
+		values = values[:limit]
+	}
+	return values, hasMore, nil
+}
+
 func (r *PostgresRepository) ResponsePackageHistory(ctx context.Context, tenant, matterID, responseID string, limit int) ([]ResponseHistoryItem, bool, error) {
 	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
 	rows, err := r.pool.Query(ctx, `SELECT ce.payload->>'status',ce.occurred_at,

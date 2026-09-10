@@ -43,6 +43,7 @@ type Repository interface {
 	ApplyMatterEvent(context.Context, string, string, int64, Event) (int64, error)
 	MatterByTriggerKey(context.Context, string, string) (Matter, error)
 	MatterEvents(context.Context, string, string, *time.Time) ([]Event, error)
+	MatterEventsPage(context.Context, string, string, int64, int) ([]Event, bool, error)
 	ResponsePackageHistory(context.Context, string, string, string, int) ([]ResponseHistoryItem, bool, error)
 	OpenMatterCount(context.Context, string, string) (int, error)
 	LinkedProgramIDs(context.Context, string, string) ([]string, error)

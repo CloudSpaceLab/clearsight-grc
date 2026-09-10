@@ -612,6 +612,65 @@ func (a *API) getMatterHistory(w http.ResponseWriter, r *http.Request) {
 	writeContinuityResult(w, value, err, http.StatusOK)
 }
 
+func (a *API) getMatterActivity(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	tenant, ok := requiredQuery(w, r, "tenant_id")
+	if !ok {
+		return
+	}
+	aggregate, err := service.GetMatter(r.Context(), tenant, r.PathValue("id"))
+	if err != nil || !canReadMatterAggregate(r.Context(), aggregate) {
+		writeContinuityError(w, continuity.ErrNotFound)
+		return
+	}
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if r.URL.Query().Get("limit") != "" && err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "The activity page size must be a number.")
+		return
+	}
+	beforeVersion, err := strconv.ParseInt(r.URL.Query().Get("before_version"), 10, 64)
+	if r.URL.Query().Get("before_version") != "" && (err != nil || beforeVersion < 1) {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "The activity page cursor is invalid.")
+		return
+	}
+	value, err := service.MatterActivity(r.Context(), tenant, aggregate.Matter.ID, beforeVersion, limit)
+	if err != nil {
+		writeContinuityError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, value)
+}
+
+func (a *API) addMatterComment(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to add an update.")
+		return
+	}
+	var input continuity.AddMatterCommentInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.MatterID = r.PathValue("id")
+	input.ActorID = actor.PrincipalID
+	aggregate, err := service.GetMatter(r.Context(), actor.TenantID, input.MatterID)
+	if err != nil || !canReadMatterAggregate(r.Context(), aggregate) {
+		writeContinuityError(w, continuity.ErrNotFound)
+		return
+	}
+	input.TenantID = actor.TenantID
+	value, err := service.AddMatterComment(r.Context(), input)
+	writeContinuityResult(w, value, err, http.StatusCreated)
+}
+
 func (a *API) addMatterLink(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.continuityService(w)
 	if !ok {

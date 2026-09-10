@@ -370,6 +370,32 @@ func (r *MemoryRepository) MatterEvents(ctx context.Context, tenant, id string, 
 	return filterEvents(values, until), nil
 }
 
+func (r *MemoryRepository) MatterEventsPage(ctx context.Context, tenant, id string, beforeVersion int64, limit int) ([]Event, bool, error) {
+	events, err := r.MatterEvents(ctx, tenant, id, nil)
+	if err != nil {
+		return nil, false, err
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	values := make([]Event, 0, limit+1)
+	for index := len(events) - 1; index >= 0; index-- {
+		event := events[index]
+		if beforeVersion > 0 && event.AggregateVersion >= beforeVersion {
+			continue
+		}
+		values = append(values, event)
+		if len(values) == limit+1 {
+			break
+		}
+	}
+	hasMore := len(values) > limit
+	if hasMore {
+		values = values[:limit]
+	}
+	return values, hasMore, nil
+}
+
 func (r *MemoryRepository) ResponsePackageHistory(ctx context.Context, tenant, matterID, responseID string, limit int) ([]ResponseHistoryItem, bool, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

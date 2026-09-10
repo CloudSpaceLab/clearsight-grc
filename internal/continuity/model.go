@@ -540,6 +540,23 @@ type MatterAggregate struct {
 	Closure               ClosureAssessment      `json:"closure"`
 }
 
+type MatterActivityItem struct {
+	EventID       string                     `json:"event_id"`
+	EventType     string                     `json:"event_type"`
+	MatterVersion int64                      `json:"matter_version"`
+	ActorID       string                     `json:"actor_id,omitempty"`
+	ActorType     ActorType                  `json:"actor_type"`
+	OccurredAt    time.Time                  `json:"occurred_at"`
+	Comment       *MatterComment             `json:"comment,omitempty"`
+	UpdateRequest *MatterActionUpdateRequest `json:"update_request,omitempty"`
+}
+
+type MatterActivityPage struct {
+	Items             []MatterActivityItem `json:"items"`
+	NextBeforeVersion int64                `json:"next_before_version,omitempty"`
+	GeneratedAt       time.Time            `json:"generated_at"`
+}
+
 type ClosureAssessment struct {
 	Ready   bool     `json:"ready"`
 	Reasons []string `json:"reasons"`

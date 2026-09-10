@@ -222,6 +222,8 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/matters", "matter.create", a.createMatter, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3, BindLegalEntity: true}),
 		read("/api/v1/matters/{id}", a.getMatter),
 		read("/api/v1/matters/{id}/history", a.getMatterHistory),
+		read("/api/v1/matters/{id}/activity", a.getMatterActivity),
+		write(http.MethodPost, "/api/v1/matters/{id}/comments", a.addMatterComment, bindJSONIdentity(false, "actor_id")),
 		read("/api/v1/matters/{id}/operations", a.getMatterOperations),
 		read("/api/v1/matters/{id}/form-remediations", a.listMatterFormRemediations),
 		material("/api/v1/matters/{id}/form-remediations", "matter.form-remediation.bind", a.createMatterFormRemediation, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityOwner, Materiality: 3, ActorField: noActorField}),
