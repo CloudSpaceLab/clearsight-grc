@@ -12,6 +12,14 @@ This environment deliberately uses development identity, demo sessions, audit-mo
 
 PostgreSQL lookups may accept either the demo tenant slug or UUID, but actor-facing continuity, evidence and workflow records return the canonical tenant UUID. Deployment also runs the idempotent demo foundation fixture: it maintains one active `CLEARSIGHT-DEMO-AUTHORITY` policy, records GRC Administrator as maker and Internal Auditor as the independent checker, and projects direct routes for the material workflow responsibilities. Incompatible stable-ID or policy-code collisions fail the deployment instead of overwriting unrelated governance data.
 
+## Demo seed mode
+
+Set `CLEARSIGHT_DEMO_SEED_MODE=manual` in the protected `/opt/clearsight-grc/config/app.env` to manage demonstration records separately from releases. In manual mode, releases skip the broad bank-reference seeder, including its operating vendor, history and acceptance fixtures. Migrations and the identity/authority foundation still run; image ownership/revision checks, application health, hosted verification and release promotion retain their existing gates. This mode does not delete or reconcile existing records and does not certify that the remaining data matches an external source.
+
+The default when unset or empty is `reference`; explicitly setting `reference` also preserves automatic bank-reference seeding on each release. Any other value fails before images are loaded, release directories are installed or database changes begin. The setting persists in host configuration across releases; switching back to `reference` can recreate fixtures removed during manual curation. Keep manual mode enabled while maintaining a source-curated demonstration.
+
+The hosted verifier checks authenticated response structure, not a minimum fixture count, so manual mode requires no relaxed data or security assertions. `deploy/tests/release_seed_mode_test.py` executes both modes with isolated command adapters and proves invalid configuration and failed required checks cannot promote a release.
+
 ## Application readiness and SMTP availability
 
 Deployment requires the expected API revision, PostgreSQL readiness, web health, the owned worker running at the expected revision, authenticated demo reads and safe denial of invalid form access. These checks remain blocking. When `VERIFY_EMAIL_READINESS=true`, required email configuration, recipient encryption/HMAC keys, HTTPS capture origin and STARTTLS configuration also remain blocking.

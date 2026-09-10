@@ -166,6 +166,13 @@ func (r *PostgresRepository) GetRelationship(ctx context.Context, scope Scope, r
 
 func (r *PostgresRepository) ListRelationships(ctx context.Context, filter ListFilter) (RelationshipPage, error) {
 	args := []any{filter.TenantID, filter.LegalEntityID, strings.TrimSpace(filter.Search)}
+	whereArchive := ""
+	if !filter.IncludeArchived {
+		whereArchive = ` AND NOT EXISTS (
+			SELECT 1 FROM demo_record_archives a
+			WHERE a.tenant_id=r.tenant_id AND a.legal_entity_id=r.legal_entity_id
+			  AND a.record_type='VENDOR_RELATIONSHIP' AND a.record_id=r.id AND a.restored_at IS NULL)`
+	}
 	whereCursor := ""
 	if filter.Cursor != "" {
 		cursorTime, cursorID, err := decodeCursor(filter.Cursor)
@@ -178,7 +185,7 @@ func (r *PostgresRepository) ListRelationships(ctx context.Context, filter ListF
 	args = append(args, filter.Limit+1)
 	query := relationshipSelect + `
 		WHERE (t.id::text=$1 OR t.slug=$1) AND r.legal_entity_id::text=$2
-		  AND ($3='' OR p.legal_name ILIKE '%'||$3||'%' OR p.trading_name ILIKE '%'||$3||'%' OR p.registration_ref ILIKE '%'||$3||'%' OR p.source_id ILIKE '%'||$3||'%' OR p.external_ref ILIKE '%'||$3||'%' OR r.service_name ILIKE '%'||$3||'%' OR r.external_ref ILIKE '%'||$3||'%')` + whereCursor + `
+		  AND ($3='' OR p.legal_name ILIKE '%'||$3||'%' OR p.trading_name ILIKE '%'||$3||'%' OR p.registration_ref ILIKE '%'||$3||'%' OR p.source_id ILIKE '%'||$3||'%' OR p.external_ref ILIKE '%'||$3||'%' OR r.service_name ILIKE '%'||$3||'%' OR r.external_ref ILIKE '%'||$3||'%')` + whereArchive + whereCursor + `
 		ORDER BY r.updated_at DESC,r.id DESC LIMIT $` + fmt.Sprint(len(args))
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {

@@ -181,6 +181,7 @@ WITH selected AS MATERIALIZED (
   FROM matters m
   JOIN tenants requested_t ON requested_t.id=m.tenant_id
   WHERE (requested_t.id::text=$1 OR requested_t.slug=$1)
+    AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL)
     AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
     AND (NOT $3 OR requested_t.id::text=$5 OR requested_t.slug=$5)
     AND (NOT $7 OR ((requested_t.id::text=$8 OR requested_t.slug=$8) AND m.legal_entity_id IS NOT NULL AND ($9='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$9 OR le.code=$9) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))

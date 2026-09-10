@@ -115,7 +115,7 @@ func seedOperatingFormSample(ctx context.Context, pool *pgxpool.Pool, distributi
 	if hasFixtureReceipt && spec.key != "cloudspace-oem-risk-register" {
 		return existingOperatingFormSample(ctx, pool, distributions, access, evidenceRepo, seed, form, relationshipID, existingID, spec)
 	}
-	if !errors.Is(err, pgx.ErrNoRows) {
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return "", nil, err
 	}
 	if spec.key == "cloudspace-oem-risk-register" {
@@ -124,6 +124,15 @@ func seedOperatingFormSample(ctx context.Context, pool *pgxpool.Pool, distributi
 			return "", nil, findErr
 		}
 		if found {
+			// Workspace submissions retain an open request so respondents can
+			// submit later revisions. Existing revisions prove completion.
+			revisions, revisionErr := distributions.ListResponseRevisions(ctx, seed.TenantID, seed.LegalEntityID, replacement.Distribution.ID, 2)
+			if revisionErr != nil {
+				return "", nil, revisionErr
+			}
+			if len(revisions) > 0 {
+				return existingOperatingFormSample(ctx, pool, distributions, access, evidenceRepo, seed, replacementForm, relationshipID, replacement.Distribution.ID, spec)
+			}
 			request, requestErr := evidenceRepo.GetRequest(ctx, seed.TenantID, replacement.Recipients[0].RequestID)
 			if requestErr != nil {
 				return "", nil, requestErr
@@ -239,8 +248,9 @@ func findMigratedCloudspaceSample(ctx context.Context, pool *pgxpool.Pool, monit
 		JOIN capture_requests r ON r.tenant_id=d.tenant_id AND r.distribution_id=d.id
 		JOIN monitoring_form_templates f ON f.tenant_id=d.tenant_id AND f.id=d.form_template_id AND f.version=d.form_template_version
 		JOIN capture_submissions s ON s.tenant_id=r.tenant_id AND s.request_id=r.id
+		JOIN capture_response_revisions revision ON revision.tenant_id=s.tenant_id AND revision.distribution_id=d.id AND revision.submission_id=s.id AND revision.is_current
 		WHERE (t.id::text=$1 OR t.slug=$1) AND d.legal_entity_id=$2::uuid AND d.subject_type='VENDOR_RELATIONSHIP' AND d.subject_id=$3::uuid
-		  AND f.code='VENDOR-DUE-DILIGENCE' AND r.status='SUBMITTED' AND d.status NOT IN ('REVOKED','SUPERSEDED')
+		  AND f.code='VENDOR-DUE-DILIGENCE' AND r.status IN ('READY','IN_PROGRESS','SUBMITTED') AND d.status NOT IN ('REVOKED','SUPERSEDED')
 		  AND COALESCE(s.answers->'assurance_gap'->>'text','') LIKE 'Sample register findings:%'
 		ORDER BY d.updated_at DESC,d.id DESC LIMIT 2`, seed.TenantID, seed.LegalEntityID, relationshipID)
 	if err != nil {
@@ -428,7 +438,7 @@ func existingOperatingFormSample(ctx context.Context, pool *pgxpool.Pool, distri
 		}
 		return string(evidence.RequestSubmitted), revisions[0].Score, nil
 	case "COMPLETED_UNREVIEWED":
-		if request.Status != evidence.RequestSubmitted || len(revisions) != 1 || !revisions[0].Current || revisions[0].Score == nil || revisions[0].Score.Final || revisions[0].Score.State != evidence.ResponseScoreNotConfigured {
+		if len(revisions) != 1 || !revisions[0].Current || revisions[0].Score == nil || revisions[0].Score.Final || revisions[0].Score.State != evidence.ResponseScoreNotConfigured {
 			return "", nil, fmt.Errorf("existing unreviewed sample does not have one current unscored response")
 		}
 		if err := validateOperatingFormSampleAnswers(ctx, pool, distributionID, spec.answers); err != nil {

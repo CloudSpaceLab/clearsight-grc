@@ -13,13 +13,23 @@ previous=""
 
 [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
 [[ "$stage" == "$root/incoming/$sha."* ]]
+test -f "$config"
+set -a
+# shellcheck disable=SC1090
+source "$config"
+set +a
+demo_seed_mode="${CLEARSIGHT_DEMO_SEED_MODE:-reference}"
+case "$demo_seed_mode" in
+  reference|manual) ;;
+  *) echo "CLEARSIGHT_DEMO_SEED_MODE must be reference or manual" >&2; exit 1 ;;
+esac
+
 exec 9>"$lock"
 flock -n 9
 (( $(df --output=avail -B1 "$root" | tail -1) >= 5368709120 )) || {
   echo "less than 5 GiB available" >&2
   exit 1
 }
-test -f "$config"
 test ! -e "$release"
 
 docker load -i "$stage/images.tar" >/dev/null
@@ -40,10 +50,6 @@ if [[ -f "$stage/schema-backward-compatible" ]]; then
   install -m 0640 "$stage/schema-backward-compatible" "$release/schema-backward-compatible"
 fi
 
-set -a
-# shellcheck disable=SC1090
-source "$config"
-set +a
 export CLEARSIGHT_IMAGE_TAG="$sha"
 previous="$(cat "$root/state/current-sha" 2>/dev/null || true)"
 
@@ -63,15 +69,17 @@ trap rollback ERR
 
 "$release/scripts/migrate.sh" "$release/migrations"
 "$release/scripts/seed-demo-foundation.sh"
-docker run --rm --network host --env-file "$config" \
-  --entrypoint /clearsight-seed-bank-reference "clearsight-api:$sha" \
-  -tenant 00000000-0000-4000-8000-000000000001 \
-  -legal-entity 00000000-0000-4000-8000-000000000002 \
-  -actor 00000000-0000-4000-8000-000000000101 \
-  -owner 00000000-0000-4000-8000-000000000107 \
-  -contributor 00000000-0000-4000-8000-000000000108 \
-  -reviewer 00000000-0000-4000-8000-000000000106 \
-  -signatory 00000000-0000-4000-8000-000000000102 >/dev/null
+if [[ "$demo_seed_mode" == reference ]]; then
+  docker run --rm --network host --env-file "$config" \
+    --entrypoint /clearsight-seed-bank-reference "clearsight-api:$sha" \
+    -tenant 00000000-0000-4000-8000-000000000001 \
+    -legal-entity 00000000-0000-4000-8000-000000000002 \
+    -actor 00000000-0000-4000-8000-000000000101 \
+    -owner 00000000-0000-4000-8000-000000000107 \
+    -contributor 00000000-0000-4000-8000-000000000108 \
+    -reviewer 00000000-0000-4000-8000-000000000106 \
+    -signatory 00000000-0000-4000-8000-000000000102 >/dev/null
+fi
 phase=running
 docker compose -p clearsight --env-file "$config" -f "$compose" up -d --no-build --remove-orphans
 

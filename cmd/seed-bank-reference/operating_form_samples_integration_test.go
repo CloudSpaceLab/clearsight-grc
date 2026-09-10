@@ -106,9 +106,16 @@ func TestCloudspaceRiskRegisterSampleIsSubmittedAndRepeatSafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = monitoringRepo.TransitionForm(ctx, monitoring.LifecycleTransition{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, ProgramID: pending.ProgramID, ID: pending.ID, ExpectedVersion: pending.Version, To: monitoring.LifecycleActive, ActorID: seed.ReviewerPrincipalID, At: seed.Now}); err != nil {
+	active, err := monitoringRepo.TransitionForm(ctx, monitoring.LifecycleTransition{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, ProgramID: pending.ProgramID, ID: pending.ID, ExpectedVersion: pending.Version, To: monitoring.LifecycleActive, ActorID: seed.ReviewerPrincipalID, At: seed.Now})
+	if err != nil {
 		t.Fatal(err)
 	}
+	// New requests use the current revision; the legacy request above retains
+	// its historical revision for the Cloudspace supersession check.
+	currentForm := catalog.Forms["vendor_due_diligence"]
+	currentForm.Version = active.Version
+	currentForm.Status = string(active.Status)
+	catalog.Forms["vendor_due_diligence"] = currentForm
 	first, err := seedOperatingFormSamples(ctx, cfg, pool, seed, catalog, vendors, monitoringRepo, evidenceRepo)
 	if err != nil {
 		t.Fatal(err)
@@ -118,7 +125,7 @@ func TestCloudspaceRiskRegisterSampleIsSubmittedAndRepeatSafe(t *testing.T) {
 	}
 
 	var distributionID string
-	if err = pool.QueryRow(ctx, `SELECT d.id::text FROM capture_form_distributions d JOIN capture_requests r ON r.tenant_id=d.tenant_id AND r.distribution_id=d.id JOIN capture_submissions s ON s.tenant_id=r.tenant_id AND s.request_id=r.id WHERE d.tenant_id=$1::uuid AND d.legal_entity_id=$2::uuid AND d.subject_id=$3::uuid AND r.status='SUBMITTED' AND s.answers->'assurance_gap'->>'text' LIKE 'Sample register findings:%'`, seed.TenantID, seed.LegalEntityID, existing.Relationship.ID).Scan(&distributionID); err != nil {
+	if err = pool.QueryRow(ctx, `SELECT d.id::text FROM capture_form_distributions d JOIN capture_submissions s ON s.tenant_id=d.tenant_id AND s.distribution_id=d.id JOIN capture_response_revisions r ON r.tenant_id=s.tenant_id AND r.distribution_id=d.id AND r.submission_id=s.id AND r.is_current WHERE d.tenant_id=$1::uuid AND d.legal_entity_id=$2::uuid AND d.subject_id=$3::uuid AND s.answers->'assurance_gap'->>'text' LIKE 'Sample register findings:%'`, seed.TenantID, seed.LegalEntityID, existing.Relationship.ID).Scan(&distributionID); err != nil {
 		t.Fatal(err)
 	}
 	if distributionID == legacy.Distribution.ID {
@@ -164,6 +171,7 @@ func TestCloudspaceRiskRegisterSampleIsSubmittedAndRepeatSafe(t *testing.T) {
 		}
 	}
 
+	beforeRepeat := sampleTestSnapshot(t, pool)
 	seed.Now = seed.Now.Add(24 * time.Hour)
 	second, err := seedOperatingFormSamples(ctx, cfg, pool, seed, catalog, vendors, monitoringRepo, evidenceRepo)
 	if err != nil {
@@ -171,6 +179,12 @@ func TestCloudspaceRiskRegisterSampleIsSubmittedAndRepeatSafe(t *testing.T) {
 	}
 	if second.States["cloudspace-oem-risk-register"] != string(evidence.RequestSubmitted) {
 		t.Fatalf("Cloudspace rerun state=%q", second.States["cloudspace-oem-risk-register"])
+	}
+	if !sameSampleJSON(first.States, second.States) {
+		t.Fatalf("sample rerun changed its states: %v => %v", first.States, second.States)
+	}
+	if sampleTestSnapshot(t, pool) != beforeRepeat {
+		t.Fatal("sample rerun changed stored records")
 	}
 	if err = pool.QueryRow(ctx, `SELECT count(*) FROM capture_response_revisions WHERE distribution_id=$1::uuid`, distributionID).Scan(&revisions); err != nil {
 		t.Fatal(err)
@@ -181,7 +195,51 @@ func TestCloudspaceRiskRegisterSampleIsSubmittedAndRepeatSafe(t *testing.T) {
 	if _, err = pool.Exec(ctx, `UPDATE capture_submissions SET answers=jsonb_set(answers,'{assurance_gap}',jsonb_build_object('text','Altered sample response')) WHERE distribution_id=$1::uuid`, distributionID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = seedOperatingFormSamples(ctx, cfg, pool, seed, catalog, vendors, monitoringRepo, evidenceRepo); err == nil {
-		t.Fatal("expected altered Cloudspace sample response to be rejected")
+	beforeRejectedRepeat := sampleTestSnapshot(t, pool)
+	if _, err = seedOperatingFormSamples(ctx, cfg, pool, seed, catalog, vendors, monitoringRepo, evidenceRepo); err == nil || !strings.Contains(err.Error(), "existing sample answers do not match the immutable fixture") {
+		t.Fatalf("expected altered Cloudspace sample response to be rejected, got %v", err)
+	}
+	if sampleTestSnapshot(t, pool) != beforeRejectedRepeat {
+		t.Fatal("rejected sample rerun changed stored records")
+	}
+}
+
+func TestCloudspaceStandaloneSampleIsRepeatSafe(t *testing.T) {
+	pool, cfg, seed := sampleTestSetup(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	seed.Now = time.Now().UTC()
+	seed.SignatoryPrincipalID = "00000000-0000-4000-8000-000000000102"
+	continuityService := continuity.NewService(continuity.NewPostgresRepository(pool))
+	evidenceRepo := evidence.NewPostgresRepository(pool)
+	evidenceService := evidence.NewService(evidenceRepo, evidence.NewMemoryObjectStore())
+	monitoringRepo := monitoring.NewPostgresRepository(pool)
+	installer := bankverticals.NewService(continuityService, evidenceService)
+	installer.ConfigureMonitoring(monitoring.NewService(monitoringRepo, evidenceService))
+	catalog, err := installer.EnsureOperatingDemo(ctx, seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	vendors, err := installer.EnsureOperatingVendors(ctx, seed, thirdparty.NewService(thirdparty.NewPostgresRepository(pool)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := seedOperatingFormSamples(ctx, cfg, pool, seed, catalog, vendors, monitoringRepo, evidenceRepo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.States["cloudspace-oem-risk-register"] != string(evidence.RequestSubmitted) {
+		t.Fatalf("Cloudspace state=%q", first.States["cloudspace-oem-risk-register"])
+	}
+	before := sampleTestSnapshot(t, pool)
+	second, err := seedOperatingFormSamples(ctx, cfg, pool, seed, catalog, vendors, monitoringRepo, evidenceRepo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !sameSampleJSON(first.States, second.States) {
+		t.Fatalf("standalone sample rerun changed its states: %v => %v", first.States, second.States)
+	}
+	if sampleTestSnapshot(t, pool) != before {
+		t.Fatal("standalone sample rerun changed stored records")
 	}
 }

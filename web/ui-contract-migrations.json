@@ -23,6 +23,7 @@
     "src/components/ui/TextField.tsx",
     "src/components/ui-gallery/UIComponentGallery.tsx",
     "src/components/FormsWorkspace.tsx",
+    "src/components/VendorPortfolio.tsx",
     "src/components/VendorEvidenceChecklist.tsx",
     "src/components/documents/DocumentBrowser.tsx",
     "src/components/documents/DocumentPreview.tsx",

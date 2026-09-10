@@ -18,6 +18,7 @@ import { VendorActivationPanel } from "./VendorActivationPanel";
 import { VendorIdentityEditor } from "./VendorIdentityEditor";
 import { VendorFormReadiness } from "./VendorFormReadiness";
 import { VendorComplianceOverview } from "./VendorComplianceOverview";
+import { VendorPortfolio } from "./VendorPortfolio";
 import { ActionLink, Button, Notice, SelectField, StatusBadge, TextField, TextArea, Tabs } from "./ui";
 import { DocumentBrowser } from "./documents/DocumentBrowser";
 import { VendorFormsPanel, VendorResponseHistory } from "./VendorFormsPanel";
@@ -127,6 +128,15 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   const registerLoadID = useRef(0);
   const acknowledgedGuideIntentID = useRef<number | undefined>(undefined);
   const nextActionSearch = useRef<{ intentID: number; tried: Set<string> } | undefined>(undefined);
+  const navigationFocus = useRef<"detail" | "register" | undefined>(undefined);
+  useEffect(() => {
+    if (state !== "live" || !navigationFocus.current) return;
+    const target = document.getElementById(navigationFocus.current === "detail" ? "vendor-detail-focus" : "vendor-portfolio-register");
+    if (!target) return;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView?.({ block: "start" });
+    navigationFocus.current = undefined;
+  }, [selected?.relationship.id, state]);
 
   const recordIDs = records.map((record) => record.relationship.id).join(",");
   useEffect(() => {
@@ -154,9 +164,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   }, [formsFocus, selected?.relationship.id, vendorSection]);
 
   useEffect(() => {
-    setQuery("");
-    setSubmittedQuery("");
-    if (!guideIntent) void refresh(targetID, "");
+    if (!guideIntent) void refresh(targetID, submittedQuery);
   }, [targetID]);
 
   useEffect(() => {
@@ -512,6 +520,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   function choose(record: VendorRelationshipAggregate) {
     setVendorSection("OVERVIEW");
     if (mode !== "browse") return;
+    navigationFocus.current = "detail";
     setSelected(record); setMode("browse"); setNotice(""); setFormError(""); onTarget?.(record.relationship.id);
   }
 
@@ -653,8 +662,9 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     {notice && <Notice tone="success">{notice}</Notice>}
     {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships for {legalEntityName}…</div>}
     {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><Button  type="button" onPress={() => void refresh(targetID, "")}>Try again</Button></section>}
+    {state === "live" && !selected && !registerLocked && <VendorPortfolio records={records} summaries={formSummaries} summaryState={summaryState} hasMore={!!nextCursor} onFilter={(filter) => { setWorkFilter(filter || undefined); document.getElementById("vendor-portfolio-register")?.scrollIntoView?.({ block: "start" }); }}/>}
     {state === "live" && <div className="vendor-layout">
-      <section className="vendor-register" aria-label={`Vendor relationships for ${legalEntityName}`} aria-describedby={registerLocked ? "vendor-register-lock-note" : undefined}>
+      <section id="vendor-portfolio-register" tabIndex={-1} className="vendor-register" aria-label={`Vendor relationships for ${legalEntityName}`} aria-describedby={registerLocked ? "vendor-register-lock-note" : undefined}>
         <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{submittedQuery ? `Showing ${records.length} matching ${records.length === 1 ? "relationship" : "relationships"}` : `Showing ${records.length} ${records.length === 1 ? "relationship" : "relationships"} in this legal entity`}</p>{nextCursor && <small>More relationships are available.</small>}</div></div>
         {registerLocked && <p id="vendor-register-lock-note" className="vendor-register-lock-note">{registerLockMessage}</p>}
         <form className="vendor-search" onSubmit={searchRelationships}><TextField label="Search vendors and services" type="search" value={query} onChange={setQuery} placeholder="Name, service or reference" isDisabled={registerLocked}/><Button type="submit"  isDisabled={registerLocked}>Search vendors</Button></form>
@@ -670,7 +680,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
         {loadMoreError && <p role="alert" className="inline-error">More vendor relationships could not be loaded. The current results remain available.</p>}
       </section>
 
-      <section className="vendor-focus" aria-label="Selected vendor relationship">
+      <section id="vendor-detail-focus" tabIndex={-1} className="vendor-focus" aria-label="Selected vendor relationship">
         {mode === "edit-identity" && selected ? <VendorIdentityEditor record={selected} onCancel={cancelForm} onIdentitySaved={(presentation) => applyVendorPresentation(presentation, "Vendor details updated.", true)} onBrandSaved={(presentation) => applyVendorPresentation(presentation)} onPresentationReloaded={(presentation) => applyVendorPresentation(presentation)}/> : (mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} existingVendor={existingVendorSource} candidates={vendorCandidates} candidateState={candidateState} onFindExisting={findExistingVendor} onUseExisting={useExistingVendor} onUseDifferent={() => { setExistingVendorSource(undefined); setForm((current) => ({ ...current, legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", websiteDomain: "", registeredAddress: "" })); }} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail
           record={selected}
           formSummary={formSummaries.get(selected.relationship.id)}
@@ -688,7 +698,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
           formState={formState}
           requestOutcome={requestOutcome}
           requestOutcomeKind={requestOutcomeKind}
-          onBack={() => { setSelected(null); onTarget?.(); }}
+          onBack={() => { navigationFocus.current = "register"; setSelected(null); onTarget?.(); }}
           onEdit={startEdit}
           onEditIdentity={startIdentityEdit}
           onRefreshAssessment={() => refreshAssessment(selected.relationship.id)}

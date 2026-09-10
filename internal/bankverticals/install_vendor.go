@@ -52,7 +52,7 @@ func (s *Service) EnsureOperatingVendors(ctx context.Context, config SeedConfig,
 func (s *Service) ensureOperatingVendor(ctx context.Context, config SeedConfig, vendors *thirdparty.Service, spec operatingVendorSpec) (thirdparty.Aggregate, error) {
 	actor := thirdparty.Actor{TenantID: config.TenantID, LegalEntityID: config.LegalEntityID, PrincipalID: config.OwnerPrincipalID}
 	if spec.reuseExactRelationship {
-		page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: spec.legalName, Limit: 100})
+		page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: spec.legalName, Limit: 100, IncludeArchived: true})
 		if err != nil {
 			return thirdparty.Aggregate{}, fmt.Errorf("list existing vendor %s: %w", spec.legalName, err)
 		}
@@ -69,7 +69,7 @@ func (s *Service) ensureOperatingVendor(ctx context.Context, config SeedConfig, 
 			return matches[0], nil
 		}
 	}
-	page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: spec.externalRef, Limit: 100})
+	page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: spec.externalRef, Limit: 100, IncludeArchived: true})
 	if err != nil {
 		return thirdparty.Aggregate{}, fmt.Errorf("list sample vendor %s: %w", spec.externalRef, err)
 	}
@@ -118,7 +118,7 @@ func (s *Service) EnsureReferenceVendor(ctx context.Context, config SeedConfig, 
 		LegalEntityID: config.LegalEntityID,
 		PrincipalID:   config.OwnerPrincipalID,
 	}
-	page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: referenceVendorExternalRef, Limit: 100})
+	page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: referenceVendorExternalRef, Limit: 100, IncludeArchived: true})
 	if err != nil {
 		return thirdparty.Aggregate{}, fmt.Errorf("list reference vendor relationships: %w", err)
 	}

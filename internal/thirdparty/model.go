@@ -119,13 +119,16 @@ type ListInput struct {
 	Search string `json:"search,omitempty"`
 	Cursor string `json:"cursor,omitempty"`
 	Limit  int    `json:"limit,omitempty"`
+	// IncludeArchived is reserved for operator fixture reconciliation, not HTTP input.
+	IncludeArchived bool `json:"-"`
 }
 
 type ListFilter struct {
 	Scope
-	Search string
-	Cursor string
-	Limit  int
+	Search          string
+	Cursor          string
+	Limit           int
+	IncludeArchived bool
 }
 
 type RelationshipPage struct {
