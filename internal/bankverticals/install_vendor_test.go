@@ -95,3 +95,60 @@ func TestEnsureReferenceVendorDoesNotReuseUnrelatedVendor(t *testing.T) {
 		t.Fatalf("relationships=%d, want unrelated + reference", len(page.Items))
 	}
 }
+
+func TestEnsureOperatingVendorsReusesExactCloudspaceOEM(t *testing.T) {
+	ctx := context.Background()
+	config := normalizeSeedConfig(DemoSeedConfig())
+	vendors := thirdparty.NewService(thirdparty.NewMemoryRepository())
+	actor := thirdparty.Actor{TenantID: config.TenantID, LegalEntityID: config.LegalEntityID, PrincipalID: config.OwnerPrincipalID}
+	existing, err := vendors.CreateRelationship(ctx, actor, thirdparty.CreateRelationshipInput{
+		LegalName:   "Cloudspace Technologies Ltd",
+		ServiceName: "OEM",
+		Criticality: thirdparty.CriticalityStandard,
+		PrivacyRole: thirdparty.PrivacyProcessor,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	installed, err := (&Service{}).EnsureOperatingVendors(ctx, config, vendors)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cloudspace thirdparty.Aggregate
+	for _, item := range installed {
+		if item.Vendor.LegalName == "Cloudspace Technologies Ltd" && item.Relationship.ServiceName == "OEM" {
+			cloudspace = item
+		}
+	}
+	if cloudspace.Relationship.ID != existing.Relationship.ID {
+		t.Fatalf("Cloudspace relationship=%q, want existing %q", cloudspace.Relationship.ID, existing.Relationship.ID)
+	}
+	page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: "Cloudspace Technologies Ltd", Limit: 100})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 {
+		t.Fatalf("Cloudspace relationships=%d, want 1", len(page.Items))
+	}
+}
+
+func TestEnsureOperatingVendorsRejectsAmbiguousCloudspaceOEM(t *testing.T) {
+	ctx := context.Background()
+	config := normalizeSeedConfig(DemoSeedConfig())
+	vendors := thirdparty.NewService(thirdparty.NewMemoryRepository())
+	actor := thirdparty.Actor{TenantID: config.TenantID, LegalEntityID: config.LegalEntityID, PrincipalID: config.OwnerPrincipalID}
+	for range 2 {
+		if _, err := vendors.CreateRelationship(ctx, actor, thirdparty.CreateRelationshipInput{
+			LegalName:   "Cloudspace Technologies Ltd",
+			ServiceName: "OEM",
+			Criticality: thirdparty.CriticalityStandard,
+			PrivacyRole: thirdparty.PrivacyProcessor,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := (&Service{}).EnsureOperatingVendors(ctx, config, vendors); err == nil {
+		t.Fatal("expected ambiguous Cloudspace OEM relationship to be rejected")
+	}
+}

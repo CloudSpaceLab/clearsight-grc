@@ -253,7 +253,7 @@ func (s *Service) ListRelationships(ctx context.Context, actor Actor, input List
 	if input.Limit == 0 {
 		input.Limit = 50
 	}
-	page, err := s.repo.ListRelationships(ctx, ListFilter{Scope: scopeFrom(actor), Search: strings.TrimSpace(input.Search), Cursor: strings.TrimSpace(input.Cursor), Limit: input.Limit})
+	page, err := s.repo.ListRelationships(ctx, ListFilter{Scope: scopeFrom(actor), Search: strings.TrimSpace(input.Search), Cursor: strings.TrimSpace(input.Cursor), Limit: input.Limit, IncludeArchived: input.IncludeArchived})
 	if err != nil {
 		return RelationshipPage{}, err
 	}

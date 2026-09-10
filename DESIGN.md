@@ -303,6 +303,12 @@ See `docs/design/ui-delivery-workflow.md` and `docs/quality/rendered-ui-evidence
 
 ## UI audit corrections — 9 September 2026
 
+## Vendor portfolio — 10 September 2026
+
+Vendors uses a full-width portfolio with four scoped workload metrics, stored service criticality and submitted-response assessment coverage. The selected relationship replaces the portfolio at every viewport and includes Back to vendor register. Counts cover only the loaded search population; missing or refreshing summaries show Unknown and expose recovery. Submission, assessment and vendor approval remain distinct. Four metric columns become two on tablet/mobile and one at 320px; analytical cards and service rows stack. Existing semantic tokens and shared Buttons remain authoritative. No new palette, motion or global density mode. Required evidence includes light/dark 1440px, 390px and 320px, unavailable summaries and detail/back navigation. See [decision brief](docs/design/2026-09-10-vendor-portfolio.md).
+
+### Earlier audit corrections
+
 - Shared input boundaries use `--cs-border-field`; placeholders use opaque `--cs-text-placeholder`. These are distinct from decorative dividers. Placeholder text uses neutral 700 in light mode and neutral 500 in dark mode; field boundaries use neutral 600. Status backgrounds are an opaque 8% tone mix over the theme surface, so selection/tint beneath a badge does not change its text pair.
 - Vendor relationship creation, due-diligence editing/review and linked-work recovery use shared field/action contracts. Specialized document, radio and vendor-identity controls retain their explicit contracts. TextField supports native pattern/inputMode/focus and stable IDs; TextArea supports stable IDs and address autocomplete.
 - FocusedSheet and FocusedDialog share scroll-lock and focus-return mechanics. Their geometry and in-flight dismissal behavior remain separate. Multiple overlays retain the lock until the last closes. The older domain EmptyState is a thin adapter to the shared rendering contract, with an action only when it has a handler.

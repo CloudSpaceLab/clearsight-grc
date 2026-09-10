@@ -1,0 +1,86 @@
+[
+  {
+    "file": "live-light-1440.png",
+    "state": "live",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "file": "unavailable-light-1440.png",
+    "state": "unavailable",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "file": "live-light-390.png",
+    "state": "live",
+    "theme": "light",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "file": "unavailable-light-390.png",
+    "state": "unavailable",
+    "theme": "light",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "file": "live-light-320.png",
+    "state": "live",
+    "theme": "light",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "file": "unavailable-light-320.png",
+    "state": "unavailable",
+    "theme": "light",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "file": "live-dark-1440.png",
+    "state": "live",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "file": "unavailable-dark-1440.png",
+    "state": "unavailable",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "file": "live-dark-390.png",
+    "state": "live",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "file": "unavailable-dark-390.png",
+    "state": "unavailable",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "file": "live-dark-320.png",
+    "state": "live",
+    "theme": "dark",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "file": "unavailable-dark-320.png",
+    "state": "unavailable",
+    "theme": "dark",
+    "width": 320,
+    "overflow": false
+  }
+]

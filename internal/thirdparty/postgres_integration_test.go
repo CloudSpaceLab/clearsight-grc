@@ -92,6 +92,44 @@ func TestPostgresRelationshipTransactionReuseAndScope(t *testing.T) {
 	if postgresCount(t, pool, "third_party_events") != beforeEvents || outboxCountForTenant(t, pool) != beforeOutbox {
 		t.Fatal("stale update wrote an event or outbox row")
 	}
+
+	// Demo curation hides an exact sample from the register without asserting
+	// relationship termination or rewriting its versioned business history.
+	if _, err := pool.Exec(ctx, `INSERT INTO demo_record_archives(tenant_id,legal_entity_id,record_type,record_id,reason,source_manifest,archived_by,archived_at)
+		VALUES($1::uuid,$2::uuid,'VENDOR_RELATIONSHIP',$3::uuid,'Excluded generic sample','test-manifest-v1',$4::uuid,now())`, thirdPartyTenantID, thirdPartyEntityA, second.Relationship.ID, thirdPartyPrincipal); err != nil {
+		t.Fatal(err)
+	}
+	page, err = service.ListRelationships(ctx, actorA, ListInput{Limit: 1})
+	if err != nil || len(page.Items) != 1 || page.Items[0].Relationship.ID != first.Relationship.ID || page.NextCursor != "" {
+		t.Fatalf("archive exclusion before pagination: %#v err=%v", page, err)
+	}
+	page, err = service.ListRelationships(ctx, actorA, ListInput{Limit: 10, IncludeArchived: true})
+	if err != nil || len(page.Items) != 2 {
+		t.Fatalf("operator reconciliation omitted archive: %#v err=%v", page, err)
+	}
+	exact, err := service.GetRelationship(ctx, actorA, second.Relationship.ID)
+	if err != nil || exact.Relationship.Status != second.Relationship.Status || exact.Relationship.Version != second.Relationship.Version {
+		t.Fatalf("archive altered historical relationship: %#v err=%v", exact, err)
+	}
+	if _, err := service.GetRelationship(ctx, actorB, second.Relationship.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("archived read crossed entity: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE demo_record_archives SET reason='Rewrite' WHERE record_id=$1::uuid`, second.Relationship.ID); err == nil {
+		t.Fatal("archive provenance was mutable")
+	}
+	if _, err := pool.Exec(ctx, `DELETE FROM demo_record_archives WHERE record_id=$1::uuid`, second.Relationship.ID); err == nil {
+		t.Fatal("archive history was deletable")
+	}
+	if _, err := pool.Exec(ctx, `UPDATE demo_record_archives SET restored_at=now(),restored_by=$2::uuid,restoration_reason='Restore sample' WHERE record_id=$1::uuid`, second.Relationship.ID, thirdPartyPrincipal); err != nil {
+		t.Fatal(err)
+	}
+	page, err = service.ListRelationships(ctx, actorA, ListInput{Limit: 10})
+	if err != nil || len(page.Items) != 2 {
+		t.Fatalf("restored sample population: %#v err=%v", page, err)
+	}
+	if postgresCount(t, pool, "third_party_events") != beforeEvents || outboxCountForTenant(t, pool) != beforeOutbox {
+		t.Fatal("curation changed business events")
+	}
 }
 
 func validPostgresCreateInput(service string) CreateRelationshipInput {

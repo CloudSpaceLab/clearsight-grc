@@ -24,6 +24,10 @@ import (
 func main() {
 	var seed bankverticals.SeedConfig
 	var documentSamplesOnly bool
+	var sourceEmployeesOnly bool
+	var cloudspaceRelationshipID string
+	flag.BoolVar(&sourceEmployeesOnly, "source-employees-only", false, "install named Fidelity and Ops Risk demo employees with scoped performer assignments")
+	flag.StringVar(&cloudspaceRelationshipID, "cloudspace-relationship", "", "install only the Cloudspace sample response for this exact existing demo relationship UUID")
 	flag.BoolVar(&documentSamplesOnly, "document-samples-only", false, "install only fictional submitted document samples after the normal worker is ready")
 	flag.StringVar(&seed.TenantID, "tenant", "", "existing tenant UUID or slug")
 	flag.StringVar(&seed.LegalEntityID, "legal-entity", "", "existing legal-entity UUID or code")
@@ -34,6 +38,9 @@ func main() {
 	flag.StringVar(&seed.ReviewerPrincipalID, "reviewer", "", "independent reviewer principal UUID")
 	flag.StringVar(&seed.SignatoryPrincipalID, "signatory", "", "authorized signatory principal UUID")
 	flag.Parse()
+	if (sourceEmployeesOnly && (documentSamplesOnly || cloudspaceRelationshipID != "")) || (documentSamplesOnly && cloudspaceRelationshipID != "") {
+		fatalIf(fmt.Errorf("choose one scoped sample operation"))
+	}
 
 	cfg, err := config.Load()
 	fatalIf(err)
@@ -52,6 +59,18 @@ func main() {
 	pool, err := database.Open(ctx, cfg)
 	fatalIf(err)
 	defer pool.Close()
+	if sourceEmployeesOnly {
+		receipt, installErr := seedSourceEmployees(ctx, pool, seed)
+		fatalIf(installErr)
+		fatalIf(json.NewEncoder(os.Stdout).Encode(receipt))
+		return
+	}
+	if cloudspaceRelationshipID != "" {
+		receipt, installErr := installCloudspaceSample(ctx, cfg, pool, seed, cloudspaceRelationshipID)
+		fatalIf(installErr)
+		fatalIf(json.NewEncoder(os.Stdout).Encode(receipt))
+		return
+	}
 	if documentSamplesOnly {
 		receipt, installErr := installDocumentSamples(ctx, cfg, pool, seed)
 		fatalIf(installErr)

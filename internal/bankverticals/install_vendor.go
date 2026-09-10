@@ -21,6 +21,7 @@ type operatingVendorSpec struct {
 	externalRef, legalName, tradingName, registrationRef, serviceName string
 	criticality                                                       thirdparty.Criticality
 	privacyRole                                                       thirdparty.PrivacyRole
+	reuseExactRelationship                                            bool
 }
 
 // EnsureOperatingVendors adds fictional suppliers that represent common bank
@@ -32,6 +33,7 @@ func (s *Service) EnsureOperatingVendors(ctx context.Context, config SeedConfig,
 	}
 	result := []thirdparty.Aggregate{first}
 	specs := []operatingVendorSpec{
+		{externalRef: "vendor:cloudspace-oem", legalName: "Cloudspace Technologies Ltd", serviceName: "OEM", criticality: thirdparty.CriticalityStandard, privacyRole: thirdparty.PrivacyProcessor, reuseExactRelationship: true},
 		{externalRef: "vendor:payment-switching", legalName: "Paywave Transaction Services Limited", tradingName: "Paywave Transactions", registrationRef: "REF-NG-TP-002", serviceName: "Payment switching and terminal support", criticality: thirdparty.CriticalityCritical, privacyRole: thirdparty.PrivacyProcessor},
 		{externalRef: "vendor:records-custody", legalName: "ArchiveGuard Records Limited", tradingName: "ArchiveGuard", registrationRef: "REF-NG-TP-003", serviceName: "Secure records storage and destruction", criticality: thirdparty.CriticalityImportant, privacyRole: thirdparty.PrivacyProcessor},
 		{externalRef: "vendor:payroll-processing", legalName: "PeopleLink Payroll Services Limited", tradingName: "PeopleLink Payroll", registrationRef: "REF-NG-TP-004", serviceName: "Payroll processing", criticality: thirdparty.CriticalityImportant, privacyRole: thirdparty.PrivacyProcessor},
@@ -49,7 +51,25 @@ func (s *Service) EnsureOperatingVendors(ctx context.Context, config SeedConfig,
 
 func (s *Service) ensureOperatingVendor(ctx context.Context, config SeedConfig, vendors *thirdparty.Service, spec operatingVendorSpec) (thirdparty.Aggregate, error) {
 	actor := thirdparty.Actor{TenantID: config.TenantID, LegalEntityID: config.LegalEntityID, PrincipalID: config.OwnerPrincipalID}
-	page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: spec.externalRef, Limit: 100})
+	if spec.reuseExactRelationship {
+		page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: spec.legalName, Limit: 100, IncludeArchived: true})
+		if err != nil {
+			return thirdparty.Aggregate{}, fmt.Errorf("list existing vendor %s: %w", spec.legalName, err)
+		}
+		matches := make([]thirdparty.Aggregate, 0, 1)
+		for _, item := range page.Items {
+			if strings.EqualFold(strings.TrimSpace(item.Vendor.LegalName), spec.legalName) && strings.EqualFold(strings.TrimSpace(item.Relationship.ServiceName), spec.serviceName) {
+				matches = append(matches, item)
+			}
+		}
+		if len(matches) > 1 {
+			return thirdparty.Aggregate{}, fmt.Errorf("existing vendor %s / %s is ambiguous", spec.legalName, spec.serviceName)
+		}
+		if len(matches) == 1 {
+			return matches[0], nil
+		}
+	}
+	page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: spec.externalRef, Limit: 100, IncludeArchived: true})
 	if err != nil {
 		return thirdparty.Aggregate{}, fmt.Errorf("list sample vendor %s: %w", spec.externalRef, err)
 	}
@@ -98,7 +118,7 @@ func (s *Service) EnsureReferenceVendor(ctx context.Context, config SeedConfig, 
 		LegalEntityID: config.LegalEntityID,
 		PrincipalID:   config.OwnerPrincipalID,
 	}
-	page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: referenceVendorExternalRef, Limit: 100})
+	page, err := vendors.ListRelationships(ctx, actor, thirdparty.ListInput{Search: referenceVendorExternalRef, Limit: 100, IncludeArchived: true})
 	if err != nil {
 		return thirdparty.Aggregate{}, fmt.Errorf("list reference vendor relationships: %w", err)
 	}

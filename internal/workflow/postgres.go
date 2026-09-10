@@ -72,6 +72,12 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		 AND em.tenant_id=cr.tenant_id
 		 AND em.id::text=cr.subject_id
 		WHERE (t.slug=$1 OR t.id::text=$1)
+		  AND NOT EXISTS (
+		    SELECT 1 FROM demo_record_archives archive
+		    WHERE archive.tenant_id=wt.tenant_id AND archive.record_type='MATTER' AND archive.restored_at IS NULL
+		      AND ((archive.record_id=m.id AND archive.legal_entity_id=m.legal_entity_id)
+		        OR (archive.record_id=em.id AND archive.legal_entity_id=em.legal_entity_id))
+		  )
 		  AND ($2='' OR wt.principal_id::text=$2)
 		  AND ($3='' OR wt.status=$3)
 		  AND ($4='' OR wi.kind=$4)

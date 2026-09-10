@@ -237,6 +237,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 			LIMIT 1
 		) latest ON TRUE
 		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL)
 		  AND (NOT $13 OR ((t.id::text=$14 OR t.slug=$14) AND m.legal_entity_id IS NOT NULL AND ($15='*' OR m.legal_entity_id=(SELECT le.id FROM legal_entities le WHERE le.tenant_id=m.tenant_id AND (le.id::text=$15 OR le.code=$15) AND le.valid_from<=clock_timestamp() AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until) ORDER BY le.valid_from DESC,le.id LIMIT 1))))
 		  AND ($2='' OR ($2='OPEN' AND m.status NOT IN ('CLOSED','CANCELLED')) OR m.status=$2)
 		  AND ($3='' OR m.search_document @@ websearch_to_tsquery('simple'::regconfig,$3))

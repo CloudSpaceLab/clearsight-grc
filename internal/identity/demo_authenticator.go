@@ -31,6 +31,16 @@ const (
 	DurableDemoPrincipalEvidenceRespondent = "00000000-0000-4000-8000-000000000108"
 )
 
+// DemoSourceEmployeePrincipalID matches the source-directory seed. These IDs
+// belong only to the non-production demo account catalogue.
+func DemoSourceEmployeePrincipalID(displayName string) string {
+	key := "fidelity-source-samples-v1:person:" + strings.ToLower(strings.ReplaceAll(displayName, " ", "-"))
+	h := sha256.Sum256([]byte(key))
+	h[6] = (h[6] & 0x0f) | 0x50
+	h[8] = (h[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", h[0:4], h[4:6], h[6:8], h[8:10], h[10:16])
+}
+
 type DemoAccount struct {
 	Label       string   `json:"label"`
 	Username    string   `json:"username"`
@@ -87,6 +97,11 @@ func NewDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID string) (*
 		accounts[5].PrincipalID = DurableDemoPrincipalAuditor
 		accounts[6].PrincipalID = DurableDemoPrincipalProgramOwner
 		accounts[7].PrincipalID = DurableDemoPrincipalEvidenceRespondent
+		if legalEntityID == DurableDemoLegalEntityID {
+			for _, name := range []string{"Tobi", "Godspower", "Somto", "Ese", "Fawaz", "Adetutu", "Ginika", "Sikiru", "Ivason", "Ebube", "Joel", "Aisha", "Joshua", "Blessing", "Hakeem", "Victor Abejegah", "Ayodele"} {
+				accounts = append(accounts, DemoAccount{Label: name, Username: strings.ToLower(strings.Fields(name)[0]) + "@demo.com", Password: "password", PrincipalID: DemoSourceEmployeePrincipalID(name), RoleCodes: []string{"EVIDENCE_RESPONDENT"}})
+			}
+		}
 	}
 	byUsername := make(map[string]DemoAccount, len(accounts))
 	for i := range accounts {

@@ -1,0 +1,315 @@
+{
+  "profile": "fidelity-source-samples-v1",
+  "note": "Sample assignments from supplied workbooks. Demo-only logins use firstname@demo.com and the existing EVIDENCE_RESPONDENT role (PERFORMER); they grant no administrative or signatory authority. Position titles/functions describe sample context, not verified current employment. Source casing is normalized for Victor Abejegah and Ayodele; surrounding whitespace is trimmed.",
+  "employees": [
+    {
+      "display_name": "Tobi",
+      "username": "tobi@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "Application Process Risk",
+      "position_title": "Sample Application Process Risk assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "Application Process Risk",
+          "cells": [
+            "E2",
+            "E4"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Godspower",
+      "username": "godspower@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "Application Process Risk",
+      "position_title": "Sample Application Process Risk assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "Application Process Risk",
+          "cells": [
+            "E3"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Somto",
+      "username": "somto@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "Application Process Risk",
+      "position_title": "Sample Application Process Risk assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "Application Process Risk",
+          "cells": [
+            "E5"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Ese",
+      "username": "ese@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "Infrastructure Risk",
+      "position_title": "Sample Infrastructure Risk assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "Infrastructure Risk",
+          "cells": [
+            "F2"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Fawaz",
+      "username": "fawaz@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "Infrastructure Risk",
+      "position_title": "Sample Infrastructure Risk assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "Infrastructure Risk",
+          "cells": [
+            "F3"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Adetutu",
+      "username": "adetutu@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "Infrastructure Risk",
+      "position_title": "Sample Infrastructure Risk assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "Infrastructure Risk",
+          "cells": [
+            "F4"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Ginika",
+      "username": "ginika@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "Infrastructure Risk",
+      "position_title": "Sample Infrastructure Risk assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "Infrastructure Risk",
+          "cells": [
+            "F5"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Sikiru",
+      "username": "sikiru@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "GRC",
+      "position_title": "Sample GRC assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "GRC",
+          "cells": [
+            "D2",
+            "D4"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Ivason",
+      "username": "ivason@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "GRC",
+      "position_title": "Sample GRC assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "GRC",
+          "cells": [
+            "D3",
+            "D5",
+            "D6"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Ebube",
+      "username": "ebube@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "Third-party risk",
+      "position_title": "Sample Third-party risk assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "3rd Party",
+          "cells": [
+            "I2"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Joel",
+      "username": "joel@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "Third-party risk",
+      "position_title": "Sample Third-party risk assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "3rd Party",
+          "cells": [
+            "I3"
+          ]
+        },
+        {
+          "file": "Sample Third-Party Risk Register (1).xlsx",
+          "sha256": "b0c8d0d25610566dbf6fa820afba57616d257c66cbc515fda551a19bdf4e1bf8",
+          "sheet": "2026 Register",
+          "cells": [
+            "B5"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Aisha",
+      "username": "aisha@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "E-business",
+      "position_title": "Sample E-business assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "E-business",
+          "cells": [
+            "E2"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Joshua",
+      "username": "joshua@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "E-business",
+      "position_title": "Sample E-business assessor",
+      "sources": [
+        {
+          "file": "Sample IT Risk Workplan (1).xlsx",
+          "sha256": "6892eda13fd6a0ede93eb623a389ee1e8bf6578c2a0819cbb83cf11ed381bbdd",
+          "sheet": "E-business",
+          "cells": [
+            "E3"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Blessing",
+      "username": "blessing@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "Third-party risk",
+      "position_title": "Sample Third-party risk assessor",
+      "sources": [
+        {
+          "file": "Sample Third-Party Risk Register (1).xlsx",
+          "sha256": "b0c8d0d25610566dbf6fa820afba57616d257c66cbc515fda551a19bdf4e1bf8",
+          "sheet": "2026 Register",
+          "cells": [
+            "B2"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Hakeem",
+      "username": "hakeem@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "POS Business",
+      "position_title": "Sample POS Business action owner",
+      "sources": [
+        {
+          "file": "Sample Third-Party Risk Register (1).xlsx",
+          "sha256": "b0c8d0d25610566dbf6fa820afba57616d257c66cbc515fda551a19bdf4e1bf8",
+          "sheet": "2026 Register",
+          "cells": [
+            "L2",
+            "L5",
+            "L6"
+          ]
+        }
+      ]
+    },
+    {
+      "display_name": "Victor Abejegah",
+      "username": "victor@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "Operational Risk",
+      "position_title": "Sample RCSA action owner",
+      "sources": [
+        {
+          "file": "Ops Risk/RCSA Template.xls",
+          "sha256": "243a40a8757e6f722b8672f45b6d24b6020aff9a4240add67be38270621637fc",
+          "sheet": "RCSA Template",
+          "cells": [
+            "S20",
+            "S21"
+          ],
+          "archive": "Ops Risk (2).zip",
+          "archive_sha256": "ca38cfd22c6379d254c937182e40b75a3e9287a668444eb1096204aac7862afb"
+        }
+      ]
+    },
+    {
+      "display_name": "Ayodele",
+      "username": "ayodele@demo.com",
+      "role_code": "EVIDENCE_RESPONDENT",
+      "function": "Operational Risk",
+      "position_title": "Sample RCSA action owner",
+      "sources": [
+        {
+          "file": "Ops Risk/RCSA Template.xls",
+          "sha256": "243a40a8757e6f722b8672f45b6d24b6020aff9a4240add67be38270621637fc",
+          "sheet": "RCSA Template",
+          "cells": [
+            "S22",
+            "S26"
+          ],
+          "archive": "Ops Risk (2).zip",
+          "archive_sha256": "ca38cfd22c6379d254c937182e40b75a3e9287a668444eb1096204aac7862afb"
+        }
+      ]
+    }
+  ]
+}

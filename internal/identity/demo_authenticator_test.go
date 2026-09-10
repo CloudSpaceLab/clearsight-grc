@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -114,9 +115,28 @@ func TestDemoAuthenticatorUsesDurablePrincipalIDsForPostgresDemo(t *testing.T) {
 		"evidence@demo.clearsight.local":     DurableDemoPrincipalEvidenceRespondent,
 	}
 	for _, account := range authenticator.Accounts() {
+		if strings.HasSuffix(account.Username, "@demo.com") {
+			if account.PrincipalID != DemoSourceEmployeePrincipalID(account.Label) || len(account.RoleCodes) != 1 || account.RoleCodes[0] != "EVIDENCE_RESPONDENT" {
+				t.Fatalf("invalid employee identity: %#v", account)
+			}
+			response := httptest.NewRecorder()
+			if _, err := authenticator.Login(response, account.Username, "password"); err != nil {
+				t.Fatal(err)
+			}
+			request := httptest.NewRequest(http.MethodGet, "/api/v1/context", nil)
+			request.AddCookie(response.Result().Cookies()[0])
+			actor, present, err := authenticator.Authenticate(request)
+			if err != nil || !present || actor.PrincipalID != account.PrincipalID || HasPermission(actor, PermissionIdentityConfigure) {
+				t.Fatalf("employee login failed or grants administration: %#v %v", actor, err)
+			}
+			continue
+		}
 		if account.PrincipalID != want[account.Username] {
 			t.Fatalf("principal for %s = %q, want %q", account.Username, account.PrincipalID, want[account.Username])
 		}
+	}
+	if len(authenticator.Accounts()) != 25 {
+		t.Fatalf("expected 8 core and 17 employee accounts")
 	}
 }
 
