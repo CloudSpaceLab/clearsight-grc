@@ -12,7 +12,7 @@ The user's correction replaces the original form-count, criticality and response
 
 Source ratings, source owners, source periods and source target dates remain explicitly attributed. They do not become new present-day ratings or verified completion. The same findings/actions appear first in selected-vendor Overview, before form collection and review. Superseded, revoked and cancelled requests retain their terminal labels, without current missing-answer prompts; collecting/setup assessments do not imply an assigned review.
 
-Desktop uses four metric cards, a full-width findings/actions list and register. Tablet uses two metric columns. Mobile stacks finding facts/actions and service rows; detail replaces the portfolio at every width, with an explicit Back to vendor register action. No new palette, chart dependency or animation. Existing typography, semantic tokens and shared controls are retained.
+Desktop uses a layered portfolio frame, four elevated metric cards, a full-width findings/actions workbench and a separately elevated register. The portfolio summary uses restrained cyan and amber status accents, while the register retains a neutral operating surface. Tablet uses two metric columns. Mobile removes elevation, preserves the grouped portfolio frame and stacks finding facts/actions and service rows; detail replaces the portfolio at every width, with an explicit Back to vendor register action. No new palette, chart dependency or animation. Existing typography, semantic tokens and shared controls are retained.
 
 ## Demo scope
 
