@@ -8,9 +8,11 @@ Baseline: the 9 September workspace has a sticky, independently scrolling vendor
 
 ## Metrics and interaction
 
-Four metrics: loaded services, outstanding forms, awaiting review and overdue forms. Form metrics aggregate only summaries for the loaded relationship IDs; missing or refreshing summaries yield Unknown, never zero. Show the checked population and oldest summary timestamp. Search changes that population; pagination does not imply enterprise completeness. Metric actions filter form work. Criticality composition counts stored service classifications. Response review counts remain separate from vendor approval and compliance.
+The user's correction replaces the original form-count, criticality and response-review widgets with loaded services, open linked findings, open actions and overdue actions. Counts come from authorized, exact linked Matter records and their stored actions. Closed/cancelled findings and implemented/cancelled actions do not inflate open work. Scope, missing reads and bounded pagination remain explicit; incomplete totals are Unknown. Metric actions filter the finding/action list and each finding opens its exact issue.
 
-Desktop uses four metric cards, a two-column analytical band and a full-width register. Tablet uses two metric columns. Mobile stacks analytical sections and service rows; detail replaces the portfolio at every width, with an explicit Back to vendor register action. No decorative hero, new palette, chart dependency or animation. Use current typography, semantic tokens, shared controls and accessible text alternatives for bars.
+Source ratings, source owners, source periods and source target dates remain explicitly attributed. They do not become new present-day ratings or verified completion. The same findings/actions appear first in selected-vendor Overview, before form collection and review. Superseded, revoked and cancelled requests retain their terminal labels, without current missing-answer prompts; collecting/setup assessments do not imply an assigned review.
+
+Desktop uses four metric cards, a full-width findings/actions list and register. Tablet uses two metric columns. Mobile stacks finding facts/actions and service rows; detail replaces the portfolio at every width, with an explicit Back to vendor register action. No new palette, chart dependency or animation. Existing typography, semantic tokens and shared controls are retained.
 
 ## Demo scope
 

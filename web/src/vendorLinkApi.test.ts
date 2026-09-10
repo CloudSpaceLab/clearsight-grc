@@ -20,7 +20,7 @@ describe("vendor relationship link API", () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [] }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     await loadVendorRelationshipLinks({ relationship_id: "relationship/1", limit: 20 });
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/vendor-links?relationship_id=relationship%2F1&limit=20");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/vendors/relationship%2F1/links?limit=20");
   });
 
   it("links the selected relationship without browser identity fields", async () => {

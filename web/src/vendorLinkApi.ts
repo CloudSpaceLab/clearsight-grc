@@ -5,14 +5,14 @@ const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export function loadVendorRelationshipLinks(query: VendorRelationshipLinkQuery): Promise<VendorRelationshipLinkPage> {
   const params = new URLSearchParams();
-  if (typeof query.relationship_id === "string") params.set("relationship_id", query.relationship_id);
-  else {
+  const endpoint = typeof query.relationship_id === "string" ? `/api/v1/vendors/${encodeURIComponent(query.relationship_id)}/links` : "/api/v1/vendor-links";
+  if (typeof query.relationship_id !== "string") {
     params.set("target_type", query.target_type);
     params.set("target_id", query.target_id);
   }
   if (query.cursor) params.set("cursor", query.cursor);
   params.set("limit", String(query.limit ?? 50));
-  return requestJSON<VendorRelationshipLinkPage>(apiBase, `/api/v1/vendor-links?${params.toString()}`);
+  return requestJSON<VendorRelationshipLinkPage>(apiBase, `${endpoint}?${params.toString()}`);
 }
 
 export function linkVendorRelationship(relationshipID: string, input: LinkVendorRelationshipInput): Promise<VendorRelationshipLink> {

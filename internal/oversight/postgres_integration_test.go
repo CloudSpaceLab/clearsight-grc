@@ -64,6 +64,18 @@ func TestPostgresProjectionExcludesRestrictedAndUnknownMatterScopes(t *testing.T
 	if err != nil || loaded.Counts.CriticalHigh != 1 || loaded.Coverage.Excluded == nil || *loaded.Coverage.Excluded != 1 {
 		t.Fatalf("loaded projection=%#v err=%v", loaded, err)
 	}
+	var operatorID string
+	if err := pool.QueryRow(ctx, `INSERT INTO principals(tenant_id,kind,display_name) VALUES($1::uuid,'PERSON','Demo curator') RETURNING id::text`, tenantID).Scan(&operatorID); err != nil {
+		t.Fatal(err)
+	}
+	mustOversightExec(t, ctx, pool, `INSERT INTO demo_record_archives(tenant_id,legal_entity_id,record_type,record_id,reason,source_manifest,archived_by,archived_at) VALUES($1::uuid,$2::uuid,'MATTER','8a646464-6464-7464-8464-646464646411','Excluded sample','test-manifest',$3::uuid,now())`, tenantID, entityID, operatorID)
+	curated, err := repository.build(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if curated.Coverage.Population != 2 || curated.Counts.CriticalHigh != 0 || len(curated.Interventions) != 0 || len(curated.Pressure) != 0 {
+		t.Fatalf("archived sample affected oversight: %#v", curated)
+	}
 }
 
 func TestPostgresProjectionAttributesHistoryToExactOwnerIntervals(t *testing.T) {
