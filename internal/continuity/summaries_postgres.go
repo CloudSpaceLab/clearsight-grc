@@ -321,7 +321,7 @@ func (r *PostgresRepository) ListMatterSummaries(ctx context.Context, tenant str
 		value.LatestOutcomeAt = latestAt
 		value.TypeLabel = matterTypeLabel(value.Matter.Type)
 		value.StatusLabel = matterStatusLabel(value.Matter.Status)
-		value.NextAction = matterNextAction(value.Matter.Status)
+		value.NextAction = matterNextActionFor(value.Matter)
 		values = append(values, value)
 	}
 	if err := rows.Err(); err != nil {

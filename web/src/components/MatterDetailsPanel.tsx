@@ -135,6 +135,11 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
 
   const owner = assignmentOperation?.assigned_to ?? detailsOperation?.assigned_to;
   const storedOwner = responsibleParties.find((party) => party.scope === "RECORD" && party.responsibility === "ACCOUNTABLE_OWNER")?.display_name;
+  const sourceProjection = Number(aggregate.matter.known_facts.source_projection_version ?? 0) >= 2;
+  const accountableFunction = String(aggregate.matter.scope.accountable_function ?? aggregate.matter.known_facts.accountable_function ?? "").trim();
+  const internalAssessor = String(aggregate.matter.known_facts.internal_assessor ?? aggregate.matter.known_facts.source_assessor ?? "").trim();
+  const actionPerformer = String(aggregate.matter.known_facts.action_performer ?? aggregate.matter.known_facts.source_owner ?? "").trim();
+  const sourceVendor = String(aggregate.matter.scope.vendor ?? aggregate.matter.known_facts.service_provider ?? "").trim();
   return <article className="matter-record-panel matter-details-panel" id="matter-operation-matter.details.update">
     <div className="matter-record-section-heading">
       <div><span className="eyebrow">Issue details</span><h2>Scope, timing and owner</h2></div>
@@ -148,6 +153,10 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
       <div><dt>Affected area</dt><dd>{affectedArea || "Not recorded"}</dd></div>
       <div><dt>Accountable owner</dt><dd>{owner?.display_name ?? storedOwner ?? (aggregate.matter.owner_principal_id ? "Recorded issue owner unavailable" : "Issue owner not assigned")}</dd></div>
       <div><dt>Due date</dt><dd>{date || "Not recorded"}</dd></div>
+      {sourceProjection && accountableFunction && <div><dt>Accountable function</dt><dd>{accountableFunction}</dd></div>}
+      {sourceProjection && internalAssessor && <div><dt>Internal assessor</dt><dd>{internalAssessor}</dd></div>}
+      {sourceProjection && actionPerformer && <div><dt>Action performer</dt><dd>{actionPerformer}</dd></div>}
+      {sourceProjection && sourceVendor && <div><dt>Source vendor</dt><dd>{sourceVendor}</dd></div>}
     </dl>
     <section className="matter-program-links" aria-labelledby="matter-program-links-title"><strong id="matter-program-links-title">Linked Programs</strong>{aggregate.links.length ? <ul>{aggregate.links.map((link) => { const program = programs.find((value) => value.program.id === link.program_id); const unlink = operations.find((operation) => operation.command === "matter.unlink" && operation.subresource_id === link.id); return <li key={link.id}><span>{program?.program.name ?? "Linked Program name unavailable"}</span><small>{link.relationship.replaceAll("_", " ").toLowerCase()}</small>{unlink?.can_act && <button className="text-button" type="button" onClick={() => { setRetiringLinkID(link.id); setRetirementReason(""); setEditing(false); setAssigning(false); setLinking(false); setNotice(""); setError(""); }}>Remove Program link</button>}</li>; })}</ul> : <p>This issue is not linked to a Program.</p>}</section>
     {editing && <form className="matter-operation-form" onSubmit={saveDetails}>

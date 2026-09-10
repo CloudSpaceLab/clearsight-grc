@@ -47,6 +47,12 @@ function scalar(value: string, current?: unknown) {
   return value.trim();
 }
 
+const importedSourceKeys = new Set([
+  "sample", "source_file", "source_sha256", "source_sheet", "source_range", "source_period", "source_fields",
+  "source_limitations", "source_projection_version", "source_owner", "source_assessor", "internal_assessor",
+  "action_performer", "accountable_function", "affected_area", "service_provider",
+]);
+
 export function MatterInformationPanel({ aggregate, operations, linkedMissingItems = [], onUpdated, onReload }: Props) {
   const operation = operations.find((candidate) => candidate.command === "matter.context.change");
   const [active, setActive] = useState<ActiveChange>(null);
@@ -101,7 +107,15 @@ export function MatterInformationPanel({ aggregate, operations, linkedMissingIte
     } catch (cause) { handleError(cause); } finally { setSaving(false); }
   }
 
-  const facts = Object.entries(aggregate.matter.known_facts);
+  const sourceProjection = Number(aggregate.matter.known_facts.source_projection_version ?? 0) >= 2;
+  const facts = Object.entries(aggregate.matter.known_facts).filter(([factKey]) => !sourceProjection || !importedSourceKeys.has(factKey));
+  const sourceFile = String(aggregate.matter.known_facts.source_file ?? "").trim();
+  const sourceSheet = String(aggregate.matter.known_facts.source_sheet ?? "").trim();
+  const sourceRange = String(aggregate.matter.known_facts.source_range ?? "").trim();
+  const sourceDigest = String(aggregate.matter.known_facts.source_sha256 ?? "").trim();
+  const sourceLimitations = Array.isArray(aggregate.matter.known_facts.source_limitations)
+    ? aggregate.matter.known_facts.source_limitations.map(String).filter(Boolean)
+    : [];
   const linkedItems = new Set(linkedMissingItems.map((item) => item.trim().toLowerCase()));
   return <article className="matter-record-panel matter-information-panel" id="matter-operation-matter.context.change">
     <div className="matter-record-section-heading">
@@ -109,6 +123,16 @@ export function MatterInformationPanel({ aggregate, operations, linkedMissingIte
       {operation?.can_act && !active && <div className="matter-panel-actions"><button id={aggregate.matter.missing_facts.length === 0 ? matterOperationControlID(operation) : undefined} className="secondary-button" type="button" onClick={() => start({ type: "add-fact" })}>Add recorded fact</button><button className="secondary-button" type="button" onClick={() => start({ type: "add-missing" })}>Add missing information</button></div>}
     </div>
     {facts.length ? <dl className="matter-record-facts">{facts.map(([factKey, factValue]) => { const factLabel = humanize(factKey); return <div key={factKey}><dt>{factLabel}</dt><dd><span>{display(factValue)}</span>{operation?.can_act && <button className="text-button" type="button" aria-label={`Edit ${factLabel}`} onClick={() => start({ type: "fact", key: factKey, label: factLabel, current: factValue })}>Edit</button>}</dd></div>; })}</dl> : <p>No facts have been recorded for this issue.</p>}
+    {sourceProjection && <details className="matter-source-details">
+      <summary>Source details</summary>
+      <dl className="matter-record-facts">
+        <div><dt>Workbook</dt><dd>{sourceFile || "Not recorded"}</dd></div>
+        <div><dt>Worksheet</dt><dd>{sourceSheet || "Not recorded"}</dd></div>
+        <div><dt>Source cells</dt><dd>{sourceRange || "Not recorded"}</dd></div>
+        <div><dt>Source digest</dt><dd className="matter-source-digest">{sourceDigest || "Not recorded"}</dd></div>
+      </dl>
+      {sourceLimitations.length > 0 && <section className="matter-source-limitations"><strong>Import notes</strong><ul>{sourceLimitations.map((item) => <li key={item}>{item}</li>)}</ul></section>}
+    </details>}
     {aggregate.matter.missing_facts.length > 0 && <section className="matter-record-attention" aria-labelledby="missing-information-heading"><strong id="missing-information-heading">Information still needed</strong><ul className="matter-information-list">{aggregate.matter.missing_facts.map((item, index) => { const itemLabel = display(item); const linked = linkedItems.has(itemLabel.trim().toLowerCase()); return <li key={`${index}-${itemLabel}`}><span>{itemLabel}</span>{linked ? <span className="status-pill">Collected through linked form</span> : operation?.can_act && <button id={index === 0 ? matterOperationControlID(operation) : undefined} className="secondary-button" type="button" aria-label={`Add information for ${itemLabel}`} onClick={() => start({ type: "missing", label: itemLabel })}>Add information</button>}</li>; })}</ul></section>}
     {aggregate.matter.contradictions.length > 0 && <section className="matter-record-attention"><strong>Contradictions to resolve</strong><ul className="matter-information-list">{aggregate.matter.contradictions.map((item, index) => { const itemLabel = display(item); return <li key={`${index}-${itemLabel}`}><span>{itemLabel}</span>{operation?.can_act && <button className="secondary-button" type="button" aria-label={`Resolve contradiction: ${itemLabel}`} onClick={() => start({ type: "contradiction", label: itemLabel })}>Resolve</button>}</li>; })}</ul></section>}
     {operation?.can_act && !active && <button className="text-button matter-add-contradiction" type="button" onClick={() => start({ type: "add-contradiction" })}>Record a contradiction</button>}

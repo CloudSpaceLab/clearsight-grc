@@ -80,6 +80,12 @@
 .matter-information-list { display: grid; gap: 10px; padding-left: 0 !important; list-style: none; }
 .matter-information-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .matter-information-list button { flex: none; min-height: 40px; }
+.matter-source-details { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 12px; }
+.matter-source-details > summary { color: var(--muted); cursor: pointer; font-weight: 650; }
+.matter-source-details[open] > summary { margin-bottom: 12px; }
+.matter-source-digest { overflow-wrap: anywhere; }
+.matter-source-limitations { color: var(--muted); margin-top: 12px; }
+.matter-source-limitations ul { margin-bottom: 0; padding-left: 20px; }
 .matter-add-contradiction { margin-top: 12px; min-height: 44px; }
 
 .matter-operation-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
