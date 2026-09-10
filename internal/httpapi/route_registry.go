@@ -70,6 +70,10 @@ func (a *API) routes() []routeSpec {
 		public(http.MethodGet, "/api/v1/session/status", a.sessionStatus),
 		read("/api/v1/context", a.actorContext),
 		read("/api/v1/today", a.actorToday),
+		read("/api/v1/people/{person_id}", a.employeeProfile),
+		read("/api/v1/people/{person_id}/work", a.employeeWork),
+		read("/api/v1/people/{person_id}/assignments", a.employeeAssignments),
+		read("/api/v1/people/{person_id}/activity", a.employeeActivity),
 		withPermission(read("/api/v1/oversight", a.oversightSnapshot), identity.PermissionOversightRead),
 
 		operation("/api/v1/authority/resolve", a.resolveAuthority, bindJSONIdentity(true)),
