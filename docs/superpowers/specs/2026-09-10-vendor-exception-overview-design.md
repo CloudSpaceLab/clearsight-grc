@@ -11,7 +11,7 @@ The Vendor Overview must help a CRO or Program Owner identify the vendor excepti
 ## Daily workflow
 
 1. The reviewer opens Vendor Overview and sees the loaded population, freshness and four reconciled counts in one compact line.
-2. The default **Needs attention** queue ranks overdue, blocked and incomplete work before remaining open exceptions.
+2. The default **Needs attention** queue ranks overdue, blocked and incomplete work before actions due within 30 days.
 3. Each row exposes the exception, vendor and service, recorded source rating, action owner, next action, deadline state and workflow state.
 4. The reviewer filters by attention state, vendor, owner or source rating only when that changes the decision.
 5. **Review exception** opens the existing Matter record for evidence, commentary, history, reassignment and governed state changes.

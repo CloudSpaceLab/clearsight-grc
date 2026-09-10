@@ -16,17 +16,17 @@
 - Create: `web/src/vendorExceptionPresentation.ts`
 - Create: `web/src/vendorExceptionPresentation.test.ts`
 
-- [ ] **Step 1: Write failing ranking and filtering tests**
+- [x] **Step 1: Write failing ranking and filtering tests**
 
 Cover overdue before blocked, blocked before missing assignment, due-soon before routine open, earliest deadline tie-breaking, closed exclusion, explicit missing deadline, and the `ATTENTION`, `OVERDUE`, `OPEN` and `ALL` filters using real `VendorRiskFinding` objects.
 
-- [ ] **Step 2: Run the focused test and confirm RED**
+- [x] **Step 2: Run the focused test and confirm RED**
 
 Run: `npm exec -- vitest run src/vendorExceptionPresentation.test.ts`
 
 Expected: FAIL because `presentVendorExceptions` and its presentation types do not exist.
 
-- [ ] **Step 3: Implement the pure presentation helper**
+- [x] **Step 3: Implement the pure presentation helper**
 
 Define:
 
@@ -46,7 +46,7 @@ export function presentVendorExceptions(items: VendorRiskFinding[], filter: Vend
 
 Use only stored action states, action deadlines, Matter state and `known_facts.source_owner`/`known_facts.source_rating`. Do not infer severity or compliance.
 
-- [ ] **Step 4: Run the focused test and confirm GREEN**
+- [x] **Step 4: Run the focused test and confirm GREEN**
 
 Run: `npm exec -- vitest run src/vendorExceptionPresentation.test.ts`
 
@@ -58,17 +58,17 @@ Expected: PASS.
 - Modify: `web/src/components/VendorPortfolio.tsx`
 - Modify: `web/src/components/VendorPortfolio.test.tsx`
 
-- [ ] **Step 1: Write failing interaction tests**
+- [x] **Step 1: Write failing interaction tests**
 
 Assert one `Vendor overview summary` region, absence of legacy metric cards and repeated full recommendations, default attention ordering, summary-count filtering, owner/vendor/rating filtering, one sample-data scope indicator, exact owner/deadline/next-action content, partial totals as Unknown, and canonical Matter navigation from **Review exception**.
 
-- [ ] **Step 2: Run the focused component test and confirm RED**
+- [x] **Step 2: Run the focused component test and confirm RED**
 
 Run: `npm exec -- vitest run src/components/VendorPortfolio.test.tsx`
 
 Expected: FAIL on the legacy four-card and repeated metadata layout.
 
-- [ ] **Step 3: Implement the compact component**
+- [x] **Step 3: Implement the compact component**
 
 Replace `.vendor-metrics` and nested action lists with:
 
@@ -82,7 +82,7 @@ Replace `.vendor-metrics` and nested action lists with:
 
 Each row renders exception title, vendor/service, recorded source rating, action owner, next action, relative overdue/due state, workflow badge, open/overdue action counts when greater than one, and one **Review exception** button. Keep loading, partial, retry, empty and implemented-outcome notices.
 
-- [ ] **Step 4: Run the focused component test and confirm GREEN**
+- [x] **Step 4: Run the focused component test and confirm GREEN**
 
 Run: `npm exec -- vitest run src/components/VendorPortfolio.test.tsx`
 
@@ -95,21 +95,21 @@ Expected: PASS.
 - Modify: `web/scripts/capture-vendor-portfolio-evidence.mjs`
 - Modify: `docs/evidence/2026-09-10-vendor-findings/*`
 
-- [ ] **Step 1: Add evidence assertions before styling**
+- [x] **Step 1: Add evidence assertions before styling**
 
 Require the exception list to begin near the top, reject legacy metric groups, verify at least five representative rows within the desktop capture viewport, assert no horizontal overflow at 1440px and 390px, and retain Overview/Register route separation checks.
 
-- [ ] **Step 2: Run the evidence harness and confirm RED**
+- [x] **Step 2: Run the evidence harness and confirm RED**
 
 Run the existing `build:evidence`, preview and `capture-vendor-portfolio-evidence.mjs` commands.
 
 Expected: FAIL because the compact layout and assertions are not satisfied.
 
-- [ ] **Step 3: Implement token-driven desktop and mobile CSS**
+- [x] **Step 3: Implement token-driven desktop and mobile CSS**
 
 Use a one-line/four-segment summary on desktop, compact filter toolbar, 64–76px desktop rows, visible focus states and text-plus-color urgency. At 760px and below, use two-line cards with no horizontal scrolling or obscured actions. Remove legacy card/action-box selectors rather than retaining dead styling.
 
-- [ ] **Step 4: Rebuild, capture and inspect evidence**
+- [x] **Step 4: Rebuild, capture and inspect evidence**
 
 Run the focused evidence build and capture. Inspect light/dark 1440px and 390px Overview images, fix the highest-impact layout failure, and recapture.
 
@@ -121,11 +121,11 @@ Expected: route, density and overflow assertions pass; exceptions appear immedia
 - Modify: `docs/superpowers/specs/2026-09-10-vendor-exception-overview-design.md`
 - Modify: `docs/superpowers/plans/2026-09-10-vendor-exception-overview.md`
 
-- [ ] **Step 1: Record the clarified attention-filter boundary and complete plan checkboxes**
+- [x] **Step 1: Record the clarified attention-filter boundary and complete plan checkboxes**
 
 Confirm the design and implementation agree that Needs attention is bands 1–4 and All open adds routine open exceptions.
 
-- [ ] **Step 2: Run focused verification**
+- [x] **Step 2: Run focused verification**
 
 Run:
 
