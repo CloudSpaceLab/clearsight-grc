@@ -11,6 +11,8 @@
 .vendor-layout { display:grid; grid-template-columns:minmax(0,1fr); gap:18px; margin-top:24px; align-items:start; }
 .vendor-register,.vendor-focus { border:1px solid var(--border); border-radius:18px; background:color-mix(in srgb,var(--surface) 92%,transparent); overflow:hidden; }
 .vendor-register { position:static; }
+.vendors-workspace:not(.has-selection):not(.is-form) .vendor-register { border-color:var(--cs-border-strong); background:var(--cs-bg-surface-1); box-shadow:var(--cs-primitive-shadow-1); }
+.vendors-workspace:not(.has-selection):not(.is-form) .vendor-register-header { padding-block:24px 18px; border-block-end:1px solid var(--cs-border-default); background:linear-gradient(90deg,var(--cs-bg-surface-1),var(--cs-bg-surface-2)); }
 .vendors-workspace.has-selection .vendor-register,.vendors-workspace.is-form .vendor-register { display:none; }
 .vendors-workspace:not(.has-selection):not(.is-form) .vendor-focus { display:none; }
 .vendor-register-header { padding:20px 20px 4px; }
