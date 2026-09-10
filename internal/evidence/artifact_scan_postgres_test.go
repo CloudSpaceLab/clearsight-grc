@@ -115,4 +115,16 @@ func TestPostgresArtifactScanTransactionAndLeases(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM outbox_events WHERE aggregate_id=$1::uuid AND event_type='ArtifactInspectionRecorded'`, artifactID).Scan(&count); err != nil || count != 1 {
 		t.Fatalf("outbox count=%d err=%v", count, err)
 	}
+	// A terminal scanner outage can be requeued without erasing the failed receipt.
+	if _, err := pool.Exec(ctx, `UPDATE capture_artifacts SET status='STORED_UNSCANNED' WHERE id=$1::uuid; UPDATE capture_artifact_scan_jobs SET state='FAILED',attempt=5,failure_code='SCANNER_UNAVAILABLE',worker_id='',lease_until=NULL WHERE artifact_id=$1::uuid`, artifactID); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.RequeueFailedArtifactScan(ctx, artifactID, "scanner restored", now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	var cycle, attempt int
+	var requeuedState string
+	if err := pool.QueryRow(ctx, `SELECT recovery_cycle,attempt,state FROM capture_artifact_scan_jobs WHERE artifact_id=$1::uuid`, artifactID).Scan(&cycle, &attempt, &requeuedState); err != nil || cycle != 1 || attempt != 0 || requeuedState != "PENDING" {
+		t.Fatalf("requeue cycle=%d attempt=%d state=%s err=%v", cycle, attempt, requeuedState, err)
+	}
 }

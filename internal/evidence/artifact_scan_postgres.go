@@ -24,7 +24,7 @@ func (r *PostgresRepository) ClaimArtifactScanJobs(ctx context.Context, worker s
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
-	rows, err := tx.Query(ctx, `SELECT j.artifact_id::text,j.tenant_id::text,j.sha256,j.size_bytes,a.request_id::text,a.storage_key,j.attempt
+	rows, err := tx.Query(ctx, `SELECT j.artifact_id::text,j.tenant_id::text,j.sha256,j.size_bytes,a.request_id::text,a.storage_key,j.recovery_cycle,j.attempt
  FROM capture_artifact_scan_jobs j JOIN capture_artifacts a ON a.id=j.artifact_id AND a.tenant_id=j.tenant_id
  WHERE (j.state='PENDING' AND j.next_attempt_at<=$1) OR (j.state='RUNNING' AND j.lease_until<=$1)
  ORDER BY j.next_attempt_at,j.artifact_id LIMIT $2 FOR UPDATE OF j SKIP LOCKED`, now, limit)
@@ -34,7 +34,7 @@ func (r *PostgresRepository) ClaimArtifactScanJobs(ctx context.Context, worker s
 	jobs := []ArtifactScanJob{}
 	for rows.Next() {
 		var job ArtifactScanJob
-		if err := rows.Scan(&job.Artifact.ID, &job.Artifact.TenantID, &job.Artifact.SHA256, &job.Artifact.SizeBytes, &job.Artifact.RequestID, &job.Artifact.StorageKey, &job.Attempt); err != nil {
+		if err := rows.Scan(&job.Artifact.ID, &job.Artifact.TenantID, &job.Artifact.SHA256, &job.Artifact.SizeBytes, &job.Artifact.RequestID, &job.Artifact.StorageKey, &job.RecoveryCycle, &job.Attempt); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -81,9 +81,9 @@ func (r *PostgresRepository) CompleteArtifactScan(ctx context.Context, claim Art
 	var artifactStatus ArtifactStatus
 	var digest string
 	var size int64
-	err = tx.QueryRow(ctx, `SELECT j.artifact_id::text,j.tenant_id::text,j.sha256,j.size_bytes,j.state,j.attempt,j.worker_id,j.lease_until,a.status,a.sha256,a.size_bytes
+	err = tx.QueryRow(ctx, `SELECT j.artifact_id::text,j.tenant_id::text,j.sha256,j.size_bytes,j.recovery_cycle,j.state,j.attempt,j.worker_id,j.lease_until,a.status,a.sha256,a.size_bytes
  FROM capture_artifact_scan_jobs j JOIN capture_artifacts a ON a.id=j.artifact_id AND a.tenant_id=j.tenant_id
- WHERE j.artifact_id=$1::uuid AND j.tenant_id=$2::uuid AND j.state='RUNNING' FOR UPDATE OF j,a`, claim.Artifact.ID, claim.Artifact.TenantID).Scan(&current.Artifact.ID, &current.Artifact.TenantID, &current.Artifact.SHA256, &current.Artifact.SizeBytes, &current.State, &current.Attempt, &current.WorkerID, &current.LeaseUntil, &artifactStatus, &digest, &size)
+		WHERE j.artifact_id=$1::uuid AND j.tenant_id=$2::uuid AND j.state='RUNNING' FOR UPDATE OF j,a`, claim.Artifact.ID, claim.Artifact.TenantID).Scan(&current.Artifact.ID, &current.Artifact.TenantID, &current.Artifact.SHA256, &current.Artifact.SizeBytes, &current.RecoveryCycle, &current.State, &current.Attempt, &current.WorkerID, &current.LeaseUntil, &artifactStatus, &digest, &size)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrArtifactScanLease
 	}
@@ -99,12 +99,12 @@ func (r *PostgresRepository) CompleteArtifactScan(ctx context.Context, claim Art
 	if databaseNow.After(now) {
 		now = databaseNow
 	}
-	if current.WorkerID != claim.WorkerID || current.Attempt != claim.Attempt || !current.LeaseUntil.After(now) || artifactStatus != ArtifactStoredUnscanned || digest != current.Artifact.SHA256 || size != current.Artifact.SizeBytes || !validScanReceipt(current, receipt, now) {
+	if current.WorkerID != claim.WorkerID || current.RecoveryCycle != claim.RecoveryCycle || current.Attempt != claim.Attempt || !current.LeaseUntil.After(now) || artifactStatus != ArtifactStoredUnscanned || digest != current.Artifact.SHA256 || size != current.Artifact.SizeBytes || !validScanReceipt(current, receipt, now) {
 		return ErrArtifactScanLease
 	}
 	updated, status := scanOutcome(current, receipt, now)
 	var receiptID string
-	if err := tx.QueryRow(ctx, `INSERT INTO capture_artifact_scan_receipts(artifact_id,tenant_id,sha256,size_bytes,attempt,verdict,scanner,scanner_version,inspected_at,failure_code) VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id::text`, receipt.ArtifactID, current.Artifact.TenantID, receipt.SHA256, receipt.SizeBytes, receipt.Attempt, receipt.Verdict, receipt.Scanner, receipt.Version, receipt.InspectedAt, receipt.FailureCode).Scan(&receiptID); err != nil {
+	if err := tx.QueryRow(ctx, `INSERT INTO capture_artifact_scan_receipts(artifact_id,tenant_id,sha256,size_bytes,recovery_cycle,attempt,verdict,scanner,scanner_version,inspected_at,failure_code) VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id::text`, receipt.ArtifactID, current.Artifact.TenantID, receipt.SHA256, receipt.SizeBytes, current.RecoveryCycle, receipt.Attempt, receipt.Verdict, receipt.Scanner, receipt.Version, receipt.InspectedAt, receipt.FailureCode).Scan(&receiptID); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `UPDATE capture_artifacts SET status=$2,inspected_at=$3,inspection_reference=$4 WHERE id=$1::uuid`, current.Artifact.ID, status, now, receiptID); err != nil {
@@ -129,4 +129,39 @@ func (r *PostgresRepository) ArtifactScanQueueHealth(ctx context.Context) (workf
 	var health workflowruntime.QueueHealth
 	err := r.pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE state IN ('PENDING','RUNNING')),count(*) FILTER (WHERE state='FAILED'),COALESCE(max(attempt),0),min(next_attempt_at) FILTER (WHERE state IN ('PENDING','RUNNING')) FROM capture_artifact_scan_jobs WHERE state<>'COMPLETED'`).Scan(&health.Pending, &health.Terminal, &health.HighestAttempts, &health.OldestPending)
 	return health, err
+}
+
+// RequeueFailedArtifactScan starts a new bounded inspection cycle only after a
+// terminal scanner outage. Earlier receipts remain immutable audit evidence.
+func (r *PostgresRepository) RequeueFailedArtifactScan(ctx context.Context, artifactID, reason string, now time.Time) error {
+	if artifactID == "" || reason == "" {
+		return ErrArtifactScanLease
+	}
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	var tenantID string
+	var cycle int
+	err = tx.QueryRow(ctx, `UPDATE capture_artifact_scan_jobs j
+	SET state='PENDING', recovery_cycle=recovery_cycle+1, attempt=0, worker_id='', lease_until=NULL, next_attempt_at=$2, failure_code=''
+	FROM capture_artifacts a
+	WHERE j.artifact_id=$1::uuid AND j.state='FAILED' AND j.failure_code='SCANNER_UNAVAILABLE'
+	  AND a.id=j.artifact_id AND a.tenant_id=j.tenant_id AND a.status='STORED_UNSCANNED'
+	RETURNING j.tenant_id::text,j.recovery_cycle`, artifactID, now).Scan(&tenantID, &cycle)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrArtifactScanLease
+	}
+	if err != nil {
+		return err
+	}
+	payload, err := json.Marshal(map[string]any{"recovery_cycle": cycle, "reason": reason})
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES($1::uuid,'CAPTURE_ARTIFACT',$2::uuid,'ArtifactInspectionRequeued',$3::jsonb,$4,$4,$4)`, tenantID, artifactID, payload, now); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }

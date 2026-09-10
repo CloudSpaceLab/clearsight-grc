@@ -29,6 +29,7 @@ type ArtifactScanner interface {
 
 type ArtifactScanJob struct {
 	Artifact      Artifact
+	RecoveryCycle int
 	Attempt       int
 	State         string
 	WorkerID      string
