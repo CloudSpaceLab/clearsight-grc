@@ -8,8 +8,13 @@ describe("workspace routes", () => {
   });
 
   it("parses and builds vendor relationship targets", () => {
-    expect(parseRoute("#vendors/relationship-1")).toEqual({ view: "vendors", target: { vendorRelationshipID: "relationship-1" } });
-    expect(routeHash("vendors", { vendorRelationshipID: "relationship-1" }, "matters")).toBe("#vendors/relationship-1");
+    expect(parseRoute("#vendors")).toEqual({ view: "vendors", target: { vendorPage: "overview" } });
+    expect(parseRoute("#vendors/register")).toEqual({ view: "vendors", target: { vendorPage: "register" } });
+    expect(parseRoute("#vendors/register/relationship-1")).toEqual({ view: "vendors", target: { vendorPage: "register", vendorRelationshipID: "relationship-1" } });
+    expect(parseRoute("#vendors/relationship-1")).toEqual({ view: "vendors", target: { vendorPage: "register", vendorRelationshipID: "relationship-1" } });
+    expect(routeHash("vendors", { vendorPage: "overview" }, "matters")).toBe("#vendors/overview");
+    expect(routeHash("vendors", { vendorPage: "register" }, "matters")).toBe("#vendors/register");
+    expect(routeHash("vendors", { vendorPage: "register", vendorRelationshipID: "relationship-1" }, "matters")).toBe("#vendors/register/relationship-1");
   });
 
   it("keeps the Forms search query separate from the selected exact template", () => {

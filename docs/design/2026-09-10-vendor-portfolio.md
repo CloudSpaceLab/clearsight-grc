@@ -12,7 +12,9 @@ The user's correction replaces the original form-count, criticality and response
 
 Source ratings, source owners, source periods and source target dates remain explicitly attributed. They do not become new present-day ratings or verified completion. The same findings/actions appear first in selected-vendor Overview, before form collection and review. Superseded, revoked and cancelled requests retain their terminal labels, without current missing-answer prompts; collecting/setup assessments do not imply an assigned review.
 
-Desktop uses a layered portfolio frame, four elevated metric cards, a full-width findings/actions workbench and a separately elevated register. The portfolio summary uses restrained cyan and amber status accents, while the register retains a neutral operating surface. Tablet uses two metric columns. Mobile removes elevation, preserves the grouped portfolio frame and stacks finding facts/actions and service rows; detail replaces the portfolio at every width, with an explicit Back to vendor register action. No new palette, chart dependency or animation. Existing typography, semantic tokens and shared controls are retained.
+Vendors has persistent Overview and Register subnavigation. Overview contains the layered portfolio frame, four elevated metric cards and the full-width findings/actions workbench. Register is a separate route containing search, form-work filters, bulk requests and compact service rows; no dashboard content precedes it in the scroll flow. Relationship detail opens from Register and returns to Register. Legacy vendor deep links resolve to the new Register detail route.
+
+Desktop uses a layered portfolio frame and restrained cyan and amber status accents, while Register retains a neutral operating surface. Tablet uses two metric columns. Mobile removes elevation, preserves the grouped portfolio frame and stacks finding facts/actions and service rows. No new palette, chart dependency or animation. Existing typography, semantic tokens and shared controls are retained.
 
 ## Demo scope
 

@@ -25,7 +25,16 @@ try {
       if (state === 'unavailable' && await page.getByRole('group', { name: 'Overdue actions' }).getByText('Unknown').count() !== 1) throw new Error('Missing findings represented as known');
       results.push({ file, state, theme, width, overflow });
       if (state === 'live') {
-        await page.getByRole('button', { name: 'Review overdue actions', exact: true }).click();
+        if (await page.getByRole('heading', { name: 'Vendor register', exact: true }).count() !== 0) throw new Error('Register leaked into vendor overview');
+        await page.getByRole('navigation', { name: 'Vendor sections' }).getByRole('button', { name: 'Register', exact: true }).click();
+        await page.getByRole('heading', { name: 'Vendor register', exact: true }).waitFor();
+        if (await page.getByRole('region', { name: 'Vendor portfolio metrics' }).count() !== 0) throw new Error('Portfolio leaked into vendor register');
+        if (!page.url().endsWith('#vendors/register')) throw new Error(`Register route not reflected in URL: ${page.url()}`);
+        const registerFile = `register-${theme}-${width}.png`;
+        await page.screenshot({ path: path.join(out, registerFile), fullPage: true });
+        const registerOverflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
+        if (registerOverflow) throw new Error(`Horizontal overflow: ${registerFile}`);
+        results.push({ file: registerFile, state: 'register', theme, width, overflow: registerOverflow });
         await page.locator('.vendor-row').first().click();
         await page.getByRole('button', { name: 'Back to vendor register', exact: true }).waitFor();
         if (await page.locator('.vendor-register').isVisible()) throw new Error('Vendor register did not yield to full-width detail');
@@ -33,11 +42,15 @@ try {
         await page.getByText('Superseded', { exact: true }).waitFor();
         await page.screenshot({ path: path.join(out, `detail-${theme}-${width}.png`), fullPage: true });
         await page.getByRole('button', { name: 'Back to vendor register', exact: true }).click();
+        await page.getByRole('heading', { name: 'Vendor register', exact: true }).waitFor();
+        if (await page.getByRole('region', { name: 'Vendor portfolio metrics' }).count() !== 0) throw new Error('Back navigation left the register route');
+        await page.getByRole('navigation', { name: 'Vendor sections' }).getByRole('button', { name: 'Overview', exact: true }).click();
         await page.getByRole('region', { name: 'Vendor portfolio metrics' }).waitFor();
+        if (!page.url().endsWith('#vendors/overview')) throw new Error(`Overview route not reflected in URL: ${page.url()}`);
       }
     }
     await context.close();
   }
   await writeFile(path.join(out, 'manifest.json'), JSON.stringify(results, null, 2));
-  console.log(`${results.length} portfolio captures plus four detail/back-navigation checks passed.`);
+  console.log(`${results.length} overview/register captures plus four detail/back-navigation checks passed.`);
 } finally { await browser.close(); }

@@ -152,6 +152,20 @@ beforeEach(() => {
 });
 
 describe("VendorsWorkspace", () => {
+  it("keeps the dashboard and register on separate vendor routes", async () => {
+    const onPage = vi.fn();
+    const view = render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="overview" onPage={onPage}/>);
+    expect(await screen.findByRole("navigation", { name: "Vendor sections" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Vendor portfolio metrics" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Vendor register" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Register" }));
+    expect(onPage).toHaveBeenCalledWith("register");
+
+    view.rerender(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="register" onPage={onPage}/>);
+    expect(await screen.findByRole("heading", { name: "Vendor register" })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Vendor portfolio metrics" })).toBeNull();
+  });
+
   it("shows a custom form's failed requirements directly in the vendor overview after submission", async () => {
     vi.mocked(loadVendorForms).mockResolvedValue({ items: [{ request_id: "request-1", relationship_id: "relationship-1", response_id: "submitted-custom-form", form_template_id: "custom-form", form_template_version: 2, title: "Third Party Risk Compliance", response_state: "SUBMITTED", deadline: "2099-10-01T12:00:00Z", updated_at: "2026-09-09T12:00:00Z", required_count: 3, answered_required: 3, missing_fields: [], current: true, required_reviews: 2, completed_reviews: 0, outdated: true, attention_items: [{ field_id: "iso", label: "ISO 27001 certificate", state: "MISSING", source: "RESPONSE" }, { rule_id: "audit-rights", label: "SLA audit rights", state: "GAP", source: "RESPONSE" }] }], observed_at: "2026-09-09T12:00:00Z" });
     render(<VendorsWorkspace organizationName="Clear Telecom" legalEntityName="Clear Telecom Nigeria" targetID="relationship-1"/>);
