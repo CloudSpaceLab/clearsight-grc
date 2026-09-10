@@ -156,14 +156,14 @@ describe("VendorsWorkspace", () => {
     const onPage = vi.fn();
     const view = render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="overview" onPage={onPage}/>);
     expect(await screen.findByRole("navigation", { name: "Vendor sections" })).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Vendor portfolio metrics" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Vendor exception overview" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Vendor register" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Register" }));
     expect(onPage).toHaveBeenCalledWith("register");
 
     view.rerender(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="register" onPage={onPage}/>);
     expect(await screen.findByRole("heading", { name: "Vendor register" })).toBeTruthy();
-    expect(screen.queryByRole("region", { name: "Vendor portfolio metrics" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Vendor exception overview" })).toBeNull();
   });
 
   it("shows a custom form's failed requirements directly in the vendor overview after submission", async () => {
