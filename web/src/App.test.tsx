@@ -319,7 +319,7 @@ describe("runtime navigation", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
     expect((await screen.findByTestId("vendor-target")).textContent).toBe("relationship-b");
-    expect(window.location.hash).toBe("#vendors/relationship-b");
+    expect(window.location.hash).toBe("#vendors/register/relationship-b");
   });
 
   it("cancels a slow vendor guide action when navigation leaves Vendors", async () => {

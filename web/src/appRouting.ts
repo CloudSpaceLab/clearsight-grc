@@ -2,6 +2,7 @@ export type View = "today" | "oversight" | "programs" | "forms" | "vendors" | "w
 export type WorkTab = "matters" | "evidence";
 export type ProgramSection = "overview" | "requirements-controls" | "monitoring" | "evidence-results" | "issues-actions" | "history";
 export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id: string };
+export type VendorPage = "overview" | "register";
 export type WorkspaceTarget = {
   programID?: string;
   formTemplateID?: string;
@@ -11,6 +12,7 @@ export type WorkspaceTarget = {
 	evidenceID?: string;
 	personID?: string;
   vendorRelationshipID?: string;
+  vendorPage?: VendorPage;
   documentID?: string;
   openFirstProgram?: boolean;
   openFirstMatter?: boolean;
@@ -43,7 +45,11 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
   }
 	if (view === "forms") return { view, target: { formTemplateID: decodeTarget(parts[1]) } };
 	if (view === "people") return { view, target: { personID: decodeTarget(parts[1]) } };
-  if (view === "vendors") return { view, target: { vendorRelationshipID: decodeTarget(parts[1]) } };
+	if (view === "vendors") {
+    if (!parts[1] || parts[1] === "overview") return { view, target: { vendorPage: "overview" } };
+    if (parts[1] === "register") return { view, target: { vendorPage: "register", ...(parts[2] ? { vendorRelationshipID: decodeTarget(parts[2]) } : {}) } };
+    return { view, target: { vendorPage: "register", vendorRelationshipID: decodeTarget(parts[1]) } };
+  }
   if (view === "imports") return { view, target: { documentID: decodeTarget(parts[1]) } };
   if (view === "work") {
     const workTab: WorkTab = parts[1] === "evidence" ? "evidence" : "matters";
@@ -61,7 +67,10 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
   }
 	if (view === "forms" && target.formTemplateID) return `#forms/${encodeURIComponent(target.formTemplateID)}`;
 	if (view === "people" && target.personID) return `#people/${encodeURIComponent(target.personID)}`;
-  if (view === "vendors" && target.vendorRelationshipID) return `#vendors/${encodeURIComponent(target.vendorRelationshipID)}`;
+  if (view === "vendors") {
+    if (target.vendorRelationshipID) return `#vendors/register/${encodeURIComponent(target.vendorRelationshipID)}`;
+    if (target.vendorPage) return `#vendors/${target.vendorPage}`;
+  }
   if (view === "imports" && target.documentID) return `#imports/${encodeURIComponent(target.documentID)}`;
   if (view === "work") {
     const id = workTab === "evidence" ? target.evidenceID : target.matterID;
