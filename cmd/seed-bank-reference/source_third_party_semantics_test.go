@@ -40,6 +40,9 @@ func TestThirdPartySemanticCaptureSeparatesAnswersAssessmentsAndAssignments(t *t
 	if len(form.Fields) != 4 || len(form.Sections) != 2 {
 		t.Fatalf("fields=%d sections=%d", len(form.Fields), len(form.Sections))
 	}
+	if form.ScoringMode != "NONE" {
+		t.Fatalf("vendor submission must remain unscored before bank assessment: %s", form.ScoringMode)
+	}
 	if !strings.Contains(form.Fields[0].Description, "Service: Moneytor GetPaid application") || !strings.Contains(form.Fields[2].Description, "Service: Payment Terminal Service Provider (PTSP)") {
 		t.Fatalf("service context missing from semantic fields: %+v", form.Fields)
 	}
@@ -57,7 +60,7 @@ func TestThirdPartySemanticCaptureSeparatesAnswersAssessmentsAndAssignments(t *t
 func TestThirdPartySemanticCaptureUsesReplacementIdentities(t *testing.T) {
 	group := sourceRecordGroup{Key: "third-party-risk-register"}
 	code, idempotency := sourceFormIdentity(group, 0)
-	if !strings.HasPrefix(code, "SOURCE-TPR-V2-") || !strings.HasPrefix(idempotency, "fidelity-source-records-v2:") {
+	if !strings.HasPrefix(code, "SOURCE-TPR-V3-") || !strings.HasPrefix(idempotency, "fidelity-source-records-v3:") {
 		t.Fatalf("code=%q idempotency=%q", code, idempotency)
 	}
 }
