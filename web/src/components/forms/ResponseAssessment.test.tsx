@@ -19,6 +19,36 @@ const assessment = {
 beforeEach(() => { vi.clearAllMocks(); api.loadResponseAssessment.mockResolvedValue(structuredClone(assessment)); });
 
 describe("submitted field assessment", () => {
+  it("presents semantic vendor responses as service groups with truthful metrics", async () => {
+    api.loadResponseAssessment.mockResolvedValue({ ...assessment, required_count: 2, fields: [
+      { may_review: true, field: { id: "requirement_1_response", section_id: "service_1", label: "Certification missing", type: "long_text", description: "Vendor response · Service: Moneytor GetPaid application", assessment: { mode: "MANUAL", required: true, weight: 20, reviewer_role: "REVIEWER", rubric: [] } }, answer: { text: "Audit underway" } },
+      { field: { id: "requirement_1_evidence", section_id: "service_1", label: "Current certificate", type: "vendor_document", description: "Supporting evidence · Service: Moneytor GetPaid application" }, answer: {} },
+      { may_review: true, field: { id: "requirement_2_response", section_id: "service_2", label: "PCI-DSS certificate expired", type: "long_text", description: "Vendor response · Service: Payment Terminal Service Provider (PTSP)", assessment: { mode: "MANUAL", required: true, weight: 20, reviewer_role: "REVIEWER", rubric: [] } }, answer: {} },
+      { field: { id: "requirement_2_evidence", section_id: "service_2", label: "Current PCI-DSS certificate", type: "vendor_document", description: "Supporting evidence · Service: Payment Terminal Service Provider (PTSP)" }, answer: { artifact_ids: ["doc-1"] } },
+    ] });
+    render(<ResponseAssessment responseID="response-2" answersOnly/>);
+    expect(await screen.findByRole("region", { name: "Vendor responses" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Requirements" }).textContent).toContain("2");
+    expect(screen.getByRole("group", { name: "Vendor responses received" }).textContent).toContain("1");
+    expect(screen.getByRole("group", { name: "Evidence received" }).textContent).toContain("1");
+    expect(screen.getAllByText("No document received")).toHaveLength(1);
+    expect(screen.getByRole("region", { name: "Moneytor GetPaid application" })).toBeTruthy();
+    expect(screen.queryByText("Existing form rules")).toBeNull();
+  });
+
+  it("keeps supporting documents inside each requirement while bank reviewers assess the vendor response", async () => {
+    api.loadResponseAssessment.mockResolvedValue({ ...assessment, fields: [
+      { may_review: true, field: { id: "requirement_1_response", section_id: "service_1", label: "Certification missing", type: "long_text", description: "Vendor response · Service: Moneytor GetPaid application", assessment: { mode: "MANUAL", required: true, weight: 20, reviewer_role: "REVIEWER", rubric: [] } }, answer: { text: "Audit underway" } },
+      { field: { id: "requirement_1_evidence", section_id: "service_1", label: "Current certificate", type: "vendor_document", description: "Supporting evidence · Service: Moneytor GetPaid application" }, answer: {} },
+    ] });
+    render(<ResponseAssessment responseID="response-2"/>);
+    expect(await screen.findByRole("heading", { name: "Internal assessment" })).toBeTruthy();
+    expect(screen.getByRole("article", { name: "Certification missing" })).toBeTruthy();
+    expect(screen.queryByRole("article", { name: "Current certificate" })).toBeNull();
+    expect(screen.getByText("Vendor response")).toBeTruthy();
+    expect(screen.queryByText("Submitted answer and evidence")).toBeNull();
+  });
+
   it("keeps the submitted result and document access available when the assessment read fails", async () => {
     api.loadResponseAssessment.mockRejectedValue(new ApiError(503, "Assessment unavailable"));
     render(<ResponseAssessment responseID="response-2" submissionScore={assessment.automatic_score as never}/>);

@@ -53,6 +53,21 @@ func TestSourceRecordCaptureContractAndITVendorCoverage(t *testing.T) {
 				if len(form.Fields) > formcontract.MaxFields || len(form.Sections) > formcontract.MaxSections {
 					t.Fatalf("%s exceeds capture limits", group.Key)
 				}
+				if semantic, semanticGroup, semanticErr := thirdPartySemanticCapture(group); semanticErr != nil {
+					t.Fatal(semanticErr)
+				} else if semanticGroup {
+					if len(semantic.Requirements) != 5 || len(form.Fields) != 10 || len(form.Sections) != 2 || len(answers) != 4 {
+						t.Fatalf("semantic third-party contract requirements=%d fields=%d sections=%d answers=%d", len(semantic.Requirements), len(form.Fields), len(form.Sections), len(answers))
+					}
+					for _, record := range part {
+						if seen[record.Key] {
+							t.Fatalf("record repeated: %s", record.Key)
+						}
+						seen[record.Key] = true
+						consumed++
+					}
+					continue
+				}
 				for r, record := range part {
 					if consumed >= len(group.Records) || record.Key != group.Records[consumed].Key || seen[record.Key] {
 						t.Fatalf("record lost, reordered or repeated: %s", record.Key)
