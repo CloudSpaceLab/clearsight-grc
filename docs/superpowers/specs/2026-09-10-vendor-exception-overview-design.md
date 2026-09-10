@@ -56,7 +56,7 @@ The client derives presentation order only from stored states and dates:
 2. open exception with a blocked action;
 3. open exception whose next action has no owner or deadline;
 4. open exception with an action due within 30 days;
-5. remaining open exceptions;
+5. remaining open exceptions when **All open** is selected;
 6. closed or cancelled records only when **All** is selected.
 
 Within a band, order by earliest deadline and then exception title. Missing values remain explicit. The presentation does not infer material risk, compliance status or authority.
@@ -72,7 +72,7 @@ Retain only controls that support an operating decision:
 - Owner;
 - Source rating.
 
-The default is **Needs attention**. No column chooser, configurable widgets, bulk selection, charts or saved-view machinery is introduced. Existing backend bounds remain authoritative; the client must not imply that a partially loaded population is complete.
+The default is **Needs attention**, limited to bands 1–4 above. **All open** adds the remaining open exceptions. No column chooser, configurable widgets, bulk selection, charts or saved-view machinery is introduced. Existing backend bounds remain authoritative; the client must not imply that a partially loaded population is complete.
 
 ## Navigation and continuity
 
