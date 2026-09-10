@@ -46,11 +46,12 @@ export function VendorPortfolio({ records, hasMore, onOpenMatter, detail = false
       {!loading && !error && work?.complete && items.length === 0 && <p>No linked findings match this filter for the loaded services.</p>}
       <ul>{sorted.slice(0, limit).map(({ record, relationshipIDs }) => {
         const facts = record.matter.known_facts ?? {};
+        const accountableFunction = sourceFieldValue(facts, "BUSINESS OWNER");
         const actions = record.actions.filter(action => filter === "OVERDUE" ? overdueRiskAction(action, now) : filter === "ACTIONS" ? openRiskAction(action) : true);
         const services = records.filter(item => relationshipIDs.includes(item.relationship.id));
         return <li key={record.matter.id} className="vendor-finding">
           <div className="vendor-finding-heading"><div><h3>{record.matter.title}</h3><p>{services.map(item => `${item.vendor.legal_name} · ${item.relationship.service_name}`).join("; ")}</p></div><StatusBadge tone={record.matter.status === "CLOSED" ? "success" : "neutral"}>{record.status_label || stateLabel(record.matter.status)}</StatusBadge></div>
-          <div className="vendor-finding-source">{facts.sample === true && <span>Sample data</span>}{typeof facts.source_rating === "string" && facts.source_rating && <span>Source rating: {facts.source_rating}</span>}{typeof facts.source_assessor === "string" && facts.source_assessor && <span>Internal assessor: {facts.source_assessor}</span>}{typeof facts.source_owner === "string" && facts.source_owner && <span>Action performer: {facts.source_owner}</span>}{typeof facts.source_period === "string" && facts.source_period && <span>Source period: {facts.source_period}</span>}</div>
+          <div className="vendor-finding-source">{facts.sample === true && <span>Sample data</span>}{typeof facts.source_rating === "string" && facts.source_rating && <span>Source rating: {facts.source_rating}</span>}{typeof facts.source_assessor === "string" && facts.source_assessor && <span>Internal assessor: {facts.source_assessor}</span>}{accountableFunction && <span>Accountable function: {accountableFunction}</span>}{typeof facts.source_owner === "string" && facts.source_owner && <span>Action performer: {facts.source_owner}</span>}{typeof facts.source_period === "string" && facts.source_period && <span>Source period: {facts.source_period}</span>}</div>
           <ul className="vendor-finding-actions">{actions.slice(0, 5).map(action => <li key={action.id}><span>{action.title}</span><div><StatusBadge tone={action.status === "BLOCKED" ? "warning" : "neutral"}>{stateLabel(action.status)}</StatusBadge>{action.due_at ? <span className={overdueRiskAction(action, now) ? "vendor-action-overdue" : ""}>{facts.source_file ? "Source target" : "Due"} <time dateTime={action.due_at}>{new Date(action.due_at).toLocaleDateString()}</time>{overdueRiskAction(action, now) ? " · Overdue" : ""}</span> : <span>No action deadline</span>}</div></li>)}</ul>
           <footer>{typeof facts.source_file === "string" && <small>{facts.source_file}{typeof facts.source_range === "string" ? ` · ${facts.source_range}` : ""}</small>}{actions.length > 5 && <small>{actions.length - 5} further actions</small>}{onOpenMatter && <Button aria-label={`Review ${record.matter.title}`} onPress={() => onOpenMatter(record.matter.id)}>Review finding</Button>}</footer>
         </li>;
@@ -61,3 +62,8 @@ export function VendorPortfolio({ records, hasMore, onOpenMatter, detail = false
   </section>;
 }
 function stateLabel(value: string) { const labels: Record<string, string> = { TRIAGE: "Initial review", ASSESSMENT: "Assessment", DECISION_REQUIRED: "Decision needed", ACTION_IN_PROGRESS: "Actions in progress", VERIFICATION: "Outcome verification", CLOSED: "Closed", CANCELLED: "Cancelled", PLANNED: "Planned", IN_PROGRESS: "In progress", BLOCKED: "Blocked", IMPLEMENTED: "Implemented" }; return labels[value] ?? "Status unknown"; }
+function sourceFieldValue(facts: Record<string, unknown>, label: string) {
+  if (!Array.isArray(facts.source_fields)) return "";
+  const field = facts.source_fields.find((value): value is { label: string; value: string } => Boolean(value) && typeof value === "object" && "label" in value && "value" in value && typeof value.label === "string" && typeof value.value === "string" && value.label.trim().toUpperCase() === label);
+  return field?.value.trim() ?? "";
+}
