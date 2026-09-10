@@ -49,7 +49,16 @@ func installCloudspaceSample(ctx context.Context, cfg config.Config, pool *pgxpo
 	var formID string
 	var version int64
 	var matchingForms int
-	if err = pool.QueryRow(ctx, `SELECT id::text,version,count(*) OVER() FROM monitoring_form_templates WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND code='VENDOR-DUE-DILIGENCE' AND status='ACTIVE' AND is_current ORDER BY id LIMIT 1`, seed.TenantID, seed.LegalEntityID).Scan(&formID, &version, &matchingForms); err != nil {
+	if err = pool.QueryRow(ctx, `WITH candidates AS MATERIALIZED (
+	 SELECT f.id,f.version,EXISTS(SELECT 1 FROM capture_form_distributions d
+	  WHERE d.tenant_id=f.tenant_id AND d.legal_entity_id=f.legal_entity_id
+	  AND d.subject_type='VENDOR_RELATIONSHIP' AND d.subject_id=$3::uuid
+	  AND d.form_template_id=f.id AND d.status IN ('OPEN','LOCKED','SUPERSEDED')) AS assigned
+	 FROM monitoring_form_templates f WHERE f.tenant_id=$1::uuid AND f.legal_entity_id=$2::uuid
+	 AND f.code='VENDOR-DUE-DILIGENCE' AND f.status='ACTIVE' AND f.is_current
+	) SELECT id::text,version,count(*) OVER() FROM candidates
+	WHERE assigned OR NOT EXISTS(SELECT 1 FROM candidates WHERE assigned)
+	ORDER BY id LIMIT 1`, seed.TenantID, seed.LegalEntityID, relationshipID).Scan(&formID, &version, &matchingForms); err != nil {
 		return result, err
 	}
 	if matchingForms != 1 {
