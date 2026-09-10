@@ -126,6 +126,7 @@ func main() {
 		RegisterMigrations: registermigration.New(services.RegisterMigrations, services.DocumentImports, services.ThirdParty, services.Authority),
 		Continuity:         services.Continuity, MatterFormRemediation: matterFormRemediation, Today: services.Today, Oversight: services.Oversight, Workflow: services.Workflow, Onboarding: services.Onboarding,
 		Autonomy: services.Autonomy, AIGovernance: services.AIGovernance, AIGatewayOperations: gatewayOperations, AIGatewayPublicBaseURL: gatewayPublicBaseURL, BankVerticals: services.BankVerticals, BackgroundJobs: services.BackgroundJobs, Activity: services.Activity, AuditExports: services.AuditExports,
+		People:           services.People,
 		MaxArtifactBytes: cfg.MaxArtifactBytes,
 	})
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: handler, ReadHeaderTimeout: 2 * time.Second, ReadTimeout: cfg.ReadTimeout, WriteTimeout: cfg.WriteTimeout, IdleTimeout: cfg.IdleTimeout, MaxHeaderBytes: 1 << 20}

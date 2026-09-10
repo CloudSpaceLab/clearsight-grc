@@ -24,6 +24,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/people"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
@@ -139,7 +140,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		FormPolicies: formPolicies,
 		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
-		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports,
+		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports, People: people.NewService(people.NewPostgresRepository(pool)),
 		Access: access.NewPostgresResolver(pool), AccessAdmin: accessAdmin, SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
 		RuntimeContext: runtimecontext.NewPostgresResolver(pool),
 	}, nil
