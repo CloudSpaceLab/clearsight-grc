@@ -20,9 +20,10 @@ type RuntimeProvider struct {
 	sources *sourceaccess.CatalogService
 	ready   atomic.Bool
 
-	baselineCache sync.Map
-	baselineTTL   time.Duration
-	now           func() time.Time
+	baselineCache  sync.Map
+	exceptionCache sync.Map
+	baselineTTL    time.Duration
+	now            func() time.Time
 }
 
 func NewRuntimeProvider(repo Repository, sources *sourceaccess.CatalogService) *RuntimeProvider {
@@ -56,6 +57,14 @@ func (p *RuntimeProvider) Authenticate(ctx context.Context, header string) (*aig
 		return nil, aigateway.ErrPolicyUnavailable
 	}
 	if found && baseline.ID != policy.ID {
+		exceptions, exceptionErr := p.activeGatewayBaselineExceptions(ctx, workload.TenantID, baseline, workload.ID, workload.Environment)
+		if exceptionErr != nil {
+			return nil, aigateway.ErrPolicyUnavailable
+		}
+		baseline, exceptionErr = applyGatewayBaselineExceptions(baseline, exceptions)
+		if exceptionErr != nil {
+			return nil, aigateway.ErrPolicyUnavailable
+		}
 		policySnapshot.Baseline = &baseline
 	}
 	result := &aigateway.Workload{
