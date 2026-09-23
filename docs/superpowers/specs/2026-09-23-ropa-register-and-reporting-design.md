@@ -5,6 +5,46 @@ Status: proposed
 Requirements: Fidelity Bank Archer workbook #26, #28, #29 (Data Privacy)
 Related: `docs/product/archer-requirements-gap.md`, `docs/engineering/ui-use-case-acceptance-matrix.md`
 
+## Statutory basis
+
+Supplied reference material, not legal advice. Two documents in
+`C:\Users\Son\Downloads\fidelitybankgrcusecasesandrequirements\` govern this work.
+
+**`NDPA_Compliance_Checklist (1).xlsx`** is the direct source. It states:
+
+> Maintain ROPA and compliance evidence — Articles 13, 48; Schedule 2 —
+> *ROPA; processing inventory; evidence repository* — all relevant processing
+> activities, ongoing.
+
+Four further checklist rows constrain individual register fields, and each maps to
+a column in this design:
+
+| Checklist row | NDPA reference | Register field |
+|---|---|---|
+| Document lawful basis for each processing activity | Arts. 15, 16, 23; Sch. 1 | `lawful_basis`, required before closure |
+| Apply storage limitation; delete or de-identify when purpose achieved | Art. 49(3) | `retention_period`, `end_date` |
+| Conduct DPIA for high-risk and mandatory GAID processing | Art. 28; Sch. 4 | `automated_decision_making`, sensitivity on data categories |
+| Document and assess cross-border data transfers | Art. 45; Sch. 5 | `recipients.recipient_kind`, `transfer_basis` |
+
+This confirms the field set is regulator-driven rather than invented, and it
+establishes the register as the evidence base for the annual CAR filing.
+
+**`IT Governance Dashboard-Requirements (1) (1).docx`** sets the house
+convention for any governance dashboard we build, including ROPA:
+
+- KPI cards
+- RAG status indicators
+- drill-down by date dimension (month, quarter, year)
+- linked tables, so a KPI opens the rows behind it
+
+The ROPA dashboard uses exactly these. `AGENTS.md` forbids defaulting every
+concept to a dashboard card, so KPI cards sit above the register and drill down
+into it rather than replacing it.
+
+Not ROPA sources: the Archer workbook, the Compliance Register (AML and
+prudential), the IT Risk registers, the workplan, the third-party register, and
+the Ops Risk folder (KRI, BIA, loss, RCSA). They inform other requirements.
+
 ## What we are building
 
 A central register of processing activities for the bank's personal data, with a
