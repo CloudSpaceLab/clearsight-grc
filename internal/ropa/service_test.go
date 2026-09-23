@@ -2,8 +2,12 @@ package ropa_test
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"reflect"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -135,7 +139,7 @@ func TestClosureIsBlockedUntilRequiredFactsExist(t *testing.T) {
 		t.Fatalf("expected ErrClosureBlocked, got %v", err)
 	}
 
-	blockers, err := service.ClosureBlockers(context.Background(), activity.ID)
+	blockers, err := service.ClosureBlockers(context.Background(), activity.TenantID, activity.LegalEntityID, activity.ID)
 	if err != nil {
 		t.Fatalf("read closure blockers: %v", err)
 	}
@@ -488,6 +492,660 @@ func TestEventsAccumulateWithAggregateVersionsAfterTransition(t *testing.T) {
 	}
 	if events[1].Type != "processing_activity.transitioned" || events[1].AggregateVersion != 2 {
 		t.Fatalf("second event = %#v", events[1])
+	}
+}
+
+func task3DirectActivity() ropa.ProcessingActivity {
+	return ropa.ProcessingActivity{
+		ID:                           "activity-direct-1",
+		TenantID:                     "tenant-1",
+		LegalEntityID:                "entity-1",
+		Code:                         "PA-DIRECT-1",
+		Name:                         "Direct repository activity",
+		Description:                  "A record seeded through the memory write boundary.",
+		Status:                       ropa.StatusNew,
+		Purpose:                      "Exercise repository validation.",
+		LawfulBasis:                  "Contract",
+		Controller:                   "Fidelity Bank",
+		Processor:                    "Internal operations",
+		DataSubjectCategories:        "Customers",
+		OwnerPrincipalID:             "owner-1",
+		RequiredAuthorityPrincipalID: "authority-1",
+		Version:                      1,
+		CreatedAt:                    task3Now,
+		UpdatedAt:                    task3Now,
+	}
+}
+
+func task3DirectEvent(t *testing.T, activity ropa.ProcessingActivity, eventType string, aggregateVersion int64) ropa.Event {
+	t.Helper()
+	payload, err := json.Marshal(activity)
+	if err != nil {
+		t.Fatalf("marshal direct activity: %v", err)
+	}
+	return ropa.Event{
+		ID:               activity.ID + "-" + eventType,
+		TenantID:         activity.TenantID,
+		LegalEntityID:    activity.LegalEntityID,
+		AggregateType:    "PROCESSING_ACTIVITY",
+		AggregateID:      activity.ID,
+		AggregateVersion: aggregateVersion,
+		Type:             eventType,
+		Payload:          payload,
+		ActorType:        "SERVICE",
+		OccurredAt:       activity.UpdatedAt,
+	}
+}
+
+func task3DirectCreate(t *testing.T, repository *ropa.MemoryRepository, activity ropa.ProcessingActivity) (ropa.ProcessingActivity, error) {
+	t.Helper()
+	event := task3DirectEvent(t, activity, ropa.EventActivityCreated, activity.Version)
+	return repository.CreateActivity(context.Background(), activity, event)
+}
+
+func task3ValidRecipient(name string) ropa.Recipient {
+	return ropa.Recipient{
+		Recipient:     name,
+		RecipientKind: "EXTERNAL",
+		CountryCode:   "US",
+		IsCrossBorder: true,
+		TransferBasis: ropa.TransferBasisStandardContractClauses,
+	}
+}
+
+func task3ValidReview() ropa.Review {
+	return ropa.Review{
+		ID:        "review-1",
+		CreatedAt: task3Now,
+		DueDate:   task3Now.AddDate(0, 3, 0),
+	}
+}
+
+func TestMemoryRepositoryRejectsNonNewStatusOnCreate(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		status ropa.Status
+	}{
+		{name: "open", status: ropa.StatusOpen},
+		{name: "closed", status: ropa.StatusClosed},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			repository := ropa.NewMemoryRepository()
+			activity := task3DirectActivity()
+			activity.Status = test.status
+
+			if _, err := task3DirectCreate(t, repository, activity); !errors.Is(err, ropa.ErrInvalid) {
+				t.Fatalf("%s creation: expected ErrInvalid, got %v", test.name, err)
+			}
+		})
+	}
+}
+
+func TestMemoryRepositoryRejectsNonPositiveVersionOnCreate(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		version int64
+	}{
+		{name: "zero", version: 0},
+		{name: "negative", version: -1},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			repository := ropa.NewMemoryRepository()
+			activity := task3DirectActivity()
+			activity.Version = test.version
+
+			if _, err := task3DirectCreate(t, repository, activity); !errors.Is(err, ropa.ErrInvalid) {
+				t.Fatalf("version %d: expected ErrInvalid, got %v", test.version, err)
+			}
+		})
+	}
+}
+
+func TestMemoryRepositoryRejectsClosureWithoutEachRequiredFact(t *testing.T) {
+	cases := []struct {
+		name   string
+		mutate func(*ropa.ProcessingActivity)
+	}{
+		{name: "lawful basis", mutate: func(activity *ropa.ProcessingActivity) { activity.LawfulBasis = "" }},
+		{name: "named owner", mutate: func(activity *ropa.ProcessingActivity) { activity.OwnerPrincipalID = "" }},
+		{name: "data subject category", mutate: func(activity *ropa.ProcessingActivity) { activity.DataSubjectCategories = "" }},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			repository := ropa.NewMemoryRepository()
+			activity, err := task3DirectCreate(t, repository, task3DirectActivity())
+			if err != nil {
+				t.Fatalf("seed direct activity: %v", err)
+			}
+			next := activity
+			next.Status = ropa.StatusClosed
+			next.Version = activity.Version + 1
+			next.UpdatedAt = task3Now.Add(time.Minute)
+			test.mutate(&next)
+			event := task3DirectEvent(t, next, ropa.EventActivityTransitioned, next.Version)
+
+			if _, err := repository.ApplyActivityEvent(context.Background(), next.TenantID, next.ID, activity.Version, event); !errors.Is(err, ropa.ErrClosureBlocked) {
+				t.Fatalf("missing %s: expected ErrClosureBlocked, got %v", test.name, err)
+			}
+		})
+	}
+}
+
+func TestMemoryRepositoryRejectsUnknownEventType(t *testing.T) {
+	repository := ropa.NewMemoryRepository()
+	activity, err := task3DirectCreate(t, repository, task3DirectActivity())
+	if err != nil {
+		t.Fatalf("seed direct activity: %v", err)
+	}
+	next := activity
+	next.Status = ropa.StatusOpen
+	next.Version = activity.Version + 1
+	next.UpdatedAt = task3Now.Add(time.Minute)
+	event := task3DirectEvent(t, next, "processing_activity.deleted", next.Version)
+
+	if _, err := repository.ApplyActivityEvent(context.Background(), next.TenantID, next.ID, activity.Version, event); !errors.Is(err, ropa.ErrInvalid) {
+		t.Fatalf("unknown event type: expected ErrInvalid, got %v", err)
+	}
+}
+
+func TestMemoryRepositoryRequiresExactEventVersion(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		version int64
+	}{
+		{name: "wrong", version: 3},
+		{name: "zero", version: 0},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			repository := ropa.NewMemoryRepository()
+			activity, err := task3DirectCreate(t, repository, task3DirectActivity())
+			if err != nil {
+				t.Fatalf("seed direct activity: %v", err)
+			}
+			next := activity
+			next.Status = ropa.StatusOpen
+			next.Version = activity.Version + 1
+			next.UpdatedAt = task3Now.Add(time.Minute)
+			event := task3DirectEvent(t, next, ropa.EventActivityTransitioned, test.version)
+
+			if _, err := repository.ApplyActivityEvent(context.Background(), next.TenantID, next.ID, activity.Version, event); !errors.Is(err, ropa.ErrVersionConflict) {
+				t.Fatalf("%s event version: expected ErrVersionConflict, got %v", test.name, err)
+			}
+		})
+	}
+}
+
+func TestMemoryRepositoryRejectsMismatchedPayloadID(t *testing.T) {
+	repository := ropa.NewMemoryRepository()
+	activity, err := task3DirectCreate(t, repository, task3DirectActivity())
+	if err != nil {
+		t.Fatalf("seed direct activity: %v", err)
+	}
+	next := activity
+	next.ID = "another-activity"
+	next.Status = ropa.StatusOpen
+	next.Version = activity.Version + 1
+	next.UpdatedAt = task3Now.Add(time.Minute)
+	event := task3DirectEvent(t, next, ropa.EventActivityTransitioned, next.Version)
+
+	if _, err := repository.ApplyActivityEvent(context.Background(), activity.TenantID, activity.ID, activity.Version, event); !errors.Is(err, ropa.ErrInvalid) {
+		t.Fatalf("mismatched payload ID: expected ErrInvalid, got %v", err)
+	}
+}
+
+func TestActivityDomainValidationAgreesAcrossServiceAndRepository(t *testing.T) {
+	cases := []struct {
+		name           string
+		mutateActivity func(*ropa.ProcessingActivity)
+		mutateInput    func(*ropa.CreateActivityInput)
+	}{
+		{
+			name:           "code exceeds bound",
+			mutateActivity: func(activity *ropa.ProcessingActivity) { activity.Code = strings.Repeat("C", 201) },
+			mutateInput:    func(input *ropa.CreateActivityInput) { input.Code = strings.Repeat("C", 201) },
+		},
+		{
+			name:           "description exceeds bound",
+			mutateActivity: func(activity *ropa.ProcessingActivity) { activity.Description = strings.Repeat("D", 4001) },
+			mutateInput:    func(input *ropa.CreateActivityInput) { input.Description = strings.Repeat("D", 4001) },
+		},
+		{
+			name:           "whitespace optional text",
+			mutateActivity: func(activity *ropa.ProcessingActivity) { activity.Description = " \t" },
+			mutateInput:    func(input *ropa.CreateActivityInput) { input.Description = " \t" },
+		},
+		{
+			name:           "controller name exceeds bound",
+			mutateActivity: func(activity *ropa.ProcessingActivity) { activity.Controller = strings.Repeat("C", 201) },
+			mutateInput:    func(input *ropa.CreateActivityInput) { input.Controller = strings.Repeat("C", 201) },
+		},
+		{
+			name: "recipient name exceeds bound",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Recipients = []ropa.Recipient{task3ValidRecipient(strings.Repeat("R", 201))}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Recipients = []ropa.Recipient{task3ValidRecipient(strings.Repeat("R", 201))}
+			},
+		},
+		{
+			name: "blank child key",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Recipients = []ropa.Recipient{{Recipient: " \t", RecipientKind: "EXTERNAL", CountryCode: "US", IsCrossBorder: true, TransferBasis: ropa.TransferBasisStandardContractClauses}}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Recipients = []ropa.Recipient{{Recipient: " \t", RecipientKind: "EXTERNAL", CountryCode: "US", IsCrossBorder: true, TransferBasis: ropa.TransferBasisStandardContractClauses}}
+			},
+		},
+		{
+			name: "invalid recipient kind",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Recipients = []ropa.Recipient{{Recipient: "Processor", RecipientKind: "UNKNOWN", CountryCode: "US", IsCrossBorder: true, TransferBasis: ropa.TransferBasisStandardContractClauses}}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Recipients = []ropa.Recipient{{Recipient: "Processor", RecipientKind: "UNKNOWN", CountryCode: "US", IsCrossBorder: true, TransferBasis: ropa.TransferBasisStandardContractClauses}}
+			},
+		},
+		{
+			name: "invalid sensitivity",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.DataCategories = []ropa.DataCategory{{Category: "Identity", Sensitivity: "UNKNOWN"}}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.DataCategories = []ropa.DataCategory{{Category: "Identity", Sensitivity: "UNKNOWN"}}
+			},
+		},
+		{
+			name: "invalid system kind",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Systems = []ropa.System{{SystemName: "Core", SystemKind: "UNKNOWN"}}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Systems = []ropa.System{{SystemName: "Core", SystemKind: "UNKNOWN"}}
+			},
+		},
+		{
+			name: "invalid transfer basis",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Recipients = []ropa.Recipient{{Recipient: "Processor", RecipientKind: "EXTERNAL", CountryCode: "US", IsCrossBorder: true, TransferBasis: ropa.TransferBasis("UNKNOWN")}}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Recipients = []ropa.Recipient{{Recipient: "Processor", RecipientKind: "EXTERNAL", CountryCode: "US", IsCrossBorder: true, TransferBasis: ropa.TransferBasis("UNKNOWN")}}
+			},
+		},
+		{
+			name: "cross-border without country",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Recipients = []ropa.Recipient{{Recipient: "Processor", RecipientKind: "EXTERNAL", IsCrossBorder: true, TransferBasis: ropa.TransferBasisStandardContractClauses}}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Recipients = []ropa.Recipient{{Recipient: "Processor", RecipientKind: "EXTERNAL", IsCrossBorder: true, TransferBasis: ropa.TransferBasisStandardContractClauses}}
+			},
+		},
+		{
+			name: "domestic recipient with country",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Recipients = []ropa.Recipient{{Recipient: "Internal team", RecipientKind: "INTERNAL", CountryCode: "US", TransferBasis: ropa.TransferBasisNotApplicable}}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Recipients = []ropa.Recipient{{Recipient: "Internal team", RecipientKind: "INTERNAL", CountryCode: "US", TransferBasis: ropa.TransferBasisNotApplicable}}
+			},
+		},
+		{
+			name: "domestic recipient with transfer basis",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Recipients = []ropa.Recipient{{Recipient: "Internal team", RecipientKind: "INTERNAL", TransferBasis: ropa.TransferBasisStandardContractClauses}}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Recipients = []ropa.Recipient{{Recipient: "Internal team", RecipientKind: "INTERNAL", TransferBasis: ropa.TransferBasisStandardContractClauses}}
+			},
+		},
+		{
+			name: "lowercase country code",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Recipients = []ropa.Recipient{{Recipient: "Processor", RecipientKind: "EXTERNAL", CountryCode: "us", IsCrossBorder: true, TransferBasis: ropa.TransferBasisStandardContractClauses}}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Recipients = []ropa.Recipient{{Recipient: "Processor", RecipientKind: "EXTERNAL", CountryCode: "us", IsCrossBorder: true, TransferBasis: ropa.TransferBasisStandardContractClauses}}
+			},
+		},
+		{
+			name: "duplicate data category",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.DataCategories = []ropa.DataCategory{{Category: "Identity", Sensitivity: "DIRECT_PERSONAL"}, {Category: " Identity ", Sensitivity: "DIRECT_PERSONAL"}}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.DataCategories = []ropa.DataCategory{{Category: "Identity", Sensitivity: "DIRECT_PERSONAL"}, {Category: " Identity ", Sensitivity: "DIRECT_PERSONAL"}}
+			},
+		},
+		{
+			name: "duplicate recipient",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Recipients = []ropa.Recipient{task3ValidRecipient("Processor"), task3ValidRecipient(" Processor ")}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Recipients = []ropa.Recipient{task3ValidRecipient("Processor"), task3ValidRecipient(" Processor ")}
+			},
+		},
+		{
+			name: "duplicate system",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Systems = []ropa.System{{SystemName: "Core", SystemKind: "APPLICATION"}, {SystemName: " Core ", SystemKind: "APPLICATION"}}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Systems = []ropa.System{{SystemName: "Core", SystemKind: "APPLICATION"}, {SystemName: " Core ", SystemKind: "APPLICATION"}}
+			},
+		},
+		{
+			name: "review without id",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Reviews = []ropa.Review{task3ValidReview()}
+				activity.Reviews[0].ID = " \t"
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Reviews = []ropa.Review{task3ValidReview()}
+				input.Reviews[0].ID = " \t"
+			},
+		},
+		{
+			name: "recipient collection exceeds bound",
+			mutateActivity: func(activity *ropa.ProcessingActivity) {
+				activity.Recipients = make([]ropa.Recipient, 1001)
+				for index := range activity.Recipients {
+					activity.Recipients[index] = task3ValidRecipient("Recipient-" + string(rune(index+1000)))
+				}
+			},
+			mutateInput: func(input *ropa.CreateActivityInput) {
+				input.Recipients = make([]ropa.Recipient, 1001)
+				for index := range input.Recipients {
+					input.Recipients[index] = task3ValidRecipient("Recipient-" + string(rune(index+1000)))
+				}
+			},
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			service, _, _ := task3Service()
+			input := task3Input()
+			test.mutateInput(&input)
+			if _, err := service.CreateActivity(context.Background(), input); !errors.Is(err, ropa.ErrInvalid) {
+				t.Fatalf("service path: expected ErrInvalid, got %v", err)
+			}
+
+			repository := ropa.NewMemoryRepository()
+			activity := task3DirectActivity()
+			test.mutateActivity(&activity)
+			if _, err := task3DirectCreate(t, repository, activity); !errors.Is(err, ropa.ErrInvalid) {
+				t.Fatalf("repository path: expected ErrInvalid, got %v", err)
+			}
+		})
+	}
+}
+
+func TestServiceRejectsUpdateTimestampBeforeCreation(t *testing.T) {
+	service, _, _ := task3Service()
+	activity := task3Create(t, service, task3Input())
+	service.Now = func() time.Time { return task3Now.Add(-time.Hour) }
+	description := "Updated after the clock moved backwards"
+
+	_, err := service.UpdateActivity(context.Background(), ropa.UpdateActivityInput{
+		TenantID:        activity.TenantID,
+		ActivityID:      activity.ID,
+		ExpectedVersion: activity.Version,
+		Description:     &description,
+		ActorID:         "actor-1",
+	})
+	if !errors.Is(err, ropa.ErrInvalid) {
+		t.Fatalf("update before creation: expected ErrInvalid, got %v", err)
+	}
+}
+
+func TestMemoryRepositoryRejectsTimestampBeforeCreation(t *testing.T) {
+	repository := ropa.NewMemoryRepository()
+	activity := task3DirectActivity()
+	activity.UpdatedAt = task3Now.Add(-time.Hour)
+
+	if _, err := task3DirectCreate(t, repository, activity); !errors.Is(err, ropa.ErrInvalid) {
+		t.Fatalf("create timestamp order: expected ErrInvalid, got %v", err)
+	}
+}
+
+func TestListActivitiesRejectsUnknownStatusThroughServiceAndRepository(t *testing.T) {
+	service, repository, _ := task3Service()
+	activity := task3Create(t, service, task3Input())
+	filter := ropa.ListActivitiesFilter{
+		TenantID:      activity.TenantID,
+		LegalEntityID: activity.LegalEntityID,
+		Status:        ropa.Status("ARCHIVED"),
+		Limit:         1,
+	}
+	if _, err := service.ListActivities(context.Background(), filter); !errors.Is(err, ropa.ErrInvalid) {
+		t.Fatalf("service list: expected ErrInvalid, got %v", err)
+	}
+	if _, err := repository.ListActivities(context.Background(), filter); !errors.Is(err, ropa.ErrInvalid) {
+		t.Fatalf("repository list: expected ErrInvalid, got %v", err)
+	}
+}
+
+func TestListActivitiesRejectsWhitespaceCursorID(t *testing.T) {
+	service, _, _ := task3Service()
+	cursor := base64.RawURLEncoding.EncodeToString([]byte(`{"s":"NEW","r":"0001-01-01T00:00:00Z","i":"   "}`))
+	_, err := service.ListActivities(context.Background(), ropa.ListActivitiesFilter{
+		TenantID:      "tenant-1",
+		LegalEntityID: "entity-1",
+		Limit:         1,
+		Cursor:        cursor,
+	})
+	if !errors.Is(err, ropa.ErrInvalid) {
+		t.Fatalf("whitespace cursor ID: expected ErrInvalid, got %v", err)
+	}
+}
+
+func TestRegisterSummaryMarksZeroGeneratedAtStale(t *testing.T) {
+	service, _, summaries := task3Service()
+	if err := summaries.ReplaceSummary(context.Background(), ropa.RegisterSummary{
+		TenantID:          "tenant-1",
+		LegalEntityID:     "entity-1",
+		ProjectionVersion: ropa.ProjectionVersion,
+	}); err != nil {
+		t.Fatalf("replace zero-time summary: %v", err)
+	}
+	summary, err := service.RegisterSummary(context.Background(), "tenant-1", "entity-1")
+	if err != nil {
+		t.Fatalf("read zero-time summary: %v", err)
+	}
+	if summary.Freshness != ropa.FreshnessStale {
+		t.Fatalf("zero-time summary freshness = %s, want STALE", summary.Freshness)
+	}
+}
+
+func TestServiceFallsBackToServiceActorWhenActorIsAbsent(t *testing.T) {
+	service, repository, _ := task3Service()
+	input := task3Input()
+	input.ActorID = ""
+	activity := task3Create(t, service, input)
+	events, err := repository.ActivityEvents(context.Background(), activity.TenantID, activity.ID)
+	if err != nil {
+		t.Fatalf("read created event: %v", err)
+	}
+	if len(events) != 1 || events[0].ActorType != "SERVICE" || events[0].ActorID != "" {
+		t.Fatalf("service actor fallback event = %#v", events)
+	}
+}
+
+func TestKeysetPaginationUsesIDAsStableTiebreaker(t *testing.T) {
+	service, _, _ := task3Service()
+	reviewDate := task3Now.AddDate(0, 2, 0)
+	created := make([]string, 0, 3)
+	for index := 0; index < 3; index++ {
+		input := task3Input()
+		input.Code = "PA-TIE-" + string(rune('A'+index))
+		input.Name = "Tie activity " + input.Code
+		input.NextReviewDate = &reviewDate
+		created = append(created, task3Create(t, service, input).ID)
+	}
+	sort.Strings(created)
+
+	first, err := service.ListActivities(context.Background(), ropa.ListActivitiesFilter{
+		TenantID: "tenant-1", LegalEntityID: "entity-1", Limit: 1,
+	})
+	if err != nil {
+		t.Fatalf("first page: %v", err)
+	}
+	firstAgain, err := service.ListActivities(context.Background(), ropa.ListActivitiesFilter{
+		TenantID: "tenant-1", LegalEntityID: "entity-1", Limit: 1,
+	})
+	if err != nil {
+		t.Fatalf("first page repeated: %v", err)
+	}
+	if len(first.Rows) != 1 || len(firstAgain.Rows) != 1 || first.Rows[0].ID != firstAgain.Rows[0].ID || first.Rows[0].ID != created[0] {
+		t.Fatalf("first-page order is not stable: first=%#v repeated=%#v expected=%v", first.Rows, firstAgain.Rows, created)
+	}
+
+	seen := make([]string, 0, len(created))
+	cursor := ""
+	for pageNumber := 0; pageNumber < len(created)+1; pageNumber++ {
+		page, err := service.ListActivities(context.Background(), ropa.ListActivitiesFilter{
+			TenantID: "tenant-1", LegalEntityID: "entity-1", Limit: 1, Cursor: cursor,
+		})
+		if err != nil {
+			t.Fatalf("page %d: %v", pageNumber, err)
+		}
+		if len(page.Rows) == 0 {
+			break
+		}
+		seen = append(seen, page.Rows[0].ID)
+		if !page.HasMore {
+			break
+		}
+		cursor = page.NextCursor
+	}
+	if !reflect.DeepEqual(seen, created) {
+		t.Fatalf("paged order = %v, want stable ID order %v", seen, created)
+	}
+}
+
+func TestReturnedActivityCannotMutateStoredState(t *testing.T) {
+	service, _, _ := task3Service()
+	input := task3Input()
+	completed := task3Now.Add(-time.Hour)
+	input.DataCategories = []ropa.DataCategory{{Category: "Identity", Sensitivity: "DIRECT_PERSONAL"}}
+	input.Recipients = []ropa.Recipient{task3ValidRecipient("Processor")}
+	input.Systems = []ropa.System{{SystemName: "Core", SystemKind: "APPLICATION"}}
+	input.Reviews = []ropa.Review{{ID: "review-1", CreatedAt: task3Now, DueDate: task3Now.AddDate(0, 3, 0), CompletedAt: &completed, Outcome: "CONFIRMED"}}
+	activity := task3Create(t, service, input)
+
+	returned, err := service.GetActivity(context.Background(), activity.TenantID, activity.ID)
+	if err != nil {
+		t.Fatalf("get activity: %v", err)
+	}
+	returned.Name = "Caller mutation"
+	returned.DataCategories[0].Category = "Caller category"
+	returned.Recipients[0].Recipient = "Caller recipient"
+	returned.Systems[0].SystemName = "Caller system"
+	returned.Reviews[0].ID = "Caller review"
+	*returned.Reviews[0].CompletedAt = task3Now.Add(-48 * time.Hour)
+
+	stored, err := service.GetActivity(context.Background(), activity.TenantID, activity.ID)
+	if err != nil {
+		t.Fatalf("get activity after mutation: %v", err)
+	}
+	if !reflect.DeepEqual(stored, activity) {
+		t.Fatalf("stored activity was changed by caller:\nwant: %#v\ngot:  %#v", activity, stored)
+	}
+}
+
+type closureBlockersRepository struct {
+	activity ropa.ProcessingActivity
+	err      error
+}
+
+func (r *closureBlockersRepository) CreateActivity(context.Context, ropa.ProcessingActivity, ropa.Event) (ropa.ProcessingActivity, error) {
+	return ropa.ProcessingActivity{}, nil
+}
+
+func (r *closureBlockersRepository) GetActivity(context.Context, string, string) (ropa.ProcessingActivity, error) {
+	if r.err != nil {
+		return ropa.ProcessingActivity{}, r.err
+	}
+	return r.activity, nil
+}
+
+func (r *closureBlockersRepository) ApplyActivityEvent(context.Context, string, string, int64, ropa.Event) (int64, error) {
+	return 0, nil
+}
+
+func (r *closureBlockersRepository) ActivityEvents(context.Context, string, string) ([]ropa.Event, error) {
+	return nil, nil
+}
+
+func (r *closureBlockersRepository) ActivityByCode(context.Context, string, string, string) (ropa.ProcessingActivity, error) {
+	return ropa.ProcessingActivity{}, ropa.ErrNotFound
+}
+
+func TestClosureBlockersRequiresTenantAndLegalEntityScope(t *testing.T) {
+	service, _, _ := task3Service()
+	activity := task3Create(t, service, task3Input())
+
+	blockers, err := service.ClosureBlockers(context.Background(), activity.TenantID, activity.LegalEntityID, activity.ID)
+	if err != nil {
+		t.Fatalf("read scoped blockers: %v", err)
+	}
+	if len(blockers) != 0 {
+		t.Fatalf("complete activity blockers = %v, want none", blockers)
+	}
+
+	_, err = service.ClosureBlockers(context.Background(), "other-tenant", activity.LegalEntityID, activity.ID)
+	if !errors.Is(err, ropa.ErrNotFound) {
+		t.Fatalf("wrong tenant: expected ErrNotFound, got %v", err)
+	}
+	_, err = service.ClosureBlockers(context.Background(), activity.TenantID, "other-entity", activity.ID)
+	if !errors.Is(err, ropa.ErrNotFound) {
+		t.Fatalf("wrong legal entity: expected ErrNotFound, got %v", err)
+	}
+	_, err = service.ClosureBlockers(context.Background(), "", activity.LegalEntityID, activity.ID)
+	if !errors.Is(err, ropa.ErrInvalid) {
+		t.Fatalf("missing tenant: expected ErrInvalid, got %v", err)
+	}
+}
+
+func TestClosureBlockersPropagatesRepositoryFailure(t *testing.T) {
+	failure := errors.New("database unavailable")
+	service := ropa.NewService(&closureBlockersRepository{err: failure}, nil)
+
+	_, err := service.ClosureBlockers(context.Background(), "tenant-1", "entity-1", "activity-1")
+	if err != failure {
+		t.Fatalf("repository failure = %v, want unchanged %v", err, failure)
+	}
+}
+
+func TestClosureBlockersRejectsMismatchedReturnedLegalEntity(t *testing.T) {
+	service := ropa.NewService(&closureBlockersRepository{activity: ropa.ProcessingActivity{
+		ID:            "activity-1",
+		TenantID:      "tenant-1",
+		LegalEntityID: "entity-other",
+	}}, nil)
+
+	_, err := service.ClosureBlockers(context.Background(), "tenant-1", "entity-1", "activity-1")
+	if !errors.Is(err, ropa.ErrNotFound) {
+		t.Fatalf("mismatched returned legal entity: expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestMemoryRepositoryRejectsNoOpTransitionEvent(t *testing.T) {
+	repository := ropa.NewMemoryRepository()
+	activity, err := task3DirectCreate(t, repository, task3DirectActivity())
+	if err != nil {
+		t.Fatalf("seed direct activity: %v", err)
+	}
+	next := activity
+	next.Version = activity.Version + 1
+	next.UpdatedAt = task3Now.Add(time.Minute)
+	event := task3DirectEvent(t, next, ropa.EventActivityTransitioned, next.Version)
+
+	if _, err := repository.ApplyActivityEvent(context.Background(), next.TenantID, next.ID, activity.Version, event); !errors.Is(err, ropa.ErrInvalid) {
+		t.Fatalf("no-op transition event: expected ErrInvalid, got %v", err)
 	}
 }
 

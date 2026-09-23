@@ -38,14 +38,11 @@ func (r *MemoryRepository) CreateActivity(ctx context.Context, activity Processi
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if err := validateActivityWhitespace(activity); err != nil {
+		return ProcessingActivity{}, err
+	}
 	activity = normalizeProcessingActivity(activity)
-	if activity.Status == "" {
-		activity.Status = StatusNew
-	}
-	if activity.Version == 0 {
-		activity.Version = 1
-	}
-	if !validStatus(activity.Status) {
+	if activity.Status != StatusNew {
 		return ProcessingActivity{}, ErrInvalid
 	}
 	if err := validateActivity(activity); err != nil {
@@ -92,24 +89,6 @@ func (r *MemoryRepository) GetActivity(ctx context.Context, tenantID, activityID
 	return cloneProcessingActivity(activity), nil
 }
 
-func (r *MemoryRepository) ActivityByID(ctx context.Context, activityID string) (ProcessingActivity, error) {
-	if err := ropaContextError(ctx); err != nil {
-		return ProcessingActivity{}, err
-	}
-	activityID = strings.TrimSpace(activityID)
-	if activityID == "" {
-		return ProcessingActivity{}, ErrNotFound
-	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for _, activity := range r.activities {
-		if activity.ID == activityID {
-			return cloneProcessingActivity(activity), nil
-		}
-	}
-	return ProcessingActivity{}, ErrNotFound
-}
-
 func (r *MemoryRepository) ActivityByCode(ctx context.Context, tenantID, legalEntityID, code string) (ProcessingActivity, error) {
 	if err := ropaContextError(ctx); err != nil {
 		return ProcessingActivity{}, err
@@ -136,6 +115,9 @@ func (r *MemoryRepository) ApplyActivityEvent(ctx context.Context, tenantID, act
 	}
 	tenantID = strings.TrimSpace(tenantID)
 	activityID = strings.TrimSpace(activityID)
+	if tenantID == "" || activityID == "" {
+		return 0, ErrInvalid
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -144,14 +126,11 @@ func (r *MemoryRepository) ApplyActivityEvent(ctx context.Context, tenantID, act
 	if !ok {
 		return 0, ErrNotFound
 	}
-	if current.Version != expectedVersion {
+	if current.Version != expectedVersion || event.AggregateVersion != expectedVersion+1 {
 		return 0, ErrVersionConflict
 	}
-	if event.AggregateVersion != 0 && event.AggregateVersion != expectedVersion+1 {
-		return 0, ErrVersionConflict
-	}
-	if event.AggregateVersion == 0 {
-		event.AggregateVersion = expectedVersion + 1
+	if !validActivityEventType(event.Type) {
+		return 0, ErrInvalid
 	}
 	if event.TenantID != "" && event.TenantID != current.TenantID {
 		return 0, ErrInvalid
@@ -177,12 +156,12 @@ func (r *MemoryRepository) ApplyActivityEvent(ctx context.Context, tenantID, act
 	if err != nil {
 		return 0, err
 	}
-	decoded = normalizeProcessingActivity(decoded)
-	if !validStatus(decoded.Status) {
-		return 0, ErrInvalid
-	}
-	if err := validateActivity(decoded); err != nil {
+	if err := validateActivityWhitespace(decoded); err != nil {
 		return 0, err
+	}
+	decoded = normalizeProcessingActivity(decoded)
+	if decoded.ID != "" && decoded.ID != current.ID {
+		return 0, ErrInvalid
 	}
 	if decoded.TenantID != "" && decoded.TenantID != current.TenantID {
 		return 0, ErrInvalid
@@ -199,6 +178,12 @@ func (r *MemoryRepository) ApplyActivityEvent(ctx context.Context, tenantID, act
 		decoded.UpdatedAt = event.OccurredAt.UTC()
 	} else if decoded.UpdatedAt.IsZero() {
 		decoded.UpdatedAt = current.UpdatedAt
+	}
+	if err := validateActivity(decoded); err != nil {
+		return 0, err
+	}
+	if err := ValidateTransitionForWrite(current, decoded, event.Type); err != nil {
+		return 0, err
 	}
 
 	oldCodeKey := activityCodeKey(current.TenantID, current.LegalEntityID, current.Code)
@@ -268,6 +253,9 @@ func (r *MemoryRepository) ListActivities(ctx context.Context, filter ListActivi
 		filter.Limit = 200
 	}
 	filter.Status = Status(strings.ToUpper(strings.TrimSpace(string(filter.Status))))
+	if filter.Status != "" && !validStatus(filter.Status) {
+		return ActivityPage{}, ErrInvalid
+	}
 	filter.LawfulBasis = strings.TrimSpace(filter.LawfulBasis)
 	filter.OwnerPrincipalID = strings.TrimSpace(filter.OwnerPrincipalID)
 	filter.Search = strings.TrimSpace(filter.Search)
@@ -349,7 +337,10 @@ func normalizeCreatedEvent(event Event, activity ProcessingActivity) (Event, err
 	if event.AggregateType != "" && event.AggregateType != "PROCESSING_ACTIVITY" {
 		return Event{}, ErrInvalid
 	}
-	if event.AggregateVersion != 0 && event.AggregateVersion != activity.Version {
+	if !validActivityEventType(event.Type) {
+		return Event{}, ErrInvalid
+	}
+	if event.AggregateVersion != activity.Version {
 		return Event{}, ErrVersionConflict
 	}
 	event.TenantID = activity.TenantID
@@ -507,6 +498,7 @@ func decodeActivityCursor(value string) (activityCursor, error) {
 	if err := json.Unmarshal(payload, &position); err != nil {
 		return activityCursor{}, fmt.Errorf("invalid cursor")
 	}
+	position.ID = strings.TrimSpace(position.ID)
 	if position.ID == "" || !validStatus(Status(strings.ToUpper(strings.TrimSpace(position.Status)))) {
 		return activityCursor{}, fmt.Errorf("invalid cursor")
 	}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 const (
@@ -18,6 +19,21 @@ const (
 	EventProcessingActivityCreated      = EventActivityCreated
 	EventProcessingActivityUpdated      = EventActivityUpdated
 	EventProcessingActivityTransitioned = EventActivityTransitioned
+)
+
+// The domain bounds below are deliberately smaller than PostgreSQL's unbounded
+// text type so an event payload and a child collection cannot grow without a
+// limit. 200 characters is enough for stable codes, names and identifiers used
+// by the register; 4,000 characters is enough for operational descriptions,
+// purposes, retention notes and other long text. 1,000 rows per child
+// collection keeps a single activity's write and reconstruction bounded while
+// leaving room for a large bank's detailed inventory.
+const (
+	MaxActivityCodeLength          = 200
+	MaxActivityNameLength          = 200
+	MaxActivityIdentifierLength    = 200
+	MaxActivityTextLength          = 4000
+	MaxActivityChildCollectionSize = 1000
 )
 
 type CreateActivityInput struct {
@@ -120,7 +136,7 @@ func (s *Service) CreateActivity(ctx context.Context, input CreateActivityInput)
 	}
 
 	now := s.now()
-	activity := normalizeProcessingActivity(ProcessingActivity{
+	activity := ProcessingActivity{
 		TenantID:                     input.TenantID,
 		LegalEntityID:                input.LegalEntityID,
 		Code:                         input.Code,
@@ -149,7 +165,11 @@ func (s *Service) CreateActivity(ctx context.Context, input CreateActivityInput)
 		Version:                      1,
 		CreatedAt:                    now,
 		UpdatedAt:                    now,
-	})
+	}
+	if err := validateActivityWhitespace(activity); err != nil {
+		return ProcessingActivity{}, err
+	}
+	activity = normalizeProcessingActivity(activity)
 	if err := validateActivity(activity); err != nil {
 		return ProcessingActivity{}, err
 	}
@@ -198,8 +218,14 @@ func (s *Service) UpdateActivity(ctx context.Context, input UpdateActivityInput)
 	applyUpdateActivityInput(&updated, input)
 	updated.Version = current.Version + 1
 	updated.UpdatedAt = s.now()
+	if err := validateActivityWhitespace(updated); err != nil {
+		return ProcessingActivity{}, err
+	}
 	updated = normalizeProcessingActivity(updated)
 	if err := validateActivity(updated); err != nil {
+		return ProcessingActivity{}, err
+	}
+	if err := ValidateTransitionForWrite(current, updated, EventActivityUpdated); err != nil {
 		return ProcessingActivity{}, err
 	}
 
@@ -244,7 +270,7 @@ func (s *Service) TransitionActivity(ctx context.Context, input TransitionActivi
 	if input.ExpectedVersion <= 0 || input.ExpectedVersion != current.Version {
 		return ProcessingActivity{}, ErrVersionConflict
 	}
-	if !validTransition(current.Status, input.To) {
+	if input.To == current.Status {
 		return ProcessingActivity{}, ErrInvalid
 	}
 
@@ -255,14 +281,15 @@ func (s *Service) TransitionActivity(ctx context.Context, input TransitionActivi
 	}
 	updated.Version = current.Version + 1
 	updated.UpdatedAt = s.now()
+	if err := validateActivityWhitespace(updated); err != nil {
+		return ProcessingActivity{}, err
+	}
 	updated = normalizeProcessingActivity(updated)
 	if err := validateActivity(updated); err != nil {
 		return ProcessingActivity{}, err
 	}
-	if updated.Status == StatusClosed {
-		if blockers := closureBlockers(updated); len(blockers) > 0 {
-			return ProcessingActivity{}, ErrClosureBlocked
-		}
+	if err := ValidateTransitionForWrite(current, updated, EventActivityTransitioned); err != nil {
+		return ProcessingActivity{}, err
 	}
 
 	event, err := s.newActivityEvent(updated, EventActivityTransitioned, input.ActorID, updated.UpdatedAt)
@@ -300,6 +327,9 @@ func (s *Service) ListActivities(ctx context.Context, filter ListActivitiesFilte
 		filter.Limit = 200
 	}
 	filter.Status = Status(strings.ToUpper(strings.TrimSpace(string(filter.Status))))
+	if filter.Status != "" && !validStatus(filter.Status) {
+		return ActivityPage{}, ErrInvalid
+	}
 	filter.LawfulBasis = strings.TrimSpace(filter.LawfulBasis)
 	filter.OwnerPrincipalID = strings.TrimSpace(filter.OwnerPrincipalID)
 	filter.Search = strings.TrimSpace(filter.Search)
@@ -328,25 +358,23 @@ func (s *Service) RegisterSummary(ctx context.Context, tenantID, legalEntityID s
 	return summary, nil
 }
 
-func (s *Service) ClosureBlockers(ctx context.Context, activityID string) ([]string, error) {
-	if s == nil || s.repository == nil || strings.TrimSpace(activityID) == "" {
+func (s *Service) ClosureBlockers(ctx context.Context, tenantID, legalEntityID, activityID string) ([]string, error) {
+	if s == nil || s.repository == nil {
 		return nil, ErrInvalid
 	}
+	tenantID = strings.TrimSpace(tenantID)
+	legalEntityID = strings.TrimSpace(legalEntityID)
 	activityID = strings.TrimSpace(activityID)
-	if reader, ok := s.repository.(interface {
-		ActivityByID(context.Context, string) (ProcessingActivity, error)
-	}); ok {
-		activity, err := reader.ActivityByID(ctx, activityID)
-		if err != nil {
-			return nil, err
-		}
-		return closureBlockers(activity), nil
+	if tenantID == "" || legalEntityID == "" || activityID == "" {
+		return nil, ErrInvalid
 	}
-
-	// Some read repositories support an unscoped exact-id lookup. It is a
-	// fallback only; the normal command paths always use a verified tenant.
-	activity, err := s.repository.GetActivity(ctx, "", activityID)
+	// Use the command repository's exact tenant-scoped read. An unscoped
+	// fallback could select a same-ID activity from another tenant or entity.
+	activity, err := s.repository.GetActivity(ctx, tenantID, activityID)
 	if err != nil {
+		return nil, err
+	}
+	if activity.TenantID != tenantID || activity.LegalEntityID != legalEntityID {
 		return nil, ErrNotFound
 	}
 	return closureBlockers(activity), nil
@@ -451,20 +479,78 @@ func applyUpdateActivityInput(activity *ProcessingActivity, input UpdateActivity
 		activity.ProgramID = *input.ProgramID
 	}
 	if input.DataCategories != nil {
-		activity.DataCategories = cloneDataCategories(input.DataCategories)
+		activity.DataCategories = input.DataCategories
 	}
 	if input.Recipients != nil {
-		activity.Recipients = cloneRecipients(input.Recipients)
+		activity.Recipients = input.Recipients
 	}
 	if input.Systems != nil {
-		activity.Systems = cloneSystems(input.Systems)
+		activity.Systems = input.Systems
 	}
 	if input.Reviews != nil {
-		activity.Reviews = cloneReviews(input.Reviews)
+		activity.Reviews = input.Reviews
 	}
 }
 
+func validateActivityWhitespace(activity ProcessingActivity) error {
+	values := []string{
+		activity.ID,
+		activity.TenantID,
+		activity.LegalEntityID,
+		activity.Code,
+		activity.Name,
+		activity.Description,
+		activity.Purpose,
+		activity.LawfulBasis,
+		activity.Controller,
+		activity.Processor,
+		activity.DataSubjectCategories,
+		activity.PersonalDataCategories,
+		activity.SecurityMeasures,
+		activity.RetentionPeriod,
+		activity.OwnerPrincipalID,
+		activity.RequiredAuthorityPrincipalID,
+		activity.ProgramID,
+	}
+	for _, value := range values {
+		if value != "" && strings.TrimSpace(value) == "" {
+			return ErrInvalid
+		}
+	}
+	for _, value := range activity.DataCategories {
+		if whitespaceOnly(value.Category) || whitespaceOnly(value.Sensitivity) {
+			return ErrInvalid
+		}
+	}
+	for _, value := range activity.Recipients {
+		if whitespaceOnly(value.Recipient) || whitespaceOnly(value.RecipientKind) || whitespaceOnly(value.CountryCode) || whitespaceOnly(string(value.TransferBasis)) {
+			return ErrInvalid
+		}
+	}
+	for _, value := range activity.Systems {
+		if whitespaceOnly(value.SystemName) || whitespaceOnly(value.SystemKind) {
+			return ErrInvalid
+		}
+	}
+	for _, value := range activity.Reviews {
+		if whitespaceOnly(value.ID) || whitespaceOnly(value.Outcome) || whitespaceOnly(value.ReviewerPrincipalID) {
+			return ErrInvalid
+		}
+	}
+	return nil
+}
+
+func whitespaceOnly(value string) bool {
+	return value != "" && strings.TrimSpace(value) == ""
+}
+
 func validateActivity(activity ProcessingActivity) error {
+	if activity.Version <= 0 || !validStatus(activity.Status) {
+		return ErrInvalid
+	}
+	if activity.UpdatedAt.Before(activity.CreatedAt) {
+		return ErrInvalid
+	}
 	if strings.TrimSpace(activity.TenantID) == "" ||
 		strings.TrimSpace(activity.LegalEntityID) == "" ||
 		strings.TrimSpace(activity.Code) == "" ||
@@ -472,10 +558,155 @@ func validateActivity(activity ProcessingActivity) error {
 		strings.TrimSpace(activity.Controller) == "" {
 		return ErrInvalid
 	}
+	if !boundedText(activity.ID, MaxActivityIdentifierLength, false) ||
+		!boundedText(activity.Code, MaxActivityCodeLength, true) ||
+		!boundedText(activity.Name, MaxActivityNameLength, true) ||
+		!boundedText(activity.TenantID, MaxActivityIdentifierLength, true) ||
+		!boundedText(activity.LegalEntityID, MaxActivityIdentifierLength, true) ||
+		!boundedText(activity.Controller, MaxActivityNameLength, true) ||
+		!boundedText(activity.Description, MaxActivityTextLength, false) ||
+		!boundedText(activity.Purpose, MaxActivityTextLength, false) ||
+		!boundedText(activity.LawfulBasis, MaxActivityTextLength, false) ||
+		!boundedText(activity.Processor, MaxActivityNameLength, false) ||
+		!boundedText(activity.DataSubjectCategories, MaxActivityTextLength, false) ||
+		!boundedText(activity.PersonalDataCategories, MaxActivityTextLength, false) ||
+		!boundedText(activity.SecurityMeasures, MaxActivityTextLength, false) ||
+		!boundedText(activity.RetentionPeriod, MaxActivityTextLength, false) ||
+		!boundedText(activity.OwnerPrincipalID, MaxActivityIdentifierLength, false) ||
+		!boundedText(activity.RequiredAuthorityPrincipalID, MaxActivityIdentifierLength, false) ||
+		!boundedText(activity.ProgramID, MaxActivityIdentifierLength, false) {
+		return ErrInvalid
+	}
 	if activity.StartDate != nil && activity.EndDate != nil && activity.EndDate.Before(*activity.StartDate) {
 		return ErrInvalid
 	}
+	if len(activity.DataCategories) > MaxActivityChildCollectionSize ||
+		len(activity.Recipients) > MaxActivityChildCollectionSize ||
+		len(activity.Systems) > MaxActivityChildCollectionSize ||
+		len(activity.Reviews) > MaxActivityChildCollectionSize {
+		return ErrInvalid
+	}
+
+	seenCategories := make(map[string]struct{}, len(activity.DataCategories))
+	for _, value := range activity.DataCategories {
+		if !boundedText(value.Category, MaxActivityIdentifierLength, true) ||
+			!validSensitivity(value.Sensitivity) {
+			return ErrInvalid
+		}
+		if _, exists := seenCategories[value.Category]; exists {
+			return ErrInvalid
+		}
+		seenCategories[value.Category] = struct{}{}
+	}
+
+	seenRecipients := make(map[string]struct{}, len(activity.Recipients))
+	for _, value := range activity.Recipients {
+		if !boundedText(value.Recipient, MaxActivityNameLength, true) ||
+			!validRecipientKind(value.RecipientKind) ||
+			!value.TransferBasis.Valid() ||
+			!validCountryCode(value.CountryCode) ||
+			(value.IsCrossBorder && (value.CountryCode == "" || !value.TransferBasis.Valid())) ||
+			(!value.IsCrossBorder && (value.CountryCode != "" || value.TransferBasis != TransferBasisNotApplicable)) {
+			return ErrInvalid
+		}
+		if _, exists := seenRecipients[value.Recipient]; exists {
+			return ErrInvalid
+		}
+		seenRecipients[value.Recipient] = struct{}{}
+	}
+
+	seenSystems := make(map[string]struct{}, len(activity.Systems))
+	for _, value := range activity.Systems {
+		if !boundedText(value.SystemName, MaxActivityNameLength, true) || !validSystemKind(value.SystemKind) {
+			return ErrInvalid
+		}
+		if _, exists := seenSystems[value.SystemName]; exists {
+			return ErrInvalid
+		}
+		seenSystems[value.SystemName] = struct{}{}
+	}
+
+	seenReviews := make(map[string]struct{}, len(activity.Reviews))
+	for _, value := range activity.Reviews {
+		if !boundedText(value.ID, MaxActivityIdentifierLength, true) ||
+			!validReviewOutcome(value.Outcome) ||
+			!boundedText(value.ReviewerPrincipalID, MaxActivityIdentifierLength, false) {
+			return ErrInvalid
+		}
+		if _, exists := seenReviews[value.ID]; exists {
+			return ErrInvalid
+		}
+		seenReviews[value.ID] = struct{}{}
+	}
 	return nil
+}
+
+// ValidateTransitionForWrite is the single lifecycle and closure gate used by
+// both the service and repository command paths. An unchanged status is valid
+// for an update event, while a transitioned event must change status and a
+// changed status must follow validTransition.
+func ValidateTransitionForWrite(current, next ProcessingActivity, eventType string) error {
+	if !validStatus(current.Status) || !validStatus(next.Status) || !validActivityEventType(eventType) {
+		return ErrInvalid
+	}
+	if current.Status == next.Status {
+		if eventType == EventActivityTransitioned {
+			return ErrInvalid
+		}
+	} else if !validTransition(current.Status, next.Status) {
+		return ErrInvalid
+	}
+	if next.Status == StatusClosed && len(closureBlockers(next)) > 0 {
+		return ErrClosureBlocked
+	}
+	return nil
+}
+
+func boundedText(value string, maximum int, required bool) bool {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return !required
+	}
+	return utf8.RuneCountInString(trimmed) <= maximum
+}
+
+func validRecipientKind(value string) bool {
+	switch value {
+	case "INTERNAL", "EXTERNAL", "AUTHORITY":
+		return true
+	default:
+		return false
+	}
+}
+
+func validSystemKind(value string) bool {
+	switch value {
+	case "APPLICATION", "DATABASE", "FILE", "MANUAL", "THIRD_PARTY":
+		return true
+	default:
+		return false
+	}
+}
+
+func validSensitivity(value string) bool {
+	switch value {
+	case "UNCLASSIFIED", "DIRECT_PERSONAL", "INDIRECT_PERSONAL", "SENSITIVE_BY_NATURE", "SENSITIVE_BY_LAW":
+		return true
+	default:
+		return false
+	}
+}
+
+func validReviewOutcome(value string) bool {
+	return value == "" || value == "CONFIRMED" || value == "REVISED" || value == "WITHDRAWN"
+}
+
+func validCountryCode(value string) bool {
+	return value == "" || (len(value) == 2 && value[0] >= 'A' && value[0] <= 'Z' && value[1] >= 'A' && value[1] <= 'Z')
+}
+
+func validActivityEventType(value string) bool {
+	return value == EventActivityCreated || value == EventActivityUpdated || value == EventActivityTransitioned
 }
 
 func validTransition(from, to Status) bool {
