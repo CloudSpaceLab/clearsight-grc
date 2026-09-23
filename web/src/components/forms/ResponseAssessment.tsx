@@ -1,5 +1,7 @@
 import { assessmentStateLabels } from "../../vendorFormPresentation";
 import { useEffect, useRef, useState } from "react";
+import { loadFormTemplateRevision } from "../../formsApi";
+import type { FormTemplateSection } from "../../monitoringTypes";
 import { loadResponseAssessment, recordResponseAssessment, type ResponseAssessmentDetail, type ResponseFieldAssessment } from "../../formAssessmentApi";
 import type { ResponseScore } from "../../formsDistributionApi";
 import { coverageText, scorePresentation } from "./responseScorePresentation";
@@ -8,6 +10,8 @@ import { DocumentBrowser } from "../documents/DocumentBrowser";
 import { Button, EmptyState, FocusedSheet, Notice, SelectField, StatusBadge, TextArea } from "../ui";
 import { fieldAssessmentLabel, needsBankReview } from "./fieldAssessment";
 import { assessmentConcernPoints, assessmentConcernThreshold, automaticFieldResults } from "./assessmentFieldResults";
+import { AnswerValueDisplay } from "./AnswerValueDisplay";
+import { AnswerSheetSummary, groupAnswerFields, ResponseAnswerSheet } from "./ResponseAnswerSheet";
 import { buildSemanticResponseReview, type SemanticResponseReview } from "./semanticResponseReview";
 import "./field-assessment.css";
 
@@ -28,6 +32,7 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
   const [drafts, setDrafts] = useState<Record<string, Judgement>>({});
   const [filter, setFilter] = useState<ReviewFilter>("ALL");
   const [documentsOpen, setDocumentsOpen] = useState(false);
+  const [templateSections, setTemplateSections] = useState<FormTemplateSection[] | undefined>();
   const sequence = useRef(0);
 
   async function reload() {
@@ -47,6 +52,15 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
   }
 
   useEffect(() => { void reload(); return () => { sequence.current++; }; }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!detail) return undefined;
+    void loadFormTemplateRevision(detail.form_template_id, detail.form_template_version)
+      .then((template) => { if (!cancelled) setTemplateSections(template.sections ?? []); })
+      .catch(() => { /* Graceful fallback: fields render in a single group when the section list cannot be loaded. */ });
+    return () => { cancelled = true; };
+  }, [detail]);
 
   async function save() {
     if (!detail || !detail.current || (current === false || current === null) || saving || conflict) return;
@@ -88,9 +102,39 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
   const semantic = buildSemanticResponseReview(fields);
   const visible = fields.filter((item) => matchesFilter(item, filter, detail) && (!semantic || item.field.id.endsWith("_response")));
   const hasEvidence = fields.some((item) => evidenceField(item));
+  const groups = templateSections && templateSections.length > 0 ? groupAnswerFields(visible, templateSections) : undefined;
+  const renderField = (item: ResponseFieldAssessment) => {
+    const { field, decision } = item;
+    const automatic = automaticFieldResults(item, detail);
+    const value = drafts[field.id] ?? { outcome_id: decision?.outcome_id ?? "", rationale: decision?.rationale ?? "" };
+    const update = (patch: Partial<Judgement>) => setDrafts((current) => ({ ...current, [field.id]: { ...value, ...patch } }));
+    return <article className="response-assessment__field" key={field.id} aria-label={field.label}>
+      <header><h4>{field.label}</h4><span>{fieldAssessmentLabel(field)}{field.assessment?.required && needsBankReview(field) ? " · Required review" : ""}</span></header>
+      <div className="response-assessment__field-columns">
+        <div><h5>{semantic ? "Vendor response" : "Submitted answer and evidence"}</h5><p className="response-assessment__answer"><AnswerValueDisplay type={item.field.type} answer={item.answer} emptyLabel={evidenceField(item) ? "No evidence submitted for this field." : "No answer submitted for this field."} evidenceEmptyLabel="No evidence submitted for this field."/></p>{item.answer?.document && <dl><div><dt>Document type</dt><dd>{item.answer.document.document_type}</dd></div>{item.answer.document.issued_by && <div><dt>Issued by</dt><dd>{item.answer.document.issued_by}</dd></div>}{item.answer.document.expires_on && <div><dt>Expires</dt><dd>{item.answer.document.expires_on}</dd></div>}</dl>}</div>
+        <div className="response-assessment__judgement">
+          {automatic.length > 0 && <div><h5>Automatic result</h5>{automatic.map((result) => <div key={result.id}><p><strong>{result.label}</strong> · {result.description}</p>{result.shared && <p>This result depends on answers to more than one question.</p>}</div>)}</div>}
+          {decision && <div><h5>Saved decision</h5><p>{field.assessment?.rubric?.find((outcome) => outcome.id === decision.outcome_id)?.label ?? "Saved outcome"} · {decision.points} points</p><p>{decision.rationale}</p><p>{decision.reviewer_display_name ? `Reviewed by ${decision.reviewer_display_name}` : "Reviewer name unavailable"} · <time dateTime={decision.assessed_at}>{formatTime(decision.assessed_at)}</time></p><details><summary>Review details</summary><dl><div><dt>Reviewer ID</dt><dd>{decision.reviewer_id}</dd></div></dl></details></div>}
+          {needsBankReview(field) && editable && item.may_review === true && <>
+            <SelectField label={`Decision for ${field.label}`} value={value.outcome_id || undefined} placeholder="Choose a rubric outcome" options={(field.assessment?.rubric ?? []).map((outcome) => ({ id: outcome.id, label: `${outcome.label} · ${outcome.points} points` }))} isDisabled={saving} onChange={(outcome_id) => update({ outcome_id: outcome_id ?? "" })}/>
+            <TextArea label={`Rationale for ${field.label}`} value={value.rationale} onChange={(rationale) => update({ rationale })} maxLength={4000} rows={3} isDisabled={saving} description="Explain the evidence supporting this decision."/>
+            {field.assessment?.mode === "AUTOMATIC_REVIEW" && <p>The decision can confirm or increase the automatic concern. It cannot lower it; critical overrides and scoring limits still apply.</p>}
+          </>}
+          {needsBankReview(field) && !decision && (!editable || item.may_review !== true) && <p>No decision is recorded for this response version. Your current responsibility does not allow review of this field.</p>}
+        </div>
+      </div>
+    </article>;
+  };
 
   if (answersOnly && semantic) return <SemanticAnswers review={semantic} formVersion={detail.form_template_version}/>;
-  if (answersOnly) return <section className="response-assessment" aria-label="Submitted answers"><h3>Submitted answers</h3><p>Form revision {detail.form_template_version}. These answers cannot be changed.</p>{fields.length === 0 ? <p>No answer fields were recorded for this submitted response.</p> : fields.map((item) => <article key={item.field.id} aria-label={item.field.label}><h4>{item.field.label}</h4><p className="response-assessment__answer">{answerText(item)}</p></article>)}</section>;
+  if (answersOnly) return <ResponseAnswerSheet
+    fields={fields}
+    sections={templateSections}
+    title="Submitted answers"
+    note={`Form revision ${detail.form_template_version}. These answers cannot be changed.`}
+    emptyLabel="No answer submitted for this field."
+    evidenceEmptyLabel="No evidence submitted for this field."
+  />;
 
   return <section className="response-assessment" aria-label="Assessment">
     <header><h3>{semantic ? "Internal assessment" : "Assessment"}</h3><StatusBadge tone={pending > 0 ? "warning" : "neutral"}>{assessmentStateLabels[detail.state] ?? "Assessment state unavailable"}</StatusBadge></header>
@@ -101,6 +145,7 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
     {pending > 0 && <Notice tone="warning">{`${pending} required ${pending === 1 ? "field" : "fields"} awaiting review`}</Notice>}
     {detail.state !== "NOT_REQUIRED" && <p>{detail.reviewed_required_count} of {detail.required_count} required fields reviewed</p>}
     <div className="response-assessment__scores">{(detail.state !== "NOT_REQUIRED" || detail.automatic_score && detail.automatic_score.state !== "NOT_CONFIGURED") && <AssessmentScore title="Automatic result" score={detail.automatic_score}/>} {detail.state !== "NOT_REQUIRED" && <AssessmentScore title="Reviewed result" score={detail.assessed_score} provisional={pending > 0 || detail.assessed_score?.state === "PROVISIONAL"}/>}</div>
+    <AnswerSheetSummary fields={detail.fields ?? []} assessmentContext={detail} emptyLabel="No answer submitted for this field." evidenceEmptyLabel="No evidence submitted for this field." />
     {receipt && <Notice tone="success">{receipt}</Notice>}
     {error && <Notice tone="error">{error}</Notice>}
     {conflict && <Notice tone="warning">The response or assessment changed. Reload it and compare the saved decisions with your retained judgement before saving again.</Notice>}
@@ -108,28 +153,10 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
     <SelectField label="Assessment fields" value={filter} placeholder="Choose fields to review" allowsEmpty={false} options={[{ id: "ALL", label: "All submitted fields" }, { id: "PENDING", label: "Awaiting review" }, { id: "POOR", label: "Poor results" }, { id: "MISSING", label: "Missing evidence" }, { id: "REVIEWED", label: "Reviewed" }]} onChange={(value) => { if (value) setFilter(value); }}/>
     {filter === "POOR" && <p>Showing automatic or reviewed fields with at least {assessmentConcernThreshold(detail)} concern points{detail.score_profile ? " under the saved concern bands" : " using the stated 50-point filter"}, plus matched critical overrides. Shared conditions can identify more than one question.</p>}
     {visible.length === 0 && <EmptyState population="Fields in this submitted response matching the selected filter" title="No matching fields" description="Choose All submitted fields to review the other answers and evidence."/>}
-    <div className="response-assessment__fields">{visible.map((item) => {
-      const { field, decision } = item;
-      const automatic = automaticFieldResults(item, detail);
-      const value = drafts[field.id] ?? { outcome_id: decision?.outcome_id ?? "", rationale: decision?.rationale ?? "" };
-      const update = (patch: Partial<Judgement>) => setDrafts((current) => ({ ...current, [field.id]: { ...value, ...patch } }));
-      return <article className="response-assessment__field" key={field.id} aria-label={field.label}>
-        <header><h4>{field.label}</h4>{fieldAssessmentLabel(field) && <span>{fieldAssessmentLabel(field)}{field.assessment?.required && needsBankReview(field) ? " · Required review" : ""}</span>}</header>
-        <div className="response-assessment__field-columns">
-          <div><h5>{semantic ? "Vendor response" : "Submitted answer and evidence"}</h5><p className="response-assessment__answer">{answerText(item)}</p>{item.answer?.document && <dl><div><dt>Document type</dt><dd>{item.answer.document.document_type}</dd></div>{item.answer.document.issued_by && <div><dt>Issued by</dt><dd>{item.answer.document.issued_by}</dd></div>}{item.answer.document.expires_on && <div><dt>Expires</dt><dd>{item.answer.document.expires_on}</dd></div>}</dl>}</div>
-          <div className="response-assessment__judgement">
-            {automatic.length > 0 && <div><h5>Automatic result</h5>{automatic.map((result) => <div key={result.id}><p><strong>{result.label}</strong> · {result.description}</p>{result.shared && <p>This result depends on answers to more than one question.</p>}</div>)}</div>}
-            {decision && <div><h5>Saved decision</h5><p>{field.assessment?.rubric?.find((outcome) => outcome.id === decision.outcome_id)?.label ?? "Saved outcome"} · {decision.points} points</p><p>{decision.rationale}</p><p>{decision.reviewer_display_name ? `Reviewed by ${decision.reviewer_display_name}` : "Reviewer name unavailable"} · <time dateTime={decision.assessed_at}>{formatTime(decision.assessed_at)}</time></p><details><summary>Review details</summary><dl><div><dt>Reviewer ID</dt><dd>{decision.reviewer_id}</dd></div></dl></details></div>}
-            {needsBankReview(field) && editable && item.may_review === true && <>
-              <SelectField label={`Decision for ${field.label}`} value={value.outcome_id || undefined} placeholder="Choose a rubric outcome" options={(field.assessment?.rubric ?? []).map((outcome) => ({ id: outcome.id, label: `${outcome.label} · ${outcome.points} points` }))} isDisabled={saving} onChange={(outcome_id) => update({ outcome_id: outcome_id ?? "" })}/>
-              <TextArea label={`Rationale for ${field.label}`} value={value.rationale} onChange={(rationale) => update({ rationale })} maxLength={4000} rows={3} isDisabled={saving} description="Explain the evidence supporting this decision."/>
-              {field.assessment?.mode === "AUTOMATIC_REVIEW" && <p>The decision can confirm or increase the automatic concern. It cannot lower it; critical overrides and scoring limits still apply.</p>}
-            </>}
-            {needsBankReview(field) && !decision && (!editable || item.may_review !== true) && <p>No decision is recorded for this response version. Your current responsibility does not allow review of this field.</p>}
-          </div>
-        </div>
-      </article>;
-    })}</div>
+    <div className="response-assessment__fields">{groups ? groups.map((group) => <section className="response-answer-sheet__group" key={group.id ?? group.title}>
+      {group.title && <header className="response-answer-sheet__group-header"><h4>{group.title}</h4></header>}
+      {group.fields.map((item) => renderField(item as ResponseFieldAssessment))}
+    </section>) : visible.map(renderField)}</div>
     {showDocumentLauncher && hasEvidence && <Button onPress={() => setDocumentsOpen(true)}>View submitted documents</Button>}
     <RuleExplanation score={detail.automatic_score}/>
     {editable && reviewable.length > 0 && <div className="response-assessment__actions"><p>{conflict ? "Reload the assessment before saving." : changes.length === 0 ? "Choose a rubric outcome and enter a rationale to save a decision." : !valid ? "Each changed judgement needs an approved outcome and a rationale." : `${changes.length} ${changes.length === 1 ? "decision" : "decisions"} ready to save.`}</p><Button variant="primary" isDisabled={!valid || conflict} isLoading={saving} onPress={() => void save()}>Save assessment</Button></div>}

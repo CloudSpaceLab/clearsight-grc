@@ -7,7 +7,18 @@ const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const manifestPath = path.join(outputDir, "manifest.json");
 const browser = await chromium.launch({ headless: true });
 
+async function ensureManifest() {
+  try {
+    const existing = JSON.parse(await readFile(manifestPath, "utf8"));
+    if (Array.isArray(existing?.captures)) return;
+  } catch {
+    // Missing or invalid manifest is regenerated below.
+  }
+  await writeFile(manifestPath, JSON.stringify({ generatedAt: new Date().toISOString(), baseURL, failure: null, captures: [] }, null, 2));
+}
+
 try {
+  await ensureManifest();
   await captureDesktopReview();
   await captureMobileReview();
   await captureProgramSectionsAndCollections();
@@ -99,13 +110,23 @@ async function captureProgramSectionsAndCollections() {
   const context = await openContext({ width: 1440, height: 900 });
   const page = await openProgram(context, { section: "overview" });
   try {
-    const monitoringTab = page.getByRole("tab", { name: "Monitoring" });
+    const monitoringTab = page.getByRole("tab", { name: "Data collection" });
     await monitoringTab.focus();
-    if (!(await monitoringTab.evaluate((element) => element === document.activeElement))) throw new Error("Program Monitoring tab did not retain keyboard focus");
+    if (!(await monitoringTab.evaluate((element) => element === document.activeElement))) throw new Error("Program Data collection tab did not retain keyboard focus");
     await capture(page, "47-program-sections-tab-focus-light-1440x900", "program-tab-focus", { route: "#programs/program-ndpa/overview" });
   } finally {
     await context.close();
   }
+
+  await captureProgramPortfolioList({ name: "48-program-portfolio-list-light-1440x900", state: "program-portfolio-list", theme: "light", viewport: { width: 1440, height: 900 } });
+  await captureProgramPortfolioList({ name: "49-program-portfolio-list-dark-mobile-390x844", state: "program-portfolio-list-mobile", theme: "dark", viewport: { width: 390, height: 844 }, touch: true });
+
+  await captureProgramEvidenceResults({ name: "50-program-evidence-empty-light-1440x900", state: "program-evidence-empty", fixture: "program-evidence-empty", theme: "light", viewport: { width: 1440, height: 900 } });
+  await captureProgramEvidenceResults({ name: "51-program-evidence-populated-light-1440x900", state: "program-evidence-populated", fixture: "program-responses", theme: "light", viewport: { width: 1440, height: 900 } });
+  await captureProgramResponseSheets();
+  await captureProgramEvidenceResults({ name: "55-program-evidence-populated-dark-mobile-390x844", state: "program-evidence-populated-mobile", fixture: "program-responses", theme: "dark", viewport: { width: 390, height: 844 }, touch: true, compact: true });
+  await captureProgramRegisterResponseSheets({ name: "56-program-register-sheet-answers-light-1440x900", state: "program-register-sheet-answers", viewport: { width: 1440, height: 900 }, theme: "light", branch: "CAC" });
+  await captureProgramRegisterResponseSheets({ name: "57-program-register-sheet-answers-dark-mobile-390x844", state: "program-register-sheet-answers-mobile", viewport: { width: 390, height: 844 }, theme: "dark", touch: true, branch: "Marina" });
 }
 
 async function captureProgramSection({ name, section, fixture, theme, viewport, touch = false, compact = false, state, expectedText, scrollText }) {
@@ -165,5 +186,120 @@ async function recordFailure(error) {
     await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
   } catch {
     // The primary evidence runner owns manifest creation.
+  }
+}
+
+async function openProgramList(context, { fixture } = {}) {
+  const page = await context.newPage();
+  const browserErrors = [];
+  page.on("pageerror", (error) => browserErrors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") browserErrors.push(message.text()); });
+  const params = new URLSearchParams({ tour: "off" });
+  if (fixture) params.set("fixture", fixture);
+  await page.goto(`${baseURL}/?${params.toString()}#programs`, { waitUntil: "networkidle" });
+  await page.locator(".program-list").waitFor({ state: "visible" });
+  await page.locator('.program-card-main[href*="#programs/program-ndpa"]').waitFor({ state: "visible" });
+  if (await page.locator(".program-list .program-review-digest").count()) throw new Error("Program list replayed the detail review digest on the portfolio view");
+  await page.evaluate(() => document.fonts?.ready);
+  if (browserErrors.length) throw new Error(`Program list emitted browser errors:\n${browserErrors.join("\n")}`);
+  return page;
+}
+
+async function captureProgramPortfolioList({ name, state, theme, viewport, touch = false }) {
+  const context = await openContext(viewport, touch, theme);
+  const page = await openProgramList(context);
+  try {
+    await assertNoHorizontalOverflow(page, name);
+    await capture(page, name, state, { route: "#programs", fixture: null, theme });
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureProgramEvidenceResults({ name, state, fixture, theme, viewport, touch = false, compact = false }) {
+  const context = await openContext(viewport, touch, theme);
+  const page = await openProgram(context, { section: "evidence-results", fixture });
+  try {
+    if (compact) {
+      await page.getByRole("combobox", { name: "Program section" }).waitFor({ state: "visible" });
+      if (await page.getByRole("tablist", { name: "Program sections" }).count()) throw new Error(`${name} retained the desktop tablist in a compact viewport`);
+    } else {
+      await page.getByRole("tablist", { name: "Program sections" }).waitFor({ state: "visible" });
+    }
+    if (fixture === "program-evidence-empty") {
+      await page.getByText("No data collected yet", { exact: true }).waitFor({ state: "visible" });
+    } else {
+      await page.getByText("Annual data-processing review", { exact: true }).first().waitFor({ state: "visible" });
+      await page.getByText("Consent and lawful basis confirmation", { exact: true }).first().waitFor({ state: "visible" });
+      await page.getByText("Branch KRI — November 2025 · CAC", { exact: true }).first().waitFor({ state: "visible" });
+      await page.getByText("Branch KRI — November 2025 · Marina", { exact: true }).first().waitFor({ state: "visible" });
+    }
+    await page.locator(".program-detail-sections").evaluate((element) => element.scrollIntoView({ block: "start" }));
+    await page.evaluate(() => window.scrollBy(0, -70));
+    await assertNoHorizontalOverflow(page, name);
+    await capture(page, name, state, { route: "#programs/program-ndpa/evidence-results", fixture, theme });
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureProgramResponseSheets() {
+  const context = await openContext({ width: 1440, height: 900 });
+  const page = await openProgram(context, { section: "evidence-results", fixture: "program-responses" });
+  try {
+    await page.getByRole("button", { name: "Review Annual data-processing review response" }).click();
+    await page.locator(".cs-sheet-heading").getByText("Annual data-processing review", { exact: true }).waitFor({ state: "visible" });
+    await page.getByRole("heading", { name: "Submitted answers" }).waitFor({ state: "visible" });
+    await assertNoHorizontalOverflow(page, "52-program-evidence-sheet-answers-light-1440x900");
+    await capture(page, "52-program-evidence-sheet-answers-light-1440x900", "program-response-sheet-answers", { route: "#programs/program-ndpa/evidence-results", fixture: "program-responses", theme: "light" });
+
+    await page.getByRole("tab", { name: "Documents" }).click();
+    await page.getByRole("heading", { name: "Documents" }).waitFor({ state: "visible" });
+    await page.getByText("Program processor register.pdf", { exact: true }).waitFor({ state: "visible" });
+    await assertNoHorizontalOverflow(page, "53-program-evidence-sheet-documents-light-1440x900");
+    await capture(page, "53-program-evidence-sheet-documents-light-1440x900", "program-response-sheet-documents", { route: "#programs/program-ndpa/evidence-results", fixture: "program-responses", theme: "light" });
+
+    await page.getByRole("tab", { name: "Review" }).click();
+    await page.getByRole("heading", { name: "Assessment" }).waitFor({ state: "visible" });
+    await page.getByText("Reviewed result", { exact: true }).waitFor({ state: "visible" });
+    await assertNoHorizontalOverflow(page, "54-program-evidence-sheet-review-light-1440x900");
+    await capture(page, "54-program-evidence-sheet-review-light-1440x900", "program-response-sheet-review", { route: "#programs/program-ndpa/evidence-results", fixture: "program-responses", theme: "light" });
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureProgramRegisterResponseSheets({ name, state, viewport, theme, touch = false, branch }) {
+  const context = await openContext(viewport, touch, theme);
+  const page = await openProgram(context, { section: "evidence-results", fixture: "program-responses" });
+  try {
+    const responseTitle = `Branch KRI — November 2025 · ${branch}`;
+    await page.getByRole("button", { name: `Review ${responseTitle} response` }).click();
+    await page.locator(".cs-sheet-heading").getByText(responseTitle, { exact: true }).waitFor({ state: "visible" });
+    await page.getByRole("heading", { name: "Submitted answers" }).waitFor({ state: "visible" });
+    // Typed answer rendering: NGN currency, integer, date, yes/no badge,
+    // multi-select chips, attestation confirmation and multiline notes.
+    // The currency value is matched symbol-agnostically (locale may prefix
+    // the symbol or the ISO code).
+    await page.getByText(/1,250,000/).first().waitFor({ state: "visible" });
+    await page.getByText("Cash overage", { exact: true }).first().waitFor({ state: "visible" });
+    await page.getByText("Electrical surge", { exact: true }).first().waitFor({ state: "visible" });
+    await page.getByText("Confirmed", { exact: true }).first().waitFor({ state: "visible" });
+    // Sectioned answer sheet: form-section headings, honest summary strip and
+    // the "Needs attention" focus view (one missing answer, one missing evidence).
+    await page.getByRole("heading", { name: "Branch details" }).waitFor({ state: "visible" });
+    await page.getByRole("heading", { name: "November 2025 register" }).waitFor({ state: "visible" });
+    await page.getByText("10 of 12 fields answered", { exact: true }).first().waitFor({ state: "visible" });
+    await page.getByText("2 fields need attention", { exact: true }).first().waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "Needs attention" }).click();
+    await page.getByText("Follow-up owner", { exact: true }).waitFor({ state: "visible" });
+    await page.getByText("No answer submitted for this field.", { exact: true }).first().waitFor({ state: "visible" });
+    // Return to the default view so captures 56/57 keep the all-answers composition.
+    await page.getByRole("button", { name: "All answers", exact: true }).click();
+    await page.getByText("Cash overage", { exact: true }).first().waitFor({ state: "visible" });
+    await assertNoHorizontalOverflow(page, name);
+    await capture(page, name, state, { route: "#programs/program-ndpa/evidence-results", fixture: "program-responses", theme });
+  } finally {
+    await context.close();
   }
 }

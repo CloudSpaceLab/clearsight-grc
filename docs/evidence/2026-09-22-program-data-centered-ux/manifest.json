@@ -1,0 +1,448 @@
+{
+  "generatedAt": "2026-09-23T00:47:19.445Z",
+  "baseURL": "http://localhost:4173",
+  "failure": null,
+  "captures": [
+    {
+      "name": "37-program-review-changed-light-1440x900",
+      "route": "#programs/program-ndpa/overview",
+      "fixture": null,
+      "state": "program-review-changed",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1831,
+        "scrollY": 547,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "38-program-review-acknowledged-light-1440x900",
+      "route": "#programs/program-ndpa/overview",
+      "fixture": null,
+      "state": "program-review-acknowledged",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1831,
+        "scrollY": 547,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "39-program-review-changed-light-mobile-390x844",
+      "route": "#programs/program-ndpa/overview",
+      "fixture": null,
+      "state": "program-review-mobile-changed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 3143,
+        "scrollY": 1055,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "40-program-overview-dark-1440x900",
+      "route": "#programs/program-ndpa/overview",
+      "fixture": null,
+      "state": "program-overview-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1831,
+        "scrollY": 579,
+        "theme": "dark",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "41-program-evidence-results-light-1024x768",
+      "route": "#programs/program-ndpa/evidence-results",
+      "fixture": null,
+      "state": "program-evidence-results-tablet",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024,
+        "clientHeight": 768,
+        "scrollHeight": 2543,
+        "scrollY": 574,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "42-program-monitoring-light-1440x900",
+      "route": "#programs/program-ndpa/monitoring",
+      "fixture": "collection-renewal-states",
+      "state": "collection-current",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1990,
+        "scrollY": 579,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "43-program-monitoring-blocked-dark-1440x900",
+      "route": "#programs/program-ndpa/monitoring",
+      "fixture": "collection-renewal-states",
+      "state": "collection-delivery-blocked",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1990,
+        "scrollY": 1020,
+        "theme": "dark",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "44-program-monitoring-light-mobile-390x844",
+      "route": "#programs/program-ndpa/monitoring",
+      "fixture": "collection-renewal-states",
+      "state": "collection-mobile-selector",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 3692,
+        "scrollY": 994,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "45-program-monitoring-long-dark-reflow-320x800",
+      "route": "#programs/program-ndpa/monitoring",
+      "fixture": "collection-long-content",
+      "state": "collection-long-content",
+      "viewport": {
+        "width": 320,
+        "height": 800
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 320,
+        "scrollWidth": 320,
+        "clientHeight": 800,
+        "scrollHeight": 2192,
+        "scrollY": 1016,
+        "theme": "dark",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "46-program-monitoring-light-200pct-reflow-proxy",
+      "route": "#programs/program-ndpa/monitoring",
+      "fixture": "collection-renewal-states",
+      "state": "collection-200pct-reflow-proxy",
+      "viewport": {
+        "width": 720,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 720,
+        "scrollWidth": 720,
+        "clientHeight": 900,
+        "scrollHeight": 3094,
+        "scrollY": 845,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "47-program-sections-tab-focus-light-1440x900",
+      "route": "#programs/program-ndpa/overview",
+      "fixture": null,
+      "state": "program-tab-focus",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 1831,
+        "scrollY": 2,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "48-program-portfolio-list-light-1440x900",
+      "route": "#programs",
+      "fixture": null,
+      "state": "program-portfolio-list",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "49-program-portfolio-list-dark-mobile-390x844",
+      "route": "#programs",
+      "fixture": null,
+      "state": "program-portfolio-list-mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1419,
+        "scrollY": 0,
+        "theme": "dark",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "50-program-evidence-empty-light-1440x900",
+      "route": "#programs/program-ndpa/evidence-results",
+      "fixture": "program-evidence-empty",
+      "state": "program-evidence-empty",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 2045,
+        "scrollY": 579,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "51-program-evidence-populated-light-1440x900",
+      "route": "#programs/program-ndpa/evidence-results",
+      "fixture": "program-responses",
+      "state": "program-evidence-populated",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 2146,
+        "scrollY": 579,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "52-program-evidence-sheet-answers-light-1440x900",
+      "route": "#programs/program-ndpa/evidence-results",
+      "fixture": "program-responses",
+      "state": "program-response-sheet-answers",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 2146,
+        "scrollY": 598,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "53-program-evidence-sheet-documents-light-1440x900",
+      "route": "#programs/program-ndpa/evidence-results",
+      "fixture": "program-responses",
+      "state": "program-response-sheet-documents",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 2146,
+        "scrollY": 598,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "54-program-evidence-sheet-review-light-1440x900",
+      "route": "#programs/program-ndpa/evidence-results",
+      "fixture": "program-responses",
+      "state": "program-response-sheet-review",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 2146,
+        "scrollY": 598,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "55-program-evidence-populated-dark-mobile-390x844",
+      "route": "#programs/program-ndpa/evidence-results",
+      "fixture": "program-responses",
+      "state": "program-evidence-populated-mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 4587,
+        "scrollY": 994,
+        "theme": "dark",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "56-program-register-sheet-answers-light-1440x900",
+      "route": "#programs/program-ndpa/evidence-results",
+      "fixture": "program-responses",
+      "state": "program-register-sheet-answers",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 2146,
+        "scrollY": 736,
+        "theme": "light",
+        "density": "comfortable"
+      }
+    },
+    {
+      "name": "57-program-register-sheet-answers-dark-mobile-390x844",
+      "route": "#programs/program-ndpa/evidence-results",
+      "fixture": "program-responses",
+      "state": "program-register-sheet-answers-mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 4587,
+        "scrollY": 2247,
+        "theme": "dark",
+        "density": "comfortable"
+      }
+    }
+  ]
+}

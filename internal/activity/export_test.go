@@ -57,6 +57,7 @@ func TestExportServiceCreatesNDJSONWithoutHTMLRewriting(t *testing.T) {
 		Event{TenantID: "bank-a", ID: "event-1", OccurredAt: now.Add(-time.Minute), EventType: "MATTER_CREATED", ObjectType: "MATTER", ObjectID: "matter-1", ActorDisplayName: "Risk & Control"},
 	))
 	receipts := NewMemoryExportRepository()
+	receipts.now = func() time.Time { return now }
 	objects := evidence.NewMemoryObjectStore()
 	service := NewExportService(activityService, receipts, objects)
 	service.now = func() time.Time { return now }

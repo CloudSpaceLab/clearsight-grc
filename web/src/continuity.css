@@ -15,7 +15,7 @@
 .program-list,.matter-list { display: grid; gap: 12px; }
 .program-card,.matter-card { border: 1px solid var(--border); border-radius: 17px; overflow: hidden; background: linear-gradient(100deg,rgba(13,24,38,.96),rgba(17,31,48,.84)); }
 .program-card-main,.matter-card-main { width: 100%; border: 0; color: inherit; background: transparent; cursor: pointer; display: grid; gap: 16px; align-items: center; padding: 19px 20px; text-align: left; }
-.program-card-main { grid-template-columns: auto minmax(230px,1.3fr) minmax(240px,1fr) minmax(145px,.55fr) auto; }
+.program-card-main { grid-template-columns: auto minmax(230px,1.3fr) minmax(240px,1fr) minmax(120px,.5fr); text-decoration: none; }
 .matter-card-main { grid-template-columns: auto minmax(260px,1.35fr) minmax(145px,.55fr) minmax(175px,.65fr) auto; }
 .program-card-main:hover,.matter-card-main:hover { background: rgba(91,198,214,.035); }
 .record-open-actions { display:flex; justify-content:flex-end; padding:0 20px 14px; }
@@ -31,7 +31,7 @@
 .program-counts b { color: var(--text); font-size: 13px; }
 .program-state,.matter-status { justify-self: end; display: grid; justify-items: end; gap: 3px; text-align: right; }
 .program-state strong,.matter-status strong { border-radius: 999px; padding: 6px 9px; font-size: 11px; background: var(--surface-2); }
-.program-state small,.matter-status small { color: var(--muted); font-size: 10px; max-width: 180px; }
+.matter-status small { color: var(--muted); font-size: 10px; max-width: 180px; }
 .status-good strong,.status-closed strong { color: var(--green); background: rgba(91,201,150,.1); }
 .status-warning strong,.status-triage strong,.status-assessment strong,.status-decision-required strong,.status-action-in-progress strong,.status-response-preparation strong,.status-verification strong { color: var(--amber); background: rgba(233,183,90,.1); }
 .status-critical strong { color: var(--coral); background: rgba(241,122,141,.1); }

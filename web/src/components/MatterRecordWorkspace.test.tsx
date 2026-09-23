@@ -6,6 +6,7 @@ import { ApiError } from "../http";
 import { addMatterLink, assignMatter, assignMatterAction, changeMatterContext, defineMatterOutcomeCheck, loadMatterOperations, retireMatterLink, updateMatterAction, updateMatterDetails } from "../matterOperationsApi";
 import type { MatterOperations } from "../matterOperationsApi";
 import { addMatterAction, addResponsePackage, recordMatterDecision, recordVerificationResult, transitionMatter, transitionMatterAction, transitionResponsePackage } from "../continuityCommands";
+import { addMatterComment, loadMatterActivity, requestMatterActionUpdate } from "../matterCollaborationApi";
 import type { MatterAggregate, ProgramAggregate } from "../types";
 import { MatterRecordWorkspace } from "./MatterRecordWorkspace";
 
@@ -24,10 +25,16 @@ vi.mock("../matterOperationsApi", () => ({
 
 vi.mock("../continuityCommands", () => ({ addMatterAction: vi.fn(), addResponsePackage: vi.fn(), recordMatterDecision: vi.fn(), recordVerificationResult: vi.fn(), transitionMatter: vi.fn(), transitionMatterAction: vi.fn(), transitionResponsePackage: vi.fn() }));
 
+vi.mock("../matterCollaborationApi", () => ({ addMatterComment: vi.fn(), loadMatterActivity: vi.fn(), requestMatterActionUpdate: vi.fn() }));
+
 async function chooseSharedOption(label: string, option: string | RegExp) {
   fireEvent.click(screen.getByRole("button", { name: new RegExp(label, "i") }));
   fireEvent.click(await screen.findByRole("option", { name: option }));
   await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+}
+
+async function openRecordTab(name: "Actions" | "Evidence" | "Decisions") {
+  fireEvent.click(await screen.findByRole("tab", { name }));
 }
 
 const detail: MatterAggregate = {
@@ -99,6 +106,15 @@ const performerOperations: MatterOperations = {
     : operation),
 };
 
+const requestUpdateOperations: MatterOperations = {
+  ...operations,
+  operations: [...operations.operations, {
+    command: "matter.action.update.request", subresource_id: "action-1", label: "Request action update", responsibility: "ACCOUNTABLE_OWNER", can_act: true,
+    assigned_to: { id: "owner-1", display_name: "Program Owner", kind: "PERSON", role: "PROGRAM_OWNER" },
+    reason: "You can request a status update from the assigned performer.",
+  }],
+};
+
 const outcomeDefinitionOperations: MatterOperations = {
   ...operations,
   operations: [...operations.operations, {
@@ -166,6 +182,7 @@ describe("Matter record workspace", () => {
     vi.mocked(loadMatterOperations).mockResolvedValue(operations);
     vi.mocked(loadPrograms).mockResolvedValue([]);
     vi.mocked(loadEvidenceSources).mockResolvedValue([{ id: "source-1", tenant_id: "bank-1", code: "RETURN", name: "Annual return evidence register", type: "REGISTER", authority_class: "AUTHORITATIVE", expected_freshness_minutes: 1440, health: "HEALTHY", status: "ACTIVE", version: 1 }]);
+    vi.mocked(loadMatterActivity).mockResolvedValue({ items: [], next_before_version: 0 });
   });
 
   it("shows the exact record, current owner, deadline and blocker without inventing a CRO command", async () => {
@@ -193,6 +210,7 @@ describe("Matter record workspace", () => {
 
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
     expect(screen.getByText("licensed DPCO")).toBeTruthy();
+    await openRecordTab("Actions");
     expect(screen.queryByRole("button", { name: "Update status for Update the annual return evidence checklist" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Retry assignments" }));
@@ -220,6 +238,8 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
+    await openRecordTab("Actions");
+    await openRecordTab("Decisions");
     expect(screen.queryByText(/matter-owner-internal|action-owner-internal|reviewer-internal/)).toBeNull();
     expect(screen.getByText("Recorded issue owner unavailable")).toBeTruthy();
     expect(screen.getByText("Recorded action owner unavailable")).toBeTruthy();
@@ -246,6 +266,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
+    await openRecordTab("Actions");
     expect(screen.getAllByText("Privacy Program Owner").length).toBeGreaterThan(0);
     expect(screen.getByText("Annual Return Lead")).toBeTruthy();
     expect(screen.getByText("Some assignee names could not be loaded.")).toBeTruthy();
@@ -279,6 +300,7 @@ describe("Matter record workspace", () => {
 
     expect(await screen.findByText("Chief Compliance Officer")).toBeTruthy();
     expect(screen.queryByText("authorizer-1")).toBeNull();
+    await openRecordTab("Decisions");
     fireEvent.click(screen.getAllByRole("button", { name: "Authorize issue status" }).at(-1)!);
     expect(screen.getByRole("dialog", { name: "Authorize issue status" })).toBeTruthy();
     fireEvent.change(screen.getByLabelText(/Authorization basis/), { target: { value: "New evidence requires the issue to be assessed again." } });
@@ -294,6 +316,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
+    await openRecordTab("Actions");
     expect(screen.queryByRole("button", { name: "Update status for Update the annual return evidence checklist" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Reload issue data" }));
 
@@ -495,6 +518,7 @@ describe("Matter record workspace", () => {
     vi.mocked(addMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, actions: [...detail.actions, { id: "action-2", title: "Confirm section owners", description: "Record the two remaining owners.", owner_principal_id: "owner-2", status: "PLANNED", due_at: "2026-09-02T00:00:00.000Z" }] });
     try {
       render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+      await openRecordTab("Actions");
 
       expect(await screen.findByText("Program Owner", { selector: ".matter-action-meta strong" })).toBeTruthy();
       expect(screen.getByText("In progress", { selector: ".cs-status-badge" })).toBeTruthy();
@@ -525,6 +549,7 @@ describe("Matter record workspace", () => {
     });
     try {
       render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+      await openRecordTab("Actions");
 
       expect(await screen.findByText("Due 26 Aug 2026", { selector: "time" })).toBeTruthy();
       expect(screen.queryByText("Overdue", { selector: ".cs-status-badge" })).toBeNull();
@@ -540,6 +565,7 @@ describe("Matter record workspace", () => {
     vi.mocked(updateMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, actions: [{ ...detail.actions[0]!, description: "Map every section to its approved source." }] });
     vi.mocked(assignMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 9 }, actions: [{ ...detail.actions[0]!, owner_principal_id: "owner-2" }] });
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+    await openRecordTab("Actions");
 
     fireEvent.click(await screen.findByRole("button", { name: "Edit Update the annual return evidence checklist" }));
     fireEvent.change(screen.getByLabelText("Action description"), { target: { value: "Map every section to its approved source." } });
@@ -567,6 +593,7 @@ describe("Matter record workspace", () => {
     vi.mocked(loadMatterOperations).mockResolvedValue(reassignmentOperations);
     vi.mocked(assignMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, actions: [{ ...detail.actions[0]!, owner_principal_id: "owner-2" }] });
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+    await openRecordTab("Actions");
 
     fireEvent.click(await screen.findByRole("button", { name: "Change owner for Update the annual return evidence checklist" }));
     const dialog = screen.getByRole("dialog", { name: "Change action owner" });
@@ -581,16 +608,35 @@ describe("Matter record workspace", () => {
     await waitFor(() => expect(assignMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 7, "owner-2", "Assign the process owner who maintains the evidence."));
   });
 
+  it("lets the accountable owner request a status update from the assigned performer", async () => {
+    vi.mocked(loadMatterOperations).mockResolvedValue(requestUpdateOperations);
+    vi.mocked(requestMatterActionUpdate).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, actions: [{ ...detail.actions[0]!, status: "IN_PROGRESS" }] });
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+    await openRecordTab("Actions");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Request update for Update the annual return evidence checklist" }));
+    const sheet = await screen.findByRole("dialog", { name: "Request action update" });
+    expect(within(sheet).getByRole("heading", { name: "Request a status update" })).toBeTruthy();
+    expect((within(sheet).getByLabelText(/Update requested/) as HTMLTextAreaElement).value).toContain("Please confirm the current status");
+    fireEvent.change(within(sheet).getByLabelText("Response due date"), { target: { value: "2026-09-30" } });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Send update request" }));
+
+    await waitFor(() => expect(requestMatterActionUpdate).toHaveBeenCalledWith("matter-1", "action-1", 7, "Please confirm the current status, expected completion date and any blocker.", expect.stringMatching(/^2026-09-30T/)));
+    expect(await screen.findByText("Status update requested.")).toBeTruthy();
+  });
+
   it("lets only the current performer update Action status and keeps the outcome pending after implementation", async () => {
     vi.mocked(loadMatterOperations).mockResolvedValue(performerOperations);
     vi.mocked(transitionMatterAction).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, actions: [{ ...detail.actions[0]!, status: "IMPLEMENTED", implemented_at: "2026-08-25T12:00:00Z" }] });
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+    await openRecordTab("Actions");
 
     fireEvent.click(await screen.findByRole("button", { name: "Update status for Update the annual return evidence checklist" }));
     fireEvent.change(screen.getByLabelText("Next action status"), { target: { value: "IMPLEMENTED" } });
     fireEvent.click(screen.getByRole("button", { name: "Update action status" }));
 
     await waitFor(() => expect(transitionMatterAction).toHaveBeenCalledWith("matter-1", "action-1", 7, "IMPLEMENTED", ""));
+    await openRecordTab("Decisions");
     expect(await screen.findByText("Work completed; outcome not confirmed")).toBeTruthy();
     expect(screen.getByText("No outcome check has been defined")).toBeTruthy();
   });
@@ -599,6 +645,7 @@ describe("Matter record workspace", () => {
     vi.mocked(loadMatterOperations).mockResolvedValue(outcomeDefinitionOperations);
     vi.mocked(defineMatterOutcomeCheck).mockResolvedValue({ ...detail, matter: { ...detail.matter, version: 8 }, verification_contracts: [{ id: "contract-1", action_id: "action-1", expected_outcome: "All ten return sections have an owner, source and approved review status.", observation_period_minutes: 1440, failure_response: "Reopen the evidence action.", status: "ACTIVE" }] });
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+    await openRecordTab("Decisions");
 
     fireEvent.click(await screen.findByRole("button", { name: "Define outcome check" }));
     await screen.findByRole("option", { name: "Annual return evidence register" });
@@ -633,6 +680,7 @@ describe("Matter record workspace", () => {
     });
     vi.mocked(transitionMatter).mockResolvedValue({ ...outcomeDetail, matter: { ...outcomeDetail.matter, status: "CLOSED", version: 9 }, closure: { ready: true, reasons: [] } });
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+    await openRecordTab("Decisions");
 
     fireEvent.click(await screen.findByRole("button", { name: "Record result for All ten return sections have an owner, source and approved review status." }));
     fireEvent.change(screen.getByLabelText("Check result"), { target: { value: "PASS" } });
@@ -675,6 +723,7 @@ describe("Matter record workspace", () => {
       closure: { ready: true, reasons: [] },
     });
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+    await openRecordTab("Decisions");
 
     expect((await screen.findAllByText("One return section still has no approved evidence.")).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Record result for All ten return sections have an owner, source and approved review status." })).toBeTruthy();
@@ -709,6 +758,7 @@ describe("Matter record workspace", () => {
     });
     vi.mocked(transitionMatter).mockResolvedValue({ ...assessment, matter: { ...assessment.matter, status: "DECISION_REQUIRED", version: 8 } });
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+    await openRecordTab("Decisions");
 
     await screen.findByRole("heading", { name: "Independent results" });
     fireEvent.click(screen.getAllByRole("button", { name: "Authorize issue status" }).at(-1)!);
@@ -797,6 +847,7 @@ describe("Matter record workspace", () => {
       ],
     });
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+    await openRecordTab("Decisions");
 
     await screen.findByRole("heading", { name: "Independent results" });
     fireEvent.click(screen.getAllByRole("button", { name: "Change issue status" }).at(-1)!);
@@ -815,6 +866,7 @@ describe("Matter record workspace", () => {
       decisions: [{ id: "decision-1", type: "TREATMENT", status: "PROPOSED", selected_option: "Remediate", rationale: "Remediation removes the filing gap." }],
     });
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+    await openRecordTab("Decisions");
 
     fireEvent.click(await screen.findByRole("button", { name: "Propose decision" }));
     fireEvent.change(screen.getByLabelText("Decision type"), { target: { value: "TREATMENT" } });
@@ -844,6 +896,7 @@ describe("Matter record workspace", () => {
     vi.mocked(addResponsePackage).mockResolvedValue(drafted);
     vi.mocked(transitionResponsePackage).mockResolvedValue({ ...drafted, matter: { ...drafted.matter, version: 9 }, response_packages: [{ ...drafted.response_packages[0]!, status: "IN_REVIEW" }] });
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+    await openRecordTab("Decisions");
 
     fireEvent.click(await screen.findByRole("button", { name: "Prepare response" }));
     fireEvent.change(screen.getByLabelText("Response purpose"), { target: { value: "Answer the annual return evidence request" } });

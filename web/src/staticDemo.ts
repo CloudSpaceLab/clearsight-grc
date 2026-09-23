@@ -11,6 +11,7 @@ import type { VendorCriticality, VendorPrivacyRole, VendorRelationshipAggregate 
 import type { VendorWorkRequest, VendorWorkResponseView, VendorWorkSendOutcome } from "./vendorWorkTypes";
 import type { DocumentOccurrence } from "./submittedDocumentApi";
 import type { ResponseAssessmentDetail } from "./formAssessmentApi";
+import type { CompletedResponseSummary, ResponseRevision } from "./formsDistributionApi";
 import type { VendorFormRow } from "./vendorFormsApi";
 
 // Static transport is an isolated review fixture, never a deployable demo API.
@@ -318,6 +319,37 @@ function formsTemplatePopulation(fixture: string) {
         { id: "control_attestation", section_id: "controls", label: "Control owner confirmation", type: "attestation", required: true, attestation: "I confirm this control response is complete and accurate." },
       ],
       updated_at: "2026-08-30T12:05:00Z",
+    }];
+  }
+  if (fixture === "program-responses") {
+    const sections = [
+      { id: "branch-details", title: "Branch details" },
+      { id: "november-2025", title: "November 2025 register" },
+    ];
+    return [{
+      ...template,
+      id: "form-branch-kri-register",
+      code: "FORM-BRANCH-KRI-REGISTER",
+      name: "Branch KRI register",
+      purpose: "Collect the branch key risk indicators for the November 2025 register.",
+      status: "ACTIVE",
+      is_current: true,
+      version: 1,
+      sections,
+      fields: [
+        { id: "branch", section_id: "branch-details", label: "Branch", type: "short_text", required: true },
+        { id: "directorate", section_id: "branch-details", label: "Directorate", type: "short_text", required: true },
+        { id: "region", section_id: "branch-details", label: "Region", type: "short_text", required: true },
+        { id: "followup_owner", section_id: "branch-details", label: "Follow-up owner", type: "short_text", required: true },
+        { id: "cash_overage_value", section_id: "november-2025", label: "Value of cash overages recorded for the month", type: "currency", required: true },
+        { id: "cash_shortage_count", section_id: "november-2025", label: "Number of cash shortage incidents", type: "integer", required: true },
+        { id: "reporting_date", section_id: "november-2025", label: "Registered on", type: "date", required: true },
+        { id: "manual_confirmation", section_id: "november-2025", label: "Manual cash reconciliation confirmed", type: "yes_no", required: true },
+        { id: "event_types", section_id: "november-2025", label: "Event types observed", type: "multi_select", required: true, options: ["Cash overage", "Cash shortage", "Electrical surge", "Flooding"] },
+        { id: "attestation", section_id: "november-2025", label: "I confirm this register reflects the branch records for November 2025", type: "attestation", required: true, attestation: "I confirm this register reflects the branch records for November 2025" },
+        { id: "notes", section_id: "november-2025", label: "Branch notes", type: "long_text", required: false },
+        { id: "supporting_document", section_id: "november-2025", label: "Supporting evidence for the register", type: "file", required: false },
+      ],
     }];
   }
   return demoForms;
@@ -1037,9 +1069,10 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   };
   if (pathname === "/api/v1/forms/documents" && method === "GET") {
     if (fixture === "forms-documents-error") throw new StaticDemoHTTPError(503, "documents_unavailable", "Submitted documents are temporarily unavailable.");
-    const available = ["forms-documents", "forms-response-history", "forms-vendor-review-conflict"].includes(fixture ?? "");
+    const available = ["forms-documents", "forms-response-history", "forms-vendor-review-conflict", "program-responses"].includes(fixture ?? "");
+    const documents = fixture === "program-responses" ? [...sampleSubmittedDocuments(), ...sampleProgramSubmittedDocuments()] : sampleSubmittedDocuments();
     const filter = new URLSearchParams(path.split("?")[1]);
-    const items = available ? sampleSubmittedDocuments().filter((file) =>
+    const items = available ? documents.filter((file) =>
       (!filter.get("file_kind") || file.file_kind === filter.get("file_kind")) &&
       (!filter.get("query") || file.file_name.toLowerCase().includes(filter.get("query")!.toLowerCase())) &&
       (!filter.get("relationship_id") || file.relationship_id === filter.get("relationship_id")) &&
@@ -1047,25 +1080,51 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
       (filter.get("current_only") === "false" || file.current)) : [];
     return clone({ items }) as T;
   }
-  if (pathname === "/api/v1/forms/responses" && method === "GET") return clone({ items: fixture === "forms-response-history" ? [completedResponse] : [] }) as T;
+  if (pathname === "/api/v1/forms/responses" && method === "GET") {
+    if (fixture === "forms-response-history") return clone({ items: [completedResponse] }) as T;
+    if (fixture === "program-responses") {
+      const filter = new URLSearchParams(path.split("?")[1] ?? "");
+      return clone({ items: programResponsesPopulation().filter((response) =>
+        (!filter.get("subject_type") || response.subject_type === filter.get("subject_type")) &&
+        (!filter.get("subject_id") || response.subject_id === filter.get("subject_id")) &&
+        (filter.get("current_only") === "false" || response.current)) }) as T;
+    }
+    return clone({ items: [] }) as T;
+  }
   const responseAssessmentMatch = pathname.match(/^\/api\/v1\/forms\/responses\/([^/]+)\/assessment$/);
   if (responseAssessmentMatch && method === "GET") {
     const responseID = decodeURIComponent(responseAssessmentMatch[1]!);
-    if (fixture !== "forms-response-history" || !["response-revision-acme-1", completedResponse.id].includes(responseID)) throw new StaticDemoHTTPError(404, "response_not_found", "The selected response is no longer available.");
-    const current = responseID === completedResponse.id;
-    // This sample history predates manual assessment; its saved result is automatic.
-    const assessment: ResponseAssessmentDetail = {
-      response_id: responseID, form_template_id: completedResponse.form_template_id, form_template_version: 2,
-      version: 0, current, may_review: false, state: "NOT_REQUIRED", required_count: 0, reviewed_required_count: 0, reviewed_count: 0,
-      fields: [],
-      automatic_score: { ...completedResponse.score, mode: "COMPLIANCE", direction: "LOW_IS_POOR", band: "LOW", state: "FINAL", raw_score: current ? 86 : 72, adverse_score: current ? 14 : 28, calculated_at: current ? completedResponse.completed_at : "2026-08-20T13:15:00Z" },
-    };
-    return clone(assessment) as T;
+    if (fixture === "forms-response-history") {
+      if (!["response-revision-acme-1", completedResponse.id].includes(responseID)) throw new StaticDemoHTTPError(404, "response_not_found", "The selected response is no longer available.");
+      const current = responseID === completedResponse.id;
+      // This sample history predates manual assessment; its saved result is automatic.
+      const assessment: ResponseAssessmentDetail = {
+        response_id: responseID, form_template_id: completedResponse.form_template_id, form_template_version: 2,
+        version: 0, current, may_review: false, state: "NOT_REQUIRED", required_count: 0, reviewed_required_count: 0, reviewed_count: 0,
+        fields: [],
+        automatic_score: { ...completedResponse.score, mode: "COMPLIANCE", direction: "LOW_IS_POOR", band: "LOW", state: "FINAL", raw_score: current ? 86 : 72, adverse_score: current ? 14 : 28, calculated_at: current ? completedResponse.completed_at : "2026-08-20T13:15:00Z" },
+      };
+      return clone(assessment) as T;
+    }
+    if (fixture === "program-responses") {
+      if (!programResponsesPopulation().some((response) => response.id === responseID)) throw new StaticDemoHTTPError(404, "response_not_found", "The selected response is no longer available.");
+      return clone(programResponseAssessment(responseID)) as T;
+    }
+    throw new StaticDemoHTTPError(404, "response_not_found", "The selected response is no longer available.");
   }
   const completedResponseMatch = pathname.match(/^\/api\/v1\/forms\/responses\/([^/]+)$/);
   if (completedResponseMatch && method === "GET") {
-    if (fixture !== "forms-response-history" || decodeURIComponent(completedResponseMatch[1]!) !== completedResponse.id) throw new StaticDemoHTTPError(404, "response_not_found", "The selected completed response is no longer available.");
-    return clone({ response: completedResponse, revision: { id: completedResponse.id, revision: 2, supersedes_revision_id: "response-revision-acme-1", achieved_assurance: "EMAIL_VERIFIED", signoff_summary: { attested: true, signer: "Vendor security lead" }, compliance_score: 86, scored_weight_coverage: 100, state: "FINAL", critical_field_results: [], scoring_policy_version: "vendor-review-2026", current: true, created_at: completedResponse.completed_at, score: completedResponse.score } }) as T;
+    const responseID = decodeURIComponent(completedResponseMatch[1]!);
+    if (fixture === "forms-response-history") {
+      if (responseID !== completedResponse.id) throw new StaticDemoHTTPError(404, "response_not_found", "The selected completed response is no longer available.");
+      return clone({ response: completedResponse, revision: { id: completedResponse.id, revision: 2, supersedes_revision_id: "response-revision-acme-1", achieved_assurance: "EMAIL_VERIFIED", signoff_summary: { attested: true, signer: "Vendor security lead" }, compliance_score: 86, scored_weight_coverage: 100, state: "FINAL", critical_field_results: [], scoring_policy_version: "vendor-review-2026", current: true, created_at: completedResponse.completed_at, score: completedResponse.score } }) as T;
+    }
+    if (fixture === "program-responses") {
+      const selected = programResponsesPopulation().find((value) => value.id === responseID);
+      if (!selected) throw new StaticDemoHTTPError(404, "response_not_found", "The selected completed response is no longer available.");
+      return clone({ response: selected, revision: programResponseRevision(selected) }) as T;
+    }
+    throw new StaticDemoHTTPError(404, "response_not_found", "The selected completed response is no longer available.");
   }
   const responseRevisionMatch = pathname.match(/^\/api\/v1\/forms\/distributions\/([^/]+)\/responses$/);
   if (responseRevisionMatch && method === "GET") return clone({ items: [
@@ -1258,4 +1317,114 @@ function sampleSubmittedDocuments(): DocumentOccurrence[] {
   return sample.map((file, index) => ({ ...file, id: `sample-document-${index}`, artifact_id: `sample-artifact-${index}`, request_id: "sample-vendor-request", submission_id: "sample-vendor-submission", field_id: `sample-field-${index}`,
     response_revision_id: "response-revision-acme-2", relationship_id: vendorRelationshipID, form_template_id: "form-vendor-due-diligence", form_template_version: 2, form_title: "Vendor due diligence review",
     size_bytes: (index + 1) * 128000, sha256: "sample-digest-not-production-evidence", uploaded_at: "2026-08-26T10:00:00Z", submitted_at: "2026-08-27T13:15:00Z", expires_on: index === 0 ? "2027-08-27" : undefined, current: true }));
+}
+
+
+function programResponsesPopulation(): CompletedResponseSummary[] {
+  return [
+    {
+      id: "response-program-annual-2026", distribution_id: "distribution-program-annual-2026", form_template_id: "form-annual-data-review", form_template_version: 2,
+      title: "Annual data-processing review", subject_name: "Nigeria Data Protection Programme", subject_type: "PROGRAM", subject_id: "program-ndpa",
+      revision: 2, current: true, state: "FINAL", completed_at: "2026-08-25T14:30:00Z",
+      score: { mode: "COMPLIANCE", direction: "LOW_IS_POOR", raw_score: 88, adverse_score: 12, band: "LOW", coverage: 1, final: true, state: "FINAL", profile_version: "program-annual-2026", profile_checksum: "sample-checksum", evaluator_version: "advanced-v1", calculated_at: "2026-08-25T14:30:00Z", contribution_results: [{ id: "processor_register", outcome: "MATCHED", points: 88, weight: 40 }, { id: "annual_return_filed", outcome: "MATCHED", points: 88, weight: 30 }], rule_results: [] },
+    },
+    {
+      id: "response-program-consent-2026", distribution_id: "distribution-program-consent-2026", form_template_id: "form-consent-lb-confirmation", form_template_version: 1,
+      title: "Consent and lawful basis confirmation", subject_name: "Nigeria Data Protection Programme", subject_type: "PROGRAM", subject_id: "program-ndpa",
+      revision: 1, current: true, state: "FINAL", completed_at: "2026-07-15T09:00:00Z",
+      score: { mode: "COMPLIANCE", direction: "LOW_IS_POOR", raw_score: 72, adverse_score: 28, band: "MODERATE", coverage: 1, final: true, state: "FINAL", profile_version: "program-consent-2026", profile_checksum: "sample-checksum", evaluator_version: "advanced-v1", calculated_at: "2026-07-15T09:00:00Z", contribution_results: [], rule_results: [] },
+    },
+    {
+      id: "response-program-branch-kri-cac-2025", distribution_id: "distribution-program-branch-kri-cac-2025", form_template_id: "form-branch-kri-register", form_template_version: 1,
+      title: "Branch KRI — November 2025 · CAC", subject_name: "Nigeria Data Protection Programme", subject_type: "PROGRAM", subject_id: "program-ndpa",
+      revision: 1, current: true, state: "FINAL", completed_at: "2025-11-28T16:45:00Z",
+    },
+    {
+      id: "response-program-branch-kri-marina-2025", distribution_id: "distribution-program-branch-kri-marina-2025", form_template_id: "form-branch-kri-register", form_template_version: 1,
+      title: "Branch KRI — November 2025 · Marina", subject_name: "Nigeria Data Protection Programme", subject_type: "PROGRAM", subject_id: "program-ndpa",
+      revision: 1, current: true, state: "FINAL", completed_at: "2025-11-28T17:20:00Z",
+    },
+  ];
+}
+
+function programResponseRevision(response: CompletedResponseSummary): ResponseRevision {
+  return {
+    id: response.id, revision: response.revision,
+    supersedes_revision_id: response.id === "response-program-annual-2026" ? "response-program-annual-2025" : undefined,
+    achieved_assurance: "EMAIL_VERIFIED",
+    signoff_summary: { attested: true, signer: "Data Protection Compliance Officer" },
+    compliance_score: response.score?.raw_score,
+    scored_weight_coverage: response.score?.coverage != null ? Math.round(response.score.coverage * 100) : 0,
+    state: "FINAL", critical_field_results: [],
+    scoring_policy_version: response.score?.profile_version,
+    current: response.current, created_at: response.completed_at, score: response.score,
+  };
+}
+
+function programResponseAssessment(responseID: string): ResponseAssessmentDetail {
+  const registerIDs = ["response-program-branch-kri-cac-2025", "response-program-branch-kri-marina-2025"];
+  if (responseID !== "response-program-annual-2026" && responseID !== "response-program-consent-2026" && !registerIDs.includes(responseID)) throw new StaticDemoHTTPError(404, "response_not_found", "The selected response is no longer available.");
+  if (responseID === "response-program-consent-2026") {
+    return {
+      response_id: responseID, form_template_id: "form-consent-lb-confirmation", form_template_version: 1,
+      version: 1, current: true, state: "NOT_REQUIRED", required_count: 0, reviewed_required_count: 0, reviewed_count: 0,
+      fields: [],
+      automatic_score: programResponsesPopulation()[1]!.score,
+    };
+  }
+  if (registerIDs.includes(responseID)) {
+    const branch = responseID === "response-program-branch-kri-cac-2025" ? "CAC" : "Marina";
+    return {
+      response_id: responseID, form_template_id: "form-branch-kri-register", form_template_version: 1,
+      version: 0, current: true, state: "NOT_REQUIRED", required_count: 0, reviewed_required_count: 0, reviewed_count: 0,
+      fields: [
+        { field: { id: "branch", section_id: "branch-details", label: "Branch", type: "short_text", required: true }, answer: { text: branch } },
+        { field: { id: "directorate", section_id: "branch-details", label: "Directorate", type: "short_text", required: true }, answer: { text: branch === "CAC" ? "Central Business District" : "Lagos Island Directorate" } },
+        { field: { id: "region", section_id: "branch-details", label: "Region", type: "short_text", required: true }, answer: { text: branch === "CAC" ? "CBD I" : "Lagos Island II" } },
+        { field: { id: "cash_overage_value", section_id: "november-2025", label: "Value of cash overages recorded for the month", type: "currency", required: true }, answer: { text: "1250000" } },
+        { field: { id: "cash_shortage_count", section_id: "november-2025", label: "Number of cash shortage incidents", type: "integer", required: true }, answer: { text: "3" } },
+        { field: { id: "reporting_date", section_id: "november-2025", label: "Registered on", type: "date", required: true }, answer: { text: "2025-11-30" } },
+        { field: { id: "manual_confirmation", section_id: "november-2025", label: "Manual cash reconciliation confirmed", type: "yes_no", required: true }, answer: { values: ["Yes"] } },
+        { field: { id: "event_types", section_id: "november-2025", label: "Event types observed", type: "multi_select", required: true, options: ["Cash overage", "Cash shortage", "Electrical surge", "Flooding"] }, answer: { values: ["Cash overage", "Electrical surge"] } },
+        { field: { id: "attestation", section_id: "november-2025", label: "I confirm this register reflects the branch records for November 2025", type: "attestation", required: true, attestation: "I confirm this register reflects the branch records for November 2025" }, answer: { text: "true" } },
+        { field: { id: "notes", section_id: "november-2025", label: "Branch notes", type: "long_text", required: false }, answer: { text: "Surge occurred during the week of 17 November.\nCash overage resolved the same day.\nNo flooding recorded." } },
+        { field: { id: "followup_owner", section_id: "branch-details", label: "Follow-up owner", type: "short_text", required: true }, answer: {} },
+        { field: { id: "supporting_document", section_id: "november-2025", label: "Supporting evidence for the register", type: "file", required: false }, answer: {} },
+      ],
+    };
+  }
+  const registerDecision = { id: "decision-register-annual", field_id: "processor_register", outcome_id: "supports", points: 40, rationale: "The register lists every data-processing location used for the Nigeria annual-return process; the entity details and expiry match the programme records.", reviewer_id: "role-dpco", reviewer_display_name: "Aminat Yusuf", assessed_at: "2026-09-18T10:20:00Z" };
+  const reviewDateDecision = { id: "decision-dpco-date-annual", field_id: "dpco_review_date", outcome_id: "confirmed", points: 30, rationale: "The DPCO confirmed the review date recorded in the submission.", reviewer_id: "role-dpco", reviewer_display_name: "Aminat Yusuf", assessed_at: "2026-09-18T10:25:00Z" };
+  return {
+    response_id: "response-program-annual-2026", form_template_id: "form-annual-data-review", form_template_version: 2,
+    version: 2, current: true, may_review: false, state: "ASSESSED", required_count: 3, reviewed_required_count: 3, reviewed_count: 3,
+    fields: [
+      { field: { id: "processor_register", label: "Processor register (data-processing locations)", type: "file", required: true, description: "Upload the current processor register covering data-processing locations so the annual-return evidence can be checked.", accepted_formats: ["application/pdf", "image/png", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"], assessment: { mode: "AUTOMATIC_REVIEW", required: true, weight: 40, reviewer_role: "DPCO reviewer", rubric: [{ id: "supports", label: "Supports the review", points: 40 }, { id: "partial", label: "Partially supports the review", points: 20 }, { id: "reject", label: "Does not support the review", points: 0 }] } },
+        answer: { document: { artifact_id: "program-artifact-0", document_type: "Processor register", issued_by: "Acme Processing Limited", issued_on: "2026-08-25", expires_on: "2027-08-25" } },
+        decision: registerDecision, may_review: false },
+      { field: { id: "annual_return_filed", label: "Annual return filed", type: "yes_no", required: true, description: "Confirm whether the Nigeria annual return was filed before the completion date.", assessment: { mode: "AUTOMATIC", required: true, weight: 30 } },
+        answer: { values: ["Yes"] }, may_review: false },
+      { field: { id: "dpco_review_date", label: "DPCO review date", type: "date", required: true, description: "The date the Data Protection Compliance Officer reviewed the collected evidence.", assessment: { mode: "MANUAL", required: true, weight: 30, reviewer_role: "DPCO reviewer", rubric: [{ id: "confirmed", label: "Confirms the recorded date", points: 30 }, { id: "revised", label: "Needs a revised date", points: 0 }] } },
+        answer: { text: "2026-08-27" }, decision: reviewDateDecision, may_review: false },
+      { field: { id: "processing_volume", label: "Processing volume change", type: "short_text", required: false, description: "Estimated change in personal data processing volume since the previous annual review.", assessment: { mode: "NONE", required: false, weight: 0 } },
+        answer: { text: "Approximately 12% growth" }, may_review: false },
+      { field: { id: "resilience_plan", label: "Resilience plan", type: "vendor_document", required: false, description: "The current resilience plan covering the processing operations in scope.", assessment: { mode: "NONE", required: false, weight: 0 } },
+        answer: { artifact_ids: ["program-artifact-2"] }, may_review: false },
+    ],
+    automatic_score: programResponsesPopulation()[0]!.score,
+    assessed_score: { ...programResponsesPopulation()[0]!.score, state: "FINAL", calculated_at: "2026-09-18T10:30:00Z" },
+  };
+}
+
+function sampleProgramSubmittedDocuments(): DocumentOccurrence[] {
+  const sample: Array<Pick<DocumentOccurrence, "file_name" | "file_kind" | "media_type" | "field_label" | "artifact_status" | "demo_preview_available" | "expires_on">> = [
+    { file_name: "Program processor register.pdf", file_kind: "PDF", media_type: "application/pdf", field_label: "Processor register", artifact_status: "AVAILABLE", expires_on: "2027-08-25" },
+    { file_name: "Program processing flow.png", file_kind: "IMAGE", media_type: "image/png", field_label: "Processor register", artifact_status: "AVAILABLE" },
+    { file_name: "Program resilience plan.docx", file_kind: "WORD", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", field_label: "Resilience plan", artifact_status: "AVAILABLE" },
+    { file_name: "Program supplier register.xlsx", file_kind: "SPREADSHEET", media_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", field_label: "Supplier register", artifact_status: "STORED_UNSCANNED", demo_preview_available: true },
+    { file_name: "Program service records.zip", file_kind: "OTHER", media_type: "application/zip", field_label: "Supporting records", artifact_status: "QUARANTINED" },
+  ];
+  return sample.map((file, index) => ({ ...file, id: `program-document-${index}`, artifact_id: `program-artifact-${index}`, request_id: "program-evidence-request", submission_id: "program-submission-annual-2026", field_id: ["processor_register", "processor_register", "resilience_plan", "supplier_register", "supporting_records"][index]!,
+    response_revision_id: "response-program-annual-2026", form_template_id: "form-annual-data-review", form_template_version: 2, form_title: "Annual data-processing review",
+    size_bytes: (index + 1) * 224000, sha256: "sample-digest-not-production-evidence", uploaded_at: "2026-08-24T09:30:00Z", submitted_at: "2026-08-25T14:30:00Z", submitted_by: "Aminat Yusuf", current: true }));
 }

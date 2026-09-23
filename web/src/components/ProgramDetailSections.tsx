@@ -5,7 +5,7 @@ import type { ProgramSection } from "../appRouting";
 export const programSections: ReadonlyArray<{ id: ProgramSection; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "requirements-controls", label: "Requirements & controls" },
-  { id: "monitoring", label: "Monitoring" },
+  { id: "monitoring", label: "Data collection" },
   { id: "evidence-results", label: "Evidence & results" },
   { id: "issues-actions", label: "Issues & actions" },
   { id: "history", label: "History" },

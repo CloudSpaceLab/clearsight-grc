@@ -34,6 +34,9 @@ The current suite exercises **122 deterministic rendered states/interactions** a
 - Program, Matter, Evidence, Imports and Configure workspaces;
 - dedicated Program review in changed and acknowledged states on desktop and mobile, with calculated-state freshness, named responsibility and executable lifecycle action;
 - Program safeguards, evidence results and monitoring in light/dark semantic tokens, including automated contrast validation;
+- the Programs portfolio list as a scoped register without inline expansion — rows carry bounded requirement/evidence-check/open-issue counts and open the Program record — on light desktop and stacked dark mobile;
+- the section formerly titled Monitoring now **Data collection** (route `#programs/<id>/monitoring` unchanged), keeping collection records, respondent and expiry states;
+- Program Evidence & results leading with submitted responses: an honest empty population naming the checked scope, a populated response list, and the Answers/Documents/Review deep sheet with response-scoped document expiry and an unavailable review-permission state;
 - tablet, 390px mobile and 320px reflow;
 - exact record-scoped authority resolution, including candidate-set semantics;
 - evidence response entry → exact response review → submission receipt;
@@ -123,6 +126,25 @@ The lossless dark-theme cover at `docs/presentation-assets/clearsight-premium-fi
 Mechanical checks fail CI for conditions such as unexpected horizontal overflow, browser runtime errors, loss of the first Today action from the unobstructed first viewport, focus escaping a focused-work sheet, authority-detail leakage in a forbidden state, terminal requests exposing submission actions, degraded views hiding still-available context, external capture asking for a known address again, or a required field-agent happy path depending on free-text explanation.
 
 The suite deliberately uses production-shaped readiness and import fixtures rather than inventing stronger product truth. Static fixture schemas for authority, projection health, evidence capture and reconciliation are test-locked to the browser contracts they exercise.
+
+## Accepted Program data-centred evidence
+
+On 22 September 2026 the Program data-centred UX tranche added exact renders for the reset Programs list, the *Monitoring → Data collection* rename and the rebuilt Evidence & results section:
+
+- `48-program-portfolio-list-light-1440x900.png` — compact scoped register rows with bounded counts, light, 1440×900, `#programs`;
+- `49-program-portfolio-list-dark-mobile-390x844.png` — stacked register rows, dark, 390×844 mobile, `#programs`;
+- `50-program-evidence-empty-light-1440x900.png` — honest empty Evidence & results population naming the checked scope and the next action, light, 1440×900;
+- `51-program-evidence-populated-light-1440x900.png` — submitted responses list for the annual data-processing review, consent confirmation and Branch KRI register entries (CAC and Marina), light, 1440×900;
+- `52-program-evidence-sheet-answers-light-1440x900.png` — deep sheet Answers tab with assessed answers, provenance and review decisions;
+- `53-program-evidence-sheet-documents-light-1440x900.png` — deep sheet Documents tab with response-scoped documents, expiry dates and quarantined handling;
+- `54-program-evidence-sheet-review-light-1440x900.png` — deep sheet Review tab with the reviewed result and the honest review-permission-unavailable state;
+- `55-program-evidence-populated-dark-mobile-390x844.png` — stacked response list and section navigation, dark, 390×844 mobile;
+- `56-program-register-sheet-answers-light-1440x900.png` — Branch KRI register answer sheet (CAC) with typed answer rendering: NGN currency `₦1,250,000`, integer counts, registered date, yes/no badge, multi-select chips and attestation confirmation, plus sectioned answer groups under **Branch details** and **November 2025 register** with the summary strip ("10 of 12 fields answered", "2 fields need attention"), light, 1440×900;
+- `57-program-register-sheet-answers-dark-mobile-390x844.png` — same register answer sheet (Marina), dark, 390×844 mobile replacement with section headings and summary strip and without horizontal overflow.
+
+The evidence and sheet renders use route `#programs/program-ndpa/evidence-results` with the bounded `program-responses` fixture (annual data-processing review, consent confirmation and two Branch KRI register entries — four submitted responses, five documents, stored revision and assessment facts), matching the production workflow in `ResponsesView`. The captures are registered in the flow manifest with states `program-portfolio-list`, `program-portfolio-list-mobile`, `program-evidence-empty`, `program-evidence-populated`, `program-evidence-populated-mobile`, `program-response-sheet-answers/documents/review` and `program-register-sheet-answers`, `program-register-sheet-answers-mobile`, and are recorded in `docs/evidence/2026-09-22-program-data-centered-ux/`.
+
+No before-state baseline was captured for the Programs list (the reset replaced the previous inline-expansion composition without a retained render, so regeneration of the prior state is not available from this repo); the after-state renders above are the reference evidence for the reset. The full managed review on this date ran the Program capture scenario cleanly (no logged findings; all ten data-centred names and states present) but could not go green end-to-end because three pre-existing runners still target the Vendors workspace from the prior tranche — `capture-ui-evidence.mjs` and `capture-premium-first-run-evidence.mjs` wait for a **Vendors** heading while the in-progress dashboard renders **Vendor dashboard**, and the `forms-evidence-scenarios.mjs` flow waits for a vendor button that the in-progress page does not expose. Those runners fail on mainline independent of this tranche and are tracked to the Vendors workspace work; this tranche's captures, focused checks and typecheck all pass with the evidence recorded here.
 
 ## Accepted builder containment and owner-action evidence
 

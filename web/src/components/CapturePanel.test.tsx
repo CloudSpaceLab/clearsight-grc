@@ -132,7 +132,7 @@ describe("CapturePanel", () => {
 	  fireEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]!);
 	  expect(screen.queryByText("policy.pdf")).toBeNull();
 	  fireEvent.click(screen.getByRole("button", { name: "Review response" }));
-    expect(screen.getByText(/1 file attached · register.xlsx/)).toBeTruthy();
+    expect(screen.getByText(/1 submitted document · register.xlsx/)).toBeTruthy();
 	  fireEvent.click(screen.getByRole("button", { name: "Submit response" }));
 	  await waitFor(() => expect(submit).toHaveBeenCalledWith(expect.objectContaining({ id: request.id }), { documents: { artifact_ids: ["artifact-register"] } }));
 	});

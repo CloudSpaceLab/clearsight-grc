@@ -16,6 +16,7 @@ const operationCommands = {
   addMatterDecision: "matter.decision.record",
   addMatterAction: "matter.action.add",
   updateMatterAction: "matter.action.update",
+  requestMatterActionUpdate: "matter.action.update.request",
   assignMatterAction: "matter.action.assign",
   transitionMatterAction: "matter.action.transition",
   addMatterVerificationContract: "matter.outcome.define",

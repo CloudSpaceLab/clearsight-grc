@@ -61,6 +61,15 @@
 .program-operation-form .program-check-label input { width: auto; min-height: 0; }
 .program-evidence-panel .monitoring-setup { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
 .program-wide-panel { grid-column: 1 / -1; }
+.program-responses-panel { display: grid; gap: 14px; }
+.program-responses-panel .program-panel-heading { margin-bottom: 0; }
+.program-responses-panel .program-panel-heading p { margin: 8px 0 0; color: var(--muted); font-size: .8rem; }
+.program-responses__form { display: grid; gap: 3px; }
+.program-responses__form strong { min-inline-size: 0; overflow-wrap: anywhere; }
+.program-responses__form span, .program-responses__score span { color: var(--muted); font-size: .75rem; }
+.program-responses__score { display: grid; gap: 3px; }
+.program-responses-review { padding: var(--cs-space-group); border: 1px solid var(--cs-border-default); border-radius: var(--cs-primitive-radius-14); background: var(--cs-bg-surface-2); }
+.program-responses-review__content { display: grid; gap: var(--cs-space-section); }
 .program-issue-list { display: grid; gap: 10px; margin-top: 16px; }
 .program-issue-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
 .program-issue-card span, .program-issue-card small { color: var(--muted); font-size: .75rem; }

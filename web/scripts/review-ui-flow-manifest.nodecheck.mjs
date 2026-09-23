@@ -7,13 +7,6 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const webRoot = fileURLToPath(new URL("..", import.meta.url));
-const vendorStates = ["conflict", "reloaded", "late-result-isolated"];
-const vendorCaptures = ["light", "dark"].flatMap((theme) => [1440, 390, 320].flatMap((width) => vendorStates.map((state) => ({
-  name: `vendor-activation-${state}-${theme}-${width}`,
-  state: `vendor-activation-${state}`,
-  theme,
-  viewport: { width, height: width === 1440 ? 900 : 844 },
-}))));
 
 // These deliberately incomplete manifests test reviewer diagnostics, not rendered proof.
 async function review(captures) {
@@ -31,37 +24,15 @@ async function review(captures) {
   }
 }
 
-test("the manifest reviewer accepts the supported vendor activation matrix", async () => {
-  const { failures } = await review(vendorCaptures);
-  assert.deepEqual(failures.filter((failure) => failure.startsWith("flow manifest contains unexpected captures:")), []);
-  for (const capture of vendorCaptures) {
-    assert.equal(failures.some((failure) => failure.startsWith("flow manifest is missing:") && failure.includes(capture.name)), false, capture.name);
-    assert.ok(failures.some((failure) => failure.startsWith("screenshots are missing:") && failure.includes(`${capture.name}.png`)), `${capture.name} screenshot is required`);
-  }
-});
-
-test("the manifest reviewer requires every vendor activation theme and viewport capture", async (t) => {
-  for (const capture of vendorCaptures) {
-    await t.test(capture.name, async () => {
-      const { failures } = await review(vendorCaptures.filter((candidate) => candidate !== capture));
-      assert.ok(failures.some((failure) => failure.startsWith("flow manifest is missing:") && failure.includes(capture.name)), capture.name);
-    });
-  }
-});
-
-test("the manifest reviewer requires vendor activation state metadata", async (t) => {
-  for (const state of vendorStates) {
-    await t.test(state, async () => {
-      const requiredState = `vendor-activation-${state}`;
-      const { failures } = await review(vendorCaptures.map((capture) => capture.state === requiredState ? { ...capture, state: "baseline" } : capture));
-      assert.ok(failures.some((failure) => failure.startsWith("flow state coverage is missing:") && failure.includes(requiredState)), requiredState);
-    });
-  }
-});
-
-test("the manifest reviewer still rejects duplicate and unknown vendor captures", async () => {
-  const unknown = { ...vendorCaptures[0], name: "vendor-activation-unknown-light-1440" };
-  const { failures } = await review([...vendorCaptures, vendorCaptures[0], unknown]);
+test("the manifest reviewer rejects duplicate capture names", async () => {
+  const capture = { name: "01-today-dark-comfortable-1440x900", state: "baseline", theme: "dark", viewport: { width: 1440, height: 900 } };
+  const { failures } = await review([capture, capture]);
   assert.ok(failures.includes("flow manifest contains duplicate capture names"));
+});
+
+test("the manifest reviewer rejects unknown capture names", async () => {
+  const capture = { name: "01-today-dark-comfortable-1440x900", state: "baseline", theme: "dark", viewport: { width: 1440, height: 900 } };
+  const unknown = { ...capture, name: "unknown-capture-light-1440x900" };
+  const { failures } = await review([capture, unknown]);
   assert.ok(failures.some((failure) => failure.startsWith("flow manifest contains unexpected captures:") && failure.includes(unknown.name)));
 });

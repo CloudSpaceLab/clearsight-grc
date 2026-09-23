@@ -65,7 +65,7 @@ test("Forms scenarios cover every Task 22 capability", () => {
   const covered = new Set(formsEvidenceScenarios.flatMap((scenario) => scenario.capabilities));
   assert.deepEqual(requiredFormsCapabilities.filter((capability) => !covered.has(capability)), []);
   assert.equal(new Set(formsEvidenceScenarios.map(({ name }) => name)).size, formsEvidenceScenarios.length);
-  const allowedRoutes = new Set(["#forms", "#imports", "#vendors", "#ui-components", "/capture"]);
+  const allowedRoutes = new Set(["#forms", "#imports", "#vendors", "#vendors/register", "#ui-components", "/capture"]);
   for (const scenario of formsEvidenceScenarios) {
     assert.match(scenario.name, /^\d{2,3}[a-z]?-forms-/);
     assert.ok(allowedRoutes.has(scenario.route), scenario.route);
@@ -89,7 +89,7 @@ test("demo document evidence covers preview and blocked files in both workspaces
   assert.equal(demo.length, 26);
   for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"]) for (const width of [1440, 390, 320]) {
     for (const state of ["demo-document-preview", "demo-document-blocked"]) {
-      assert.ok(demo.some((scenario) => scenario.route === `#${surface}` && scenario.theme === theme && scenario.viewport.width === width && scenario.state === state), `${surface} ${theme} ${width} ${state}`);
+      assert.ok(demo.some((scenario) => scenario.route === (surface === "vendors" ? "#vendors/register" : `#${surface}`) && scenario.theme === theme && scenario.viewport.width === width && scenario.state === state), `${surface} ${theme} ${width} ${state}`);
     }
   }
   for (const theme of ["light", "dark"]) assert.ok(demo.some((scenario) => scenario.theme === theme && scenario.viewport.width === 1440 && scenario.state === "demo-document-pdf-preview"), `PDF ${theme}`);

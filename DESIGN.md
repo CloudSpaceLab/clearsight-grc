@@ -101,6 +101,8 @@ Operational success and failure receipts use `Notice` rather than feature-owned 
 
 ## Structural patterns
 
+- **Vendors:** `#vendors` shows the scoped dashboard; `#vendors/register` shows search, service rows and form requests. Exact relationship routes retain their dedicated record and Back to vendor register action. Metric cards use 12px vertical padding without extra value padding, retain 44px actions, and grow for wrapped/unknown values. Existing four/two/one-column breakpoints apply. [Decision and state evidence](docs/design/2026-09-10-vendor-pages.md).
+
 - **Intervention Summary:** actor-scoped read projection for one human review, decision, authorization, evidence exception, escalation or outcome check. It is not new authoritative state.
 - **Today:** intervention queue first; quiet status-check context follows the work rather than preceding it with a KPI wall.
 - **Oversight:** freshness and coverage first, including projection version and source high-water detail, then ranked intervention records. Risk pressure, minimum-five historical resolution ranges and owner workload/history remain supporting analysis rather than personal assignments, employee scores or rankings. Unknown event-history measures display as unknown rather than zero.
@@ -310,6 +312,10 @@ See `docs/design/ui-delivery-workflow.md` and `docs/quality/rendered-ui-evidence
 ## Vendor portfolio — 10 September 2026
 
 Vendors uses a full-width portfolio with four scoped workload metrics, stored service criticality and submitted-response assessment coverage. The selected relationship replaces the portfolio at every viewport and includes Back to vendor register. Counts cover only the loaded search population; missing or refreshing summaries show Unknown and expose recovery. Submission, assessment and vendor approval remain distinct. Four metric columns become two on tablet/mobile and one at 320px; analytical cards and service rows stack. Existing semantic tokens and shared Buttons remain authoritative. No new palette, motion or global density mode. Required evidence includes light/dark 1440px, 390px and 320px, unavailable summaries and detail/back navigation. See [decision brief](docs/design/2026-09-10-vendor-portfolio.md).
+
+## Programs data-centred UX — 22 September 2026
+
+Programs work centers the record: the portfolio list is a scoped, paginated register whose rows link to each Program (no inline expansion), and the Program record leads with submitted data. To keep the list scannable, per-row detail previews were removed and `openFirst`/`targetID` navigate to the record instead of expanding; filters, keyset pagination and the stable `#programs/<id>` hash are unchanged. The former "Monitoring" section is renamed **Data collection** (route id `monitoring` unchanged; appointment/record copy updated throughout, internal identifiers untouched). The **Evidence & results** section now opens with collected submissions — responses, answers, artifacts and review results — using `loadCompletedResponses`/`loadCompletedResponse` and the response-scoped `DocumentBrowser`; a deep `FocusedSheet` mirrors the production `ResponsesView` Answers/Documents/Review tabs and reuses `ResponseAssessment`. Existing `ProgramEvidencePanel` results remain secondary below. Submitted responses come before derived checks because they are the observed record; the panel's empty state names the checked population and routes to **Open Data collection** at the unchanged `#programs/<id>/monitoring` route. No new component families, tokens or motion. See [decision brief](docs/design/2026-09-22-program-data-centered-ux-decision-brief.md).
 
 ### Earlier audit corrections
 
