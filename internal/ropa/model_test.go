@@ -46,7 +46,13 @@ func TestProcessingActivityRoundTripsThroughJSON(t *testing.T) {
 			{Category: "Identity", Sensitivity: "DIRECT_PERSONAL"},
 		},
 		Recipients: []ropa.Recipient{
-			{Recipient: "Card processor", RecipientKind: "EXTERNAL", TransferBasis: "Contract"},
+			{
+				Recipient:     "US card processor",
+				RecipientKind: "EXTERNAL",
+				CountryCode:   "US",
+				IsCrossBorder: true,
+				TransferBasis: ropa.TransferBasisStandardContractClauses,
+			},
 		},
 		Systems: []ropa.System{
 			{SystemName: "Onboarding portal", SystemKind: "APPLICATION"},
@@ -165,8 +171,18 @@ func TestProcessingActivityChildrenPreserveValuesInsideParentScope(t *testing.T)
 			{Category: "Contact", Sensitivity: "INDIRECT_PERSONAL"},
 		},
 		Recipients: []ropa.Recipient{
-			{Recipient: "Card processor", RecipientKind: "EXTERNAL", TransferBasis: "Contract"},
-			{Recipient: "Fraud team", RecipientKind: "INTERNAL", TransferBasis: "Legitimate interests"},
+			{
+				Recipient:     "US card processor",
+				RecipientKind: "EXTERNAL",
+				CountryCode:   "US",
+				IsCrossBorder: true,
+				TransferBasis: ropa.TransferBasisStandardContractClauses,
+			},
+			{
+				Recipient:     "Fraud team",
+				RecipientKind: "INTERNAL",
+				TransferBasis: ropa.TransferBasisNotApplicable,
+			},
 		},
 		Systems: []ropa.System{
 			{SystemName: "Onboarding portal", SystemKind: "APPLICATION"},
@@ -210,6 +226,74 @@ func TestProcessingActivityChildrenPreserveValuesInsideParentScope(t *testing.T)
 	for _, childKey := range []string{"data_categories", "recipients", "systems", "reviews"} {
 		if _, ok := fields[childKey]; !ok {
 			t.Fatalf("nested activity JSON must retain %s", childKey)
+		}
+	}
+}
+
+func TestRecipientRoundTripsCrossBorderFieldsThroughJSON(t *testing.T) {
+	original := ropa.Recipient{
+		Recipient:     "Cloud card processor",
+		RecipientKind: "EXTERNAL",
+		CountryCode:   "GB",
+		IsCrossBorder: true,
+		TransferBasis: ropa.TransferBasisStandardContractClauses,
+	}
+
+	encoded, err := json.Marshal(original)
+	if err != nil {
+		t.Fatalf("marshal recipient: %v", err)
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(encoded, &fields); err != nil {
+		t.Fatalf("decode recipient fields: %v", err)
+	}
+	for key, want := range map[string]string{
+		"country_code":    `"GB"`,
+		"is_cross_border": "true",
+		"transfer_basis":  `"STANDARD_CONTRACT_CLAUSES"`,
+	} {
+		got, ok := fields[key]
+		if !ok {
+			t.Errorf("recipient JSON must retain %s", key)
+			continue
+		}
+		if string(got) != want {
+			t.Errorf("recipient JSON %s = %s, want %s", key, got, want)
+		}
+	}
+
+	var decoded ropa.Recipient
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatalf("unmarshal recipient: %v", err)
+	}
+	if !reflect.DeepEqual(decoded, original) {
+		t.Fatalf("recipient round trip changed value:\nwant: %#v\ngot:  %#v", original, decoded)
+	}
+}
+
+func TestTransferBasisValidAcceptsOnlyArticle45Safeguards(t *testing.T) {
+	valid := []ropa.TransferBasis{
+		ropa.TransferBasisAdequacy,
+		ropa.TransferBasisApprovedInstrument,
+		ropa.TransferBasisRecognisedLawfulBasis,
+		ropa.TransferBasisConsent,
+		ropa.TransferBasisStandardContractClauses,
+		ropa.TransferBasisBindingCorporateRules,
+		ropa.TransferBasisCertification,
+		ropa.TransferBasisNotApplicable,
+	}
+	for _, basis := range valid {
+		if !basis.Valid() {
+			t.Errorf("TransferBasis(%q).Valid() = false, want true", basis)
+		}
+	}
+
+	for _, basis := range []ropa.TransferBasis{
+		ropa.TransferBasis("OTHER"),
+		ropa.TransferBasis("consent"),
+	} {
+		if basis.Valid() {
+			t.Errorf("TransferBasis(%q).Valid() = true, want false", basis)
 		}
 	}
 }

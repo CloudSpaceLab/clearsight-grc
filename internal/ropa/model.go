@@ -31,6 +31,37 @@ func (s Status) String() string {
 	}
 }
 
+// TransferBasis is the controlled NDPA Article 45 and Schedule 5 safeguard vocabulary.
+type TransferBasis string
+
+const (
+	TransferBasisAdequacy                TransferBasis = "ADEQUACY"
+	TransferBasisApprovedInstrument      TransferBasis = "APPROVED_INSTRUMENT"
+	TransferBasisRecognisedLawfulBasis   TransferBasis = "RECOGNISED_LAWFUL_BASIS"
+	TransferBasisConsent                 TransferBasis = "CONSENT"
+	TransferBasisStandardContractClauses TransferBasis = "STANDARD_CONTRACT_CLAUSES"
+	TransferBasisBindingCorporateRules   TransferBasis = "BINDING_CORPORATE_RULES"
+	TransferBasisCertification           TransferBasis = "CERTIFICATION"
+	TransferBasisNotApplicable           TransferBasis = "NOT_APPLICABLE"
+)
+
+// Valid reports whether the value belongs to the controlled safeguard vocabulary.
+func (b TransferBasis) Valid() bool {
+	switch b {
+	case TransferBasisAdequacy,
+		TransferBasisApprovedInstrument,
+		TransferBasisRecognisedLawfulBasis,
+		TransferBasisConsent,
+		TransferBasisStandardContractClauses,
+		TransferBasisBindingCorporateRules,
+		TransferBasisCertification,
+		TransferBasisNotApplicable:
+		return true
+	default:
+		return false
+	}
+}
+
 type ProcessingActivity struct {
 	ID                      string     `json:"id"`
 	TenantID                string     `json:"tenant_id"`
@@ -75,10 +106,15 @@ type DataCategory struct {
 	Sensitivity string `json:"sensitivity"`
 }
 
+// Recipient records a disclosed recipient and its cross-border transfer facts.
+// CountryCode is present only for cross-border recipients. TransferBasis uses the
+// Article 45 / Schedule 5 safeguard vocabulary.
 type Recipient struct {
-	Recipient     string `json:"recipient"`
-	RecipientKind string `json:"recipient_kind"`
-	TransferBasis string `json:"transfer_basis"`
+	Recipient     string        `json:"recipient"`
+	RecipientKind string        `json:"recipient_kind"`
+	CountryCode   string        `json:"country_code,omitempty"`
+	IsCrossBorder bool          `json:"is_cross_border"`
+	TransferBasis TransferBasis `json:"transfer_basis"`
 }
 
 type System struct {

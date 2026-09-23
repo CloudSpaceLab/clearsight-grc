@@ -32,6 +32,20 @@ func normalizeSQL(body string) string {
 	return sql
 }
 
+func createTableDefinition(t *testing.T, normalizedSQL, table string) string {
+	t.Helper()
+	start := strings.Index(normalizedSQL, "create table "+table+" ")
+	if start < 0 {
+		t.Fatalf("missing create table %s", table)
+	}
+	remainder := normalizedSQL[start:]
+	end := strings.Index(remainder, ");")
+	if end < 0 {
+		t.Fatalf("create table %s has no closing delimiter", table)
+	}
+	return remainder[:end+2]
+}
+
 func triggerFunctionBody(t *testing.T, sql, functionName string) string {
 	t.Helper()
 	marker := "create function " + functionName + "() returns trigger"
@@ -123,6 +137,47 @@ func TestActivityScopeKeySupportsCompositeChildReferences(t *testing.T) {
 	body := readMigration(t, upFile)
 	if !strings.Contains(body, "UNIQUE (id, tenant_id, legal_entity_id)") {
 		t.Error("activity table must expose the scoped key required by child foreign keys")
+	}
+}
+
+func TestRecipientCrossBorderColumnsAndCoherenceAreLoadBearing(t *testing.T) {
+	body := readMigration(t, upFile)
+	recipients := createTableDefinition(t, normalizeSQL(body), "ropa_processing_activity_recipients")
+
+	for _, required := range []string{
+		"country_code text,",
+		"is_cross_border boolean not null default false,",
+		"transfer_basis text not null default 'not_applicable',",
+		"constraint ropa_recipients_country_code_ck check (country_code is null or country_code ~ '^[a-z]{2}$')",
+		"constraint ropa_recipients_cross_border_coherence_ck check ((is_cross_border and country_code is not null) or (not is_cross_border and country_code is null and transfer_basis = 'not_applicable'))",
+	} {
+		if !strings.Contains(recipients, required) {
+			t.Errorf("recipient table must include %q", required)
+		}
+	}
+	if !strings.Contains(body, "country_code ~ '^[A-Z]{2}$'") {
+		t.Error("country-code check must require exactly two uppercase letters")
+	}
+	if strings.Contains(recipients, "transfer_basis text not null default ''") {
+		t.Error("recipient transfer basis must not retain the free-text empty default")
+	}
+}
+
+func TestRecipientTransferSafeguardVocabularyAndCrossBorderIndex(t *testing.T) {
+	body := readMigration(t, upFile)
+	sql := normalizeSQL(body)
+	recipients := createTableDefinition(t, sql, "ropa_processing_activity_recipients")
+
+	requiredConstraint := "constraint ropa_recipients_transfer_basis_ck check (transfer_basis in ('adequacy', 'approved_instrument', 'recognised_lawful_basis', 'consent', 'standard_contract_clauses', 'binding_corporate_rules', 'certification', 'not_applicable'))"
+	if !strings.Contains(recipients, requiredConstraint) {
+		t.Errorf("recipient table must constrain transfer_basis to the Article 45 / Schedule 5 vocabulary: %s", requiredConstraint)
+	}
+	requiredIndex := "create index ropa_recipients_cross_border_idx on ropa_processing_activity_recipients(tenant_id, legal_entity_id, is_cross_border)"
+	if !strings.Contains(sql, requiredIndex) {
+		t.Errorf("migration must create cross-border filter index %q", requiredIndex)
+	}
+	if !strings.Contains(body, "NDPA Article 45 and Schedule 5 safeguards") {
+		t.Error("migration must document the statutory source for the transfer vocabulary")
 	}
 }
 

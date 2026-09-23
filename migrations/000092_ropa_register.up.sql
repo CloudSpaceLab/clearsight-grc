@@ -97,12 +97,28 @@ CREATE TABLE ropa_processing_activity_recipients (
   recipient text NOT NULL,
   recipient_kind text NOT NULL DEFAULT 'EXTERNAL'
     CHECK (recipient_kind IN ('INTERNAL','EXTERNAL','AUTHORITY')),
-  transfer_basis text NOT NULL DEFAULT '',
+  country_code text,
+  is_cross_border boolean NOT NULL DEFAULT false,
+  -- This vocabulary maps to the NDPA Article 45 and Schedule 5 safeguards for cross-border transfers.
+  transfer_basis text NOT NULL DEFAULT 'NOT_APPLICABLE',
   PRIMARY KEY(tenant_id,legal_entity_id,activity_id,recipient),
+  CONSTRAINT ropa_recipients_country_code_ck
+    CHECK (country_code IS NULL OR country_code ~ '^[A-Z]{2}$'),
+  CONSTRAINT ropa_recipients_transfer_basis_ck
+    CHECK (transfer_basis IN ('ADEQUACY','APPROVED_INSTRUMENT','RECOGNISED_LAWFUL_BASIS','CONSENT','STANDARD_CONTRACT_CLAUSES','BINDING_CORPORATE_RULES','CERTIFICATION','NOT_APPLICABLE')),
+  CONSTRAINT ropa_recipients_cross_border_coherence_ck
+    CHECK (
+      (is_cross_border AND country_code IS NOT NULL)
+      OR
+      (NOT is_cross_border
+        AND country_code IS NULL
+        AND transfer_basis = 'NOT_APPLICABLE')
+    ),
   FOREIGN KEY (activity_id, tenant_id, legal_entity_id)
     REFERENCES ropa_processing_activities(id, tenant_id, legal_entity_id)
 );
 CREATE INDEX ropa_recipients_activity_idx ON ropa_processing_activity_recipients(tenant_id,legal_entity_id,activity_id);
+CREATE INDEX ropa_recipients_cross_border_idx ON ropa_processing_activity_recipients(tenant_id,legal_entity_id,is_cross_border);
 
 CREATE TABLE ropa_processing_activity_systems (
   tenant_id uuid NOT NULL,
