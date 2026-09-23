@@ -65,6 +65,11 @@ type ProcessingActivity struct {
 	Reviews        []Review       `json:"reviews,omitempty"`
 }
 
+// DataCategory, Recipient, System, and Review are nested child values of a
+// ProcessingActivity. A child is only ever read or written inside the scope
+// of its enclosing ProcessingActivity, which carries tenant and legal-entity
+// scope. The repository binds that scope from the parent and never from the
+// child.
 type DataCategory struct {
 	Category    string `json:"category"`
 	Sensitivity string `json:"sensitivity"`
@@ -83,6 +88,7 @@ type System struct {
 
 type Review struct {
 	ID                  string     `json:"id"`
+	CreatedAt           time.Time  `json:"created_at"`
 	DueDate             time.Time  `json:"due_date"`
 	CompletedAt         *time.Time `json:"completed_at,omitempty"`
 	Outcome             string     `json:"outcome,omitempty"`
