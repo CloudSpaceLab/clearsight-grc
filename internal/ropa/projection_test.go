@@ -108,7 +108,16 @@ func TestMaintainCountsEveryLifecycleStatus(t *testing.T) {
 
 	newActivity := seedProjectionActivity(t, service, "PA-STATUS-NEW", nil)
 	openActivity := seedProjectionActivity(t, service, "PA-STATUS-OPEN", nil)
-	closedActivity := seedProjectionActivity(t, service, "PA-STATUS-CLOSED", nil)
+	completed := projectionNow.Add(-time.Hour)
+	closedActivity := seedProjectionActivity(t, service, "PA-STATUS-CLOSED", func(input *ropa.CreateActivityInput) {
+		input.Reviews = []ropa.Review{{
+			ID:          "PA-STATUS-CLOSED-review",
+			CreatedAt:   projectionNow.Add(-2 * time.Hour),
+			DueDate:     projectionNow,
+			CompletedAt: &completed,
+			Outcome:     "CONFIRMED",
+		}}
+	})
 
 	if _, err := service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 		TenantID:        openActivity.TenantID,

@@ -721,8 +721,12 @@ func validTransition(from, to Status) bool {
 	}
 }
 
+// closureBlockers names each fact an operator must supply before closure. A
+// completed review means at least one review has a non-nil CompletedAt and an
+// Outcome of CONFIRMED or REVISED; a nil completion, empty outcome, or
+// WITHDRAWN outcome does not satisfy the completed-review rule.
 func closureBlockers(activity ProcessingActivity) []string {
-	blockers := make([]string, 0, 3)
+	blockers := make([]string, 0, 4)
 	if strings.TrimSpace(activity.LawfulBasis) == "" {
 		blockers = append(blockers, "lawful basis")
 	}
@@ -732,7 +736,19 @@ func closureBlockers(activity ProcessingActivity) []string {
 	if strings.TrimSpace(activity.DataSubjectCategories) == "" {
 		blockers = append(blockers, "data subject category")
 	}
+	if !hasCompletedReview(activity.Reviews) {
+		blockers = append(blockers, "completed review")
+	}
 	return blockers
+}
+
+func hasCompletedReview(reviews []Review) bool {
+	for _, review := range reviews {
+		if review.CompletedAt != nil && (review.Outcome == "CONFIRMED" || review.Outcome == "REVISED") {
+			return true
+		}
+	}
+	return false
 }
 
 func validStatus(status Status) bool {

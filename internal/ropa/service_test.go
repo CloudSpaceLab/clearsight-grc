@@ -143,7 +143,7 @@ func TestClosureIsBlockedUntilRequiredFactsExist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read closure blockers: %v", err)
 	}
-	want := []string{"lawful basis", "named owner", "data subject category"}
+	want := []string{"lawful basis", "named owner", "data subject category", "completed review"}
 	if !reflect.DeepEqual(blockers, want) {
 		t.Fatalf("closure blockers = %#v, want %#v", blockers, want)
 	}
@@ -151,7 +151,10 @@ func TestClosureIsBlockedUntilRequiredFactsExist(t *testing.T) {
 
 func TestClosureSucceedsWhenRequiredFactsArePresent(t *testing.T) {
 	service, _, _ := task3Service()
-	activity := task3Create(t, service, task3Input())
+	completed := task3Now.Add(-time.Hour)
+	input := task3Input()
+	input.Reviews = []ropa.Review{task3ReviewWithOutcome(&completed, "CONFIRMED")}
+	activity := task3Create(t, service, input)
 	closed, err := service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 		TenantID:        activity.TenantID,
 		ActivityID:      activity.ID,
@@ -167,9 +170,76 @@ func TestClosureSucceedsWhenRequiredFactsArePresent(t *testing.T) {
 	}
 }
 
+func TestCompletedReviewIsRequiredForClosure(t *testing.T) {
+	completed := task3Now.Add(-time.Hour)
+	tests := []struct {
+		name        string
+		completedAt *time.Time
+		outcome     string
+		wantBlocked bool
+	}{
+		{name: "nil completion", completedAt: nil, outcome: "CONFIRMED", wantBlocked: true},
+		{name: "empty outcome", completedAt: &completed, outcome: "", wantBlocked: true},
+		{name: "withdrawn", completedAt: &completed, outcome: "WITHDRAWN", wantBlocked: true},
+		{name: "confirmed", completedAt: &completed, outcome: "CONFIRMED", wantBlocked: false},
+		{name: "revised", completedAt: &completed, outcome: "REVISED", wantBlocked: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			service, _, _ := task3Service()
+			input := task3Input()
+			input.Reviews = []ropa.Review{task3ReviewWithOutcome(test.completedAt, test.outcome)}
+			activity := task3Create(t, service, input)
+
+			blockers, err := service.ClosureBlockers(context.Background(), activity.TenantID, activity.LegalEntityID, activity.ID)
+			if err != nil {
+				t.Fatalf("read closure blockers: %v", err)
+			}
+			if test.wantBlocked {
+				want := []string{"completed review"}
+				if !reflect.DeepEqual(blockers, want) {
+					t.Fatalf("closure blockers = %#v, want %#v", blockers, want)
+				}
+				_, err = service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
+					TenantID:        activity.TenantID,
+					ActivityID:      activity.ID,
+					ExpectedVersion: activity.Version,
+					To:              ropa.StatusClosed,
+					ActorID:         "actor-1",
+				})
+				if !errors.Is(err, ropa.ErrClosureBlocked) {
+					t.Fatalf("expected ErrClosureBlocked, got %v", err)
+				}
+				return
+			}
+
+			if len(blockers) != 0 {
+				t.Fatalf("closure blockers = %#v, want none", blockers)
+			}
+			closed, err := service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
+				TenantID:        activity.TenantID,
+				ActivityID:      activity.ID,
+				ExpectedVersion: activity.Version,
+				To:              ropa.StatusClosed,
+				ActorID:         "actor-1",
+			})
+			if err != nil {
+				t.Fatalf("close activity: %v", err)
+			}
+			if closed.Status != ropa.StatusClosed {
+				t.Fatalf("closed status = %s, want CLOSED", closed.Status)
+			}
+		})
+	}
+}
+
 func TestClosedActivityCannotTransitionBackToOpen(t *testing.T) {
 	service, _, _ := task3Service()
-	activity := task3Create(t, service, task3Input())
+	completed := task3Now.Add(-time.Hour)
+	input := task3Input()
+	input.Reviews = []ropa.Review{task3ReviewWithOutcome(&completed, "CONFIRMED")}
+	activity := task3Create(t, service, input)
 	activity, err := service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 		TenantID:        activity.TenantID,
 		ActivityID:      activity.ID,
@@ -561,6 +631,13 @@ func task3ValidReview() ropa.Review {
 	}
 }
 
+func task3ReviewWithOutcome(completedAt *time.Time, outcome string) ropa.Review {
+	review := task3ValidReview()
+	review.CompletedAt = completedAt
+	review.Outcome = outcome
+	return review
+}
+
 func TestMemoryRepositoryRejectsNonNewStatusOnCreate(t *testing.T) {
 	for _, test := range []struct {
 		name   string
@@ -602,6 +679,7 @@ func TestMemoryRepositoryRejectsNonPositiveVersionOnCreate(t *testing.T) {
 }
 
 func TestMemoryRepositoryRejectsClosureWithoutEachRequiredFact(t *testing.T) {
+	completed := task3Now.Add(-time.Hour)
 	cases := []struct {
 		name   string
 		mutate func(*ropa.ProcessingActivity)
@@ -609,11 +687,14 @@ func TestMemoryRepositoryRejectsClosureWithoutEachRequiredFact(t *testing.T) {
 		{name: "lawful basis", mutate: func(activity *ropa.ProcessingActivity) { activity.LawfulBasis = "" }},
 		{name: "named owner", mutate: func(activity *ropa.ProcessingActivity) { activity.OwnerPrincipalID = "" }},
 		{name: "data subject category", mutate: func(activity *ropa.ProcessingActivity) { activity.DataSubjectCategories = "" }},
+		{name: "completed review", mutate: func(activity *ropa.ProcessingActivity) { activity.Reviews = nil }},
 	}
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
 			repository := ropa.NewMemoryRepository()
-			activity, err := task3DirectCreate(t, repository, task3DirectActivity())
+			seed := task3DirectActivity()
+			seed.Reviews = []ropa.Review{task3ReviewWithOutcome(&completed, "CONFIRMED")}
+			activity, err := task3DirectCreate(t, repository, seed)
 			if err != nil {
 				t.Fatalf("seed direct activity: %v", err)
 			}
@@ -1086,7 +1167,10 @@ func (r *closureBlockersRepository) ActivityByCode(context.Context, string, stri
 
 func TestClosureBlockersRequiresTenantAndLegalEntityScope(t *testing.T) {
 	service, _, _ := task3Service()
-	activity := task3Create(t, service, task3Input())
+	completed := task3Now.Add(-time.Hour)
+	input := task3Input()
+	input.Reviews = []ropa.Review{task3ReviewWithOutcome(&completed, "CONFIRMED")}
+	activity := task3Create(t, service, input)
 
 	blockers, err := service.ClosureBlockers(context.Background(), activity.TenantID, activity.LegalEntityID, activity.ID)
 	if err != nil {

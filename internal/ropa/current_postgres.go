@@ -166,6 +166,240 @@ func nullableDate(value pgtype.Date) *time.Time {
 	return &result
 }
 
+type activityChildQueryer interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}
+
+func activityDataCategoriesSQL() string {
+	return `
+SELECT activity_id::text, category, sensitivity
+FROM ropa_processing_activity_data_categories
+WHERE tenant_id = $1::uuid
+  AND legal_entity_id = $2::uuid
+  AND activity_id=ANY($3::uuid[])
+ORDER BY activity_id, category`
+}
+
+func activityRecipientsSQL() string {
+	return `
+SELECT activity_id::text,
+       recipient,
+       recipient_kind,
+       COALESCE(country_code, ''),
+       is_cross_border,
+       transfer_basis
+FROM ropa_processing_activity_recipients
+WHERE tenant_id = $1::uuid
+  AND legal_entity_id = $2::uuid
+  AND activity_id=ANY($3::uuid[])
+ORDER BY activity_id, recipient`
+}
+
+func activitySystemsSQL() string {
+	return `
+SELECT activity_id::text, system_name, system_kind
+FROM ropa_processing_activity_systems
+WHERE tenant_id = $1::uuid
+  AND legal_entity_id = $2::uuid
+  AND activity_id=ANY($3::uuid[])
+ORDER BY activity_id, system_name`
+}
+
+func activityReviewsSQL() string {
+	return `
+SELECT activity_id::text,
+       id::text,
+       due_date,
+       completed_at,
+       COALESCE(outcome, ''),
+       COALESCE(reviewer_principal_id::text, ''),
+       created_at
+FROM ropa_processing_activity_reviews
+WHERE tenant_id = $1::uuid
+  AND legal_entity_id = $2::uuid
+  AND activity_id=ANY($3::uuid[])
+ORDER BY activity_id, created_at, id`
+}
+
+func loadActivityChildren(ctx context.Context, queryer activityChildQueryer, activity *ProcessingActivity) error {
+	if activity == nil {
+		return ErrInvalid
+	}
+	return loadActivityChildrenForScopes(ctx, queryer, activity.TenantID, activity.LegalEntityID, []*ProcessingActivity{activity})
+}
+
+// loadActivityChildrenForPage uses four set-based reads for the materialized
+// page. The child population is bounded by the requested page size and the
+// domain's per-collection bounds; it never expands into an unbounded scan.
+func loadActivityChildrenForPage(ctx context.Context, queryer activityChildQueryer, activities []ProcessingActivity) error {
+	if len(activities) == 0 {
+		return nil
+	}
+	pointers := make([]*ProcessingActivity, len(activities))
+	for index := range activities {
+		pointers[index] = &activities[index]
+	}
+	return loadActivityChildrenForScopes(ctx, queryer, activities[0].TenantID, activities[0].LegalEntityID, pointers)
+}
+
+func loadActivityChildrenForScopes(ctx context.Context, queryer activityChildQueryer, tenantID, legalEntityID string, activities []*ProcessingActivity) error {
+	if queryer == nil || len(activities) == 0 {
+		return nil
+	}
+	tenantID = strings.TrimSpace(tenantID)
+	legalEntityID = strings.TrimSpace(legalEntityID)
+	if tenantID == "" || legalEntityID == "" {
+		return ErrInvalid
+	}
+	byID := make(map[string]*ProcessingActivity, len(activities))
+	activityIDs := make([]string, 0, len(activities))
+	for _, activity := range activities {
+		if activity == nil || activity.TenantID != tenantID || activity.LegalEntityID != legalEntityID || activity.ID == "" {
+			return ErrInvalid
+		}
+		if _, exists := byID[activity.ID]; exists {
+			continue
+		}
+		byID[activity.ID] = activity
+		activityIDs = append(activityIDs, activity.ID)
+	}
+
+	categoryRows, err := queryer.Query(ctx, activityDataCategoriesSQL(), tenantID, legalEntityID, activityIDs)
+	if err != nil {
+		return fmt.Errorf("read processing activity data categories: %w", err)
+	}
+	for categoryRows.Next() {
+		var activityID string
+		var category DataCategory
+		if err := categoryRows.Scan(&activityID, &category.Category, &category.Sensitivity); err != nil {
+			categoryRows.Close()
+			return fmt.Errorf("scan processing activity data category: %w", err)
+		}
+		activity := byID[activityID]
+		if activity == nil {
+			categoryRows.Close()
+			return fmt.Errorf("processing activity data category is outside requested page: %s", activityID)
+		}
+		activity.DataCategories = append(activity.DataCategories, category)
+	}
+	if err := categoryRows.Err(); err != nil {
+		categoryRows.Close()
+		return fmt.Errorf("read processing activity data categories: %w", err)
+	}
+	categoryRows.Close()
+
+	recipientRows, err := queryer.Query(ctx, activityRecipientsSQL(), tenantID, legalEntityID, activityIDs)
+	if err != nil {
+		return fmt.Errorf("read processing activity recipients: %w", err)
+	}
+	for recipientRows.Next() {
+		var activityID, countryCode, transferBasis string
+		var recipient Recipient
+		if err := recipientRows.Scan(
+			&activityID,
+			&recipient.Recipient,
+			&recipient.RecipientKind,
+			&countryCode,
+			&recipient.IsCrossBorder,
+			&transferBasis,
+		); err != nil {
+			recipientRows.Close()
+			return fmt.Errorf("scan processing activity recipient: %w", err)
+		}
+		activity := byID[activityID]
+		if activity == nil {
+			recipientRows.Close()
+			return fmt.Errorf("processing activity recipient is outside requested page: %s", activityID)
+		}
+		recipient.CountryCode = countryCode
+		recipient.TransferBasis = TransferBasis(transferBasis)
+		activity.Recipients = append(activity.Recipients, recipient)
+	}
+	if err := recipientRows.Err(); err != nil {
+		recipientRows.Close()
+		return fmt.Errorf("read processing activity recipients: %w", err)
+	}
+	recipientRows.Close()
+
+	systemRows, err := queryer.Query(ctx, activitySystemsSQL(), tenantID, legalEntityID, activityIDs)
+	if err != nil {
+		return fmt.Errorf("read processing activity systems: %w", err)
+	}
+	for systemRows.Next() {
+		var activityID string
+		var system System
+		if err := systemRows.Scan(&activityID, &system.SystemName, &system.SystemKind); err != nil {
+			systemRows.Close()
+			return fmt.Errorf("scan processing activity system: %w", err)
+		}
+		activity := byID[activityID]
+		if activity == nil {
+			systemRows.Close()
+			return fmt.Errorf("processing activity system is outside requested page: %s", activityID)
+		}
+		activity.Systems = append(activity.Systems, system)
+	}
+	if err := systemRows.Err(); err != nil {
+		systemRows.Close()
+		return fmt.Errorf("read processing activity systems: %w", err)
+	}
+	systemRows.Close()
+
+	reviewRows, err := queryer.Query(ctx, activityReviewsSQL(), tenantID, legalEntityID, activityIDs)
+	if err != nil {
+		return fmt.Errorf("read processing activity reviews: %w", err)
+	}
+	for reviewRows.Next() {
+		var activityID string
+		var review Review
+		var dueDate pgtype.Date
+		var completedAt pgtype.Timestamptz
+		if err := reviewRows.Scan(
+			&activityID,
+			&review.ID,
+			&dueDate,
+			&completedAt,
+			&review.Outcome,
+			&review.ReviewerPrincipalID,
+			&review.CreatedAt,
+		); err != nil {
+			reviewRows.Close()
+			return fmt.Errorf("scan processing activity review: %w", err)
+		}
+		if !dueDate.Valid {
+			reviewRows.Close()
+			return fmt.Errorf("processing activity review has no due date: %s", review.ID)
+		}
+		review.DueDate = dueDate.Time.UTC()
+		review.CompletedAt = nullableTimestamptz(completedAt)
+		review.CreatedAt = review.CreatedAt.UTC()
+		activity := byID[activityID]
+		if activity == nil {
+			reviewRows.Close()
+			return fmt.Errorf("processing activity review is outside requested page: %s", activityID)
+		}
+		activity.Reviews = append(activity.Reviews, review)
+	}
+	if err := reviewRows.Err(); err != nil {
+		reviewRows.Close()
+		return fmt.Errorf("read processing activity reviews: %w", err)
+	}
+	reviewRows.Close()
+
+	for _, activity := range byID {
+		*activity = normalizeProcessingActivity(*activity)
+	}
+	return nil
+}
+
+func nullableTimestamptz(value pgtype.Timestamptz) *time.Time {
+	if !value.Valid {
+		return nil
+	}
+	result := value.Time.UTC()
+	return &result
+}
+
 // PostgresLister reads only normalized current rows. It applies tenant,
 // legal-entity, and every caller filter before requesting limit+1 rows.
 type PostgresLister struct {
@@ -257,6 +491,10 @@ func (l *PostgresLister) ListActivities(ctx context.Context, filter ListActiviti
 			return ActivityPage{}, err
 		}
 		page.HasMore = true
+	}
+	// Child hydration after truncation is bounded by the requested page size.
+	if err := loadActivityChildrenForPage(ctx, l.pool, page.Rows); err != nil {
+		return ActivityPage{}, err
 	}
 	return page, nil
 }

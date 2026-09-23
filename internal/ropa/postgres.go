@@ -15,8 +15,8 @@ import (
 )
 
 // PostgresRepository stores each material command in one transaction: the
-// current row, immutable event, immutable revision, and transactional outbox
-// row either all commit or all roll back.
+// current row, its normalized child rows, immutable event, immutable revision,
+// and transactional outbox row either all commit or all roll back.
 type PostgresRepository struct {
 	pool *pgxpool.Pool
 }
@@ -93,6 +93,9 @@ func (r *PostgresRepository) CreateActivity(ctx context.Context, activity Proces
 	if tag.RowsAffected() != 1 {
 		return ProcessingActivity{}, ErrDuplicate
 	}
+	if err := insertActivityChildren(ctx, tx, activity); err != nil {
+		return ProcessingActivity{}, err
+	}
 	if err := appendActivityHistory(ctx, tx, activity, event); err != nil {
 		return ProcessingActivity{}, err
 	}
@@ -117,6 +120,9 @@ func (r *PostgresRepository) GetActivity(ctx context.Context, tenantID, activity
 	}
 	if err != nil {
 		return ProcessingActivity{}, fmt.Errorf("read current processing activity: %w", err)
+	}
+	if err := loadActivityChildren(ctx, r.pool, &activity); err != nil {
+		return ProcessingActivity{}, err
 	}
 	return cloneProcessingActivity(activity), nil
 }
@@ -208,6 +214,12 @@ func (r *PostgresRepository) ApplyActivityEvent(ctx context.Context, tenantID, a
 	if tag.RowsAffected() != 1 {
 		return 0, ErrVersionConflict
 	}
+	// Event payloads are complete aggregate snapshots, so this is a full
+	// replacement rather than a diff. The parent update, child replacement,
+	// event, revision, and outbox row commit or roll back together.
+	if err := replaceActivityChildren(ctx, tx, next); err != nil {
+		return 0, err
+	}
 	if err := appendActivityHistory(ctx, tx, next, event); err != nil {
 		return 0, err
 	}
@@ -261,6 +273,248 @@ func (r *PostgresRepository) ActivityEvents(ctx context.Context, tenantID, activ
 		return nil, ErrNotFound
 	}
 	return events, nil
+}
+
+func insertActivityChildren(ctx context.Context, tx pgx.Tx, activity ProcessingActivity) error {
+	inserts := []struct {
+		name   string
+		query  string
+		values []any
+	}{
+		{
+			name:  "data categories",
+			query: buildInsertActivityDataCategoriesSQL(),
+			values: []any{
+				activity.TenantID,
+				activity.LegalEntityID,
+				activity.ID,
+			},
+		},
+	}
+	for _, category := range activity.DataCategories {
+		inserts[0].values = append(inserts[0].values, category.Category, category.Sensitivity)
+	}
+	if len(activity.DataCategories) > 0 {
+		if err := execActivityChildInserts(ctx, tx, inserts[0].name, inserts[0].query, inserts[0].values, len(activity.DataCategories)); err != nil {
+			return err
+		}
+	}
+
+	recipients := struct {
+		name   string
+		query  string
+		values []any
+	}{
+		name:  "recipients",
+		query: buildInsertActivityRecipientsSQL(),
+		values: []any{
+			activity.TenantID,
+			activity.LegalEntityID,
+			activity.ID,
+		},
+	}
+	for _, recipient := range activity.Recipients {
+		recipients.values = append(recipients.values,
+			recipient.Recipient,
+			recipient.RecipientKind,
+			nullIfEmpty(recipient.CountryCode),
+			recipient.IsCrossBorder,
+			string(recipient.TransferBasis),
+		)
+	}
+	if len(activity.Recipients) > 0 {
+		if err := execActivityChildInserts(ctx, tx, recipients.name, recipients.query, recipients.values, len(activity.Recipients)); err != nil {
+			return err
+		}
+	}
+
+	systems := struct {
+		name   string
+		query  string
+		values []any
+	}{
+		name:  "systems",
+		query: buildInsertActivitySystemsSQL(),
+		values: []any{
+			activity.TenantID,
+			activity.LegalEntityID,
+			activity.ID,
+		},
+	}
+	for _, system := range activity.Systems {
+		systems.values = append(systems.values, system.SystemName, system.SystemKind)
+	}
+	if len(activity.Systems) > 0 {
+		if err := execActivityChildInserts(ctx, tx, systems.name, systems.query, systems.values, len(activity.Systems)); err != nil {
+			return err
+		}
+	}
+
+	reviews := struct {
+		name   string
+		query  string
+		values []any
+	}{
+		name:  "reviews",
+		query: buildInsertActivityReviewsSQL(),
+		values: []any{
+			activity.TenantID,
+			activity.LegalEntityID,
+			activity.ID,
+		},
+	}
+	for _, review := range activity.Reviews {
+		reviews.values = append(reviews.values,
+			review.ID,
+			review.DueDate,
+			review.CompletedAt,
+			nullIfEmpty(review.Outcome),
+			nullIfEmpty(review.ReviewerPrincipalID),
+			review.CreatedAt,
+		)
+	}
+	if len(activity.Reviews) > 0 {
+		return execActivityChildInserts(ctx, tx, reviews.name, reviews.query, reviews.values, len(activity.Reviews))
+	}
+	return nil
+}
+
+func execActivityChildInserts(ctx context.Context, tx pgx.Tx, name, query string, values []any, expectedRows int) error {
+	tag, err := tx.Exec(ctx, query, values...)
+	if err != nil {
+		return fmt.Errorf("insert processing activity %s: %w", name, err)
+	}
+	if int(tag.RowsAffected()) != expectedRows {
+		return ErrDuplicate
+	}
+	return nil
+}
+
+// replaceActivityChildren performs a full replacement rather than a diff. The
+// event payload is the complete aggregate snapshot, so an omitted collection
+// represents an empty current collection.
+func replaceActivityChildren(ctx context.Context, tx pgx.Tx, activity ProcessingActivity) error {
+	for _, statement := range buildDeleteActivityChildrenSQL() {
+		if _, err := tx.Exec(ctx, statement, activity.TenantID, activity.LegalEntityID, activity.ID); err != nil {
+			return fmt.Errorf("delete current processing activity children: %w", err)
+		}
+	}
+	return insertActivityChildren(ctx, tx, activity)
+}
+
+func buildInsertActivityDataCategoriesSQL() string {
+	return `
+INSERT INTO ropa_processing_activity_data_categories (
+  tenant_id,
+  legal_entity_id,
+  activity_id,
+  category,
+  sensitivity
+)
+VALUES (
+  $1::uuid,
+  $2::uuid,
+  $3::uuid,
+  $4,
+  $5
+)
+ON CONFLICT DO NOTHING
+`
+}
+
+func buildInsertActivityRecipientsSQL() string {
+	return `
+INSERT INTO ropa_processing_activity_recipients (
+  tenant_id,
+  legal_entity_id,
+  activity_id,
+  recipient,
+  recipient_kind,
+  country_code,
+  is_cross_border,
+  transfer_basis
+)
+VALUES (
+  $1::uuid,
+  $2::uuid,
+  $3::uuid,
+  $4,
+  $5,
+  NULLIF($6, ''),
+  $7,
+  $8
+)
+ON CONFLICT DO NOTHING
+`
+}
+
+func buildInsertActivitySystemsSQL() string {
+	return `
+INSERT INTO ropa_processing_activity_systems (
+  tenant_id,
+  legal_entity_id,
+  activity_id,
+  system_name,
+  system_kind
+)
+VALUES (
+  $1::uuid,
+  $2::uuid,
+  $3::uuid,
+  $4,
+  $5
+)
+ON CONFLICT DO NOTHING
+`
+}
+
+func buildInsertActivityReviewsSQL() string {
+	return `
+INSERT INTO ropa_processing_activity_reviews (
+  id,
+  tenant_id,
+  legal_entity_id,
+  activity_id,
+  due_date,
+  completed_at,
+  outcome,
+  reviewer_principal_id,
+  created_at
+)
+VALUES (
+  $1::uuid,
+  $2::uuid,
+  $3::uuid,
+  $4::uuid,
+  $5::date,
+  $6::timestamptz,
+  NULLIF($7, ''),
+  NULLIF($8, '')::uuid,
+  $9
+)
+ON CONFLICT DO NOTHING
+`
+}
+
+func buildDeleteActivityChildrenSQL() []string {
+	return []string{
+		`DELETE FROM ropa_processing_activity_data_categories
+WHERE tenant_id = $1::uuid
+  AND legal_entity_id = $2::uuid
+  AND activity_id = $3::uuid`,
+		`DELETE FROM ropa_processing_activity_recipients
+WHERE tenant_id = $1::uuid
+  AND legal_entity_id = $2::uuid
+  AND activity_id = $3::uuid`,
+		`DELETE FROM ropa_processing_activity_systems
+WHERE tenant_id = $1::uuid
+  AND legal_entity_id = $2::uuid
+  AND activity_id = $3::uuid`,
+		`DELETE FROM ropa_processing_activity_reviews
+WHERE tenant_id = $1::uuid
+  AND legal_entity_id = $2::uuid
+  AND activity_id = $3::uuid`,
+	}
 }
 
 func prepareAppliedActivityEvent(current ProcessingActivity, expectedVersion int64, event Event) (ProcessingActivity, Event, error) {
