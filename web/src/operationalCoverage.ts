@@ -19,6 +19,7 @@ export const matterOperationalCoverage = {
   "matter.decision.record": { surface: "MatterDecisionResponsePanel", states: ["proposal", "review", "authorization", "history"], testedBy: ["MatterRecordWorkspace.test.tsx", "OperatingMutations.test.tsx"] },
   "matter.action.add": { surface: "MatterActionsPanel", states: ["empty", "assigned"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
   "matter.action.update": { surface: "MatterActionsPanel", states: ["planned", "in_progress"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
+  "matter.action.update.request": { surface: "MatterActionsPanel", states: ["assigned", "requested"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
   "matter.action.assign": { surface: "MatterActionsPanel", states: ["assigned", "candidate_selection"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
   "matter.action.transition": { surface: "MatterActionsPanel", states: ["planned", "in_progress", "blocked", "implemented"], testedBy: ["MatterRecordWorkspace.test.tsx", "OperatingMutations.test.tsx"] },
   "matter.response.add": { surface: "MatterDecisionResponsePanel", states: ["empty", "draft"], testedBy: ["MatterRecordWorkspace.test.tsx"] },
