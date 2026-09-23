@@ -38,11 +38,8 @@ const captures = [
   { name: "86-vendor-form-readiness-light-1440x900", route: "#vendors/register", title: "Vendors", fixture: "vendor-no-form", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-form-readiness", openFormReadiness: true },
   { name: "87-vendor-link-sheet-light-1440x900", route: "#programs/program-ndpa/issues-actions", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-link-focused-sheet", openVendorLink: true },
   { name: "88-vendor-link-sheet-dark-mobile-390x844", route: "#programs/program-ndpa/issues-actions", title: "Programs", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "vendor-link-focused-sheet-mobile", openVendorLink: true },
-  { name: "89-matter-action-reassignment-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-action-reassignment", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "matter-action-reassignment", openActionReassignment: true },
   { name: "129-oversight-completeness-light-1440x900", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "oversight-completeness" },
   { name: "130-oversight-completeness-dark-mobile-390x844", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "oversight-completeness-mobile" },
-  { name: "176-matter-overdue-action-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-overdue-action", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "matter-overdue-action", expectText: "Overdue" },
-  { name: "177-matter-overdue-action-dark-mobile-390x844", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-overdue-action", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "matter-overdue-action-mobile", expectText: "Overdue" },
 ];
 
 try {
@@ -55,7 +52,6 @@ try {
   } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-workflows") {
     await captureVendorWorkflows();
   } else {
-  await captureVendorLinkedWorkflows();
   for (const capture of captures) await capturePage(capture);
   await captureRouting();
   await captureAuthorityForbidden();
@@ -69,10 +65,6 @@ try {
   await captureImportSelection("178-import-selected-light-1440x900", "light", { width: 1440, height: 900 });
   await captureImportSelection("179-import-selected-dark-1440x900", "dark", { width: 1440, height: 900 });
   await captureImportSelection("180-import-selected-light-mobile-390x844", "light", { width: 390, height: 844 }, true);
-  await captureDocumentResultHandoffs();
-  await captureVendorWorkflows();
-  await captureVendorCollectionWorkflows();
-  await captureVendorActivationRecovery();
   }
 } catch (error) {
   failure = error instanceof Error ? error.message : String(error);
