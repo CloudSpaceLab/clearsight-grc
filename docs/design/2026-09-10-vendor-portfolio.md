@@ -12,7 +12,7 @@ The user's correction replaces the original form-count, criticality and response
 
 Source ratings, source owners, source periods and source target dates remain explicitly attributed. They do not become new present-day ratings or verified completion. The same findings/actions appear first in selected-vendor Overview, before form collection and review. Superseded, revoked and cancelled requests retain their terminal labels, without current missing-answer prompts; collecting/setup assessments do not imply an assigned review.
 
-Desktop uses four metric cards, a full-width findings/actions list and register. Tablet uses two metric columns. Mobile stacks finding facts/actions and service rows; detail replaces the portfolio at every width, with an explicit Back to vendor register action. No new palette, chart dependency or animation. Existing typography, semantic tokens and shared controls are retained.
+The subsequent [dashboard/register separation](2026-09-10-vendor-pages.md) places the four metric cards and findings/actions on the dashboard, with search and service rows on a separate register route. Tablet uses two metric columns. Mobile stacks finding facts/actions and service rows; detail replaces the portfolio at every width, with an explicit Back to vendor register action. No new palette, chart dependency or animation. Existing typography, semantic tokens and shared controls are retained.
 
 ## Demo scope
 

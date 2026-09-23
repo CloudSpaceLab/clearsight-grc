@@ -69,7 +69,7 @@ describe("monitoring setup", () => {
       { command: "program.monitoring.define", label: "Add a monitoring check", responsibility: "ACCOUNTABLE_OWNER", can_act: true, reason: "You hold the current responsibility." },
     ]}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Add monitoring check" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add data check" }));
     expect((screen.getByRole("button", { name: "Collection form" }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole("button", { name: "Connected data" }) as HTMLButtonElement).disabled).toBe(false);
   });
@@ -97,8 +97,8 @@ describe("monitoring setup", () => {
 
   it("keeps Program monitoring in the page and offers the two supported input choices", async () => {
     render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={ownerOperations}/>);
-    expect(await screen.findByRole("heading", { name: "Monitoring" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Add monitoring check" }));
+    expect(await screen.findByRole("heading", { name: "Data collection" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Add data check" }));
     expect(screen.getByRole("button", { name: "Collection form" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Connected data" })).toBeTruthy();
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -216,7 +216,7 @@ describe("monitoring setup", () => {
 
   it("does not start source configuration without configuration access", async () => {
     render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources={false} operations={ownerOperations}/>);
-    fireEvent.click(await screen.findByRole("button", { name: "Add monitoring check" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add data check" }));
     expect(screen.getByRole("button", { name: "Connected data" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByText("A GRC administrator can connect a new source.")).toBeTruthy();
   });
@@ -332,8 +332,8 @@ describe("monitoring setup", () => {
     expect(screen.getByRole("heading", { name: "Draft monitoring check" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Pending monitoring check" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Active collection check" })).toBeTruthy();
-    expect(screen.getByText("Monitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available.")).toBeTruthy();
-    for (const name of ["Add monitoring check", "Send for approval", "Approve form", "Set collection schedule", "Collect responses", "Approve check", "Check source now"]) {
+    expect(screen.getByText("Data collection changes are disabled until current Program responsibilities are available. Existing checks and results remain available.")).toBeTruthy();
+    for (const name of ["Add data check", "Send for approval", "Approve form", "Set collection schedule", "Collect responses", "Approve check", "Check source now"]) {
       expect(screen.queryByRole("button", { name })).toBeNull();
     }
   });
@@ -348,7 +348,7 @@ describe("monitoring setup", () => {
       expect(loadFormTemplates).toHaveBeenCalledTimes(2);
       expect(loadMonitoringChecks).toHaveBeenCalledTimes(2);
     });
-    expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add data check" })).toBeNull();
   });
 
   it("shows each monitoring command only to its current assigned responsibility", async () => {
@@ -370,7 +370,7 @@ describe("monitoring setup", () => {
     render(<MonitoringSetup aggregate={program} actorPrincipalID="reviewer-1" canConfigureSources operations={reviewerOperations}/>);
 
     expect(await screen.findByRole("button", { name: "Approve check" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add data check" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Check source now" })).toBeNull();
     expect(screen.getByText("Assigned to Monitoring analyst.")).toBeTruthy();
   });
@@ -417,7 +417,7 @@ describe("monitoring setup", () => {
     render(<MonitoringSetup aggregate={program} actorPrincipalID="reviewer-1" canConfigureSources={false} operations={[operation]}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Approve check" }));
 
-    expect((await screen.findByRole("alert")).textContent).toContain("The active monitoring check changed after you opened this review");
+    expect((await screen.findByRole("alert")).textContent).toContain("The active data check changed after you opened this review");
     expect(transitionMonitoringCheck).not.toHaveBeenCalled();
   });
 
@@ -438,7 +438,7 @@ describe("monitoring setup", () => {
     render(<MonitoringSetup aggregate={program} actorPrincipalID="reviewer-1" canConfigureSources={false} operations={[operation]}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Approve check" }));
 
-    expect(await screen.findByText("This monitoring check changed after you opened it. The latest revision has been loaded. Review it, then approve again.")).toBeTruthy();
+    expect(await screen.findByText("This data check changed after you opened it. The latest revision has been loaded. Review it, then approve again.")).toBeTruthy();
     expect(loadMonitoringChecks).toHaveBeenCalledTimes(3);
   });
   vi.mocked(loadProgramOperations).mockResolvedValue({ program_id: "program-1", program_version: 1, authority_available: true, operations: ownerOperations, generated_at: "2026-08-26T00:00:00Z" });

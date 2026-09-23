@@ -43,6 +43,75 @@ func TestSourceRecordCaptureContractAndITVendorCoverage(t *testing.T) {
 			t.Fatalf("unsupported manifest %s", filename)
 		}
 		for _, group := range manifest.Groups {
+			if group.ResponsePerRecord {
+				if len(group.Records) < 2 || len(group.Records[0].Fields) == 0 {
+					t.Fatalf("register %s must hold at least two records with fields", group.Key)
+				}
+				registerSchema := group.Records[0].Fields
+				for _, record := range group.Records {
+					if len(record.Fields) != len(registerSchema) {
+						t.Fatalf("register schema drift: %s", record.Key)
+					}
+					for f, field := range record.Fields {
+						if field.Label != registerSchema[f].Label {
+							t.Fatalf("register label drift: %s / %s", record.Key, field.Label)
+						}
+					}
+					if seen[record.Key] {
+						t.Fatalf("record repeated: %s", record.Key)
+					}
+					seen[record.Key] = true
+				}
+				// One form is built once from record 0's schema and stays within limits.
+				form, answers, err := ensureSourceForm(context.Background(), service, seed, group.ProgramCode, group, group.Records[:1], 0, 1)
+				if err != nil {
+					t.Fatalf("register form %s: %v", group.Key, err)
+				}
+				if len(form.Fields) > formcontract.MaxFields || len(form.Sections) > formcontract.MaxSections {
+					t.Fatalf("register %s exceeds capture limits", group.Key)
+				}
+				// The single form build from record 0 must expose exactly the
+				// source context plus every nonblank record-0 value keyed r0_f%d.
+				if len(form.Fields) != 1+len(registerSchema) || answers["source_context"].Text == nil {
+					t.Fatalf("register %s must keep the shared source + record schema", group.Key)
+				}
+				own := registerAnswers(answers["source_context"], group.Records[0])
+				if len(own) != len(answers) {
+					t.Fatalf("register %s record-0 answer count changed: %d != %d", group.Key, len(own), len(answers))
+				}
+				for bid, answer := range own {
+					if other := answers[bid]; (other.Text == nil) != (answer.Text == nil) || (answer.Text != nil && *answer.Text != *other.Text) {
+						t.Fatalf("register %s / %s record-0 answer content changed", group.Key, bid)
+					}
+				}
+				// Every record shares the key space: each nonblank value is
+				// preserved keyed r0_f%d and blanks stay absent.
+				for _, record := range group.Records {
+					perRecord := registerAnswers(answers["source_context"], record)
+					nonblank := 0
+					for _, field := range record.Fields {
+						if strings.TrimSpace(field.Value) != "" {
+							nonblank++
+						}
+					}
+					if len(perRecord) != 1+nonblank {
+						t.Fatalf("register %s / %s answer count: %d != %d", group.Key, record.Key, len(perRecord), 1+nonblank)
+					}
+					for f, field := range record.Fields {
+						bid := fmt.Sprintf("r0_f%d", f)
+						if strings.TrimSpace(field.Value) == "" {
+							if _, exists := perRecord[bid]; exists {
+								t.Fatalf("register %s / %s must skip blank %s", group.Key, record.Key, bid)
+							}
+							continue
+						}
+						if perRecord[bid].Text == nil || *perRecord[bid].Text != field.Value {
+							t.Fatalf("register %s / %s lost %s value", group.Key, record.Key, bid)
+						}
+					}
+				}
+				continue
+			}
 			parts := sourceCaptureParts(group)
 			consumed := 0
 			for index, part := range parts {
@@ -133,6 +202,72 @@ func TestSyntheticSourceCaptureFitsLimitsWithoutPrivateFiles(t *testing.T) {
 		}
 		if len(form.Fields) > formcontract.MaxFields || len(form.Sections) > formcontract.MaxSections || len(answers) != 1+60*len(part) {
 			t.Fatal("synthetic capture exceeds limits or loses answers")
+		}
+	}
+}
+
+func TestSyntheticSourceRegisterFitsLimitsAndPreservesAnswers(t *testing.T) {
+	group := sourceRecordGroup{Key: "synthetic-register", ProgramCode: "TEST", Title: "Branch KRI register", SourceFile: "synthetic.xlsx", SourceSheet: "Register", SourceSHA256: strings.Repeat("c", 64), ResponsePerRecord: true}
+	// 31 records that share one 55-field schema, mirroring the branch KRI sheet.
+	for r := 0; r < 31; r++ {
+		record := sourceRecord{Key: fmt.Sprintf("synthetic-register-%d", r), Title: "Branch " + fmt.Sprint(r)}
+		for f := 0; f < 55; f++ {
+			record.Fields = append(record.Fields, sourceRecordField{Label: fmt.Sprintf("Field %02d", f), Value: fmt.Sprintf("Branch %d value %d", r, f)})
+		}
+		group.Records = append(group.Records, record)
+	}
+	service := monitoring.NewService(monitoring.NewMemoryRepository(), nil)
+	seed := bankverticals.SeedConfig{TenantID: "tenant", LegalEntityID: "entity", ActorID: "maker", ReviewerPrincipalID: "checker", OwnerPrincipalID: "owner"}
+	// A register above the row threshold must not be compacted when captured
+	// through the register path (the installer builds one form from record 0).
+	// Non-compact parts may still split at the 15-row fallback, which the
+	// register installer branch intentionally bypasses.
+	// The single form build from record 0 must expose exactly the source
+	// context plus every nonblank record-0 value keyed r0_f%d, and stay
+	// within capture limits.
+	form, answers, err := ensureSourceForm(context.Background(), service, seed, group.ProgramCode, group, group.Records[:1], 0, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(form.Fields) > formcontract.MaxFields || len(form.Sections) > formcontract.MaxSections {
+		t.Fatal("synthetic register exceeds capture limits")
+	}
+	if len(form.Fields) != 1+55 || len(form.Sections) != 2 {
+		t.Fatalf("synthetic register schema drift: %d fields / %d sections", len(form.Fields), len(form.Sections))
+	}
+	own := registerAnswers(answers["source_context"], group.Records[0])
+	if len(own) != len(answers) {
+		t.Fatalf("synthetic register record-0 answer count changed: %d != %d", len(own), len(answers))
+	}
+	for bid, answer := range own {
+		if other := answers[bid]; (other.Text == nil) != (answer.Text == nil) || (answer.Text != nil && *answer.Text != *other.Text) {
+			t.Fatalf("synthetic register / %s record-0 answer content changed", bid)
+		}
+	}
+	// Every record shares the key space: each nonblank value is preserved
+	// keyed r0_f%d and blanks stay absent.
+	for _, record := range group.Records {
+		perRecord := registerAnswers(answers["source_context"], record)
+		nonblank := 0
+		for _, field := range record.Fields {
+			if strings.TrimSpace(field.Value) != "" {
+				nonblank++
+			}
+		}
+		if len(perRecord) != 1+nonblank {
+			t.Fatalf("synthetic register / %s answer count: %d != %d", record.Key, len(perRecord), 1+nonblank)
+		}
+		for f, field := range record.Fields {
+			bid := fmt.Sprintf("r0_f%d", f)
+			if strings.TrimSpace(field.Value) == "" {
+				if _, exists := perRecord[bid]; exists {
+					t.Fatalf("synthetic register / %s must skip blank %s", record.Key, bid)
+				}
+				continue
+			}
+			if perRecord[bid].Text == nil || *perRecord[bid].Text != field.Value {
+				t.Fatalf("synthetic register / %s lost %s value", record.Key, bid)
+			}
 		}
 	}
 }

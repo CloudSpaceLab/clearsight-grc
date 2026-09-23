@@ -26,6 +26,7 @@ try {
       results.push({ file, state, theme, width, overflow });
       if (state === 'live') {
         await page.getByRole('button', { name: 'Review overdue actions', exact: true }).click();
+        await page.getByRole('link', { name: 'Register', exact: true }).click();
         await page.locator('.vendor-row').first().click();
         await page.getByRole('button', { name: 'Back to vendor register', exact: true }).waitFor();
         if (await page.locator('.vendor-register').isVisible()) throw new Error('Vendor register did not yield to full-width detail');
@@ -33,7 +34,7 @@ try {
         await page.getByText('Superseded', { exact: true }).waitFor();
         await page.screenshot({ path: path.join(out, `detail-${theme}-${width}.png`), fullPage: true });
         await page.getByRole('button', { name: 'Back to vendor register', exact: true }).click();
-        await page.getByRole('region', { name: 'Vendor portfolio metrics' }).waitFor();
+        await page.getByRole('searchbox', { name: 'Search vendors and services' }).waitFor();
       }
     }
     await context.close();

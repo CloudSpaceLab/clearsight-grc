@@ -71,10 +71,13 @@ describe("already received vendor documents in respondent capture", () => {
     expect(screen.getByRole("alert").textContent).not.toContain("Operating certificate is required");
     fireEvent.change(screen.getByRole("textbox", { name: /Service contact/ }), { target: { value: "Ada Okoro" } });
     fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
-    const held = screen.getByRole("region", { name: "Received documents" });
-    expect(within(held).getByText("Operating certificate")).toBeTruthy();
-    expect(within(held).queryByText("Not provided")).toBeNull();
+    const held = screen.getByRole("heading", { name: "All answers", level: 3 });
+    expect(within(held.closest("section") ?? document.body).getByText("Operating certificate")).toBeTruthy();
+    expect(within(held.closest("section") ?? document.body).getByText("No upload needed.")).toBeTruthy();
+    expect(within(held.closest("section") ?? document.body).queryByText("Not provided")).toBeNull();
     expect(screen.queryByRole("region", { name: "New files and documents" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Received documents" })).toBeNull();
+    expect((screen.getByRole("button", { name: "Needs attention" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Submit evidence" }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ id: request.id }), { contact: { text: "Ada Okoro" } }));
     expect(onUploadArtifact).not.toHaveBeenCalled();
@@ -125,7 +128,7 @@ describe("already received vendor documents in respondent capture", () => {
     const draft: CaptureAnswers = { contact: { text: "Ada Okoro" }, certificate: { document: { artifact_id: "respondent-artifact", document_type: "Renewed operating certificate", reference: "2026-001" } } };
     render(<CapturePanel request={request} external workspacePersistence={{ key: "complete-document", initialAnswers: draft, initialPresentationMode: "CLASSIC", saveState: "saved_server", onChange: vi.fn(), onFlush: vi.fn().mockResolvedValue(true), onRetry: vi.fn() }}/>);
     fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
-    expect(within(screen.getByRole("region", { name: "New files and documents" })).getByText("Renewed operating certificate · 2026-001")).toBeTruthy();
+    expect(within(screen.getByRole("heading", { name: "All answers", level: 3 }).closest("section") ?? document.body).getByText("Renewed operating certificate · 2026-001")).toBeTruthy();
     expect(keepVisibleAnswers(captureContract(request), draft)).toEqual(draft);
   });
 });

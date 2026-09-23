@@ -40,6 +40,6 @@ describe("Program detail sections", () => {
     const selector = screen.getByRole("combobox", { name: "Program section" });
     fireEvent.change(selector, { target: { value: "monitoring" } });
     expect(onChange).toHaveBeenCalledWith("monitoring");
-    expect(screen.getByRole("tabpanel").textContent).toContain("Monitoring content");
+    expect(screen.getByRole("tabpanel").textContent).toContain("Data collection content");
   });
 });

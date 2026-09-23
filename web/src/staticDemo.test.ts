@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import fixtures from "./staticDemoFixtures.json";
 import { canRespondToEvidenceRequest } from "./evidenceAuthorization";
+import { answerIsPresent } from "./components/capture/contract";
 import type { EvidenceRequest } from "./types";
 // @ts-expect-error The static-only runtime is a browser asset with no TypeScript declarations.
 await import("./staticDemoWorkflowRuntime.js");
@@ -818,6 +819,78 @@ describe("static stakeholder demo transport", () => {
     const appliedCurrent = await staticDemoRequest<{ assessment: { id: string } }>("/api/v1/vendors/vendor-relationship-payments/assessments/current");
     const appliedReview = await staticDemoRequest<{ application_receipt?: { accepted_field_ids: string[]; prior_vendor_version: number; result_vendor_version: number } }>(`/api/v1/vendor-assessments/${appliedCurrent.assessment.id}`);
     expect(appliedReview.application_receipt).toMatchObject({ accepted_field_ids: ["registered_address"], prior_vendor_version: 1, result_vendor_version: 2 });
+  });
+
+
+  it("scopes Program submitted-response reads to the selected Program and current revision", async () => {
+    window.history.replaceState(null, "", "/?fixture=program-responses");
+    const { staticDemoRequest } = await demo();
+
+    const responses = await staticDemoRequest<{ items: Array<{ id: string; subject_type: string; subject_id: string; current: boolean; score: { raw_score: number } }> }>("/api/v1/forms/responses?subject_type=PROGRAM&subject_id=program-ndpa&current_only=true");
+    expect(responses.items).toMatchObject([
+      { id: "response-program-annual-2026", subject_type: "PROGRAM", subject_id: "program-ndpa", current: true, score: { raw_score: 88 } },
+      { id: "response-program-consent-2026", subject_type: "PROGRAM", subject_id: "program-ndpa", current: true, score: { raw_score: 72 } },
+      { id: "response-program-branch-kri-cac-2025", subject_type: "PROGRAM", subject_id: "program-ndpa", current: true },
+      { id: "response-program-branch-kri-marina-2025", subject_type: "PROGRAM", subject_id: "program-ndpa", current: true },
+    ]);
+    expect((await staticDemoRequest<{ items: unknown[] }>("/api/v1/forms/responses?subject_type=PROGRAM&subject_id=program-other&current_only=true")).items).toEqual([]);
+    const allVersions = await staticDemoRequest<{ items: Array<{ id: string }> }>("/api/v1/forms/responses?subject_type=PROGRAM&subject_id=program-ndpa&current_only=false");
+    expect(allVersions.items.map((item) => item.id)).toEqual(["response-program-annual-2026", "response-program-consent-2026", "response-program-branch-kri-cac-2025", "response-program-branch-kri-marina-2025"]);
+
+    const detail = await staticDemoRequest<{ response: { id: string; title: string }; revision: { revision: number; current: boolean; supersedes_revision_id?: string } }>("/api/v1/forms/responses/response-program-annual-2026");
+    expect(detail).toMatchObject({ response: { id: "response-program-annual-2026", title: "Annual data-processing review" }, revision: { revision: 2, current: true, supersedes_revision_id: "response-program-annual-2025" } });
+    await expect(staticDemoRequest("/api/v1/forms/responses/unknown-response")).rejects.toMatchObject({ status: 404, code: "response_not_found" });
+
+    const assessment = await staticDemoRequest<{ response_id: string; state: string; required_count: number; reviewed_required_count: number; fields: Array<{ field: { id: string }; answer: { text?: string; values?: string[] }; decision?: { reviewer_display_name: string } }> }>("/api/v1/forms/responses/response-program-annual-2026/assessment");
+    expect(assessment).toMatchObject({ response_id: "response-program-annual-2026", state: "ASSESSED", required_count: 3, reviewed_required_count: 3 });
+    expect(assessment.fields.map((item) => item.field.id)).toEqual(["processor_register", "annual_return_filed", "dpco_review_date", "processing_volume", "resilience_plan"]);
+    expect(assessment.fields.find((item) => item.field.id === "processing_volume")?.answer.text).toBe("Approximately 12% growth");
+    expect(assessment.fields.find((item) => item.field.id === "annual_return_filed")?.answer.values).toEqual(["Yes"]);
+    expect(assessment.fields.find((item) => item.field.id === "processor_register")?.decision?.reviewer_display_name).toBe("Aminat Yusuf");
+    const consentAssessment = await staticDemoRequest<{ state: string; automatic_score: { raw_score: number } }>("/api/v1/forms/responses/response-program-consent-2026/assessment");
+    expect(consentAssessment).toMatchObject({ state: "NOT_REQUIRED", automatic_score: { raw_score: 72 } });
+    const registerAssessment = await staticDemoRequest<{ response_id: string; state: string; fields: Array<{ field: { id: string; type: string; section_id?: string }; answer: { text?: string; values?: string[] } }> }>("/api/v1/forms/responses/response-program-branch-kri-cac-2025/assessment");
+    expect(registerAssessment).toMatchObject({ response_id: "response-program-branch-kri-cac-2025", state: "NOT_REQUIRED" });
+    expect(registerAssessment.fields.map((item) => item.field.id)).toEqual(["branch", "directorate", "region", "cash_overage_value", "cash_shortage_count", "reporting_date", "manual_confirmation", "event_types", "attestation", "notes", "followup_owner", "supporting_document"]);
+    expect(registerAssessment.fields.find((item) => item.field.id === "branch")?.field.section_id).toBe("branch-details");
+    expect(registerAssessment.fields.find((item) => item.field.id === "cash_overage_value")?.field.section_id).toBe("november-2025");
+    expect(registerAssessment.fields.find((item) => item.field.id === "cash_overage_value")?.answer.text).toBe("1250000");
+    expect(registerAssessment.fields.find((item) => item.field.id === "event_types")?.answer.values).toEqual(["Cash overage", "Electrical surge"]);
+    expect(registerAssessment.fields.find((item) => item.field.id === "attestation")?.answer.text).toBe("true");
+    expect(registerAssessment.fields.find((item) => item.field.id === "followup_owner")?.answer).toEqual({});
+    expect(registerAssessment.fields.find((item) => item.field.id === "supporting_document")?.answer).toEqual({});
+    expect(registerAssessment.fields.filter((item) => answerIsPresent(item.answer))).toHaveLength(10);
+    expect(answerIsPresent(registerAssessment.fields.find((item) => item.field.id === "followup_owner")?.answer)).toBe(false);
+    expect(answerIsPresent(registerAssessment.fields.find((item) => item.field.id === "supporting_document")?.answer)).toBe(false);
+    await expect(staticDemoRequest("/api/v1/forms/responses/unknown-response/assessment")).rejects.toMatchObject({ status: 404, code: "response_not_found" });
+
+    const documents = await staticDemoRequest<{ items: Array<{ id: string; response_revision_id: string; file_name: string }> }>("/api/v1/forms/documents?response_revision_id=response-program-annual-2026&current_only=false");
+    expect(documents.items.map((item) => item.file_name)).toEqual([
+      "Program processor register.pdf",
+      "Program processing flow.png",
+      "Program resilience plan.docx",
+      "Program supplier register.xlsx",
+      "Program service records.zip",
+    ]);
+    const register = documents.items.find((item) => item.file_name === "Program processor register.pdf");
+    expect(register).toMatchObject({ id: "program-document-0", response_revision_id: "response-program-annual-2026", artifact_id: "program-artifact-0" });
+  });
+
+  it("serves the register template revision for the Program responses fixture", async () => {
+    window.history.replaceState(null, "", "/?fixture=program-responses");
+    const { StaticDemoHTTPError, staticDemoRequest } = await demo();
+
+    const template = await staticDemoRequest<{ id: string; version: number; status: string; is_current: boolean; sections: Array<{ id: string; title: string }>; fields: Array<{ id: string; section_id?: string }> }>("/api/v1/forms/templates/form-branch-kri-register/revisions/1");
+    expect(template).toMatchObject({ id: "form-branch-kri-register", version: 1, status: "ACTIVE", is_current: true });
+    expect(template.sections).toEqual([
+      { id: "branch-details", title: "Branch details" },
+      { id: "november-2025", title: "November 2025 register" },
+    ]);
+    expect(template.fields.map((field) => field.id)).toEqual(["branch", "directorate", "region", "followup_owner", "cash_overage_value", "cash_shortage_count", "reporting_date", "manual_confirmation", "event_types", "attestation", "notes", "supporting_document"]);
+    expect(template.fields.find((field) => field.id === "branch")?.section_id).toBe("branch-details");
+    expect(template.fields.find((field) => field.id === "cash_overage_value")?.section_id).toBe("november-2025");
+
+    await expect(staticDemoRequest("/api/v1/forms/templates/form-branch-kri-register/revisions/999")).rejects.toMatchObject({ status: 404, code: "form_revision_not_found" } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
   });
 
   it("keeps vendor request and activation reads scoped to the selected sample relationship", async () => {

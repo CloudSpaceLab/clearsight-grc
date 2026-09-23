@@ -19,6 +19,12 @@ web/dist/
 web/dist-evidence/
 web/.vite/
 web/ui-evidence/
+web/evidence/dist-truth-evidence/
+
+# Local agent tooling scratch
+.codex-tmp/
+web/.codex-tmp/
+.playwright-mcp/
 
 # IDE and OS
 .idea/

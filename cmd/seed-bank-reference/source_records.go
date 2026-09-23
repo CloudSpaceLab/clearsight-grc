@@ -55,15 +55,16 @@ type sourceRecord struct {
 	CreateMatter bool                `json:"create_matter"`
 }
 type sourceRecordGroup struct {
-	Key          string         `json:"key"`
-	ProgramCode  string         `json:"program_code"`
-	Title        string         `json:"title"`
-	SourceFile   string         `json:"source_file"`
-	SourceSHA256 string         `json:"source_sha256"`
-	SourceSheet  string         `json:"source_sheet"`
-	Period       string         `json:"period"`
-	Limitations  []string       `json:"limitations"`
-	Records      []sourceRecord `json:"records"`
+	Key              string         `json:"key"`
+	ProgramCode      string         `json:"program_code"`
+	Title            string         `json:"title"`
+	SourceFile       string         `json:"source_file"`
+	SourceSHA256     string         `json:"source_sha256"`
+	SourceSheet      string         `json:"source_sheet"`
+	Period           string         `json:"period"`
+	Limitations      []string       `json:"limitations"`
+	ResponsePerRecord bool          `json:"response_per_record"`
+	Records          []sourceRecord `json:"records"`
 }
 type sourceRecordManifest struct {
 	Version int                 `json:"version"`
@@ -186,6 +187,28 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 				}
 			}
 			parts := sourceCaptureParts(group)
+			if group.ResponsePerRecord {
+				form, baseAnswers, formErr := ensureSourceForm(ctx, ms, seed, programID, group, group.Records[:1], 0, 1)
+				if formErr != nil {
+					return receipt, fmt.Errorf("register form %s: %w", group.Key, formErr)
+				}
+				schemaCount := len(group.Records[0].Fields)
+				for _, record := range group.Records {
+					if len(record.Fields) != schemaCount {
+						return receipt, fmt.Errorf("register schema drift %s: %s", group.Key, record.Key)
+					}
+					answers := registerAnswers(baseAnswers["source_context"], record)
+					idempotencyKey := fmt.Sprintf("%s:%s:%s", sourceRecordPackage, group.Key, record.Key)
+					bundle, captureErr := installSourceResponse(ctx, pool, distributions, access, seed, programID, form, idempotencyKey, form.Name+" · "+record.Title, answers)
+					if captureErr != nil {
+						return receipt, fmt.Errorf("register capture %s: %w", record.Key, captureErr)
+					}
+					receipt.Captures++
+					receipt.Items = append(receipt.Items, map[string]any{"group": group.Key, "record": record.Key, "form_id": form.ID, "distribution_id": bundle.Distribution.ID, "program_id": programID})
+				}
+				fmt.Fprintf(os.Stderr, "Source capture: %s (%d records, one register response per record)\n", group.Title, len(group.Records))
+				continue
+			}
 			for index, part := range parts {
 				form, answers, formErr := ensureSourceForm(ctx, ms, seed, programID, group, part, index, len(parts))
 				if formErr != nil {
@@ -358,11 +381,61 @@ func sourceRecordText(record sourceRecord) string {
 
 // Long historic tables retain each complete source row as a labelled multiline
 // answer; ordinary risk registers retain one answer per source column.
+
+// installSourceResponse reuses an existing immutable response or creates and
+// submits a COMPLETED_UNREVIEWED sample response for one register record.
+func installSourceResponse(ctx context.Context, pool *pgxpool.Pool, distributions *evidence.DistributionService, access *evidence.DistributionAccessService, seed bankverticals.SeedConfig, programID string, form monitoring.FormTemplate, idempotencyKey, title string, answers map[string]formcontract.AnswerValue) (evidence.DistributionBundle, error) {
+	var distributionID string
+	queryErr := pool.QueryRow(ctx, `SELECT distribution_id::text FROM capture_distribution_creation_receipts WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND idempotency_key=$3`, seed.TenantID, seed.LegalEntityID, idempotencyKey).Scan(&distributionID)
+	var bundle evidence.DistributionBundle
+	var err error
+	if queryErr == nil {
+		bundle, err = distributions.Get(ctx, seed.TenantID, seed.LegalEntityID, distributionID)
+	} else if errors.Is(queryErr, pgx.ErrNoRows) {
+		// No outbound delivery: operator-simulated sample submission, explicitly identified.
+		bundle, err = distributions.Create(ctx, evidence.CreateDistributionInput{IdempotencyKey: idempotencyKey, TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, FormTemplateID: form.ID, FormTemplateVersion: form.Version, SubjectType: "PROGRAM", SubjectID: programID, Title: title, Purpose: form.Purpose, AccessPolicy: evidence.AccessDirectMagicLink, EstimatedMinutes: 15, Deadline: seed.Now.Add(24 * time.Hour), RouteExpiresAt: seed.Now.Add(24 * time.Hour), CreatedBy: seed.ActorID, Recipients: []evidence.DistributionRecipientInput{{Role: evidence.RecipientTo, Type: evidence.RecipientExternalAudience, Address: "source-import@sample.invalid", AudienceHint: "Sample source capture", ContactLabel: "Imported sample response"}}})
+	} else {
+		return bundle, queryErr
+	}
+	if err != nil {
+		return bundle, fmt.Errorf("capture %s: %w", title, err)
+	}
+	if bundle.Distribution.FormTemplateID != form.ID || bundle.Distribution.FormTemplateVersion != form.Version || bundle.Distribution.SubjectType != "PROGRAM" || bundle.Distribution.SubjectID != programID {
+		return bundle, fmt.Errorf("source capture receipt conflicts with form %s", title)
+	}
+	revisions, revisionErr := distributions.ListResponseRevisions(ctx, seed.TenantID, seed.LegalEntityID, bundle.Distribution.ID, 2)
+	if revisionErr != nil {
+		return bundle, revisionErr
+	}
+	if len(revisions) == 0 {
+		if _, _, err = submitOperatingFormSample(ctx, pool, access, seed, bundle, operatingFormSampleSpec{state: "COMPLETED_UNREVIEWED", answers: answers}, seed.Now, nil); err != nil {
+			return bundle, fmt.Errorf("submit %s: %w", title, err)
+		}
+	} else if err = validateOperatingFormSampleAnswers(ctx, pool, bundle.Distribution.ID, answers); err != nil {
+		return bundle, fmt.Errorf("source response %s: %w", title, err)
+	}
+	return bundle, nil
+}
+
+// registerAnswers builds the per-record capture answers for a register group,
+// reusing the shared record-0 key space created by ensureSourceForm for the
+// first record and preserving every nonblank source value exactly.
+func registerAnswers(sourceContext formcontract.AnswerValue, record sourceRecord) map[string]formcontract.AnswerValue {
+	answers := map[string]formcontract.AnswerValue{"source_context": sourceContext}
+	for f, field := range record.Fields {
+		if strings.TrimSpace(field.Value) == "" {
+			continue
+		}
+		answers[fmt.Sprintf("r0_f%d", f)] = formcontract.TextAnswer(field.Value)
+	}
+	return answers
+}
+
 func sourceCaptureParts(group sourceRecordGroup) [][]sourceRecord {
 	var parts [][]sourceRecord
 	var current []sourceRecord
 	fields := 1
-	compact := len(group.Records) > 20
+	compact := len(group.Records) > 20 && !group.ResponsePerRecord
 	for _, record := range group.Records {
 		size := len(record.Fields)
 		if compact {
@@ -399,7 +472,7 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 	input.Sections = []formcontract.Section{{ID: "source", Title: "Source and limitations"}}
 	input.Fields = []formcontract.Field{{ID: "source_context", SectionID: "source", Label: "Source context", Type: formcontract.TypeLongText}}
 	answers["source_context"] = formcontract.TextAnswer(purpose + "\nSHA-256: " + group.SourceSHA256 + "\n" + strings.Join(group.Limitations, "\n"))
-	compact := len(group.Records) > 20
+	compact := len(group.Records) > 20 && !group.ResponsePerRecord
 	if compact {
 		input.Sections = append(input.Sections, formcontract.Section{ID: "records", Title: sourceShort(group.Title, 200)})
 	}

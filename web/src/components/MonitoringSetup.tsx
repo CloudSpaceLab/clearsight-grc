@@ -202,15 +202,15 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
       const revisions = await loadMonitoringChecks(aggregate.program.id);
       const refreshedChecks = latestByID(revisions);
       const latest = refreshedChecks.find((candidate) => candidate.id === check.id);
-      if (!latest) throw new Error("This monitoring check could not be found. Reload the Program and try again.");
+      if (!latest) throw new Error("This data check could not be found. Reload the Program and try again.");
       setChecks(refreshedChecks);
       if (latest.status !== check.status) {
-        setError("This monitoring check changed after you opened it. The latest revision has been loaded. Review the current status before taking another action.");
+        setError("This data check changed after you opened it. The latest revision has been loaded. Review the current status before taking another action.");
         return;
       }
       const refreshedCurrent = refreshedChecks.find((candidate) => candidate.program_id === latest.program_id && candidate.code === latest.code && candidate.is_current);
       if (to === "ACTIVE" && (reviewedCurrent?.id !== refreshedCurrent?.id || reviewedCurrent?.version !== refreshedCurrent?.version)) {
-        setError("The active monitoring check changed after you opened this review. The latest checks are loaded. Review the active check and pending replacement before approving again.");
+        setError("The active data check changed after you opened this review. The latest checks are loaded. Review the active check and pending replacement before approving again.");
         return;
       }
       const updated = await transitionMonitoringCheck(latest.id, latest.version, to, reviewedCurrent);
@@ -218,9 +218,9 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     } catch (caught) {
       if (apiErrorKind(caught) === "conflict") {
         await reload();
-        setError("This monitoring check changed after you opened it. The latest revision has been loaded. Review it, then approve again.");
+        setError("This data check changed after you opened it. The latest revision has been loaded. Review it, then approve again.");
       } else {
-        setError(caught instanceof Error ? caught.message : "The monitoring check status could not be changed.");
+        setError(caught instanceof Error ? caught.message : "The data check status could not be changed.");
       }
     } finally { setBusy(""); }
   }
@@ -248,7 +248,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
       setNotice(`Linked issue ${linked.matter.reference} is ready for Control Assurance review.`);
       onOpenMatter(linked.matter.id);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The linked issue could not be created from this monitoring result.");
+      setError(caught instanceof Error ? caught.message : "The linked issue could not be created from this data check result.");
     } finally { setBusy(""); }
   }
 
@@ -277,10 +277,10 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
   const deadline = new Date(today.getTime() + 2 * 86400000).toISOString().slice(0, 16);
 
   return <section className="monitoring-setup" aria-labelledby={`monitoring-${aggregate.program.id}`}>
-    <div className="monitoring-section-heading"><div><h3 id={`monitoring-${aggregate.program.id}`}>Monitoring</h3><p>Collect responses or check connected data and calculate risk.</p></div>{canConfigureMonitoring && <button className="secondary-button" type="button" onClick={() => setMode(mode === "closed" ? "choose" : "closed")}>{mode === "closed" ? "Add monitoring check" : "Close setup"}</button>}</div>
-    {!canConfigureMonitoring && <p className="program-operation-reason">{formDefineOperation?.reason ?? checkDefineOperation?.reason ?? "Monitoring changes are disabled until current Program responsibilities are available. Existing checks and results remain available."}</p>}
-    {state === "loading" && <p aria-live="polite">Loading monitoring checks…</p>}
-    {state === "unavailable" && <div className="inline-error"><p>Monitoring checks could not be loaded.</p><button className="secondary-button" type="button" onClick={() => void reload()}>Try again</button></div>}
+    <div className="monitoring-section-heading"><div><h3 id={`monitoring-${aggregate.program.id}`}>Data collection</h3><p>Collect responses or check connected data and calculate risk.</p></div>{canConfigureMonitoring && <button className="secondary-button" type="button" onClick={() => setMode(mode === "closed" ? "choose" : "closed")}>{mode === "closed" ? "Add data check" : "Close setup"}</button>}</div>
+    {!canConfigureMonitoring && <p className="program-operation-reason">{formDefineOperation?.reason ?? checkDefineOperation?.reason ?? "Data collection changes are disabled until current Program responsibilities are available. Existing checks and results remain available."}</p>}
+    {state === "loading" && <p aria-live="polite">Loading data checks…</p>}
+    {state === "unavailable" && <div className="inline-error"><p>Data checks could not be loaded.</p><button className="secondary-button" type="button" onClick={() => void reload()}>Try again</button></div>}
     {error && <Notice tone="error">{error}</Notice>}
     {notice && <Notice tone="success">{notice}</Notice>}
     {canConfigureMonitoring && mode === "choose" && <div className="monitoring-choice-grid">
@@ -296,7 +296,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
       <DataSourceBuilder onCancel={() => setMode("choose")} onSaved={(binding, config) => void addSourceCheck(binding, config)}/>
     )}
     {state === "live" && <div className="monitoring-records">
-      {!forms.length && !checks.length && mode === "closed" && <p className="monitoring-empty">No monitoring checks have been added to this Program.</p>}
+      {!forms.length && !checks.length && mode === "closed" && <p className="monitoring-empty">No data checks have been added to this Program.</p>}
       {unlinkedForms.map((form) => <article className="monitoring-record" key={form.id}>
         <div><span className="record-type">Collection form</span><h4>{form.name}</h4><p>{form.fields.length} question{form.fields.length === 1 ? "" : "s"} · {statusLabel(form.status)}</p></div>
         <div className="record-actions">
@@ -305,7 +305,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
           {form.status === "PENDING_APPROVAL" && form.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this form.</span>}
           {canDefineCheck && form.status === "ACTIVE" && hasScoredQuestions(form) && <button className="secondary-button" disabled={busy === form.id} onClick={() => setConfiguringForm(form)}>Set collection schedule</button>}
         </div>
-        {canDefineCheck && form.status === "ACTIVE" && !hasScoredQuestions(form) && <p className="program-operation-reason">This active revision has no scored questions. Create and approve a scored revision in Forms before adding a monitoring check.</p>}
+        {canDefineCheck && form.status === "ACTIVE" && !hasScoredQuestions(form) && <p className="program-operation-reason">This active revision has no scored questions. Create and approve a scored revision in Forms before adding a data check.</p>}
         {configuringForm?.id === form.id && <CollectionPolicyForm onCancel={() => setConfiguringForm(null)} onSave={(policy) => addCheck(form, policy)}/>}
       </article>)}
       {formChecks.map((check) => {
@@ -348,7 +348,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
         const issueOperation = checkOperation(check.id, "program.monitoring.issue.create");
         const issueEligible = eligibleForLinkedIssue(check, result);
         return <article className="monitoring-record" key={check.id}>
-          <div><span className="record-type">Monitoring check</span><h4>{check.name}</h4><p>Connected data · {statusLabel(check.status)}</p></div>
+          <div><span className="record-type">Data check</span><h4>{check.name}</h4><p>Connected data · {statusLabel(check.status)}</p></div>
           <MonitoringResultPanel check={check} result={result} formFields={formFields}/>
           <div className="record-actions">
             {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("PENDING_APPROVAL") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "PENDING_APPROVAL")}>Send for approval</button>}

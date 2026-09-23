@@ -14,6 +14,7 @@ import { ProgramDetailsPanel } from "./ProgramDetailsPanel";
 import { ProgramRequirementsPanel } from "./ProgramRequirementsPanel";
 import { ProgramSafeguardsPanel } from "./ProgramSafeguardsPanel";
 import { ProgramEvidencePanel } from "./ProgramEvidencePanel";
+import { ProgramResponsesPanel } from "./ProgramResponsesPanel";
 import { ProgramIssuesPanel } from "./ProgramIssuesPanel";
 import { ProgramStatusPanel } from "./ProgramStatusPanel";
 import { RecordSnapshotControl } from "./RecordSnapshotControl";
@@ -208,7 +209,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       <ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
     </section>,
     monitoring: <article className="program-record-panel program-wide-panel"><MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} operations={displayedOperations.operations} onOpenMatter={onOpenMatter}/></article>,
-    "evidence-results": <section className="program-record-grid"><ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/></section>,
+    "evidence-results": <section className="program-record-grid"><ProgramResponsesPanel programID={aggregate.program.id}/><ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/></section>,
     "issues-actions": <section className="program-record-grid">
       <ProgramIssuesPanel aggregate={aggregate} canCreateIssue={mutationsReady} onOpenMatter={onOpenMatter}/>
       <VendorRelationshipLinks targetType="PROGRAM" targetID={aggregate.program.id}/>

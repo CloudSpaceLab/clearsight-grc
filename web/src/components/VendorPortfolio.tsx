@@ -16,6 +16,7 @@ export function VendorPortfolio({ records, hasMore, onOpenMatter, detail = false
   const [limit, setLimit] = useState(15);
   const list = useRef<HTMLDivElement>(null);
   const ids = records.map(record => record.relationship.id).join(",");
+  const vendorCount = new Set(records.map(record => record.vendor.id)).size;
   useEffect(() => {
     let current = true;
     setLoading(true); setError(false); setWork(undefined);
@@ -33,9 +34,9 @@ export function VendorPortfolio({ records, hasMore, onOpenMatter, detail = false
     { label: "Overdue actions", value: totals?.overdueActions, filter: "OVERDUE", action: "Review overdue actions", tone: "warning" },
   ] as const;
   return <section className={`vendor-portfolio${detail ? " vendor-portfolio--detail" : ""}`} aria-label={detail ? "Vendor findings and actions" : "Vendor portfolio metrics"}>
-    <div className="vendor-portfolio-scope"><span>{records.length} loaded {records.length === 1 ? "service" : "services"}{hasMore ? " · More services available" : ""}</span>{work && <span>Checked <time dateTime={work.checkedAt}>{new Date(work.checkedAt).toLocaleString()}</time></span>}</div>
+    <div className="vendor-portfolio-scope"><span>{vendorCount} {vendorCount === 1 ? "vendor" : "vendors"} · {records.length} loaded {records.length === 1 ? "service" : "services"}{hasMore ? " · More services available" : ""}</span>{work && <span>Checked <time dateTime={work.checkedAt}>{new Date(work.checkedAt).toLocaleString()}</time></span>}</div>
     <div className="vendor-metrics">
-      <div className="vendor-metric vendor-metric--portfolio" role="group" aria-label="Vendor services"><span className="vendor-metric-label">Vendor services</span><strong className="vendor-metric-value">{records.length}</strong><span>{new Set(records.map(record => record.vendor.id)).size} vendors · Current search</span><Button variant="quiet" onPress={() => select("ALL")}>Review linked findings</Button></div>
+      <div className="vendor-metric vendor-metric--portfolio" role="group" aria-label="Vendor services"><span className="vendor-metric-label">Vendor services</span><strong className="vendor-metric-value">{records.length}</strong><Button variant="quiet" onPress={() => select("ALL")}>Review linked findings</Button></div>
       {metrics.map(metric => <div key={metric.label} className={`vendor-metric vendor-metric--${metric.tone}`} role="group" aria-label={metric.label}><span className="vendor-metric-label">{metric.label}</span><strong className="vendor-metric-value">{metric.value ?? "Unknown"}</strong><Button variant="quiet" onPress={() => select(metric.filter)}>{metric.action}</Button></div>)}
     </div>
     <div className="vendor-findings" ref={list}>

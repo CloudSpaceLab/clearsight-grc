@@ -2,6 +2,8 @@
 
 The documentation is layered so product semantics, safety, architecture, experience and implementation remain distinct.
 
+The [vendor dashboard/register brief and acceptance](design/2026-09-10-vendor-pages.md) separates vendor page routes and records compact metric layout and rendered navigation checks.
+
 Vendor findings migration has a [decision brief](design/2026-09-09-risk-register-migration.md), [implementation plan](superpowers/plans/2026-09-09-risk-register-migration.md) and [local acceptance record](acceptance/2026-09-09-risk-register-migration.md). It creates source-backed issues/actions after existing-vendor and internal-owner confirmation; no vendor invitations are sent.
 
 The optional assessment follow-up repair has a [decision brief and plan](superpowers/plans/2026-09-09-finding-followup-defects.md), [acceptance evidence](acceptance/2026-09-09-finding-followup-defects.md), and [proposal API contract](../api/form-proposals.md). Ordinary source-row proposals remain the default.
@@ -44,6 +46,7 @@ The optional assessment follow-up repair has a [decision brief and plan](superpo
 34. [SMTP advisory deployment design](superpowers/specs/2026-09-08-smtp-advisory-deployment-design.md) and [implementation plan](superpowers/plans/2026-09-08-smtp-advisory-deployment.md) — SMTP outages warn without stopping application deployment; security and application gates remain mandatory.
 35. [Forms section resumption](design/2026-09-08-forms-section-resume.md) and [implementation plan](superpowers/plans/2026-09-08-forms-section-resume.md) — safe peer-section reload and browser-history recovery; document-level state remains separately tracked.
 36. [Document navigation and fictional samples](superpowers/specs/2026-09-08-document-navigation-and-samples-design.md), [navigation plan](superpowers/plans/2026-09-08-document-navigation.md), [vendor recovery plan](superpowers/plans/2026-09-08-vendor-activation-recovery.md), [demo preview decision](design/2026-09-08-demo-document-preview.md), [sample implementation plan](superpowers/plans/2026-09-08-demo-document-samples.md) and [persisted sample installer](engineering/fictional-document-samples.md) — narrow-screen selectors, safe activation retries and clearly labelled persisted fictional documents with a demo-only preview exception; no antivirus or review-acceptance claim.
+37. [`product/archer-requirements-gap.md`](product/archer-requirements-gap.md) — cross-check of the supplied Fidelity Bank Archer workbook (31 requirements) against ClearSight use cases and implemented capability, with Covered/Partial/Blueprint/Gap statuses; reference data, not legal advice.
 
 ## Canonical precedence
 

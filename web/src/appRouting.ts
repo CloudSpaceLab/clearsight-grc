@@ -10,6 +10,7 @@ export type WorkspaceTarget = {
   matterID?: string;
   evidenceID?: string;
   vendorRelationshipID?: string;
+  vendorPage?: "dashboard" | "register";
   documentID?: string;
   openFirstProgram?: boolean;
   openFirstMatter?: boolean;
@@ -41,7 +42,10 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     return { view, target };
   }
   if (view === "forms") return { view, target: { formTemplateID: decodeTarget(parts[1]) } };
-  if (view === "vendors") return { view, target: { vendorRelationshipID: decodeTarget(parts[1]) } };
+  if (view === "vendors") {
+    if (parts[1] === "register" || parts[1] === "dashboard") return { view, target: { vendorPage: parts[1] } };
+    return { view, target: { vendorRelationshipID: decodeTarget(parts[1]) } };
+  }
   if (view === "imports") return { view, target: { documentID: decodeTarget(parts[1]) } };
   if (view === "work") {
     const workTab: WorkTab = parts[1] === "evidence" ? "evidence" : "matters";
@@ -59,6 +63,7 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
   }
   if (view === "forms" && target.formTemplateID) return `#forms/${encodeURIComponent(target.formTemplateID)}`;
   if (view === "vendors" && target.vendorRelationshipID) return `#vendors/${encodeURIComponent(target.vendorRelationshipID)}`;
+  if (view === "vendors" && target.vendorPage === "register") return "#vendors/register";
   if (view === "imports" && target.documentID) return `#imports/${encodeURIComponent(target.documentID)}`;
   if (view === "work") {
     const id = workTab === "evidence" ? target.evidenceID : target.matterID;

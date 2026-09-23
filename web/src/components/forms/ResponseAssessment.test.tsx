@@ -6,17 +6,29 @@ import { ResponseAssessment } from "./ResponseAssessment";
 
 const api = vi.hoisted(() => ({ loadResponseAssessment: vi.fn(), recordResponseAssessment: vi.fn() }));
 vi.mock("../../formAssessmentApi", () => api);
+const formTemplateApi = vi.hoisted(() => ({ loadFormTemplateRevision: vi.fn() }));
+vi.mock("../../formsApi", () => formTemplateApi);
 vi.mock("../documents/DocumentBrowser", () => ({ DocumentBrowser: ({ responseRevisionID }: { responseRevisionID: string }) => <section aria-label={`Submitted documents ${responseRevisionID}`}/> }));
 
 const assessment = {
   response_id: "response-2", form_template_id: "form-1", form_template_version: 4, version: 0, current: true, may_review: true,
   state: "AWAITING_REVIEW", required_count: 1, reviewed_required_count: 0, reviewed_count: 0,
-  fields: [{ may_review: true, field: { id: "test", label: "Vulnerability test", type: "file", required: true, assessment: { mode: "MANUAL", required: true, weight: 100, rubric: [{ id: "gap", label: "Evidence incomplete", points: 100 }, { id: "pass", label: "Evidence sufficient", points: 0 }] } }, answer: { artifact_ids: ["artifact-1"] } }],
+  fields: [
+    { may_review: true, field: { id: "test", label: "Vulnerability test", type: "file", required: true, section_id: "vulnerability", assessment: { mode: "MANUAL", required: true, weight: 100, rubric: [{ id: "gap", label: "Evidence incomplete", points: 100 }, { id: "pass", label: "Evidence sufficient", points: 0 }] } }, answer: { artifact_ids: ["artifact-1"] } },
+    { may_review: true, field: { id: "followup", label: "Follow-up owner", type: "short_text", required: false, section_id: "vulnerability" }, answer: {} },
+  ],
   automatic_score: { state: "FINAL", mode: "RISK", direction: "HIGH_IS_POOR", raw_score: 20, adverse_score: 20, coverage: 1, calculated_at: "2026-09-08T10:00:00Z", contribution_results: [], rule_results: [] },
   assessed_score: { state: "PROVISIONAL", mode: "RISK", direction: "HIGH_IS_POOR", coverage: 0, final: false },
 };
 
-beforeEach(() => { vi.clearAllMocks(); api.loadResponseAssessment.mockResolvedValue(structuredClone(assessment)); });
+const formTemplate = { id: "form-1", tenant_id: "tenant-1", code: "vuln", name: "Vulnerability register", purpose: "Register vulnerabilities", status: "ACTIVE", is_current: true, version: 4, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z", sections: [], fields: [] };
+const sectionedTemplate = { ...formTemplate, sections: [{ id: "vulnerability", title: "Vulnerability checks" }] };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  api.loadResponseAssessment.mockResolvedValue(structuredClone(assessment));
+  formTemplateApi.loadFormTemplateRevision.mockResolvedValue(formTemplate);
+});
 
 describe("submitted field assessment", () => {
   it("keeps the submitted result and document access available when the assessment read fails", async () => {
@@ -157,12 +169,52 @@ describe("submitted field assessment", () => {
   });
 
   it("clears protected answers when the selected response changes to an unavailable record", async () => {
-    const first = { ...assessment, fields: [{ ...assessment.fields[0], answer: { text: "Submitted private answer" } }] };
+    const first = { ...assessment, fields: [{ may_review: true, field: { id: "private", label: "Private detail", type: "short_text", required: false, assessment: { mode: "MANUAL", required: false, weight: 0, rubric: [] } }, answer: { text: "Submitted private answer" } }] } as never;
     api.loadResponseAssessment.mockResolvedValueOnce(first).mockRejectedValueOnce(new ApiError(403, "Response access denied"));
     const view = render(<ResponseAssessment responseID="response-2"/>);
     expect(await screen.findByText("Submitted private answer")).toBeTruthy();
     view.rerender(<ResponseAssessment responseID="restricted"/>);
     expect(screen.queryByText("Submitted private answer")).toBeNull();
     expect(await screen.findByText(/Response access denied/)).toBeTruthy();
+  });
+
+  it("groups submitted answers under form sections and isolates missing answers on the answers-only view", async () => {
+    formTemplateApi.loadFormTemplateRevision.mockResolvedValue(sectionedTemplate);
+    render(<ResponseAssessment responseID="response-2" answersOnly/>);
+    expect(await screen.findByRole("heading", { name: "Submitted answers", level: 3 })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Vulnerability checks", level: 4 })).toBeTruthy();
+    expect(screen.getByText("1 of 2 fields answered")).toBeTruthy();
+    expect(screen.getByText("1 field needs attention")).toBeTruthy();
+    expect(screen.getByText("1 no answer")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Save assessment" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Needs attention" }));
+    expect(screen.getByText("Follow-up owner")).toBeTruthy();
+    expect(screen.queryByText("Vulnerability test")).toBeNull();
+    expect(screen.getAllByText("No answer submitted for this field.").length).toBeGreaterThan(0);
+  });
+
+  it("shows the summary strip with section headings and a poor-results chip on the assessment screen", async () => {
+    api.loadResponseAssessment.mockResolvedValue({ ...assessment, fields: [...assessment.fields, { may_review: true, field: { id: "oversight", label: "Oversight review", type: "yes_no", required: false, section_id: "vulnerability" }, answer: { text: "No" }, decision: { id: "decision-oversight", field_id: "oversight", outcome_id: "gap", points: 80, rationale: "Oversight review is missing.", reviewer_id: "reviewer-1", assessed_at: "2026-09-08T10:00:00Z" } }] });
+    formTemplateApi.loadFormTemplateRevision.mockResolvedValue(sectionedTemplate);
+    render(<ResponseAssessment responseID="response-2"/>);
+    await screen.findByText("1 required field awaiting review");
+    expect(await screen.findByRole("heading", { name: "Vulnerability checks", level: 4 })).toBeTruthy();
+    expect(screen.getByText("2 of 3 fields answered")).toBeTruthy();
+    expect(screen.getByText("2 fields need attention")).toBeTruthy();
+    expect(screen.getByText("1 no answer")).toBeTruthy();
+    expect(screen.getByText("1 poor result")).toBeTruthy();
+    expect(screen.getByRole("article", { name: "Vulnerability test" })).toBeTruthy();
+    expect(screen.getByRole("article", { name: "Oversight review" })).toBeTruthy();
+  });
+
+  it("keeps the assessment field list flat when the form template cannot be loaded", async () => {
+    formTemplateApi.loadFormTemplateRevision.mockRejectedValue(new Error("Template unavailable"));
+    render(<ResponseAssessment responseID="response-2"/>);
+    await screen.findByRole("article", { name: "Vulnerability test" });
+    await waitFor(() => expect(formTemplateApi.loadFormTemplateRevision).toHaveBeenCalled());
+    expect(screen.queryByRole("heading", { name: "Vulnerability checks", level: 4 })).toBeNull();
+    expect(screen.getByRole("article", { name: "Vulnerability test" })).toBeTruthy();
+    expect(screen.getByRole("article", { name: "Follow-up owner" })).toBeTruthy();
+    expect(screen.getByText("1 of 2 fields answered")).toBeTruthy();
   });
 });

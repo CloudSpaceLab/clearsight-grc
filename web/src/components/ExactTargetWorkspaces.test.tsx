@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { MatterAggregate, ProgramAggregate } from "../types";
+import type { ProgramSummary } from "../summaryTypes";
 import { MattersWorkspace } from "./MattersWorkspace";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
 import { loadEvidenceSources, loadMatter, loadMatterSummaries, loadProgram, loadProgramSummaries } from "../api";
@@ -47,6 +48,26 @@ const matterDetail: MatterAggregate = {
     id: "matter-outside-page", tenant_id: "bank-demo", reference: "FND-99", type: "FINDING", status: "DECISION_REQUIRED", priority: 4, title: "Matter outside first page", summary: "A material issue needs a decision.", scope: {}, known_facts: {}, missing_facts: [], contradictions: [], created_at: "2026-08-01T10:00:00Z", updated_at: "2026-08-06T10:00:00Z", version: 2,
   },
   links: [], decisions: [], actions: [], verification_contracts: [], verification_results: [], response_packages: [], closure: { ready: false, reasons: [] },
+};
+
+const programRowSummary: ProgramSummary = {
+  program: {
+    id: "program-row", tenant_id: "bank-demo", code: "FRAUD", name: "Fraud monitoring", type: "REGULATORY", status: "ACTIVE", owning_function: "Financial Crime", jurisdiction: "Nigeria", scope: {}, effective_from: "2026-01-01T00:00:00Z", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-08-06T10:00:00Z", version: 2,
+  },
+  state_label: "Up to date",
+  overall_state: "CURRENT",
+  reasons: [],
+  reasons_total: 0,
+  reasons_omitted: 0,
+  open_matter_count: 0,
+  requirement_count: 6,
+  safeguard_count: 0,
+  evidence_check_count: 4,
+  program_version: 2,
+  assessed_program_version: 2,
+  projection_version: 1,
+  projection_stale: false,
+  state_generated_at: "2026-08-06T10:00:00Z",
 };
 
 describe("exact workspace targets", () => {
@@ -133,5 +154,24 @@ describe("exact workspace targets", () => {
     expect(await screen.findByText("Issue or change created.")).toBeTruthy();
     expect(screen.getByText("Mobile banking control gap")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Current handoff" })).toBeTruthy();
+  });
+
+  it("keeps active filters in the Program row link so it opens the same scope", async () => {
+    window.history.replaceState(null, "", "#programs?overall_state=CURRENT&jurisdiction=Nigeria");
+    vi.mocked(loadProgramSummaries).mockResolvedValue({ items: [programRowSummary], generated_at: "2026-08-06T10:00:00Z" });
+
+    render(<ProgramsWorkspace/>);
+
+    const row = await screen.findByRole("link", { name: /Fraud monitoring/ });
+    expect(row.getAttribute("href")).toBe("#programs/program-row?overall_state=CURRENT&jurisdiction=Nigeria");
+  });
+
+  it("opens the first Program when the guide requests it", async () => {
+    window.history.replaceState(null, "", "#programs");
+    vi.mocked(loadProgramSummaries).mockResolvedValue({ items: [{ ...programRowSummary, program: { ...programRowSummary.program, id: "program-first", code: "AML", name: "AML screening" } }], generated_at: "2026-08-06T10:00:00Z" });
+
+    render(<ProgramsWorkspace openFirst/>);
+
+    await waitFor(() => expect(window.location.hash).toBe("#programs/program-first"));
   });
 });

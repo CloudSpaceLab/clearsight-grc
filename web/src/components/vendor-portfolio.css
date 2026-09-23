@@ -21,10 +21,10 @@
 @media(max-width:760px) { .vendor-finding-heading { display:grid; } .vendor-finding-actions > li { grid-template-columns:minmax(0,1fr); } .vendor-finding-actions > li > div { justify-content:flex-start; } .vendor-finding,.vendor-findings > header { padding:16px; } .vendor-finding footer > .cs-button { width:100%; } }
 .vendor-portfolio-scope { display:flex; flex-wrap:wrap; justify-content:space-between; gap:var(--cs-primitive-space-2); color:var(--cs-text-muted); font-size:var(--cs-font-size-caption); }
 .vendor-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--cs-space-group); }
-.vendor-metric { display:flex; flex-direction:column; align-items:flex-start; min-inline-size:0; gap:var(--cs-primitive-space-1); padding:var(--cs-surface-padding); border:var(--cs-surface-border-width) solid var(--cs-border-default); border-radius:var(--cs-surface-radius); background:var(--cs-bg-surface); color:var(--cs-text-muted); font-size:var(--cs-font-size-caption); }
+.vendor-metric { display:flex; flex-direction:column; align-items:flex-start; min-inline-size:0; gap:var(--cs-primitive-space-1); padding:var(--cs-primitive-space-3) var(--cs-primitive-space-4); border:var(--cs-surface-border-width) solid var(--cs-border-default); border-radius:var(--cs-surface-radius); background:var(--cs-bg-surface); color:var(--cs-text-muted); font-size:var(--cs-font-size-caption); }
 .vendor-metric--portfolio { background:color-mix(in srgb,var(--cyan) 7%,var(--cs-bg-surface)); border-color:color-mix(in srgb,var(--cyan) 38%,var(--cs-border-default)); }
 .vendor-metric-label { font-weight:650; color:var(--cs-text-primary); }
-.vendor-metric-value { color:var(--cs-text-strong); font-size:clamp(1.65rem,2.6vw,2.75rem); line-height:1.2; letter-spacing:-.035em; font-variant-numeric:tabular-nums; padding-block:var(--cs-primitive-space-2); }
+.vendor-metric-value { color:var(--cs-text-strong); font-size:clamp(1.65rem,2.6vw,2.75rem); line-height:1.2; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
 .vendor-metric--warning .vendor-metric-value { color:var(--amber); }
 .vendor-metric--accent .vendor-metric-value { color:var(--cyan); }
 .vendor-metric > .cs-button { margin-block-start:auto; padding-inline:0; text-align:start; justify-content:flex-start; min-block-size:44px; white-space:normal; }

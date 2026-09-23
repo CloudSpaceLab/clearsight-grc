@@ -19,6 +19,8 @@ import {
 } from "../programOperationsApi";
 import { acceptProgramReview, loadProgramReviewDigest } from "../programReviewApi";
 import type { ProgramReviewDigest as ReviewDigest } from "../programReviewApi";
+import { loadCompletedResponse, loadCompletedResponses } from "../formsDistributionApi";
+import type { CompletedResponseSummary, ResponseScore } from "../formsDistributionApi";
 import { ApiError } from "../http";
 import type { MatterAggregate, ProgramAggregate } from "../types";
 import { createMatter } from "../continuityCommands";
@@ -26,6 +28,13 @@ import { ProgramRecordWorkspace } from "./ProgramRecordWorkspace";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
 
 vi.mock("../api", () => ({ loadProgram: vi.fn(), loadProgramSummaries: vi.fn(), loadMatterSummaries: vi.fn(), loadEvidenceSources: vi.fn() }));
+vi.mock("../formsDistributionApi", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../formsDistributionApi")>()),
+  loadCompletedResponses: vi.fn(),
+  loadCompletedResponse: vi.fn(),
+}));
+vi.mock("./forms/ResponseAssessment", () => ({ ResponseAssessment: ({ responseID }: { responseID: string }) => <section aria-label={`Assess ${responseID}`}/> }));
+vi.mock("./documents/DocumentBrowser", () => ({ DocumentBrowser: ({ responseRevisionID, scopeLabel }: { responseRevisionID?: string; scopeLabel?: string }) => <section aria-label={`Documents for ${responseRevisionID ?? "none"}`}><span>{scopeLabel}</span></section> }));
 vi.mock("../continuityCommands", async (importOriginal) => ({ ...(await importOriginal<typeof import("../continuityCommands")>()), createMatter: vi.fn() }));
 vi.mock("../programOperationsApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../programOperationsApi")>()),
@@ -48,7 +57,7 @@ vi.mock("../programReviewApi", async (importOriginal) => ({
   acceptProgramReview: vi.fn(),
   loadProgramReviewDigest: vi.fn(),
 }));
-vi.mock("./MonitoringSetup", () => ({ MonitoringSetup: ({ operations = [] }: { operations?: Array<{ command: string; can_act: boolean }> }) => <section aria-label="Program monitoring"><h3>Monitoring</h3>{operations.some((operation) => operation.command === "program.monitoring.define" && operation.can_act) ? <button type="button">Add monitoring check</button> : <p>Monitoring changes are disabled until current Program responsibilities are available.</p>}</section> }));
+vi.mock("./MonitoringSetup", () => ({ MonitoringSetup: ({ operations = [] }: { operations?: Array<{ command: string; can_act: boolean }> }) => <section aria-label="Program data collection"><h3>Data collection</h3>{operations.some((operation) => operation.command === "program.monitoring.define" && operation.can_act) ? <button type="button">Add monitoring check</button> : <p>Monitoring changes are disabled until current Program responsibilities are available.</p>}</section> }));
 
 const aggregate: ProgramAggregate = {
   state_label: "Evidence incomplete",
@@ -93,6 +102,14 @@ const changedDigest = {
   changes_total: 1,
 };
 
+const completedResponseScore: ResponseScore = { mode: "COMPLIANCE", direction: "LOW_IS_POOR", raw_score: 42, adverse_score: 58, band: "HIGH", coverage: 0.9, final: true, state: "FINAL", profile_version: "iso-v2", profile_checksum: "checksum", evaluator_version: "advanced-v1", calculated_at: "2026-09-01T09:30:00Z", contribution_results: [], rule_results: [] };
+const completedResponse: CompletedResponseSummary = {
+  id: "response-1", distribution_id: "distribution-1", form_template_id: "form-1", form_template_version: 4,
+  title: "Branch incident self-assessment", subject_type: "PROGRAM", subject_id: "program-1", revision: 2,
+  current: true, state: "FINAL", completed_at: "2026-09-01T09:30:00Z",
+  score: completedResponseScore,
+};
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((next) => { resolve = next; });
@@ -121,6 +138,11 @@ describe("Program record workspace", () => {
 	vi.mocked(addProgramEvidenceContract).mockResolvedValue(aggregate);
 	vi.mocked(recordProgramEvidenceAssessment).mockResolvedValue(aggregate);
 	vi.mocked(transitionProgram).mockResolvedValue(aggregate);
+	vi.mocked(loadCompletedResponses).mockResolvedValue({ items: [] });
+	vi.mocked(loadCompletedResponse).mockResolvedValue({
+	  response: completedResponse,
+	  revision: { id: "response-1", revision: 2, achieved_assurance: "EMAIL_VERIFIED", scored_weight_coverage: 90, state: "FINAL", current: true, created_at: "2026-09-01T09:30:00Z", score: completedResponse.score },
+	});
   });
 
   const targetAggregate: ProgramAggregate = {
@@ -234,7 +256,7 @@ describe("Program record workspace", () => {
 	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.queryByRole("button", { name: "Record new issue" })).toBeNull();
 	expect(screen.getByText("New issues cannot be recorded until current Program responsibilities are available.")).toBeTruthy();
-	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
+	fireEvent.click(screen.getByRole("tab", { name: "Data collection" }));
 	expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
 	expect(screen.getByText("Monitoring changes are disabled until current Program responsibilities are available.")).toBeTruthy();
 
@@ -242,7 +264,7 @@ describe("Program record workspace", () => {
 	expect(await screen.findByRole("button", { name: "Approve Program activation" })).toBeTruthy();
 	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.getByRole("button", { name: "Record new issue" })).toBeTruthy();
-	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
+	fireEvent.click(screen.getByRole("tab", { name: "Data collection" }));
 	expect(screen.getByRole("button", { name: "Add monitoring check" })).toBeTruthy();
 	expect(loadProgramOperations).toHaveBeenCalledTimes(2);
 	expect(loadProgram).toHaveBeenCalledTimes(1);
@@ -380,14 +402,14 @@ describe("Program record workspace", () => {
 	expect(screen.queryByRole("button", { name: "Approve Program activation" })).toBeNull();
 	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.queryByRole("button", { name: "Record new issue" })).toBeNull();
-	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
+	fireEvent.click(screen.getByRole("tab", { name: "Data collection" }));
 	expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Reload Program data" }));
 
 	expect(await screen.findByRole("button", { name: "Approve Program activation" })).toBeTruthy();
 	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.getByRole("button", { name: "Record new issue" })).toBeTruthy();
-	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
+	fireEvent.click(screen.getByRole("tab", { name: "Data collection" }));
 	expect(screen.getByRole("button", { name: "Add monitoring check" })).toBeTruthy();
 	expect(loadProgram).toHaveBeenCalledTimes(2);
 	expect(loadProgramOperations).toHaveBeenCalledTimes(2);
@@ -514,14 +536,14 @@ describe("Program record workspace", () => {
 	expect(screen.queryByRole("button", { name: "Approve Program activation" })).toBeNull();
 	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.queryByRole("button", { name: "Record new issue" })).toBeNull();
-	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
+	fireEvent.click(screen.getByRole("tab", { name: "Data collection" }));
 	expect(screen.queryByRole("button", { name: "Add monitoring check" })).toBeNull();
 
 	fireEvent.click(screen.getByRole("button", { name: "Retry review status" }));
 	expect(await screen.findByRole("button", { name: "Approve Program activation" })).toBeTruthy();
 	fireEvent.click(screen.getByRole("tab", { name: "Issues & actions" }));
 	expect(screen.getByRole("button", { name: "Record new issue" })).toBeTruthy();
-	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
+	fireEvent.click(screen.getByRole("tab", { name: "Data collection" }));
 	expect(screen.getByRole("button", { name: "Add monitoring check" })).toBeTruthy();
 	expect(loadProgramReviewDigest).toHaveBeenCalledTimes(2);
 	expect(loadProgram).toHaveBeenCalledTimes(1);
@@ -715,7 +737,7 @@ describe("Program record workspace", () => {
 	fireEvent.click(screen.getByRole("tab", { name: "Evidence & results" }));
 	await screen.findByRole("heading", { name: "Evidence checks and results" });
 	const panel = document.getElementById("program-evidence-panel")!;
-	expect(within(panel).queryByRole("heading", { name: "Monitoring" })).toBeNull();
+	expect(within(panel).queryByRole("heading", { name: "Data collection" })).toBeNull();
 
 	fireEvent.click(within(panel).getByRole("button", { name: "Define evidence check" }));
 	fireEvent.change(screen.getByLabelText("Evidence code"), { target: { value: "CAR-COMPLETE" } });
@@ -735,8 +757,8 @@ describe("Program record workspace", () => {
 	fireEvent.change(screen.getByLabelText("Evidence references"), { target: { value: "Return register export\nFiling receipt" } });
 	fireEvent.click(screen.getByRole("button", { name: "Save evidence result" }));
 	await waitFor(() => expect(recordProgramEvidenceAssessment).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ contractID: "contract-1", conclusion: "PARTIALLY_SUPPORTED", coverage: .89, basis: { summary: "89 of 100 filing sections have current evidence.", evidence_references: ["Return register export", "Filing receipt"] } })));
-	fireEvent.click(screen.getByRole("tab", { name: "Monitoring" }));
-	expect(screen.getAllByRole("heading", { name: "Monitoring" })).toHaveLength(2);
+	fireEvent.click(screen.getByRole("tab", { name: "Data collection" }));
+	expect(screen.getAllByRole("heading", { name: "Data collection" })).toHaveLength(2);
   });
 
   it("shows only exactly linked issues and opens newly created work", async () => {
@@ -799,5 +821,46 @@ describe("Program record workspace", () => {
 	expect(screen.getAllByText("Assigned to Chief Risk Officer for the current Program state.").length).toBeGreaterThan(0);
 	expect(screen.queryByRole("button", { name: "Record applicability" })).toBeNull();
 	expect(screen.queryByRole("button", { name: "Activate Program" })).toBeNull();
+  });
+
+  it("shows completed submissions first and the evidence checks below in Evidence & results", async () => {
+	vi.mocked(loadCompletedResponses).mockResolvedValue({ items: [completedResponse] });
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+	await screen.findByRole("heading", { name: "Nigeria data protection" });
+	fireEvent.click(screen.getByRole("tab", { name: "Evidence & results" }));
+
+	expect(await screen.findByRole("heading", { name: "Submitted data" })).toBeTruthy();
+	expect(screen.getByRole("button", { name: "Review Branch incident self-assessment response" })).toBeTruthy();
+	const submitted = screen.getByRole("heading", { name: "Submitted data" }).closest("article")!;
+	const evidence = screen.getByRole("heading", { name: "Evidence checks and results" }).closest("article")!;
+	expect(submitted.compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	expect(loadCompletedResponses).toHaveBeenCalledWith({ subject_type: "PROGRAM", subject_id: "program-1", current_only: true, sort: "COMPLETED_DESC", limit: 20, cursor: undefined });
+  });
+
+  it("opens the submitted response review with Answers, Documents and Review tabs", async () => {
+	vi.mocked(loadCompletedResponses).mockResolvedValue({ items: [completedResponse] });
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+	await screen.findByRole("heading", { name: "Nigeria data protection" });
+	fireEvent.click(screen.getByRole("tab", { name: "Evidence & results" }));
+	fireEvent.click(await screen.findByRole("button", { name: "Review Branch incident self-assessment response" }));
+
+	const dialog = await screen.findByRole("dialog", { name: "Review Branch incident self-assessment response" });
+	expect(loadCompletedResponse).toHaveBeenCalledWith("response-1");
+	expect(within(dialog).getByRole("tab", { name: "Answers" })).toBeTruthy();
+	expect(within(dialog).getByRole("tab", { name: "Documents" })).toBeTruthy();
+	expect(within(dialog).getByRole("tab", { name: "Review" })).toBeTruthy();
+	fireEvent.click(within(dialog).getByRole("tab", { name: "Documents" }));
+	expect(await within(dialog).findByText("Branch incident self-assessment · Revision 2")).toBeTruthy();
+  });
+
+  it("shows an honest empty state for submitted data when no responses are collected", async () => {
+	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+	await screen.findByRole("heading", { name: "Nigeria data protection" });
+	fireEvent.click(screen.getByRole("tab", { name: "Evidence & results" }));
+
+	expect(await screen.findByText("No data collected yet")).toBeTruthy();
+	expect(screen.getByText("Completed responses for this Program")).toBeTruthy();
+	expect(screen.getByRole("button", { name: "Open Data collection" })).toBeTruthy();
+	expect(screen.queryByRole("row")).toBeNull();
   });
 });

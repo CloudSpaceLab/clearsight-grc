@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { parseRoute, routeHash } from "./appRouting";
 
 describe("workspace routes", () => {
+  it("separates vendor pages from exact relationship targets", () => {
+    expect(parseRoute("#vendors/register")).toEqual({ view: "vendors", target: { vendorPage: "register" } });
+    expect(parseRoute("#vendors/dashboard")).toEqual({ view: "vendors", target: { vendorPage: "dashboard" } });
+    expect(routeHash("vendors", { vendorPage: "register" }, "matters")).toBe("#vendors/register");
+    expect(routeHash("vendors", { vendorPage: "dashboard" }, "matters")).toBe("#vendors");
+  });
   it("keeps filter queries out of record targets", () => {
     expect(parseRoute("#work/matters/matter%2F1?status=OPEN&priority=4")).toEqual({ view: "work", workTab: "matters", target: { matterID: "matter/1" } });
     expect(parseRoute("#programs/program%2F1?overall_state=CURRENT")).toEqual({ view: "programs", target: { programID: "program/1", programSection: "overview" } });
