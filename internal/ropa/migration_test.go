@@ -83,6 +83,51 @@ func TestActivityScopeKeySupportsCompositeChildReferences(t *testing.T) {
 	}
 }
 
+func TestActivityLegalEntityScopeUsesCompositeForeignKey(t *testing.T) {
+	body := readMigration(t, upFile)
+	sql := strings.ToLower(strings.Join(strings.Fields(body), " "))
+	if !strings.Contains(sql, "foreign key (legal_entity_id, tenant_id) references legal_entities(id, tenant_id)") {
+		t.Error("activity legal-entity scope must reference legal_entities with the tenant in the foreign key")
+	}
+}
+
+func TestActivityChildReferencesUseTheRetainedScopedKey(t *testing.T) {
+	body := readMigration(t, upFile)
+	sql := strings.ToLower(strings.Join(strings.Fields(body), " "))
+	required := "foreign key (activity_id, tenant_id, legal_entity_id) references ropa_processing_activities(id, tenant_id, legal_entity_id)"
+	if got := strings.Count(sql, required); got != 5 {
+		t.Errorf("expected five activity references to use UNIQUE (id, tenant_id, legal_entity_id); got %d", got)
+	}
+	if strings.Contains(sql, "references ropa_processing_activities(tenant_id, legal_entity_id, id)") {
+		t.Error("activity references must not target an unavailable parent key order")
+	}
+}
+
+func TestAllLegalEntityReferencesUseTheAvailableCompositeKey(t *testing.T) {
+	body := readMigration(t, upFile)
+	sql := strings.ToLower(strings.Join(strings.Fields(body), " "))
+	required := "foreign key (legal_entity_id, tenant_id) references legal_entities(id, tenant_id)"
+	if got := strings.Count(sql, required); got != 3 {
+		t.Errorf("expected activity, event and summary legal-entity references to use the available key; got %d", got)
+	}
+	if strings.Contains(sql, "references legal_entities(tenant_id, id)") {
+		t.Error("legal-entity references must not use unavailable reversed parent key order")
+	}
+}
+
+func TestRopaMigrationDropsRedundantActivityUniqueKeys(t *testing.T) {
+	body := readMigration(t, upFile)
+	sql := strings.ToLower(strings.Join(strings.Fields(body), " "))
+	for _, redundant := range []string{
+		"unique (id, tenant_id)",
+		"ropa_activities_legal_entity_uk",
+	} {
+		if strings.Contains(sql, redundant) {
+			t.Errorf("migration must not retain redundant activity uniqueness key %q", redundant)
+		}
+	}
+}
+
 func TestDownMigrationRefusesWhenHistoryExists(t *testing.T) {
 	body := readMigration(t, downFile)
 	if !strings.Contains(body, "RAISE EXCEPTION") {

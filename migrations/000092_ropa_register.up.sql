@@ -3,7 +3,7 @@ BEGIN;
 CREATE TABLE ropa_processing_activities (
   id uuid PRIMARY KEY DEFAULT uuidv7(),
   tenant_id uuid NOT NULL REFERENCES tenants(id),
-  legal_entity_id uuid NOT NULL REFERENCES legal_entities(id),
+  legal_entity_id uuid NOT NULL,
   code text NOT NULL,
   name text NOT NULL,
   description text NOT NULL DEFAULT '',
@@ -26,12 +26,12 @@ CREATE TABLE ropa_processing_activities (
   version bigint NOT NULL CHECK(version>0),
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
-  UNIQUE (id, tenant_id),
   UNIQUE (id, tenant_id, legal_entity_id),
   UNIQUE (tenant_id, legal_entity_id, code),
-  CHECK (end_date IS NULL OR start_date IS NULL OR end_date >= start_date)
+  CHECK (end_date IS NULL OR start_date IS NULL OR end_date >= start_date),
+  CONSTRAINT ropa_processing_activities_legal_entity_tenant_fk
+    FOREIGN KEY (legal_entity_id, tenant_id) REFERENCES legal_entities(id, tenant_id)
 );
-CREATE UNIQUE INDEX ropa_activities_legal_entity_uk ON ropa_processing_activities(legal_entity_id,id);
 CREATE INDEX ropa_register_keyset_idx ON ropa_processing_activities(tenant_id,legal_entity_id,status,next_review_date,id);
 CREATE INDEX ropa_lawful_basis_idx ON ropa_processing_activities(tenant_id,legal_entity_id,lawful_basis);
 CREATE INDEX ropa_owner_idx ON ropa_processing_activities(tenant_id,legal_entity_id,owner_principal_id);
@@ -44,8 +44,8 @@ CREATE TABLE ropa_processing_activity_revisions (
   snapshot jsonb NOT NULL,
   recorded_at timestamptz NOT NULL,
   PRIMARY KEY(tenant_id,legal_entity_id,activity_id,version),
-  FOREIGN KEY(tenant_id,legal_entity_id,activity_id)
-    REFERENCES ropa_processing_activities(tenant_id,legal_entity_id,id)
+  FOREIGN KEY (activity_id, tenant_id, legal_entity_id)
+    REFERENCES ropa_processing_activities(id, tenant_id, legal_entity_id)
 );
 CREATE FUNCTION protect_ropa_revision() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN RAISE EXCEPTION 'ROPA processing activity history is immutable'; END; $$;
@@ -59,8 +59,8 @@ CREATE TABLE ropa_processing_activity_data_categories (
   sensitivity text NOT NULL DEFAULT 'UNCLASSIFIED'
     CHECK (sensitivity IN ('UNCLASSIFIED','DIRECT_PERSONAL','INDIRECT_PERSONAL','SENSITIVE_BY_NATURE','SENSITIVE_BY_LAW')),
   PRIMARY KEY(tenant_id,legal_entity_id,activity_id,category),
-  FOREIGN KEY(tenant_id,legal_entity_id,activity_id)
-    REFERENCES ropa_processing_activities(tenant_id,legal_entity_id,id)
+  FOREIGN KEY (activity_id, tenant_id, legal_entity_id)
+    REFERENCES ropa_processing_activities(id, tenant_id, legal_entity_id)
 );
 CREATE INDEX ropa_data_categories_activity_idx ON ropa_processing_activity_data_categories(tenant_id,legal_entity_id,activity_id);
 
@@ -73,8 +73,8 @@ CREATE TABLE ropa_processing_activity_recipients (
     CHECK (recipient_kind IN ('INTERNAL','EXTERNAL','AUTHORITY')),
   transfer_basis text NOT NULL DEFAULT '',
   PRIMARY KEY(tenant_id,legal_entity_id,activity_id,recipient),
-  FOREIGN KEY(tenant_id,legal_entity_id,activity_id)
-    REFERENCES ropa_processing_activities(tenant_id,legal_entity_id,id)
+  FOREIGN KEY (activity_id, tenant_id, legal_entity_id)
+    REFERENCES ropa_processing_activities(id, tenant_id, legal_entity_id)
 );
 CREATE INDEX ropa_recipients_activity_idx ON ropa_processing_activity_recipients(tenant_id,legal_entity_id,activity_id);
 
@@ -86,8 +86,8 @@ CREATE TABLE ropa_processing_activity_systems (
   system_kind text NOT NULL DEFAULT 'APPLICATION'
     CHECK (system_kind IN ('APPLICATION','DATABASE','FILE','MANUAL','THIRD_PARTY')),
   PRIMARY KEY(tenant_id,legal_entity_id,activity_id,system_name),
-  FOREIGN KEY(tenant_id,legal_entity_id,activity_id)
-    REFERENCES ropa_processing_activities(tenant_id,legal_entity_id,id)
+  FOREIGN KEY (activity_id, tenant_id, legal_entity_id)
+    REFERENCES ropa_processing_activities(id, tenant_id, legal_entity_id)
 );
 CREATE INDEX ropa_systems_activity_idx ON ropa_processing_activity_systems(tenant_id,legal_entity_id,activity_id);
 
@@ -101,8 +101,8 @@ CREATE TABLE ropa_processing_activity_reviews (
   outcome text CHECK (outcome IS NULL OR outcome IN ('CONFIRMED','REVISED','WITHDRAWN')),
   reviewer_principal_id uuid REFERENCES principals(id),
   created_at timestamptz NOT NULL,
-  FOREIGN KEY(tenant_id,legal_entity_id,activity_id)
-    REFERENCES ropa_processing_activities(tenant_id,legal_entity_id,id)
+  FOREIGN KEY (activity_id, tenant_id, legal_entity_id)
+    REFERENCES ropa_processing_activities(id, tenant_id, legal_entity_id)
 );
 CREATE INDEX ropa_reviews_due_idx ON ropa_processing_activity_reviews(tenant_id,legal_entity_id,due_date);
 
@@ -119,8 +119,8 @@ CREATE TABLE ropa_events (
   actor_id uuid,
   occurred_at timestamptz NOT NULL,
   UNIQUE (tenant_id,aggregate_type,aggregate_id,aggregate_version),
-  FOREIGN KEY (tenant_id,legal_entity_id)
-    REFERENCES legal_entities(tenant_id,id)
+  FOREIGN KEY (legal_entity_id, tenant_id)
+    REFERENCES legal_entities(id, tenant_id)
 );
 CREATE INDEX ropa_events_replay_idx ON ropa_events(tenant_id,aggregate_type,aggregate_id,aggregate_version);
 
@@ -135,7 +135,7 @@ CREATE TABLE ropa_register_summary (
   unknown integer,
   counts jsonb NOT NULL,
   PRIMARY KEY(tenant_id,legal_entity_id),
-  FOREIGN KEY (tenant_id,legal_entity_id) REFERENCES legal_entities(tenant_id,id)
+  FOREIGN KEY (legal_entity_id, tenant_id) REFERENCES legal_entities(id, tenant_id)
 );
 
 CREATE FUNCTION protect_ropa_legal_entity() RETURNS trigger LANGUAGE plpgsql AS $$
