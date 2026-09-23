@@ -570,7 +570,17 @@ func (r *MemorySummaryRepository) ReplaceSummary(ctx context.Context, summary Re
 	summary.LegalEntityID = strings.TrimSpace(summary.LegalEntityID)
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.summaries[summaryKey(summary.TenantID, summary.LegalEntityID)] = cloneSummary(summary)
+	key := summaryKey(summary.TenantID, summary.LegalEntityID)
+	if existing, ok := r.summaries[key]; ok && existing.GeneratedAt.After(summary.GeneratedAt) {
+		// A run that started earlier can finish later. The in-memory half of
+		// the projection guarantee is a monotonic conditional write: a strictly
+		// older result is superseded and cannot replace newer state. The
+		// production PostgreSQL writer must additionally lease each scope and
+		// use a conditional ON CONFLICT ... WHERE
+		// excluded.generated_at >= existing.generated_at write.
+		return nil
+	}
+	r.summaries[key] = cloneSummary(summary)
 	return nil
 }
 

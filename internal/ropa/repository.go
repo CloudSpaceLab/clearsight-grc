@@ -11,6 +11,7 @@ var (
 	ErrDuplicate       = errors.New("processing activity code already exists in this legal entity")
 	ErrInvalid         = errors.New("processing activity is not valid")
 	ErrClosureBlocked  = errors.New("processing activity closure requirements are not met")
+	ErrScopeMismatch   = errors.New("processing activity is outside the requested scope")
 )
 
 type Repository interface {
@@ -39,6 +40,14 @@ type ActivityPage struct {
 	HasMore    bool
 }
 
+// ActivityLister returns bounded, keyset-paginated pages for one exact scope.
+// For a given scope and cursor traversal, an implementation must return a
+// stable, non-moving snapshot for the duration of that traversal. In
+// particular, changes to status or next_review_date must not move a row across
+// the cursor between calls, or keyset pagination would be ill-defined. A
+// production implementation should provide that stability with one transaction
+// or repeatable-read snapshot; callers may detect scope/status contract
+// violations but cannot repair mid-scan drift.
 type ActivityLister interface {
 	ListActivities(context.Context, ListActivitiesFilter) (ActivityPage, error)
 }

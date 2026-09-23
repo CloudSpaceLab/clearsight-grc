@@ -352,7 +352,8 @@ func (s *Service) RegisterSummary(ctx context.Context, tenantID, legalEntityID s
 	}
 	summary.Freshness = FreshnessCurrent
 	now := s.now()
-	if summary.GeneratedAt.IsZero() || now.Sub(summary.GeneratedAt) > 15*time.Minute || summary.ProjectionVersion != ProjectionVersion {
+	age := now.Sub(summary.GeneratedAt)
+	if summary.GeneratedAt.IsZero() || age < 0 || age > 15*time.Minute || summary.ProjectionVersion != ProjectionVersion {
 		summary.Freshness = FreshnessStale
 	}
 	return summary, nil
