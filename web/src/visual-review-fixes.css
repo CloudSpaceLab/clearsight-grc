@@ -208,3 +208,9 @@
   .intervention-next { padding-top: 9px; }
   .today-topbar .topbar-actions { gap: 7px; }
 }
+
+/* A modal dialog owns focus and covers governed work; a floating "Resume guide" pill
+   over an open modal is noise and can sit on top of a sidebar action while the modal
+   reflows the shell. Keep the guide launcher out of the way while a modal is open. */
+body:has([aria-modal="true"]) .guide-launcher,
+body:has(dialog[open]) .guide-launcher { display: none !important; }

@@ -74,7 +74,7 @@ async function captureVendorIntroductions() {
     { name: "66-premium-vendors-intro-populated-dark-1440x900", theme: "dark", viewport: { width: 1440, height: 900 }, state: "premium-vendors-intro-populated" },
     { name: "67-premium-vendors-intro-empty-light-1440x900", theme: "light", viewport: { width: 1440, height: 900 }, state: "premium-vendors-intro-empty", fixture: "vendor-guide-empty" },
   ]) {
-    const { context, page } = await openPage({ ...capture, route: "#vendors", tour: "on", reducedMotion: "reduce" });
+    const { context, page } = await openPage({ ...capture, route: "#vendors/register", tour: "on", reducedMotion: "reduce" });
     try {
       await assertCinematicGuide(page, "Vendor guide", capture.name);
       if (capture.fixture) {
@@ -83,7 +83,7 @@ async function captureVendorIntroductions() {
       } else {
         await page.getByText("Acme Processing Limited", { exact: true }).first().waitFor({ state: "visible" });
       }
-      await capturePage(page, capture, "#vendors");
+      await capturePage(page, capture, "#vendors/register");
     } finally {
       await context.close();
     }
@@ -104,7 +104,7 @@ async function captureVendorBrandGallery() {
       await opened.page.getByText(capture.label, { exact: true }).last().waitFor({ state: "visible" });
       if (capture.image) await opened.page.getByRole("img", { name: "Acme Processing Limited icon" }).first().waitFor({ state: "visible" });
       if (capture.broken) await opened.page.locator(".vendor-detail-heading .vendor-brand-monogram").waitFor({ state: "visible" });
-      await capturePage(opened.page, capture, "#vendors");
+      await capturePage(opened.page, capture, "#vendors/register");
     } finally {
       await opened.context.close();
     }
@@ -120,7 +120,7 @@ async function captureVendorIdentityWorkflows() {
     await opened.page.getByText("Enter a website hostname or full HTTPS URL without credentials, a port or an IP address.", { exact: true }).waitFor({ state: "visible" });
     await stageLogo(opened.page, "approved-logo.png");
     await opened.page.getByText("Selected file is ready to save.", { exact: true }).waitFor({ state: "visible" });
-    await capturePage(opened.page, staged, "#vendors");
+    await capturePage(opened.page, staged, "#vendors/register");
   } finally {
     await opened.context.close();
   }
@@ -132,7 +132,7 @@ async function captureVendorIdentityWorkflows() {
     await conflictPage.page.getByRole("button", { name: "Save vendor details" }).click();
     await conflictPage.page.getByText("Vendor details changed. Reload the current vendor, then save your entries again.", { exact: true }).waitFor({ state: "visible" });
     if (await conflictPage.page.getByLabel("Trading name").inputValue() !== "Acme Payments Operations") throw new Error(`${conflict.name} discarded the user's current entry`);
-    await capturePage(conflictPage.page, conflict, "#vendors");
+    await capturePage(conflictPage.page, conflict, "#vendors/register");
   } finally {
     await conflictPage.context.close();
   }
@@ -144,7 +144,7 @@ async function captureVendorIdentityWorkflows() {
     await forbiddenPage.page.getByRole("button", { name: "Use approved logo" }).click();
     await forbiddenPage.page.getByText("Your current role cannot change the approved vendor logo. The selected file is still here.", { exact: true }).waitFor({ state: "visible" });
     await forbiddenPage.page.getByText("approved-logo.png", { exact: false }).waitFor({ state: "visible" });
-    await capturePage(forbiddenPage.page, forbidden, "#vendors");
+    await capturePage(forbiddenPage.page, forbidden, "#vendors/register");
   } finally {
     await forbiddenPage.context.close();
   }
@@ -156,7 +156,7 @@ async function captureVendorIdentityWorkflows() {
   const mobilePage = await openVendorEditor(mobile);
   try {
     await mobilePage.page.getByRole("heading", { name: "Edit vendor details" }).scrollIntoViewIfNeeded();
-    await capturePage(mobilePage.page, mobile, "#vendors");
+    await capturePage(mobilePage.page, mobile, "#vendors/register");
   } finally {
     await mobilePage.context.close();
   }
@@ -169,7 +169,7 @@ async function captureLogoRemoval(capture) {
     await opened.page.getByText(capture.expected, { exact: true }).waitFor({ state: "visible" });
     if (capture.image) await opened.page.getByRole("img", { name: "Acme Processing Limited icon" }).waitFor({ state: "visible" });
     else await opened.page.locator(".vendor-identity-form-heading .vendor-brand-monogram").waitFor({ state: "visible" });
-    await capturePage(opened.page, capture, "#vendors");
+    await capturePage(opened.page, capture, "#vendors/register");
   } finally {
     await opened.context.close();
   }
@@ -190,7 +190,7 @@ async function capturePresentationCover() {
 }
 
 async function openVendor(capture) {
-  const opened = await openPage({ ...capture, viewport: capture.viewport ?? { width: 1440, height: 900 }, route: "#vendors", tour: "off", reducedMotion: "reduce" });
+  const opened = await openPage({ ...capture, viewport: capture.viewport ?? { width: 1440, height: 900 }, route: "#vendors/register", tour: "off", reducedMotion: "reduce" });
   await opened.page.getByRole("button", { name: /Acme Processing Limited/ }).first().click();
   await opened.page.getByRole("heading", { name: "Acme Processing Limited", exact: true }).waitFor({ state: "visible" });
   await opened.page.getByText("Vendor details and record history", { exact: true }).click();
@@ -230,7 +230,7 @@ async function openPage({ theme, viewport, touch = false, route, fixture, tour, 
   const params = new URLSearchParams({ tour });
   if (fixture) params.set("fixture", fixture);
   await page.goto(`${baseURL}/?${params.toString()}${route}`, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: route === "#vendors" ? "Vendors" : "Today", exact: true }).first().waitFor({ state: "visible" });
+  await page.getByRole("heading", { name: route.startsWith("#vendors") ? "Vendors" : "Today", exact: true }).first().waitFor({ state: "visible" });
   await page.evaluate(() => document.fonts?.ready);
   if (browserErrors.length) throw new Error(`${route} emitted browser errors:\n${browserErrors.join("\n")}`);
   return { context, page };

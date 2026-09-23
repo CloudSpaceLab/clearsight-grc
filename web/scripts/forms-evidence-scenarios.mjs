@@ -407,13 +407,13 @@ const scenarios = [
     run: async (page) => { for (const value of ["Confirm this is accurate", "Update this information", "Replace held document"]) await visible(page, value); },
   },
   {
-    name: "108-forms-vendor-review-conflict-light-1440x900", fixture: "forms-vendor-review-conflict", route: "#vendors",
+    name: "108-forms-vendor-review-conflict-light-1440x900", fixture: "forms-vendor-review-conflict", route: "#vendors/register",
     state: "forms-vendor-review-conflict", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["vendor-review", "vendor-conflict"],
     run: async (page) => { await page.getByRole("button", { name: /Acme Processing Limited/ }).click(); await selectVendorSection(page, "Due diligence"); const heading = page.getByRole("heading", { name: "Decide which vendor changes to apply" }); await heading.waitFor({ state: "visible" }); await visible(page, "1 held record has changed"); await heading.scrollIntoViewIfNeeded(); },
   },
   {
-    name: "109-forms-vendor-applied-light-1440x900", fixture: "forms-vendor-applied", route: "#vendors",
+    name: "109-forms-vendor-applied-light-1440x900", fixture: "forms-vendor-applied", route: "#vendors/register",
     state: "forms-vendor-response-applied", theme: "light", viewport: desktop, zoom: 1,
     capabilities: ["vendor-applied"],
     run: async (page) => { await page.getByRole("button", { name: /Acme Processing Limited/ }).click(); await selectVendorSection(page, "Due diligence"); const heading = page.getByRole("heading", { name: "Reviewed changes recorded" }); await heading.waitFor({ state: "visible" }); await heading.scrollIntoViewIfNeeded(); },
@@ -730,7 +730,7 @@ async function verifyMobileBuilder(page) {
   await page.getByRole("button", { name: "Move down" }).waitFor({ state: "visible" });
 }
 
-for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"], ["vendors", "forms-vendor-review-conflict", "#vendors"]]) {
+for (const [surface, fixture, route] of [["forms", "forms-documents", "#forms"], ["vendors", "forms-vendor-review-conflict", "#vendors/register"]]) {
   for (const [theme, viewport] of [["light", desktop], ["dark", reflow], ...(surface === "forms" ? [["dark", desktop], ["light", reflow], ["light", mobile], ["dark", mobile]] : [["light", { width: 1280, height: 900 }], ["dark", { width: 1280, height: 900 }]])]) {
     scenarios.push({
       name: `${125 + (surface === "vendors" ? 2 : 0) + (theme === "dark" ? 1 : 0)}-forms-documents-${surface}-${theme}-${viewport.width}`, fixture, route,
@@ -886,7 +886,7 @@ async function assertDemoDocumentMetadata(dialog, expected) {
 for (const surface of ["forms", "vendors"]) for (const theme of ["light", "dark"]) for (const viewport of [desktop, mobile, reflow]) {
   for (const state of ["preview", "blocked"]) scenarios.push({
     name: `129-forms-demo-documents-${surface}-${state}-${theme}-${viewport.width}`,
-    fixture: surface === "forms" ? "forms-documents" : "forms-vendor-review-conflict", route: `#${surface}`,
+    fixture: surface === "forms" ? "forms-documents" : "forms-vendor-review-conflict", route: surface === "vendors" ? "#vendors/register" : `#${surface}`,
     state: `demo-document-${state}`, theme, viewport, zoom: 1, reducedMotion: "reduce",
     documentMetadata: demoDocumentMetadata.image,
     capabilities: ["documents-quick-look", "documents-keyboard-return", ...(surface === "vendors" ? ["documents-vendor-launcher"] : [])],

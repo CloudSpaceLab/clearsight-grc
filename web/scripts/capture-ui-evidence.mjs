@@ -35,7 +35,7 @@ const captures = [
   { name: "83-program-filters-light-1440x900", route: "#programs?overall_state=EVIDENCE_INSUFFICIENT&jurisdiction=Nigeria", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "program-portfolio-filters" },
   { name: "84-matter-filters-dark-1440x900", route: "#work/matters?matter_type=REGULATORY_CHANGE&priority=4&due=DUE_7_DAYS", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "matter-portfolio-filters" },
   { name: "85-vendor-add-light-1440x900", route: "#vendors", title: "Vendors", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-add-website-address", openVendorSetup: true },
-  { name: "86-vendor-form-readiness-light-1440x900", route: "#vendors", title: "Vendors", fixture: "vendor-no-form", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-form-readiness", openFormReadiness: true },
+  { name: "86-vendor-form-readiness-light-1440x900", route: "#vendors/register", title: "Vendors", fixture: "vendor-no-form", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-form-readiness", openFormReadiness: true },
   { name: "87-vendor-link-sheet-light-1440x900", route: "#programs/program-ndpa/issues-actions", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-link-focused-sheet", openVendorLink: true },
   { name: "88-vendor-link-sheet-dark-mobile-390x844", route: "#programs/program-ndpa/issues-actions", title: "Programs", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "vendor-link-focused-sheet-mobile", openVendorLink: true },
   { name: "89-matter-action-reassignment-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-action-reassignment", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "matter-action-reassignment", openActionReassignment: true },
@@ -237,7 +237,7 @@ async function writeManifest() {
 
 async function captureVendorCollectionWorkflows() {
   const axeSource = await readFile(path.resolve("node_modules/axe-core/axe.min.js"), "utf8");
-  const base = { route: "#vendors", title: "Vendors", fixture: "vendor-collection", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const base = { route: "#vendors/register", title: "Vendors", fixture: "vendor-collection", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const save = async (page, capture, state) => {
     const name = `vendor-collection-${state}-${capture.theme}-${capture.viewport.width}`;
     if (!await page.getByRole("dialog").count() && capture.fixture.startsWith("vendor-collection")) {
@@ -695,7 +695,7 @@ async function captureVendorWorkflows() {
     { name: "44-vendor-source-degraded-light-1440x900", fixture: "vendor-source-degraded", state: "vendor-form-source-unavailable", viewport: { width: 1440, height: 900 }, expectText: "Due-diligence forms are unavailable" },
   ];
   for (const scenario of scenarios) {
-    const capture = { ...scenario, route: "#vendors", title: "Vendors", theme: scenario.theme ?? "light", density: "comfortable" };
+    const capture = { ...scenario, route: "#vendors/register", title: "Vendors", theme: scenario.theme ?? "light", density: "comfortable" };
     const { context, page } = await openPage(capture);
     try {
       await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
@@ -714,7 +714,7 @@ async function captureVendorWorkflows() {
     }
   }
 
-  const partial = { name: "45-vendor-delivery-partial-light-1440x900", fixture: "vendor-partial-delivery", state: "vendor-delivery-partial", route: "#vendors", title: "Vendors", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const partial = { name: "45-vendor-delivery-partial-light-1440x900", fixture: "vendor-partial-delivery", state: "vendor-delivery-partial", route: "#vendors/register", title: "Vendors", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(partial);
   try {
     await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
@@ -739,7 +739,7 @@ async function captureVendorWorkflows() {
 async function captureVendorActivationRecovery() {
   const axeSource = await readFile(path.resolve("node_modules/axe-core/axe.min.js"), "utf8");
   for (const theme of ["light", "dark"]) for (const width of [1440, 390, 320]) {
-    const capture = { route: "#vendors", title: "Vendors", theme, density: "comfortable", viewport: { width, height: width === 1440 ? 900 : 844 }, touch: width < 800 };
+    const capture = { route: "#vendors/register", title: "Vendors", theme, density: "comfortable", viewport: { width, height: width === 1440 ? 900 : 844 }, touch: width < 800 };
     const { context, page } = await openPage({ ...capture, route: "#today", title: "Today" });
     try {
       // This runner-only fixture exercises the real workspace and HTTP client.
@@ -782,6 +782,7 @@ async function captureVendorActivationRecovery() {
         };
       });
       await page.getByRole("button", { name: "Vendors", exact: true }).click();
+      await page.getByRole("navigation", { name: "Vendor sections" }).getByRole("button", { name: "Register", exact: true }).click();
       await page.getByRole("button", { name: /Sample · Acme Processing Limited/ }).click();
       await openVendorSection(page, "Due diligence");
       const panel = page.locator(".vendor-activation-panel");
@@ -835,8 +836,22 @@ async function captureVendorLinkedWorkflows() {
   await captureVendorWorkHistory();
 }
 
+async function selectMatterEvidenceTab(page) {
+  const compact = page.getByRole("button", { name: / Issue section$/ });
+  if (await compact.isVisible()) {
+    await compact.scrollIntoViewIfNeeded();
+    await compact.click();
+    const listbox = page.getByRole("listbox");
+    await listbox.waitFor({ state: "visible" });
+    await listbox.getByRole("option", { name: "Evidence", exact: true }).click();
+  } else {
+    await page.getByRole("tab", { name: "Evidence", exact: true }).click();
+  }
+}
+
 async function openVendorWorkTarget(capture) {
   const opened = await openPage({ ...capture, density: "comfortable" });
+  if (capture.route.startsWith("#work/matters")) await selectMatterEvidenceTab(opened.page);
   const heading = opened.page.getByRole("heading", { name: "Vendor requests", exact: true });
   await heading.waitFor({ state: "visible" });
   await heading.scrollIntoViewIfNeeded();
