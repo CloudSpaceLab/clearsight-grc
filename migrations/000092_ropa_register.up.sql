@@ -20,8 +20,8 @@ CREATE TABLE ropa_processing_activities (
   start_date date,
   end_date date,
   next_review_date date,
-  owner_principal_id uuid REFERENCES principals(id),
-  required_authority_principal_id uuid REFERENCES principals(id),
+  owner_principal_id uuid,
+  required_authority_principal_id uuid,
   program_id uuid,
   version bigint NOT NULL CHECK(version>0),
   created_at timestamptz NOT NULL,
@@ -29,10 +29,34 @@ CREATE TABLE ropa_processing_activities (
   UNIQUE (id, tenant_id, legal_entity_id),
   UNIQUE (tenant_id, legal_entity_id, code),
   CHECK (end_date IS NULL OR start_date IS NULL OR end_date >= start_date),
+  CONSTRAINT ropa_processing_activities_updated_at_order_ck
+    CHECK (updated_at >= created_at),
   CONSTRAINT ropa_processing_activities_legal_entity_tenant_fk
-    FOREIGN KEY (legal_entity_id, tenant_id) REFERENCES legal_entities(id, tenant_id)
+    FOREIGN KEY (legal_entity_id, tenant_id) REFERENCES legal_entities(id, tenant_id),
+  CONSTRAINT ropa_processing_activities_owner_tenant_fk
+    FOREIGN KEY (owner_principal_id, tenant_id) REFERENCES principals(id, tenant_id),
+  CONSTRAINT ropa_processing_activities_required_authority_tenant_fk
+    FOREIGN KEY (required_authority_principal_id, tenant_id) REFERENCES principals(id, tenant_id),
+  CONSTRAINT ropa_processing_activities_program_tenant_fk
+    FOREIGN KEY (program_id, tenant_id) REFERENCES programs(id, tenant_id)
 );
-CREATE INDEX ropa_register_keyset_idx ON ropa_processing_activities(tenant_id,legal_entity_id,status,next_review_date,id);
+-- The repository ORDER BY and cursor predicates must use this exact expression for both indexes:
+-- (CASE status WHEN 'NEW' THEN 1 WHEN 'OPEN' THEN 2 WHEN 'CLOSED' THEN 3 END,
+--  COALESCE(next_review_date, '0001-01-01'::date), id).
+CREATE INDEX ropa_register_keyset_idx ON ropa_processing_activities(
+  tenant_id,
+  legal_entity_id,
+  (CASE status WHEN 'NEW' THEN 1 WHEN 'OPEN' THEN 2 WHEN 'CLOSED' THEN 3 END),
+  (COALESCE(next_review_date, '0001-01-01'::date)),
+  id
+) WHERE end_date IS NULL;
+CREATE INDEX ropa_register_history_keyset_idx ON ropa_processing_activities(
+  tenant_id,
+  legal_entity_id,
+  (CASE status WHEN 'NEW' THEN 1 WHEN 'OPEN' THEN 2 WHEN 'CLOSED' THEN 3 END),
+  (COALESCE(next_review_date, '0001-01-01'::date)),
+  id
+);
 CREATE INDEX ropa_lawful_basis_idx ON ropa_processing_activities(tenant_id,legal_entity_id,lawful_basis);
 CREATE INDEX ropa_owner_idx ON ropa_processing_activities(tenant_id,legal_entity_id,owner_principal_id);
 
@@ -44,6 +68,8 @@ CREATE TABLE ropa_processing_activity_revisions (
   snapshot jsonb NOT NULL,
   recorded_at timestamptz NOT NULL,
   PRIMARY KEY(tenant_id,legal_entity_id,activity_id,version),
+  CONSTRAINT ropa_processing_activity_revisions_snapshot_object_ck
+    CHECK (jsonb_typeof(snapshot) = 'object'),
   FOREIGN KEY (activity_id, tenant_id, legal_entity_id)
     REFERENCES ropa_processing_activities(id, tenant_id, legal_entity_id)
 );
@@ -99,12 +125,15 @@ CREATE TABLE ropa_processing_activity_reviews (
   due_date date NOT NULL,
   completed_at timestamptz,
   outcome text CHECK (outcome IS NULL OR outcome IN ('CONFIRMED','REVISED','WITHDRAWN')),
-  reviewer_principal_id uuid REFERENCES principals(id),
+  reviewer_principal_id uuid,
   created_at timestamptz NOT NULL,
+  CONSTRAINT ropa_processing_activity_reviews_reviewer_tenant_fk
+    FOREIGN KEY (reviewer_principal_id, tenant_id) REFERENCES principals(id, tenant_id),
   FOREIGN KEY (activity_id, tenant_id, legal_entity_id)
     REFERENCES ropa_processing_activities(id, tenant_id, legal_entity_id)
 );
 CREATE INDEX ropa_reviews_due_idx ON ropa_processing_activity_reviews(tenant_id,legal_entity_id,due_date);
+CREATE INDEX ropa_reviews_activity_idx ON ropa_processing_activity_reviews(tenant_id,legal_entity_id,activity_id,created_at,id);
 
 CREATE TABLE ropa_events (
   id uuid PRIMARY KEY DEFAULT uuidv7(),
@@ -119,10 +148,54 @@ CREATE TABLE ropa_events (
   actor_id uuid,
   occurred_at timestamptz NOT NULL,
   UNIQUE (tenant_id,aggregate_type,aggregate_id,aggregate_version),
+  CONSTRAINT ropa_events_payload_object_ck
+    CHECK (jsonb_typeof(payload) = 'object'),
   FOREIGN KEY (legal_entity_id, tenant_id)
     REFERENCES legal_entities(id, tenant_id)
 );
-CREATE INDEX ropa_events_replay_idx ON ropa_events(tenant_id,aggregate_type,aggregate_id,aggregate_version);
+
+CREATE FUNCTION validate_ropa_event_actor_scope() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.actor_type = 'USER' THEN
+    IF NOT EXISTS (
+      SELECT 1
+      FROM principals p
+      WHERE p.id = NEW.actor_id
+        AND p.tenant_id = NEW.tenant_id
+    ) THEN
+      RAISE EXCEPTION 'ROPA USER event actor is outside the event tenant' USING ERRCODE = '23514';
+    END IF;
+  END IF;
+  RETURN NEW;
+END; $$;
+CREATE TRIGGER ropa_event_actor_tenant_scope BEFORE INSERT ON ropa_events
+  FOR EACH ROW EXECUTE FUNCTION validate_ropa_event_actor_scope();
+
+CREATE FUNCTION validate_ropa_event_aggregate_scope() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.aggregate_type = 'PROCESSING_ACTIVITY' THEN
+    IF NOT EXISTS (
+      SELECT 1
+      FROM ropa_processing_activities a
+      WHERE a.id = NEW.aggregate_id
+        AND a.tenant_id = NEW.tenant_id
+        AND a.legal_entity_id = NEW.legal_entity_id
+    ) THEN
+      RAISE EXCEPTION 'ROPA processing activity event aggregate is outside the event scope' USING ERRCODE = '23514';
+    END IF;
+  END IF;
+  RETURN NEW;
+END; $$;
+CREATE TRIGGER ropa_event_aggregate_tenant_legal_entity_scope BEFORE INSERT ON ropa_events
+  FOR EACH ROW EXECUTE FUNCTION validate_ropa_event_aggregate_scope();
+
+CREATE FUNCTION protect_ropa_event() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'ROPA event history is immutable';
+  RETURN NEW;
+END; $$;
+CREATE TRIGGER ropa_event_immutable BEFORE UPDATE OR DELETE ON ropa_events
+  FOR EACH ROW EXECUTE FUNCTION protect_ropa_event();
 
 CREATE TABLE ropa_register_summary (
   tenant_id uuid NOT NULL,
@@ -135,6 +208,16 @@ CREATE TABLE ropa_register_summary (
   unknown integer,
   counts jsonb NOT NULL,
   PRIMARY KEY(tenant_id,legal_entity_id),
+  CONSTRAINT ropa_register_summary_population_nonnegative_ck
+    CHECK (population >= 0),
+  CONSTRAINT ropa_register_summary_excluded_nonnegative_ck
+    CHECK (excluded IS NULL OR excluded >= 0),
+  CONSTRAINT ropa_register_summary_unknown_nonnegative_ck
+    CHECK (unknown IS NULL OR unknown >= 0),
+  CONSTRAINT ropa_register_summary_counts_object_ck
+    CHECK (jsonb_typeof(counts) = 'object'),
+  CONSTRAINT ropa_register_summary_projection_version_nonblank_ck
+    CHECK (btrim(projection_version) <> ''),
   FOREIGN KEY (legal_entity_id, tenant_id) REFERENCES legal_entities(id, tenant_id)
 );
 
