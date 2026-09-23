@@ -26,9 +26,9 @@
 /* Help belongs to shell chrome on desktop rather than covering governed work. */
 .guide-launcher {
   position: fixed;
-  left: 20px;
-  right: auto;
-  bottom: 138px;
+  left: auto;
+  right: 20px;
+  bottom: 20px;
   width: 42px;
   height: 42px;
   padding: 0;
