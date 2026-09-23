@@ -2397,7 +2397,13 @@ func (a *API) ropaRoutes() []routeSpec {
 
 - [ ] **Step 4: Write the handlers**
 
-Create `internal/httpapi/ropa_handlers.go`:
+Create `internal/httpapi/ropa_handlers.go`. Verified conventions in this
+repository:
+
+- Handlers are plain `http.HandlerFunc` — `func (a *API) listPrograms(w http.ResponseWriter, r *http.Request)`. There is **no** third `identity.Actor` parameter.
+- Respond with `httpx.WriteJSON(w, status, payload)` and `httpx.WriteError(w, status, code, message)`.
+- Reads read the verified tenant from `requiredQuery(w, r, "tenant_id")` and the legal entity from the verified actor in context. Use the same actor accessor `a.programsForActor` relies on — find it with `cd C:\dev\clearsight-grc; git grep -n "func actorFromContext\|actorFromRequestContext\|identity.ActorFromContext" -- internal/`.
+- A read handler that needs a service returns early with `httpx.WriteError(..., 503, ...)` when the dependency is nil.
 
 ```go
 package httpapi
@@ -2409,8 +2415,17 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/ropa"
 )
+
+func (a *API) ropaService(w http.ResponseWriter) (*ropa.Service, bool) {
+	if a.deps.Ropa == nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "ropa_unavailable", "The processing activity register is unavailable.")
+		return nil, false
+	}
+	return a.deps.Ropa, true
+}
 
 type ropaActivityResponse struct {
 	StateLabel      string                       `json:"state_label"`
@@ -2419,58 +2434,86 @@ type ropaActivityResponse struct {
 }
 
 func (a *API) getRopaDashboard(w http.ResponseWriter, r *http.Request) {
-	actor := actorFromRequest(r)
-	summary, err := a.Ropa.RegisterSummary(r.Context(), actor.TenantID, actor.LegalEntityID)
+	service, ok := a.ropaService(w)
+	if !ok {
+		return
+	}
+	scope, ok := a.ropaScope(w, r)
+	if !ok {
+		return
+	}
+	summary, err := service.RegisterSummary(r.Context(), scope.TenantID, scope.LegalEntityID)
 	if err != nil {
 		writeROPAError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, summary)
+	httpx.WriteJSON(w, http.StatusOK, summary)
 }
 
 func (a *API) listRopaProcessingActivities(w http.ResponseWriter, r *http.Request) {
-	actor := actorFromRequest(r)
+	service, ok := a.ropaService(w)
+	if !ok {
+		return
+	}
+	scope, ok := a.ropaScope(w, r)
+	if !ok {
+		return
+	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	page, err := a.Ropa.ListActivities(r.Context(), ropa.ListActivitiesFilter{
-		TenantID:        actor.TenantID,
-		LegalEntityID:   actor.LegalEntityID,
-		Status:          ropa.Status(r.URL.Query().Get("status")),
-		LawfulBasis:     r.URL.Query().Get("lawful_basis"),
+	page, err := service.ListActivities(r.Context(), ropa.ListActivitiesFilter{
+		TenantID:         scope.TenantID,
+		LegalEntityID:    scope.LegalEntityID,
+		Status:           ropa.Status(r.URL.Query().Get("status")),
+		LawfulBasis:      r.URL.Query().Get("lawful_basis"),
 		OwnerPrincipalID: r.URL.Query().Get("owner_id"),
-		Search:          r.URL.Query().Get("search"),
-		IncludeRetired:  r.URL.Query().Get("include_retired") == "true",
-		Cursor:          r.URL.Query().Get("cursor"),
-		Limit:           limit,
+		Search:           r.URL.Query().Get("search"),
+		IncludeRetired:   r.URL.Query().Get("include_retired") == "true",
+		Cursor:           r.URL.Query().Get("cursor"),
+		Limit:            limit,
 	})
 	if err != nil {
 		writeROPAError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, page)
+	httpx.WriteJSON(w, http.StatusOK, page)
 }
 
 func (a *API) getRopaProcessingActivity(w http.ResponseWriter, r *http.Request) {
-	actor := actorFromRequest(r)
-	activity, err := a.Ropa.GetActivity(r.Context(), actor.TenantID, r.PathValue("id"))
+	service, ok := a.ropaService(w)
+	if !ok {
+		return
+	}
+	scope, ok := a.ropaScope(w, r)
+	if !ok {
+		return
+	}
+	activity, err := service.GetActivity(r.Context(), scope.TenantID, r.PathValue("id"))
 	if err != nil {
 		writeROPAError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, ropaActivityResponse{
+	httpx.WriteJSON(w, http.StatusOK, ropaActivityResponse{
 		StateLabel:      activity.Status.String(),
 		Activity:        activity,
-		ClosureBlockers: a.ropaClosureBlockers(r, activity),
+		ClosureBlockers: ropaClosureBlockers(activity),
 	})
 }
 
 func (a *API) getRopaProcessingActivityHistory(w http.ResponseWriter, r *http.Request) {
-	actor := actorFromRequest(r)
-	events, err := a.ropaActivityEvents(r.Context(), actor.TenantID, r.PathValue("id"))
+	if a.deps.RopaEventsReader == nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "ropa_unavailable", "The processing activity register is unavailable.")
+		return
+	}
+	scope, ok := a.ropaScope(w, r)
+	if !ok {
+		return
+	}
+	events, err := a.deps.RopaEventsReader.ActivityEvents(r.Context(), scope.TenantID, r.PathValue("id"))
 	if err != nil {
 		writeROPAError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"events": events})
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"events": events})
 }
 
 type createRopaActivityRequest struct {
@@ -2497,15 +2540,22 @@ type createRopaActivityRequest struct {
 }
 
 func (a *API) createRopaProcessingActivity(w http.ResponseWriter, r *http.Request) {
-	actor := actorFromRequest(r)
+	service, ok := a.ropaService(w)
+	if !ok {
+		return
+	}
+	scope, ok := a.ropaScope(w, r)
+	if !ok {
+		return
+	}
 	var body createRopaActivityRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeROPAError(w, ropa.ErrInvalid)
 		return
 	}
-	activity, err := a.Ropa.CreateActivity(r.Context(), ropa.CreateActivityInput{
-		TenantID:                     actor.TenantID,
-		LegalEntityID:                actor.LegalEntityID,
+	activity, err := service.CreateActivity(r.Context(), ropa.CreateActivityInput{
+		TenantID:                     scope.TenantID,
+		LegalEntityID:                scope.LegalEntityID,
 		Code:                         body.Code,
 		Name:                         body.Name,
 		Description:                  body.Description,
@@ -2521,13 +2571,13 @@ func (a *API) createRopaProcessingActivity(w http.ResponseWriter, r *http.Reques
 		OwnerPrincipalID:             body.OwnerPrincipalID,
 		RequiredAuthorityPrincipalID: body.RequiredAuthorityPrincipalID,
 		ProgramID:                    body.ProgramID,
-		ActorID:                      actor.PrincipalID,
+		ActorID:                      scope.PrincipalID,
 	})
 	if err != nil {
 		writeROPAError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, ropaActivityResponse{StateLabel: activity.Status.String(), Activity: activity})
+	httpx.WriteJSON(w, http.StatusCreated, ropaActivityResponse{StateLabel: activity.Status.String(), Activity: activity})
 }
 
 type transitionRopaActivityRequest struct {
@@ -2537,27 +2587,34 @@ type transitionRopaActivityRequest struct {
 }
 
 func (a *API) transitionRopaProcessingActivity(w http.ResponseWriter, r *http.Request) {
-	actor := actorFromRequest(r)
+	service, ok := a.ropaService(w)
+	if !ok {
+		return
+	}
+	scope, ok := a.ropaScope(w, r)
+	if !ok {
+		return
+	}
 	var body transitionRopaActivityRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeROPAError(w, ropa.ErrInvalid)
 		return
 	}
-	activity, err := a.Ropa.TransitionActivity(r.Context(), ropa.TransitionActivityInput{
-		TenantID:        actor.TenantID,
+	activity, err := service.TransitionActivity(r.Context(), ropa.TransitionActivityInput{
+		TenantID:        scope.TenantID,
 		ActivityID:      r.PathValue("id"),
 		ExpectedVersion: body.ExpectedVersion,
 		To:              ropa.Status(body.To),
-		ActorID:         actor.PrincipalID,
+		ActorID:         scope.PrincipalID,
 	})
 	if err != nil {
 		writeROPAError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, ropaActivityResponse{StateLabel: activity.Status.String(), Activity: activity})
+	httpx.WriteJSON(w, http.StatusOK, ropaActivityResponse{StateLabel: activity.Status.String(), Activity: activity})
 }
 
-func (a *API) ropaClosureBlockers(r *http.Request, activity ropa.ProcessingActivity) []string {
+func ropaClosureBlockers(activity ropa.ProcessingActivity) []string {
 	if activity.Status == ropa.StatusClosed {
 		return nil
 	}
@@ -2574,29 +2631,29 @@ func (a *API) ropaClosureBlockers(r *http.Request, activity ropa.ProcessingActiv
 	return blockers
 }
 
-func (a *API) ropaActivityEvents(ctx context.Context, tenantID, activityID string) ([]ropa.Event, error) {
-	return a.RopaEventsReader.ActivityEvents(ctx, tenantID, activityID)
-}
-
 func writeROPAError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ropa.ErrNotFound):
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "Processing activity not found."})
+		httpx.WriteError(w, http.StatusNotFound, "ropa_activity_not_found", "This processing activity was not found in your legal entity.")
 	case errors.Is(err, ropa.ErrVersionConflict):
-		writeJSON(w, http.StatusConflict, map[string]string{"error": "This processing activity changed since you opened it. Review the current record and try again."})
+		httpx.WriteError(w, http.StatusConflict, "ropa_activity_version_conflict", "This processing activity changed since you opened it. Review the current record and try again.")
 	case errors.Is(err, ropa.ErrDuplicate):
-		writeJSON(w, http.StatusConflict, map[string]string{"error": "A processing activity with this code already exists in this legal entity."})
+		httpx.WriteError(w, http.StatusConflict, "ropa_activity_duplicate", "A processing activity with this code already exists in this legal entity. Choose a different code.")
 	case errors.Is(err, ropa.ErrClosureBlocked):
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": "Complete the lawful basis, named owner and data subject category before closing this processing activity."})
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "ropa_activity_closure_blocked", "Record the lawful basis, named owner and data subject category before closing this processing activity.")
 	case errors.Is(err, ropa.ErrInvalid):
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": "This processing activity is not valid. Check the code, name and controller."})
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "ropa_activity_invalid", "This processing activity is not valid. Check the code, name and controller.")
 	default:
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "No change was made. Try again."})
+		httpx.WriteError(w, http.StatusInternalServerError, "ropa_unavailable", "No change was made. Try again.")
 	}
 }
 ```
 
-Reconcile helper names with the file you are editing: if `actorFromRequest`, `writeJSON` and the context type have different names in `internal/httpapi`, use the existing ones. Confirm with `cd C:\dev\clearsight-grc; git grep -n "func actorFrom\|func writeJSON\|actor :=" -- internal/httpapi | Select-Object -First 6`.
+`ropaScope` reads the verified actor and returns tenant, legal entity and
+principal. The body fields `tenant_id`, `legal_entity_id` and `actor_id` are
+accepted for shape compatibility but **never used** — the command guard
+overwrites them. Keep the struct fields so a forged value is visibly ignored
+rather than rejected.
 
 - [ ] **Step 5: Register the routes in the catalog**
 
@@ -2627,18 +2684,15 @@ func (a *API) productionRoutes() []routeSpec {
 
 - [ ] **Step 6: Add the server dependencies**
 
-Modify `internal/httpapi/server.go` to add fields alongside the existing services:
+Add ROPA to the existing dependency struct in `internal/httpapi/server.go` (the
+same struct that already holds `Continuity`), with the matching import:
 
 ```go
 	Ropa            *ropa.Service
 	RopaEventsReader ropa.Repository
 ```
 
-and the matching import:
-
-```go
-	"github.com/CloudSpaceLab/clearsight-grc/internal/ropa"
-```
+Handlers reach them as `a.deps.Ropa` and `a.deps.RopaEventsReader`.
 
 - [ ] **Step 7: Run the route test to verify it passes**
 
@@ -3098,40 +3152,57 @@ export function RopaRegisterPage({ summary }: { summary?: RegisterSummary }) {
       </header>
       {summary ? <RopaDashboardStrip summary={summary} /> : null}
       <FilterBar
-        search={{ label: "Search processing activities", value: search, onChange: setSearch }}
-        selects={[{ label: "Status", value: status, onChange: setStatus, options: [
-          { value: "", label: "All statuses" },
-          { value: "NEW", label: "Not started" },
-          { value: "OPEN", label: "In progress" },
-          { value: "CLOSED", label: "Complete" },
-        ] }]}
+        label="Filter processing activities"
         resultCount={rows.length}
+        resultLabel={(count) => `${count} processing activities on this page`}
+        clearLabel="Clear filters"
+        onClear={hasFilters ? () => { setStatus(""); setSearch(""); } : undefined}
+        fields={<>
+          <SearchField label="Search processing activities" value={search} onChange={setSearch} />
+          <SelectField label="Status" value={status} onChange={setStatus} options={[
+            { value: "", label: "All statuses" },
+            { value: "NEW", label: "Not started" },
+            { value: "OPEN", label: "In progress" },
+            { value: "CLOSED", label: "Complete" },
+          ]} />
+        </>}
       />
       {error ? <p className="notice notice--error" role="alert">{error}</p> : null}
       <DataTable
-        caption="Processing activities"
+        ariaLabel="Processing activities"
         rows={rows}
         rowKey={(row) => row.id}
+        rowName={(row) => `${row.name}, ${row.code}`}
+        isLoading={loading}
+        onRowAction={(row) => { window.location.hash = `#ropa/activity/${encodeURIComponent(row.id)}`; }}
         columns={[
-          { key: "name", header: "Processing activity", render: (row) => (
+          { id: "name", header: "Processing activity", render: (row) => (
             <span><strong>{row.name}</strong><br /><small>{row.code}</small></span>
-          ) },
-          { key: "purpose", header: "Purpose", render: (row) => row.purpose || "Not recorded" },
-          { key: "lawful_basis", header: "Lawful basis", render: (row) => row.lawful_basis || "Not recorded" },
-          { key: "owner", header: "Owner", render: (row) => row.owner_principal_id || "No named owner" },
-          { key: "next_review_date", header: "Next review", render: (row) => row.next_review_date ?? "Not scheduled" },
-          { key: "status", header: "Status", render: (row) => <StatusBadge tone="neutral">{row.status === "NEW" ? "Not started" : row.status === "OPEN" ? "In progress" : "Complete"}</StatusBadge> },
+          ), accessibleText: (row) => `${row.name}, ${row.code}` },
+          { id: "purpose", header: "Purpose", render: (row) => row.purpose || "Not recorded", accessibleText: (row) => row.purpose || "Not recorded" },
+          { id: "lawful_basis", header: "Lawful basis", render: (row) => row.lawful_basis || "Not recorded", accessibleText: (row) => row.lawful_basis || "Not recorded" },
+          { id: "owner", header: "Owner", render: (row) => row.owner_principal_id || "No named owner", accessibleText: (row) => row.owner_principal_id || "No named owner" },
+          { id: "next_review_date", header: "Next review", render: (row) => row.next_review_date ?? "Not scheduled", accessibleText: (row) => row.next_review_date ?? "Not scheduled" },
+          { id: "status", header: "Status", kind: "status", render: (row) => (
+            <StatusBadge tone="neutral">{row.status === "NEW" ? "Not started" : row.status === "OPEN" ? "In progress" : "Complete"}</StatusBadge>
+          ), accessibleText: (row) => row.status === "NEW" ? "Not started" : row.status === "OPEN" ? "In progress" : "Complete" },
         ]}
-        loading={loading}
       />
     </div>
   );
 }
 ```
 
-Reconcile the component imports with the real export surface. Run
-`cd C:\dev\clearsight-grc; git grep -n "export function DataTable\|export function FilterBar\|export function StatusBadge" -- web/src | Select-Object -First 6`
-and use the actual paths and prop names.
+Use the real component signatures, verified in this repository:
+
+- `web/src/components/ui/DataTable.tsx` — props are `ariaLabel`, `rows`, `rowKey(row) => string`, `rowName(row) => string`, `columns`, `isLoading`, `onRowAction`, `pagination`. Each column is `{ id, header, kind?, mobileLayout?, render(row), accessibleText(row) => string }`. There is **no** `caption`, `key` or `loading` prop.
+- `web/src/components/ui/FilterBar.tsx` — props are `label`, `fields` (ReactNode), `resultCount`, `resultLabel(count) => string`, `clearLabel`, `onClear`.
+- `web/src/components/ui/StatusBadge.tsx` — `StatusBadge({ tone = "neutral", children })`.
+- `Button` uses `variant` and `onPress`, not `onClick`.
+
+Find the search and select field components with
+`cd C:\dev\clearsight-grc; git grep -n "export function SearchField\|export function SelectField" -- web/src/components/ui`
+and use their real names and props. Add `hasFilters` to the component state.
 
 - [ ] **Step 5: Build the activity page**
 
