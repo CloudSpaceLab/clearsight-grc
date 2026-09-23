@@ -7,6 +7,13 @@
     "overflow": false
   },
   {
+    "file": "register-light-1440.png",
+    "state": "register",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false
+  },
+  {
     "file": "unavailable-light-1440.png",
     "state": "unavailable",
     "theme": "light",
@@ -16,6 +23,13 @@
   {
     "file": "live-light-390.png",
     "state": "live",
+    "theme": "light",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "file": "register-light-390.png",
+    "state": "register",
     "theme": "light",
     "width": 390,
     "overflow": false
@@ -35,6 +49,13 @@
     "overflow": false
   },
   {
+    "file": "register-dark-1440.png",
+    "state": "register",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false
+  },
+  {
     "file": "unavailable-dark-1440.png",
     "state": "unavailable",
     "theme": "dark",
@@ -44,6 +65,13 @@
   {
     "file": "live-dark-390.png",
     "state": "live",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "file": "register-dark-390.png",
+    "state": "register",
     "theme": "dark",
     "width": 390,
     "overflow": false

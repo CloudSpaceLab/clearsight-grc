@@ -55,16 +55,16 @@ type sourceRecord struct {
 	CreateMatter bool                `json:"create_matter"`
 }
 type sourceRecordGroup struct {
-	Key              string         `json:"key"`
-	ProgramCode      string         `json:"program_code"`
-	Title            string         `json:"title"`
-	SourceFile       string         `json:"source_file"`
-	SourceSHA256     string         `json:"source_sha256"`
-	SourceSheet      string         `json:"source_sheet"`
-	Period           string         `json:"period"`
-	Limitations      []string       `json:"limitations"`
-	ResponsePerRecord bool          `json:"response_per_record"`
-	Records          []sourceRecord `json:"records"`
+	Key               string         `json:"key"`
+	ProgramCode       string         `json:"program_code"`
+	Title             string         `json:"title"`
+	SourceFile        string         `json:"source_file"`
+	SourceSHA256      string         `json:"source_sha256"`
+	SourceSheet       string         `json:"source_sheet"`
+	Period            string         `json:"period"`
+	Limitations       []string       `json:"limitations"`
+	ResponsePerRecord bool           `json:"response_per_record"`
+	Records           []sourceRecord `json:"records"`
 }
 type sourceRecordManifest struct {
 	Version int                 `json:"version"`
@@ -78,6 +78,13 @@ type sourceRecordReceipt struct {
 	Items    []map[string]any `json:"items"`
 }
 
+type sourceMatterProjectionValue struct {
+	Summary      string
+	Scope        json.RawMessage
+	KnownFacts   json.RawMessage
+	MissingFacts json.RawMessage
+}
+
 func sourceJSON(value any) json.RawMessage { data, _ := json.Marshal(value); return data }
 func sourceShort(value string, limit int) string {
 	value = strings.TrimSpace(value)
@@ -89,6 +96,68 @@ func sourceShort(value string, limit int) string {
 		end--
 	}
 	return value[:end] + "…"
+}
+
+func sourceFieldValue(record sourceRecord, labels ...string) string {
+	for _, label := range labels {
+		for _, field := range record.Fields {
+			if strings.EqualFold(strings.TrimSpace(field.Label), strings.TrimSpace(label)) {
+				return strings.TrimSpace(field.Value)
+			}
+		}
+	}
+	return ""
+}
+
+func sourceMatterProjection(group sourceRecordGroup, record sourceRecord) sourceMatterProjectionValue {
+	finding := sourceFieldValue(record, "FINDINGS", "RISK DESCRIPTION", "Risk Event Description", "Threat", "ROOT CAUSE ANALYSIS", "DELIVERABLE", "RISK AREAS", "TRAN_PARTICULAR")
+	implication := sourceFieldValue(record, "RISK/ IMPLICATIONS", "Vulnerability", "Rationale", "Risk Driver Descriptions Level 1")
+	if finding == "" {
+		finding = strings.TrimSpace(record.Title)
+	}
+	summary := finding
+	if implication != "" && !strings.EqualFold(implication, finding) {
+		summary += "\n\nRisk implication: " + implication
+	}
+
+	affectedArea := sourceFieldValue(record, "SERVICES OFFERED", "APPLICATION/ SERVICES AFFECTED", "Application", "RISK AREAS", "Asset Name", "Asset inventory / ASSET NAME", "SERVICE", "Branch", "Business unit")
+	accountableFunction := sourceFieldValue(record, "BUSINESS OWNER", "Business unit", "Asset inventory / ASSET OWNER", "Risk Owner", "INTERNAL BUSINESS")
+	vendor := sourceFieldValue(record, "SERVICE PROVIDER", "VENDOR")
+	scope := map[string]any{"sample": true, "seed_package": sourceRecordPackage, "source_group": group.Key}
+	if affectedArea != "" {
+		scope["affected_area"] = affectedArea
+	}
+	if accountableFunction != "" {
+		scope["accountable_function"] = accountableFunction
+	}
+	if vendor != "" {
+		scope["vendor"] = vendor
+	}
+
+	facts := map[string]any{
+		"source_file": group.SourceFile, "source_sha256": group.SourceSHA256, "source_sheet": group.SourceSheet,
+		"source_range": record.SourceRange, "source_period": group.Period, "source_status": record.Status,
+		"source_rating": record.Rating, "source_owner": record.Owner, "source_assessor": record.Assessor,
+		"source_fields": record.Fields, "source_limitations": group.Limitations, "source_projection_version": 2, "sample": true,
+	}
+	for key, value := range map[string]string{
+		"finding":              finding,
+		"risk_implication":     implication,
+		"severity":             sourceFieldValue(record, "Severity", "RISK LEVEL", "Risk Level (Inherent Risk)", "Inherent Risk Rating"),
+		"recommendation":       sourceFieldValue(record, "RECOMMENDATIONS", "Required Actions", "Additional/Proposed controls"),
+		"assessment_date":      sourceFieldValue(record, "DATE OF ASSESSMENT", "Source assessment date", "RISK ASSESSMENT PUBLICATION DATE"),
+		"source_comment":       sourceFieldValue(record, "RISK OWNER COMMENT", "IT RISK COMMENT", "Comments"),
+		"internal_assessor":    strings.TrimSpace(record.Assessor),
+		"action_performer":     strings.TrimSpace(record.Owner),
+		"accountable_function": accountableFunction,
+		"affected_area":        affectedArea,
+		"service_provider":     vendor,
+	} {
+		if value != "" {
+			facts[key] = value
+		}
+	}
+	return sourceMatterProjectionValue{Summary: summary, Scope: sourceJSON(scope), KnownFacts: sourceJSON(facts), MissingFacts: sourceJSON([]string{})}
 }
 
 func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, seed bankverticals.SeedConfig) (sourceRecordReceipt, error) {
@@ -218,7 +287,7 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 				if vendor {
 					subjectType, subjectID = "VENDOR_RELATIONSHIP", sourceCloudspaceRelationship
 				}
-				idempotencyKey := fmt.Sprintf("%s:%s:%d", sourceRecordPackage, group.Key, index)
+				_, idempotencyKey := sourceFormIdentity(group, index)
 				var distributionID string
 				queryErr := pool.QueryRow(ctx, `SELECT distribution_id::text FROM capture_distribution_creation_receipts WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND idempotency_key=$3`, seed.TenantID, seed.LegalEntityID, idempotencyKey).Scan(&distributionID)
 				var bundle evidence.DistributionBundle
@@ -250,6 +319,11 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 				}
 				receipt.Captures++
 				receipt.Items = append(receipt.Items, map[string]any{"group": group.Key, "records": len(part), "form_id": form.ID, "distribution_id": bundle.Distribution.ID, "program_id": programID})
+			}
+			if vendor {
+				if err = retireFlattenedThirdPartyCapture(ctx, pool, distributions, seed, group); err != nil {
+					return receipt, err
+				}
 			}
 			fmt.Fprintf(os.Stderr, "Source capture: %s (%d records)\n", group.Title, len(group.Records))
 		}
@@ -288,6 +362,7 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 
 func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.Service, seed bankverticals.SeedConfig, programID string, group sourceRecordGroup, record sourceRecord) (continuity.MatterAggregate, error) {
 	key := sourceRecordPackage + ":" + record.Key
+	projection := sourceMatterProjection(group, record)
 	matter, err := cs.MatterByTriggerKey(ctx, seed.TenantID, key)
 	owner := seed.OwnerPrincipalID
 	if strings.EqualFold(strings.TrimSpace(record.Owner), "CISO") {
@@ -313,8 +388,6 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 		due = &value
 	}
 	if errors.Is(err, continuity.ErrNotFound) {
-		facts := map[string]any{"source_file": group.SourceFile, "source_sha256": group.SourceSHA256, "source_sheet": group.SourceSheet, "source_range": record.SourceRange, "source_period": group.Period, "source_status": record.Status, "source_rating": record.Rating, "source_owner": record.Owner, "source_assessor": record.Assessor, "source_fields": record.Fields, "sample": true}
-		summary := sourceRecordText(record) + "\n\nSource: " + group.SourceFile + " · " + record.SourceRange + ". Sample data; source outcomes have not been independently verified."
 		priority := 3
 		if strings.Contains(strings.ToLower(record.Rating), "high") {
 			priority = 4
@@ -322,7 +395,7 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 		if strings.Contains(strings.ToLower(record.Rating), "critical") {
 			priority = 5
 		}
-		matter, err = cs.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, ProgramID: programID, Type: continuity.MatterType(record.Kind), Priority: priority, Title: sourceShort(record.Title, 250), Summary: summary, Scope: sourceJSON(map[string]any{"sample": true, "seed_package": sourceRecordPackage, "source_group": group.Key}), KnownFacts: sourceJSON(facts), MissingFacts: sourceJSON(group.Limitations), Contradictions: sourceJSON([]string{}), TriggerType: "SOURCE_REGISTER_IMPORT", TriggerKey: key, OwnerPrincipalID: seed.OwnerPrincipalID, DueAt: due, ActorID: seed.ActorID})
+		matter, err = cs.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, ProgramID: programID, Type: continuity.MatterType(record.Kind), Priority: priority, Title: sourceShort(record.Title, 250), Summary: projection.Summary, Scope: projection.Scope, KnownFacts: projection.KnownFacts, MissingFacts: projection.MissingFacts, Contradictions: sourceJSON([]string{}), TriggerType: "SOURCE_REGISTER_IMPORT", TriggerKey: key, OwnerPrincipalID: seed.OwnerPrincipalID, DueAt: due, ActorID: seed.ActorID})
 	}
 	if err != nil {
 		return matter, err
@@ -456,8 +529,7 @@ func sourceCaptureParts(group sourceRecordGroup) [][]sourceRecord {
 }
 
 func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankverticals.SeedConfig, programID string, group sourceRecordGroup, records []sourceRecord, index, total int) (monitoring.FormTemplate, map[string]formcontract.AnswerValue, error) {
-	digest := sha256.Sum256([]byte(group.Key))
-	code := fmt.Sprintf("SOURCE-%X-%02d", digest[:8], index+1)
+	code, _ := sourceFormIdentity(group, index)
 	name := group.Title
 	if total > 1 {
 		name += fmt.Sprintf(" · %d/%d", index+1, total)
@@ -469,37 +541,53 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 	purpose += ". Historical responses; evidence and outcomes remain unverified."
 	input := monitoring.CreateFormInput{ProgramID: programID, LegalEntityID: seed.LegalEntityID, Code: code, Name: sourceShort(name, 200), Purpose: purpose, OwnerPrincipalID: seed.OwnerPrincipalID, ResponsibleTeam: "Risk and Compliance", Tags: []string{"sample-data", sourceRecordPackage, group.Key}, ScoringMode: formcontract.ScoringNone, Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true}}
 	answers := map[string]formcontract.AnswerValue{}
-	input.Sections = []formcontract.Section{{ID: "source", Title: "Source and limitations"}}
-	input.Fields = []formcontract.Field{{ID: "source_context", SectionID: "source", Label: "Source context", Type: formcontract.TypeLongText}}
-	answers["source_context"] = formcontract.TextAnswer(purpose + "\nSHA-256: " + group.SourceSHA256 + "\n" + strings.Join(group.Limitations, "\n"))
-	compact := len(group.Records) > 20 && !group.ResponsePerRecord
-	if compact {
-		input.Sections = append(input.Sections, formcontract.Section{ID: "records", Title: sourceShort(group.Title, 200)})
-	}
-	for r, record := range records {
-		sectionID := fmt.Sprintf("record_%d", r)
-		if compact {
-			sectionID = "records"
-		} else {
-			input.Sections = append(input.Sections, formcontract.Section{ID: sectionID, Title: sourceShort(record.Title, 200), Help: sourceShort(record.SourceRange, 1000)})
+	if semantic, ok, semanticErr := thirdPartySemanticCapture(group); semanticErr != nil {
+		return monitoring.FormTemplate{}, nil, semanticErr
+	} else if ok {
+		if len(records) != len(group.Records) || len(semantic.Requirements) != len(group.Records) {
+			return monitoring.FormTemplate{}, nil, fmt.Errorf("third-party semantic capture must remain one complete source group")
 		}
-		if compact {
-			fieldID := fmt.Sprintf("row_%d", r)
-			input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceShort(record.Title, 200), Type: formcontract.TypeLongText, Description: sourceShort(record.SourceRange, 1000)})
-			answers[fieldID] = formcontract.TextAnswer(sourceRecordText(record))
-			continue
+		input, answers, semanticErr = buildThirdPartySemanticForm(group)
+		if semanticErr != nil {
+			return monitoring.FormTemplate{}, nil, semanticErr
 		}
-		for f, field := range record.Fields {
-			fieldID := fmt.Sprintf("r%d_f%d", r, f)
-			label := field.Label
-			if label == "" {
-				label = "Source value"
+		input.ProgramID, input.LegalEntityID, input.Code = programID, seed.LegalEntityID, code
+		input.OwnerPrincipalID, input.ResponsibleTeam = seed.OwnerPrincipalID, "Risk and Compliance"
+		input.Tags = []string{"sample-data", "fidelity-source-records-v3", group.Key, "semantic-capture"}
+		name, purpose = input.Name, input.Purpose
+	} else {
+		input.Sections = []formcontract.Section{{ID: "source", Title: "Source and limitations"}}
+		input.Fields = []formcontract.Field{{ID: "source_context", SectionID: "source", Label: "Source context", Type: formcontract.TypeLongText}}
+		answers["source_context"] = formcontract.TextAnswer(purpose + "\nSHA-256: " + group.SourceSHA256 + "\n" + strings.Join(group.Limitations, "\n"))
+		compact := len(group.Records) > 20 && !group.ResponsePerRecord
+		if compact {
+			input.Sections = append(input.Sections, formcontract.Section{ID: "records", Title: sourceShort(group.Title, 200)})
+		}
+		for r, record := range records {
+			sectionID := fmt.Sprintf("record_%d", r)
+			if compact {
+				sectionID = "records"
+			} else {
+				input.Sections = append(input.Sections, formcontract.Section{ID: sectionID, Title: sourceShort(record.Title, 200), Help: sourceShort(record.SourceRange, 1000)})
 			}
-			input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceShort(label, 200), Type: formcontract.TypeLongText, Description: sourceShort(field.SourceCell, 1000)})
-			// The response workspace omits unanswered whitespace-only cells.
-			// Preserve every nonblank source value exactly for immutable retries.
-			if strings.TrimSpace(field.Value) != "" {
-				answers[fieldID] = formcontract.TextAnswer(field.Value)
+			if compact {
+				fieldID := fmt.Sprintf("row_%d", r)
+				input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceShort(record.Title, 200), Type: formcontract.TypeLongText, Description: sourceShort(record.SourceRange, 1000)})
+				answers[fieldID] = formcontract.TextAnswer(sourceRecordText(record))
+				continue
+			}
+			for f, field := range record.Fields {
+				fieldID := fmt.Sprintf("r%d_f%d", r, f)
+				label := field.Label
+				if label == "" {
+					label = "Source value"
+				}
+				input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceShort(label, 200), Type: formcontract.TypeLongText, Description: sourceShort(field.SourceCell, 1000)})
+				// The response workspace omits unanswered whitespace-only cells.
+				// Preserve every nonblank source value exactly for immutable retries.
+				if strings.TrimSpace(field.Value) != "" {
+					answers[fieldID] = formcontract.TextAnswer(field.Value)
+				}
 			}
 		}
 	}
@@ -533,4 +621,62 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 		err = fmt.Errorf("source form is %s", form.Status)
 	}
 	return form, answers, err
+}
+
+func sourceFormIdentity(group sourceRecordGroup, index int) (string, string) {
+	packageID := sourceRecordPackage
+	key := group.Key
+	if strings.HasPrefix(group.Key, "third-party-risk-register") {
+		packageID = "fidelity-source-records-v3"
+		key += ":semantic-v3"
+	}
+	digest := sha256.Sum256([]byte(key))
+	code := fmt.Sprintf("SOURCE-%X-%02d", digest[:8], index+1)
+	if packageID != sourceRecordPackage {
+		code = fmt.Sprintf("SOURCE-TPR-V3-%X-%02d", digest[:6], index+1)
+	}
+	return code, fmt.Sprintf("%s:%s:%d", packageID, group.Key, index)
+}
+
+func retireFlattenedThirdPartyCapture(ctx context.Context, pool *pgxpool.Pool, distributions *evidence.DistributionService, seed bankverticals.SeedConfig, group sourceRecordGroup) error {
+	if !strings.HasPrefix(group.Key, "third-party-risk-register") {
+		return nil
+	}
+	var replacementID string
+	_, replacementKey := sourceFormIdentity(group, 0)
+	if err := pool.QueryRow(ctx, `SELECT distribution_id::text FROM capture_distribution_creation_receipts WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND idempotency_key=$3`, seed.TenantID, seed.LegalEntityID, replacementKey).Scan(&replacementID); err != nil {
+		return err
+	}
+	priorKeys := []string{fmt.Sprintf("%s:%s:0", sourceRecordPackage, group.Key), fmt.Sprintf("fidelity-source-records-v2:%s:0", group.Key)}
+	for _, priorKey := range priorKeys {
+		var previousID string
+		err := pool.QueryRow(ctx, `SELECT distribution_id::text FROM capture_distribution_creation_receipts WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND idempotency_key=$3`, seed.TenantID, seed.LegalEntityID, priorKey).Scan(&previousID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if previousID == replacementID {
+			return fmt.Errorf("third-party semantic replacement reused a prior distribution")
+		}
+		previous, err := distributions.Get(ctx, seed.TenantID, seed.LegalEntityID, previousID)
+		if err != nil {
+			return err
+		}
+		if previous.Distribution.SubjectType != "VENDOR_RELATIONSHIP" || previous.Distribution.SubjectID != sourceCloudspaceRelationship || previous.Distribution.FormTemplateID == "" {
+			return fmt.Errorf("prior third-party distribution identity changed")
+		}
+		switch previous.Distribution.Status {
+		case evidence.DistributionRevoked, evidence.DistributionSuperseded:
+			continue
+		case evidence.DistributionCompleted:
+			return fmt.Errorf("completed prior third-party distribution requires governed historical conversion")
+		default:
+			if _, err = distributions.Revoke(ctx, seed.TenantID, seed.LegalEntityID, previousID, previous.Distribution.Version, seed.ActorID); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

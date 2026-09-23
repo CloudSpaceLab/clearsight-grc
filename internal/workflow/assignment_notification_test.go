@@ -175,6 +175,26 @@ func TestAssignmentNotificationDeliversExactActionPerformerWork(t *testing.T) {
 	}
 }
 
+func TestAssignmentNotificationDeliversActionUpdateRequest(t *testing.T) {
+	repo := &assignmentNotificationRepositoryStub{context: deliverableAssignmentContext()}
+	delivery := &assignmentDeliveryStub{receipt: evidence.InvitationDeliveryReceipt{Status: evidence.InvitationDelivered}}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := json.Marshal(map[string]any{"id": "00000000-0000-4000-8000-000000000709", "matter_id": "00000000-0000-4000-8000-000000000701", "action_id": "00000000-0000-4000-8000-000000000706", "recipient_principal_id": "00000000-0000-4000-8000-000000000703", "message": "Confirm the expected delivery date."})
+	if err != nil {
+		t.Fatal(err)
+	}
+	event := workflowruntime.OutboxEvent{ID: "00000000-0000-4000-8000-000000000710", TenantID: "bank-1", AggregateType: "MATTER", AggregateID: "00000000-0000-4000-8000-000000000701", EventType: continuity.EventMatterActionUpdateRequested, Payload: payload}
+	if err := consumer.Publish(t.Context(), event); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 1 || !strings.Contains(delivery.request.PlainText, "Status update requested") || !strings.Contains(delivery.request.PlainText, "Confirm the expected delivery date.") {
+		t.Fatalf("update request = %#v", delivery.request)
+	}
+}
+
 func TestAssignmentNotificationUsesResolvedExactInternalRequestLink(t *testing.T) {
 	notificationContext := deliverableAssignmentContext()
 	notificationContext.WorkTitle = "Confirm the registered address"

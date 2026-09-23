@@ -445,6 +445,31 @@ type Action struct {
 	Version                int64        `json:"version"`
 }
 
+// MatterComment is immutable discussion attached to one Matter. Mentions are
+// principal identifiers; display names and delivery are resolved separately.
+type MatterComment struct {
+	ID                    string    `json:"id"`
+	TenantID              string    `json:"tenant_id"`
+	MatterID              string    `json:"matter_id"`
+	ActionID              string    `json:"action_id,omitempty"`
+	Body                  string    `json:"body"`
+	MentionedPrincipalIDs []string  `json:"mentioned_principal_ids,omitempty"`
+	CreatedAt             time.Time `json:"created_at"`
+}
+
+// MatterActionUpdateRequest asks the current performer for a status update.
+// It never transitions the Action or closes the Matter.
+type MatterActionUpdateRequest struct {
+	ID                   string     `json:"id"`
+	TenantID             string     `json:"tenant_id"`
+	MatterID             string     `json:"matter_id"`
+	ActionID             string     `json:"action_id"`
+	RecipientPrincipalID string     `json:"recipient_principal_id"`
+	Message              string     `json:"message,omitempty"`
+	DueAt                *time.Time `json:"due_at,omitempty"`
+	CreatedAt            time.Time  `json:"created_at"`
+}
+
 type VerificationContract struct {
 	ID                       string             `json:"id"`
 	TenantID                 string             `json:"tenant_id"`
@@ -514,6 +539,23 @@ type MatterAggregate struct {
 	VerificationResults   []VerificationResult   `json:"verification_results"`
 	ResponsePackages      []ResponsePackage      `json:"response_packages"`
 	Closure               ClosureAssessment      `json:"closure"`
+}
+
+type MatterActivityItem struct {
+	EventID       string                     `json:"event_id"`
+	EventType     string                     `json:"event_type"`
+	MatterVersion int64                      `json:"matter_version"`
+	ActorID       string                     `json:"actor_id,omitempty"`
+	ActorType     ActorType                  `json:"actor_type"`
+	OccurredAt    time.Time                  `json:"occurred_at"`
+	Comment       *MatterComment             `json:"comment,omitempty"`
+	UpdateRequest *MatterActionUpdateRequest `json:"update_request,omitempty"`
+}
+
+type MatterActivityPage struct {
+	Items             []MatterActivityItem `json:"items"`
+	NextBeforeVersion int64                `json:"next_before_version,omitempty"`
+	GeneratedAt       time.Time            `json:"generated_at"`
 }
 
 type ClosureAssessment struct {

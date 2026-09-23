@@ -1,16 +1,18 @@
-export type View = "today" | "oversight" | "programs" | "forms" | "vendors" | "work" | "imports" | "explore" | "configure";
+export type View = "today" | "oversight" | "programs" | "forms" | "vendors" | "work" | "people" | "imports" | "explore" | "configure";
 export type WorkTab = "matters" | "evidence";
 export type ProgramSection = "overview" | "requirements-controls" | "monitoring" | "evidence-results" | "issues-actions" | "history";
 export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id: string };
+export type VendorPage = "overview" | "register";
 export type WorkspaceTarget = {
   programID?: string;
   formTemplateID?: string;
   programSection?: ProgramSection;
   programItem?: ProgramItemTarget;
   matterID?: string;
-  evidenceID?: string;
+	evidenceID?: string;
+	personID?: string;
   vendorRelationshipID?: string;
-  vendorPage?: "dashboard" | "register";
+  vendorPage?: VendorPage;
   documentID?: string;
   openFirstProgram?: boolean;
   openFirstMatter?: boolean;
@@ -24,7 +26,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     if (!value) return undefined;
     try { return decodeURIComponent(value); } catch { return value; }
   };
-  const allowed: View[] = ["today", "oversight", "programs", "forms", "vendors", "work", "imports", "explore", "configure"];
+	const allowed: View[] = ["today", "oversight", "programs", "forms", "vendors", "work", "people", "imports", "explore", "configure"];
   const view = allowed.includes(parts[0] as View) ? parts[0] as View : "today";
   if (view === "programs") {
     if (!parts[1]) return { view, target: {} };
@@ -41,10 +43,12 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     }
     return { view, target };
   }
-  if (view === "forms") return { view, target: { formTemplateID: decodeTarget(parts[1]) } };
-  if (view === "vendors") {
-    if (parts[1] === "register" || parts[1] === "dashboard") return { view, target: { vendorPage: parts[1] } };
-    return { view, target: { vendorRelationshipID: decodeTarget(parts[1]) } };
+	if (view === "forms") return { view, target: { formTemplateID: decodeTarget(parts[1]) } };
+	if (view === "people") return { view, target: { personID: decodeTarget(parts[1]) } };
+	if (view === "vendors") {
+    if (!parts[1] || parts[1] === "overview") return { view, target: { vendorPage: "overview" } };
+    if (parts[1] === "register") return { view, target: { vendorPage: "register", ...(parts[2] ? { vendorRelationshipID: decodeTarget(parts[2]) } : {}) } };
+    return { view, target: { vendorPage: "register", vendorRelationshipID: decodeTarget(parts[1]) } };
   }
   if (view === "imports") return { view, target: { documentID: decodeTarget(parts[1]) } };
   if (view === "work") {
@@ -61,9 +65,12 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
     const item = section === "requirements-controls" ? target.programItem : undefined;
     return `#programs/${encodeURIComponent(target.programID)}/${section}${item?.id.trim() ? `/${item.kind}/${encodeURIComponent(item.id)}` : ""}`;
   }
-  if (view === "forms" && target.formTemplateID) return `#forms/${encodeURIComponent(target.formTemplateID)}`;
-  if (view === "vendors" && target.vendorRelationshipID) return `#vendors/${encodeURIComponent(target.vendorRelationshipID)}`;
-  if (view === "vendors" && target.vendorPage === "register") return "#vendors/register";
+	if (view === "forms" && target.formTemplateID) return `#forms/${encodeURIComponent(target.formTemplateID)}`;
+	if (view === "people" && target.personID) return `#people/${encodeURIComponent(target.personID)}`;
+  if (view === "vendors") {
+    if (target.vendorRelationshipID) return `#vendors/register/${encodeURIComponent(target.vendorRelationshipID)}`;
+    if (target.vendorPage) return `#vendors/${target.vendorPage}`;
+  }
   if (view === "imports" && target.documentID) return `#imports/${encodeURIComponent(target.documentID)}`;
   if (view === "work") {
     const id = workTab === "evidence" ? target.evidenceID : target.matterID;

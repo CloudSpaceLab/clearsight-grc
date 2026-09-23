@@ -1,5 +1,6 @@
 import { vendorWorkFilters } from "../vendorFormPresentation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { VendorPage } from "../appRouting";
 import "../vendors.css";
 import { resolveAuthority } from "../api";
 import { apiErrorKind } from "../http";
@@ -29,12 +30,13 @@ import "./vendor-forms.css";
 type Props = {
   organizationName: string;
   legalEntityName: string;
+  page?: VendorPage;
   targetID?: string;
-  page?: "dashboard" | "register";
   guideIntent?: { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" | "open-vendor-next-action" };
   onGuideIntentCompleted?: (id: number) => void;
   onGuideIntentFailed?: (id: number) => void;
   onTarget?: (id?: string) => void;
+  onPage?: (page: VendorPage) => void;
   onOpenRequest?: (requestID: string) => void;
   onOpenMatter?: (matterID: string) => void;
   onOpenForms?: () => void;
@@ -86,7 +88,7 @@ function firstVisiblePrimaryAction(selector: string) {
   return [...document.querySelectorAll<HTMLElement>(`${selector} button.primary-button:not(:disabled), ${selector} button.cs-button--primary:not(:disabled)`)].find(isGuideTargetAvailable) ?? null;
 }
 
-export function VendorsWorkspace({ organizationName, legalEntityName, targetID, page = "register", guideIntent, onGuideIntentCompleted, onGuideIntentFailed, onTarget, onOpenRequest, onOpenMatter, onOpenForms }: Props) {
+export function VendorsWorkspace({ organizationName, legalEntityName, page = "register", targetID, guideIntent, onGuideIntentCompleted, onGuideIntentFailed, onTarget, onPage, onOpenRequest, onOpenMatter, onOpenForms }: Props) {
   const [records, setRecords] = useState<VendorRelationshipAggregate[]>([]);
   const [selected, setSelected] = useState<VendorRelationshipAggregate | null>(null);
   const [accountableOwnerLabel, setAccountableOwnerLabel] = useState("Current owner unavailable");
@@ -137,7 +139,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
     target.focus({ preventScroll: true });
     target.scrollIntoView?.({ block: "start" });
     navigationFocus.current = undefined;
-  }, [selected?.relationship.id, state, page]);
+  }, [selected?.relationship.id, state]);
 
   const recordIDs = records.map((record) => record.relationship.id).join(",");
   useEffect(() => {
@@ -165,12 +167,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   }, [formsFocus, selected?.relationship.id, vendorSection]);
 
   useEffect(() => {
-    if (!guideIntent) {
-      const search = page === "dashboard" ? "" : submittedQuery;
-      if (page === "dashboard") { setQuery(""); setSubmittedQuery(""); }
-      void refresh(targetID, search);
-    }
-  }, [targetID, page]);
+    if (!guideIntent) void refresh(targetID, submittedQuery);
+  }, [targetID]);
 
   useEffect(() => {
     if (guideIntent) void refresh(targetID, "", guideIntent);
@@ -481,7 +479,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
       }
       setRecords(next);
       setNextCursor(page.next_cursor ?? "");
-      const preserved = intent && selected ? next.find((item) => item.relationship.id === selected.relationship.id) : undefined;
+      const preserved = selected ? next.find((item) => item.relationship.id === selected.relationship.id) : undefined;
       const nextSelected = exact ?? preserved ?? (intent ? next[0] : undefined);
       if (nextSelected?.relationship.id !== selected?.relationship.id) setVendorSection("OVERVIEW");
       setSelected(nextSelected ?? null);
@@ -655,23 +653,28 @@ export function VendorsWorkspace({ organizationName, legalEntityName, targetID, 
   }
 
   const workspaceClass = `vendors-workspace${registerLocked ? " is-form" : selected ? " has-selection" : ""}`;
+  const activePage: VendorPage = selected || registerLocked ? "register" : page;
   const shownRecords = workFilter ? records.filter((record) => vendorSummaryMatches(formSummaries.get(record.relationship.id), workFilter)) : records;
   function requestForms(values: VendorRelationshipAggregate[]) { setRequestTargets(values.map((value) => ({ relationshipID: value.relationship.id, vendorName: value.vendor.legal_name, serviceName: value.relationship.service_name }))); }
   function openFormWork(record: VendorRelationshipAggregate, filter?: VendorFormsFilter) { choose(record); setVendorSection("FORMS"); setFormsFocus({ relationshipID: record.relationship.id, filter }); }
   return <div className={workspaceClass} tabIndex={-1}>
     <header className="topbar vendors-topbar">
-      <div>{!selected && <span className="eyebrow">{organizationName} · {legalEntityName}</span>}<h1>{selected || registerLocked ? "Vendors" : page === "dashboard" ? "Vendor dashboard" : "Vendor register"}</h1></div>
-      {mode === "browse" && <Button id="vendor-add-action" type="button" variant={selected ? "secondary" : "primary"} onPress={startCreate} isDisabled={state !== "live"}>Add vendor</Button>}
+      <div>{!selected && <span className="eyebrow">{organizationName} · {legalEntityName}</span>}<h1>Vendors</h1></div>
+      {mode === "browse" && <Button id="vendor-add-action" type="button" variant={selected ? "secondary" : "primary"} onPress={() => { onPage?.("register"); startCreate(); }} isDisabled={state !== "live"}>Add vendor</Button>}
     </header>
-    {!selected && !registerLocked && <nav className="vendor-page-navigation" aria-label="Vendor pages"><ActionLink href="#vendors" aria-current={page === "dashboard" ? "page" : undefined}>Dashboard</ActionLink><ActionLink href="#vendors/register" aria-current={page === "register" ? "page" : undefined}>Register</ActionLink></nav>}
+
+    <nav className="vendor-subnav" aria-label="Vendor sections">
+      <Button variant={activePage === "overview" ? "secondary" : "quiet"} aria-current={activePage === "overview" ? "page" : undefined} isDisabled={registerLocked} onPress={() => onPage?.("overview")}>Overview</Button>
+      <Button variant={activePage === "register" ? "secondary" : "quiet"} aria-current={activePage === "register" ? "page" : undefined} isDisabled={registerLocked} onPress={() => onPage?.("register")}>Register</Button>
+    </nav>
 
     {notice && <Notice tone="success">{notice}</Notice>}
     {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships for {legalEntityName}…</div>}
     {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><Button  type="button" onPress={() => void refresh(targetID, "")}>Try again</Button></section>}
-    {state === "live" && !selected && !registerLocked && page === "dashboard" && <VendorPortfolio records={records} hasMore={!!nextCursor} onOpenMatter={onOpenMatter} refreshKey={formsRefreshKey}/>}
-    {state === "live" && (page === "register" || selected || registerLocked) && <div className="vendor-layout">
+    {state === "live" && activePage === "overview" && !selected && !registerLocked && <VendorPortfolio records={records} hasMore={!!nextCursor} onOpenMatter={onOpenMatter} refreshKey={formsRefreshKey}/>}
+    {state === "live" && activePage === "register" && <div className="vendor-layout">
       <section id="vendor-portfolio-register" tabIndex={-1} className="vendor-register" aria-label={`Vendor relationships for ${legalEntityName}`} aria-describedby={registerLocked ? "vendor-register-lock-note" : undefined}>
-        <div className="vendor-register-header"><p>{records.length} {submittedQuery ? "matching " : ""}{records.length === 1 ? "relationship" : "relationships"} · {legalEntityName}</p>{nextCursor && <small>More relationships are available.</small>}</div>
+        <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{submittedQuery ? `Showing ${records.length} matching ${records.length === 1 ? "relationship" : "relationships"}` : `Showing ${records.length} ${records.length === 1 ? "relationship" : "relationships"} in this legal entity`}</p>{nextCursor && <small>More relationships are available.</small>}</div></div>
         {registerLocked && <p id="vendor-register-lock-note" className="vendor-register-lock-note">{registerLockMessage}</p>}
         <form className="vendor-search" onSubmit={searchRelationships}><TextField label="Search vendors and services" type="search" value={query} onChange={setQuery} placeholder="Name, service or reference" isDisabled={registerLocked}/><Button type="submit"  isDisabled={registerLocked}>Search vendors</Button></form>
         {records.length > 0 && <div className="vendor-register-bulk"><SelectField label="Form work in loaded relationships" value={workFilter} placeholder="All loaded relationships" isDisabled={registerLocked} options={vendorWorkFilters} onChange={setWorkFilter}/>{workFilter && <p>{shownRecords.length} of {records.length} loaded relationships match this form-work filter.</p>}

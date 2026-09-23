@@ -51,6 +51,9 @@ export type SessionStatus = {
 };
 
 export type TodaySnapshot = { items: AttentionItem[]; generated_at?: string };
+export type EmployeeProfile = { person: { id: string; display_name: string; status: string; position?: string; function?: string; sample: boolean }; metrics: Record<string, { value?: number }>; as_of: string };
+export type EmployeeWorkItem = { id: string; record_type: string; record_id: string; responsibility: string; title: string; status: string; due_at?: string; updated_at: string };
+export type EmployeeActivityItem = { event_id: string; occurred_at: string; action: string; record_type: string; record_id: string; title: string; source: string };
 export type AuthorityResolveInput = {
   object_type: "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST" | "THIRD_PARTY_RELATIONSHIP";
   object_id: string;
@@ -127,6 +130,10 @@ export function loadBankJourneys(): Promise<BankJourneysResponse> {
 export function loadToday(): Promise<TodaySnapshot> {
   return request<TodaySnapshot>("/api/v1/today");
 }
+
+export function loadEmployeeProfile(personID: string): Promise<EmployeeProfile> { return scopedRequest<EmployeeProfile>(`/api/v1/people/${encodeURIComponent(personID)}`); }
+export function loadEmployeeWork(personID: string): Promise<{ items: EmployeeWorkItem[]; as_of: string }> { return scopedRequest(`/api/v1/people/${encodeURIComponent(personID)}/work`, { limit: 50 }); }
+export function loadEmployeeActivity(personID: string): Promise<{ items: EmployeeActivityItem[]; as_of: string }> { return scopedRequest(`/api/v1/people/${encodeURIComponent(personID)}/activity`, { limit: 50 }); }
 
 export async function resolveAuthority(input: AuthorityResolveInput): Promise<AuthorityResolution> {
   const context = await loadContext();

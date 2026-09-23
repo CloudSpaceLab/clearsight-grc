@@ -137,7 +137,7 @@ func CompileMatterWork(aggregate MatterAggregate, now time.Time) ([]WorkRequirem
 				Responsibility:      "ACCOUNTABLE_OWNER",
 				Materiality:         maxInt(3, priority),
 				Title:               firstNonBlank(aggregate.Matter.Title, "Review issue"),
-				PrimaryAction:       matterNextAction(aggregate.Matter.Status),
+				PrimaryAction:       matterNextActionFor(aggregate.Matter),
 				WhyNow:              "This open issue is assigned to you and its current review step is ready.",
 				InterventionClass:   "REVIEW",
 				DueAt:               aggregate.Matter.DueAt,

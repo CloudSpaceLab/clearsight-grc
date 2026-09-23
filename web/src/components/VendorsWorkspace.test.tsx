@@ -19,35 +19,6 @@ async function chooseVendorOption(label: string, option: string) {
   fireEvent.click(await screen.findByRole("option", { name: option }));
 }
 
-it("separates the dashboard from the searchable vendor register", async () => {
-  const { rerender } = render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="dashboard"/>);
-  expect(await screen.findByRole("region", { name: "Vendor portfolio metrics" })).toBeTruthy();
-  expect(screen.queryByRole("searchbox")).toBeNull();
-  expect(screen.getByRole("link", { name: "Register" }).getAttribute("href")).toBe("#vendors/register");
-  rerender(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="register"/>);
-  expect(await screen.findByRole("searchbox", { name: "Search vendors and services" })).toBeTruthy();
-  expect(screen.queryByRole("region", { name: "Vendor portfolio metrics" })).toBeNull();
-});
-
-it("clears an exact vendor when browser navigation selects a vendor page", async () => {
-  const { rerender } = render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" targetID="relationship-1"/>);
-  await screen.findByRole("button", { name: "Back to vendor register" });
-  rerender(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="register"/>);
-  expect(await screen.findByRole("searchbox", { name: "Search vendors and services" })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Back to vendor register" })).toBeNull();
-});
-
-it("loads the dashboard without a register search filter", async () => {
-  const { rerender } = render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="register"/>);
-  fireEvent.change(await screen.findByRole("searchbox", { name: "Search vendors and services" }), { target: { value: "Acme" } });
-  fireEvent.click(screen.getByRole("button", { name: "Search vendors" }));
-  await waitFor(() => expect(loadVendorRelationships).toHaveBeenLastCalledWith({ search: "Acme", limit: 50 }));
-  await screen.findByText("1 matching relationship · Bank Nigeria");
-  rerender(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="dashboard"/>);
-  await screen.findByRole("region", { name: "Vendor portfolio metrics" });
-  expect(loadVendorRelationships).toHaveBeenLastCalledWith({ limit: 50 });
-});
-
 vi.mock("../vendorCollectionApi", () => ({ loadVendorCollection: vi.fn().mockResolvedValue({ assessment_id: "assessment-1", assessment_version: 3, prepared: false, can_reconcile: false, fields: [], observed_at: "2026-09-08T10:00:00Z", vendor_pending_count: 0, bank_pending_count: 0 }), prepareVendorCollection: vi.fn() }));
 vi.mock("../vendorFormsApi", () => ({ loadVendorForms: vi.fn(), loadVendorFormSummaries: vi.fn() }));
 vi.mock("./VendorFormsPanel", () => ({ VendorFormsPanel: ({ relationshipID, initialFilter, onRequestForm }: { relationshipID: string; initialFilter?: string; onRequestForm: () => void }) => <section className="vendor-forms-panel" aria-label={`Vendor form work ${relationshipID} ${initialFilter ?? "ALL"}`}><button type="button" onClick={onRequestForm}>Request form</button></section>, VendorResponseHistory: ({ relationshipID }: { relationshipID: string }) => <section aria-label={`Response history for ${relationshipID}`}/> }));
@@ -181,6 +152,20 @@ beforeEach(() => {
 });
 
 describe("VendorsWorkspace", () => {
+  it("keeps the dashboard and register on separate vendor routes", async () => {
+    const onPage = vi.fn();
+    const view = render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="overview" onPage={onPage}/>);
+    expect(await screen.findByRole("navigation", { name: "Vendor sections" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Vendor exception overview" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Vendor register" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Register" }));
+    expect(onPage).toHaveBeenCalledWith("register");
+
+    view.rerender(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="register" onPage={onPage}/>);
+    expect(await screen.findByRole("heading", { name: "Vendor register" })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Vendor exception overview" })).toBeNull();
+  });
+
   it("shows a custom form's failed requirements directly in the vendor overview after submission", async () => {
     vi.mocked(loadVendorForms).mockResolvedValue({ items: [{ request_id: "request-1", relationship_id: "relationship-1", response_id: "submitted-custom-form", form_template_id: "custom-form", form_template_version: 2, title: "Third Party Risk Compliance", response_state: "SUBMITTED", deadline: "2099-10-01T12:00:00Z", updated_at: "2026-09-09T12:00:00Z", required_count: 3, answered_required: 3, missing_fields: [], current: true, required_reviews: 2, completed_reviews: 0, outdated: true, attention_items: [{ field_id: "iso", label: "ISO 27001 certificate", state: "MISSING", source: "RESPONSE" }, { rule_id: "audit-rights", label: "SLA audit rights", state: "GAP", source: "RESPONSE" }] }], observed_at: "2026-09-09T12:00:00Z" });
     render(<VendorsWorkspace organizationName="Clear Telecom" legalEntityName="Clear Telecom Nigeria" targetID="relationship-1"/>);
@@ -429,7 +414,7 @@ describe("VendorsWorkspace", () => {
 
   it("shows the scoped vendor register and record details", async () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria"/>);
-    expect(await screen.findByRole("heading", { name: "Vendor register", level: 1 })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Vendors" })).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: /Acme Processing Limited/ }));
     expect(screen.getByText("Card transaction processing")).toBeTruthy();
     fireEvent.click(await screen.findByRole("tab", { name: "Due diligence" }));
@@ -463,7 +448,7 @@ describe("VendorsWorkspace", () => {
     fireEvent.change(screen.getByLabelText("Search vendors and services", { exact: false }), { target: { value: "Beacon RC-20002" } });
     fireEvent.click(screen.getByRole("button", { name: "Search vendors" }));
     await waitFor(() => expect(loadVendorRelationships).toHaveBeenCalledWith({ search: "Beacon RC-20002", limit: 50 }));
-    expect(screen.getByText("1 matching relationship · Clear Bank Nigeria")).toBeTruthy();
+    expect(screen.getByText("Showing 1 matching relationship")).toBeTruthy();
   });
 
   it("creates another service relationship using an explicitly selected existing vendor", async () => {

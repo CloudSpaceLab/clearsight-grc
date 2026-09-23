@@ -1205,6 +1205,43 @@ func (s *Service) MatterAt(ctx context.Context, tenant, id string, at time.Time)
 	return reconstructMatter(events)
 }
 
+func (s *Service) MatterActivity(ctx context.Context, tenant, matterID string, beforeVersion int64, limit int) (MatterActivityPage, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 50 {
+		limit = 50
+	}
+	events, hasMore, err := s.repo.MatterEventsPage(ctx, tenant, matterID, beforeVersion, limit)
+	if err != nil {
+		return MatterActivityPage{}, err
+	}
+	items := make([]MatterActivityItem, 0, len(events))
+	for _, event := range events {
+		item := MatterActivityItem{EventID: event.ID, EventType: event.Type, MatterVersion: event.AggregateVersion, ActorID: event.ActorID, ActorType: event.ActorType, OccurredAt: event.OccurredAt}
+		switch event.Type {
+		case EventMatterCommentAdded:
+			var value MatterComment
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterActivityPage{}, err
+			}
+			item.Comment = &value
+		case EventMatterActionUpdateRequested:
+			var value MatterActionUpdateRequest
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return MatterActivityPage{}, err
+			}
+			item.UpdateRequest = &value
+		}
+		items = append(items, item)
+	}
+	page := MatterActivityPage{Items: items, GeneratedAt: s.now().UTC()}
+	if hasMore && len(events) > 0 {
+		page.NextBeforeVersion = events[len(events)-1].AggregateVersion
+	}
+	return page, nil
+}
+
 func (s *Service) ResponsePackageHistory(ctx context.Context, tenant, matterID, responseID string, limit int) (ResponseHistoryPage, error) {
 	if limit <= 0 {
 		limit = 20

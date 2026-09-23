@@ -22,6 +22,10 @@
     "/api/v1/session/status": { "get": { "operationId": "sessionStatus", "security": [], "x-clearsight-route-class": "PUBLIC" } },
     "/api/v1/context": { "get": { "operationId": "actorContext", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/today": { "get": { "operationId": "actorToday", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/people/{person_id}": { "get": { "operationId": "employeeProfile", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/people/{person_id}/work": { "get": { "operationId": "employeeWork", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/people/{person_id}/assignments": { "get": { "operationId": "employeeAssignments", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
+    "/api/v1/people/{person_id}/activity": { "get": { "operationId": "employeeActivity", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/oversight": { "get": { "operationId": "oversightSnapshot", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "OVERSIGHT_READ" } },
 
     "/api/v1/authority/resolve": { "post": { "operationId": "resolveAuthority", "x-clearsight-route-class": "AUTHENTICATED_OPERATION" } },

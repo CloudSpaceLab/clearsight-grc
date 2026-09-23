@@ -221,6 +221,10 @@ func completedResponseSummary(distribution FormDistribution, revision ResponseRe
 		DistributionID: revision.DistributionID, FormTemplateID: distribution.FormTemplateID,
 		FormTemplateVersion: distribution.FormTemplateVersion, Title: distribution.Title,
 		SubjectType: distribution.SubjectType, SubjectID: distribution.SubjectID, Revision: revision.Revision,
-		Current: revision.Current, State: revision.State, Score: cloneResponseRevision(revision).Score, CompletedAt: revision.CreatedAt.UTC(),
+		Current: currentCompletedResponse(distribution, revision), State: revision.State, Score: cloneResponseRevision(revision).Score, CompletedAt: revision.CreatedAt.UTC(),
 	}
+}
+
+func currentCompletedResponse(distribution FormDistribution, revision ResponseRevision) bool {
+	return revision.Current && distribution.Status != DistributionRevoked && distribution.Status != DistributionSuperseded
 }

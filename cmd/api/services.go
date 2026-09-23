@@ -20,6 +20,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/people"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
@@ -69,6 +70,7 @@ type serviceSet struct {
 	BankVerticals                  *bankverticals.Service
 	BackgroundJobs                 *operations.Service
 	Activity                       *activity.Service
+	People                         *people.Service
 	AuditExports                   *activity.ExportService
 	Access                         access.Resolver
 	RuntimeContext                 runtimecontext.Resolver

@@ -485,6 +485,13 @@ func matterNextAction(status MatterStatus) string {
 	}
 }
 
+func matterNextActionFor(matter Matter) string {
+	if matter.Status == MatterInitialReview && matter.TriggerType == "SOURCE_REGISTER_IMPORT" {
+		return "Review imported finding"
+	}
+	return matterNextAction(matter.Status)
+}
+
 func decorateProgram(aggregate ProgramAggregate) ProgramAggregate {
 	if aggregate.CurrentState != nil {
 		aggregate.CurrentState.GeneratedAt = aggregate.CurrentState.GeneratedAt.UTC()
@@ -557,6 +564,6 @@ func decorateMatter(aggregate MatterAggregate) MatterAggregate {
 	}
 	aggregate.TypeLabel = matterTypeLabel(aggregate.Matter.Type)
 	aggregate.StatusLabel = matterStatusLabel(aggregate.Matter.Status)
-	aggregate.NextAction = matterNextAction(aggregate.Matter.Status)
+	aggregate.NextAction = matterNextActionFor(aggregate.Matter)
 	return aggregate
 }

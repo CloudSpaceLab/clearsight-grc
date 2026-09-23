@@ -12,6 +12,7 @@ import { fieldAssessmentLabel, needsBankReview } from "./fieldAssessment";
 import { assessmentConcernPoints, assessmentConcernThreshold, automaticFieldResults } from "./assessmentFieldResults";
 import { AnswerValueDisplay } from "./AnswerValueDisplay";
 import { AnswerSheetSummary, groupAnswerFields, ResponseAnswerSheet } from "./ResponseAnswerSheet";
+import { buildSemanticResponseReview, type SemanticResponseReview } from "./semanticResponseReview";
 import "./field-assessment.css";
 
 type Props = { responseID: string; onUpdated?: () => void; showResponseContext?: boolean; submissionScore?: ResponseScore; showDocumentLauncher?: boolean; answersOnly?: boolean; current?: boolean | null };
@@ -98,7 +99,8 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
   });
   const valid = changes.length > 0 && changes.every(([id, value]) => value.rationale.trim() && reviewable.find((item) => item.field.id === id)?.field.assessment?.rubric?.some((outcome) => outcome.id === value.outcome_id));
   const pending = Math.max(0, detail.required_count - detail.reviewed_required_count);
-  const visible = fields.filter((item) => matchesFilter(item, filter, detail));
+  const semantic = buildSemanticResponseReview(fields);
+  const visible = fields.filter((item) => matchesFilter(item, filter, detail) && (!semantic || item.field.id.endsWith("_response")));
   const hasEvidence = fields.some((item) => evidenceField(item));
   const groups = templateSections && templateSections.length > 0 ? groupAnswerFields(visible, templateSections) : undefined;
   const renderField = (item: ResponseFieldAssessment) => {
@@ -109,7 +111,7 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
     return <article className="response-assessment__field" key={field.id} aria-label={field.label}>
       <header><h4>{field.label}</h4><span>{fieldAssessmentLabel(field)}{field.assessment?.required && needsBankReview(field) ? " · Required review" : ""}</span></header>
       <div className="response-assessment__field-columns">
-        <div><h5>Submitted answer and evidence</h5><p className="response-assessment__answer"><AnswerValueDisplay type={item.field.type} answer={item.answer} emptyLabel={evidenceField(item) ? "No evidence submitted for this field." : "No answer submitted for this field."} evidenceEmptyLabel="No evidence submitted for this field."/></p>{item.answer?.document && <dl><div><dt>Document type</dt><dd>{item.answer.document.document_type}</dd></div>{item.answer.document.issued_by && <div><dt>Issued by</dt><dd>{item.answer.document.issued_by}</dd></div>}{item.answer.document.expires_on && <div><dt>Expires</dt><dd>{item.answer.document.expires_on}</dd></div>}</dl>}</div>
+        <div><h5>{semantic ? "Vendor response" : "Submitted answer and evidence"}</h5><p className="response-assessment__answer"><AnswerValueDisplay type={item.field.type} answer={item.answer} emptyLabel={evidenceField(item) ? "No evidence submitted for this field." : "No answer submitted for this field."} evidenceEmptyLabel="No evidence submitted for this field."/></p>{item.answer?.document && <dl><div><dt>Document type</dt><dd>{item.answer.document.document_type}</dd></div>{item.answer.document.issued_by && <div><dt>Issued by</dt><dd>{item.answer.document.issued_by}</dd></div>}{item.answer.document.expires_on && <div><dt>Expires</dt><dd>{item.answer.document.expires_on}</dd></div>}</dl>}</div>
         <div className="response-assessment__judgement">
           {automatic.length > 0 && <div><h5>Automatic result</h5>{automatic.map((result) => <div key={result.id}><p><strong>{result.label}</strong> · {result.description}</p>{result.shared && <p>This result depends on answers to more than one question.</p>}</div>)}</div>}
           {decision && <div><h5>Saved decision</h5><p>{field.assessment?.rubric?.find((outcome) => outcome.id === decision.outcome_id)?.label ?? "Saved outcome"} · {decision.points} points</p><p>{decision.rationale}</p><p>{decision.reviewer_display_name ? `Reviewed by ${decision.reviewer_display_name}` : "Reviewer name unavailable"} · <time dateTime={decision.assessed_at}>{formatTime(decision.assessed_at)}</time></p><details><summary>Review details</summary><dl><div><dt>Reviewer ID</dt><dd>{decision.reviewer_id}</dd></div></dl></details></div>}
@@ -124,6 +126,7 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
     </article>;
   };
 
+  if (answersOnly && semantic) return <SemanticAnswers review={semantic} formVersion={detail.form_template_version}/>;
   if (answersOnly) return <ResponseAnswerSheet
     fields={fields}
     sections={templateSections}
@@ -134,7 +137,7 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
   />;
 
   return <section className="response-assessment" aria-label="Assessment">
-    <header><h3>Assessment</h3><StatusBadge tone={pending > 0 ? "warning" : "neutral"}>{assessmentStateLabels[detail.state] ?? "Assessment state unavailable"}</StatusBadge></header>
+    <header><h3>{semantic ? "Internal assessment" : "Assessment"}</h3><StatusBadge tone={pending > 0 ? "warning" : "neutral"}>{assessmentStateLabels[detail.state] ?? "Assessment state unavailable"}</StatusBadge></header>
     {showResponseContext && <p>Form revision {detail.form_template_version} · {current === null ? "Response currency unavailable" : currentResponse ? "Current response" : "Historical response"}</p>}<p>Assessment version {detail.version}</p>
     {current === null && <Notice tone="info">Response currency is unavailable. Reload response history before recording a review.</Notice>}
     {!currentResponse && current !== null && <Notice tone="info">Historical response. Review the current submission to record a new decision; previous decisions remain in history.</Notice>}
@@ -161,6 +164,27 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
   </section>;
 }
 
+function SemanticAnswers({ review, formVersion }: { review: SemanticResponseReview; formVersion: number }) {
+  const metrics = [
+    { label: "Requirements", value: review.metrics.requirements },
+    { label: "Vendor responses received", value: review.metrics.answered },
+    { label: "Evidence received", value: review.metrics.evidenceReceived },
+    { label: "Bank reviews needed", value: review.metrics.awaitingReview },
+  ];
+  return <section className="response-assessment response-semantic" aria-label="Vendor responses">
+    <header className="response-semantic__heading"><div><p className="response-semantic__eyebrow">Submitted response</p><h3>Vendor responses and evidence</h3><p>Form revision {formVersion} · Submitted answers are read only.</p></div><StatusBadge tone="neutral">Current response</StatusBadge></header>
+    <dl className="response-semantic__metrics">{metrics.map((metric) => <div role="group" aria-label={metric.label} key={metric.label}><dt>{metric.label}</dt><dd>{metric.value}</dd></div>)}</dl>
+    <nav className="response-semantic__services" aria-label="Services in this response">{review.services.map((service) => <a href={`#response-${service.id}`} key={service.id}>{service.name}<span>{service.requirements.length}</span></a>)}</nav>
+    <div className="response-semantic__service-list">{review.services.map((service, serviceIndex) => <section id={`response-${service.id}`} aria-label={service.name} className="response-semantic__service" key={service.id}>
+      <header><div><p>Service {serviceIndex + 1}</p><h4>{service.name}</h4></div><span>{service.requirements.length} {service.requirements.length === 1 ? "requirement" : "requirements"}</span></header>
+      <div className="response-semantic__requirements">{service.requirements.map((requirement, requirementIndex) => <details className="response-semantic__requirement" key={requirement.id} open={serviceIndex === 0 && requirementIndex === 0}>
+        <summary><div><span className="response-semantic__number">{requirementIndex + 1}</span><strong>{requirement.label}</strong></div><div className="response-semantic__states"><StatusBadge tone={requirement.answered ? "neutral" : "warning"}>{requirement.answered ? "Vendor response received" : "No vendor response"}</StatusBadge><StatusBadge tone={requirement.evidenceReceived ? "neutral" : "warning"}>{requirement.evidenceReceived ? "Evidence received" : "No document received"}</StatusBadge><StatusBadge tone={requirement.reviewState === "REVIEWED" ? "neutral" : "warning"}>{requirement.reviewState === "REVIEWED" ? "Reviewed" : requirement.reviewState === "AWAITING_REVIEW" ? "Bank review needed" : "Review not required"}</StatusBadge></div></summary>
+        <div className="response-semantic__detail"><section><h5>Vendor response</h5><p className="response-assessment__answer">{requirement.response ? answerText(requirement.response) : "No vendor response recorded."}</p></section><section><h5>Supporting evidence</h5><p>{requirement.evidenceReceived ? requirement.evidence ? answerText(requirement.evidence) : "Evidence received." : "No document received for this requirement."}</p>{requirement.evidence && <p className="response-semantic__evidence-label">Requested: {requirement.evidence.field.label}</p>}</section></div>
+      </details>)}</div>
+    </section>)}</div>
+  </section>;
+}
+
 function AssessmentScore({ title, score, provisional }: { title: string; score?: ResponseScore; provisional?: boolean }) {
   const presentation = scorePresentation(score);
   return <section aria-label={title}><h4>{title}</h4><p>{presentation.value}</p><p>{presentation.meaning}</p>{provisional && <p>Provisional</p>}{score?.adverse_score != null && <p>{score.adverse_score} concern points</p>}<p>Coverage: {coverageText(score)}</p>{score?.calculated_at && <p>Calculated <time dateTime={score.calculated_at}>{formatTime(score.calculated_at)}</time></p>}</section>;
@@ -172,6 +196,14 @@ function RuleExplanation({ score }: { score?: ResponseScore }) {
 }
 
 function evidenceField(item: ResponseFieldAssessment) { return ["file", "photo", "signature", "vendor_document"].includes(item.field.type); }
+function answerText(item: ResponseFieldAssessment) {
+  const answer = item.answer;
+  if (answer?.text) return answer.text;
+  if (answer?.values?.length) return answer.values.join(", ");
+  const count = answer?.artifact_ids?.length ?? (answer?.document?.artifact_id ? 1 : 0);
+  if (count) return `${count} submitted ${count === 1 ? "document" : "documents"}. Open the submitted evidence to inspect files and availability.`;
+  return evidenceField(item) ? "No evidence submitted for this field." : "No answer submitted for this field.";
+}
 function matchesFilter(item: ResponseFieldAssessment, filter: ReviewFilter, detail: ResponseAssessmentDetail) {
   if (filter === "PENDING") return needsBankReview(item.field) && !item.decision;
   if (filter === "REVIEWED") return Boolean(item.decision);

@@ -16,6 +16,8 @@ import { RecordSnapshotControl } from "./RecordSnapshotControl";
 import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { selectMatterHandoff } from "./matterHandoff";
+import { MatterActivityTimeline } from "./MatterActivityTimeline";
+import { Tabs } from "./ui";
 
 type Props = {
   matterID: string;
@@ -24,6 +26,14 @@ type Props = {
 };
 
 type LoadState = "loading" | "live" | "unavailable";
+type MatterWorkspaceTab = "details" | "actions" | "evidence" | "decisions";
+
+const matterWorkspaceTabs: ReadonlyArray<{ id: MatterWorkspaceTab; label: string }> = [
+  { id: "details", label: "Details" },
+  { id: "actions", label: "Actions" },
+  { id: "evidence", label: "Evidence" },
+  { id: "decisions", label: "Decisions" },
+];
 
 function priorityLabel(value: number) {
   if (value >= 5) return "Critical";
@@ -40,6 +50,7 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props
   const [operations, setOperations] = useState<MatterOperations | null>(null);
   const [assignmentIntent, setAssignmentIntent] = useState(0);
   const [linkedMissingItems, setLinkedMissingItems] = useState<string[]>([]);
+  const [selectedTab, setSelectedTab] = useState<MatterWorkspaceTab>("details");
   const loadIDs = useRef({ aggregate: 0, operations: 0 });
   const activeTarget = useRef({ id: matterID, generation: 0 });
   const startedTargetID = useRef<string | null>(null);
@@ -157,15 +168,28 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props
           return true;
         }}
       />
-      <section className="matter-record-grid">
-        <MatterDetailsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} assignmentIntent={assignmentIntent} suppressAssignmentAction={assignmentIsDominant} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
-        <MatterFormRemediationPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onOpenRequest={onOpenRequest} onMappingsChange={setLinkedMissingItems}/>
-        <MatterInformationPanel aggregate={aggregate} operations={currentOperations} linkedMissingItems={linkedMissingItems} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
-        <MatterActionsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
-        <MatterDecisionResponsePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
-        <MatterOutcomePanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
-        <VendorRelationshipLinks targetType="MATTER" targetID={aggregate.matter.id}/>
-        <VendorWorkPanel targetType="MATTER" targetID={aggregate.matter.id} onOpenRequest={onOpenRequest}/>
+      <section className="matter-workspace-layout">
+        <div className="matter-workspace-main">
+          <Tabs ariaLabel="Issue work" compactLabel="Issue section" retainVisitedPanels items={matterWorkspaceTabs} selectedKey={selectedTab} onSelectionChange={setSelectedTab}>
+            {(tab) => <div className="matter-workspace-tab-content">
+              {tab === "details" && <>
+                <MatterDetailsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} assignmentIntent={assignmentIntent} suppressAssignmentAction={assignmentIsDominant} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+                <MatterInformationPanel aggregate={aggregate} operations={currentOperations} linkedMissingItems={linkedMissingItems} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+              </>}
+              {tab === "actions" && <MatterActionsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>}
+              {tab === "evidence" && <>
+                <MatterFormRemediationPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onOpenRequest={onOpenRequest} onMappingsChange={setLinkedMissingItems}/>
+                <VendorRelationshipLinks targetType="MATTER" targetID={aggregate.matter.id}/>
+                <VendorWorkPanel targetType="MATTER" targetID={aggregate.matter.id} onOpenRequest={onOpenRequest}/>
+              </>}
+              {tab === "decisions" && <>
+                <MatterDecisionResponsePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+                <MatterOutcomePanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
+              </>}
+            </div>}
+          </Tabs>
+        </div>
+        <MatterActivityTimeline matterID={aggregate.matter.id} matterVersion={aggregate.matter.version} candidates={operations?.responsible_parties ? currentOperations.flatMap((operation) => operation.candidates ?? []) : []} onUpdated={() => void reloadRecord()}/>
       </section>
     </>}
   </section>;

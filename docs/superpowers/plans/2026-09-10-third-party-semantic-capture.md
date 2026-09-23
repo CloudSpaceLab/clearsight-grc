@@ -87,11 +87,11 @@ Expected: FAIL because the current form still contains every spreadsheet column.
 
 - [ ] **Step 3: Build the replacement form contract**
 
-Use code prefix `SOURCE-TPR-V2-`, `ScoringRisk`, Wizard presentation and one section per source service. Each requirement gets a long-text vendor response plus an optional `vendor_document` evidence field. Configure manual assessment on the response/evidence requirement with reviewer responsibility `REVIEWER` and outcomes `SATISFACTORY` (0), `FOLLOW_UP` (50) and `MATERIAL_CONCERN` (100).
+Use code prefix `SOURCE-TPR-V3-`, no automatic vendor score, Wizard presentation and one section per source service. Each requirement gets a long-text vendor response plus an optional `vendor_document` evidence field. Configure manual bank assessment on the response requirement with reviewer responsibility `REVIEWER` and outcomes `SATISFACTORY` (0), `FOLLOW_UP` (50) and `MATERIAL_CONCERN` (100).
 
 - [ ] **Step 4: Install the replacement through normal services**
 
-Create an idempotent distribution key under `fidelity-source-records-v2`, submit only the workbook's vendor comments, and use ordinary response-assessment commands to record source-labelled historical bank decisions where supported. Link the response context to the existing five Matters/Actions. Mark the v1 flattened distribution historical/revoked only after all replacement records exist; never rewrite its response revision.
+Create an idempotent distribution key under `fidelity-source-records-v3`, submit only the workbook's vendor comments, and use ordinary response-assessment commands to record source-labelled historical bank decisions where supported. Link the response context to the existing five Matters/Actions. Mark the v1 flattened and failed v2 distributions historical/revoked only after all replacement records exist; never rewrite their response revisions.
 
 - [ ] **Step 5: Add retry and identity assertions**
 
