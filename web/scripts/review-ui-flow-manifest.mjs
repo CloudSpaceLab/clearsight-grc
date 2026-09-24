@@ -95,6 +95,9 @@ const expectedNames = [
   "88-vendor-link-sheet-dark-mobile-390x844",
   "129-oversight-completeness-light-1440x900",
   "130-oversight-completeness-dark-mobile-390x844",
+  "131-ropa-register-light-1440x900",
+  "132-ropa-register-dark-mobile-390x844",
+  "133-ropa-activity-light-1440x900",
   "178-import-selected-light-1440x900",
   "179-import-selected-dark-1440x900",
   "180-import-selected-light-mobile-390x844",
@@ -170,6 +173,9 @@ const requiredStates = [
   "vendor-form-readiness",
   "vendor-link-focused-sheet",
   "vendor-link-focused-sheet-mobile",
+  "ropa-register",
+  "ropa-register-mobile",
+  "ropa-activity",
   ...formsEvidenceScenarios.map((scenario) => scenario.state),
 ];
 

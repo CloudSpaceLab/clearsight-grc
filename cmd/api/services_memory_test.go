@@ -16,6 +16,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/ropa"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
@@ -42,6 +43,43 @@ func TestMemoryTodayIsDerivedFromInstalledMatterAssignments(t *testing.T) {
 		if item.ID == "workflow_task_review_cbn" || item.ID == "workflow_task_access_evidence" || item.ActionTargetType != "MATTER" || item.ActionTargetID == "" {
 			t.Fatalf("Today item was not derived from an installed Matter: %#v", item)
 		}
+	}
+}
+
+func TestMemoryCompositionInstallsRopaDemoOnlyInDemoMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		demoMode bool
+		wantRows int
+	}{
+		{name: "demo mode", demoMode: true, wantRows: 3},
+		{name: "non-demo mode", demoMode: false, wantRows: 0},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			services, err := buildServices(t.Context(), config.Config{
+				Environment:       "development",
+				DemoMode:          test.demoMode,
+				DemoTenantID:      ropa.DemoTenant,
+				DemoLegalEntityID: ropa.DemoLegalEntity,
+			}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer services.Close()
+
+			page, err := services.Ropa.ListActivities(t.Context(), ropa.ActivityScope{
+				TenantID:      ropa.DemoTenant,
+				LegalEntityID: ropa.DemoLegalEntity,
+			}, ropa.ListActivitiesFilter{Limit: 50})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := len(page.Rows); got != test.wantRows {
+				t.Fatalf("ROPA rows = %d, want %d", got, test.wantRows)
+			}
+		})
 	}
 }
 

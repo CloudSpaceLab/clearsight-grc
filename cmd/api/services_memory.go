@@ -116,6 +116,11 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	ropaSummaries := ropa.NewMemorySummaryRepository()
 	ropaService := ropa.NewService(ropaRepository, ropaSummaries)
 	ropaService.SetLister(ropaRepository)
+	if cfg.DemoMode {
+		if err := ropa.InstallDemo(ctx, ropaService); err != nil {
+			return serviceSet{}, err
+		}
+	}
 	assessmentSetup := thirdparty.NewAssessmentProvisioner(thirdPartyRepo, continuityService, "memory-api")
 	aiGovernanceRepo := aigovernance.NewMemoryRepository()
 	aiGovernanceService := aigovernance.NewService(aiGovernanceRepo, auto, sourceCatalog, continuityService)

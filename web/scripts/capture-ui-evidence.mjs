@@ -40,6 +40,9 @@ const captures = [
   { name: "88-vendor-link-sheet-dark-mobile-390x844", route: "#programs/program-ndpa/issues-actions", title: "Programs", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "vendor-link-focused-sheet-mobile", openVendorLink: true },
   { name: "129-oversight-completeness-light-1440x900", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "oversight-completeness" },
   { name: "130-oversight-completeness-dark-mobile-390x844", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "oversight-completeness-mobile" },
+  { name: "131-ropa-register-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-register" },
+  { name: "132-ropa-register-dark-mobile-390x844", route: "#ropa", title: "Processing activity register", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Customer account opening", state: "ropa-register-mobile" },
+  { name: "133-ropa-activity-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-activity", openRopaActivity: true },
 ];
 
 try {
@@ -77,6 +80,13 @@ try {
 async function capturePage(capture) {
   const { context, page } = await openPage(capture);
   try {
+    if (capture.openRopaActivity) {
+      const seededRow = page.getByRole("row", { name: /Customer account opening/ }).first();
+      await seededRow.waitFor({ state: "visible" });
+      await seededRow.dblclick();
+      await page.waitForFunction(() => window.location.hash.startsWith("#ropa/activity/"));
+      await page.getByRole("heading", { name: "Customer account opening", exact: true }).waitFor({ state: "visible" });
+    }
     if (capture.expectText) await page.getByText(capture.expectText, { exact: false }).first().waitFor({ state: "visible" });
     if (capture.openMatterSetup) {
       await page.getByRole("button", { name: "New issue or change" }).click();
@@ -124,7 +134,8 @@ async function capturePage(capture) {
       await action.scrollIntoViewIfNeeded();
     }
     await saveScreenshot(page, capture.name);
-    await record(page, capture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
+    const recordedCapture = capture.openRopaActivity ? { ...capture, route: new URL(page.url()).hash } : capture;
+    await record(page, recordedCapture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
     await assertNoHorizontalOverflow(page, capture.name);
     await assertGuideLauncherDoesNotBlockNavigation(page, capture.name, capture.viewport.width);
     if (capture.assertFirstActionVisible) await assertFirstActionVisible(page, capture.viewport.height, capture.name, capture.touch === true);
