@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 )
@@ -136,88 +135,5 @@ func (s *Service) ensureRequirementBundle(ctx context.Context, config SeedConfig
 		}
 	}
 
-	var contract *continuity.EvidenceContract
-	for index := range program.EvidenceContracts {
-		if strings.EqualFold(program.EvidenceContracts[index].Code, spec.evidenceCode) && program.EvidenceContracts[index].Status != continuity.EvidenceContractRetired {
-			value := program.EvidenceContracts[index]
-			contract = &value
-			break
-		}
-	}
-	if contract == nil {
-		acceptable := make([]string, 0, len(spec.sourceCodes))
-		for _, code := range spec.sourceCodes {
-			acceptable = append(acceptable, sourceIDs[code])
-		}
-		program, err = s.continuity.AddEvidenceContract(ctx, continuity.AddEvidenceContractInput{
-			TenantID:                config.TenantID,
-			ProgramID:               program.Program.ID,
-			ExpectedVersion:         program.Program.Version,
-			ControlImplementationID: implementation.ID,
-			Code:                    spec.evidenceCode,
-			Name:                    spec.evidenceName,
-			Claim:                   spec.claim,
-			AcceptableSourceIDs:     acceptable,
-			PopulationScope:         mustJSON(spec.population),
-			FreshnessMinutes:        spec.freshnessMinutes,
-			MinimumCoverage:         spec.minimumCoverage,
-			IndependenceRequired:    true,
-			ContradictionPolicy:     "REVIEW",
-			FailureAction:           "MATTER",
-			Status:                  continuity.EvidenceContractDraft,
-			ActorID:                 config.ActorID,
-		})
-		if err != nil {
-			return program, fmt.Errorf("repair evidence check %s: %w", spec.code, err)
-		}
-		value := program.EvidenceContracts[len(program.EvidenceContracts)-1]
-		contract = &value
-	}
-	program, err = activateReferenceEvidenceCheck(ctx, s.continuity, config, program, contract.ID)
-	if err != nil {
-		return program, fmt.Errorf("repair evidence check activation %s: %w", spec.code, err)
-	}
-	for index := range program.EvidenceContracts {
-		if program.EvidenceContracts[index].ID == contract.ID {
-			value := program.EvidenceContracts[index]
-			contract = &value
-			break
-		}
-	}
-
-	current := false
-	freshness := time.Duration(contract.FreshnessMinutes) * time.Minute
-	for _, assessment := range program.EvidenceAssessments {
-		if assessment.ContractID != contract.ID || assessment.AssessedAt.IsZero() {
-			continue
-		}
-		validUntil := assessment.AssessedAt.Add(freshness)
-		if assessment.ValidUntil != nil && assessment.ValidUntil.Before(validUntil) {
-			validUntil = *assessment.ValidUntil
-		}
-		if validUntil.After(config.Now) {
-			current = true
-			break
-		}
-	}
-	if !current {
-		assessedAt := config.Now.Add(-2 * time.Hour)
-		validUntil := assessedAt.Add(freshness)
-		program, err = s.continuity.RecordEvidenceAssessment(ctx, continuity.RecordEvidenceAssessmentInput{
-			TenantID:        config.TenantID,
-			ProgramID:       program.Program.ID,
-			ExpectedVersion: program.Program.Version,
-			ContractID:      contract.ID,
-			Conclusion:      spec.conclusion,
-			Coverage:        spec.coverage,
-			Basis:           mustJSON(spec.basis),
-			ValidUntil:      &validUntil,
-			AssessedBy:      config.ReviewerPrincipalID,
-			AssessedAt:      assessedAt,
-		})
-		if err != nil {
-			return program, fmt.Errorf("repair evidence assessment %s: %w", spec.code, err)
-		}
-	}
 	return program, nil
 }

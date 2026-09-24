@@ -150,8 +150,8 @@ func TestInstallSampleRecoversPartialProgram(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(program.Requirements) != 5 || len(program.EvidenceContracts) != 5 || program.Program.Status != continuity.ProgramActive {
-		t.Fatalf("partial program was not reconciled: requirements=%d checks=%d status=%s", len(program.Requirements), len(program.EvidenceContracts), program.Program.Status)
+	if len(program.Requirements) != 5 || len(program.EvidenceContracts) != 0 || program.Program.Status != continuity.ProgramActive {
+		t.Fatalf("partial program was not reconciled without fabricated evidence checks: requirements=%d checks=%d status=%s", len(program.Requirements), len(program.EvidenceContracts), program.Program.Status)
 	}
 	matters, err := continuityService.ListMatters(ctx, config.TenantID, "", 20)
 	if err != nil || len(matters) != 10 {

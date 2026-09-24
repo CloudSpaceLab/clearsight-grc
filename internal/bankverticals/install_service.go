@@ -78,6 +78,10 @@ func (s *Service) ensureNDPAProgram(ctx context.Context, config SeedConfig, sour
 			return continuity.ProgramAggregate{}, err
 		}
 	}
+	program, err = s.retireIllustrativeNDPAEvidenceChecks(ctx, config, program)
+	if err != nil {
+		return continuity.ProgramAggregate{}, err
+	}
 	if program.Program.Status == continuity.ProgramDraft {
 		program, err = s.continuity.TransitionProgram(ctx, continuity.ProgramTransitionInput{
 			TenantID:        config.TenantID,
@@ -89,6 +93,42 @@ func (s *Service) ensureNDPAProgram(ctx context.Context, config SeedConfig, sour
 		})
 	}
 	return program, err
+}
+
+// The older reference installer created assessed evidence populations that the
+// supplied NDPA checklist does not contain. Keep those immutable historical
+// events, but retire the illustrative checks so they cannot be presented as
+// current evidence or a compliance result.
+func (s *Service) retireIllustrativeNDPAEvidenceChecks(ctx context.Context, config SeedConfig, program continuity.ProgramAggregate) (continuity.ProgramAggregate, error) {
+	for _, contract := range program.EvidenceContracts {
+		if contract.Status == continuity.EvidenceContractRetired || !containsNDPAEvidenceCode(contract.Code) {
+			continue
+		}
+		var err error
+		program, err = s.continuity.TransitionEvidenceContract(ctx, continuity.TransitionEvidenceContractInput{
+			TenantID:                config.TenantID,
+			ProgramID:               program.Program.ID,
+			ContractID:              contract.ID,
+			ExpectedVersion:         program.Program.Version,
+			ExpectedContractVersion: contract.Version,
+			To:                      continuity.EvidenceContractRetired,
+			Rationale:               "The supplied checklist contains source requirements, not an assessed evidence population.",
+			ActorID:                 config.ReviewerPrincipalID,
+		})
+		if err != nil {
+			return program, fmt.Errorf("retire illustrative evidence check %s: %w", contract.Code, err)
+		}
+	}
+	return program, nil
+}
+
+func containsNDPAEvidenceCode(code string) bool {
+	for _, candidate := range ndpaEvidenceCodes {
+		if candidate == code {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) ensureProgramEvidenceRequest(ctx context.Context, config SeedConfig, programID string) error {

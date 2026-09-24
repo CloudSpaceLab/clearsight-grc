@@ -23,16 +23,6 @@ type requirementSpec struct {
 	implementationName   string
 	implementationType   string
 	implementationDetail string
-	evidenceCode         string
-	evidenceName         string
-	claim                string
-	sourceCodes          []string
-	population           map[string]any
-	freshnessMinutes     int
-	minimumCoverage      float64
-	coverage             float64
-	conclusion           continuity.EvidenceConclusion
-	basis                map[string]any
 }
 
 func (s *Service) SeedSample(ctx context.Context, config SeedConfig) ([]Journey, error) {
@@ -191,30 +181,6 @@ func (s *Service) addRequirementBundle(ctx context.Context, config SeedConfig, p
 	program, err = s.continuity.LinkRequirementControl(ctx, continuity.LinkRequirementControlInput{TenantID: config.TenantID, ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, RequirementID: requirement.ID, ImplementationID: implementation.ID, ActorID: config.ActorID})
 	if err != nil {
 		return program, fmt.Errorf("link safeguard %s: %w", spec.code, err)
-	}
-	acceptable := make([]string, 0, len(spec.sourceCodes))
-	for _, code := range spec.sourceCodes {
-		acceptable = append(acceptable, sourceIDs[code])
-	}
-	program, err = s.continuity.AddEvidenceContract(ctx, continuity.AddEvidenceContractInput{TenantID: config.TenantID, ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ControlImplementationID: implementation.ID, Code: spec.evidenceCode, Name: spec.evidenceName, Claim: spec.claim, AcceptableSourceIDs: acceptable, PopulationScope: mustJSON(spec.population), FreshnessMinutes: spec.freshnessMinutes, MinimumCoverage: spec.minimumCoverage, IndependenceRequired: true, ContradictionPolicy: "REVIEW", FailureAction: "MATTER", Status: continuity.EvidenceContractDraft, ActorID: config.ActorID})
-	if err != nil {
-		return program, fmt.Errorf("add evidence check %s: %w", spec.code, err)
-	}
-	contract := program.EvidenceContracts[len(program.EvidenceContracts)-1]
-	program, err = activateReferenceEvidenceCheck(ctx, s.continuity, config, program, contract.ID)
-	if err != nil {
-		return program, fmt.Errorf("activate evidence check %s: %w", spec.code, err)
-	}
-	for index := range program.EvidenceContracts {
-		if program.EvidenceContracts[index].ID == contract.ID {
-			contract = program.EvidenceContracts[index]
-			break
-		}
-	}
-	validUntil := config.Now.Add(30 * 24 * time.Hour)
-	program, err = s.continuity.RecordEvidenceAssessment(ctx, continuity.RecordEvidenceAssessmentInput{TenantID: config.TenantID, ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ContractID: contract.ID, Conclusion: spec.conclusion, Coverage: spec.coverage, Basis: mustJSON(spec.basis), ValidUntil: &validUntil, AssessedBy: config.ReviewerPrincipalID, AssessedAt: config.Now.Add(-2 * time.Hour)})
-	if err != nil {
-		return program, fmt.Errorf("assess evidence %s: %w", spec.code, err)
 	}
 	return program, nil
 }
