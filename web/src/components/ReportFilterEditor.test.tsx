@@ -29,6 +29,12 @@ describe("ReportFilterEditor", () => {
     expect(screen.queryByRole("option", { name: /Calculated Program state/ })).toBeNull();
   });
 
+  it("reuses the published processing-activity fields for the exception dataset", () => {
+    render(<ReportFilterEditor fields={fields} dataset="PROCESSING_ACTIVITY_EXCEPTIONS" value={condition()} onChange={vi.fn()} />);
+    expect(screen.getAllByText(/Processing activity status/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Calculated Program state/)).toBeNull();
+  });
+
   it("explains that a non-indexed field is slower before an operator uses it", () => {
     render(<ReportFilterEditor fields={fields} dataset="PROCESSING_ACTIVITIES" value={condition("name", "customer")} onChange={vi.fn()} />);
     expect(screen.getByText(/not indexed/i)).toBeTruthy();

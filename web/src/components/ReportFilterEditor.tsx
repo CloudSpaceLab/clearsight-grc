@@ -186,9 +186,9 @@ function validateNode(expression: ReportFilterExpression, fields: readonly Repor
     return undefined;
   }
   if (kind !== "condition") return "A report filter can contain only conditions and condition groups.";
-  const published = fields.find((field) => field.field === expression.field && field.dataset === dataset);
+  const published = fields.find((field) => field.field === expression.field && fieldMatchesDataset(field.dataset, dataset));
   if (!published) {
-    const other = fields.filter((field) => field.field === expression.field && field.dataset !== dataset);
+    const other = fields.filter((field) => field.field === expression.field && !fieldMatchesDataset(field.dataset, dataset));
     if (other.length > 0) return `The field "${other[0]?.label ?? expression.field ?? "unknown"}" is not available for this report dataset. It belongs to ${other.map((field) => datasetLabel(field.dataset)).join(" and ")}. Choose a field published for ${datasetLabel(dataset)}.`;
     return `The field "${expression.field ?? "unknown"}" is not published for this report dataset. Choose a field from the published vocabulary.`;
   }
@@ -201,10 +201,14 @@ function validateNode(expression: ReportFilterExpression, fields: readonly Repor
 function fieldsForDataset(fields: readonly ReportFilterFieldDefinition[], dataset: ReportDataset) {
   const seen = new Set<string>();
   return fields.filter((field) => {
-    if (field.dataset !== dataset || seen.has(field.field)) return false;
+    if (!fieldMatchesDataset(field.dataset, dataset) || seen.has(field.field)) return false;
     seen.add(field.field);
     return true;
   });
+}
+
+export function fieldMatchesDataset(fieldDataset: ReportDataset, selectedDataset: ReportDataset) {
+  return fieldDataset === selectedDataset || (selectedDataset === "PROCESSING_ACTIVITY_EXCEPTIONS" && fieldDataset === "PROCESSING_ACTIVITIES");
 }
 
 function countNodes(expression: ReportFilterExpression): number {

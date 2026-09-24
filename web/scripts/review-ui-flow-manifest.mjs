@@ -98,6 +98,9 @@ const expectedNames = [
   "131-ropa-register-light-1440x900",
   "132-ropa-register-dark-mobile-390x844",
   "133-ropa-activity-light-1440x900",
+  "140-report-definitions-light-1440x900",
+  "141-report-definitions-dark-mobile-390x844",
+  "142-report-run-failed-light-1440x900",
   "178-import-selected-light-1440x900",
   "179-import-selected-dark-1440x900",
   "180-import-selected-light-mobile-390x844",
@@ -176,6 +179,9 @@ const requiredStates = [
   "ropa-register",
   "ropa-register-mobile",
   "ropa-activity",
+  "report-definitions",
+  "report-definitions-mobile",
+  "report-run-failed",
   ...formsEvidenceScenarios.map((scenario) => scenario.state),
 ];
 
