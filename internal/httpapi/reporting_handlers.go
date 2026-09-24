@@ -297,6 +297,9 @@ func (a *API) downloadReportRun(w http.ResponseWriter, r *http.Request) {
 	if run.Format == reporting.FormatNDJSON {
 		extension = "ndjson"
 		contentType = "application/x-ndjson; charset=utf-8"
+	} else if run.Format == reporting.FormatXLSX {
+		extension = "xlsx"
+		contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 	}
 	filename := safeReportFilename(run.DefinitionCode) + "." + extension
 	w.Header().Set("Content-Type", contentType)

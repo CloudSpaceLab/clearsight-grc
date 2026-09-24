@@ -52,7 +52,7 @@ const defaultDraft: DefinitionDraft = {
   dataset: "PROCESSING_ACTIVITIES",
   scope_kind: "LEGAL_ENTITY",
   scope_ref: "",
-  format: "CSV",
+  format: "XLSX",
   effective_from: "",
   filter: { kind: "group", operator: "and", children: [] },
 };
@@ -266,7 +266,7 @@ export function ReportingPage({
     setCommandError(undefined);
     try {
       const result = await downloadRun(run.id);
-      saveBlob(result.blob, result.filename ?? `${run.definition_code}.${run.format === "NDJSON" ? "ndjson" : "csv"}`);
+      saveBlob(result.blob, result.filename ?? `${run.definition_code}.${run.format === "NDJSON" ? "ndjson" : run.format === "XLSX" ? "xlsx" : "csv"}`);
       setCommandMessage("Report file downloaded after the protected access check.");
     } catch (error: unknown) {
       setCommandError(readError(error, "The report file could not be downloaded. Check the run state and try again."));
@@ -281,12 +281,12 @@ export function ReportingPage({
   return <section className="reporting-page" aria-labelledby="reporting-heading">
     <header className="topbar ropa-page-header">
       <div>
-        <span className="eyebrow">{organizationName || "Processing activity register"} · {scope}</span>
-        <h1 id="reporting-heading">Processing activity reports</h1>
-        <p>Define a governed report, check who proposed, reviewed and authorised it, then run it against the processing activity register for {scope}.</p>
+        <span className="eyebrow">{organizationName || "ClearSight"} · {scope}</span>
+        <h1 id="reporting-heading">Reports</h1>
+        <p>Current report definitions, source scope and completed report runs for {scope}.</p>
       </div>
       <div className="topbar-actions">
-        <Button variant="secondary" onPress={goBack}>Back to register</Button>
+        {onOpenRegister && <Button variant="secondary" onPress={goBack}>Open processing activities</Button>}
         <Button variant="secondary" onPress={refresh} isLoading={state === "loading" || runsState === "loading"}>Refresh reports</Button>
         <Button variant="primary" onPress={showCreate ? () => setShowCreate(false) : beginCreate}>{showCreate ? "Close report form" : "Define a report"}</Button>
       </div>
@@ -361,7 +361,7 @@ function DefinitionCreateForm({ draft, fields, error, busy, onChange, onSave }: 
         { id: "MATTER", label: "One issue or change" },
       ]} onChange={(value) => value && onChange({ scope_kind: value, scope_ref: "" })} isRequired />
       {draft.scope_kind !== "LEGAL_ENTITY" && <TextField label={draft.scope_kind === "PROGRAM" ? "Program identifier" : "Issue or change identifier"} value={draft.scope_ref} onChange={(value) => onChange({ scope_ref: value })} description="Enter the stored identifier returned by the authoritative record." isRequired />}
-      <SelectField label="File format" value={draft.format} placeholder="Choose a file format" options={[{ id: "CSV", label: "CSV spreadsheet" }, { id: "NDJSON", label: "NDJSON data file" }]} onChange={(value) => value && onChange({ format: value })} isRequired />
+      <SelectField label="File format" value={draft.format} placeholder="Choose a file format" options={[{ id: "XLSX", label: "Excel workbook" }, { id: "CSV", label: "CSV spreadsheet" }, { id: "NDJSON", label: "NDJSON data file" }]} onChange={(value) => value && onChange({ format: value })} isRequired />
       <TextField label="Effective from" type="date" value={draft.effective_from} onChange={(value) => onChange({ effective_from: value })} description="Leave blank if the authorizer should choose the effective date during activation." />
     </div>
     <ReportFilterEditor fields={fields} dataset={draft.dataset} value={draft.filter} onChange={(filter) => onChange({ filter })} onSave={() => onSave()} />
