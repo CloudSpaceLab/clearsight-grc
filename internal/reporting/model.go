@@ -14,6 +14,7 @@ type DefinitionStatus string
 const (
 	DefinitionDraft         DefinitionStatus = "DRAFT"
 	DefinitionPendingReview DefinitionStatus = "PENDING_REVIEW"
+	DefinitionReviewed      DefinitionStatus = "REVIEWED"
 	DefinitionActive        DefinitionStatus = "ACTIVE"
 	DefinitionRetired       DefinitionStatus = "RETIRED"
 )
@@ -21,6 +22,7 @@ const (
 var definitionStatuses = map[DefinitionStatus]struct{}{
 	DefinitionDraft:         {},
 	DefinitionPendingReview: {},
+	DefinitionReviewed:      {},
 	DefinitionActive:        {},
 	DefinitionRetired:       {},
 }
@@ -44,6 +46,8 @@ type ReportDataset string
 const (
 	DatasetProcessingActivities         ReportDataset = "PROCESSING_ACTIVITIES"
 	DatasetProcessingActivityExceptions ReportDataset = "PROCESSING_ACTIVITY_EXCEPTIONS"
+	DatasetPrograms                     ReportDataset = "PROGRAMS"
+	DatasetMatterExceptions             ReportDataset = "MATTER_EXCEPTIONS"
 )
 
 type ReportScopeKind string
@@ -82,6 +86,8 @@ type ReportDefinition struct {
 	StoredChecksum string     `json:"checksum"`
 	MakerID        string     `json:"maker_id"`
 	CheckerID      string     `json:"checker_id,omitempty"`
+	ReviewerID     string     `json:"reviewer_id,omitempty"`
+	ReviewerNote   string     `json:"reviewer_note,omitempty"`
 	EffectiveFrom  *time.Time `json:"effective_from,omitempty"`
 	EffectiveUntil *time.Time `json:"effective_until,omitempty"`
 	SubmittedAt    *time.Time `json:"submitted_at,omitempty"`
@@ -107,6 +113,8 @@ type ReportDefinitionRevision struct {
 	Checksum      string                  `json:"checksum"`
 	MakerID       string                  `json:"maker_id"`
 	CreatedAt     time.Time               `json:"created_at"`
+	ReviewedBy    string                  `json:"reviewed_by,omitempty"`
+	ReviewedAt    *time.Time              `json:"reviewed_at,omitempty"`
 	ApprovedBy    string                  `json:"approved_by,omitempty"`
 	ApprovedAt    *time.Time              `json:"approved_at,omitempty"`
 	Decision      string                  `json:"decision"`
@@ -126,27 +134,40 @@ type DecisionRecord struct {
 
 // ReportRun is the immutable receipt for one bounded report execution.
 type ReportRun struct {
-	ID                string                  `json:"id"`
-	TenantID          string                  `json:"tenant_id"`
-	LegalEntityID     string                  `json:"legal_entity_id"`
-	DefinitionID      string                  `json:"definition_id"`
-	DefinitionVersion int                     `json:"definition_version"`
-	RequestedByRef    string                  `json:"requested_by_ref"`
-	AsOf              time.Time               `json:"as_of"`
-	Filter            *ReportFilterExpression `json:"filter"`
-	Dataset           ReportDataset           `json:"dataset"`
-	Format            ReportFormat            `json:"format"`
-	Status            RunStatus               `json:"status"`
-	AttemptCount      int                     `json:"attempt_count"`
-	RowCount          int                     `json:"row_count"`
-	DataObjectKey     string                  `json:"data_object_key,omitempty"`
-	DataSHA256        string                  `json:"data_sha256,omitempty"`
-	ManifestObjectKey string                  `json:"manifest_object_key,omitempty"`
-	ManifestSHA256    string                  `json:"manifest_sha256,omitempty"`
-	FailureCode       string                  `json:"failure_code,omitempty"`
-	CreatedAt         time.Time               `json:"created_at"`
-	CompletedAt       *time.Time              `json:"completed_at,omitempty"`
-	ExpiresAt         time.Time               `json:"expires_at"`
+	ID                 string                  `json:"id"`
+	TenantID           string                  `json:"tenant_id"`
+	LegalEntityID      string                  `json:"legal_entity_id"`
+	DefinitionID       string                  `json:"definition_id"`
+	DefinitionVersion  int                     `json:"definition_version"`
+	DefinitionChecksum string                  `json:"definition_checksum"`
+	RequestedByRef     string                  `json:"requested_by_ref"`
+	AsOf               time.Time               `json:"as_of"`
+	Filter             *ReportFilterExpression `json:"filter"`
+	Dataset            ReportDataset           `json:"dataset"`
+	Format             ReportFormat            `json:"format"`
+	Status             RunStatus               `json:"status"`
+	AttemptCount       int                     `json:"attempt_count"`
+	RowCount           int                     `json:"row_count"`
+	DataObjectKey      string                  `json:"data_object_key,omitempty"`
+	DataSHA256         string                  `json:"data_sha256,omitempty"`
+	ManifestObjectKey  string                  `json:"manifest_object_key,omitempty"`
+	ManifestSHA256     string                  `json:"manifest_sha256,omitempty"`
+	FailureCode        string                  `json:"failure_code,omitempty"`
+	CreatedAt          time.Time               `json:"created_at"`
+	CompletedAt        *time.Time              `json:"completed_at,omitempty"`
+	ExpiresAt          time.Time               `json:"expires_at"`
+	SourceBoundary     SourceBoundary          `json:"source_boundary"`
+}
+
+// SourceBoundary is captured before generation and persisted even if generation
+// later fails, so a reader can tell which material versions the report was read
+// from. Without it, as_of is a timestamp rather than a reconstruction point.
+type SourceBoundary struct {
+	CapturedAt         time.Time            `json:"captured_at"`
+	ProjectionVersion  string               `json:"projection_version"`
+	SourceHighWater    map[string]time.Time `json:"source_high_water"`
+	Population         int                  `json:"population"`
+	PopulationComplete bool                 `json:"population_complete"`
 }
 
 // Checksum binds every governed field of a definition. Approval is granted
@@ -170,6 +191,7 @@ type Manifest struct {
 	Schema             string                  `json:"schema"`
 	GeneratedAt        time.Time               `json:"generated_at"`
 	AsOf               time.Time               `json:"as_of"`
+	Source             SourceBoundary          `json:"source"`
 	DefinitionCode     string                  `json:"definition_code"`
 	DefinitionVersion  int                     `json:"definition_version"`
 	DefinitionChecksum string                  `json:"definition_checksum"`
@@ -181,6 +203,7 @@ type Manifest struct {
 	Filter             *ReportFilterExpression `json:"filter,omitempty"`
 	Coverage           ManifestCoverage        `json:"coverage"`
 	DataSHA256         string                  `json:"data_sha256"`
+	RetentionUntil     time.Time               `json:"retention_until"`
 }
 
 // ManifestCoverage is never a persuasive number. A count the run could not
@@ -192,8 +215,8 @@ type ManifestCoverage struct {
 }
 
 const (
-	ReportRunPageSize  = 500
-	MaxReportRunRows   = 50_000
+	ReportRunPageSize  = 100
+	MaxReportRunRows   = 10_000
 	MaxReportRunBytes  = int64(32 << 20)
 	ReportRunRetention = 7 * 24 * time.Hour
 	MaxReportRunLease  = 2 * time.Minute

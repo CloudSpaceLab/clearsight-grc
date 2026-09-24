@@ -2,7 +2,9 @@ package reporting
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestDefinitionChecksumIsStableAndCoversEveryGovernedField(t *testing.T) {
@@ -71,13 +73,71 @@ func TestDefinitionChecksumDoesNotBindLifecycleOrReceiptState(t *testing.T) {
 }
 
 func TestDefinitionStatusVocabularyIsClosed(t *testing.T) {
-	for _, value := range []string{"DRAFT", "PENDING_REVIEW", "ACTIVE", "RETIRED"} {
+	for _, value := range []string{"DRAFT", "PENDING_REVIEW", "REVIEWED", "ACTIVE", "RETIRED"} {
 		if !validDefinitionStatus(DefinitionStatus(value)) {
 			t.Fatalf("status %q should be valid", value)
 		}
 	}
 	if validDefinitionStatus("APPROVED") || validDefinitionStatus("") {
 		t.Fatal("unlisted statuses must be rejected")
+	}
+}
+
+func TestReportRunEnvelopeUsesTheApprovedBounds(t *testing.T) {
+	if ReportRunPageSize != 100 {
+		t.Fatalf("report page size = %d, want 100", ReportRunPageSize)
+	}
+	if MaxReportRunRows != 10_000 {
+		t.Fatalf("report row ceiling = %d, want 10000", MaxReportRunRows)
+	}
+	if MaxReportRunBytes != 32<<20 {
+		t.Fatalf("report byte ceiling = %d, want 32 MiB", MaxReportRunBytes)
+	}
+}
+
+func TestReportModelIncludesAllDatasetsAndSeparateReviewProvenance(t *testing.T) {
+	datasets := []ReportDataset{
+		DatasetProcessingActivities,
+		DatasetProcessingActivityExceptions,
+		DatasetPrograms,
+		DatasetMatterExceptions,
+	}
+	seen := make(map[ReportDataset]struct{}, len(datasets))
+	for _, dataset := range datasets {
+		if dataset == "" {
+			t.Fatal("report dataset must be named")
+		}
+		if _, exists := seen[dataset]; exists {
+			t.Fatalf("report dataset %q is duplicated", dataset)
+		}
+		seen[dataset] = struct{}{}
+	}
+	definition := ReportDefinition{Status: DefinitionReviewed, ReviewerID: "reviewer-1", ReviewerNote: "Checked scope and filter."}
+	if definition.ReviewerID == "" || definition.ReviewerNote == "" {
+		t.Fatal("reviewed definition must retain the reviewer and note")
+	}
+	revision := ReportDefinitionRevision{ReviewedBy: "reviewer-1"}
+	if revision.ReviewedBy == "" {
+		t.Fatal("revision must retain separate review provenance")
+	}
+}
+
+func TestRunAndManifestCarryTheSourceBoundary(t *testing.T) {
+	captured := time.Date(2026, 9, 24, 10, 0, 0, 0, time.UTC)
+	boundary := SourceBoundary{
+		CapturedAt:         captured,
+		ProjectionVersion:  "ropa-register.v1",
+		SourceHighWater:    map[string]time.Time{"processing_activities": captured.Add(-time.Minute)},
+		Population:         42,
+		PopulationComplete: true,
+	}
+	run := ReportRun{SourceBoundary: boundary, DefinitionChecksum: strings.Repeat("a", 64)}
+	if !run.SourceBoundary.CapturedAt.Equal(captured) || run.SourceBoundary.ProjectionVersion == "" || len(run.SourceBoundary.SourceHighWater) != 1 {
+		t.Fatal("queued run did not retain the complete source boundary")
+	}
+	manifest := Manifest{Source: boundary, RetentionUntil: captured.Add(ReportRunRetention)}
+	if !manifest.Source.PopulationComplete || manifest.Source.Population != 42 || manifest.RetentionUntil.IsZero() {
+		t.Fatal("manifest did not retain source completeness and retention")
 	}
 }
 
