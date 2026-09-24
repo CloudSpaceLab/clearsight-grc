@@ -53,7 +53,7 @@ func TestMemoryCompositionInstallsRopaDemoOnlyInDemoMode(t *testing.T) {
 		demoMode bool
 		wantRows int
 	}{
-		{name: "demo mode", demoMode: true, wantRows: 3},
+		{name: "demo mode", demoMode: true, wantRows: 7},
 		{name: "non-demo mode", demoMode: false, wantRows: 0},
 	}
 

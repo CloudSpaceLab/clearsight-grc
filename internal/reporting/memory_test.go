@@ -211,6 +211,16 @@ func TestInstallDemoProvidesFourGovernanceExamplesAndABoundStop(t *testing.T) {
 		if !strings.Contains(strings.ToLower(definition.Description), "sample data") {
 			t.Errorf("demo definition %q is not clearly labelled as sample data", definition.Code)
 		}
+		if definition.Code == "ROPA-OPEN-EXCEPTIONS" {
+			for _, expected := range []string{"4 open exceptions across 8 seeded activities", "Cloudspace OEM", "Azure", "Finacle Treasury", "BVN Link Portal/Matching System"} {
+				if !strings.Contains(definition.Description, expected) {
+					t.Errorf("open-exception demo definition does not mention seeded estate term %q: %q", expected, definition.Description)
+				}
+			}
+		}
+		if definition.Code == "ROPA-CROSS-BORDER-TRANSFERS" && !strings.Contains(definition.Description, "domestic Nigerian") {
+			t.Errorf("cross-border demo definition must state that Cloudspace OEM is domestic: %q", definition.Description)
+		}
 		delete(want, definition.Code)
 	}
 	if len(want) != 0 {

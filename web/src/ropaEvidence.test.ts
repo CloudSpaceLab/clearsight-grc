@@ -31,10 +31,20 @@ describe("ROPA evidence transport", () => {
 
     const list = await json(await fetch("/api/v1/ropa/processing-activities?tenant_id=bank-demo"));
     expect(list.rows.some((activity: { name: string }) => activity.name === "Customer account opening")).toBe(true);
+    expect(list.rows.some((activity: { name: string }) => activity.name === "Payments and treasury operations")).toBe(true);
+    expect(list.rows.some((activity: { name: string }) => activity.name === "Azure user access management")).toBe(true);
 
     const detail = await json(await fetch(`/api/v1/ropa/processing-activities/${activityID}?tenant_id=bank-demo`));
     expect(detail.activity.name).toBe("Customer account opening");
-    expect(detail.closure_blockers).toEqual(["lawful basis", "named owner", "data subject category", "completed review"]);
+    expect(detail.activity.systems.map((system: { system_name: string }) => system.system_name)).toEqual([
+      "BVN Link Portal/Matching System",
+      "Soft Token",
+    ]);
+    expect(detail.closure_blockers).toEqual([]);
+
+    const paymentDetail = await json(await fetch("/api/v1/ropa/processing-activities/ropa-activity-payments-treasury-operations?tenant_id=bank-demo"));
+    expect(paymentDetail.activity.recipients[0]).toMatchObject({ recipient: "Cloudspace OEM", recipient_kind: "EXTERNAL", is_cross_border: false, transfer_basis: "NOT_APPLICABLE" });
+    expect(paymentDetail.activity.description).toMatch(/Nigerian/);
 
     const history = await json(await fetch(`/api/v1/ropa/processing-activities/${activityID}/history?tenant_id=bank-demo&limit=100`));
     expect(history.events).toHaveLength(3);
@@ -44,6 +54,7 @@ describe("ROPA evidence transport", () => {
       "/api/v1/ropa/dashboard?tenant_id=bank-demo",
       "/api/v1/ropa/processing-activities?tenant_id=bank-demo",
       `/api/v1/ropa/processing-activities/${activityID}?tenant_id=bank-demo`,
+      "/api/v1/ropa/processing-activities/ropa-activity-payments-treasury-operations?tenant_id=bank-demo",
       `/api/v1/ropa/processing-activities/${activityID}/history?tenant_id=bank-demo&limit=100`,
     ]);
     expect(previousFetch).not.toHaveBeenCalled();

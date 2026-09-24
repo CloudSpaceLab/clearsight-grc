@@ -780,14 +780,14 @@ var demoDefinitionSeeds = []demoDefinitionSeed{
 	{
 		id: demoDefinitionOpenExceptionsID, code: "ROPA-OPEN-EXCEPTIONS",
 		name:        "Processing activities with open exceptions",
-		description: "Sample data: processing activities that still need a lawful basis, named owner, data-subject category or completed review.",
+		description: "Sample data: 4 open exceptions across 8 seeded activities in the Meridian Trust Bank estate, including Cloudspace OEM findings about information-security certification, VAPT, audit rights and ISO 27001/22301 evidence, plus Azure user and device access findings. Finacle Treasury, Fincore/Coligo, BVN Link Portal/Matching System and Soft Token records remain visible with their missing closure facts. This is sample reference data, not legal advice.",
 		dataset:     DatasetProcessingActivityExceptions, scopeKind: ScopeLegalEntity, format: FormatCSV,
 		filter: &ReportFilterExpression{Kind: "group", Operator: "and"}, status: DefinitionActive, version: 4,
 	},
 	{
 		id: demoDefinitionCrossBorderID, code: "ROPA-CROSS-BORDER-TRANSFERS",
 		name:        "Cross-border transfers in one program",
-		description: "Sample data: cross-border processing activities linked to the Privacy Operations program, effective after its future start date.",
+		description: "Sample data: cross-border processing activities in the seeded register. Cloudspace OEM is recorded as a domestic Nigerian processor, so it is not counted as a cross-border transfer.",
 		dataset:     DatasetProcessingActivities, scopeKind: ScopeProgram, scopeRef: DemoProgramRef, format: FormatCSV,
 		filter: &ReportFilterExpression{Kind: "group", Operator: "and", Children: []ReportFilterExpression{{
 			Kind: "condition", Field: ReportFieldCrossBorder, Operator: "is", Value: "true",
@@ -796,7 +796,7 @@ var demoDefinitionSeeds = []demoDefinitionSeed{
 	{
 		id: demoDefinitionOverdueIssuesID, code: "ISSUES-OVERDUE-OBLIGATIONS",
 		name:        "Overdue obligations in one issue or change",
-		description: "Sample data: open issues and changes with an overdue obligation in the Data Privacy remediation record.",
+		description: "Sample data: open issues and overdue obligations in the seeded Data Protection, IT risk and Cloudspace OEM remediation records.",
 		dataset:     DatasetMatterExceptions, scopeKind: ScopeMatter, scopeRef: DemoMatterRef, format: FormatNDJSON,
 		filter: &ReportFilterExpression{Kind: "group", Operator: "and", Children: []ReportFilterExpression{{
 			Kind: "condition", Field: ReportFieldDueCondition, Operator: "is", Value: "OVERDUE",
@@ -805,7 +805,7 @@ var demoDefinitionSeeds = []demoDefinitionSeed{
 	{
 		id: demoDefinitionProgramHealthID, code: "PROGRAM-HEALTH",
 		name:        "Program health across the entity",
-		description: "Sample data: current Program operating status and calculated attention state across the legal entity.",
+		description: "Sample data: current Program operating status and calculated attention state for the seeded Meridian Trust Bank reference estate.",
 		dataset:     DatasetPrograms, scopeKind: ScopeLegalEntity, format: FormatCSV,
 		filter: &ReportFilterExpression{Kind: "group", Operator: "and", Children: []ReportFilterExpression{{
 			Kind: "condition", Field: ReportFieldOverallState, Operator: "is", Value: "AT_RISK",

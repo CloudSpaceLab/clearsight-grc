@@ -3,6 +3,7 @@ import type { ReportDefinition, ReportDefinitionRevision, ReportFilterExpression
 const tenantID = "bank-demo";
 const legalEntityID = "bank-ng";
 const activeDefinitionID = "report-active";
+const crossBorderDefinitionID = "report-cross-border";
 const pendingDefinitionID = "report-pending";
 const reviewedDefinitionID = "report-reviewed";
 const readyRunID = "report-ready";
@@ -41,7 +42,7 @@ const fields: ReportFilterFieldDefinition[] = [
 ];
 
 const emptyFilter: ReportFilterExpression = { kind: "group", operator: "and", children: [] };
-const activeFilter: ReportFilterExpression = { kind: "group", operator: "and", children: [{ kind: "condition", field: "missing_lawful_basis", operator: "is", value: "true" }] };
+const activeFilter: ReportFilterExpression = { kind: "group", operator: "and", children: [] };
 
 const activeDefinition: ReportDefinition = {
   id: activeDefinitionID,
@@ -49,7 +50,7 @@ const activeDefinition: ReportDefinition = {
   legal_entity_id: legalEntityID,
   code: "ROPA-OPEN-EXCEPTIONS",
   name: "Processing activities with open exceptions",
-  description: "Sample data: processing activities that still need a lawful basis, named owner, data-subject category or completed review.",
+  description: "Sample data: 4 open exceptions across 8 seeded activities in the Meridian Trust Bank estate, including Cloudspace OEM findings about information-security certification, VAPT, audit rights and ISO 27001/22301 evidence, plus Azure user and device access findings. Finacle Treasury, Fincore/Coligo, BVN Link Portal/Matching System and Soft Token records remain visible with their missing closure facts. This is sample reference data, not legal advice.",
   dataset: "PROCESSING_ACTIVITY_EXCEPTIONS",
   scope_kind: "LEGAL_ENTITY",
   format: "CSV",
@@ -70,13 +71,41 @@ const activeDefinition: ReportDefinition = {
   version: 7,
 };
 
+const crossBorderDefinition: ReportDefinition = {
+  id: crossBorderDefinitionID,
+  tenant_id: tenantID,
+  legal_entity_id: legalEntityID,
+  code: "ROPA-CROSS-BORDER-TRANSFERS",
+  name: "Cross-border transfers in one program",
+  description: "Sample data: cross-border processing activities in the seeded register. Cloudspace OEM is recorded as a domestic Nigerian processor, so it is not counted as a cross-border transfer.",
+  dataset: "PROCESSING_ACTIVITIES",
+  scope_kind: "PROGRAM",
+  scope_ref: "program-privacy-operations",
+  format: "CSV",
+  filter: { kind: "group", operator: "and", children: [{ kind: "condition", field: "cross_border_transfer", operator: "is", value: "true" }] },
+  status: "ACTIVE",
+  current_version: 4,
+  effective: false,
+  checksum: "f".repeat(64),
+  maker_id: makerID,
+  reviewer_id: reviewerID,
+  checker_id: authorizerID,
+  reviewer_note: "Sample cross-border scope reviewed; activation remains future-dated.",
+  effective_from: "2026-09-25T08:00:00Z",
+  submitted_at: "2026-09-18T08:00:00Z",
+  approved_at: "2026-09-20T08:00:00Z",
+  created_at: "2026-09-17T08:00:00Z",
+  updated_at: "2026-09-20T08:00:00Z",
+  version: 7,
+};
+
 const pendingDefinition: ReportDefinition = {
   id: pendingDefinitionID,
   tenant_id: tenantID,
   legal_entity_id: legalEntityID,
   code: "ROPA-QUARTERLY-ISSUES",
   name: "Quarterly issue and change review",
-  description: "Sample data: open issues and changes that need an overdue-obligation review.",
+  description: "Sample data: open issues and overdue obligations in the seeded Data Protection, IT risk and Cloudspace OEM remediation records.",
   dataset: "MATTER_EXCEPTIONS",
   scope_kind: "LEGAL_ENTITY",
   format: "NDJSON",
@@ -98,7 +127,7 @@ const reviewedDefinition: ReportDefinition = {
   legal_entity_id: legalEntityID,
   code: "ROPA-PROGRAM-HEALTH",
   name: "Program health review",
-  description: "Sample data: current Program operating status and calculated attention state.",
+  description: "Sample data: current Program operating status and calculated attention state for the seeded Meridian Trust Bank reference estate.",
   dataset: "PROGRAMS",
   scope_kind: "LEGAL_ENTITY",
   format: "CSV",
@@ -116,7 +145,7 @@ const reviewedDefinition: ReportDefinition = {
   version: 3,
 };
 
-const definitions = [activeDefinition, pendingDefinition, reviewedDefinition];
+const definitions = [activeDefinition, crossBorderDefinition, pendingDefinition, reviewedDefinition];
 
 const activeHistory: ReportDefinitionRevision = {
   definition_id: activeDefinitionID,
@@ -137,6 +166,28 @@ const activeHistory: ReportDefinitionRevision = {
   approved_at: "2026-09-20T08:00:00Z",
   decision: "APPROVED",
   decision_note: "Sample privacy review and authorisation completed.",
+};
+
+const crossBorderHistory: ReportDefinitionRevision = {
+  definition_id: crossBorderDefinitionID,
+  tenant_id: tenantID,
+  legal_entity_id: legalEntityID,
+  version: 4,
+  base_version: 3,
+  dataset: crossBorderDefinition.dataset,
+  scope_kind: crossBorderDefinition.scope_kind,
+  scope_ref: crossBorderDefinition.scope_ref,
+  format: crossBorderDefinition.format,
+  filter: crossBorderDefinition.filter!,
+  checksum: crossBorderDefinition.checksum,
+  maker_id: makerID,
+  created_at: "2026-09-17T08:00:00Z",
+  reviewed_by: reviewerID,
+  reviewed_at: "2026-09-19T08:00:00Z",
+  approved_by: authorizerID,
+  approved_at: "2026-09-20T08:00:00Z",
+  decision: "APPROVED",
+  decision_note: "Sample cross-border scope and domestic Cloudspace OEM treatment reviewed.",
 };
 
 const pendingHistory: ReportDefinitionRevision = {
@@ -177,6 +228,7 @@ const reviewedHistory: ReportDefinitionRevision = {
 
 const histories: Record<string, ReportDefinitionRevision[]> = {
   [activeDefinitionID]: [activeHistory],
+  [crossBorderDefinitionID]: [crossBorderHistory],
   [pendingDefinitionID]: [pendingHistory],
   [reviewedDefinitionID]: [reviewedHistory],
 };
@@ -197,7 +249,7 @@ const readyRun: ReportRun = {
   format: activeDefinition.format,
   status: "READY",
   attempt_count: 1,
-  row_count: 42,
+  row_count: 4,
   data_sha256: "d".repeat(64),
   manifest_sha256: "e".repeat(64),
   created_at: "2026-09-24T08:31:00Z",
@@ -205,9 +257,9 @@ const readyRun: ReportRun = {
   expires_at: "2026-10-01T08:31:00Z",
   source_boundary: {
     captured_at: "2026-09-24T08:30:00Z",
-    projection_version: "ropa-report-v3",
-    source_high_water: { activities: "2026-09-24T08:29:00Z", matters: "2026-09-24T08:28:00Z" },
-    population: 42,
+    projection_version: "ropa-v1",
+    source_high_water: { processing_activities: "2026-09-24T08:29:00Z", matters: "2026-09-24T08:28:00Z" },
+    population: 8,
     population_complete: true,
   },
 };
@@ -235,8 +287,8 @@ const failedRun: ReportRun = {
   expires_at: "2026-10-01T07:31:00Z",
   source_boundary: {
     captured_at: "2026-09-24T07:30:00Z",
-    projection_version: "ropa-report-v3",
-    source_high_water: { activities: "2026-09-24T07:29:00Z" },
+    projection_version: "ropa-v1",
+    source_high_water: { processing_activities: "2026-09-24T07:29:00Z" },
     population: 10001,
     population_complete: true,
   },
@@ -299,7 +351,14 @@ export function installReportingEvidence() {
       const run = [readyRun, failedRun].find((item) => item.id === decodeURIComponent(download[1]!));
       if (!run) return notFound();
       if (run.status !== "READY") return json({ error: { code: "report_run_not_ready", message: "This report file is not ready to download. Check the run state and try again when it is ready." } }, 409);
-      return new Response("id,name\nsample,Customer account opening\n", { status: 200, headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=\"ROPA-OPEN-EXCEPTIONS.csv\"" } });
+      return new Response([
+        "code,name,status,system,exception",
+        "PA-LOAN-APPLICATION,Loan application assessment,OPEN,Fincore/Coligo,Lawful basis not recorded",
+        "PA-PAYMENTS-TREASURY-OPERATIONS,Payments and treasury operations,OPEN,Cloudspace OEM — POS Support/PTSP,Completed review",
+        "PA-AZURE-USER-ACCESS-MANAGEMENT,Azure user access management,OPEN,Azure portal,Lawful basis not recorded; completed review",
+        "PA-AZURE-DEVICE-COMPLIANCE,Azure device compliance management,OPEN,Microsoft Entra device dashboard,Completed review",
+        "",
+      ].join("\n"), { status: 200, headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=\"ROPA-OPEN-EXCEPTIONS.csv\"" } });
     }
     return previous(input, init);
   };
