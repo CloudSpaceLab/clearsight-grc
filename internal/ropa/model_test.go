@@ -419,3 +419,16 @@ func TestAggregateStringRendersNameAndCode(t *testing.T) {
 		t.Fatalf("Aggregate.String() = %q, want %q", got, want)
 	}
 }
+
+func TestValidStatusMatchesTheRecordedVocabulary(t *testing.T) {
+	for _, status := range []ropa.Status{ropa.StatusNew, ropa.StatusOpen, ropa.StatusClosed} {
+		if !ropa.ValidStatus(status) {
+			t.Errorf("ValidStatus(%q) = false, want true", status)
+		}
+	}
+	for _, status := range []ropa.Status{"MADE_UP", ""} {
+		if ropa.ValidStatus(status) {
+			t.Errorf("ValidStatus(%q) = true, want false", status)
+		}
+	}
+}

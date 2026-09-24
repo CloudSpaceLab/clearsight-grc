@@ -31,6 +31,11 @@ func (s Status) String() string {
 	}
 }
 
+// ValidStatus lets consumers validate against the register's own status
+// vocabulary instead of copying the list, which is how a filter could offer a
+// status the register cannot store.
+func ValidStatus(status Status) bool { return validStatus(status) }
+
 // TransferBasis is the controlled NDPA Article 45 and Schedule 5 safeguard vocabulary.
 type TransferBasis string
 
