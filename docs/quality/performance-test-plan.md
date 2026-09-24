@@ -67,23 +67,63 @@ go test -tags load ./internal/ropa/ -run . -v -timeout 30m
 
 Machine context for the recorded run: Microsoft Windows 11 Home build 26200, AMD Ryzen 7 7435HS (8 cores / 16 logical processors), 39.69 GB RAM, Go 1.25.13 `windows/amd64`, local in-memory repositories. The page measurements are single observations on this Windows developer box, not CI measurements or production capacity evidence.
 
-## Report page volume — Windows developer-box run
+## Report page volume — real PostgreSQL at target population
 
-`internal/reporting/load_test.go` uses the same local in-memory boundary as the register check above. It creates 100,000 processing activities through the real `ropa.Service`: 60,000 complete activities and 40,000 with at least one open exception; 75,000 are in the measured `OPEN` population. It also generates 5,000 Programs and 25,000 Matters, then measures the selected populations used by each report dataset. The in-memory run fixture is populated with the already selected dataset/filter population, so this check measures bounded page and cursor materialization; it does not measure PostgreSQL filter evaluation. The fixture uses 50-row pages, 50 measured samples, and a 20-read batch per sample divided back to a per-page duration. Quantiles use the nearest-rank method; a warm-up page is excluded.
+`internal/reporting/load_test.go` measures a report page through
+`PostgresRepository.ListReportRows`, which is the path the 750ms budget covers.
+Populations: 100,000 processing activities (75,000 in the measured `OPEN`
+population, 30,000 carrying an open exception), 5,000 Programs (1,250 `AT_RISK`),
+and 25,000 Matters (10,000 overdue). 50-row pages, 2 warm-up reads excluded,
+50 measured samples per path, nearest-rank quantiles.
 
-Command:
+Commands:
 
 ```bash
 go test ./internal/reporting/ -tags load -run TestReportPageBudget -count=1 -v
+# with TEST_DATABASE_URL pointing at a database carrying all migrations
 ```
 
-Seed time for the recorded run was **11.5107056s**. The following are the observed p50/p95 results; the budget is applied to each reported p95 and is not widened.
+Observed on the recorded run (Windows 11 build 26200, AMD Ryzen 7 7435HS,
+Go 1.25.13 `windows/amd64`, **PostgreSQL 18.6**):
 
-| Dataset | Generated source population | Filter and measured page population | First page p50 | First page p95 | Cursor page p50 | Cursor page p95 | Max observed | Result |
+| Dataset | Source population | Measured population | First p50 | First p95 | Cursor p50 | Cursor p95 | Max | Result |
 |---|---:|---|---:|---:|---:|---:|---:|---|
-| `PROCESSING_ACTIVITIES` | 100,000 | `status = OPEN`; 75,000 rows | 126.635µs | 203.875µs | 150.22µs | 201.27µs | 228.065µs | **PASS** |
-| `PROCESSING_ACTIVITY_EXCEPTIONS` | 100,000 | `status = OPEN`; 30,000 open-exception rows | 135.17µs | 251.53µs | 144.105µs | 207.17µs | 483.105µs | **PASS** |
-| `PROGRAMS` | 5,000 | `overall_state = AT_RISK`; 1,250 rows | 191.9µs | 282.195µs | 153.955µs | 206.76µs | 588.72µs | **PASS** |
-| `MATTER_EXCEPTIONS` | 25,000 | `due_condition = OVERDUE`; 10,000 rows | 177.665µs | 265.615µs | 200.865µs | 281.87µs | 593.89µs | **PASS** |
+| `PROCESSING_ACTIVITIES` | 100,000 | `status = OPEN`; 75,000 | 6.95ms | 9.00ms | 1.57ms | 2.51ms | 9.80ms | **PASS** |
+| `PROCESSING_ACTIVITY_EXCEPTIONS` | 100,000 | `status = OPEN`; 30,000 with an open exception | 120.52ms | 136.09ms | 114.99ms | 130.99ms | 140.69ms | **PASS** |
+| `PROGRAMS` | 5,000 | `overall_state = AT_RISK`; 1,250 | 180.86ms | 215.92ms | 177.59ms | 214.49ms | 249.51ms | **PASS** |
+| `MATTER_EXCEPTIONS` | 25,000 | `due_condition = OVERDUE`; 10,000 | 507.10ms | 659.41ms | 506.27ms | 625.51ms | 667.61ms | **PASS** |
 
-All eight p50/p95 measurements, and every recorded maximum, were inside the **750ms** budget. These values measure the in-memory report page and cursor path only; they are not PostgreSQL, HTTP, browser, production-capacity or CI evidence.
+Every p50, p95 and recorded maximum is inside the 750ms budget, which is applied
+to each reported p95 and is not widened.
+
+**`MATTER_EXCEPTIONS` has the least headroom**: 659ms p95 and 668ms maximum
+against 750ms, roughly 11%. The Matter exception dataset evaluates the
+visibility predicate and the due-condition filter per candidate row, so its cost
+scales with the Matter population rather than with the page size. At a larger
+Matter population this path is the one that will reach the budget first. It is
+recorded here as a known limit, not as a passing result with no caveat.
+
+`PROCESSING_ACTIVITIES` and its cursor pages are index-backed and two orders of
+magnitude under budget. `PROCESSING_ACTIVITY_EXCEPTIONS` costs more than the
+unfiltered dataset because the exception predicate is evaluated per candidate
+row.
+
+### In-process fallback is a bound, not a budget result
+
+When `TEST_DATABASE_URL` is unset the same test falls back to an in-process
+repository holding the full unsorted population, so the measured call performs
+the filter and sort rather than slicing a pre-selected slice. The recorded
+fallback run on the same machine was:
+
+| Dataset | First p50 | First p95 | Cursor p50 | Cursor p95 |
+|---|---:|---:|---:|---:|
+| `PROCESSING_ACTIVITIES` | 566.33ms | 607.12ms | 568.89ms | 622.99ms |
+| `PROCESSING_ACTIVITY_EXCEPTIONS` | 293.04ms | 350.19ms | 293.35ms | 323.76ms |
+| `PROGRAMS` | 4.54ms | 6.12ms | 4.07ms | 5.63ms |
+| `MATTER_EXCEPTIONS` | 53.88ms | 61.28ms | 52.84ms | 56.17ms |
+
+These figures are slower than the PostgreSQL numbers because the in-process path
+sorts the whole population in Go while PostgreSQL uses `ropa_register_keyset_idx`.
+They bound the worst case for a caller with no database; they are **not** the
+query budget and must not be quoted as one. A figure without its layer is not a
+result.
