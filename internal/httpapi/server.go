@@ -30,6 +30,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/people"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/ropa"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
@@ -86,6 +87,8 @@ type Dependencies struct {
 	Coverage               *documentcoverage.Service
 	Continuity             *continuity.Service
 	MatterFormRemediation  *continuity.MatterFormRemediationService
+	Ropa                   *ropa.Service
+	RopaEventsReader       ropa.Repository
 	Today                  *today.Service
 	Oversight              *oversight.Service
 	Workflow               *workflow.Service

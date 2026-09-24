@@ -11,6 +11,240 @@
       "signedIdentityTimestamp": { "type": "apiKey", "in": "header", "name": "X-ClearSight-Identity-Timestamp" },
       "signedIdentitySignature": { "type": "apiKey", "in": "header", "name": "X-ClearSight-Identity-Signature" },
       "captureSession": { "type": "http", "scheme": "bearer" }
+    },
+    "schemas": {
+      "Coverage": {
+        "type": "object",
+        "required": ["population"],
+        "properties": {
+          "population": { "type": "integer", "minimum": 0 },
+          "excluded": { "type": ["integer", "null"], "minimum": 0 },
+          "unknown": { "type": ["integer", "null"], "minimum": 0 }
+        }
+      },
+      "RegisterCounts": {
+        "type": "object",
+        "required": ["total", "new", "open", "closed", "review_overdue", "missing_lawful_basis", "missing_owner", "no_data_subjects", "retired"],
+        "properties": {
+          "total": { "type": "integer", "minimum": 0 },
+          "new": { "type": "integer", "minimum": 0 },
+          "open": { "type": "integer", "minimum": 0 },
+          "closed": { "type": "integer", "minimum": 0 },
+          "review_overdue": { "type": "integer", "minimum": 0 },
+          "missing_lawful_basis": { "type": "integer", "minimum": 0 },
+          "missing_owner": { "type": "integer", "minimum": 0 },
+          "no_data_subjects": { "type": "integer", "minimum": 0 },
+          "retired": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "RegisterSummary": {
+        "type": "object",
+        "required": ["generated_at", "projection_version", "freshness", "source_high_water", "coverage", "counts"],
+        "properties": {
+          "generated_at": { "type": "string", "format": "date-time" },
+          "projection_version": { "type": "string" },
+          "freshness": { "type": "string", "enum": ["CURRENT", "STALE"] },
+          "source_high_water": { "type": "string", "format": "date-time" },
+          "coverage": { "$ref": "#/components/schemas/Coverage" },
+          "counts": { "$ref": "#/components/schemas/RegisterCounts" }
+        }
+      },
+      "ProcessingActivityDataCategory": {
+        "type": "object",
+        "required": ["category", "sensitivity"],
+        "properties": {
+          "category": { "type": "string" },
+          "sensitivity": { "type": "string", "enum": ["UNCLASSIFIED", "DIRECT_PERSONAL", "INDIRECT_PERSONAL", "SENSITIVE_BY_NATURE", "SENSITIVE_BY_LAW"] }
+        }
+      },
+      "ProcessingActivityRecipient": {
+        "type": "object",
+        "required": ["recipient", "recipient_kind", "is_cross_border", "transfer_basis"],
+        "properties": {
+          "recipient": { "type": "string" },
+          "recipient_kind": { "type": "string", "enum": ["INTERNAL", "EXTERNAL", "AUTHORITY"] },
+          "country_code": { "type": "string", "pattern": "^[A-Z]{2}$" },
+          "is_cross_border": { "type": "boolean" },
+          "transfer_basis": { "type": "string", "enum": ["ADEQUACY", "APPROVED_INSTRUMENT", "RECOGNISED_LAWFUL_BASIS", "CONSENT", "STANDARD_CONTRACT_CLAUSES", "BINDING_CORPORATE_RULES", "CERTIFICATION", "NOT_APPLICABLE"] }
+        }
+      },
+      "ProcessingActivitySystem": {
+        "type": "object",
+        "required": ["system_name", "system_kind"],
+        "properties": {
+          "system_name": { "type": "string" },
+          "system_kind": { "type": "string", "enum": ["APPLICATION", "DATABASE", "FILE", "MANUAL", "THIRD_PARTY"] }
+        }
+      },
+      "ProcessingActivityReview": {
+        "type": "object",
+        "required": ["id", "created_at", "due_date"],
+        "properties": {
+          "id": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "due_date": { "type": "string", "format": "date-time" },
+          "completed_at": { "type": "string", "format": "date-time" },
+          "outcome": { "type": "string", "enum": ["CONFIRMED", "REVISED", "WITHDRAWN"] },
+          "reviewer_principal_id": { "type": "string" }
+        }
+      },
+      "ProcessingActivity": {
+        "type": "object",
+        "required": ["id", "tenant_id", "legal_entity_id", "code", "name", "description", "status", "purpose", "lawful_basis", "controller", "processor", "automated_decision_making", "data_subject_categories", "personal_data_categories", "security_measures", "retention_period", "version", "created_at", "updated_at"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenant_id": { "type": "string" },
+          "legal_entity_id": { "type": "string" },
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "status": { "type": "string", "enum": ["NEW", "OPEN", "CLOSED"] },
+          "purpose": { "type": "string" },
+          "lawful_basis": { "type": "string" },
+          "controller": { "type": "string" },
+          "processor": { "type": "string" },
+          "automated_decision_making": { "type": "boolean" },
+          "data_subject_categories": { "type": "string" },
+          "personal_data_categories": { "type": "string" },
+          "security_measures": { "type": "string" },
+          "retention_period": { "type": "string" },
+          "start_date": { "type": "string", "format": "date-time" },
+          "end_date": { "type": "string", "format": "date-time" },
+          "next_review_date": { "type": "string", "format": "date-time" },
+          "owner_principal_id": { "type": "string" },
+          "required_authority_principal_id": { "type": "string" },
+          "program_id": { "type": "string" },
+          "version": { "type": "integer", "format": "int64", "minimum": 1 },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "data_categories": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivityDataCategory" } },
+          "recipients": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivityRecipient" } },
+          "systems": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivitySystem" } },
+          "reviews": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivityReview" } }
+        }
+      },
+      "ProcessingActivityEvent": {
+        "type": "object",
+        "required": ["id", "tenant_id", "legal_entity_id", "aggregate_type", "aggregate_id", "aggregate_version", "type", "payload", "actor_type", "occurred_at"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenant_id": { "type": "string" },
+          "legal_entity_id": { "type": "string" },
+          "aggregate_type": { "type": "string", "enum": ["PROCESSING_ACTIVITY"] },
+          "aggregate_id": { "type": "string" },
+          "aggregate_version": { "type": "integer", "format": "int64", "minimum": 1 },
+          "type": { "type": "string" },
+          "payload": { "type": "object", "additionalProperties": true },
+          "actor_type": { "type": "string" },
+          "actor_id": { "type": "string" },
+          "occurred_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProcessingActivityPage": {
+        "type": "object",
+        "required": ["Rows", "NextCursor", "HasMore"],
+        "properties": {
+          "Rows": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivity" } },
+          "NextCursor": { "type": "string" },
+          "HasMore": { "type": "boolean" }
+        }
+      },
+      "ProcessingActivityResponse": {
+        "type": "object",
+        "required": ["state_label", "activity"],
+        "properties": {
+          "state_label": { "type": "string" },
+          "activity": { "$ref": "#/components/schemas/ProcessingActivity" },
+          "closure_blockers": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "CreateProcessingActivityRequest": {
+        "type": "object",
+        "required": ["code", "name", "controller"],
+        "properties": {
+          "tenant_id": { "type": "string", "description": "Ignored; the verified request identity supplies tenant scope." },
+          "legal_entity_id": { "type": "string", "description": "Ignored; the verified request identity supplies legal-entity scope." },
+          "actor_id": { "type": "string", "description": "Ignored; the verified request identity supplies the command actor." },
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "purpose": { "type": "string" },
+          "lawful_basis": { "type": "string" },
+          "controller": { "type": "string" },
+          "processor": { "type": "string" },
+          "automated_decision_making": { "type": "boolean" },
+          "data_subject_categories": { "type": "string" },
+          "personal_data_categories": { "type": "string" },
+          "security_measures": { "type": "string" },
+          "retention_period": { "type": "string" },
+          "start_date": { "type": "string", "format": "date-time" },
+          "end_date": { "type": "string", "format": "date-time" },
+          "next_review_date": { "type": "string", "format": "date-time" },
+          "owner_principal_id": { "type": "string" },
+          "required_authority_principal_id": { "type": "string" },
+          "program_id": { "type": "string" },
+          "data_categories": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivityDataCategory" } },
+          "recipients": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivityRecipient" } },
+          "systems": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivitySystem" } },
+          "reviews": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivityReview" } }
+        }
+      },
+      "UpdateProcessingActivityRequest": {
+        "type": "object",
+        "required": ["expected_version"],
+        "properties": {
+          "tenant_id": { "type": "string", "description": "Ignored; the verified request identity supplies tenant scope." },
+          "legal_entity_id": { "type": "string", "description": "Ignored; the verified request identity supplies legal-entity scope." },
+          "activity_id": { "type": "string", "description": "Ignored; the path supplies the activity identifier." },
+          "id": { "type": "string", "description": "Ignored; the path supplies the activity identifier." },
+          "expected_version": { "type": "integer", "format": "int64", "minimum": 1 },
+          "actor_id": { "type": "string", "description": "Ignored; the verified request identity supplies the command actor." },
+          "code": { "type": ["string", "null"] },
+          "name": { "type": ["string", "null"] },
+          "description": { "type": ["string", "null"] },
+          "purpose": { "type": ["string", "null"] },
+          "lawful_basis": { "type": ["string", "null"] },
+          "controller": { "type": ["string", "null"] },
+          "processor": { "type": ["string", "null"] },
+          "automated_decision_making": { "type": ["boolean", "null"] },
+          "data_subject_categories": { "type": ["string", "null"] },
+          "personal_data_categories": { "type": ["string", "null"] },
+          "security_measures": { "type": ["string", "null"] },
+          "retention_period": { "type": ["string", "null"] },
+          "start_date": { "type": ["string", "null"], "format": "date-time" },
+          "end_date": { "type": ["string", "null"], "format": "date-time" },
+          "next_review_date": { "type": ["string", "null"], "format": "date-time" },
+          "owner_principal_id": { "type": ["string", "null"] },
+          "required_authority_principal_id": { "type": ["string", "null"] },
+          "program_id": { "type": ["string", "null"] },
+          "data_categories": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivityDataCategory" } },
+          "recipients": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivityRecipient" } },
+          "systems": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivitySystem" } },
+          "reviews": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivityReview" } }
+        }
+      },
+      "TransitionProcessingActivityRequest": {
+        "type": "object",
+        "required": ["expected_version", "to"],
+        "properties": {
+          "tenant_id": { "type": "string", "description": "Ignored; the verified request identity supplies tenant scope." },
+          "legal_entity_id": { "type": "string", "description": "Ignored; the verified request identity supplies legal-entity scope." },
+          "activity_id": { "type": "string", "description": "Ignored; the path supplies the activity identifier." },
+          "id": { "type": "string", "description": "Ignored; the path supplies the activity identifier." },
+          "expected_version": { "type": "integer", "format": "int64", "minimum": 1 },
+          "to": { "type": "string", "enum": ["NEW", "OPEN", "CLOSED"] },
+          "end_date": { "type": "string", "format": "date-time" },
+          "actor_id": { "type": "string", "description": "Ignored; the verified request identity supplies the command actor." }
+        }
+      },
+      "ProcessingActivityHistoryResponse": {
+        "type": "object",
+        "required": ["events", "has_more"],
+        "properties": {
+          "events": { "type": "array", "items": { "$ref": "#/components/schemas/ProcessingActivityEvent" } },
+          "has_more": { "type": "boolean" }
+        }
+      }
     }
   },
   "security": [
@@ -27,6 +261,100 @@
     "/api/v1/people/{person_id}/assignments": { "get": { "operationId": "employeeAssignments", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/people/{person_id}/activity": { "get": { "operationId": "employeeActivity", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/oversight": { "get": { "operationId": "oversightSnapshot", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "OVERSIGHT_READ" } },
+
+    "/api/v1/ropa/dashboard": {
+      "get": {
+        "operationId": "getRopaDashboard",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [{ "name": "tenant_id", "in": "query", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "The scoped processing activity register summary.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegisterSummary" } } } },
+          "default": { "description": "The request could not be completed." }
+        }
+      }
+    },
+    "/api/v1/ropa/processing-activities": {
+      "get": {
+        "operationId": "listRopaProcessingActivities",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          { "name": "tenant_id", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["NEW", "OPEN", "CLOSED"] } },
+          { "name": "lawful_basis", "in": "query", "schema": { "type": "string" } },
+          { "name": "owner_id", "in": "query", "schema": { "type": "string" } },
+          { "name": "owner_principal_id", "in": "query", "schema": { "type": "string" } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "include_retired", "in": "query", "schema": { "type": "boolean", "default": false } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 0, "maximum": 200, "default": 50 } }
+        ],
+        "responses": {
+          "200": { "description": "A bounded page of processing activities.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProcessingActivityPage" } } } },
+          "default": { "description": "The request could not be completed." }
+        }
+      },
+      "post": {
+        "operationId": "createRopaProcessingActivity",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateProcessingActivityRequest" } } } },
+        "responses": {
+          "201": { "description": "The created processing activity.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProcessingActivityResponse" } } } },
+          "default": { "description": "The processing activity could not be created." }
+        }
+      }
+    },
+    "/api/v1/ropa/processing-activities/{id}": {
+      "get": {
+        "operationId": "getRopaProcessingActivity",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "tenant_id", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The processing activity and its current closure blockers.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProcessingActivityResponse" } } } },
+          "default": { "description": "The processing activity could not be read." }
+        }
+      },
+      "post": {
+        "operationId": "updateRopaProcessingActivity",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateProcessingActivityRequest" } } } },
+        "responses": {
+          "200": { "description": "The updated processing activity.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProcessingActivityResponse" } } } },
+          "default": { "description": "The processing activity could not be updated." }
+        }
+      }
+    },
+    "/api/v1/ropa/processing-activities/{id}/history": {
+      "get": {
+        "operationId": "getRopaProcessingActivityHistory",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "tenant_id", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "after_version", "in": "query", "schema": { "type": "integer", "format": "int64", "minimum": 0, "default": 0 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 0, "maximum": 200, "default": 100 } }
+        ],
+        "responses": {
+          "200": { "description": "A bounded page of immutable processing activity events.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProcessingActivityHistoryResponse" } } } },
+          "default": { "description": "The processing activity history could not be read." }
+        }
+      }
+    },
+    "/api/v1/ropa/processing-activities/{id}/transition": {
+      "post": {
+        "operationId": "transitionRopaProcessingActivity",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TransitionProcessingActivityRequest" } } } },
+        "responses": {
+          "200": { "description": "The processing activity after the requested transition.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProcessingActivityResponse" } } } },
+          "default": { "description": "The processing activity could not be transitioned." }
+        }
+      }
+    },
 
     "/api/v1/authority/resolve": { "post": { "operationId": "resolveAuthority", "x-clearsight-route-class": "AUTHENTICATED_OPERATION" } },
     "/api/v1/authority/simulate": { "post": { "operationId": "simulateAuthority", "x-clearsight-route-class": "AUTHENTICATED_OPERATION", "x-clearsight-permission": "CONFIG_READ" } },

@@ -55,3 +55,22 @@ describe("Program section routes", () => {
     expect(parseRoute("#programs/program-1/unknown")).toEqual({ view: "programs", target: { programID: "program-1", programSection: "overview" } });
   });
 });
+
+describe("ROPA workspace routes", () => {
+  it("parses and builds the register route", () => {
+    expect(parseRoute("#ropa")).toEqual({ view: "ropa", target: { ropaPage: "register" } });
+    expect(routeHash("ropa", { ropaPage: "register" }, "matters")).toBe("#ropa");
+  });
+
+  it("parses and builds the reports route", () => {
+    expect(parseRoute("#ropa/reports")).toEqual({ view: "ropa", target: { ropaPage: "reports" } });
+    expect(routeHash("ropa", { ropaPage: "reports" }, "matters")).toBe("#ropa/reports");
+  });
+
+  it("round-trips an encoded activity target", () => {
+    const target = { ropaPage: "register" as const, ropaActivityID: "activity/1 #銀行" };
+    const hash = routeHash("ropa", target, "matters");
+    expect(hash).toBe("#ropa/activity/activity%2F1%20%23%E9%8A%80%E8%A1%8C");
+    expect(parseRoute(hash)).toEqual({ view: "ropa", target });
+  });
+});

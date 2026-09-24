@@ -1,8 +1,9 @@
-export type View = "today" | "oversight" | "programs" | "forms" | "vendors" | "work" | "people" | "imports" | "explore" | "configure";
+export type View = "today" | "oversight" | "programs" | "forms" | "vendors" | "ropa" | "work" | "people" | "imports" | "explore" | "configure";
 export type WorkTab = "matters" | "evidence";
 export type ProgramSection = "overview" | "requirements-controls" | "monitoring" | "evidence-results" | "issues-actions" | "history";
 export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id: string };
 export type VendorPage = "overview" | "register";
+export type RopaPage = "register" | "reports";
 export type WorkspaceTarget = {
   programID?: string;
   formTemplateID?: string;
@@ -13,6 +14,8 @@ export type WorkspaceTarget = {
 	personID?: string;
   vendorRelationshipID?: string;
   vendorPage?: VendorPage;
+  ropaPage?: RopaPage;
+  ropaActivityID?: string;
   documentID?: string;
   openFirstProgram?: boolean;
   openFirstMatter?: boolean;
@@ -26,7 +29,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     if (!value) return undefined;
     try { return decodeURIComponent(value); } catch { return value; }
   };
-	const allowed: View[] = ["today", "oversight", "programs", "forms", "vendors", "work", "people", "imports", "explore", "configure"];
+	const allowed: View[] = ["today", "oversight", "programs", "forms", "vendors", "ropa", "work", "people", "imports", "explore", "configure"];
   const view = allowed.includes(parts[0] as View) ? parts[0] as View : "today";
   if (view === "programs") {
     if (!parts[1]) return { view, target: {} };
@@ -50,6 +53,11 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     if (parts[1] === "register") return { view, target: { vendorPage: "register", ...(parts[2] ? { vendorRelationshipID: decodeTarget(parts[2]) } : {}) } };
     return { view, target: { vendorPage: "register", vendorRelationshipID: decodeTarget(parts[1]) } };
   }
+  if (view === "ropa") {
+    if (parts[1] === "activity" && parts[2]) return { view, target: { ropaPage: "register", ropaActivityID: decodeTarget(parts[2]) } };
+    if (parts[1] === "reports") return { view, target: { ropaPage: "reports" } };
+    return { view, target: { ropaPage: "register" } };
+  }
   if (view === "imports") return { view, target: { documentID: decodeTarget(parts[1]) } };
   if (view === "work") {
     const workTab: WorkTab = parts[1] === "evidence" ? "evidence" : "matters";
@@ -70,6 +78,10 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
   if (view === "vendors") {
     if (target.vendorRelationshipID) return `#vendors/register/${encodeURIComponent(target.vendorRelationshipID)}`;
     if (target.vendorPage) return `#vendors/${target.vendorPage}`;
+  }
+  if (view === "ropa") {
+    if (target.ropaActivityID) return `#ropa/activity/${encodeURIComponent(target.ropaActivityID)}`;
+    if (target.ropaPage === "reports") return "#ropa/reports";
   }
   if (view === "imports" && target.documentID) return `#imports/${encodeURIComponent(target.documentID)}`;
   if (view === "work") {

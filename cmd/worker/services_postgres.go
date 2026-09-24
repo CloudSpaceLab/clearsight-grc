@@ -21,11 +21,13 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reconciliation"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/ropa"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceevent"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
@@ -35,7 +37,66 @@ const (
 	aiGovernanceRetentionClass          = "ai-governance-retention"
 	oversightProjectionClass            = "oversight-projection"
 	formPolicyMaintenanceClass          = "form-response-policy-maintenance"
+	ropaSummaryProjectionClass          = "ropa-summary-projection"
 )
+
+// ropaSummaryProjectionMaintainer adapts the scope-oriented ROPA projection
+// maintainer to the existing worker-class lease loop. Scope discovery mirrors
+// oversight: select currently valid legal entities per tenant and skip scopes
+// whose current projection was refreshed inside the same five-minute window.
+type ropaSummaryProjectionMaintainer struct {
+	pool       *pgxpool.Pool
+	maintainer *ropa.SummaryMaintainer
+}
+
+func (m *ropaSummaryProjectionMaintainer) Maintain(ctx context.Context, now time.Time, limit int) (int, error) {
+	if m == nil || m.pool == nil || m.maintainer == nil || ctx == nil {
+		return 0, ropa.ErrInvalid
+	}
+	now = now.UTC()
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	rows, err := m.pool.Query(ctx, `
+		SELECT t.id::text,le.id::text
+		FROM legal_entities le JOIN tenants t ON t.id=le.tenant_id
+		WHERE le.valid_from<=$1::timestamptz AND (le.valid_until IS NULL OR $1::timestamptz<le.valid_until)
+		  AND NOT EXISTS (
+		    SELECT 1 FROM ropa_register_summary summary
+		    WHERE summary.tenant_id=le.tenant_id AND summary.legal_entity_id=le.id
+		      AND summary.projection_version=$2
+		      AND summary.generated_at>$1::timestamptz-interval '5 minutes'
+		  )
+		ORDER BY le.id LIMIT $3`, now, ropa.ProjectionVersion, limit)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	scopes := make([]ropa.ActivityScope, 0, limit)
+	for rows.Next() {
+		var scope ropa.ActivityScope
+		if err := rows.Scan(&scope.TenantID, &scope.LegalEntityID); err != nil {
+			return 0, err
+		}
+		scopes = append(scopes, scope)
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+
+	completed := 0
+	for _, scope := range scopes {
+		if err := ctx.Err(); err != nil {
+			return completed, err
+		}
+		if err := m.maintainer.Maintain(ctx, scope); err != nil {
+			return completed, err
+		}
+		completed++
+	}
+	return completed, nil
+}
 
 func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (workerSet, error) {
 	pool, err := database.Open(ctx, cfg)
@@ -54,6 +115,12 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	governanceService := governance.NewService(lifecycle)
 	continuityRepository := continuity.NewCurrentPostgresRepository(pool)
 	continuityService := continuity.NewService(continuityRepository)
+	ropaRepository := ropa.NewPostgresRepository(pool)
+	ropaLister := ropa.NewPostgresLister(pool)
+	ropaSummaries := ropa.NewPostgresSummaryRepository(pool)
+	ropaService := ropa.NewService(ropaRepository, ropaSummaries)
+	ropaService.SetLister(ropaLister)
+	ropaSummaryMaintainer := ropa.NewSummaryMaintainer(ropaRepository, ropaSummaries, ropaService)
 	authorityService := authority.NewEffectivePostgresService(pool)
 	autonomyService := autonomy.NewService(autonomy.NewPostgresRepository(pool))
 	aiGovernanceRetention := &aigovernance.RetentionMaintainer{Repo: aigovernance.NewPostgresRepository(pool)}
@@ -140,6 +207,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.ConfigureClass(documentProposalWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 30 * time.Second, Batch: 100})
 	service.ConfigureClass(aiGovernanceRetentionClass, workflowruntime.WorkClassOptions{Poll: time.Hour, Batch: 500})
 	service.ConfigureClass(oversightProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 20})
+	service.ConfigureClass(ropaSummaryProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 20})
 	service.ConfigureClass(formPolicyMaintenanceClass, workflowruntime.WorkClassOptions{Poll: 30 * time.Second, Timeout: 20 * time.Second, Lease: time.Minute, Batch: 100})
 
 	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
@@ -165,6 +233,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(documentProposalWorkProjectionClass, documentProposalWork)
 	service.AddMaintainerClass(aiGovernanceRetentionClass, aiGovernanceRetention)
 	service.AddMaintainerClass(oversightProjectionClass, &oversight.Maintainer{Repository: oversight.NewPostgresRepository(pool)})
+	service.AddMaintainerClass(ropaSummaryProjectionClass, &ropaSummaryProjectionMaintainer{pool: pool, maintainer: ropaSummaryMaintainer})
 	service.AddMaintainerClass(formPolicyMaintenanceClass, formpolicy.NewMaintainer(formPolicyRepository, formPolicyExecutor, cfg.WorkerID))
 	return workerSet{Runtime: service, Close: pool.Close}, nil
 }
