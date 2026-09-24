@@ -4,6 +4,7 @@ export type ProgramSection = "overview" | "requirements-controls" | "monitoring"
 export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id: string };
 export type VendorPage = "overview" | "register";
 export type RopaPage = "register" | "reports";
+export type OversightMetric = "critical-high" | "overdue" | "routing-gaps" | "outcome-failures";
 export type WorkspaceTarget = {
   programID?: string;
   formTemplateID?: string;
@@ -16,6 +17,7 @@ export type WorkspaceTarget = {
   vendorPage?: VendorPage;
   ropaPage?: RopaPage;
   ropaActivityID?: string;
+  oversightMetric?: OversightMetric;
   documentID?: string;
   openFirstProgram?: boolean;
   openFirstMatter?: boolean;
@@ -24,6 +26,8 @@ export type WorkspaceTarget = {
 
 export function parseRoute(hash: string): { view: View; workTab?: WorkTab; target: WorkspaceTarget } {
   const route = hash.replace(/^#\/?/, "").split("?", 1)[0] ?? "";
+  const queryIndex = hash.indexOf("?");
+  const query = new URLSearchParams(queryIndex >= 0 ? hash.slice(queryIndex + 1) : "");
   const parts = route.split("/").filter(Boolean);
   const decodeTarget = (value?: string) => {
     if (!value) return undefined;
@@ -31,6 +35,11 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
   };
 	const allowed: View[] = ["today", "oversight", "programs", "forms", "vendors", "ropa", "work", "people", "imports", "explore", "configure"];
   const view = allowed.includes(parts[0] as View) ? parts[0] as View : "today";
+  if (view === "oversight") {
+    const metric = query.get("metric");
+    const allowedMetrics: OversightMetric[] = ["critical-high", "overdue", "routing-gaps", "outcome-failures"];
+    return { view, target: allowedMetrics.includes(metric as OversightMetric) ? { oversightMetric: metric as OversightMetric } : {} };
+  }
   if (view === "programs") {
     if (!parts[1]) return { view, target: {} };
     const allowedSections: ProgramSection[] = ["overview", "requirements-controls", "monitoring", "evidence-results", "issues-actions", "history"];
@@ -68,6 +77,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
 }
 
 export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab) {
+  if (view === "oversight") return target.oversightMetric ? `#oversight?metric=${encodeURIComponent(target.oversightMetric)}` : "#oversight";
   if (view === "programs" && target.programID) {
     const section = target.programSection ?? "overview";
     const item = section === "requirements-controls" ? target.programItem : undefined;

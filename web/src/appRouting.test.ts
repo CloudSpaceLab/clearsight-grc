@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { parseRoute, routeHash } from "./appRouting";
 
 describe("workspace routes", () => {
+  it("keeps the selected oversight measure in a shareable drill-down route", () => {
+    expect(parseRoute("#oversight?metric=overdue")).toEqual({ view: "oversight", target: { oversightMetric: "overdue" } });
+    expect(routeHash("oversight", { oversightMetric: "routing-gaps" }, "matters")).toBe("#oversight?metric=routing-gaps");
+    expect(parseRoute("#oversight?metric=unknown")).toEqual({ view: "oversight", target: {} });
+  });
+
   it("keeps filter queries out of record targets", () => {
     expect(parseRoute("#work/matters/matter%2F1?status=OPEN&priority=4")).toEqual({ view: "work", workTab: "matters", target: { matterID: "matter/1" } });
     expect(parseRoute("#programs/program%2F1?overall_state=CURRENT")).toEqual({ view: "programs", target: { programID: "program/1", programSection: "overview" } });
