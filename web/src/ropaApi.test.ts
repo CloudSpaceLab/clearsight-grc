@@ -87,7 +87,7 @@ describe("ROPA API", () => {
 
   it("turns a missing processing activity into an operator recovery message", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "ropa_activity_not_found", message: "ropa_activity_not_found" } }), { status: 404 }));
-    await expect(fetchProcessingActivity("activity-1")).rejects.toMatchObject({ message: "The processing activity could not be loaded. Try again." });
+    await expect(fetchProcessingActivity("activity-1")).rejects.toMatchObject({ message: "The processing activity could not be loaded. Try again.", kind: "not_found" });
   });
 
   it("turns a service failure into a register recovery message without exposing the response code", async () => {

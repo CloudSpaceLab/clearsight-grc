@@ -46,7 +46,11 @@ async function scopedRequest<T>(path: string, params: Record<string, string | nu
     return await requestJSON<T>(apiBase, `${path}?${suffix}`, signal ? { signal } : undefined);
   } catch (error) {
     if (isAbortError(error)) throw error;
-    throw new Error(failureMessage);
+    const failure = new Error(failureMessage) as Error & { kind?: string };
+    if (typeof error === "object" && error !== null && "kind" in error && typeof error.kind === "string") {
+      Object.defineProperty(failure, "kind", { value: error.kind, enumerable: false });
+    }
+    throw failure;
   }
 }
 
