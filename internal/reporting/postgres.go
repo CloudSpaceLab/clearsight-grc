@@ -62,6 +62,9 @@ func (r *PostgresRepository) CreateDefinition(ctx context.Context, scope ReportS
 	if err := validateDefinitionForCreate(definition); err != nil {
 		return ReportDefinition{}, err
 	}
+	if _, err := NormalizeReportFilterForDataset(definition.Dataset, definition.Filter); err != nil {
+		return ReportDefinition{}, err
+	}
 	if definition.Status != DefinitionDraft || definition.Version != 1 || definition.CurrentVersion != 1 ||
 		definition.StoredChecksum == "" || definition.StoredChecksum != definition.Checksum() {
 		return ReportDefinition{}, ErrInvalid
@@ -320,6 +323,9 @@ func (r *PostgresRepository) CreateRun(ctx context.Context, scope ReportScope, r
 	if err := validateReportRunIdentity(run); err != nil {
 		return ReportRun{}, err
 	}
+	if _, err := NormalizeReportFilterForDataset(run.Dataset, run.Filter); err != nil {
+		return ReportRun{}, err
+	}
 	if err := validateSourceBoundary(run.SourceBoundary); err != nil {
 		return ReportRun{}, err
 	}
@@ -442,40 +448,65 @@ func (r *PostgresRepository) ClaimQueuedRuns(ctx context.Context, scope ReportSc
 	if limit > reportClaimBatch {
 		limit = reportClaimBatch
 	}
-	rows, err := r.pool.Query(ctx, `WITH worker_gate AS MATERIALIZED (
-		SELECT pg_try_advisory_xact_lock(hashtextextended('clearsight:report-run-claim:'||$1,0)) AS locked
-	), candidates AS MATERIALIZED (
-		SELECT r.id FROM report_runs r CROSS JOIN worker_gate g
-		WHERE g.locked AND r.tenant_id=$2::uuid AND r.legal_entity_id=$3::uuid AND r.status='QUEUED'
-		ORDER BY r.created_at,r.id LIMIT $4 FOR UPDATE OF r SKIP LOCKED
-	), claimed AS (
-		UPDATE report_runs r SET status='RUNNING',attempt_count=r.attempt_count+1
-		FROM candidates c WHERE r.id=c.id AND r.status='QUEUED'
-		RETURNING r.*
-	), events AS (
-		INSERT INTO outbox_events(id,tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
-		SELECT uuidv7(),r.tenant_id,'REPORT_RUN',r.id,'ReportRunClaimed',
-			jsonb_build_object('worker_id',$1::text,'attempt_count',r.attempt_count,'dataset',r.dataset,
-				'legal_entity_id',r.legal_entity_id::text),clock_timestamp(),clock_timestamp())
-		FROM claimed r RETURNING r.aggregate_id
-	)
-	SELECT `+runProjection+` FROM claimed r
-	WHERE EXISTS (SELECT 1 FROM events e WHERE e.aggregate_id=r.id)
-	ORDER BY r.created_at,r.id`, workerID, scope.TenantID, scope.LegalEntityID, limit)
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("claim queued report runs: %w", err)
+		return nil, fmt.Errorf("begin queued report claim: %w", err)
 	}
-	defer rows.Close()
-	values := make([]ReportRun, 0, limit)
+	defer func() { _ = tx.Rollback(ctx) }()
+	var workerLock bool
+	if err := tx.QueryRow(ctx, `SELECT pg_try_advisory_xact_lock(hashtextextended('clearsight:report-run-claim:'||$1,0))`, workerID).Scan(&workerLock); err != nil {
+		return nil, fmt.Errorf("lock report worker claim: %w", err)
+	}
+	if !workerLock {
+		if err := tx.Commit(ctx); err != nil {
+			return nil, fmt.Errorf("commit empty report worker claim: %w", err)
+		}
+		return []ReportRun{}, nil
+	}
+	rows, err := tx.Query(ctx, `SELECT id::text FROM report_runs
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND status='QUEUED'
+		ORDER BY created_at,id LIMIT $3 FOR UPDATE SKIP LOCKED`, scope.TenantID, scope.LegalEntityID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("select queued report runs: %w", err)
+	}
+	ids := make([]string, 0, limit)
 	for rows.Next() {
-		value, err := scanRun(rows)
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("scan queued report run id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, fmt.Errorf("select queued report runs: %w", err)
+	}
+	rows.Close()
+	values := make([]ReportRun, 0, len(ids))
+	for _, id := range ids {
+		tag, err := tx.Exec(ctx, `UPDATE report_runs SET status='RUNNING',attempt_count=attempt_count+1
+			WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND status='QUEUED'`, scope.TenantID, scope.LegalEntityID, id)
 		if err != nil {
-			return nil, fmt.Errorf("scan claimed report run: %w", err)
+			return nil, fmt.Errorf("claim queued report run: %w", err)
+		}
+		if tag.RowsAffected() != 1 {
+			return nil, ErrConflict
+		}
+		value, err := scanRun(tx.QueryRow(ctx, `SELECT `+runProjection+` FROM report_runs r
+			WHERE r.tenant_id=$1::uuid AND r.legal_entity_id=$2::uuid AND r.id=$3::uuid`, scope.TenantID, scope.LegalEntityID, id))
+		if err != nil {
+			return nil, fmt.Errorf("read claimed report run: %w", err)
+		}
+		if err := insertReportOutbox(ctx, tx, scope.TenantID, "REPORT_RUN", id, "ReportRunClaimed", value.CreatedAt, map[string]any{
+			"worker_id": workerID, "attempt_count": value.AttemptCount, "dataset": value.Dataset, "legal_entity_id": scope.LegalEntityID,
+		}); err != nil {
+			return nil, err
 		}
 		values = append(values, value)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("claim queued report runs: %w", err)
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit queued report claims: %w", err)
 	}
 	return values, nil
 }
@@ -618,14 +649,20 @@ func (r *PostgresRepository) CaptureSourceBoundary(ctx context.Context, scope Re
 	if definition.TenantID != scope.TenantID || definition.LegalEntityID != scope.LegalEntityID {
 		return SourceBoundary{}, ErrNotFound
 	}
-	if !validReportDataset(definition.Dataset) || !validReportScope(definition.ScopeKind, definition.ScopeRef) {
+	if !validReportDataset(definition.Dataset) || !validReportDatasetScope(definition.Dataset, definition.ScopeKind) || !validReportScope(definition.ScopeKind, definition.ScopeRef) {
 		return SourceBoundary{}, ErrInvalid
+	}
+	if definition.Dataset == DatasetPrograms {
+		return r.captureProgramSourceBoundary(ctx, scope, definition)
+	}
+	if definition.Dataset == DatasetMatterExceptions {
+		return r.captureMatterSourceBoundary(ctx, scope, definition)
 	}
 	_, predicate, ok := reportDatasetFragments(definition.Dataset)
 	if !ok {
 		return SourceBoundary{}, ErrInvalid
 	}
-	filter, filterArgs, err := ReportFilterSQL(definition.Filter, 5)
+	filter, filterArgs, err := ReportFilterSQLForDataset(definition.Dataset, definition.Filter, 5)
 	if err != nil {
 		return SourceBoundary{}, err
 	}
@@ -639,7 +676,7 @@ func (r *PostgresRepository) CaptureSourceBoundary(ctx context.Context, scope Re
 	} else if err != nil {
 		return SourceBoundary{}, fmt.Errorf("read report source projection boundary: %w", err)
 	}
-	arguments := []any{scope.TenantID, scope.LegalEntityID, nullableText(definition.ScopeRef), sourceHighWater}
+	arguments := []any{scope.TenantID, scope.LegalEntityID, definition.ScopeRef, sourceHighWater}
 	arguments = append(arguments, filterArgs...)
 	var population int
 	if err := r.pool.QueryRow(ctx, `SELECT count(*)::integer FROM ropa_processing_activities a

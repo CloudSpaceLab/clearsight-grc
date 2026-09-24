@@ -65,6 +65,18 @@ func TestReportPageSQLKeepsFilterArgumentsBeforeCursorArguments(t *testing.T) {
 func TestCreateDefinitionWritesCurrentAndRevisionInOneTransaction(t *testing.T) {
 	fixture := newReportingPostgresFixture(t)
 	definition, revision := fixture.proposal(t, DatasetProcessingActivityExceptions, ScopeLegalEntity, "", emptyReportFilter())
+	if _, err := fixture.pool.Exec(context.Background(), `ALTER TABLE report_definition_revisions DISABLE TRIGGER report_definition_revisions_immutable`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.pool.Exec(context.Background(), `DELETE FROM report_definition_revisions WHERE tenant_id=$1 AND definition_id=$2`, fixture.tenantID, definition.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.pool.Exec(context.Background(), `DELETE FROM report_definitions WHERE tenant_id=$1 AND id=$2`, fixture.tenantID, definition.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.pool.Exec(context.Background(), `ALTER TABLE report_definition_revisions ENABLE TRIGGER report_definition_revisions_immutable`); err != nil {
+		t.Fatal(err)
+	}
 	installFailingTrigger(t, fixture, "report_definition_revisions", "insert", "revision", fixture.tenantID)
 
 	if _, err := fixture.repository.CreateDefinition(context.Background(), fixture.scope, definition, revision); err == nil {
@@ -86,6 +98,7 @@ func TestCreateDefinitionWritesCurrentAndRevisionInOneTransaction(t *testing.T) 
 func TestTransitionDefinitionRejectsAStaleExpectedVersion(t *testing.T) {
 	fixture := newReportingPostgresFixture(t)
 	definition, _ := fixture.proposal(t, DatasetProcessingActivityExceptions, ScopeLegalEntity, "", emptyReportFilter())
+	staleVersion := definition.Version
 	definition, err := fixture.repository.TransitionDefinition(context.Background(), fixture.scope, definition.ID, definition.Version,
 		DefinitionPendingReview, DecisionRecord{ActorID: fixture.makerID, Action: DecisionSubmit, ChecksumSeen: definition.StoredChecksum, Timestamp: fixture.now})
 	if err != nil {
@@ -95,7 +108,7 @@ func TestTransitionDefinitionRejectsAStaleExpectedVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = fixture.repository.TransitionDefinition(context.Background(), fixture.scope, definition.ID, definition.Version,
+	_, err = fixture.repository.TransitionDefinition(context.Background(), fixture.scope, definition.ID, staleVersion,
 		DefinitionReviewed, DecisionRecord{ActorID: fixture.reviewerID, Action: DecisionReview, ChecksumSeen: definition.StoredChecksum, Timestamp: fixture.now.Add(time.Second)})
 	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("stale transition error = %v, want ErrConflict", err)
@@ -183,10 +196,7 @@ func TestTransitionDefinitionOutboxFailureRollsBackDefinitionRevisionAndDecision
 func TestTransitionDefinitionRejectsACrossTenantDefinitionID(t *testing.T) {
 	fixture := newReportingPostgresFixture(t)
 	other := fixture.otherTenant(t)
-	otherDefinition, otherRevision := other.proposal(t, DatasetProcessingActivityExceptions, ScopeLegalEntity, "", emptyReportFilter())
-	if _, err := other.repository.CreateDefinition(context.Background(), other.scope, otherDefinition, otherRevision); err != nil {
-		t.Fatal(err)
-	}
+	otherDefinition, _ := other.proposal(t, DatasetProcessingActivityExceptions, ScopeLegalEntity, "", emptyReportFilter())
 
 	if _, err := fixture.repository.GetDefinition(context.Background(), fixture.scope, otherDefinition.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("cross-tenant exact read error = %v, want ErrNotFound", err)
@@ -310,6 +320,7 @@ func TestCompleteRunRefusesWithoutArtefacts(t *testing.T) {
 
 func TestCaptureSourceBoundaryUsesExactScopeProjection(t *testing.T) {
 	fixture := newReportingPostgresFixture(t)
+	fixture.insertActivities(t, fixture.scope, 3, activitySeedOptions{})
 	fixture.seedRopaSummary(3)
 	definition, _ := fixture.proposal(t, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())
 	boundary, err := fixture.repository.CaptureSourceBoundary(context.Background(), fixture.scope, definition)
@@ -407,7 +418,7 @@ func TestExceptionDatasetReturnsOnlyExceptedActivities(t *testing.T) {
 		t.Fatalf("exception page = %#v", page.Rows)
 	}
 	exceptions, _ := page.Rows[0].Values["exceptions"].([]string)
-	if len(exceptions) != 3 {
+	if len(exceptions) != 4 {
 		t.Fatalf("exception reasons = %#v", page.Rows[0].Values["exceptions"])
 	}
 }
@@ -453,18 +464,23 @@ func newReportingPostgresFixture(t *testing.T) *reportingPostgresFixture {
 	fixture.performerID = fixture.newID()
 	fixture.scope = ReportScope{TenantID: fixture.tenantID, LegalEntityID: fixture.entityAID}
 	fixture.otherScope = ReportScope{TenantID: fixture.tenantID, LegalEntityID: fixture.entityBID}
-	if _, err := pool.Exec(ctx, `
-		INSERT INTO tenants(id,slug,name) VALUES($1,$2,$3);
-		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES
-			($4,$1,'ENTITY-A','Entity A','NG'),($5,$1,'ENTITY-B','Entity B','NG');
-		INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES
-			($6,$1,'PERSON',$10,'Maker'),($7,$1,'PERSON',$11,'Reviewer'),
-			($8,$1,'PERSON',$12,'Authorizer'),($9,$1,'PERSON',$13,'Performer')`,
-		fixture.tenantID, "report-repo-"+fixture.tenantID[:8], "Reporting Repository Test",
-		fixture.entityAID, fixture.entityBID, fixture.makerID, fixture.reviewerID, fixture.authorizerID, fixture.performerID,
-		"report-maker-"+fixture.tenantID[:8], "report-reviewer-"+fixture.tenantID[:8], "report-authorizer-"+fixture.tenantID[:8], "report-performer-"+fixture.tenantID[:8]); err != nil {
-		pool.Close()
-		t.Fatal(err)
+	execFixture := func(query string, args ...any) {
+		t.Helper()
+		if _, err := pool.Exec(ctx, query, args...); err != nil {
+			pool.Close()
+			t.Fatal(err)
+		}
+	}
+	execFixture(`INSERT INTO tenants(id,slug,name) VALUES($1,$2,$3)`, fixture.tenantID, "report-repo-"+fixture.tenantID[:8], "Reporting Repository Test")
+	execFixture(`INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1,$2,'ENTITY-A','Entity A','NG')`, fixture.entityAID, fixture.tenantID)
+	execFixture(`INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1,$2,'ENTITY-B','Entity B','NG')`, fixture.entityBID, fixture.tenantID)
+	for _, principal := range []struct{ id, ref, name string }{
+		{fixture.makerID, "report-maker-" + fixture.tenantID[:8], "Maker"},
+		{fixture.reviewerID, "report-reviewer-" + fixture.tenantID[:8], "Reviewer"},
+		{fixture.authorizerID, "report-authorizer-" + fixture.tenantID[:8], "Authorizer"},
+		{fixture.performerID, "report-performer-" + fixture.tenantID[:8], "Performer"},
+	} {
+		execFixture(`INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($1,$2,'PERSON',$3,$4)`, principal.id, fixture.tenantID, principal.ref, principal.name)
 	}
 	t.Cleanup(func() {
 		cleanupReportingTenant(context.Background(), pool, fixture.tenantID)
@@ -486,7 +502,7 @@ func (f *reportingPostgresFixture) proposal(t *testing.T, dataset ReportDataset,
 	t.Helper()
 	definition := ReportDefinition{
 		ID: f.newID(), TenantID: f.tenantID, LegalEntityID: f.scope.LegalEntityID,
-		Code: "REPORT-" + strings.ToUpper(f.newID()[:8]), Name: "Repository test report",
+		Code: "REPORT-" + strings.ToUpper(strings.ReplaceAll(f.newID(), "-", "")), Name: "Repository test report",
 		Description: "Test fixture", Dataset: dataset, ScopeKind: kind, ScopeRef: reference,
 		Format: FormatCSV, Filter: filter, Status: DefinitionDraft, CurrentVersion: 1,
 		MakerID: f.makerID, CreatedAt: f.now, UpdatedAt: f.now, Version: 1,
@@ -509,7 +525,7 @@ func (f *reportingPostgresFixture) otherEntityProposal(t *testing.T) (ReportDefi
 	t.Helper()
 	definition := ReportDefinition{
 		ID: f.newID(), TenantID: f.tenantID, LegalEntityID: f.otherScope.LegalEntityID,
-		Code: "REPORT-" + strings.ToUpper(f.newID()[:8]), Name: "Second entity report",
+		Code: "REPORT-" + strings.ToUpper(strings.ReplaceAll(f.newID(), "-", "")), Name: "Second entity report",
 		Dataset: DatasetProcessingActivities, ScopeKind: ScopeLegalEntity, Format: FormatCSV,
 		Filter: emptyReportFilter(), Status: DefinitionDraft, CurrentVersion: 1, MakerID: f.makerID,
 		CreatedAt: f.now, UpdatedAt: f.now, Version: 1,
@@ -535,6 +551,25 @@ func (f *reportingPostgresFixture) submit(t *testing.T, definition ReportDefinit
 
 func (f *reportingPostgresFixture) createRun(t *testing.T, definition ReportDefinition, dataset ReportDataset, kind ReportScopeKind, reference string, filter *ReportFilterExpression) ReportRun {
 	t.Helper()
+	if definition.Status == DefinitionDraft {
+		definition = f.submit(t, definition)
+	}
+	if definition.Status == DefinitionPendingReview {
+		var err error
+		definition, err = f.repository.TransitionDefinition(f.ctx, f.scope, definition.ID, definition.Version,
+			DefinitionReviewed, DecisionRecord{ActorID: f.reviewerID, Action: DecisionReview, ChecksumSeen: definition.StoredChecksum, Timestamp: f.now.Add(1500 * time.Millisecond)})
+		if err != nil {
+			t.Fatalf("review definition fixture: %v", err)
+		}
+	}
+	if definition.Status == DefinitionReviewed {
+		var err error
+		definition, err = f.repository.TransitionDefinition(f.ctx, f.scope, definition.ID, definition.Version,
+			DefinitionActive, DecisionRecord{ActorID: f.authorizerID, Action: DecisionActivate, ChecksumSeen: definition.StoredChecksum, Timestamp: f.now.Add(1750 * time.Millisecond), EffectiveFrom: timePtr(f.now.Add(2 * time.Second))})
+		if err != nil {
+			t.Fatalf("activate definition fixture: %v", err)
+		}
+	}
 	now := f.now.Add(2 * time.Second)
 	run := ReportRun{
 		ID: f.newID(), TenantID: f.tenantID, LegalEntityID: definition.LegalEntityID,
@@ -579,12 +614,12 @@ func (f *reportingPostgresFixture) insertActivities(t *testing.T, scope ReportSc
 		if ownerID != "" {
 			owner = ownerID
 		}
-		rows = append(rows, []any{scope.TenantID, scope.LegalEntityID, fmt.Sprintf("ACT-%s", strings.ReplaceAll(id[:8], "-", "")), name,
+		rows = append(rows, []any{id, scope.TenantID, scope.LegalEntityID, fmt.Sprintf("ACT-%s", strings.ToUpper(strings.ReplaceAll(id, "-", ""))), name,
 			status, "Privacy operations", lawfulBasis, "Fidelity Bank", "Vendor", false, subjects,
 			"CUSTOMERS", "Encryption", "Seven years", f.now, owner, 1, f.now, f.now})
 	}
 	_, err := f.pool.CopyFrom(f.ctx, pgx.Identifier{"ropa_processing_activities"},
-		[]string{"tenant_id", "legal_entity_id", "code", "name", "status", "purpose", "lawful_basis", "controller", "processor",
+		[]string{"id", "tenant_id", "legal_entity_id", "code", "name", "status", "purpose", "lawful_basis", "controller", "processor",
 			"automated_decision_making", "data_subject_categories", "personal_data_categories", "security_measures", "retention_period",
 			"start_date", "owner_principal_id", "version", "created_at", "updated_at"}, pgx.CopyFromRows(rows))
 	if err != nil {
@@ -640,11 +675,15 @@ func (f *reportingPostgresFixture) otherTenant(t *testing.T) *reportingPostgresF
 	if _, err := f.pool.Exec(f.ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1,$2,'ENTITY-A','Other Entity','NG')`, other.entityAID, other.tenantID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.pool.Exec(f.ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES
-		($1,$5,'PERSON','other-maker','Other Maker'),($2,$5,'PERSON','other-reviewer','Other Reviewer'),
-		($3,$5,'PERSON','other-authorizer','Other Authorizer'),($4,$5,'PERSON','other-performer','Other Performer')`,
-		other.makerID, other.reviewerID, other.authorizerID, other.performerID, other.tenantID); err != nil {
-		t.Fatal(err)
+	for _, principal := range []struct{ id, ref, name string }{
+		{other.makerID, "other-maker", "Other Maker"},
+		{other.reviewerID, "other-reviewer", "Other Reviewer"},
+		{other.authorizerID, "other-authorizer", "Other Authorizer"},
+		{other.performerID, "other-performer", "Other Performer"},
+	} {
+		if _, err := f.pool.Exec(f.ctx, `INSERT INTO principals(id,tenant_id,kind,external_ref,display_name) VALUES($1,$2,'PERSON',$3,$4)`, principal.id, other.tenantID, principal.ref, principal.name); err != nil {
+			t.Fatal(err)
+		}
 	}
 	t.Cleanup(func() { cleanupReportingTenant(context.Background(), f.pool, other.tenantID) })
 	return &other
@@ -656,10 +695,10 @@ func installFailingTrigger(t *testing.T, fixture *reportingPostgresFixture, tabl
 	triggerName := functionName
 	if _, err := fixture.pool.Exec(context.Background(), fmt.Sprintf(`CREATE FUNCTION %s() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF NEW.tenant_id=$1::uuid THEN RAISE EXCEPTION 'forced reporting repository failure';
+  IF NEW.tenant_id='%s'::uuid THEN RAISE EXCEPTION 'forced reporting repository failure';
   END IF;
   RETURN NEW;
-END; $$`, functionName), tenantID); err != nil {
+END; $$`, functionName, tenantID)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := fixture.pool.Exec(context.Background(), fmt.Sprintf(`CREATE TRIGGER %s BEFORE %s ON %s FOR EACH ROW EXECUTE FUNCTION %s()`,
@@ -678,11 +717,20 @@ func platformSuffix() string {
 
 func cleanupReportingTenant(ctx context.Context, pool *pgxpool.Pool, tenantID string) {
 	_, _ = pool.Exec(ctx, `DELETE FROM report_runs WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = pool.Exec(ctx, `ALTER TABLE report_definition_revisions DISABLE TRIGGER report_definition_revisions_immutable`)
 	_, _ = pool.Exec(ctx, `DELETE FROM report_definition_revisions WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM report_definitions WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = pool.Exec(ctx, `ALTER TABLE report_definition_revisions ENABLE TRIGGER report_definition_revisions_immutable`)
 	_, _ = pool.Exec(ctx, `DELETE FROM outbox_events WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM ropa_processing_activity_reviews WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM ropa_processing_activities WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = pool.Exec(ctx, `DELETE FROM program_state_snapshots WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = pool.Exec(ctx, `DELETE FROM matter_links WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = pool.Exec(ctx, `DELETE FROM verification_results WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = pool.Exec(ctx, `DELETE FROM verification_contracts WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = pool.Exec(ctx, `DELETE FROM matter_actions WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = pool.Exec(ctx, `DELETE FROM matters WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = pool.Exec(ctx, `DELETE FROM programs WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM ropa_register_summary WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)

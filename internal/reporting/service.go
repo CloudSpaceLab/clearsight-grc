@@ -162,7 +162,7 @@ func (s *Service) Propose(ctx context.Context, input ProposeInput) (ReportDefini
 	}
 
 	now := s.now()
-	filter, err := normalizedStoredFilter(input.Filter)
+	filter, err := normalizedStoredFilter(input.Dataset, input.Filter)
 	if err != nil {
 		return ReportDefinition{}, err
 	}
@@ -315,7 +315,7 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 	if definition.Status != DefinitionActive || strings.TrimSpace(definition.ReviewerID) == "" || strings.TrimSpace(definition.CheckerID) == "" || definition.ApprovedAt == nil || !definitionIsEffective(definition, now) {
 		return ReportRun{}, ErrClosureBlocked
 	}
-	filter, err := normalizedStoredFilter(definition.Filter)
+	filter, err := normalizedStoredFilter(definition.Dataset, definition.Filter)
 	if err != nil {
 		return ReportRun{}, err
 	}
@@ -664,7 +664,7 @@ func validateDefinitionForCreate(definition ReportDefinition) error {
 	if !reportCodePattern.MatchString(definition.Code) ||
 		utf8.RuneCountInString(definition.Name) < 3 || utf8.RuneCountInString(definition.Name) > 120 ||
 		utf8.RuneCountInString(definition.Description) > 1000 ||
-		!validReportDataset(definition.Dataset) || !validReportScope(definition.ScopeKind, definition.ScopeRef) ||
+		!validReportDataset(definition.Dataset) || !validReportDatasetScope(definition.Dataset, definition.ScopeKind) || !validReportScope(definition.ScopeKind, definition.ScopeRef) ||
 		(definition.Format != FormatCSV && definition.Format != FormatNDJSON) ||
 		strings.TrimSpace(definition.MakerID) == "" || definition.Filter == nil {
 		return ErrInvalid
@@ -680,6 +680,17 @@ func validReportDataset(dataset ReportDataset) bool {
 		dataset == DatasetPrograms || dataset == DatasetMatterExceptions
 }
 
+func validReportDatasetScope(dataset ReportDataset, kind ReportScopeKind) bool {
+	switch dataset {
+	case DatasetPrograms:
+		return kind == ScopeLegalEntity || kind == ScopeProgram
+	case DatasetMatterExceptions:
+		return kind == ScopeLegalEntity || kind == ScopeMatter
+	default:
+		return kind == ScopeLegalEntity || kind == ScopeProgram || kind == ScopeMatter
+	}
+}
+
 func validReportScope(kind ReportScopeKind, reference string) bool {
 	reference = strings.TrimSpace(reference)
 	if kind == ScopeLegalEntity {
@@ -688,8 +699,8 @@ func validReportScope(kind ReportScopeKind, reference string) bool {
 	return (kind == ScopeProgram || kind == ScopeMatter) && isUUID(reference)
 }
 
-func normalizedStoredFilter(expression *ReportFilterExpression) (*ReportFilterExpression, error) {
-	normalized, err := NormalizeReportFilter(expression)
+func normalizedStoredFilter(dataset ReportDataset, expression *ReportFilterExpression) (*ReportFilterExpression, error) {
+	normalized, err := NormalizeReportFilterForDataset(dataset, expression)
 	if err != nil {
 		return nil, err
 	}
@@ -745,7 +756,7 @@ func validateReportRunIdentity(run ReportRun) error {
 	}
 	if !isUUID(strings.TrimSpace(run.ID)) || !isUUID(strings.TrimSpace(run.DefinitionID)) ||
 		run.DefinitionVersion <= 0 || !reportCodePattern.MatchString(run.DefinitionCode) ||
-		len(run.DefinitionChecksum) != 64 || !validReportScope(run.ScopeKind, run.ScopeRef) {
+		len(run.DefinitionChecksum) != 64 || !validReportDatasetScope(run.Dataset, run.ScopeKind) || !validReportScope(run.ScopeKind, run.ScopeRef) {
 		return ErrInvalid
 	}
 	return nil

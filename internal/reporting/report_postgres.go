@@ -115,10 +115,6 @@ func (r *PostgresRepository) ListReportRows(ctx context.Context, scope ReportSco
 		return ReportPage{}, err
 	}
 	limit = boundedReportPageLimit(limit)
-	position, err := decodeReportPageCursor(cursor)
-	if err != nil {
-		return ReportPage{}, err
-	}
 	persisted, err := r.GetRun(ctx, scope, requested.ID)
 	if err != nil {
 		return ReportPage{}, err
@@ -126,11 +122,21 @@ func (r *PostgresRepository) ListReportRows(ctx context.Context, scope ReportSco
 	if persisted.Status != RunQueued && persisted.Status != RunRunning {
 		return ReportPage{}, ErrConflict
 	}
+	if persisted.Dataset == DatasetPrograms {
+		return r.listProgramReportRows(ctx, scope, persisted, cursor, limit)
+	}
+	if persisted.Dataset == DatasetMatterExceptions {
+		return r.listMatterReportRows(ctx, scope, persisted, cursor, limit)
+	}
 	_, _, ok := reportDatasetFragments(persisted.Dataset)
 	if !ok {
 		return ReportPage{}, ErrInvalid
 	}
-	filterFragment, filterArgs, err := ReportFilterSQL(persisted.Filter, 6)
+	position, err := decodeReportPageCursor(cursor)
+	if err != nil {
+		return ReportPage{}, err
+	}
+	filterFragment, filterArgs, err := ReportFilterSQLForDataset(persisted.Dataset, persisted.Filter, 6)
 	if err != nil {
 		return ReportPage{}, err
 	}

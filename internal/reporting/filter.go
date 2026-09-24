@@ -21,40 +21,63 @@ const (
 type ReportFilterField string
 
 const (
-	ReportFieldStatus          ReportFilterField = "status"
-	ReportFieldLawfulBasis     ReportFilterField = "lawful_basis"
-	ReportFieldOwner           ReportFilterField = "owner_principal_id"
-	ReportFieldProgram         ReportFilterField = "program_id"
-	ReportFieldMatter          ReportFilterField = "matter_id"
-	ReportFieldAutomated       ReportFilterField = "automated_decision_making"
-	ReportFieldCrossBorder     ReportFilterField = "cross_border_transfer"
-	ReportFieldReviewOverdue   ReportFilterField = "review_overdue"
-	ReportFieldMissingBasis    ReportFilterField = "missing_lawful_basis"
-	ReportFieldMissingOwner    ReportFilterField = "missing_owner"
-	ReportFieldMissingSubjects ReportFilterField = "missing_data_subjects"
-	ReportFieldName            ReportFilterField = "name"
+	ReportFieldStatus                   ReportFilterField = "status"
+	ReportFieldLawfulBasis              ReportFilterField = "lawful_basis"
+	ReportFieldOwner                    ReportFilterField = "owner_principal_id"
+	ReportFieldProgram                  ReportFilterField = "program_id"
+	ReportFieldMatter                   ReportFilterField = "matter_id"
+	ReportFieldAutomated                ReportFilterField = "automated_decision_making"
+	ReportFieldCrossBorder              ReportFilterField = "cross_border_transfer"
+	ReportFieldReviewOverdue            ReportFilterField = "review_overdue"
+	ReportFieldMissingBasis             ReportFilterField = "missing_lawful_basis"
+	ReportFieldMissingOwner             ReportFilterField = "missing_owner"
+	ReportFieldMissingSubjects          ReportFilterField = "missing_data_subjects"
+	ReportFieldName                     ReportFilterField = "name"
+	ReportFieldOverallState             ReportFilterField = "overall_state"
+	ReportFieldHasOpenMatters           ReportFilterField = "has_open_matters"
+	ReportFieldJurisdiction             ReportFilterField = "jurisdiction"
+	ReportFieldMatterType               ReportFilterField = "matter_type"
+	ReportFieldPriority                 ReportFilterField = "priority"
+	ReportFieldDueCondition             ReportFilterField = "due_condition"
+	ReportFieldMatterProgram            ReportFilterField = "program"
+	ReportFieldLatestVerificationResult ReportFilterField = "latest_verification_result"
 )
 
 // ReportFilterFieldVocabulary is published to the web workspace so the builder
 // can only offer filters the server will accept.
 var ReportFilterFieldVocabulary = []ReportFilterFieldDefinition{
-	{Field: ReportFieldStatus, Label: "Processing activity status", Operators: []string{"is"}, Indexed: true},
-	{Field: ReportFieldLawfulBasis, Label: "Lawful basis", Operators: []string{"is"}, Indexed: true},
-	{Field: ReportFieldOwner, Label: "Named owner", Operators: []string{"is", "is_not"}, Indexed: true},
-	{Field: ReportFieldProgram, Label: "Related program", Operators: []string{"is", "is_not"}, Indexed: true},
-	{Field: ReportFieldMatter, Label: "Related issue or change", Operators: []string{"is", "is_not"}, Indexed: true},
-	{Field: ReportFieldAutomated, Label: "Automated decision making", Operators: []string{"is"}, Indexed: false},
-	{Field: ReportFieldCrossBorder, Label: "Cross-border transfer", Operators: []string{"is"}, Indexed: true},
-	{Field: ReportFieldReviewOverdue, Label: "Review overdue", Operators: []string{"is"}, Indexed: true},
-	{Field: ReportFieldMissingBasis, Label: "Lawful basis not recorded", Operators: []string{"is"}, Indexed: false},
-	{Field: ReportFieldMissingOwner, Label: "Owner not recorded", Operators: []string{"is"}, Indexed: false},
-	{Field: ReportFieldMissingSubjects, Label: "Data subject categories not recorded", Operators: []string{"is"}, Indexed: false},
-	{Field: ReportFieldName, Label: "Activity name contains", Operators: []string{"contains"}, Indexed: false},
+	{Field: ReportFieldStatus, Label: "Processing activity status", Dataset: DatasetProcessingActivities, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldLawfulBasis, Label: "Lawful basis", Dataset: DatasetProcessingActivities, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldOwner, Label: "Named owner", Dataset: DatasetProcessingActivities, Operators: []string{"is", "is_not"}, Indexed: true},
+	{Field: ReportFieldProgram, Label: "Related program", Dataset: DatasetProcessingActivities, Operators: []string{"is", "is_not"}, Indexed: true},
+	{Field: ReportFieldMatter, Label: "Related issue or change", Dataset: DatasetProcessingActivities, Operators: []string{"is", "is_not"}, Indexed: true},
+	{Field: ReportFieldAutomated, Label: "Automated decision making", Dataset: DatasetProcessingActivities, Operators: []string{"is"}, Indexed: false},
+	{Field: ReportFieldCrossBorder, Label: "Cross-border transfer", Dataset: DatasetProcessingActivities, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldReviewOverdue, Label: "Review overdue", Dataset: DatasetProcessingActivities, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldMissingBasis, Label: "Lawful basis not recorded", Dataset: DatasetProcessingActivities, Operators: []string{"is"}, Indexed: false},
+	{Field: ReportFieldMissingOwner, Label: "Owner not recorded", Dataset: DatasetProcessingActivities, Operators: []string{"is"}, Indexed: false},
+	{Field: ReportFieldMissingSubjects, Label: "Data subject categories not recorded", Dataset: DatasetProcessingActivities, Operators: []string{"is"}, Indexed: false},
+	{Field: ReportFieldName, Label: "Activity name contains", Dataset: DatasetProcessingActivities, Operators: []string{"contains"}, Indexed: false},
+
+	{Field: ReportFieldStatus, Label: "Program status", Dataset: DatasetPrograms, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldOwner, Label: "Program owner", Dataset: DatasetPrograms, Operators: []string{"is", "is_not"}, Indexed: true},
+	{Field: ReportFieldOverallState, Label: "Calculated Program state", Dataset: DatasetPrograms, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldJurisdiction, Label: "Program jurisdiction", Dataset: DatasetPrograms, Operators: []string{"is"}, Indexed: false},
+	{Field: ReportFieldHasOpenMatters, Label: "Open issues and changes", Dataset: DatasetPrograms, Operators: []string{"is"}, Indexed: true},
+
+	{Field: ReportFieldStatus, Label: "Issue or change status", Dataset: DatasetMatterExceptions, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldOwner, Label: "Issue or change owner", Dataset: DatasetMatterExceptions, Operators: []string{"is", "is_not"}, Indexed: true},
+	{Field: ReportFieldMatterType, Label: "Issue or change type", Dataset: DatasetMatterExceptions, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldPriority, Label: "Priority", Dataset: DatasetMatterExceptions, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldDueCondition, Label: "Due condition", Dataset: DatasetMatterExceptions, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldMatterProgram, Label: "Related Program", Dataset: DatasetMatterExceptions, Operators: []string{"is", "is_not"}, Indexed: true},
+	{Field: ReportFieldLatestVerificationResult, Label: "Latest outcome result", Dataset: DatasetMatterExceptions, Operators: []string{"is"}, Indexed: true},
 }
 
 type ReportFilterFieldDefinition struct {
 	Field     ReportFilterField `json:"field"`
 	Label     string            `json:"label"`
+	Dataset   ReportDataset     `json:"dataset"`
 	Operators []string          `json:"operators"`
 	Indexed   bool              `json:"indexed"`
 }
@@ -145,14 +168,70 @@ func filterSQLFragment(field ReportFilterField, operator string) (string, error)
 			return "", fmt.Errorf("activity name supports only the contains operator")
 		}
 		return "a.name ILIKE '%' || $%d || '%'", nil
+	case ReportFieldOverallState:
+		if operator != "is" {
+			return "", fmt.Errorf("overall state supports only the is operator")
+		}
+		return "a.overall_state = $%d", nil
+	case ReportFieldHasOpenMatters:
+		if operator != "is" {
+			return "", fmt.Errorf("open issue count supports only the is operator")
+		}
+		return "a.has_open_matters = $%d::boolean", nil
+	case ReportFieldJurisdiction:
+		if operator != "is" {
+			return "", fmt.Errorf("jurisdiction supports only the is operator")
+		}
+		return "lower(btrim(a.jurisdiction)) = lower(btrim($%d))", nil
+	case ReportFieldMatterType:
+		if operator != "is" {
+			return "", fmt.Errorf("matter type supports only the is operator")
+		}
+		return "a.matter_type = $%d", nil
+	case ReportFieldPriority:
+		if operator != "is" {
+			return "", fmt.Errorf("priority supports only the is operator")
+		}
+		return "a.priority = $%d::integer", nil
+	case ReportFieldDueCondition:
+		if operator != "is" {
+			return "", fmt.Errorf("due condition supports only the is operator")
+		}
+		return "CASE $%d WHEN 'NO_DUE_DATE' THEN a.due_at IS NULL WHEN 'OVERDUE' THEN a.due_at<$5::timestamptz AND a.status NOT IN ('CLOSED','CANCELLED') WHEN 'DUE_7_DAYS' THEN a.due_at>=$5::timestamptz AND a.due_at<=$5::timestamptz+interval '7 days' AND a.status NOT IN ('CLOSED','CANCELLED') WHEN 'DUE_30_DAYS' THEN a.due_at>=$5::timestamptz AND a.due_at<=$5::timestamptz+interval '30 days' AND a.status NOT IN ('CLOSED','CANCELLED') ELSE false END", nil
+	case ReportFieldMatterProgram:
+		switch operator {
+		case "is":
+			return "EXISTS (SELECT 1 FROM matter_links ml JOIN programs linked_program ON linked_program.id=ml.program_id AND linked_program.tenant_id=ml.tenant_id AND linked_program.legal_entity_id=$2::uuid WHERE ml.tenant_id=a.tenant_id::uuid AND ml.matter_id=a.id::uuid AND ml.program_id=$%d::uuid AND ml.retired_at IS NULL)", nil
+		case "is_not":
+			return "(NOT EXISTS (SELECT 1 FROM matter_links ml WHERE ml.tenant_id=a.tenant_id AND ml.matter_id=a.id AND ml.program_id=$%d::uuid AND ml.retired_at IS NULL))", nil
+		}
+	case ReportFieldLatestVerificationResult:
+		if operator != "is" {
+			return "", fmt.Errorf("latest verification result supports only the is operator")
+		}
+		return "a.latest_verification_result = $%d", nil
 	}
 	return "", fmt.Errorf("field %q is not available for report filtering", field)
 }
 
-// NormalizeReportFilter validates a filter against the allow-list before it can
-// reach SQL. It returns a nil expression for an empty filter so an unfiltered
-// report renders the whole scoped population rather than nothing.
+// NormalizeReportFilter validates a filter against the union allow-list kept
+// for callers that only need to inspect a filter. Report definitions and
+// persisted runs use NormalizeReportFilterForDataset so a field belonging to
+// another dataset cannot be silently accepted.
 func NormalizeReportFilter(expression *ReportFilterExpression) (*ReportFilterExpression, error) {
+	return normalizeReportFilterForDataset("", expression)
+}
+
+// NormalizeReportFilterForDataset validates both the closed field set and the
+// closed values for one report dataset. An empty filter remains empty.
+func NormalizeReportFilterForDataset(dataset ReportDataset, expression *ReportFilterExpression) (*ReportFilterExpression, error) {
+	if dataset != "" && !validReportDataset(dataset) {
+		return nil, invalidReportFilter("unknown report dataset %q", dataset)
+	}
+	return normalizeReportFilterForDataset(dataset, expression)
+}
+
+func normalizeReportFilterForDataset(dataset ReportDataset, expression *ReportFilterExpression) (*ReportFilterExpression, error) {
 	if expression == nil {
 		return nil, nil
 	}
@@ -160,7 +239,7 @@ func NormalizeReportFilter(expression *ReportFilterExpression) (*ReportFilterExp
 		return nil, nil
 	}
 	nodes := 0
-	normalized, err := normalizeReportFilterNode(*expression, 1, &nodes)
+	normalized, err := normalizeReportFilterNode(dataset, *expression, 1, &nodes)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +256,7 @@ func isEmptyReportFilter(expression *ReportFilterExpression) bool {
 		(operator == "" || operator == "and" || operator == "or")
 }
 
-func normalizeReportFilterNode(expression ReportFilterExpression, depth int, nodes *int) (ReportFilterExpression, error) {
+func normalizeReportFilterNode(dataset ReportDataset, expression ReportFilterExpression, depth int, nodes *int) (ReportFilterExpression, error) {
 	(*nodes)++
 	if *nodes > maxReportFilterNodes || depth > maxReportFilterDepth {
 		return ReportFilterExpression{}, invalidReportFilter("report filters are limited to %d nodes and %d levels", maxReportFilterNodes, maxReportFilterDepth)
@@ -189,10 +268,13 @@ func normalizeReportFilterNode(expression ReportFilterExpression, depth int, nod
 		if len(expression.Children) != 0 {
 			return ReportFilterExpression{}, invalidReportFilter("report filter conditions cannot contain children")
 		}
+		if !reportFieldAllowedForDataset(dataset, expression.Field) {
+			return ReportFilterExpression{}, invalidReportFilter("field %q is not available for dataset %q", expression.Field, dataset)
+		}
 		if _, err := filterSQLFragment(expression.Field, expression.Operator); err != nil {
 			return ReportFilterExpression{}, errors.Join(ErrInvalid, err)
 		}
-		value, err := normalizeReportFilterValue(expression.Field, expression.Value)
+		value, err := normalizeReportFilterValue(dataset, expression.Field, expression.Value)
 		if err != nil {
 			return ReportFilterExpression{}, err
 		}
@@ -210,7 +292,7 @@ func normalizeReportFilterNode(expression ReportFilterExpression, depth int, nod
 		}
 		children := make([]ReportFilterExpression, 0, len(expression.Children))
 		for _, child := range expression.Children {
-			normalized, err := normalizeReportFilterNode(child, depth+1, nodes)
+			normalized, err := normalizeReportFilterNode(dataset, child, depth+1, nodes)
 			if err != nil {
 				return ReportFilterExpression{}, err
 			}
@@ -223,7 +305,7 @@ func normalizeReportFilterNode(expression ReportFilterExpression, depth int, nod
 	}
 }
 
-func normalizeReportFilterValue(field ReportFilterField, value string) (string, error) {
+func normalizeReportFilterValue(dataset ReportDataset, field ReportFilterField, value string) (string, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return "", invalidReportFilter("report filter values cannot be empty")
@@ -231,40 +313,135 @@ func normalizeReportFilterValue(field ReportFilterField, value string) (string, 
 	if len([]rune(value)) > maxReportFilterValue {
 		return "", invalidReportFilter("report filter values are limited to %d characters", maxReportFilterValue)
 	}
+	if strings.IndexFunc(value, func(r rune) bool { return r < 0x20 || r == 0x7f }) >= 0 {
+		return "", invalidReportFilter("report filter values cannot contain control characters")
+	}
 	switch field {
 	case ReportFieldStatus:
 		value = strings.ToUpper(value)
+		if dataset == DatasetPrograms {
+			if !oneOfReportFilterValue(value, "DRAFT", "ACTIVE", "PAUSED", "RETIRED") {
+				return "", invalidReportFilter("%q is not a recorded Program status", value)
+			}
+			return value, nil
+		}
+		if dataset == DatasetMatterExceptions {
+			if !oneOfReportFilterValue(value, "DRAFT", "TRIAGE", "ASSESSMENT", "DECISION_REQUIRED", "ACTION_IN_PROGRESS", "RESPONSE_PREPARATION", "VERIFICATION", "CLOSED", "CANCELLED") {
+				return "", invalidReportFilter("%q is not a recorded Matter status", value)
+			}
+			return value, nil
+		}
 		if !ropa.ValidStatus(ropa.Status(value)) {
 			return "", invalidReportFilter("%q is not a recorded processing activity status", value)
 		}
 		return value, nil
-	case ReportFieldAutomated, ReportFieldCrossBorder, ReportFieldReviewOverdue,
+	case ReportFieldOverallState:
+		value = strings.ToUpper(value)
+		if !oneOfReportFilterValue(value, "CURRENT", "AT_RISK", "GAP_IDENTIFIED", "EVIDENCE_INSUFFICIENT", "IMPLEMENTATION_PENDING", "OVERDUE", "UNDER_REVIEW", "NOT_APPLICABLE", "UNKNOWN") {
+			return "", invalidReportFilter("%q is not a recorded calculated Program state", value)
+		}
+		return value, nil
+	case ReportFieldHasOpenMatters, ReportFieldAutomated, ReportFieldCrossBorder, ReportFieldReviewOverdue,
 		ReportFieldMissingBasis, ReportFieldMissingOwner, ReportFieldMissingSubjects:
 		parsed, err := strconv.ParseBool(value)
 		if err != nil {
 			return "", invalidReportFilter("%s is recorded as true or false", field)
 		}
 		return strconv.FormatBool(parsed), nil
-	case ReportFieldOwner, ReportFieldProgram, ReportFieldMatter:
+	case ReportFieldOwner, ReportFieldProgram, ReportFieldMatter, ReportFieldMatterProgram:
 		if !isUUID(value) {
 			return "", invalidReportFilter("%s must be a recorded identifier", field)
 		}
 		return strings.ToLower(value), nil
-	case ReportFieldLawfulBasis, ReportFieldName:
+	case ReportFieldPriority:
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed < 1 || parsed > 5 {
+			return "", invalidReportFilter("priority must be a recorded value from 1 through 5")
+		}
+		return strconv.Itoa(parsed), nil
+	case ReportFieldMatterType:
+		value = strings.ToUpper(value)
+		if !oneOfReportFilterValue(value,
+			"REGULATORY_CHANGE", "SUPERVISORY_FINDING", "AUTHORITY_REQUEST", "RISK_SITUATION", "CONTROL_GAP",
+			"AUDIT_FINDING", "EXCEPTION", "INCIDENT", "OPERATIONAL_LOSS", "DATA_BREACH", "VENDOR_DEFICIENCY",
+			"CUSTOMER_CONCERN", "VENDOR_REVIEW", "OVERDUE_OBLIGATION", "FAILED_VERIFICATION", "EVIDENCE_CONTRADICTION", "KRI_BREACH") {
+			return "", invalidReportFilter("%q is not a recorded Matter type", value)
+		}
+		return value, nil
+	case ReportFieldDueCondition:
+		value = strings.ToUpper(value)
+		if !oneOfReportFilterValue(value, "NO_DUE_DATE", "OVERDUE", "DUE_7_DAYS", "DUE_30_DAYS") {
+			return "", invalidReportFilter("%q is not a recorded due condition", value)
+		}
+		return value, nil
+	case ReportFieldLatestVerificationResult:
+		value = strings.ToUpper(value)
+		if !oneOfReportFilterValue(value, "PASS", "FAIL", "INCONCLUSIVE") {
+			return "", invalidReportFilter("%q is not a recorded verification result", value)
+		}
+		return value, nil
+	case ReportFieldLawfulBasis, ReportFieldJurisdiction, ReportFieldName:
 		return value, nil
 	default:
 		return "", invalidReportFilter("field %q is not available for report filtering", field)
 	}
 }
 
+func reportFieldAllowedForDataset(dataset ReportDataset, field ReportFilterField) bool {
+	if dataset == "" {
+		return true
+	}
+	switch dataset {
+	case DatasetProcessingActivities, DatasetProcessingActivityExceptions:
+		switch field {
+		case ReportFieldStatus, ReportFieldLawfulBasis, ReportFieldOwner, ReportFieldProgram, ReportFieldMatter,
+			ReportFieldAutomated, ReportFieldCrossBorder, ReportFieldReviewOverdue, ReportFieldMissingBasis,
+			ReportFieldMissingOwner, ReportFieldMissingSubjects, ReportFieldName:
+			return true
+		}
+	case DatasetPrograms:
+		switch field {
+		case ReportFieldStatus, ReportFieldOwner, ReportFieldOverallState, ReportFieldJurisdiction, ReportFieldHasOpenMatters:
+			return true
+		}
+	case DatasetMatterExceptions:
+		switch field {
+		case ReportFieldStatus, ReportFieldOwner, ReportFieldMatterType, ReportFieldPriority, ReportFieldDueCondition,
+			ReportFieldMatterProgram, ReportFieldLatestVerificationResult:
+			return true
+		}
+	}
+	return false
+}
+
+func oneOfReportFilterValue(value string, allowed ...string) bool {
+	for _, candidate := range allowed {
+		if value == candidate {
+			return true
+		}
+	}
+	return false
+}
+
 // ReportFilterSQL renders the validated expression into a parameterised
 // fragment starting at the given position. The returned arguments are in
 // fragment order, so the caller appends them directly to its query arguments.
 func ReportFilterSQL(expression *ReportFilterExpression, nextPosition int) (string, []any, error) {
+	return reportFilterSQLForDataset("", expression, nextPosition)
+}
+
+// ReportFilterSQLForDataset is the report query boundary. It repeats the
+// dataset check at SQL-generation time so a persisted filter cannot be routed
+// to the wrong query even if normalisation was skipped by a caller.
+func ReportFilterSQLForDataset(dataset ReportDataset, expression *ReportFilterExpression, nextPosition int) (string, []any, error) {
+	return reportFilterSQLForDataset(dataset, expression, nextPosition)
+}
+
+func reportFilterSQLForDataset(dataset ReportDataset, expression *ReportFilterExpression, nextPosition int) (string, []any, error) {
 	if nextPosition < 1 {
 		return "", nil, invalidReportFilter("report filter SQL parameter positions start at one")
 	}
-	normalized, err := NormalizeReportFilter(expression)
+	normalized, err := NormalizeReportFilterForDataset(dataset, expression)
 	if err != nil {
 		return "", nil, err
 	}
