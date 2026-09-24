@@ -12,23 +12,23 @@ let failure = null;
 await mkdir(outputDir, { recursive: true });
 
 const captures = [
-  { name: "01-today-dark-comfortable-1440x900", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
-  { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
-  { name: "03-today-dark-compact-1440x900", route: "#today", title: "Today", theme: "dark", density: "compact", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
+  { name: "01-today-dark-comfortable-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
+  { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
+  { name: "03-today-dark-compact-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "compact", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "04-program-light-1440x900", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "07-import-dark-1440x900", route: "#imports", title: "Imports", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "08-configure-light-1440x900", route: "#configure", title: "Configuration", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Configuration areas" },
-  { name: "09-today-dark-tablet-1024x768", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 1024, height: 768 }, touch: true, assertFirstActionVisible: true },
-  { name: "10-today-light-mobile-390x844", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, assertFirstActionVisible: true },
-  { name: "11-today-dark-reflow-320x800", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 320, height: 800 }, touch: true },
-  { name: "17-today-empty-light-1440x900", route: "#today", title: "Today", fixture: "today-empty", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Nothing needs your action right now" },
-  { name: "18-today-loading-dark-1440x900", route: "#today", title: "Today", fixture: "today-loading", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Loading Today…" },
-  { name: "19-today-unavailable-light-1440x900", route: "#today", title: "Today", fixture: "today-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Today is unavailable" },
+  { name: "09-today-dark-tablet-1024x768", route: "#today", title: "Oversight", theme: "dark", density: "comfortable", viewport: { width: 1024, height: 768 }, touch: true, assertFirstActionVisible: true },
+  { name: "10-today-light-mobile-390x844", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, assertFirstActionVisible: true },
+  { name: "11-today-dark-reflow-320x800", route: "#today", title: "Oversight", theme: "dark", density: "comfortable", viewport: { width: 320, height: 800 }, touch: true },
+  { name: "17-today-empty-light-1440x900", route: "#today", title: "Oversight", fixture: "today-empty", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Nothing needs your action right now" },
+  { name: "18-today-loading-dark-1440x900", route: "#today", title: "Oversight", fixture: "today-loading", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Loading assigned work…" },
+  { name: "19-today-unavailable-light-1440x900", route: "#today", title: "Oversight", fixture: "today-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Assigned work is unavailable" },
   { name: "20-evidence-partial-light-1440x900", route: "#work/evidence", title: "Work", fixture: "evidence-requests-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Evidence requests are unavailable" },
   { name: "21-configure-partial-dark-1440x900", route: "#configure/authority", title: "Configuration", fixture: "configure-partial", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Routing policies are unavailable" },
-  { name: "22-no-config-access-light-1440x900", route: "#configure", title: "Today", fixture: "no-config-access", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Assigned work and operational exceptions you are permitted to handle.", assertNoConfigureNav: true },
+  { name: "22-no-config-access-light-1440x900", route: "#configure", title: "Oversight", fixture: "no-config-access", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Assigned work and operational exceptions you are permitted to handle.", assertNoConfigureNav: true },
   { name: "27-evidence-long-content-mobile-390x844", route: "#work/evidence", title: "Work", fixture: "long-content", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Confirm the accountable owner for the processor register" },
   { name: "37-new-work-light-1440x900", route: "#work/matters", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openMatterSetup: true },
   { name: "38-new-work-dark-mobile-390x844", route: "#work/matters", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openMatterSetup: true },
@@ -457,7 +457,7 @@ async function captureDocumentResultHandoffs() {
 }
 
 async function captureRouting() {
-  const capture = { name: "12-authority-dark-1440x900", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "12-authority-dark-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await page.getByRole("button", { name: "Check authority" }).click();
@@ -473,7 +473,7 @@ async function captureRouting() {
 }
 
 async function captureAuthorityForbidden() {
-  const capture = { name: "23-authority-forbidden-light-1440x900", route: "#today", title: "Today", fixture: "authority-forbidden", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "23-authority-forbidden-light-1440x900", route: "#today", title: "Oversight", fixture: "authority-forbidden", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await page.getByRole("button", { name: "Check authority" }).click();
@@ -499,7 +499,7 @@ async function fillCapture(page) {
 }
 
 async function captureEvidenceReviewAndReceipt() {
-  const capture = { name: "13-capture-entry-light-1440x900", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "13-capture-entry-light-1440x900", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
@@ -526,7 +526,7 @@ async function captureEvidenceReviewAndReceipt() {
 }
 
 async function captureCaptureNotFound() {
-  const capture = { name: "24-capture-not-found-dark-1440x900", route: "#today", title: "Today", fixture: "capture-not-found", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "24-capture-not-found-dark-1440x900", route: "#today", title: "Oversight", fixture: "capture-not-found", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
@@ -539,7 +539,7 @@ async function captureCaptureNotFound() {
 }
 
 async function captureCaptureTerminal() {
-  const capture = { name: "25-capture-expired-light-1440x900", route: "#today", title: "Today", fixture: "capture-terminal", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "25-capture-expired-light-1440x900", route: "#today", title: "Oversight", fixture: "capture-terminal", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
@@ -553,7 +553,7 @@ async function captureCaptureTerminal() {
 }
 
 async function captureCaptureConflict() {
-  const capture = { name: "26-capture-conflict-light-1440x900", route: "#today", title: "Today", fixture: "capture-conflict", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "26-capture-conflict-light-1440x900", route: "#today", title: "Oversight", fixture: "capture-conflict", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
@@ -571,7 +571,7 @@ async function captureCaptureConflict() {
 }
 
 async function captureMobileCaptureAndFocus() {
-  const capture = { name: "28-capture-mobile-light-390x844", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true };
+  const capture = { name: "28-capture-mobile-light-390x844", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true };
   const { context, page } = await openPage(capture);
   try {
     const more = page.getByText("More actions", { exact: true });
@@ -590,7 +590,7 @@ async function captureMobileCaptureAndFocus() {
 }
 
 async function captureZoomProxy() {
-  const capture = { name: "16-today-light-200pct-zoom-proxy", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "16-today-light-200pct-zoom-proxy", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
@@ -743,7 +743,7 @@ async function captureVendorActivationRecovery() {
   const axeSource = await readFile(path.resolve("node_modules/axe-core/axe.min.js"), "utf8");
   for (const theme of ["light", "dark"]) for (const width of [1440, 390, 320]) {
     const capture = { route: "#vendors/register", title: "Vendors", theme, density: "comfortable", viewport: { width, height: width === 1440 ? 900 : 844 }, touch: width < 800 };
-    const { context, page } = await openPage({ ...capture, route: "#today", title: "Today" });
+    const { context, page } = await openPage({ ...capture, route: "#today", title: "Oversight" });
     try {
       // This runner-only fixture exercises the real workspace and HTTP client.
       // All activation results are fictional; no material server command is sent.

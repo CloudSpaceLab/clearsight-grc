@@ -89,7 +89,7 @@ async function auditProgramStatusControl() {
 }
 
 async function auditEvidenceCaptureSubmission() {
-  const { context, page, browserErrors } = await openPage({ viewport: { width: 1440, height: 900 }, route: "#today", heading: "Today" });
+  const { context, page, browserErrors } = await openPage({ viewport: { width: 1440, height: 900 }, route: "#today", heading: "Oversight" });
   try {
     await page.getByRole("button", { name: "Respond to evidence request" }).click();
     await page.getByRole("textbox", { name: /Processor register owner/ }).fill("Privacy Operations");
@@ -135,7 +135,7 @@ async function auditResponsiveZoom() {
   const browserErrors = collectBrowserErrors(page);
   try {
     await page.goto(`${baseURL}/?tour=off#today`, { waitUntil: "networkidle" });
-    await page.getByRole("heading", { name: "Today", exact: true }).waitFor({ state: "visible" });
+    await page.getByRole("heading", { name: "Oversight", exact: true }).waitFor({ state: "visible" });
     const action = page.locator(".intervention-next .primary-button").first();
     await action.waitFor({ state: "visible" });
     await action.scrollIntoViewIfNeeded();

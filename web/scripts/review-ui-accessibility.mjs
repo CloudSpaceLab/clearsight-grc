@@ -9,10 +9,10 @@ const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const axeSource = await readFile(path.resolve("node_modules/axe-core/axe.min.js"), "utf8");
 const browser = await chromium.launch({ headless: true });
 const baseScenarios = [
-  { name: "today-desktop", path: "/?tour=off#today", heading: "Today", viewport: { width: 1440, height: 900 }, theme: "light" },
-  { name: "today-mobile", path: "/?tour=off#today", heading: "Today", viewport: { width: 390, height: 844 }, theme: "dark", touch: true },
-  { name: "today-empty", path: "/?tour=off&fixture=today-empty#today", heading: "Today", viewport: { width: 1440, height: 900 }, theme: "light" },
-  { name: "today-unavailable", path: "/?tour=off&fixture=today-unavailable#today", heading: "Today", viewport: { width: 1440, height: 900 }, theme: "dark" },
+  { name: "today-desktop", path: "/?tour=off#today", heading: "Oversight", viewport: { width: 1440, height: 900 }, theme: "light" },
+  { name: "today-mobile", path: "/?tour=off#today", heading: "Oversight", viewport: { width: 390, height: 844 }, theme: "dark", touch: true },
+  { name: "today-empty", path: "/?tour=off&fixture=today-empty#today", heading: "Oversight", viewport: { width: 1440, height: 900 }, theme: "light" },
+  { name: "today-unavailable", path: "/?tour=off&fixture=today-unavailable#today", heading: "Oversight", viewport: { width: 1440, height: 900 }, theme: "dark" },
   { name: "program", path: "/?tour=off#programs/program-ndpa", heading: "Programs", viewport: { width: 1440, height: 900 }, theme: "light" },
   { name: "evidence", path: "/?tour=off#work/evidence", heading: "Work", viewport: { width: 1440, height: 900 }, theme: "light" },
   { name: "imports", path: "/?tour=off#imports", heading: "Imports", viewport: { width: 1440, height: 900 }, theme: "dark" },
