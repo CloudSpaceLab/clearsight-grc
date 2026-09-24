@@ -67,6 +67,13 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 		if (name == "program.create" || name == "matter.create") && actor.LegalEntityID != "" && actor.LegalEntityID != "*" {
 			payload["legal_entity_id"] = actor.LegalEntityID
 		}
+		if strings.HasPrefix(name, "ropa.processing_activity.") {
+			// ROPA commands accept these fields only for wire compatibility.
+			// The verified request identity is the sole source of command
+			// scope, so a forged body value cannot redirect a material write.
+			payload["tenant_id"] = actor.TenantID
+			payload["legal_entity_id"] = actor.LegalEntityID
+		}
 		if name == "matter.create" {
 			// A new issue starts with the verified command actor as its stored
 			// accountable owner. Client-supplied ownership cannot redirect it.

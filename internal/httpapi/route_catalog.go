@@ -13,7 +13,8 @@ func (a *API) productionRoutes() []routeSpec {
 	policies := a.formPolicyRoutes()
 	activity := a.activityRoutes()
 	gatewayTransports := a.aiGatewayTransportRoutes()
-	routes := make([]routeSpec, 0, len(base)+len(distributions)+len(communications)+len(proposals)+len(policies)+len(activity)+len(gatewayTransports))
+	ropa := a.ropaRoutes()
+	routes := make([]routeSpec, 0, len(base)+len(distributions)+len(communications)+len(proposals)+len(policies)+len(activity)+len(gatewayTransports)+len(ropa))
 	routes = append(routes, base...)
 	routes = append(routes, distributions...)
 	routes = append(routes, communications...)
@@ -21,6 +22,7 @@ func (a *API) productionRoutes() []routeSpec {
 	routes = append(routes, policies...)
 	routes = append(routes, activity...)
 	routes = append(routes, gatewayTransports...)
+	routes = append(routes, ropa...)
 	return routes
 }
 
