@@ -18,12 +18,12 @@
 
 **In scope**
 
-- A governed report definition: propose, submit for approval, approve, reject, activate, retire, with immutable revisions, effective dating, checksum and rollback.
-- Two datasets: every processing activity, and only processing activities carrying an open exception.
-- Three scopes: the whole legal entity, one Program, one Matter.
-- A bounded, synchronous report run that produces a CSV or NDJSON artefact plus a JSON manifest in object storage, with row-count, byte and time bounds.
-- A protected download path that re-authorises on every download and records the download.
-- A web workspace at `#ropa/reports` for defining, approving, running and downloading.
+- A governed report definition: propose, submit for review, review, activate, reject, retire, with immutable revisions, effective dating, checksum and rollback.
+- Four datasets: every processing activity; only processing activities carrying an open exception; every Program; and every Matter carrying an open exception or an overdue obligation.
+- Three scopes: the whole legal entity, one Program, or one Matter.
+- A bounded, **asynchronous** report run that produces a CSV or NDJSON artefact plus a JSON manifest in object storage, with row-count, byte and time bounds.
+- A protected download path that re-authorises on every download, verifies artefact integrity, and records the download.
+- A web workspace at `#ropa/reports` for defining, reviewing, activating, running and downloading.
 
 **Not in scope**
 
@@ -32,6 +32,8 @@
 - Scheduled or recurring reports. #28's review-cycle timer work owns scheduling; this tranche has a run-now action only.
 - Editing a report without going back through maker-checker. There is no direct edit path.
 - Report authoring by anyone other than a routed proposer. There is no hard-coded approver.
+- Reusing the Forms advanced-filter component unchanged. It is hard-coded to Forms fields, statuses and copy; its registry must be generalised, not its component reused as-is.
+- Reusing `routing_policies` as a generic configuration catalogue. Its revision table is consumed by `refresh_effective_authority_routes` and its payload validators assume routing rules.
 
 ---
 
@@ -134,24 +136,27 @@ ALTER TABLE ropa_processing_activities
 CREATE INDEX ropa_matter_idx
     ON ropa_processing_activities(tenant_id, legal_entity_id, matter_id);
 
-CREATE TABLE report_definitions (
+Create TABLE report_definitions (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id uuid NOT NULL REFERENCES tenants(id),
     legal_entity_id uuid NOT NULL,
     code text NOT NULL CHECK (code ~ '^[A-Z0-9][A-Z0-9_-]{2,47}$'),
     name text NOT NULL CHECK (char_length(btrim(name)) BETWEEN 3 AND 120),
     description text NOT NULL DEFAULT '' CHECK (char_length(description) <= 1000),
-    dataset text NOT NULL CHECK (dataset IN ('PROCESSING_ACTIVITIES','PROCESSING_ACTIVITY_EXCEPTIONS')),
+    dataset text NOT NULL CHECK (dataset IN (
+        'PROCESSING_ACTIVITIES','PROCESSING_ACTIVITY_EXCEPTIONS','PROGRAMS','MATTER_EXCEPTIONS')),
     scope_kind text NOT NULL CHECK (scope_kind IN ('LEGAL_ENTITY','PROGRAM','MATTER')),
     scope_ref uuid,
     format text NOT NULL CHECK (format IN ('CSV','NDJSON')),
     filter jsonb NOT NULL DEFAULT '{"kind":"group","operator":"and","children":[]}'::jsonb
         CHECK (jsonb_typeof(filter)='object' AND octet_length(filter::text) <= 8192),
-    status text NOT NULL CHECK (status IN ('DRAFT','PENDING_REVIEW','ACTIVE','RETIRED')),
+    status text NOT NULL CHECK (status IN ('DRAFT','PENDING_REVIEW','REVIEWED','ACTIVE','RETIRED')),
     current_version integer NOT NULL DEFAULT 1 CHECK (current_version >= 1),
     checksum text NOT NULL CHECK (checksum ~ '^[0-9a-f]{64}$'),
-    maker_id text NOT NULL CHECK (char_length(btrim(maker_id)) > 0),
-    checker_id text,
+    maker_id uuid NOT NULL,
+    checker_id uuid,
+    reviewer_id uuid,
+    reviewer_note text NOT NULL DEFAULT '' CHECK (char_length(reviewer_note) <= 1000),
     effective_from timestamptz,
     effective_until timestamptz,
     submitted_at timestamptz,
@@ -164,15 +169,27 @@ CREATE TABLE report_definitions (
         FOREIGN KEY (legal_entity_id, tenant_id) REFERENCES legal_entities(id, tenant_id),
     CONSTRAINT report_definitions_program_scope_fk
         FOREIGN KEY (scope_ref, tenant_id) REFERENCES programs(id, tenant_id),
+    CONSTRAINT report_definitions_maker_tenant_fk
+        FOREIGN KEY (maker_id, tenant_id) REFERENCES principals(id, tenant_id),
+    CONSTRAINT report_definitions_checker_tenant_fk
+        FOREIGN KEY (checker_id, tenant_id) REFERENCES principals(id, tenant_id),
+    CONSTRAINT report_definitions_reviewer_tenant_fk
+        FOREIGN KEY (reviewer_id, tenant_id) REFERENCES principals(id, tenant_id),
     CONSTRAINT report_definitions_scope_shape_ck CHECK (
         (scope_kind='LEGAL_ENTITY' AND scope_ref IS NULL) OR
         (scope_kind IN ('PROGRAM','MATTER') AND scope_ref IS NOT NULL)),
-    CONSTRAINT report_definitions_maker_checker_ck CHECK (checker_id IS NULL OR checker_id <> maker_id),
+    -- The approved design keeps responsibility, review and authorization
+    -- distinct, so maker, reviewer and authorizer must be three principals.
+    CONSTRAINT report_definitions_three_way_separation_ck CHECK (
+        (reviewer_id IS NULL OR (reviewer_id <> maker_id AND (checker_id IS NULL OR reviewer_id <> checker_id)))
+        AND (checker_id IS NULL OR checker_id <> maker_id)),
     CONSTRAINT report_definitions_effective_ck CHECK (effective_until IS NULL OR effective_from IS NULL OR effective_until > effective_from),
     CONSTRAINT report_definitions_status_ck CHECK (
         (status='DRAFT') OR
         (status='PENDING_REVIEW' AND submitted_at IS NOT NULL) OR
-        (status='ACTIVE' AND checker_id IS NOT NULL AND approved_at IS NOT NULL AND effective_from IS NOT NULL) OR
+        (status='REVIEWED' AND reviewer_id IS NOT NULL) OR
+        (status='ACTIVE' AND reviewer_id IS NOT NULL AND checker_id IS NOT NULL
+                 AND approved_at IS NOT NULL AND effective_from IS NOT NULL) OR
         (status='RETIRED' AND retired_at IS NOT NULL)),
     CONSTRAINT report_definitions_scope_kind_ck CHECK (scope_kind <> 'MATTER' OR scope_ref IS NOT NULL)
 );
@@ -193,23 +210,69 @@ CREATE TABLE report_definition_revisions (
     format text NOT NULL,
     filter jsonb NOT NULL,
     checksum text NOT NULL CHECK (checksum ~ '^[0-9a-f]{64}$'),
-    maker_id text NOT NULL,
+    maker_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    approved_by text,
+    reviewed_by uuid,
+    reviewed_at timestamptz,
+    approved_by uuid,
     approved_at timestamptz,
-    decision text NOT NULL DEFAULT 'PROPOSED' CHECK (decision IN ('PROPOSED','APPROVED','REJECTED','RETIRED')),
+    decision text NOT NULL DEFAULT 'PROPOSED'
+        CHECK (decision IN ('PROPOSED','REVIEWED','APPROVED','REJECTED','RETIRED')),
     decision_note text NOT NULL DEFAULT '' CHECK (char_length(decision_note) <= 1000),
     PRIMARY KEY (definition_id, version),
     CONSTRAINT report_definition_revisions_entity_fk
         FOREIGN KEY (definition_id, tenant_id, legal_entity_id)
         REFERENCES report_definitions(id, tenant_id, legal_entity_id),
-    CONSTRAINT report_definition_revisions_maker_checker_ck
-        CHECK (approved_by IS NULL OR approved_by <> maker_id)
+    CONSTRAINT report_definition_revisions_maker_tenant_fk
+        FOREIGN KEY (maker_id, tenant_id) REFERENCES principals(id, tenant_id),
+    CONSTRAINT report_definition_revisions_reviewer_tenant_fk
+        FOREIGN KEY (reviewed_by, tenant_id) REFERENCES principals(id, tenant_id),
+    CONSTRAINT report_definition_revisions_approver_tenant_fk
+        FOREIGN KEY (approved_by, tenant_id) REFERENCES principals(id, tenant_id),
+    CONSTRAINT report_definition_revisions_three_way_separation_ck CHECK (
+        (reviewed_by IS NULL OR (reviewed_by <> maker_id AND (approved_by IS NULL OR reviewed_by <> approved_by)))
+        AND (approved_by IS NULL OR approved_by <> maker_id)),
+    CONSTRAINT report_definition_revisions_decision_ck CHECK (
+        (decision='PROPOSED'  AND reviewed_by IS NULL AND reviewed_at IS NULL AND approved_by IS NULL AND approved_at IS NULL) OR
+        (decision='REVIEWED'  AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL AND approved_by IS NULL AND approved_at IS NULL) OR
+        (decision='APPROVED'  AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL AND approved_by IS NOT NULL AND approved_at IS NOT NULL) OR
+        (decision='REJECTED'  AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL) OR
+        (decision='RETIRED'))
 );
+-- A revision is writable only while its decision is still moving forward, and
+-- only for the decision columns. Content columns are immutable from the moment
+-- the revision is inserted, so an approval can never cover edited content.
 CREATE FUNCTION report_definition_revisions_immutable() RETURNS trigger
 LANGUAGE plpgsql AS $$
+DECLARE
+    step integer;
 BEGIN
-  RAISE EXCEPTION 'report definition revisions are immutable';
+    IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'report definition revisions cannot be deleted';
+    END IF;
+    IF NEW.definition_id   IS DISTINCT FROM OLD.definition_id
+       OR NEW.tenant_id      IS DISTINCT FROM OLD.tenant_id
+       OR NEW.legal_entity_id IS DISTINCT FROM OLD.legal_entity_id
+       OR NEW.version        IS DISTINCT FROM OLD.version
+       OR NEW.base_version   IS DISTINCT FROM OLD.base_version
+       OR NEW.dataset        IS DISTINCT FROM OLD.dataset
+       OR NEW.scope_kind     IS DISTINCT FROM OLD.scope_kind
+       OR NEW.scope_ref      IS DISTINCT FROM OLD.scope_ref
+       OR NEW.format         IS DISTINCT FROM OLD.format
+       OR NEW.filter         IS DISTINCT FROM OLD.filter
+       OR NEW.checksum       IS DISTINCT FROM OLD.checksum
+       OR NEW.maker_id       IS DISTINCT FROM OLD.maker_id
+       OR NEW.created_at     IS DISTINCT FROM OLD.created_at THEN
+        RAISE EXCEPTION 'report definition revision content is immutable';
+    END IF;
+    step := CASE OLD.decision WHEN 'PROPOSED' THEN 1 WHEN 'REVIEWED' THEN 2 ELSE 3 END;
+    IF CASE NEW.decision WHEN 'PROPOSED' THEN 1 WHEN 'REVIEWED' THEN 2 ELSE 3 END < step THEN
+        RAISE EXCEPTION 'report definition revision decisions cannot move backwards';
+    END IF;
+    IF OLD.decision IN ('APPROVED','REJECTED','RETIRED') THEN
+        RAISE EXCEPTION 'report definition revision % is already decided', OLD.version;
+    END IF;
+    RETURN NEW;
 END;
 $$;
 CREATE TRIGGER report_definition_revisions_immutable
@@ -1108,6 +1171,8 @@ type ReportDataset string
 const (
 	DatasetProcessingActivities         ReportDataset = "PROCESSING_ACTIVITIES"
 	DatasetProcessingActivityExceptions ReportDataset = "PROCESSING_ACTIVITY_EXCEPTIONS"
+	DatasetPrograms                      ReportDataset = "PROGRAMS"
+	DatasetMatterExceptions              ReportDataset = "MATTER_EXCEPTIONS"
 )
 
 type ReportScopeKind string
@@ -1156,6 +1221,7 @@ type Manifest struct {
 	Schema             string                `json:"schema"`
 	GeneratedAt        time.Time             `json:"generated_at"`
 	AsOf               time.Time             `json:"as_of"`
+	Source             SourceBoundary        `json:"source"`
 	DefinitionCode     string                `json:"definition_code"`
 	DefinitionVersion  int                   `json:"definition_version"`
 	DefinitionChecksum string                `json:"definition_checksum"`
@@ -1167,6 +1233,7 @@ type Manifest struct {
 	Filter             *ReportFilterExpression `json:"filter,omitempty"`
 	Coverage           ManifestCoverage      `json:"coverage"`
 	DataSHA256         string                `json:"data_sha256"`
+	RetentionUntil     time.Time             `json:"retention_until"`
 }
 
 // ManifestCoverage is never a persuasive number. A count the run could not
@@ -1178,14 +1245,37 @@ type ManifestCoverage struct {
 }
 
 const (
-	ReportRunPageSize  = 500
-	MaxReportRunRows   = 50_000
+	// The bounded envelope is the one the approved design names
+	// (docs/superpowers/specs/2026-09-23-ropa-register-and-reporting-design.md):
+	// 100-row pages, 10,000-row ceiling, 32 MiB, 7-day retention, matching
+	// internal/activity/export.go. Do not enlarge it without a design change.
+	ReportRunPageSize  = 100
+	MaxReportRunRows   = 10_000
 	MaxReportRunBytes  = int64(32 << 20)
 	ReportRunRetention = 7 * 24 * time.Hour
 	MaxReportRunLease  = 2 * time.Minute
+	// MaxReportRunTries is the durable retry budget held in report_runs.attempt_count.
+	// It is NOT WorkClassOptions.MaxAttempts: a custom worker maintainer receives
+	// only (now, batch) and gets no per-item lease or durable attempt count, so
+	// WorkClassOptions cannot be relied on here. The run row is the authority.
 	MaxReportRunTries  = 5
 	reportManifestSchema = "clearsight.report-run.v1"
 )
+```
+
+The manifest must also record the source boundary. `as_of` alone is an upper time bound, not a reproducible snapshot — the register has no version to compare it against, so a reader could not tell whether a rerun would produce the same rows:
+
+```go
+// SourceBoundary is captured before generation and persisted even if generation
+// later fails, so a reader can tell which material versions the report was read
+// from. Without it, "as of" is a timestamp rather than a reconstruction point.
+type SourceBoundary struct {
+	CapturedAt          time.Time          `json:"captured_at"`
+	ProjectionVersion   string             `json:"projection_version"`
+	SourceHighWater     map[string]time.Time `json:"source_high_water"`
+	Population          int                `json:"population"`
+	PopulationComplete  bool               `json:"population_complete"`
+}
 ```
 
 - [ ] **Step 4: Write `internal/reporting/repository.go`**
@@ -1248,18 +1338,23 @@ Cover, at minimum, each of these as a named test:
 
 - `TestProposeDefinitionIgnoresActorFieldsFromTheRequestBody` — a `maker_id` in the body is overwritten from verified context, never trusted.
 - `TestSubmitRequiresADraftDefinition` and `TestSubmitRejectsAMissingAuthorityRoute`.
-- `TestApproveRefusesWhenTheCheckerIsTheMaker` — maker-checker separation is enforced in the service, not only by the database constraint.
-- `TestApproveRefusesWhenTheDefinitionChangedSinceTheCheckerSawIt` — the decision carries the checksum the checker reviewed; a mismatch is refused.
-- `TestApproveActivatesOnlyFromTheEffectiveDate` — an `effective_from` in the future yields `ACTIVE` with a not-yet-effective marker, not a current report.
+- `TestReviewRefusesWhenTheReviewerIsTheMaker` — maker-checker separation is enforced in the service, not only by the database constraint.
+- `TestReviewRefusesWhenTheDefinitionChangedSinceTheReviewerSawIt` — the decision carries the checksum the reviewer reviewed; a mismatch is refused.
+- `TestReviewRecordsAReviewerDistinctFromBothMakerAndAuthorizer` — the approved design keeps responsibility, review and authorization distinct, so the three principals must all differ.
+- `TestActivateRefusesUnlessAReviewWasRecorded` — activation without a recorded review is refused. There is no path that skips review.
+- `TestActivateRefusesWhenTheAuthorizerIsTheMakerOrTheReviewer` — three-way separation.
+- `TestActivateMarksAFutureEffectiveDateAsNotYetCurrent` — an `effective_from` in the future yields `ACTIVE` with a not-yet-effective marker, not a current report.
 - `TestRetireIsReversibleByANewRevision` — retiring version N leaves version N reconstructable and allows a fresh proposal.
 - `TestValidateTransitionForWriteIsTheOnlyTransitionGate` — a structural test asserting that `service.go` contains no second switch over `DefinitionStatus` outside `ValidateTransitionForWrite`.
 - `TestCreateRunRejectsAnUnapprovedDefinition`
 - `TestCreateRunRejectsARetiredDefinition`
-- `TestCreateRunStopsAtTheRowBound` — 50,001 matching rows produces a `FAILED` run with `failure_code = "row_limit_exceeded"`, not a truncated artefact silently presented as complete.
+- `TestCreateRunStopsAtTheRowBound` — 10,001 matching rows produces a `FAILED` run with `failure_code = "row_limit_exceeded"`, not a truncated artefact silently presented as complete.
 - `TestCreateRunStopsAtTheByteBound`
 - `TestCreateRunRejectsACrossEntityDefinition` — a definition from another legal entity cannot be run.
+- `TestCreateRunPersistsTheSourceBoundaryBeforeGeneration` — the source boundary is written with the request, so a run that fails to generate still records what it was reading.
 - `TestOpenRunAuthorisesOnEveryDownload` and `TestOpenRunRejectsAnExpiredRun`.
-- `TestRunManifestRecordsTheSourceVersionAndPopulation` — the manifest states the definition version, the source high-water mark, the row count and whether the population was complete.
+- `TestOpenRunRejectsARunFromAnotherLegalEntity` — tenant-only matching is not enough; a same-tenant second entity's run must not open.
+- `TestRunManifestRecordsTheSourceBoundaryAndPopulation` — the manifest states the definition version, the source high-water, the row count and whether the population was complete.
 - `TestRunArtefactKeyIsScopedAndOpaque` — the key contains no activity name, owner or other row content.
 
 - [ ] **Step 2: Run to verify failure**
@@ -1296,11 +1391,30 @@ type AuthorityChecker interface {
 Implement, in this order:
 
 1. `ValidateTransitionForWrite(current ReportDefinition, next DefinitionStatus) error` — the single state machine, with a `switch` that is the only place `DefinitionStatus` transitions are decided. Call it from both the service and the repository.
-2. `Propose`, `Submit`, `Approve`, `Reject`, `Retire`. Each takes the verified actor from context, re-resolves authority, calls `ValidateTransitionForWrite`, and delegates to `TransitionDefinition` in one transaction.
-3. `CreateRun` — resolves the definition by exact id and scope, requires `ACTIVE` and effective, snapshots the filter and definition version onto the run, and writes a `QUEUED` run. It does not render inline; a worker does that.
-4. `ExecuteRun(ctx, run ReportRun) (ReportRun, error)` — claims the run, pages the dataset with `ReportPageSQL()` in `ReportRunPageSize` chunks, renders CSV or NDJSON, checks `MaxReportRunRows` and `MaxReportRunBytes` before writing, stores the artefact and manifest through `objects.Put`, computes SHA-256 over the exact bytes written, then `CompleteRun`. On any bound breach it calls `FailRun` with a specific code and never writes a partial artefact.
-5. `Manifest` — a struct carrying `schema`, `generated_at`, `as_of`, `definition_code`, `definition_version`, `dataset`, `scope`, `row_count`, `population_complete`, `filter`, `coverage`, and `data_sha256`.
-6. `Open(ctx, scope, runID, downloadedBy) (ReportRun, io.ReadCloser, error)` — re-reads the run under scope, rejects `QUEUED`/`RUNNING`/`FAILED`/expired, records the download, then opens the object.
+2. `Propose`, `Submit`, `Review`, `Activate`, `Reject`, `Retire`. Each takes the verified actor from context, re-resolves authority, calls `ValidateTransitionForWrite`, and delegates to `TransitionDefinition` in one transaction.
+
+   The lifecycle has **four distinct responsibilities**, per the approved design's governance table — a reviewer is not the authorizer:
+
+   ```
+   DRAFT --submit(PROPOSER)--> PENDING_REVIEW
+   PENDING_REVIEW --review(REVIEWER)--> REVIEWED
+   REVIEWED --activate(AUTHORIZER)--> ACTIVE
+   any --retire(AUTHORIZER)--> RETIRED
+   ```
+
+   Add `DefinitionStatusReviewed`. Activation requires a recorded review whose reviewer differs from both the maker and the authorizer. There is no transition that skips review.
+
+   **Decisions are report-owned.** `governance_decisions.object_type` is a closed check that permits only `ROUTING_POLICY`, `DELEGATION`, `SEGREGATION_RULE`, `SCIM_SOURCE` and `DIRECTORY_GROUP_ROLE_BINDING`. Do not widen it and do not insert report rows into it. Record the decision in `report_definition_revisions` (`decision`, `decision_note`, `approved_by`, `approved_at`) plus the revision checksum, which is why migration 000093 gives that table those columns.
+
+3. `CreateRun` — resolves the definition by exact id and scope, requires `ACTIVE`, effective and reviewed, captures the `SourceBoundary`, and writes a `QUEUED` run carrying the filter, the dataset, the definition version and the definition checksum. It does not render inline; a worker does that. Generation is asynchronous by design, and unlike `internal/activity/export.go` this service must not generate inside the HTTP request.
+4. `ExecuteRun(ctx, run ReportRun) (ReportRun, error)` — claims the run through `ClaimQueuedRuns`, pages the dataset with `ReportPageSQL()` in `ReportRunPageSize` chunks, renders CSV or NDJSON, checks `MaxReportRunRows` and `MaxReportRunBytes` before writing, stores the artefact and manifest through `objects.Put`, computes SHA-256 over the exact bytes written, then `CompleteRun`. On any bound breach it calls `FailRun` with a specific code and never writes a partial artefact.
+
+   The durable retry budget is `report_runs.attempt_count`, not `WorkClassOptions.MaxAttempts`. `internal/runtime/work_class.go:251-262` calls a custom maintainer with only `(now, batch)`, so a maintainer gets no per-item lease and no durable attempt count. The run row is the authority; the worker class is only the polling loop.
+
+5. `Manifest` — a struct carrying `schema`, `generated_at`, `as_of`, the `SourceBoundary`, `definition_code`, `definition_version`, `definition_checksum`, `dataset`, `scope`, `row_count`, `population_complete`, `filter`, `coverage`, `retention_until` and `data_sha256`.
+6. `Open(ctx, scope, runID, downloadedBy) (ReportRun, io.ReadCloser, error)` — re-reads the run under the full `ReportScope`, rejects `QUEUED`/`RUNNING`/`FAILED`/expired, records the download, then opens the object.
+
+   The download path must be stricter than `internal/httpapi/audit_export_handlers.go`, which matches on tenant only and resolves no authority. This one verifies the exact legal entity, re-resolves the current download authority through `AuthorityChecker`, and verifies the object's SHA-256 against the persisted digest before returning bytes — the pattern at `internal/evidence/artifact_open.go:21-41`.
 
 Key detail for `ExecuteRun` — bounds are checked before commit, not after:
 
@@ -1469,7 +1583,72 @@ success."
 
 ---
 
-## Task 7: Memory repository and demo data
+## Task 7: Program and Matter datasets
+
+The approved design states that reports "read Program, Matter and ROPA", and the original ask was reports for exceptions and compliance **for a program/matter**. The ROPA datasets alone do not deliver that. This task adds the two non-ROPA datasets.
+
+**Files:**
+- Create: `internal/reporting/program_matter_postgres.go`
+- Create: `internal/reporting/program_matter_fields.go`
+- Test: `internal/reporting/program_matter_postgres_test.go` (build tag `postgres`)
+
+- [ ] **Step 1: Write the failing tests**
+
+- `TestProgramReportPageAppliesScopeBeforeTheLimit`
+- `TestMatterReportPageAppliesVisibilityBeforeTheLimit` — the decisive one. A `RESTRICTED` Matter the verified principal cannot see must not consume a page slot. Mirror `internal/continuity/matter_summary_visibility_postgres_integration_test.go:15-124`, and include the malformed-policy cases: an `access` value that is not `PUBLIC`/`INTERNAL`/`RESTRICTED`, a non-array `allowed_principal_ids`, and an array with no non-blank principal. All three must hide the row, not admit it.
+- `TestMatterReportPageNeverReturnsAnotherLegalEntitysMatter`
+- `TestProgramReportCarriesItsCalculatedStateAndVersion` — the row states the calculated `overall_state`, the `assessed_program_version`, the `projection_version` and whether the projection is stale. A report that omits the version gives a reader no way to know what it read.
+- `TestMatterExceptionDatasetSelectsOpenExceptionsAndOverdueObligations`
+- `TestProgramAndMatterPagesAreKeysetStableAcrossPageBoundaries` — no duplicate or skipped row at a boundary.
+- `TestProgramReportReasonsOmitIsNotSilentlyZero` — `internal/continuity/summaries_postgres.go` truncates reasons to six and returns `ReasonsOmitted`. The report must carry that count, not imply six was all of them.
+
+- [ ] **Step 2: Run to verify failure**
+
+Run: `go test ./internal/reporting/ -tags postgres -run "TestProgramReport|TestMatterReport|TestMatterException|TestProgramAndMatterPages" -count=1`
+Expected: FAIL — undefined symbols.
+
+- [ ] **Step 3: Add the allow-listed Program and Matter filter fields**
+
+Extend `ReportFilterFieldVocabulary` in `internal/reporting/filter.go` with a second group, and give each field its own SQL fragment. Use the vocabulary the source already records:
+
+- Program: `status`, `owner_principal_id`, `overall_state` (`CURRENT`, `AT_RISK`, `GAP_IDENTIFIED`, `EVIDENCE_INSUFFICIENT`, `IMPLEMENTATION_PENDING`, `OVERDUE`, `UNDER_REVIEW`, `NOT_APPLICABLE`, `UNKNOWN`), `jurisdiction`, `has_open_matters`.
+- Matter: `status`, `owner_principal_id`, `matter_type`, `priority`, `due_condition` (`NO_DUE_DATE`, `OVERDUE`, `DUE_7_DAYS`, `DUE_30_DAYS`), `program`, `latest_verification_result` (`PASS`, `FAIL`, `INCONCLUSIVE`).
+
+Validate every value against that closed list in `normalizeReportFilterValue`, and map every field to an indexed or already-computed column. Reject a field that belongs to the other dataset rather than silently ignoring it.
+
+- [ ] **Step 4: Write the two bounded queries**
+
+`ProgramReportPageSQL()` and `MatterReportPageSQL()` follow `internal/continuity/summaries_postgres.go` exactly:
+
+- tenant and legal-entity scope in the main `WHERE`;
+- for Matters, the visibility predicate **inside the `WHERE` clause before `ORDER BY` and `LIMIT`**, using the same fail-closed rules as `internal/continuity/access.go:74-91`;
+- allow-listed filter predicates inside the page CTE before its `LIMIT`;
+- `LIMIT limit+1` with a keyset cursor;
+- the Program keyset is `(status rank, updated_at, id)`; the Matter keyset is `(priority, updated_at, id)`.
+
+The Matter visibility predicate is the security-critical part. Reproduce the fail-closed rules exactly; do not approximate them, and do not fetch a broad Matter population and filter in Go — `AGENTS.md` forbids a broad data load followed by application-memory authorization.
+
+- [ ] **Step 5: Run to verify pass**
+
+Run: `go test ./internal/reporting/ -tags postgres -count=1` and `go test ./internal/reporting/ -count=1`
+Expected: both PASS.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add internal/reporting/program_matter_postgres.go internal/reporting/program_matter_fields.go internal/reporting/program_matter_postgres_test.go internal/reporting/filter.go
+git commit -m "feat(reporting): add Program and Matter report datasets
+
+The approved design reads Program, Matter and ROPA. Matter visibility is
+applied inside the query before its limit, with the same fail-closed rules as
+the register, so a restricted row the principal cannot see never consumes a
+page slot. Program rows carry their calculated state, version and projection
+staleness so a reader knows what was read."
+```
+
+---
+
+## Task 8: Memory repository and demo data
 
 **Files:**
 - Create: `internal/reporting/memory.go`
@@ -1497,10 +1676,16 @@ Expected: FAIL.
 
 In-memory implementations of both interfaces calling `ValidateTransitionForWrite` and enforcing the same constraints, plus `NewMemoryObjectStore` reuse from `internal/evidence`. Add a `Demo` installer mirroring `internal/ropa/demo.go`:
 
-- Two definitions: "Processing activities with open exceptions" (`PROCESSING_ACTIVITY_EXCEPTIONS`, legal-entity scope) and "Cross-border transfers in one program" (`PROCESSING_ACTIVITIES`, program scope, filter `cross_border_transfer is true`).
-- The first is `ACTIVE` with an effective date in the past; the second is `PENDING_REVIEW` so the workspace shows both the governed and the awaiting-approval states.
-- Human working language. Realistic bank owners. Clearly labelled sample data. Never imply the connected bank is compliant.
-- `Code` values like `ROPA-OPEN-EXCEPTIONS` and `ROPA-CROSS-BORDER-TRANSFERS`.
+- **"Processing activities with open exceptions"** — `PROCESSING_ACTIVITY_EXCEPTIONS`, legal-entity scope, `ACTIVE` with an effective date in the past.
+- **"Cross-border transfers in one program"** — `PROCESSING_ACTIVITIES`, program scope, filter `cross_border_transfer is true`, `ACTIVE`.
+- **"Overdue obligations in one issue or change"** — `MATTER_EXCEPTIONS`, matter scope, filter `due_condition is overdue`, `PENDING_REVIEW`.
+- **"Program health across the entity"** — `PROGRAMS`, legal-entity scope, `REVIEWED` so the workspace shows a definition that has been reviewed but not yet activated.
+
+The four states are the point of the sample set: the workspace has to be able to show a definition that is ready to run, one that is waiting for a review, and one that has been reviewed but not yet authorised. One definition alone would hide the governance.
+
+Human working language. Realistic bank owners. Clearly labelled sample data. Never imply the connected bank is compliant. `Code` values like `ROPA-OPEN-EXCEPTIONS`, `ROPA-CROSS-BORDER-TRANSFERS`, `ISSUES-OVERDUE-OBLIGATIONS`, `PROGRAM-HEALTH`.
+
+Also add a demo run that **failed on a bound** (`failure_code: "row_limit_exceeded"`, `row_count: 0`, no artefact keys), so the bounded-stop state is reachable in the demo and not only in a test. A demo that only shows successful runs teaches an operator that a stopped run is not a thing that happens.
 
 - [ ] **Step 4: Run to verify pass**
 
@@ -1520,7 +1705,7 @@ active exception report and one definition awaiting approval."
 
 ---
 
-## Task 8: HTTP routes, handlers, composition and OpenAPI
+## Task 9: HTTP routes, handlers, composition and OpenAPI
 
 **Files:**
 - Create: `internal/httpapi/reporting_routes.go`
@@ -1564,11 +1749,14 @@ func (a *API) reportingRoutes() []routeSpec {
 		material("/api/v1/ropa/reports/definitions/{id}/submit", "report.definition.submit", a.reportDefinitionAction("submit"), commandPolicy{
 			ObjectType: "REPORT_DEFINITION", ObjectIDPath: "id", Responsibility: authority.ResponsibilityProposer, Materiality: 4,
 		}),
-		material("/api/v1/ropa/reports/definitions/{id}/approve", "report.definition.approve", a.reportDefinitionAction("approve"), commandPolicy{
+		material("/api/v1/ropa/reports/definitions/{id}/review", "report.definition.review", a.reportDefinitionAction("review"), commandPolicy{
+			ObjectType: "REPORT_DEFINITION", ObjectIDPath: "id", Responsibility: authority.ResponsibilityReviewer, Materiality: 4,
+		}),
+		material("/api/v1/ropa/reports/definitions/{id}/activate", "report.definition.activate", a.reportDefinitionAction("activate"), commandPolicy{
 			ObjectType: "REPORT_DEFINITION", ObjectIDPath: "id", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 5,
 		}),
 		material("/api/v1/ropa/reports/definitions/{id}/reject", "report.definition.reject", a.reportDefinitionAction("reject"), commandPolicy{
-			ObjectType: "REPORT_DEFINITION", ObjectIDPath: "id", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 5,
+			ObjectType: "REPORT_DEFINITION", ObjectIDPath: "id", Responsibility: authority.ResponsibilityReviewer, Materiality: 4,
 		}),
 		material("/api/v1/ropa/reports/definitions/{id}/retire", "report.definition.retire", a.reportDefinitionAction("retire"), commandPolicy{
 			ObjectType: "REPORT_DEFINITION", ObjectIDPath: "id", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 5,
@@ -1578,12 +1766,18 @@ func (a *API) reportingRoutes() []routeSpec {
 			ObjectType: "REPORT_RUN", Responsibility: authority.ResponsibilityPerformer, Materiality: 3, BindLegalEntity: true,
 		}),
 		read("/api/v1/ropa/reports/runs/{id}", a.getReportRun),
-		read("/api/v1/ropa/reports/runs/{id}/download", a.downloadReportRun),
+		withPermission(read("/api/v1/ropa/reports/runs/{id}/download", a.downloadReportRun), identity.PermissionReportDownload),
 	}
 }
 ```
 
-Proposer and authorizer are distinct responsibilities, and there is no hard-coded approver: both re-resolve through the authority service.
+`read()` takes no permission, so the download route is registered with `withPermission` directly. The approved design calls for a "separate export authority" for downloading a protected artefact, and `internal/identity/model.go:17-25` has no report-specific capability. Add one:
+
+- `identity.PermissionReportDownload = "REPORT_DOWNLOAD"` in `internal/identity/model.go`, deliberately **not** `PermissionAuditExport`. `AUDIT_EXPORT` is the system-activity export capability and a data-privacy role does not hold it today; sharing it would mean a privacy officer gains system-activity export by gaining reports, and would let a report download be authorised by a route permission meant for something else.
+- Grant it in `developmentPermissions` in `internal/identity/authenticator.go` to the roles that should hold it. Decide explicitly and say which in the PR body — the candidates are `GRC_ADMIN` and a data-privacy role if one exists.
+- Adding a capability adds no durable table, so it needs no schema-ownership row.
+
+Responsibilities stay distinct and none is hard-coded: submit is `PROPOSER`, review is `REVIEWER`, activate and retire are `AUTHORIZER`, run is `PERFORMER`. All five re-resolve through `commandauth.Guard`, which fails closed on a missing, ambiguous or unavailable route.
 
 - [ ] **Step 4: Write `internal/httpapi/reporting_handlers.go`**
 
@@ -1616,7 +1810,7 @@ the download re-authorises on every request."
 
 ---
 
-## Task 9: Documentation — schema ownership, requirement coverage, performance
+## Task 10: Documentation — schema ownership, requirement coverage, performance
 
 **Files:**
 - Modify: `docs/architecture/durable-schema-ownership.md`
@@ -1656,7 +1850,7 @@ git commit -m "docs(reporting): record ownership, coverage and measured report b
 
 ---
 
-## Task 10: Web workspace — types, client, UI
+## Task 11: Web workspace — types, client, UI
 
 **Files:**
 - Create: `web/src/reportingTypes.ts`
@@ -1672,12 +1866,16 @@ git commit -m "docs(reporting): record ownership, coverage and measured report b
 
 - [ ] **Step 1: Write the failing tests**
 
-- `TestReportingPageListsDefinitionsWithTheirGovernanceState` — each row shows status, scope, dataset, maker, checker, effective date and current version. No row shows a bare API status code as its primary label.
-- `TestReportingPageShowsWhyARunCannotStartYet` — a `DRAFT` or `PENDING_REVIEW` definition's run control is disabled and the reason names the missing approval.
-- `TestReportingPageShowsRunFreshness` — a run row states its `as_of`, generation time, row count and whether the population was complete. A truncated run says why it stopped rather than showing a count as if it were the whole population.
+- `TestReportingPageListsDefinitionsWithTheirGovernanceState` — each row shows status, scope, dataset, maker, reviewer, authorizer, effective date and current version. No row shows a bare API status code as its primary label.
+- `TestReportingPageShowsWhyARunCannotStartYet` — a `DRAFT`, `PENDING_REVIEW` or `REVIEWED` definition's run control is disabled and the reason names the missing step: a review, or an authorisation. A definition that is merely "not active" is not an explanation.
+- `TestReportingPageShowsRunFreshnessAndSourceBoundary` — a run row states its `as_of`, generation time, row count, the source projection version and high-water, and whether the population was complete. A truncated run says why it stopped rather than showing a count as if it were the whole population.
+- `TestReportingPageShowsTheSourceHighWater` — the reader can see which material versions the report was read from, not just a timestamp.
+- `TestReportingPageNamesTheReviewerAndAuthorizerSeparately` — the three principals are shown as three roles, because that separation is the control.
 - `TestReportingPageDoesNotOfferAFilterTheServerWillReject` — the editor's options come from the server's published vocabulary, so an unknown field is unreachable in the UI.
 - `TestFilterEditorRejectsAnEmptyGroup` — a group with no conditions cannot be saved, and says what to add.
-- `TestReportingPageShowsTheDecisionHistory` — a definition's history shows who proposed, who checked, when, and any note.
+- `TestFilterEditorShowsWhenAFieldIsNotIndexed` — a non-indexed filter is slower, and the operator should know before they build a report on it.
+- `TestFilterEditorRejectsAFieldFromTheOtherDataset` — a Program field offered on a ROPA report is refused, with a message naming the datasets it belongs to.
+- `TestReportingPageShowsTheDecisionHistory` — a definition's history shows who proposed, who reviewed, who authorised, when, and any note.
 - `TestEmptyStateNamesThePopulationAndTheNextAction` — per the copy gate, the empty state states what was checked, the result and the valid next action.
 - `TestCopyQualityPassesForTheNewWorkspace`
 
@@ -1716,7 +1914,7 @@ when, and a run states its population and whether it completed."
 
 ---
 
-## Task 11: Rendered evidence and the review transport
+## Task 12: Rendered evidence and the review transport
 
 **Files:**
 - Create: `web/src/reportingEvidence.ts`
@@ -1731,7 +1929,7 @@ Model on `web/src/ropaEvidence.ts`: capture the previous `fetch`, normalise stri
 
 - [ ] **Step 2: Serve the real routes in `web/src/reportingEvidence.ts`**
 
-Handle `GET /api/v1/ropa/reports/filter-fields`, `/definitions`, `/definitions/{id}`, `/definitions/{id}/history`, `/runs`, `/runs/{id}`. The sample content must include one `ACTIVE` definition, one `PENDING_REVIEW` definition, one `READY` run with a complete population, and one `FAILED` run whose `failure_code` is `row_limit_exceeded` — so the truncated-report state is visible in review evidence rather than only in a test.
+Handle `GET /api/v1/ropa/reports/filter-fields`, `/definitions`, `/definitions/{id}`, `/definitions/{id}/history`, `/runs`, `/runs/{id}`. The sample content must include one `ACTIVE` definition, one `PENDING_REVIEW` definition, one `REVIEWED` definition, one `READY` run with a complete population, and one `FAILED` run whose `failure_code` is `row_limit_exceeded` and whose `row_count` is `0` — so the bounded-stop state is visible in review evidence rather than only in a test, and so a failed run is visibly not a successful short report.
 
 Give the sample activity the name `Customer account opening` if any capture waits for that text; check `capture-ui-evidence.mjs` for the exact expected string before choosing names.
 
@@ -1764,7 +1962,7 @@ is the case most likely to look complete when it is not."
 
 ---
 
-## Task 12: Full verification
+## Task 13: Full verification
 
 - [ ] **Step 1: Backend**
 
@@ -1805,11 +2003,14 @@ The tranche is complete when all of the following are true and each has a named 
 
 1. A privacy officer can define a report with a filter built only from the server's published vocabulary, and an unlisted field is rejected server-side with a message naming the field.
 2. No submitted filter can produce a query that scans an unindexed combination; the field-to-SQL mapping is closed and every value is a bound parameter.
-3. A definition cannot become active without a different person approving it, and the approval is bound to the checksum the reviewer saw.
-4. A report run stops at an explicit row or byte bound, fails with a named code, and never leaves a partial artefact that looks complete.
-5. A download re-authorises, refuses an expired run with an explanation, and records who downloaded it.
-6. The report's exception dataset selects exactly the activities the register would refuse to close, proven against real PostgreSQL.
-7. A report cannot read another legal entity's rows, proven at the repository with a second entity in the same tenant.
-8. 100,000 activities produce a first and cursor page inside 750 ms, measured and recorded.
-9. `review:ui` passes with the three new records, and the renders were inspected, not just generated.
-10. The gap analysis states the delivered and remaining parts of #26 without overstating either.
+3. A definition cannot become active without a review **and** an activation, performed by three different principals — proposer, reviewer, authorizer — and the decision is bound to the checksum each role saw. There is no path that skips review.
+4. Revision content is immutable from insert: an approval cannot cover a definition that was edited afterwards.
+5. A report run stops at an explicit row or byte bound, fails with a named code, and never leaves a partial artefact that looks complete.
+6. A download re-authorises, verifies the artefact digest, refuses an expired run with an explanation, and records who downloaded it. It requires a capability distinct from the system-activity export.
+7. The report's exception dataset selects exactly the activities the register would refuse to close, proven against real PostgreSQL.
+8. A restricted Matter the verified principal cannot see never consumes a report page slot, proven at the repository with a same-tenant second legal entity in the fixture.
+9. Every run records the source projection version and high-water, not only a timestamp, so a reader knows what was read.
+10. A report cannot read another legal entity's rows, proven at the repository with a second entity in the same tenant.
+11. 100,000 activities produce a first and cursor page inside 750 ms, measured and recorded.
+12. `review:ui` passes with the new records, and the renders were inspected, not just generated.
+13. The gap analysis states the delivered and remaining parts of #26 without overstating either.
