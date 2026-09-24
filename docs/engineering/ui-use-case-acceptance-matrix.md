@@ -172,6 +172,15 @@ Today and Vendors resolve separate guide surfaces from the verified actor. Each 
 | Full RBAC/authority/escalation builders | Draft, simulate, maker-checker approve, activate and roll back | Future productization work |
 | Directory import/sync | OIDC/SAML/SCIM/LDAP/AD and controlled spreadsheet mapping | Future productization work |
 
+## Data privacy and reporting
+
+| Use case | Current implementation boundary | Acceptance status |
+|---|---|---|
+| `UC-PRIV-01` | The processing-activity register, exact activity record, status/coverage strip, verified-identity routes, closure blockers, review facts and bounded register reads are implemented. Automated review cycles, reminders, notifications and collaboration remain outside this tranche. | **Implemented, not accepted** — rendered and behavioural acceptance evidence has not been produced. |
+| `UC-REPORT-01` | No configurable exception/compliance report builder or ROPA report workspace is implemented. The existing system-activity CSV/NDJSON audit export is a separate capability and does not satisfy that report journey. | **Not implemented** — no acceptance claim is made for the configurable report journey. |
+
+Neither row is acceptance PASSED. Component, route, domain and volume tests are not a substitute for rendered and behavioural acceptance evidence.
+
 ## Responsive and accessibility evidence
 
 The release gate includes:

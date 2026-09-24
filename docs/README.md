@@ -45,6 +45,7 @@ The optional assessment follow-up repair has a [decision brief and plan](superpo
 35. [Forms section resumption](design/2026-09-08-forms-section-resume.md) and [implementation plan](superpowers/plans/2026-09-08-forms-section-resume.md) — safe peer-section reload and browser-history recovery; document-level state remains separately tracked.
 36. [Document navigation and fictional samples](superpowers/specs/2026-09-08-document-navigation-and-samples-design.md), [navigation plan](superpowers/plans/2026-09-08-document-navigation.md), [vendor recovery plan](superpowers/plans/2026-09-08-vendor-activation-recovery.md), [demo preview decision](design/2026-09-08-demo-document-preview.md), [sample implementation plan](superpowers/plans/2026-09-08-demo-document-samples.md) and [persisted sample installer](engineering/fictional-document-samples.md) — narrow-screen selectors, safe activation retries and clearly labelled persisted fictional documents with a demo-only preview exception; no antivirus or review-acceptance claim.
 37. [`product/archer-requirements-gap.md`](product/archer-requirements-gap.md) — cross-check of the supplied Fidelity Bank Archer workbook (31 requirements) against ClearSight use cases and implemented capability, with Covered/Partial/Blueprint/Gap statuses; reference data, not legal advice.
+38. [`superpowers/specs/2026-09-23-ropa-register-and-reporting-design.md`](superpowers/specs/2026-09-23-ropa-register-and-reporting-design.md) and [`superpowers/plans/2026-09-23-ropa-register-and-dashboard.md`](superpowers/plans/2026-09-23-ropa-register-and-dashboard.md) — ROPA register, dashboard and deferred reporting/review-automation scope.
 
 ## Canonical precedence
 
@@ -96,6 +97,7 @@ Architecture never overrides the simpler user-facing Program, issue/change, requ
 - Program-status update queue, lag health, reconciliation and governed rebuild;
 - typed Matters for changes, findings, exceptions, requests, actions, responses and outcome checks;
 - point-in-time Program and Matter reconstruction;
+- ROPA processing-activity register with tenant/legal-entity-scoped current rows, immutable revisions and append-only events, the four closure conditions, structured cross-border transfer tracking, projection-backed coverage/freshness, bounded register reads, and register/activity screens; configurable reports, automated review reminders and collaboration notifications remain deferred;
 - surface-aware onboarding for Today and Vendors with per-user, versioned guide state;
 - canonical vendor identities with optional website hostnames, durable brand discovery and protected same-origin icon delivery;
 - compliance Signal ingestion, drift and readiness;
@@ -114,6 +116,8 @@ The repository is a strong working foundation and reference MVP. It is not yet a
 The enterprise identity/access sequence **EIA-0 through EIA-5 is implemented on PR #59**: OIDC, server sessions, SCIM, department-aware capabilities, governed directory-group mappings, executable multi-level `OVERDUE` escalation, role/group escalation guards, maker-checker guard revisions, and the compact Configure → Identity & Access surface. Demo mode additionally exposes a supplied role catalogue on a dedicated login page; those routes and credentials do not exist when demo mode is disabled.
 
 Current execution truth is maintained in [`implementation-plan.md`](implementation-plan.md). The premium first-run and vendor-branding tranche is implemented in code but remains in verification until its rendered browser evidence and final exact-HEAD gates are recorded. Do not infer capability from historical issue text, a durable table name, a descriptive API schema, or an older branch.
+
+The ROPA register tranche is implemented in code with its migration, routes, projection, bounded reads and register/activity screens. The separate system-activity CSV/NDJSON export is not the configurable exception/compliance report builder for #26. Rendered and behavioural acceptance evidence for the ROPA surfaces has not been produced; automated review cycles/reminders and collaboration notifications remain deferred.
 
 The operator-paused [3 September remaining-issue closure plan](superpowers/plans/2026-09-03-remaining-issue-closure.md) and [all-open-issue audit](evidence/2026-09-03-open-issue-audit.md) record the latest follow-on sequence, local unmerged safety correction and evidence still required before issue closure.
 
