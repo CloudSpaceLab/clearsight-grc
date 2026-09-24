@@ -147,8 +147,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   }, [currentEvidenceScopeKey, primaryEvidenceTargetID]);
 
   useEffect(() => {
+    if (/^#\/?today(?:[/?]|$)/i.test(window.location.hash)) window.history.replaceState(null, "", "#oversight");
     const syncRoute = () => {
       const route = parseRoute(window.location.hash);
+      if (/^#\/?today(?:[/?]|$)/i.test(window.location.hash)) window.history.replaceState(null, "", "#oversight");
       setActiveView(route.view);
       if (route.workTab) setWorkTab(route.workTab);
       setTarget(route.target);
@@ -166,8 +168,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     document.documentElement.dataset.clearsightDemo = demoMode ? "on" : "off";
     if (!runtime) return;
     if ((!referenceJourneysEnabled && activeView === "explore") || (!importsEnabled && activeView === "imports") || (!configureEnabled && activeView === "configure")) navigate("oversight");
-    if (activeView === "today") navigate("oversight");
-  }, [runtime, referenceJourneysEnabled, importsEnabled, configureEnabled, oversightEnabled, activeView]);
+  }, [runtime, referenceJourneysEnabled, importsEnabled, configureEnabled, activeView]);
 
   async function loadEvidenceWorkspace(requestedID?: string) {
     const loadID = ++evidenceWorkspaceLoadID.current;
@@ -410,8 +411,8 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
           {serverDemoMode ? <mark>{demoMode ? "Stakeholder demo" : "Non-production data"}</mark> : null}
         </div>
       </div>
-      {(activeView === "today" || activeView === "oversight" || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>}
-      {(activeView === "today" || (activeView === "oversight" && !oversightEnabled)) && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
+      {(activeView === "oversight" || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>}
+      {activeView === "oversight" && !oversightEnabled && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
       {activeView === "oversight" && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading oversight…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", metric === "all" ? {} : { oversightMetric: metric })} todayItems={items} todayState={connection} onOpenTodayItem={openAttention}/></Suspense>}
       {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenForm={(id) => navigate("forms", { formTemplateID: id })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
       {activeView === "ropa" && target.ropaPage === "reports" && <section className="workspace-loading" aria-live="polite"><div><h1>Processing activity reports</h1><p>Report definitions and saved report results are not available in this workspace. Return to the register to review processing activities.</p></div></section>}

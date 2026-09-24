@@ -22,7 +22,7 @@
 .oversight-metric strong { align-self: end; font-size: 2rem; line-height: 1; }
 .oversight-metric small { color: var(--muted); font-size: .72rem; }
 .oversight-metric em { align-self: end; margin-top: 4px; color: var(--cyan); font-size: .72rem; font-style: normal; font-weight: 700; }
-.oversight-metric[data-hovered], .oversight-metric[data-pressed] { border-color: var(--cyan); box-shadow: var(--cs-shadow-raised); transform: translateY(-2px); }
+.oversight-metric:hover, .oversight-metric[data-hovered], .oversight-metric[data-pressed] { border-color: var(--cyan); box-shadow: var(--cs-shadow-raised); transform: translateY(-2px); }
 .oversight-metric[aria-pressed="true"] { border-color: var(--cyan); background: var(--cyan-soft); }
 .oversight-metric:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
 .oversight-metric.critical { border-top: 3px solid var(--coral); }
@@ -97,5 +97,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .oversight-metric, .oversight-today-item { transition: none; }
-  .oversight-metric[data-hovered], .oversight-metric[data-pressed], .oversight-today-item[data-hovered], .oversight-today-item[data-pressed] { transform: none; }
+  .oversight-metric:hover, .oversight-metric[data-hovered], .oversight-metric[data-pressed], .oversight-today-item[data-hovered], .oversight-today-item[data-pressed] { transform: none; }
 }

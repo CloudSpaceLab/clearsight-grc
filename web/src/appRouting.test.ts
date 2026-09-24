@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { parseRoute, routeHash } from "./appRouting";
 
 describe("workspace routes", () => {
+  it("opens legacy Today links as Oversight", () => {
+    expect(parseRoute("#today")).toEqual({ view: "oversight", target: {} });
+  });
   it("keeps the selected oversight measure in a shareable drill-down route", () => {
     expect(parseRoute("#oversight?metric=overdue")).toEqual({ view: "oversight", target: { oversightMetric: "overdue" } });
     expect(routeHash("oversight", { oversightMetric: "routing-gaps" }, "matters")).toBe("#oversight?metric=routing-gaps");
