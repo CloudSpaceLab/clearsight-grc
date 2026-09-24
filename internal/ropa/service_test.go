@@ -87,7 +87,7 @@ func TestCreateStartsNewAndRecordsOneEvent(t *testing.T) {
 	if activity.Code != "PA-001" || activity.Name != "Customer onboarding" {
 		t.Fatalf("create did not trim strings: %#v", activity)
 	}
-	events, err := repository.ActivityEvents(context.Background(), activity.TenantID, activity.ID)
+	events, _, err := repository.ActivityEvents(context.Background(), ropa.ActivityScope{TenantID: activity.TenantID, LegalEntityID: activity.LegalEntityID}, activity.ID, 0, 100)
 	if err != nil {
 		t.Fatalf("read events: %v", err)
 	}
@@ -130,6 +130,7 @@ func TestClosureIsBlockedUntilRequiredFactsExist(t *testing.T) {
 
 	_, err := service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 		TenantID:        activity.TenantID,
+		LegalEntityID:   activity.LegalEntityID,
 		ActivityID:      activity.ID,
 		ExpectedVersion: activity.Version,
 		To:              ropa.StatusClosed,
@@ -139,7 +140,7 @@ func TestClosureIsBlockedUntilRequiredFactsExist(t *testing.T) {
 		t.Fatalf("expected ErrClosureBlocked, got %v", err)
 	}
 
-	blockers, err := service.ClosureBlockers(context.Background(), activity.TenantID, activity.LegalEntityID, activity.ID)
+	blockers, err := service.ClosureBlockers(context.Background(), ropa.ActivityScope{TenantID: activity.TenantID, LegalEntityID: activity.LegalEntityID}, activity.ID)
 	if err != nil {
 		t.Fatalf("read closure blockers: %v", err)
 	}
@@ -157,6 +158,7 @@ func TestClosureSucceedsWhenRequiredFactsArePresent(t *testing.T) {
 	activity := task3Create(t, service, input)
 	closed, err := service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 		TenantID:        activity.TenantID,
+		LegalEntityID:   activity.LegalEntityID,
 		ActivityID:      activity.ID,
 		ExpectedVersion: activity.Version,
 		To:              ropa.StatusClosed,
@@ -192,7 +194,7 @@ func TestCompletedReviewIsRequiredForClosure(t *testing.T) {
 			input.Reviews = []ropa.Review{task3ReviewWithOutcome(test.completedAt, test.outcome)}
 			activity := task3Create(t, service, input)
 
-			blockers, err := service.ClosureBlockers(context.Background(), activity.TenantID, activity.LegalEntityID, activity.ID)
+			blockers, err := service.ClosureBlockers(context.Background(), ropa.ActivityScope{TenantID: activity.TenantID, LegalEntityID: activity.LegalEntityID}, activity.ID)
 			if err != nil {
 				t.Fatalf("read closure blockers: %v", err)
 			}
@@ -203,6 +205,7 @@ func TestCompletedReviewIsRequiredForClosure(t *testing.T) {
 				}
 				_, err = service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 					TenantID:        activity.TenantID,
+					LegalEntityID:   activity.LegalEntityID,
 					ActivityID:      activity.ID,
 					ExpectedVersion: activity.Version,
 					To:              ropa.StatusClosed,
@@ -219,6 +222,7 @@ func TestCompletedReviewIsRequiredForClosure(t *testing.T) {
 			}
 			closed, err := service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 				TenantID:        activity.TenantID,
+				LegalEntityID:   activity.LegalEntityID,
 				ActivityID:      activity.ID,
 				ExpectedVersion: activity.Version,
 				To:              ropa.StatusClosed,
@@ -242,6 +246,7 @@ func TestClosedActivityCannotTransitionBackToOpen(t *testing.T) {
 	activity := task3Create(t, service, input)
 	activity, err := service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 		TenantID:        activity.TenantID,
+		LegalEntityID:   activity.LegalEntityID,
 		ActivityID:      activity.ID,
 		ExpectedVersion: activity.Version,
 		To:              ropa.StatusClosed,
@@ -253,6 +258,7 @@ func TestClosedActivityCannotTransitionBackToOpen(t *testing.T) {
 
 	_, err = service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 		TenantID:        activity.TenantID,
+		LegalEntityID:   activity.LegalEntityID,
 		ActivityID:      activity.ID,
 		ExpectedVersion: activity.Version,
 		To:              ropa.StatusOpen,
@@ -268,6 +274,7 @@ func TestStaleExpectedVersionReturnsVersionConflict(t *testing.T) {
 	activity := task3Create(t, service, task3Input())
 	_, err := service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 		TenantID:        activity.TenantID,
+		LegalEntityID:   activity.LegalEntityID,
 		ActivityID:      activity.ID,
 		ExpectedVersion: activity.Version + 1,
 		To:              ropa.StatusOpen,
@@ -279,6 +286,7 @@ func TestStaleExpectedVersionReturnsVersionConflict(t *testing.T) {
 
 	_, err = service.UpdateActivity(context.Background(), ropa.UpdateActivityInput{
 		TenantID:        activity.TenantID,
+		LegalEntityID:   activity.LegalEntityID,
 		ActivityID:      activity.ID,
 		ExpectedVersion: activity.Version + 1,
 		LawfulBasis:     stringPointer("Consent"),
@@ -299,6 +307,7 @@ func TestUpdateChangesOnlySuppliedFields(t *testing.T) {
 
 	updated, err := service.UpdateActivity(context.Background(), ropa.UpdateActivityInput{
 		TenantID:        activity.TenantID,
+		LegalEntityID:   activity.LegalEntityID,
 		ActivityID:      activity.ID,
 		ExpectedVersion: activity.Version,
 		Description:     &newDescription,
@@ -320,6 +329,7 @@ func TestUpdateChangesOnlySuppliedFields(t *testing.T) {
 	empty := ""
 	updated, err = service.UpdateActivity(context.Background(), ropa.UpdateActivityInput{
 		TenantID:        updated.TenantID,
+		LegalEntityID:   updated.LegalEntityID,
 		ActivityID:      updated.ID,
 		ExpectedVersion: updated.Version,
 		LawfulBasis:     &empty,
@@ -339,6 +349,7 @@ func TestUpdateMaintainsTheLegalEntityCodeIndex(t *testing.T) {
 	newCode := "PA-002"
 	updated, err := service.UpdateActivity(context.Background(), ropa.UpdateActivityInput{
 		TenantID:        activity.TenantID,
+		LegalEntityID:   activity.LegalEntityID,
 		ActivityID:      activity.ID,
 		ExpectedVersion: activity.Version,
 		Code:            &newCode,
@@ -378,12 +389,10 @@ func TestRetiredActivityIsReadableButExcludedUnlessRequested(t *testing.T) {
 		return input
 	}())
 
-	if _, err := service.GetActivity(context.Background(), retired.TenantID, retired.ID); err != nil {
+	if _, err := service.GetActivity(context.Background(), ropa.ActivityScope{TenantID: retired.TenantID, LegalEntityID: retired.LegalEntityID}, retired.ID); err != nil {
 		t.Fatalf("retired activity should remain readable: %v", err)
 	}
-	page, err := service.ListActivities(context.Background(), ropa.ListActivitiesFilter{
-		TenantID:       retired.TenantID,
-		LegalEntityID:  retired.LegalEntityID,
+	page, err := service.ListActivities(context.Background(), ropa.ActivityScope{TenantID: retired.TenantID, LegalEntityID: retired.LegalEntityID}, ropa.ListActivitiesFilter{
 		IncludeRetired: false,
 		Limit:          50,
 	})
@@ -394,9 +403,7 @@ func TestRetiredActivityIsReadableButExcludedUnlessRequested(t *testing.T) {
 		t.Fatalf("live list = %#v, want only %s", page.Rows, live.ID)
 	}
 
-	page, err = service.ListActivities(context.Background(), ropa.ListActivitiesFilter{
-		TenantID:       retired.TenantID,
-		LegalEntityID:  retired.LegalEntityID,
+	page, err = service.ListActivities(context.Background(), ropa.ActivityScope{TenantID: retired.TenantID, LegalEntityID: retired.LegalEntityID}, ropa.ListActivitiesFilter{
 		IncludeRetired: true,
 		Limit:          50,
 	})
@@ -442,11 +449,9 @@ func TestKeysetPaginationHasNoDuplicatesOrSkippedRowsAndRejectsInvalidCursor(t *
 	seen := make(map[string]bool)
 	cursor := ""
 	for pageNumber := 0; pageNumber < 10; pageNumber++ {
-		page, err := service.ListActivities(context.Background(), ropa.ListActivitiesFilter{
-			TenantID:      "tenant-1",
-			LegalEntityID: "entity-1",
-			Limit:         2,
-			Cursor:        cursor,
+		page, err := service.ListActivities(context.Background(), ropa.ActivityScope{TenantID: "tenant-1", LegalEntityID: "entity-1"}, ropa.ListActivitiesFilter{
+			Limit:  2,
+			Cursor: cursor,
 		})
 		if err != nil {
 			t.Fatalf("list page %d: %v", pageNumber, err)
@@ -474,11 +479,9 @@ func TestKeysetPaginationHasNoDuplicatesOrSkippedRowsAndRejectsInvalidCursor(t *
 		}
 	}
 
-	_, err := service.ListActivities(context.Background(), ropa.ListActivitiesFilter{
-		TenantID:      "tenant-1",
-		LegalEntityID: "entity-1",
-		Limit:         2,
-		Cursor:        "not-a-valid-cursor",
+	_, err := service.ListActivities(context.Background(), ropa.ActivityScope{TenantID: "tenant-1", LegalEntityID: "entity-1"}, ropa.ListActivitiesFilter{
+		Limit:  2,
+		Cursor: "not-a-valid-cursor",
 	})
 	if !errors.Is(err, ropa.ErrInvalid) {
 		t.Fatalf("invalid cursor: expected ErrInvalid, got %v", err)
@@ -542,6 +545,7 @@ func TestEventsAccumulateWithAggregateVersionsAfterTransition(t *testing.T) {
 	activity := task3Create(t, service, task3Input())
 	activity, err := service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 		TenantID:        activity.TenantID,
+		LegalEntityID:   activity.LegalEntityID,
 		ActivityID:      activity.ID,
 		ExpectedVersion: activity.Version,
 		To:              ropa.StatusOpen,
@@ -550,7 +554,7 @@ func TestEventsAccumulateWithAggregateVersionsAfterTransition(t *testing.T) {
 	if err != nil {
 		t.Fatalf("transition activity: %v", err)
 	}
-	events, err := repository.ActivityEvents(context.Background(), activity.TenantID, activity.ID)
+	events, _, err := repository.ActivityEvents(context.Background(), ropa.ActivityScope{TenantID: activity.TenantID, LegalEntityID: activity.LegalEntityID}, activity.ID, 0, 100)
 	if err != nil {
 		t.Fatalf("read events: %v", err)
 	}
@@ -705,7 +709,7 @@ func TestMemoryRepositoryRejectsClosureWithoutEachRequiredFact(t *testing.T) {
 			test.mutate(&next)
 			event := task3DirectEvent(t, next, ropa.EventActivityTransitioned, next.Version)
 
-			if _, err := repository.ApplyActivityEvent(context.Background(), next.TenantID, next.ID, activity.Version, event); !errors.Is(err, ropa.ErrClosureBlocked) {
+			if _, err := repository.ApplyActivityEvent(context.Background(), ropa.ActivityScope{TenantID: next.TenantID, LegalEntityID: next.LegalEntityID}, next.ID, activity.Version, event); !errors.Is(err, ropa.ErrClosureBlocked) {
 				t.Fatalf("missing %s: expected ErrClosureBlocked, got %v", test.name, err)
 			}
 		})
@@ -724,7 +728,7 @@ func TestMemoryRepositoryRejectsUnknownEventType(t *testing.T) {
 	next.UpdatedAt = task3Now.Add(time.Minute)
 	event := task3DirectEvent(t, next, "processing_activity.deleted", next.Version)
 
-	if _, err := repository.ApplyActivityEvent(context.Background(), next.TenantID, next.ID, activity.Version, event); !errors.Is(err, ropa.ErrInvalid) {
+	if _, err := repository.ApplyActivityEvent(context.Background(), ropa.ActivityScope{TenantID: next.TenantID, LegalEntityID: next.LegalEntityID}, next.ID, activity.Version, event); !errors.Is(err, ropa.ErrInvalid) {
 		t.Fatalf("unknown event type: expected ErrInvalid, got %v", err)
 	}
 }
@@ -749,7 +753,7 @@ func TestMemoryRepositoryRequiresExactEventVersion(t *testing.T) {
 			next.UpdatedAt = task3Now.Add(time.Minute)
 			event := task3DirectEvent(t, next, ropa.EventActivityTransitioned, test.version)
 
-			if _, err := repository.ApplyActivityEvent(context.Background(), next.TenantID, next.ID, activity.Version, event); !errors.Is(err, ropa.ErrVersionConflict) {
+			if _, err := repository.ApplyActivityEvent(context.Background(), ropa.ActivityScope{TenantID: next.TenantID, LegalEntityID: next.LegalEntityID}, next.ID, activity.Version, event); !errors.Is(err, ropa.ErrVersionConflict) {
 				t.Fatalf("%s event version: expected ErrVersionConflict, got %v", test.name, err)
 			}
 		})
@@ -769,7 +773,7 @@ func TestMemoryRepositoryRejectsMismatchedPayloadID(t *testing.T) {
 	next.UpdatedAt = task3Now.Add(time.Minute)
 	event := task3DirectEvent(t, next, ropa.EventActivityTransitioned, next.Version)
 
-	if _, err := repository.ApplyActivityEvent(context.Background(), activity.TenantID, activity.ID, activity.Version, event); !errors.Is(err, ropa.ErrInvalid) {
+	if _, err := repository.ApplyActivityEvent(context.Background(), ropa.ActivityScope{TenantID: activity.TenantID, LegalEntityID: activity.LegalEntityID}, activity.ID, activity.Version, event); !errors.Is(err, ropa.ErrInvalid) {
 		t.Fatalf("mismatched payload ID: expected ErrInvalid, got %v", err)
 	}
 }
@@ -972,6 +976,7 @@ func TestServiceRejectsUpdateTimestampBeforeCreation(t *testing.T) {
 
 	_, err := service.UpdateActivity(context.Background(), ropa.UpdateActivityInput{
 		TenantID:        activity.TenantID,
+		LegalEntityID:   activity.LegalEntityID,
 		ActivityID:      activity.ID,
 		ExpectedVersion: activity.Version,
 		Description:     &description,
@@ -996,15 +1001,14 @@ func TestListActivitiesRejectsUnknownStatusThroughServiceAndRepository(t *testin
 	service, repository, _ := task3Service()
 	activity := task3Create(t, service, task3Input())
 	filter := ropa.ListActivitiesFilter{
-		TenantID:      activity.TenantID,
-		LegalEntityID: activity.LegalEntityID,
-		Status:        ropa.Status("ARCHIVED"),
-		Limit:         1,
+		Status: ropa.Status("ARCHIVED"),
+		Limit:  1,
 	}
-	if _, err := service.ListActivities(context.Background(), filter); !errors.Is(err, ropa.ErrInvalid) {
+	scope := ropa.ActivityScope{TenantID: activity.TenantID, LegalEntityID: activity.LegalEntityID}
+	if _, err := service.ListActivities(context.Background(), scope, filter); !errors.Is(err, ropa.ErrInvalid) {
 		t.Fatalf("service list: expected ErrInvalid, got %v", err)
 	}
-	if _, err := repository.ListActivities(context.Background(), filter); !errors.Is(err, ropa.ErrInvalid) {
+	if _, err := repository.ListActivities(context.Background(), scope, filter); !errors.Is(err, ropa.ErrInvalid) {
 		t.Fatalf("repository list: expected ErrInvalid, got %v", err)
 	}
 }
@@ -1012,11 +1016,9 @@ func TestListActivitiesRejectsUnknownStatusThroughServiceAndRepository(t *testin
 func TestListActivitiesRejectsWhitespaceCursorID(t *testing.T) {
 	service, _, _ := task3Service()
 	cursor := base64.RawURLEncoding.EncodeToString([]byte(`{"s":"NEW","r":"0001-01-01T00:00:00Z","i":"   "}`))
-	_, err := service.ListActivities(context.Background(), ropa.ListActivitiesFilter{
-		TenantID:      "tenant-1",
-		LegalEntityID: "entity-1",
-		Limit:         1,
-		Cursor:        cursor,
+	_, err := service.ListActivities(context.Background(), ropa.ActivityScope{TenantID: "tenant-1", LegalEntityID: "entity-1"}, ropa.ListActivitiesFilter{
+		Limit:  1,
+		Cursor: cursor,
 	})
 	if !errors.Is(err, ropa.ErrInvalid) {
 		t.Fatalf("whitespace cursor ID: expected ErrInvalid, got %v", err)
@@ -1046,7 +1048,7 @@ func TestServiceFallsBackToServiceActorWhenActorIsAbsent(t *testing.T) {
 	input := task3Input()
 	input.ActorID = ""
 	activity := task3Create(t, service, input)
-	events, err := repository.ActivityEvents(context.Background(), activity.TenantID, activity.ID)
+	events, _, err := repository.ActivityEvents(context.Background(), ropa.ActivityScope{TenantID: activity.TenantID, LegalEntityID: activity.LegalEntityID}, activity.ID, 0, 100)
 	if err != nil {
 		t.Fatalf("read created event: %v", err)
 	}
@@ -1068,15 +1070,11 @@ func TestKeysetPaginationUsesIDAsStableTiebreaker(t *testing.T) {
 	}
 	sort.Strings(created)
 
-	first, err := service.ListActivities(context.Background(), ropa.ListActivitiesFilter{
-		TenantID: "tenant-1", LegalEntityID: "entity-1", Limit: 1,
-	})
+	first, err := service.ListActivities(context.Background(), ropa.ActivityScope{TenantID: "tenant-1", LegalEntityID: "entity-1"}, ropa.ListActivitiesFilter{Limit: 1})
 	if err != nil {
 		t.Fatalf("first page: %v", err)
 	}
-	firstAgain, err := service.ListActivities(context.Background(), ropa.ListActivitiesFilter{
-		TenantID: "tenant-1", LegalEntityID: "entity-1", Limit: 1,
-	})
+	firstAgain, err := service.ListActivities(context.Background(), ropa.ActivityScope{TenantID: "tenant-1", LegalEntityID: "entity-1"}, ropa.ListActivitiesFilter{Limit: 1})
 	if err != nil {
 		t.Fatalf("first page repeated: %v", err)
 	}
@@ -1087,9 +1085,7 @@ func TestKeysetPaginationUsesIDAsStableTiebreaker(t *testing.T) {
 	seen := make([]string, 0, len(created))
 	cursor := ""
 	for pageNumber := 0; pageNumber < len(created)+1; pageNumber++ {
-		page, err := service.ListActivities(context.Background(), ropa.ListActivitiesFilter{
-			TenantID: "tenant-1", LegalEntityID: "entity-1", Limit: 1, Cursor: cursor,
-		})
+		page, err := service.ListActivities(context.Background(), ropa.ActivityScope{TenantID: "tenant-1", LegalEntityID: "entity-1"}, ropa.ListActivitiesFilter{Limit: 1, Cursor: cursor})
 		if err != nil {
 			t.Fatalf("page %d: %v", pageNumber, err)
 		}
@@ -1117,7 +1113,7 @@ func TestReturnedActivityCannotMutateStoredState(t *testing.T) {
 	input.Reviews = []ropa.Review{{ID: "review-1", CreatedAt: task3Now, DueDate: task3Now.AddDate(0, 3, 0), CompletedAt: &completed, Outcome: "CONFIRMED"}}
 	activity := task3Create(t, service, input)
 
-	returned, err := service.GetActivity(context.Background(), activity.TenantID, activity.ID)
+	returned, err := service.GetActivity(context.Background(), ropa.ActivityScope{TenantID: activity.TenantID, LegalEntityID: activity.LegalEntityID}, activity.ID)
 	if err != nil {
 		t.Fatalf("get activity: %v", err)
 	}
@@ -1128,7 +1124,7 @@ func TestReturnedActivityCannotMutateStoredState(t *testing.T) {
 	returned.Reviews[0].ID = "Caller review"
 	*returned.Reviews[0].CompletedAt = task3Now.Add(-48 * time.Hour)
 
-	stored, err := service.GetActivity(context.Background(), activity.TenantID, activity.ID)
+	stored, err := service.GetActivity(context.Background(), ropa.ActivityScope{TenantID: activity.TenantID, LegalEntityID: activity.LegalEntityID}, activity.ID)
 	if err != nil {
 		t.Fatalf("get activity after mutation: %v", err)
 	}
@@ -1146,22 +1142,22 @@ func (r *closureBlockersRepository) CreateActivity(context.Context, ropa.Process
 	return ropa.ProcessingActivity{}, nil
 }
 
-func (r *closureBlockersRepository) GetActivity(context.Context, string, string) (ropa.ProcessingActivity, error) {
+func (r *closureBlockersRepository) GetActivity(context.Context, ropa.ActivityScope, string) (ropa.ProcessingActivity, error) {
 	if r.err != nil {
 		return ropa.ProcessingActivity{}, r.err
 	}
 	return r.activity, nil
 }
 
-func (r *closureBlockersRepository) ApplyActivityEvent(context.Context, string, string, int64, ropa.Event) (int64, error) {
+func (r *closureBlockersRepository) ApplyActivityEvent(context.Context, ropa.ActivityScope, string, int64, ropa.Event) (int64, error) {
 	return 0, nil
 }
 
-func (r *closureBlockersRepository) ActivityEvents(context.Context, string, string) ([]ropa.Event, error) {
-	return nil, nil
+func (r *closureBlockersRepository) ActivityEvents(context.Context, ropa.ActivityScope, string, int64, int) ([]ropa.Event, bool, error) {
+	return nil, false, nil
 }
 
-func (r *closureBlockersRepository) ActivityByCode(context.Context, string, string, string) (ropa.ProcessingActivity, error) {
+func (r *closureBlockersRepository) ActivityByCode(context.Context, ropa.ActivityScope, string) (ropa.ProcessingActivity, error) {
 	return ropa.ProcessingActivity{}, ropa.ErrNotFound
 }
 
@@ -1172,7 +1168,7 @@ func TestClosureBlockersRequiresTenantAndLegalEntityScope(t *testing.T) {
 	input.Reviews = []ropa.Review{task3ReviewWithOutcome(&completed, "CONFIRMED")}
 	activity := task3Create(t, service, input)
 
-	blockers, err := service.ClosureBlockers(context.Background(), activity.TenantID, activity.LegalEntityID, activity.ID)
+	blockers, err := service.ClosureBlockers(context.Background(), ropa.ActivityScope{TenantID: activity.TenantID, LegalEntityID: activity.LegalEntityID}, activity.ID)
 	if err != nil {
 		t.Fatalf("read scoped blockers: %v", err)
 	}
@@ -1180,15 +1176,15 @@ func TestClosureBlockersRequiresTenantAndLegalEntityScope(t *testing.T) {
 		t.Fatalf("complete activity blockers = %v, want none", blockers)
 	}
 
-	_, err = service.ClosureBlockers(context.Background(), "other-tenant", activity.LegalEntityID, activity.ID)
+	_, err = service.ClosureBlockers(context.Background(), ropa.ActivityScope{TenantID: "other-tenant", LegalEntityID: activity.LegalEntityID}, activity.ID)
 	if !errors.Is(err, ropa.ErrNotFound) {
 		t.Fatalf("wrong tenant: expected ErrNotFound, got %v", err)
 	}
-	_, err = service.ClosureBlockers(context.Background(), activity.TenantID, "other-entity", activity.ID)
+	_, err = service.ClosureBlockers(context.Background(), ropa.ActivityScope{TenantID: activity.TenantID, LegalEntityID: "other-entity"}, activity.ID)
 	if !errors.Is(err, ropa.ErrNotFound) {
 		t.Fatalf("wrong legal entity: expected ErrNotFound, got %v", err)
 	}
-	_, err = service.ClosureBlockers(context.Background(), "", activity.LegalEntityID, activity.ID)
+	_, err = service.ClosureBlockers(context.Background(), ropa.ActivityScope{TenantID: "", LegalEntityID: activity.LegalEntityID}, activity.ID)
 	if !errors.Is(err, ropa.ErrInvalid) {
 		t.Fatalf("missing tenant: expected ErrInvalid, got %v", err)
 	}
@@ -1198,7 +1194,7 @@ func TestClosureBlockersPropagatesRepositoryFailure(t *testing.T) {
 	failure := errors.New("database unavailable")
 	service := ropa.NewService(&closureBlockersRepository{err: failure}, nil)
 
-	_, err := service.ClosureBlockers(context.Background(), "tenant-1", "entity-1", "activity-1")
+	_, err := service.ClosureBlockers(context.Background(), ropa.ActivityScope{TenantID: "tenant-1", LegalEntityID: "entity-1"}, "activity-1")
 	if err != failure {
 		t.Fatalf("repository failure = %v, want unchanged %v", err, failure)
 	}
@@ -1211,7 +1207,7 @@ func TestClosureBlockersRejectsMismatchedReturnedLegalEntity(t *testing.T) {
 		LegalEntityID: "entity-other",
 	}}, nil)
 
-	_, err := service.ClosureBlockers(context.Background(), "tenant-1", "entity-1", "activity-1")
+	_, err := service.ClosureBlockers(context.Background(), ropa.ActivityScope{TenantID: "tenant-1", LegalEntityID: "entity-1"}, "activity-1")
 	if !errors.Is(err, ropa.ErrNotFound) {
 		t.Fatalf("mismatched returned legal entity: expected ErrNotFound, got %v", err)
 	}
@@ -1228,7 +1224,7 @@ func TestMemoryRepositoryRejectsNoOpTransitionEvent(t *testing.T) {
 	next.UpdatedAt = task3Now.Add(time.Minute)
 	event := task3DirectEvent(t, next, ropa.EventActivityTransitioned, next.Version)
 
-	if _, err := repository.ApplyActivityEvent(context.Background(), next.TenantID, next.ID, activity.Version, event); !errors.Is(err, ropa.ErrInvalid) {
+	if _, err := repository.ApplyActivityEvent(context.Background(), ropa.ActivityScope{TenantID: next.TenantID, LegalEntityID: next.LegalEntityID}, next.ID, activity.Version, event); !errors.Is(err, ropa.ErrInvalid) {
 		t.Fatalf("no-op transition event: expected ErrInvalid, got %v", err)
 	}
 }

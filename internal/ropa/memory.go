@@ -42,7 +42,7 @@ func (r *MemoryRepository) CreateActivity(ctx context.Context, activity Processi
 		return ProcessingActivity{}, err
 	}
 	activity = normalizeProcessingActivity(activity)
-	if activity.Status != StatusNew {
+	if activity.Status != StatusNew || activity.Version != 1 {
 		return ProcessingActivity{}, ErrInvalid
 	}
 	if err := validateActivity(activity); err != nil {
@@ -60,7 +60,7 @@ func (r *MemoryRepository) CreateActivity(ctx context.Context, activity Processi
 		}
 		activity.ID = generated
 	}
-	activityKey := processingActivityKey(activity.TenantID, activity.ID)
+	activityKey := processingActivityKey(activity.TenantID, activity.LegalEntityID, activity.ID)
 	if _, exists := r.activities[activityKey]; exists {
 		return ProcessingActivity{}, ErrDuplicate
 	}
@@ -76,176 +76,139 @@ func (r *MemoryRepository) CreateActivity(ctx context.Context, activity Processi
 	return cloneProcessingActivity(activity), nil
 }
 
-func (r *MemoryRepository) GetActivity(ctx context.Context, tenantID, activityID string) (ProcessingActivity, error) {
+func (r *MemoryRepository) GetActivity(ctx context.Context, scope ActivityScope, activityID string) (ProcessingActivity, error) {
 	if err := ropaContextError(ctx); err != nil {
 		return ProcessingActivity{}, err
 	}
+	scope, err := normalizeActivityScope(scope)
+	activityID = strings.TrimSpace(activityID)
+	if err != nil || activityID == "" {
+		return ProcessingActivity{}, ErrInvalid
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	activity, ok := r.activities[processingActivityKey(strings.TrimSpace(tenantID), strings.TrimSpace(activityID))]
+	activity, ok := r.activities[processingActivityKey(scope.TenantID, scope.LegalEntityID, activityID)]
 	if !ok {
 		return ProcessingActivity{}, ErrNotFound
 	}
 	return cloneProcessingActivity(activity), nil
 }
 
-func (r *MemoryRepository) ActivityByCode(ctx context.Context, tenantID, legalEntityID, code string) (ProcessingActivity, error) {
+func (r *MemoryRepository) ActivityByCode(ctx context.Context, scope ActivityScope, code string) (ProcessingActivity, error) {
 	if err := ropaContextError(ctx); err != nil {
 		return ProcessingActivity{}, err
 	}
-	tenantID = strings.TrimSpace(tenantID)
-	legalEntityID = strings.TrimSpace(legalEntityID)
+	scope, err := normalizeActivityScope(scope)
 	code = strings.TrimSpace(code)
+	if err != nil || code == "" {
+		return ProcessingActivity{}, ErrInvalid
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	activityID, ok := r.byCode[activityCodeKey(tenantID, legalEntityID, code)]
+	activityID, ok := r.byCode[activityCodeKey(scope.TenantID, scope.LegalEntityID, code)]
 	if !ok {
 		return ProcessingActivity{}, ErrNotFound
 	}
-	activity, ok := r.activities[processingActivityKey(tenantID, activityID)]
+	activity, ok := r.activities[processingActivityKey(scope.TenantID, scope.LegalEntityID, activityID)]
 	if !ok {
 		return ProcessingActivity{}, ErrNotFound
 	}
 	return cloneProcessingActivity(activity), nil
 }
 
-func (r *MemoryRepository) ApplyActivityEvent(ctx context.Context, tenantID, activityID string, expectedVersion int64, event Event) (int64, error) {
+func (r *MemoryRepository) ApplyActivityEvent(ctx context.Context, scope ActivityScope, activityID string, expectedVersion int64, event Event) (int64, error) {
 	if err := ropaContextError(ctx); err != nil {
 		return 0, err
 	}
-	tenantID = strings.TrimSpace(tenantID)
+	scope, err := normalizeActivityScope(scope)
 	activityID = strings.TrimSpace(activityID)
-	if tenantID == "" || activityID == "" {
+	if err != nil || activityID == "" || expectedVersion <= 0 {
 		return 0, ErrInvalid
+	}
+	if strings.TrimSpace(event.ID) == "" {
+		generated, generationErr := newEventID()
+		if generationErr != nil {
+			return 0, generationErr
+		}
+		event.ID = generated
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	key := processingActivityKey(tenantID, activityID)
+	key := processingActivityKey(scope.TenantID, scope.LegalEntityID, activityID)
 	current, ok := r.activities[key]
 	if !ok {
 		return 0, ErrNotFound
 	}
-	if current.Version != expectedVersion || event.AggregateVersion != expectedVersion+1 {
-		return 0, ErrVersionConflict
-	}
-	if !validActivityEventType(event.Type) {
-		return 0, ErrInvalid
-	}
-	if event.TenantID != "" && event.TenantID != current.TenantID {
-		return 0, ErrInvalid
-	}
-	if event.LegalEntityID != "" && event.LegalEntityID != current.LegalEntityID {
-		return 0, ErrInvalid
-	}
-	if event.AggregateID != "" && event.AggregateID != current.ID {
-		return 0, ErrInvalid
-	}
-	if event.AggregateType != "" && event.AggregateType != "PROCESSING_ACTIVITY" {
-		return 0, ErrInvalid
-	}
-	if strings.TrimSpace(event.ID) == "" {
-		generated, err := newEventID()
-		if err != nil {
-			return 0, err
-		}
-		event.ID = generated
-	}
-
-	decoded, err := decodeActivity(event.Payload)
+	next, event, err := prepareActivityEvent(current, expectedVersion, event)
 	if err != nil {
-		return 0, err
-	}
-	if err := validateActivityWhitespace(decoded); err != nil {
-		return 0, err
-	}
-	decoded = normalizeProcessingActivity(decoded)
-	if decoded.ID != "" && decoded.ID != current.ID {
-		return 0, ErrInvalid
-	}
-	if decoded.TenantID != "" && decoded.TenantID != current.TenantID {
-		return 0, ErrInvalid
-	}
-	if decoded.LegalEntityID != "" && decoded.LegalEntityID != current.LegalEntityID {
-		return 0, ErrInvalid
-	}
-	decoded.ID = current.ID
-	decoded.TenantID = current.TenantID
-	decoded.LegalEntityID = current.LegalEntityID
-	decoded.Version = expectedVersion + 1
-	decoded.CreatedAt = current.CreatedAt
-	if !event.OccurredAt.IsZero() {
-		decoded.UpdatedAt = event.OccurredAt.UTC()
-	} else if decoded.UpdatedAt.IsZero() {
-		decoded.UpdatedAt = current.UpdatedAt
-	}
-	if err := validateActivity(decoded); err != nil {
-		return 0, err
-	}
-	if err := ValidateTransitionForWrite(current, decoded, event.Type); err != nil {
 		return 0, err
 	}
 
 	oldCodeKey := activityCodeKey(current.TenantID, current.LegalEntityID, current.Code)
-	newCodeKey := activityCodeKey(decoded.TenantID, decoded.LegalEntityID, decoded.Code)
+	newCodeKey := activityCodeKey(next.TenantID, next.LegalEntityID, next.Code)
 	if oldCodeKey != newCodeKey {
 		if existingID, exists := r.byCode[newCodeKey]; exists && existingID != current.ID {
 			return 0, ErrDuplicate
 		}
 	}
 
-	event.TenantID = current.TenantID
-	event.LegalEntityID = current.LegalEntityID
-	event.AggregateType = "PROCESSING_ACTIVITY"
-	event.AggregateID = current.ID
-	event.AggregateVersion = expectedVersion + 1
-	event.ActorID = strings.TrimSpace(event.ActorID)
-	if event.ActorID == "" {
-		event.ActorType = "SERVICE"
-	} else {
-		event.ActorType = "USER"
-	}
-	if event.OccurredAt.IsZero() {
-		event.OccurredAt = decoded.UpdatedAt
-	}
-	event.Payload = mustMarshalActivity(decoded)
-
 	if oldCodeKey != newCodeKey {
 		delete(r.byCode, oldCodeKey)
 		r.byCode[newCodeKey] = current.ID
 	}
-	r.activities[key] = cloneProcessingActivity(decoded)
+	r.activities[key] = cloneProcessingActivity(next)
 	r.events[key] = append(r.events[key], cloneEvent(event))
-	r.revisions[key] = append(r.revisions[key], cloneProcessingActivity(decoded))
-	return expectedVersion + 1, nil
+	r.revisions[key] = append(r.revisions[key], cloneProcessingActivity(next))
+	return next.Version, nil
 }
 
-func (r *MemoryRepository) ActivityEvents(ctx context.Context, tenantID, activityID string) ([]Event, error) {
+func (r *MemoryRepository) ActivityEvents(ctx context.Context, scope ActivityScope, activityID string, afterVersion int64, limit int) ([]Event, bool, error) {
 	if err := ropaContextError(ctx); err != nil {
-		return nil, err
+		return nil, false, err
+	}
+	scope, err := normalizeActivityScope(scope)
+	activityID = strings.TrimSpace(activityID)
+	if err != nil || activityID == "" || afterVersion < 0 || limit < 0 {
+		return nil, false, ErrInvalid
+	}
+	if limit == 0 {
+		limit = DefaultActivityEventPageSize
+	}
+	if limit > MaxActivityEventPageSize {
+		limit = MaxActivityEventPageSize
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	key := processingActivityKey(strings.TrimSpace(tenantID), strings.TrimSpace(activityID))
+	key := processingActivityKey(scope.TenantID, scope.LegalEntityID, activityID)
 	events, ok := r.events[key]
 	if !ok {
-		return nil, ErrNotFound
+		return nil, false, ErrNotFound
 	}
-	result := make([]Event, len(events))
-	for index, event := range events {
-		result[index] = cloneEvent(event)
+	filtered := make([]Event, 0, limit+1)
+	for _, event := range events {
+		if event.AggregateVersion <= afterVersion {
+			continue
+		}
+		filtered = append(filtered, cloneEvent(event))
+		if len(filtered) == limit+1 {
+			break
+		}
 	}
-	return result, nil
+	hasMore := len(filtered) > limit
+	if hasMore {
+		filtered = filtered[:limit]
+	}
+	return filtered, hasMore, nil
 }
 
-func (r *MemoryRepository) ListActivities(ctx context.Context, filter ListActivitiesFilter) (ActivityPage, error) {
+func (r *MemoryRepository) ListActivities(ctx context.Context, scope ActivityScope, filter ListActivitiesFilter) (ActivityPage, error) {
 	if err := ropaContextError(ctx); err != nil {
 		return ActivityPage{}, err
 	}
-	filter.TenantID = strings.TrimSpace(filter.TenantID)
-	filter.LegalEntityID = strings.TrimSpace(filter.LegalEntityID)
-	if filter.TenantID == "" || filter.LegalEntityID == "" {
-		return ActivityPage{}, ErrInvalid
+	scope, err := normalizeActivityScope(scope)
+	if err != nil {
+		return ActivityPage{}, err
 	}
 	if filter.Limit <= 0 {
 		filter.Limit = 50
@@ -270,7 +233,7 @@ func (r *MemoryRepository) ListActivities(ctx context.Context, filter ListActivi
 	defer r.mu.Unlock()
 	rows := make([]ProcessingActivity, 0, len(r.activities))
 	for _, value := range r.activities {
-		if value.TenantID != filter.TenantID || value.LegalEntityID != filter.LegalEntityID {
+		if value.TenantID != scope.TenantID || value.LegalEntityID != scope.LegalEntityID {
 			continue
 		}
 		if !filter.IncludeRetired && (Aggregate{ProcessingActivity: value}).IsRetired() {
@@ -325,42 +288,7 @@ func normalizeCreatedEvent(event Event, activity ProcessingActivity) (Event, err
 		}
 		event.ID = generated
 	}
-	if event.TenantID != "" && event.TenantID != activity.TenantID {
-		return Event{}, ErrInvalid
-	}
-	if event.LegalEntityID != "" && event.LegalEntityID != activity.LegalEntityID {
-		return Event{}, ErrInvalid
-	}
-	if event.AggregateID != "" && event.AggregateID != activity.ID {
-		return Event{}, ErrInvalid
-	}
-	if event.AggregateType != "" && event.AggregateType != "PROCESSING_ACTIVITY" {
-		return Event{}, ErrInvalid
-	}
-	if !validActivityEventType(event.Type) {
-		return Event{}, ErrInvalid
-	}
-	if event.AggregateVersion != activity.Version {
-		return Event{}, ErrVersionConflict
-	}
-	event.TenantID = activity.TenantID
-	event.LegalEntityID = activity.LegalEntityID
-	event.AggregateType = "PROCESSING_ACTIVITY"
-	event.AggregateID = activity.ID
-	event.AggregateVersion = activity.Version
-	event.ActorID = strings.TrimSpace(event.ActorID)
-	if event.ActorID == "" {
-		event.ActorType = "SERVICE"
-	} else {
-		event.ActorType = "USER"
-	}
-	// The event payload is the complete aggregate snapshot, even when a
-	// repository caller supplied a placeholder payload.
-	event.Payload = mustMarshalActivity(activity)
-	if event.OccurredAt.IsZero() {
-		event.OccurredAt = activity.UpdatedAt
-	}
-	return event, nil
+	return validateCreatedActivityEvent(event, activity)
 }
 
 func decodeActivity(payload []byte) (ProcessingActivity, error) {
@@ -520,8 +448,8 @@ func activityAfterCursor(activity ProcessingActivity, cursor activityCursor) boo
 	return activity.ID > cursor.ID
 }
 
-func processingActivityKey(tenantID, activityID string) string {
-	return tenantID + "\x00" + activityID
+func processingActivityKey(tenantID, legalEntityID, activityID string) string {
+	return tenantID + "\x00" + legalEntityID + "\x00" + activityID
 }
 
 func activityCodeKey(tenantID, legalEntityID, code string) string {

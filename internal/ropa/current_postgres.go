@@ -45,7 +45,8 @@ func getActivitySQL() string {
 	return `SELECT ` + activityColumns + `
 FROM ropa_processing_activities
 WHERE tenant_id = $1::uuid
-  AND id = $2::uuid`
+  AND legal_entity_id = $2::uuid
+  AND id = $3::uuid`
 }
 
 func activityByCodeSQL() string {
@@ -60,7 +61,8 @@ func lockActivitySQL() string {
 	return `SELECT ` + activityColumns + `
 FROM ropa_processing_activities
 WHERE tenant_id = $1::uuid
-  AND id = $2::uuid
+  AND legal_entity_id = $2::uuid
+  AND id = $3::uuid
 FOR UPDATE`
 }
 
@@ -79,9 +81,12 @@ SELECT id::text,
        occurred_at
 FROM ropa_events
 WHERE tenant_id = $1::uuid
+  AND legal_entity_id = $2::uuid
   AND aggregate_type = 'PROCESSING_ACTIVITY'
-  AND aggregate_id = $2::uuid
-ORDER BY aggregate_version`
+  AND aggregate_id = $3::uuid
+  AND aggregate_version > $4
+ORDER BY aggregate_version
+LIMIT $5`
 }
 
 func updateActivitySQL() string {
@@ -410,23 +415,22 @@ func NewPostgresLister(pool *pgxpool.Pool) *PostgresLister {
 	return &PostgresLister{pool: pool}
 }
 
-func (l *PostgresLister) ListActivities(ctx context.Context, filter ListActivitiesFilter) (ActivityPage, error) {
+func (l *PostgresLister) ListActivities(ctx context.Context, scope ActivityScope, filter ListActivitiesFilter) (ActivityPage, error) {
 	if l == nil || l.pool == nil || ctx == nil {
 		return ActivityPage{}, ErrInvalid
 	}
 	if err := ropaContextError(ctx); err != nil {
 		return ActivityPage{}, err
 	}
-	filter.TenantID = strings.TrimSpace(filter.TenantID)
-	filter.LegalEntityID = strings.TrimSpace(filter.LegalEntityID)
+	scope, err := normalizeActivityScope(scope)
+	if err != nil {
+		return ActivityPage{}, err
+	}
 	filter.Status = Status(strings.ToUpper(strings.TrimSpace(string(filter.Status))))
 	filter.LawfulBasis = strings.TrimSpace(filter.LawfulBasis)
 	filter.OwnerPrincipalID = strings.TrimSpace(filter.OwnerPrincipalID)
 	filter.Search = strings.TrimSpace(filter.Search)
 	filter.Cursor = strings.TrimSpace(filter.Cursor)
-	if filter.TenantID == "" || filter.LegalEntityID == "" {
-		return ActivityPage{}, ErrInvalid
-	}
 	if filter.Status != "" && !validStatus(filter.Status) {
 		return ActivityPage{}, ErrInvalid
 	}
@@ -455,8 +459,8 @@ func (l *PostgresLister) ListActivities(ctx context.Context, filter ListActiviti
 	}
 
 	rows, err := l.pool.Query(ctx, ListActivitiesSQL(),
-		filter.TenantID,
-		filter.LegalEntityID,
+		scope.TenantID,
+		scope.LegalEntityID,
 		string(filter.Status),
 		filter.LawfulBasis,
 		filter.OwnerPrincipalID,

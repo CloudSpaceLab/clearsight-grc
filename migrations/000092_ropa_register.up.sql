@@ -37,8 +37,10 @@ CREATE TABLE ropa_processing_activities (
     FOREIGN KEY (owner_principal_id, tenant_id) REFERENCES principals(id, tenant_id),
   CONSTRAINT ropa_processing_activities_required_authority_tenant_fk
     FOREIGN KEY (required_authority_principal_id, tenant_id) REFERENCES principals(id, tenant_id),
-  CONSTRAINT ropa_processing_activities_program_tenant_fk
-    FOREIGN KEY (program_id, tenant_id) REFERENCES programs(id, tenant_id)
+  -- Migration 000040 adds programs_id_tenant_entity_key; use that exact
+  -- three-column key so a continuity link cannot cross legal entities.
+  CONSTRAINT ropa_processing_activities_program_scope_fk
+    FOREIGN KEY (program_id, tenant_id, legal_entity_id) REFERENCES programs(id, tenant_id, legal_entity_id)
 );
 -- The repository ORDER BY and cursor predicates must use this exact expression for both indexes:
 -- (CASE status WHEN 'NEW' THEN 1 WHEN 'OPEN' THEN 2 WHEN 'CLOSED' THEN 3 END,
@@ -108,7 +110,9 @@ CREATE TABLE ropa_processing_activity_recipients (
     CHECK (transfer_basis IN ('ADEQUACY','APPROVED_INSTRUMENT','RECOGNISED_LAWFUL_BASIS','CONSENT','STANDARD_CONTRACT_CLAUSES','BINDING_CORPORATE_RULES','CERTIFICATION','NOT_APPLICABLE')),
   CONSTRAINT ropa_recipients_cross_border_coherence_ck
     CHECK (
-      (is_cross_border AND country_code IS NOT NULL)
+      (is_cross_border
+        AND country_code IS NOT NULL
+        AND transfer_basis <> 'NOT_APPLICABLE')
       OR
       (NOT is_cross_border
         AND country_code IS NULL
@@ -172,8 +176,12 @@ CREATE TABLE ropa_events (
 
 CREATE FUNCTION validate_ropa_event_actor_scope() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF NEW.actor_type = 'USER' THEN
-    IF NOT EXISTS (
+  IF NEW.actor_type = 'SERVICE' THEN
+    IF NEW.actor_id IS NOT NULL THEN
+      RAISE EXCEPTION 'ROPA SERVICE event actor_id must be NULL' USING ERRCODE = '23514';
+    END IF;
+  ELSIF NEW.actor_type = 'USER' THEN
+    IF NEW.actor_id IS NULL OR NOT EXISTS (
       SELECT 1
       FROM principals p
       WHERE p.id = NEW.actor_id
@@ -181,12 +189,16 @@ BEGIN
     ) THEN
       RAISE EXCEPTION 'ROPA USER event actor is outside the event tenant' USING ERRCODE = '23514';
     END IF;
+  ELSE
+    RAISE EXCEPTION 'ROPA event actor_type is invalid' USING ERRCODE = '23514';
   END IF;
   RETURN NEW;
 END; $$;
 CREATE TRIGGER ropa_event_actor_tenant_scope BEFORE INSERT ON ropa_events
   FOR EACH ROW EXECUTE FUNCTION validate_ropa_event_actor_scope();
 
+-- The aggregate-scope trigger also closes the event-payload identity/version
+-- invariant before an event can enter the append-only ledger.
 CREATE FUNCTION validate_ropa_event_aggregate_scope() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF NEW.aggregate_type = 'PROCESSING_ACTIVITY' THEN
@@ -196,8 +208,25 @@ BEGIN
       WHERE a.id = NEW.aggregate_id
         AND a.tenant_id = NEW.tenant_id
         AND a.legal_entity_id = NEW.legal_entity_id
+        AND a.version = NEW.aggregate_version
     ) THEN
       RAISE EXCEPTION 'ROPA processing activity event aggregate is outside the event scope' USING ERRCODE = '23514';
+    END IF;
+    IF NEW.payload->>'id' IS DISTINCT FROM NEW.aggregate_id::text
+       OR NEW.payload->>'tenant_id' IS DISTINCT FROM NEW.tenant_id::text
+       OR NEW.payload->>'legal_entity_id' IS DISTINCT FROM NEW.legal_entity_id::text
+       OR NEW.payload->>'version' IS DISTINCT FROM NEW.aggregate_version::text THEN
+      RAISE EXCEPTION 'ROPA processing activity event payload scope/version does not match the event row' USING ERRCODE = '23514';
+    END IF;
+    IF NEW.type = 'processing_activity.created' AND NEW.aggregate_version <> 1 THEN
+      RAISE EXCEPTION 'ROPA processing activity create event must start at version 1' USING ERRCODE = '23514';
+    END IF;
+    IF NEW.type IN ('processing_activity.updated','processing_activity.transitioned')
+       AND NEW.aggregate_version <= 1 THEN
+      RAISE EXCEPTION 'ROPA processing activity non-create event cannot start at version 1' USING ERRCODE = '23514';
+    END IF;
+    IF NEW.type NOT IN ('processing_activity.created','processing_activity.updated','processing_activity.transitioned') THEN
+      RAISE EXCEPTION 'ROPA processing activity event type is invalid' USING ERRCODE = '23514';
     END IF;
   END IF;
   RETURN NEW;

@@ -66,7 +66,7 @@ type CreateActivityInput struct {
 
 type UpdateActivityInput struct {
 	TenantID                     string         `json:"tenant_id"`
-	LegalEntityID                string         `json:"legal_entity_id,omitempty"`
+	LegalEntityID                string         `json:"legal_entity_id"`
 	ActivityID                   string         `json:"activity_id"`
 	ID                           string         `json:"id,omitempty"`
 	ExpectedVersion              int64          `json:"expected_version"`
@@ -97,7 +97,7 @@ type UpdateActivityInput struct {
 
 type TransitionActivityInput struct {
 	TenantID        string     `json:"tenant_id"`
-	LegalEntityID   string     `json:"legal_entity_id,omitempty"`
+	LegalEntityID   string     `json:"legal_entity_id"`
 	ActivityID      string     `json:"activity_id"`
 	ID              string     `json:"id,omitempty"`
 	ExpectedVersion int64      `json:"expected_version"`
@@ -174,7 +174,8 @@ func (s *Service) CreateActivity(ctx context.Context, input CreateActivityInput)
 		return ProcessingActivity{}, err
 	}
 
-	if existing, err := s.repository.ActivityByCode(ctx, activity.TenantID, activity.LegalEntityID, activity.Code); err == nil {
+	scope := ActivityScope{TenantID: activity.TenantID, LegalEntityID: activity.LegalEntityID}
+	if existing, err := s.repository.ActivityByCode(ctx, scope, activity.Code); err == nil {
 		_ = existing
 		return ProcessingActivity{}, ErrDuplicate
 	} else if !errors.Is(err, ErrNotFound) {
@@ -198,16 +199,16 @@ func (s *Service) UpdateActivity(ctx context.Context, input UpdateActivityInput)
 		return ProcessingActivity{}, ErrInvalid
 	}
 	activityID := inputActivityID(input.ActivityID, input.ID)
-	tenantID := strings.TrimSpace(input.TenantID)
-	if tenantID == "" || activityID == "" {
+	scope, err := normalizeActivityScope(ActivityScope{TenantID: input.TenantID, LegalEntityID: input.LegalEntityID})
+	if err != nil || activityID == "" {
 		return ProcessingActivity{}, ErrInvalid
 	}
 
-	current, err := s.GetActivity(ctx, tenantID, activityID)
+	current, err := s.GetActivity(ctx, scope, activityID)
 	if err != nil {
 		return ProcessingActivity{}, err
 	}
-	if entityID := strings.TrimSpace(input.LegalEntityID); entityID != "" && entityID != current.LegalEntityID {
+	if current.TenantID != scope.TenantID || current.LegalEntityID != scope.LegalEntityID {
 		return ProcessingActivity{}, ErrNotFound
 	}
 	if input.ExpectedVersion <= 0 || input.ExpectedVersion != current.Version {
@@ -229,7 +230,7 @@ func (s *Service) UpdateActivity(ctx context.Context, input UpdateActivityInput)
 		return ProcessingActivity{}, err
 	}
 
-	if existing, lookupErr := s.repository.ActivityByCode(ctx, updated.TenantID, updated.LegalEntityID, updated.Code); lookupErr == nil {
+	if existing, lookupErr := s.repository.ActivityByCode(ctx, scope, updated.Code); lookupErr == nil {
 		if existing.ID != current.ID {
 			return ProcessingActivity{}, ErrDuplicate
 		}
@@ -241,7 +242,7 @@ func (s *Service) UpdateActivity(ctx context.Context, input UpdateActivityInput)
 	if err != nil {
 		return ProcessingActivity{}, err
 	}
-	version, err := s.repository.ApplyActivityEvent(ctx, updated.TenantID, updated.ID, input.ExpectedVersion, event)
+	version, err := s.repository.ApplyActivityEvent(ctx, scope, updated.ID, input.ExpectedVersion, event)
 	if err != nil {
 		return ProcessingActivity{}, err
 	}
@@ -255,16 +256,16 @@ func (s *Service) TransitionActivity(ctx context.Context, input TransitionActivi
 		return ProcessingActivity{}, ErrInvalid
 	}
 	activityID := inputActivityID(input.ActivityID, input.ID)
-	tenantID := strings.TrimSpace(input.TenantID)
-	if tenantID == "" || activityID == "" {
+	scope, err := normalizeActivityScope(ActivityScope{TenantID: input.TenantID, LegalEntityID: input.LegalEntityID})
+	if err != nil || activityID == "" {
 		return ProcessingActivity{}, ErrInvalid
 	}
 
-	current, err := s.GetActivity(ctx, tenantID, activityID)
+	current, err := s.GetActivity(ctx, scope, activityID)
 	if err != nil {
 		return ProcessingActivity{}, err
 	}
-	if entityID := strings.TrimSpace(input.LegalEntityID); entityID != "" && entityID != current.LegalEntityID {
+	if current.TenantID != scope.TenantID || current.LegalEntityID != scope.LegalEntityID {
 		return ProcessingActivity{}, ErrNotFound
 	}
 	if input.ExpectedVersion <= 0 || input.ExpectedVersion != current.Version {
@@ -296,7 +297,7 @@ func (s *Service) TransitionActivity(ctx context.Context, input TransitionActivi
 	if err != nil {
 		return ProcessingActivity{}, err
 	}
-	version, err := s.repository.ApplyActivityEvent(ctx, updated.TenantID, updated.ID, input.ExpectedVersion, event)
+	version, err := s.repository.ApplyActivityEvent(ctx, scope, updated.ID, input.ExpectedVersion, event)
 	if err != nil {
 		return ProcessingActivity{}, err
 	}
@@ -305,21 +306,54 @@ func (s *Service) TransitionActivity(ctx context.Context, input TransitionActivi
 	return updated, nil
 }
 
-func (s *Service) GetActivity(ctx context.Context, tenantID, activityID string) (ProcessingActivity, error) {
+func (s *Service) GetActivity(ctx context.Context, scope ActivityScope, activityID string) (ProcessingActivity, error) {
 	if s == nil || s.repository == nil {
 		return ProcessingActivity{}, ErrNotFound
 	}
-	return s.repository.GetActivity(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(activityID))
+	scope, err := normalizeActivityScope(scope)
+	if err != nil {
+		return ProcessingActivity{}, err
+	}
+	activity, err := s.repository.GetActivity(ctx, scope, strings.TrimSpace(activityID))
+	if err != nil {
+		return ProcessingActivity{}, err
+	}
+	if activity.TenantID != scope.TenantID || activity.LegalEntityID != scope.LegalEntityID {
+		return ProcessingActivity{}, ErrNotFound
+	}
+	return activity, nil
 }
 
-func (s *Service) ListActivities(ctx context.Context, filter ListActivitiesFilter) (ActivityPage, error) {
+// ActivityEvents reads one bounded, exact-scope history page. The caller can
+// continue from the last returned aggregate version until hasMore is false.
+func (s *Service) ActivityEvents(ctx context.Context, scope ActivityScope, activityID string, afterVersion int64, limit int) ([]Event, bool, error) {
+	if s == nil || s.repository == nil {
+		return nil, false, ErrNotFound
+	}
+	scope, err := normalizeActivityScope(scope)
+	activityID = strings.TrimSpace(activityID)
+	if err != nil || activityID == "" || afterVersion < 0 || limit < 0 {
+		return nil, false, ErrInvalid
+	}
+	events, hasMore, err := s.repository.ActivityEvents(ctx, scope, activityID, afterVersion, limit)
+	if err != nil {
+		return nil, false, err
+	}
+	for _, event := range events {
+		if event.AggregateType != "PROCESSING_ACTIVITY" || event.TenantID != scope.TenantID || event.LegalEntityID != scope.LegalEntityID || event.AggregateID != activityID {
+			return nil, false, ErrScopeMismatch
+		}
+	}
+	return events, hasMore, nil
+}
+
+func (s *Service) ListActivities(ctx context.Context, scope ActivityScope, filter ListActivitiesFilter) (ActivityPage, error) {
 	if s == nil || s.lister == nil {
 		return ActivityPage{}, ErrNotFound
 	}
-	filter.TenantID = strings.TrimSpace(filter.TenantID)
-	filter.LegalEntityID = strings.TrimSpace(filter.LegalEntityID)
-	if filter.TenantID == "" || filter.LegalEntityID == "" {
-		return ActivityPage{}, ErrInvalid
+	scope, err := normalizeActivityScope(scope)
+	if err != nil {
+		return ActivityPage{}, err
 	}
 	if filter.Limit <= 0 {
 		filter.Limit = 50
@@ -334,7 +368,16 @@ func (s *Service) ListActivities(ctx context.Context, filter ListActivitiesFilte
 	filter.OwnerPrincipalID = strings.TrimSpace(filter.OwnerPrincipalID)
 	filter.Search = strings.TrimSpace(filter.Search)
 	filter.Cursor = strings.TrimSpace(filter.Cursor)
-	return s.lister.ListActivities(ctx, filter)
+	page, err := s.lister.ListActivities(ctx, scope, filter)
+	if err != nil {
+		return ActivityPage{}, err
+	}
+	for _, activity := range page.Rows {
+		if activity.TenantID != scope.TenantID || activity.LegalEntityID != scope.LegalEntityID {
+			return ActivityPage{}, ErrScopeMismatch
+		}
+	}
+	return page, nil
 }
 
 func (s *Service) RegisterSummary(ctx context.Context, tenantID, legalEntityID string) (RegisterSummary, error) {
@@ -359,23 +402,22 @@ func (s *Service) RegisterSummary(ctx context.Context, tenantID, legalEntityID s
 	return summary, nil
 }
 
-func (s *Service) ClosureBlockers(ctx context.Context, tenantID, legalEntityID, activityID string) ([]string, error) {
+func (s *Service) ClosureBlockers(ctx context.Context, scope ActivityScope, activityID string) ([]string, error) {
 	if s == nil || s.repository == nil {
 		return nil, ErrInvalid
 	}
-	tenantID = strings.TrimSpace(tenantID)
-	legalEntityID = strings.TrimSpace(legalEntityID)
+	scope, err := normalizeActivityScope(scope)
 	activityID = strings.TrimSpace(activityID)
-	if tenantID == "" || legalEntityID == "" || activityID == "" {
+	if err != nil || activityID == "" {
 		return nil, ErrInvalid
 	}
-	// Use the command repository's exact tenant-scoped read. An unscoped
-	// fallback could select a same-ID activity from another tenant or entity.
-	activity, err := s.repository.GetActivity(ctx, tenantID, activityID)
+	// Use the command repository's exact tenant-and-entity-scoped read. An
+	// unscoped fallback could select another entity's same-ID activity.
+	activity, err := s.repository.GetActivity(ctx, scope, activityID)
 	if err != nil {
 		return nil, err
 	}
-	if activity.TenantID != tenantID || activity.LegalEntityID != legalEntityID {
+	if activity.TenantID != scope.TenantID || activity.LegalEntityID != scope.LegalEntityID {
 		return nil, ErrNotFound
 	}
 	return closureBlockers(activity), nil
@@ -606,7 +648,7 @@ func validateActivity(activity ProcessingActivity) error {
 			!validRecipientKind(value.RecipientKind) ||
 			!value.TransferBasis.Valid() ||
 			!validCountryCode(value.CountryCode) ||
-			(value.IsCrossBorder && (value.CountryCode == "" || !value.TransferBasis.Valid())) ||
+			(value.IsCrossBorder && (value.CountryCode == "" || !value.TransferBasis.Valid() || value.TransferBasis == TransferBasisNotApplicable)) ||
 			(!value.IsCrossBorder && (value.CountryCode != "" || value.TransferBasis != TransferBasisNotApplicable)) {
 			return ErrInvalid
 		}
@@ -647,14 +689,23 @@ func validateActivity(activity ProcessingActivity) error {
 // for an update event, while a transitioned event must change status and a
 // changed status must follow validTransition.
 func ValidateTransitionForWrite(current, next ProcessingActivity, eventType string) error {
-	if !validStatus(current.Status) || !validStatus(next.Status) || !validActivityEventType(eventType) {
+	if !validStatus(current.Status) || !validStatus(next.Status) {
 		return ErrInvalid
 	}
-	if current.Status == next.Status {
-		if eventType == EventActivityTransitioned {
+	// Creation is a separate command and can never be replayed through the
+	// update/event path. An update preserves status; a transition changes it.
+	if eventType == EventActivityCreated {
+		return ErrInvalid
+	}
+	if eventType == EventActivityUpdated {
+		if current.Status != next.Status {
 			return ErrInvalid
 		}
-	} else if !validTransition(current.Status, next.Status) {
+	} else if eventType == EventActivityTransitioned {
+		if current.Status == next.Status || !validTransition(current.Status, next.Status) {
+			return ErrInvalid
+		}
+	} else {
 		return ErrInvalid
 	}
 	if next.Status == StatusClosed && len(closureBlockers(next)) > 0 {

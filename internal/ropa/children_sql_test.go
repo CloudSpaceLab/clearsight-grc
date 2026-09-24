@@ -119,29 +119,28 @@ func TestChildReadBuildersSelectEveryCollectionWithinParentScope(t *testing.T) {
 	}
 }
 
-func TestChildInsertExecutionSkipsEmptyCollections(t *testing.T) {
+func TestChildInsertExecutionBuildsOneStatementPerChildRow(t *testing.T) {
 	source := normalizeSQL(readPostgresSource(t, "postgres.go"))
-	for _, collection := range []string{"datacategories", "recipients", "systems", "reviews"} {
-		fragment := "if len(activity." + collection + ") > 0"
-		if !strings.Contains(source, fragment) {
-			t.Errorf("child INSERT execution must skip an empty %s collection with %q", collection, fragment)
-		}
+	if !strings.Contains(source, "func buildactivitychildinsertstatements(activity processingactivity) []activitychildinsertstatement") {
+		t.Fatal("child INSERT execution must build a statement per child row")
+	}
+	if !strings.Contains(source, "for _, statement := range buildactivitychildinsertstatements(activity)") {
+		t.Fatal("child INSERT execution must execute the per-row statement collection")
+	}
+	if strings.Contains(source, "recipients.values = append(recipients.values,") ||
+		strings.Contains(source, "systems.values = append(systems.values,") ||
+		strings.Contains(source, "reviews.values = append(reviews.values,") {
+		t.Fatal("child INSERT execution must not flatten child rows into one statement")
 	}
 }
 
-func TestChildInsertExecutionVerifiesEveryAffectedRow(t *testing.T) {
+func TestChildInsertExecutionVerifiesEveryPerRowInsert(t *testing.T) {
 	source := normalizeSQL(readPostgresSource(t, "postgres.go"))
-	if !strings.Contains(source, "func execactivitychildinserts(ctx context.context, tx pgx.tx, name, query string, values []any, expectedrows int) error") {
-		t.Error("child INSERT execution must accept the expected number of inserted rows")
+	if !strings.Contains(source, "func execactivitychildinsert(ctx context.context, tx pgx.tx, name, query string, values []any) error") {
+		t.Error("child INSERT execution must use a one-row helper")
 	}
-	if !strings.Contains(source, "if int(tag.rowsaffected()) != expectedrows") {
-		t.Error("child INSERT execution must verify every expected row rather than assuming one row")
-	}
-	for _, collection := range []string{"datacategories", "recipients", "systems", "reviews"} {
-		fragment := "len(activity." + collection + "))"
-		if !strings.Contains(source, fragment) {
-			t.Errorf("child INSERT execution must pass len(activity.%s) as the expected row count", collection)
-		}
+	if !strings.Contains(source, "if tag.rowsaffected() != 1") {
+		t.Error("each child INSERT must verify exactly one affected row")
 	}
 }
 

@@ -19,11 +19,9 @@ const MaxProjectionPages = 1000
 // called.
 const MaxProjectionBatchSize = 1000
 
-// Scope identifies one exact tenant and legal-entity register projection.
-type Scope struct {
-	TenantID      string
-	LegalEntityID string
-}
+// Scope is retained as a concise projection alias; exact activity paths use
+// ActivityScope directly.
+type Scope = ActivityScope
 
 // SummaryMaintainer rebuilds one register summary from bounded, scoped pages.
 // The repository and service lister remain separate so a production composition
@@ -44,7 +42,7 @@ func NewSummaryMaintainer(repository Repository, summaries SummaryRepository, se
 	}
 }
 
-func (m *SummaryMaintainer) Maintain(ctx context.Context, scope Scope) error {
+func (m *SummaryMaintainer) Maintain(ctx context.Context, scope ActivityScope) error {
 	if m == nil || m.repository == nil || m.summaries == nil || m.service == nil || ctx == nil {
 		return ErrInvalid
 	}
@@ -82,9 +80,7 @@ func (m *SummaryMaintainer) Maintain(ctx context.Context, scope Scope) error {
 			return fmt.Errorf("%w: projection exceeded %d pages", ErrInvalid, MaxProjectionPages)
 		}
 
-		page, err := lister.ListActivities(ctx, ListActivitiesFilter{
-			TenantID:       scope.TenantID,
-			LegalEntityID:  scope.LegalEntityID,
+		page, err := lister.ListActivities(ctx, scope, ListActivitiesFilter{
 			IncludeRetired: true,
 			Cursor:         cursor,
 			Limit:          batchSize,
@@ -176,7 +172,7 @@ func (m *SummaryMaintainer) Maintain(ctx context.Context, scope Scope) error {
 
 // MaintainAll refreshes scopes in the supplied order and stops at the first
 // failure so a worker can retry the remaining scopes later.
-func (m *SummaryMaintainer) MaintainAll(ctx context.Context, scopes []Scope) error {
+func (m *SummaryMaintainer) MaintainAll(ctx context.Context, scopes []ActivityScope) error {
 	for _, scope := range scopes {
 		if err := m.Maintain(ctx, scope); err != nil {
 			return err

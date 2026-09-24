@@ -121,6 +121,7 @@ func TestMaintainCountsEveryLifecycleStatus(t *testing.T) {
 
 	if _, err := service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 		TenantID:        openActivity.TenantID,
+		LegalEntityID:   openActivity.LegalEntityID,
 		ActivityID:      openActivity.ID,
 		ExpectedVersion: openActivity.Version,
 		To:              ropa.StatusOpen,
@@ -129,6 +130,7 @@ func TestMaintainCountsEveryLifecycleStatus(t *testing.T) {
 	}
 	if _, err := service.TransitionActivity(context.Background(), ropa.TransitionActivityInput{
 		TenantID:        closedActivity.TenantID,
+		LegalEntityID:   closedActivity.LegalEntityID,
 		ActivityID:      closedActivity.ID,
 		ExpectedVersion: closedActivity.Version,
 		To:              ropa.StatusClosed,
@@ -395,7 +397,7 @@ type stalledProjectionRepository struct {
 	*ropa.MemoryRepository
 }
 
-func (r *stalledProjectionRepository) ListActivities(context.Context, ropa.ListActivitiesFilter) (ropa.ActivityPage, error) {
+func (r *stalledProjectionRepository) ListActivities(context.Context, ropa.ActivityScope, ropa.ListActivitiesFilter) (ropa.ActivityPage, error) {
 	return ropa.ActivityPage{HasMore: true, NextCursor: "unchanged-cursor"}, nil
 }
 
@@ -433,7 +435,7 @@ type scriptedProjectionLister struct {
 	before func(int)
 }
 
-func (l *scriptedProjectionLister) ListActivities(ctx context.Context, _ ropa.ListActivitiesFilter) (ropa.ActivityPage, error) {
+func (l *scriptedProjectionLister) ListActivities(ctx context.Context, _ ropa.ActivityScope, _ ropa.ListActivitiesFilter) (ropa.ActivityPage, error) {
 	if err := ctx.Err(); err != nil {
 		return ropa.ActivityPage{}, err
 	}
@@ -461,7 +463,7 @@ type advancingProjectionLister struct {
 	maxCalls int
 }
 
-func (l *advancingProjectionLister) ListActivities(ctx context.Context, _ ropa.ListActivitiesFilter) (ropa.ActivityPage, error) {
+func (l *advancingProjectionLister) ListActivities(ctx context.Context, _ ropa.ActivityScope, _ ropa.ListActivitiesFilter) (ropa.ActivityPage, error) {
 	if err := ctx.Err(); err != nil {
 		return ropa.ActivityPage{}, err
 	}
@@ -482,11 +484,11 @@ type recordingProjectionLister struct {
 	filters  []ropa.ListActivitiesFilter
 }
 
-func (l *recordingProjectionLister) ListActivities(ctx context.Context, filter ropa.ListActivitiesFilter) (ropa.ActivityPage, error) {
+func (l *recordingProjectionLister) ListActivities(ctx context.Context, scope ropa.ActivityScope, filter ropa.ListActivitiesFilter) (ropa.ActivityPage, error) {
 	l.mu.Lock()
 	l.filters = append(l.filters, filter)
 	l.mu.Unlock()
-	return l.delegate.ListActivities(ctx, filter)
+	return l.delegate.ListActivities(ctx, scope, filter)
 }
 
 func (l *recordingProjectionLister) snapshot() []ropa.ListActivitiesFilter {
@@ -538,7 +540,7 @@ type blockingProjectionRepository struct {
 	calls        int
 }
 
-func (r *blockingProjectionRepository) ListActivities(ctx context.Context, filter ropa.ListActivitiesFilter) (ropa.ActivityPage, error) {
+func (r *blockingProjectionRepository) ListActivities(ctx context.Context, scope ropa.ActivityScope, filter ropa.ListActivitiesFilter) (ropa.ActivityPage, error) {
 	r.mu.Lock()
 	r.calls++
 	call := r.calls
@@ -551,7 +553,7 @@ func (r *blockingProjectionRepository) ListActivities(ctx context.Context, filte
 			return ropa.ActivityPage{}, ctx.Err()
 		}
 	}
-	return r.MemoryRepository.ListActivities(ctx, filter)
+	return r.MemoryRepository.ListActivities(ctx, scope, filter)
 }
 
 func assertNoProjectionSummary(t *testing.T, summaries ropa.SummaryRepository, scope ropa.Scope) {

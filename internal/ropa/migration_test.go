@@ -149,7 +149,7 @@ func TestRecipientCrossBorderColumnsAndCoherenceAreLoadBearing(t *testing.T) {
 		"is_cross_border boolean not null default false,",
 		"transfer_basis text not null default 'not_applicable',",
 		"constraint ropa_recipients_country_code_ck check (country_code is null or country_code ~ '^[a-z]{2}$')",
-		"constraint ropa_recipients_cross_border_coherence_ck check ((is_cross_border and country_code is not null) or (not is_cross_border and country_code is null and transfer_basis = 'not_applicable'))",
+		"constraint ropa_recipients_cross_border_coherence_ck check ((is_cross_border and country_code is not null and transfer_basis <> 'not_applicable') or (not is_cross_border and country_code is null and transfer_basis = 'not_applicable'))",
 	} {
 		if !strings.Contains(recipients, required) {
 			t.Errorf("recipient table must include %q", required)
@@ -232,7 +232,7 @@ func TestActivityPrincipalAndProgramReferencesAreTenantScoped(t *testing.T) {
 	for _, required := range []string{
 		"constraint ropa_processing_activities_owner_tenant_fk foreign key (owner_principal_id, tenant_id) references principals(id, tenant_id)",
 		"constraint ropa_processing_activities_required_authority_tenant_fk foreign key (required_authority_principal_id, tenant_id) references principals(id, tenant_id)",
-		"constraint ropa_processing_activities_program_tenant_fk foreign key (program_id, tenant_id) references programs(id, tenant_id)",
+		"constraint ropa_processing_activities_program_scope_fk foreign key (program_id, tenant_id, legal_entity_id) references programs(id, tenant_id, legal_entity_id)",
 	} {
 		if !strings.Contains(sql, required) {
 			t.Errorf("migration must use tenant-scoped reference %q", required)
@@ -245,6 +245,14 @@ func TestActivityPrincipalAndProgramReferencesAreTenantScoped(t *testing.T) {
 		if strings.Contains(sql, unsafe) {
 			t.Errorf("migration must not retain unscoped principal reference %q", unsafe)
 		}
+	}
+}
+
+func TestRopaProgramLinkUsesTheAvailableProgramScopeKey(t *testing.T) {
+	body := normalizeSQL(readMigration(t, "../../migrations/000040_monitoring_event_outbox.up.sql"))
+	required := "add constraint programs_id_tenant_entity_key unique(id, tenant_id, legal_entity_id)"
+	if !strings.Contains(body, required) {
+		t.Fatalf("the Program composite key required by the ROPA link is not present in migration 000040: %s", required)
 	}
 }
 
@@ -276,8 +284,10 @@ func TestUserEventActorIsScopedToTheEventTenant(t *testing.T) {
 	}
 	functionBody := triggerFunctionBody(t, sql, "validate_ropa_event_actor_scope")
 	for _, required := range []string{
-		"if new.actor_type = 'user' then",
-		"if not exists (",
+		"if new.actor_type = 'service' then",
+		"if new.actor_id is not null then",
+		"elsif new.actor_type = 'user' then",
+		"if new.actor_id is null or not exists (",
 		"from principals p where p.id = new.actor_id and p.tenant_id = new.tenant_id",
 		"raise exception",
 		"return new;",
@@ -303,12 +313,39 @@ func TestProcessingActivityEventAggregateIsScopedToTheEvent(t *testing.T) {
 	for _, required := range []string{
 		"if new.aggregate_type = 'processing_activity' then",
 		"if not exists (",
-		"from ropa_processing_activities a where a.id = new.aggregate_id and a.tenant_id = new.tenant_id and a.legal_entity_id = new.legal_entity_id",
+		"from ropa_processing_activities a where a.id = new.aggregate_id and a.tenant_id = new.tenant_id and a.legal_entity_id = new.legal_entity_id and a.version = new.aggregate_version",
 		"raise exception",
 		"return new;",
 	} {
 		if !strings.Contains(functionBody, required) {
 			t.Errorf("event aggregate scope function must contain %q", required)
+		}
+	}
+}
+
+func TestProcessingActivityEventPayloadMatchesTheEventIdentityAndVersion(t *testing.T) {
+	body := readMigration(t, upFile)
+	sql := normalizeSQL(body)
+	for _, required := range []string{
+		"create function validate_ropa_event_aggregate_scope() returns trigger",
+		"create trigger ropa_event_aggregate_tenant_legal_entity_scope before insert on ropa_events for each row execute function validate_ropa_event_aggregate_scope()",
+	} {
+		if !strings.Contains(sql, required) {
+			t.Errorf("event payload scope guard must contain %q", required)
+		}
+	}
+	functionBody := triggerFunctionBody(t, sql, "validate_ropa_event_aggregate_scope")
+	for _, required := range []string{
+		"new.payload->>'id' is distinct from new.aggregate_id::text",
+		"new.payload->>'tenant_id' is distinct from new.tenant_id::text",
+		"new.payload->>'legal_entity_id' is distinct from new.legal_entity_id::text",
+		"new.payload->>'version' is distinct from new.aggregate_version::text",
+		"new.type = 'processing_activity.created' and new.aggregate_version <> 1",
+		"new.type in ('processing_activity.updated', 'processing_activity.transitioned') and new.aggregate_version <= 1",
+		"new.type not in ('processing_activity.created', 'processing_activity.updated', 'processing_activity.transitioned')",
+	} {
+		if !strings.Contains(functionBody, required) {
+			t.Errorf("event payload function must contain %q", required)
 		}
 	}
 }

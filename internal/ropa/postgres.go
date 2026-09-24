@@ -36,7 +36,7 @@ func (r *PostgresRepository) CreateActivity(ctx context.Context, activity Proces
 		return ProcessingActivity{}, err
 	}
 	activity = normalizeProcessingActivity(activity)
-	if activity.Status != StatusNew {
+	if activity.Status != StatusNew || activity.Version != 1 {
 		return ProcessingActivity{}, ErrInvalid
 	}
 	if err := validateActivity(activity); err != nil {
@@ -105,16 +105,16 @@ func (r *PostgresRepository) CreateActivity(ctx context.Context, activity Proces
 	return cloneProcessingActivity(activity), nil
 }
 
-func (r *PostgresRepository) GetActivity(ctx context.Context, tenantID, activityID string) (ProcessingActivity, error) {
+func (r *PostgresRepository) GetActivity(ctx context.Context, scope ActivityScope, activityID string) (ProcessingActivity, error) {
 	if r == nil || r.pool == nil || ctx == nil {
 		return ProcessingActivity{}, ErrInvalid
 	}
-	tenantID = strings.TrimSpace(tenantID)
+	scope, err := normalizeActivityScope(scope)
 	activityID = strings.TrimSpace(activityID)
-	if tenantID == "" || activityID == "" {
+	if err != nil || activityID == "" {
 		return ProcessingActivity{}, ErrInvalid
 	}
-	activity, err := scanActivity(r.pool.QueryRow(ctx, getActivitySQL(), tenantID, activityID))
+	activity, err := scanActivity(r.pool.QueryRow(ctx, getActivitySQL(), scope.TenantID, scope.LegalEntityID, activityID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ProcessingActivity{}, ErrNotFound
 	}
@@ -127,17 +127,16 @@ func (r *PostgresRepository) GetActivity(ctx context.Context, tenantID, activity
 	return cloneProcessingActivity(activity), nil
 }
 
-func (r *PostgresRepository) ActivityByCode(ctx context.Context, tenantID, legalEntityID, code string) (ProcessingActivity, error) {
+func (r *PostgresRepository) ActivityByCode(ctx context.Context, scope ActivityScope, code string) (ProcessingActivity, error) {
 	if r == nil || r.pool == nil || ctx == nil {
 		return ProcessingActivity{}, ErrInvalid
 	}
-	tenantID = strings.TrimSpace(tenantID)
-	legalEntityID = strings.TrimSpace(legalEntityID)
+	scope, err := normalizeActivityScope(scope)
 	code = strings.TrimSpace(code)
-	if tenantID == "" || legalEntityID == "" || code == "" {
+	if err != nil || code == "" {
 		return ProcessingActivity{}, ErrInvalid
 	}
-	activity, err := scanActivity(r.pool.QueryRow(ctx, activityByCodeSQL(), tenantID, legalEntityID, code))
+	activity, err := scanActivity(r.pool.QueryRow(ctx, activityByCodeSQL(), scope.TenantID, scope.LegalEntityID, code))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ProcessingActivity{}, ErrNotFound
 	}
@@ -147,14 +146,21 @@ func (r *PostgresRepository) ActivityByCode(ctx context.Context, tenantID, legal
 	return cloneProcessingActivity(activity), nil
 }
 
-func (r *PostgresRepository) ApplyActivityEvent(ctx context.Context, tenantID, activityID string, expectedVersion int64, event Event) (int64, error) {
+func (r *PostgresRepository) ApplyActivityEvent(ctx context.Context, scope ActivityScope, activityID string, expectedVersion int64, event Event) (int64, error) {
 	if r == nil || r.pool == nil || ctx == nil {
 		return 0, ErrInvalid
 	}
-	tenantID = strings.TrimSpace(tenantID)
+	scope, err := normalizeActivityScope(scope)
 	activityID = strings.TrimSpace(activityID)
-	if tenantID == "" || activityID == "" || expectedVersion <= 0 {
+	if err != nil || activityID == "" || expectedVersion <= 0 {
 		return 0, ErrInvalid
+	}
+	if strings.TrimSpace(event.ID) == "" {
+		generated, generationErr := newEventID()
+		if generationErr != nil {
+			return 0, generationErr
+		}
+		event.ID = generated
 	}
 
 	tx, err := r.pool.Begin(ctx)
@@ -163,18 +169,14 @@ func (r *PostgresRepository) ApplyActivityEvent(ctx context.Context, tenantID, a
 	}
 	defer tx.Rollback(ctx)
 
-	current, err := scanActivity(tx.QueryRow(ctx, lockActivitySQL(), tenantID, activityID))
+	current, err := scanActivity(tx.QueryRow(ctx, lockActivitySQL(), scope.TenantID, scope.LegalEntityID, activityID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return 0, ErrNotFound
 	}
 	if err != nil {
 		return 0, fmt.Errorf("lock current processing activity: %w", err)
 	}
-	if current.Version != expectedVersion || event.AggregateVersion != expectedVersion+1 {
-		return 0, ErrVersionConflict
-	}
-
-	next, event, err := prepareAppliedActivityEvent(current, expectedVersion, event)
+	next, event, err := prepareActivityEvent(current, expectedVersion, event)
 	if err != nil {
 		return 0, err
 	}
@@ -229,22 +231,34 @@ func (r *PostgresRepository) ApplyActivityEvent(ctx context.Context, tenantID, a
 	return next.Version, nil
 }
 
-func (r *PostgresRepository) ActivityEvents(ctx context.Context, tenantID, activityID string) ([]Event, error) {
+func (r *PostgresRepository) ActivityEvents(ctx context.Context, scope ActivityScope, activityID string, afterVersion int64, limit int) ([]Event, bool, error) {
 	if r == nil || r.pool == nil || ctx == nil {
-		return nil, ErrInvalid
+		return nil, false, ErrInvalid
 	}
-	tenantID = strings.TrimSpace(tenantID)
+	scope, err := normalizeActivityScope(scope)
 	activityID = strings.TrimSpace(activityID)
-	if tenantID == "" || activityID == "" {
-		return nil, ErrInvalid
+	if err != nil || activityID == "" || afterVersion < 0 || limit < 0 {
+		return nil, false, ErrInvalid
 	}
-	rows, err := r.pool.Query(ctx, activityEventsSQL(), tenantID, activityID)
+	if limit == 0 {
+		limit = DefaultActivityEventPageSize
+	}
+	if limit > MaxActivityEventPageSize {
+		limit = MaxActivityEventPageSize
+	}
+	if _, err := scanActivity(r.pool.QueryRow(ctx, getActivitySQL(), scope.TenantID, scope.LegalEntityID, activityID)); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, false, ErrNotFound
+		}
+		return nil, false, fmt.Errorf("verify processing activity for history: %w", err)
+	}
+	rows, err := r.pool.Query(ctx, activityEventsSQL(), scope.TenantID, scope.LegalEntityID, activityID, afterVersion, limit+1)
 	if err != nil {
-		return nil, fmt.Errorf("read processing activity events: %w", err)
+		return nil, false, fmt.Errorf("read processing activity events: %w", err)
 	}
 	defer rows.Close()
 
-	events := make([]Event, 0)
+	events := make([]Event, 0, limit+1)
 	for rows.Next() {
 		var event Event
 		if err := rows.Scan(
@@ -260,131 +274,114 @@ func (r *PostgresRepository) ActivityEvents(ctx context.Context, tenantID, activ
 			&event.ActorID,
 			&event.OccurredAt,
 		); err != nil {
-			return nil, fmt.Errorf("scan processing activity event: %w", err)
+			return nil, false, fmt.Errorf("scan processing activity event: %w", err)
 		}
 		event.OccurredAt = event.OccurredAt.UTC()
 		event.Payload = append(json.RawMessage(nil), event.Payload...)
 		events = append(events, event)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("read processing activity events: %w", err)
+		return nil, false, fmt.Errorf("read processing activity events: %w", err)
 	}
-	if len(events) == 0 {
-		return nil, ErrNotFound
+	hasMore := len(events) > limit
+	if hasMore {
+		events = events[:limit]
 	}
-	return events, nil
+	return events, hasMore, nil
 }
 
-func insertActivityChildren(ctx context.Context, tx pgx.Tx, activity ProcessingActivity) error {
-	inserts := []struct {
-		name   string
-		query  string
-		values []any
-	}{
-		{
+type activityChildInsertStatement struct {
+	name   string
+	query  string
+	values []any
+}
+
+// buildActivityChildInsertStatements creates one fixed-arity statement per
+// child row. The activity child bound is 1,000 rows per collection, so a
+// per-row insert is deliberately simpler and safer than constructing an
+// unbounded multi-row VALUES expression. Every statement is executed in the
+// caller's transaction, so the parent, children, event, revision and outbox
+// row still commit or roll back together.
+func buildActivityChildInsertStatements(activity ProcessingActivity) []activityChildInsertStatement {
+	statements := make([]activityChildInsertStatement, 0,
+		len(activity.DataCategories)+len(activity.Recipients)+len(activity.Systems)+len(activity.Reviews))
+	for _, category := range activity.DataCategories {
+		statements = append(statements, activityChildInsertStatement{
 			name:  "data categories",
 			query: buildInsertActivityDataCategoriesSQL(),
 			values: []any{
 				activity.TenantID,
 				activity.LegalEntityID,
 				activity.ID,
+				category.Category,
+				category.Sensitivity,
 			},
-		},
-	}
-	for _, category := range activity.DataCategories {
-		inserts[0].values = append(inserts[0].values, category.Category, category.Sensitivity)
-	}
-	if len(activity.DataCategories) > 0 {
-		if err := execActivityChildInserts(ctx, tx, inserts[0].name, inserts[0].query, inserts[0].values, len(activity.DataCategories)); err != nil {
-			return err
-		}
-	}
-
-	recipients := struct {
-		name   string
-		query  string
-		values []any
-	}{
-		name:  "recipients",
-		query: buildInsertActivityRecipientsSQL(),
-		values: []any{
-			activity.TenantID,
-			activity.LegalEntityID,
-			activity.ID,
-		},
+		})
 	}
 	for _, recipient := range activity.Recipients {
-		recipients.values = append(recipients.values,
-			recipient.Recipient,
-			recipient.RecipientKind,
-			nullIfEmpty(recipient.CountryCode),
-			recipient.IsCrossBorder,
-			string(recipient.TransferBasis),
-		)
-	}
-	if len(activity.Recipients) > 0 {
-		if err := execActivityChildInserts(ctx, tx, recipients.name, recipients.query, recipients.values, len(activity.Recipients)); err != nil {
-			return err
-		}
-	}
-
-	systems := struct {
-		name   string
-		query  string
-		values []any
-	}{
-		name:  "systems",
-		query: buildInsertActivitySystemsSQL(),
-		values: []any{
-			activity.TenantID,
-			activity.LegalEntityID,
-			activity.ID,
-		},
+		statements = append(statements, activityChildInsertStatement{
+			name:  "recipients",
+			query: buildInsertActivityRecipientsSQL(),
+			values: []any{
+				activity.TenantID,
+				activity.LegalEntityID,
+				activity.ID,
+				recipient.Recipient,
+				recipient.RecipientKind,
+				nullIfEmpty(recipient.CountryCode),
+				recipient.IsCrossBorder,
+				string(recipient.TransferBasis),
+			},
+		})
 	}
 	for _, system := range activity.Systems {
-		systems.values = append(systems.values, system.SystemName, system.SystemKind)
-	}
-	if len(activity.Systems) > 0 {
-		if err := execActivityChildInserts(ctx, tx, systems.name, systems.query, systems.values, len(activity.Systems)); err != nil {
-			return err
-		}
-	}
-
-	reviews := struct {
-		name   string
-		query  string
-		values []any
-	}{
-		name:  "reviews",
-		query: buildInsertActivityReviewsSQL(),
-		values: []any{
-			activity.TenantID,
-			activity.LegalEntityID,
-			activity.ID,
-		},
+		statements = append(statements, activityChildInsertStatement{
+			name:  "systems",
+			query: buildInsertActivitySystemsSQL(),
+			values: []any{
+				activity.TenantID,
+				activity.LegalEntityID,
+				activity.ID,
+				system.SystemName,
+				system.SystemKind,
+			},
+		})
 	}
 	for _, review := range activity.Reviews {
-		reviews.values = append(reviews.values,
-			review.ID,
-			review.DueDate,
-			review.CompletedAt,
-			nullIfEmpty(review.Outcome),
-			nullIfEmpty(review.ReviewerPrincipalID),
-			review.CreatedAt,
-		)
+		statements = append(statements, activityChildInsertStatement{
+			name:  "reviews",
+			query: buildInsertActivityReviewsSQL(),
+			values: []any{
+				review.ID,
+				activity.TenantID,
+				activity.LegalEntityID,
+				activity.ID,
+				review.DueDate,
+				review.CompletedAt,
+				nullIfEmpty(review.Outcome),
+				nullIfEmpty(review.ReviewerPrincipalID),
+				review.CreatedAt,
+			},
+		})
 	}
-	if len(activity.Reviews) > 0 {
-		return execActivityChildInserts(ctx, tx, reviews.name, reviews.query, reviews.values, len(activity.Reviews))
+	return statements
+}
+
+func insertActivityChildren(ctx context.Context, tx pgx.Tx, activity ProcessingActivity) error {
+	for _, statement := range buildActivityChildInsertStatements(activity) {
+		if err := execActivityChildInsert(ctx, tx, statement.name, statement.query, statement.values); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func execActivityChildInserts(ctx context.Context, tx pgx.Tx, name, query string, values []any, expectedRows int) error {
+func execActivityChildInsert(ctx context.Context, tx pgx.Tx, name, query string, values []any) error {
 	tag, err := tx.Exec(ctx, query, values...)
 	if err != nil {
 		return fmt.Errorf("insert processing activity %s: %w", name, err)
 	}
-	if int(tag.RowsAffected()) != expectedRows {
+	if tag.RowsAffected() != 1 {
 		return ErrDuplicate
 	}
 	return nil
@@ -515,83 +512,6 @@ WHERE tenant_id = $1::uuid
   AND legal_entity_id = $2::uuid
   AND activity_id = $3::uuid`,
 	}
-}
-
-func prepareAppliedActivityEvent(current ProcessingActivity, expectedVersion int64, event Event) (ProcessingActivity, Event, error) {
-	if !validActivityEventType(event.Type) {
-		return ProcessingActivity{}, Event{}, ErrInvalid
-	}
-	if event.TenantID != "" && event.TenantID != current.TenantID {
-		return ProcessingActivity{}, Event{}, ErrInvalid
-	}
-	if event.LegalEntityID != "" && event.LegalEntityID != current.LegalEntityID {
-		return ProcessingActivity{}, Event{}, ErrInvalid
-	}
-	if event.AggregateID != "" && event.AggregateID != current.ID {
-		return ProcessingActivity{}, Event{}, ErrInvalid
-	}
-	if event.AggregateType != "" && event.AggregateType != "PROCESSING_ACTIVITY" {
-		return ProcessingActivity{}, Event{}, ErrInvalid
-	}
-	if strings.TrimSpace(event.ID) == "" {
-		generated, err := newEventID()
-		if err != nil {
-			return ProcessingActivity{}, Event{}, err
-		}
-		event.ID = generated
-	}
-
-	next, err := decodeActivity(event.Payload)
-	if err != nil {
-		return ProcessingActivity{}, Event{}, err
-	}
-	if err := validateActivityWhitespace(next); err != nil {
-		return ProcessingActivity{}, Event{}, err
-	}
-	next = normalizeProcessingActivity(next)
-	if next.ID != "" && next.ID != current.ID {
-		return ProcessingActivity{}, Event{}, ErrInvalid
-	}
-	if next.TenantID != "" && next.TenantID != current.TenantID {
-		return ProcessingActivity{}, Event{}, ErrInvalid
-	}
-	if next.LegalEntityID != "" && next.LegalEntityID != current.LegalEntityID {
-		return ProcessingActivity{}, Event{}, ErrInvalid
-	}
-	next.ID = current.ID
-	next.TenantID = current.TenantID
-	next.LegalEntityID = current.LegalEntityID
-	next.Version = expectedVersion + 1
-	next.CreatedAt = current.CreatedAt
-	if !event.OccurredAt.IsZero() {
-		next.UpdatedAt = event.OccurredAt.UTC()
-	} else if next.UpdatedAt.IsZero() {
-		next.UpdatedAt = current.UpdatedAt
-	}
-	if err := validateActivity(next); err != nil {
-		return ProcessingActivity{}, Event{}, err
-	}
-	if err := ValidateTransitionForWrite(current, next, event.Type); err != nil {
-		return ProcessingActivity{}, Event{}, err
-	}
-
-	event.TenantID = current.TenantID
-	event.LegalEntityID = current.LegalEntityID
-	event.AggregateType = "PROCESSING_ACTIVITY"
-	event.AggregateID = current.ID
-	event.AggregateVersion = expectedVersion + 1
-	event.ActorID = strings.TrimSpace(event.ActorID)
-	if event.ActorID == "" {
-		event.ActorType = "SERVICE"
-	} else {
-		event.ActorType = "USER"
-	}
-	if event.OccurredAt.IsZero() {
-		event.OccurredAt = next.UpdatedAt
-	}
-	event.OccurredAt = event.OccurredAt.UTC()
-	event.Payload = mustMarshalActivity(next)
-	return next, event, nil
 }
 
 func appendActivityHistory(ctx context.Context, tx pgx.Tx, activity ProcessingActivity, event Event) error {
