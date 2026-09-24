@@ -16,6 +16,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/ropa"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
@@ -52,7 +53,7 @@ func TestMemoryCompositionInstallsRopaDemoOnlyInDemoMode(t *testing.T) {
 		demoMode bool
 		wantRows int
 	}{
-		{name: "demo mode", demoMode: true, wantRows: 3},
+		{name: "demo mode", demoMode: true, wantRows: 7},
 		{name: "non-demo mode", demoMode: false, wantRows: 0},
 	}
 
@@ -78,6 +79,52 @@ func TestMemoryCompositionInstallsRopaDemoOnlyInDemoMode(t *testing.T) {
 			}
 			if got := len(page.Rows); got != test.wantRows {
 				t.Fatalf("ROPA rows = %d, want %d", got, test.wantRows)
+			}
+		})
+	}
+}
+
+func TestMemoryCompositionInstallsReportingDemoOnlyInDemoMode(t *testing.T) {
+	for _, testCase := range []struct {
+		name        string
+		demoMode    bool
+		wantReports int
+		wantRuns    int
+	}{
+		{name: "demo mode", demoMode: true, wantReports: 4, wantRuns: 1},
+		{name: "non-demo mode", demoMode: false, wantReports: 0, wantRuns: 0},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			services, err := buildServices(t.Context(), config.Config{
+				Environment: "development", DemoMode: testCase.demoMode,
+				DemoTenantID: reporting.DemoTenant, DemoLegalEntityID: reporting.DemoLegalEntity,
+			}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer services.Close()
+			if services.Reporting == nil {
+				t.Fatal("reporting service is not composed")
+			}
+			now := time.Now().UTC()
+			ctx := identity.WithActor(t.Context(), identity.Actor{
+				TenantID: reporting.DemoTenant, LegalEntityID: reporting.DemoLegalEntity,
+				PrincipalID: "role-cro", Kind: "PERSON", IssuedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour),
+			})
+			scope := reporting.ReportScope{TenantID: reporting.DemoTenant, LegalEntityID: reporting.DemoLegalEntity}
+			definitions, err := services.Reporting.ListDefinitions(ctx, scope, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			runs, err := services.Reporting.ListRuns(ctx, scope, "", 50)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(definitions) != testCase.wantReports || len(runs) != testCase.wantRuns {
+				t.Fatalf("reporting demo definitions=%d runs=%d, want %d and %d", len(definitions), len(runs), testCase.wantReports, testCase.wantRuns)
+			}
+			if testCase.demoMode && (runs[0].FailureCode != reporting.FailureRowLimitExceeded || runs[0].RowCount != 0 || runs[0].DataObjectKey != "") {
+				t.Fatalf("demo bounded-stop run = %#v", runs[0])
 			}
 		})
 	}

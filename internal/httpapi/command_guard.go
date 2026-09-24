@@ -74,6 +74,12 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 			payload["tenant_id"] = actor.TenantID
 			payload["legal_entity_id"] = actor.LegalEntityID
 		}
+		if strings.HasPrefix(name, "report.definition.") || name == "report.run.create" {
+			// Report scope is likewise server-bound. Overwrite before the common
+			// mismatch check so a forged body cannot redirect a definition or run.
+			payload["tenant_id"] = actor.TenantID
+			payload["legal_entity_id"] = actor.LegalEntityID
+		}
 		if name == "matter.create" {
 			// A new issue starts with the verified command actor as its stored
 			// accountable owner. Client-supplied ownership cannot redirect it.
