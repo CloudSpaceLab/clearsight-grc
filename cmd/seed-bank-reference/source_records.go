@@ -78,6 +78,15 @@ type sourceRecordReceipt struct {
 	Items    []map[string]any `json:"items"`
 }
 
+var ndpaChecklistColumns = []string{
+	"Control Area",
+	"Requirement / Checklist Item",
+	"NDPA/GAID Reference",
+	"Applicability",
+	"Timeline / Frequency",
+	"Evidence Required",
+}
+
 type sourceMatterProjectionValue struct {
 	Summary      string
 	Scope        json.RawMessage
@@ -212,7 +221,7 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 		return receipt, err
 	}
 	programs := map[string]string{}
-	for _, filename := range []string{"source_records_it_vendor.json", "source_records_ops.json"} {
+	for _, filename := range []string{"source_records_it_vendor.json", "source_records_ops.json", "source_records_ndpa.json"} {
 		data, readErr := fs.ReadFile(sourceRecordFiles, filename)
 		if readErr != nil {
 			return receipt, readErr
@@ -225,6 +234,9 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 			return receipt, fmt.Errorf("invalid source manifest %s", filename)
 		}
 		for _, group := range manifest.Groups {
+			if err = validateNDPAChecklistGroup(group); err != nil {
+				return receipt, err
+			}
 			programID := programs[group.ProgramCode]
 			if programID == "" {
 				if err = pool.QueryRow(ctx, `SELECT id::text FROM programs WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND code=$3`, seed.TenantID, seed.LegalEntityID, group.ProgramCode).Scan(&programID); err != nil {
@@ -254,6 +266,15 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 						return receipt, err
 					}
 				}
+			}
+			if isNDPAChecklistGroup(group) {
+				form, _, formErr := ensureSourceForm(ctx, ms, seed, programID, group, group.Records, 0, 1)
+				if formErr != nil {
+					return receipt, fmt.Errorf("NDPA checklist draft %s: %w", group.Key, formErr)
+				}
+				receipt.Items = append(receipt.Items, map[string]any{"group": group.Key, "source_rows": len(group.Records), "form_id": form.ID, "program_id": programID, "draft_intake": true})
+				fmt.Fprintf(os.Stderr, "Source draft intake: %s (%d checklist rows)\n", group.Title, len(group.Records))
+				continue
 			}
 			parts := sourceCaptureParts(group)
 			if group.ResponsePerRecord {
@@ -528,6 +549,75 @@ func sourceCaptureParts(group sourceRecordGroup) [][]sourceRecord {
 	return parts
 }
 
+func isNDPAChecklistGroup(group sourceRecordGroup) bool {
+	return group.Key == "ndpa-compliance-checklist"
+}
+
+func validateNDPAChecklistGroup(group sourceRecordGroup) error {
+	if !isNDPAChecklistGroup(group) {
+		return nil
+	}
+	if group.ProgramCode != "NDPA-2023" || group.SourceFile != "NDPA_Compliance_Checklist (1).xlsx" || group.SourceSheet != "Checklist" {
+		return fmt.Errorf("NDPA checklist source identity changed")
+	}
+	if len(group.Records) != 47 {
+		return fmt.Errorf("NDPA checklist rows=%d, want 47", len(group.Records))
+	}
+	for index, record := range group.Records {
+		if record.CreateMatter || strings.TrimSpace(record.Owner) != "" || strings.TrimSpace(record.Assessor) != "" || strings.TrimSpace(record.Status) != "" || strings.TrimSpace(record.Rating) != "" || strings.TrimSpace(record.DueDate) != "" || strings.TrimSpace(record.Action) != "" {
+			return fmt.Errorf("NDPA checklist row %d must remain an unassigned source draft", index+1)
+		}
+		if len(record.Fields) != len(ndpaChecklistColumns) {
+			return fmt.Errorf("NDPA checklist row %d has %d columns, want %d", index+1, len(record.Fields), len(ndpaChecklistColumns))
+		}
+		for field, column := range ndpaChecklistColumns {
+			if record.Fields[field].Label != column || strings.TrimSpace(record.Fields[field].Value) == "" {
+				return fmt.Errorf("NDPA checklist row %d does not retain %q", index+1, column)
+			}
+		}
+	}
+	return nil
+}
+
+func buildNDPAChecklistDraft(group sourceRecordGroup) (monitoring.CreateFormInput, error) {
+	if err := validateNDPAChecklistGroup(group); err != nil {
+		return monitoring.CreateFormInput{}, err
+	}
+	input := monitoring.CreateFormInput{
+		Name:         "NDPA compliance checklist intake",
+		Purpose:      "Sample source intake from NDPA_Compliance_Checklist (1).xlsx · Checklist. Source rows require bank scope, collection-rule and evidence review; no owner, evidence decision or completion result is recorded.",
+		ScoringMode:  formcontract.ScoringNone,
+		Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true},
+	}
+	sections := map[string]string{}
+	for index, record := range group.Records {
+		controlArea := record.Fields[0].Value
+		sectionID := sections[controlArea]
+		if sectionID == "" {
+			sectionID = fmt.Sprintf("area_%d", len(sections)+1)
+			sections[controlArea] = sectionID
+			input.Sections = append(input.Sections, formcontract.Section{ID: sectionID, Title: sourceShort(controlArea, 200)})
+		}
+		context := []string{"Source row: " + record.SourceRange}
+		for field, column := range ndpaChecklistColumns {
+			if field == 1 {
+				continue
+			}
+			context = append(context, column+": "+record.Fields[field].Value)
+		}
+		input.Fields = append(input.Fields, formcontract.Field{
+			ID:                 fmt.Sprintf("checklist_%02d", index+1),
+			SectionID:          sectionID,
+			Label:              sourceShort(record.Fields[1].Value, 200),
+			Description:        sourceShort(strings.Join(context, "\n"), 1000),
+			Type:               formcontract.TypeLongText,
+			CollectionIntent:   formcontract.IntentCapture,
+			BrowserCachePolicy: formcontract.BrowserCacheAllowed,
+		})
+	}
+	return input, nil
+}
+
 func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankverticals.SeedConfig, programID string, group sourceRecordGroup, records []sourceRecord, index, total int) (monitoring.FormTemplate, map[string]formcontract.AnswerValue, error) {
 	code, _ := sourceFormIdentity(group, index)
 	name := group.Title
@@ -541,7 +631,19 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 	purpose += ". Historical responses; evidence and outcomes remain unverified."
 	input := monitoring.CreateFormInput{ProgramID: programID, LegalEntityID: seed.LegalEntityID, Code: code, Name: sourceShort(name, 200), Purpose: purpose, OwnerPrincipalID: seed.OwnerPrincipalID, ResponsibleTeam: "Risk and Compliance", Tags: []string{"sample-data", sourceRecordPackage, group.Key}, ScoringMode: formcontract.ScoringNone, Presentation: formcontract.Presentation{DefaultMode: formcontract.PresentationWizard, AllowModeSwitch: true}}
 	answers := map[string]formcontract.AnswerValue{}
-	if semantic, ok, semanticErr := thirdPartySemanticCapture(group); semanticErr != nil {
+	var err error
+	draftOnly := false
+	if isNDPAChecklistGroup(group) {
+		var draft monitoring.CreateFormInput
+		draft, err := buildNDPAChecklistDraft(group)
+		if err != nil {
+			return monitoring.FormTemplate{}, nil, err
+		}
+		draft.ProgramID, draft.LegalEntityID, draft.Code = programID, seed.LegalEntityID, code
+		draft.OwnerPrincipalID, draft.ResponsibleTeam = seed.OwnerPrincipalID, "Risk and Compliance"
+		draft.Tags = []string{"sample-data", sourceRecordPackage, group.Key, "source-draft"}
+		input, name, purpose, draftOnly = draft, draft.Name, draft.Purpose, true
+	} else if semantic, ok, semanticErr := thirdPartySemanticCapture(group); semanticErr != nil {
 		return monitoring.FormTemplate{}, nil, semanticErr
 	} else if ok {
 		if len(records) != len(group.Records) || len(semantic.Requirements) != len(group.Records) {
@@ -608,16 +710,16 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 	if !reflect.DeepEqual(form.Fields, expectedContract.Fields) || !reflect.DeepEqual(form.Sections, expectedContract.Sections) || form.Purpose != input.Purpose {
 		return form, answers, fmt.Errorf("source form changed; review a new revision for %s", group.Key)
 	}
-	if form.Status == monitoring.LifecycleDraft {
+	if !draftOnly && form.Status == monitoring.LifecycleDraft {
 		form, err = ms.TransitionForm(ctx, maker, monitoring.TransitionInput{ID: form.ID, ProgramID: programID, LegalEntityID: seed.LegalEntityID, ExpectedVersion: form.Version, To: monitoring.LifecyclePendingApproval})
 		if err != nil {
 			return form, answers, err
 		}
 	}
-	if form.Status == monitoring.LifecyclePendingApproval {
+	if !draftOnly && form.Status == monitoring.LifecyclePendingApproval {
 		form, err = ms.TransitionForm(ctx, checker, monitoring.TransitionInput{ID: form.ID, ProgramID: programID, LegalEntityID: seed.LegalEntityID, ExpectedVersion: form.Version, To: monitoring.LifecycleActive})
 	}
-	if err == nil && form.Status != monitoring.LifecycleActive {
+	if err == nil && ((!draftOnly && form.Status != monitoring.LifecycleActive) || (draftOnly && form.Status != monitoring.LifecycleDraft)) {
 		err = fmt.Errorf("source form is %s", form.Status)
 	}
 	return form, answers, err

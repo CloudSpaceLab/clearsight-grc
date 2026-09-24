@@ -221,6 +221,53 @@ func TestSyntheticSourceCaptureFitsLimitsWithoutPrivateFiles(t *testing.T) {
 	}
 }
 
+func TestNDPAChecklistBuildsAReviewDraftWithoutAssessmentClaims(t *testing.T) {
+	group := sourceRecordGroup{
+		Key:          "ndpa-compliance-checklist",
+		ProgramCode:  "NDPA-2023",
+		Title:        "NDPA compliance checklist intake",
+		SourceFile:   "NDPA_Compliance_Checklist (1).xlsx",
+		SourceSheet:  "Checklist",
+		SourceSHA256: strings.Repeat("d", 64),
+	}
+	headers := []string{"Control Area", "Requirement / Checklist Item", "NDPA/GAID Reference", "Applicability", "Timeline / Frequency", "Evidence Required"}
+	for index := 0; index < 47; index++ {
+		area := fmt.Sprintf("Control area %d", index%14+1)
+		record := sourceRecord{Key: fmt.Sprintf("ndpa-checklist-%02d", index+1), Title: fmt.Sprintf("Requirement %d", index+1), SourceRange: fmt.Sprintf("Checklist!A%d:F%d", index+2, index+2)}
+		for field, header := range headers {
+			value := fmt.Sprintf("%s value %d", header, index+1)
+			if field == 0 {
+				value = area
+			}
+			if field == 1 {
+				value = record.Title
+			}
+			record.Fields = append(record.Fields, sourceRecordField{Label: header, Value: value, SourceCell: fmt.Sprintf("%s%d", string(rune('A'+field)), index+2)})
+		}
+		group.Records = append(group.Records, record)
+	}
+
+	service := monitoring.NewService(monitoring.NewMemoryRepository(), nil)
+	seed := bankverticals.SeedConfig{TenantID: "tenant", LegalEntityID: "entity", ActorID: "maker", ReviewerPrincipalID: "checker", OwnerPrincipalID: "owner"}
+	form, answers, err := ensureSourceForm(context.Background(), service, seed, group.ProgramCode, group, group.Records, 0, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if form.Status != monitoring.LifecycleDraft || len(form.Fields) != 47 || len(form.Sections) != 14 || len(answers) != 0 {
+		t.Fatalf("NDPA checklist must remain a 47-row draft intake: status=%s fields=%d sections=%d answers=%d", form.Status, len(form.Fields), len(form.Sections), len(answers))
+	}
+	for index, field := range form.Fields {
+		if field.Required || field.Scoring != nil || field.Label != fmt.Sprintf("Requirement %d", index+1) {
+			t.Fatalf("checklist row %d became an assessment: %#v", index+1, field)
+		}
+		for _, header := range append(headers[:1], headers[2:]...) {
+			if !strings.Contains(field.Description, header) {
+				t.Fatalf("checklist row %d lost %q: %q", index+1, header, field.Description)
+			}
+		}
+	}
+}
+
 func TestSyntheticSourceRegisterFitsLimitsAndPreservesAnswers(t *testing.T) {
 	group := sourceRecordGroup{Key: "synthetic-register", ProgramCode: "TEST", Title: "Branch KRI register", SourceFile: "synthetic.xlsx", SourceSheet: "Register", SourceSHA256: strings.Repeat("c", 64), ResponsePerRecord: true}
 	// 31 records that share one 55-field schema, mirroring the branch KRI sheet.
