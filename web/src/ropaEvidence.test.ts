@@ -30,7 +30,7 @@ describe("ROPA evidence transport", () => {
     });
 
     const list = await json(await fetch("/api/v1/ropa/processing-activities?tenant_id=bank-demo"));
-    expect(list.Rows.some((activity: { name: string }) => activity.name === "Customer account opening")).toBe(true);
+    expect(list.rows.some((activity: { name: string }) => activity.name === "Customer account opening")).toBe(true);
 
     const detail = await json(await fetch(`/api/v1/ropa/processing-activities/${activityID}?tenant_id=bank-demo`));
     expect(detail.activity.name).toBe("Customer account opening");
