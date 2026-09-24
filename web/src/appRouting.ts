@@ -34,7 +34,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     try { return decodeURIComponent(value); } catch { return value; }
   };
 	const allowed: View[] = ["today", "oversight", "programs", "forms", "vendors", "ropa", "work", "people", "imports", "explore", "configure"];
-  const view = allowed.includes(parts[0] as View) ? parts[0] as View : "today";
+	const view = allowed.includes(parts[0] as View) ? parts[0] as View : "oversight";
   if (view === "oversight") {
     const metric = query.get("metric");
     const allowedMetrics: OversightMetric[] = ["critical-high", "overdue", "routing-gaps", "outcome-failures"];

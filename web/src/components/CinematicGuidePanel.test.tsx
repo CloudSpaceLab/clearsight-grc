@@ -14,8 +14,8 @@ const variants: Array<{
 }> = [
   {
     variant: "today",
-    panelName: /Today guide/i,
-    illustrationName: /Today work path/i,
+    panelName: /Oversight guide/i,
+    illustrationName: /Oversight work path/i,
     stages: ["Source context", "Assigned work", "Review and authority", "Confirmed outcome"],
   },
   {

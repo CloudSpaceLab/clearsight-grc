@@ -18,20 +18,20 @@ type Props = {
 
 export function TodayInterventions({ items, connection, readiness, readinessState, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload() }: Props) {
   const heading = items.length === 1 ? "1 item needs your action" : `${items.length} items need your action`;
-  const title = connection === "loading" ? "Loading Today" : connection === "unavailable" ? "Today is unavailable" : heading;
+  const title = connection === "loading" ? "Loading assigned work" : connection === "unavailable" ? "Assigned work is unavailable" : heading;
 
   return <>
     <section className="intervention-brief" id="today-brief" aria-labelledby="intervention-heading">
       <header className="intervention-heading">
-        <div><span className="eyebrow">Today</span><h2 id="intervention-heading">{title}</h2><p>Assigned work and operational exceptions you are permitted to handle.</p></div>
+        <div><span className="eyebrow">Assigned work</span><h2 id="intervention-heading">{title}</h2><p>Assigned work and operational exceptions you are permitted to handle.</p></div>
       </header>
       {connection === "loading"
-        ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Today…</div>
+        ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading assigned work…</div>
         : connection === "unavailable"
-          ? <EmptyState kind="unavailable" label="Today" title="Today could not be loaded" description="Retry the assigned-work list before relying on its current items." action="Try again" onAction={onRetry}/>
+          ? <EmptyState kind="unavailable" label="Assigned work" title="Assigned work could not be loaded" description="Retry the assigned-work list before relying on its current items." action="Try again" onAction={onRetry}/>
           : items.length
             ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
-            : <div id="attention-list"><EmptyState label="Today" title="Nothing needs your action right now" description="No assigned work or permitted operational exceptions are open for you in this scope."/></div>}
+            : <div id="attention-list"><EmptyState label="Assigned work" title="Nothing needs your action right now" description="No assigned work or permitted operational exceptions are open for you in this scope."/></div>}
     </section>
     <StatusChecks readiness={readiness} state={readinessState}/>
   </>;

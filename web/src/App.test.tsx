@@ -37,7 +37,7 @@ vi.mock("./components/RoleAwareOnboarding", async () => {
       catch { setError("This guide step could not be opened. Try again."); }
       finally { setBusy(false); }
     }
-    return <aside aria-label={`${surface === "VENDORS" ? "Vendor" : "Today"} guide`}><output data-testid="onboarding-surface">{surface}</output><button type="button" disabled={busy} onClick={() => void openGuideAction()}>Review due diligence</button><button type="button" disabled={busy} onClick={() => void openNextVendorTask()}>Open next vendor task</button>{error && <p role="alert">{error}</p>}</aside>;
+    return <aside aria-label={`${surface === "VENDORS" ? "Vendor" : "Oversight"} guide`}><output data-testid="onboarding-surface">{surface}</output><button type="button" disabled={busy} onClick={() => void openGuideAction()}>Review due diligence</button><button type="button" disabled={busy} onClick={() => void openNextVendorTask()}>Open next vendor task</button>{error && <p role="alert">{error}</p>}</aside>;
   }};
 });
 vi.mock("./components/VendorsWorkspace", () => ({
@@ -195,7 +195,7 @@ describe("runtime navigation", () => {
     render(<App/>);
     await screen.findByRole("tab", { name: "Templates", selected: true }, { timeout: 5000 });
     fireEvent.click(screen.getByRole("tab", { name: "Documents" }));
-    fireEvent.click(within(screen.getByRole("complementary", { name: "Primary navigation" })).getByRole("button", { name: "Today" }));
+    fireEvent.click(within(screen.getByRole("complementary", { name: "Primary navigation" })).getByRole("button", { name: "Oversight" }));
     expect(screen.queryByRole("tab", { name: "Documents" })).toBeNull();
 
     window.history.replaceState(null, "", "#forms?section=documents");
@@ -233,7 +233,7 @@ describe("runtime navigation", () => {
 
     render(<App presentation="demo"/>);
 
-    expect(await screen.findByRole("heading", { name: "Today is unavailable" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Assigned work is unavailable" })).toBeTruthy();
     expect(screen.queryByText("Review proposed digital-channel requirements")).toBeNull();
   });
 
@@ -269,7 +269,7 @@ describe("runtime navigation", () => {
     expect(within(primaryNavigation).getByRole("button", { name: "Oversight" }).getAttribute("aria-current")).toBe("page");
   });
 
-  it("does not turn platform administration into risk oversight access", async () => {
+  it("keeps the Oversight destination scoped to assigned work without organization oversight access", async () => {
     vi.mocked(loadContext).mockResolvedValue({
       ...runtime(false),
       actor: { id: "system-admin", name: "System Administrator", role_codes: ["SYSTEM_ADMIN"] },
@@ -278,7 +278,7 @@ describe("runtime navigation", () => {
     render(<App />);
 
     await screen.findByText("Nothing needs your action right now");
-    expect(screen.queryByRole("button", { name: "Oversight" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Oversight" })).toBeTruthy();
   });
 
   it("provides Vendors as a first-class navigation destination", async () => {
@@ -341,9 +341,9 @@ describe("runtime navigation", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
     await screen.findByTestId("vendor-guide-intent");
-    const todayButton = (await screen.findAllByRole("button", { name: "Today" }))[0];
-    if (!todayButton) throw new Error("Today navigation is missing");
-    fireEvent.click(todayButton);
+    const oversightButton = (await screen.findAllByRole("button", { name: "Oversight" }))[0];
+    if (!oversightButton) throw new Error("Oversight navigation is missing");
+    fireEvent.click(oversightButton);
 
     await waitFor(() => expect((screen.getByRole("button", { name: "Review due diligence" }) as HTMLButtonElement).disabled).toBe(false));
     expect(screen.getByRole("alert").textContent).toContain("This guide step could not be opened. Try again.");
@@ -525,7 +525,7 @@ describe("runtime navigation", () => {
     fireEvent.change(await screen.findByLabelText("Why should it be reassigned?"), { target: { value: "The account owner must respond." } });
     fireEvent.click(screen.getByRole("button", { name: "Return to requester" }));
     await waitFor(() => expect(declareWrongCaptureRecipient).toHaveBeenCalled());
-    fireEvent.click(screen.getAllByRole("button", { name: /Today/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Oversight/ })[0]!);
 
     await waitFor(() => expect(screen.queryAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(0));
   });
@@ -592,7 +592,7 @@ describe("runtime navigation", () => {
     });
     await act(async () => { exact.resolve(evidenceRequest()); });
     await act(async () => { list.reject(new Error("Workspace list unavailable")); });
-    fireEvent.click(screen.getAllByRole("button", { name: /Today/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Oversight/ })[0]!);
 
     expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
   });
@@ -613,7 +613,7 @@ describe("runtime navigation", () => {
     });
     await act(async () => { list.reject(new Error("Workspace list unavailable")); });
     await act(async () => { exact.resolve(evidenceRequest()); });
-    fireEvent.click(screen.getAllByRole("button", { name: /Today/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Oversight/ })[0]!);
 
     expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
   });
@@ -637,7 +637,7 @@ describe("runtime navigation", () => {
 
     expect(await screen.findByRole("heading", { name: "No evidence requests in this scope" })).toBeTruthy();
     expect(screen.queryByText("Confirm assigned evidence")).toBeNull();
-    fireEvent.click(screen.getAllByRole("button", { name: /Today/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Oversight/ })[0]!);
     expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
   });
 
@@ -687,7 +687,7 @@ describe("runtime navigation", () => {
     await screen.findAllByText("Second Bank");
     await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(currentSecond.id, "eligibility_preload"));
     await act(async () => { command.resolve(staleReturned); });
-    fireEvent.click(screen.getAllByRole("button", { name: /Today/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Oversight/ })[0]!);
 
     expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
   });
@@ -730,7 +730,7 @@ describe("runtime navigation", () => {
     await screen.findAllByText("Second Bank");
     await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(currentSecond.id, "eligibility_preload"));
     await act(async () => { command.resolve(staleReassigned); });
-    fireEvent.click(screen.getAllByRole("button", { name: /Today/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Oversight/ })[0]!);
 
     expect(screen.queryAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(0);
   });

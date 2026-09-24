@@ -19,7 +19,7 @@ export function TodayView({ organizationName, items, connection, generatedAt, re
   const connectionLabel = connection === "live" ? generatedAt ? `Updated ${formatShortTime(generatedAt)}` : "Connected data" : connection === "unavailable" ? "Data unavailable" : "Connecting";
   return <>
     <header className="topbar today-topbar">
-      <div><span className="eyebrow">{organizationName}</span><h1>Today</h1><p>Assigned decisions, evidence, outcome checks and operational exceptions that need your action.</p></div>
+      <div><span className="eyebrow">{organizationName}</span><h1>Oversight</h1><p>Assigned decisions, evidence, outcome checks and operational exceptions that need your action.</p></div>
       <div className="topbar-actions"><span className={`connection ${connection}`}>{connectionLabel}</span>{onCapture && <><div className="today-desktop-actions"><button className="secondary-button" onClick={onCapture}>Respond to evidence request</button></div><details className="today-mobile-actions"><summary>More actions</summary><div><button className="secondary-button" onClick={onCapture}>Respond to evidence request</button></div></details></>}</div>
     </header>
     <TodayInterventions items={items} connection={connection} readiness={readiness} readinessState={readinessState} onOpenItem={onOpenItem} onInspectAuthority={onInspectAuthority}/>

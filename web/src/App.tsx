@@ -165,8 +165,8 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   useEffect(() => {
     document.documentElement.dataset.clearsightDemo = demoMode ? "on" : "off";
     if (!runtime) return;
-    if ((!referenceJourneysEnabled && activeView === "explore") || (!importsEnabled && activeView === "imports") || (!configureEnabled && activeView === "configure") || (!oversightEnabled && activeView === "oversight")) navigate("today");
-    if (oversightEnabled && activeView === "today") navigate("oversight");
+    if ((!referenceJourneysEnabled && activeView === "explore") || (!importsEnabled && activeView === "imports") || (!configureEnabled && activeView === "configure")) navigate("oversight");
+    if (activeView === "today") navigate("oversight");
   }, [runtime, referenceJourneysEnabled, importsEnabled, configureEnabled, oversightEnabled, activeView]);
 
   async function loadEvidenceWorkspace(requestedID?: string) {
@@ -265,7 +265,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const actorName = runtime?.actor.name || runtime?.actor.id || "User unavailable";
   const roleName = humanRole(runtime?.actor.role_codes?.[0]) || "Role not provided";
   const operatingNavigation: Array<{ label: string; view: View }> = [
-    ...(oversightEnabled ? [{ label: "Oversight", view: "oversight" as View }] : [{ label: "Today", view: "today" as View }]),
+    { label: "Oversight", view: "oversight" as View },
     { label: "Programs", view: "programs" },
     { label: "Processing activities", view: "ropa" },
     { label: "Work", view: "work" },
@@ -347,8 +347,8 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   }
 
   async function executeGuideStep(step: GuideStep) {
-    if (step.intent === "open-routing") { navigate(oversightEnabled ? "oversight" : "today"); const authorityItem = items.find((item) => item.authority && item.action_target_type && item.action_target_id); if (authorityItem) await inspectRouting(authorityItem); return; }
-    if (step.intent === "open-capture") { navigate(oversightEnabled ? "oversight" : "today"); await openPrimaryEvidence(); return; }
+    if (step.intent === "open-routing") { navigate("oversight"); const authorityItem = items.find((item) => item.authority && item.action_target_type && item.action_target_id); if (authorityItem) await inspectRouting(authorityItem); return; }
+    if (step.intent === "open-capture") { navigate("oversight"); await openPrimaryEvidence(); return; }
     if (step.intent === "open-first-attention" && items[0]) { openAttention(items[0]); return; }
     if (step.intent === "open-first-program") { navigate("programs", { openFirstProgram: true }); return; }
     if (step.intent === "open-first-matter") { navigate("work", { openFirstMatter: true }, "matters"); return; }
@@ -411,7 +411,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         </div>
       </div>
       {(activeView === "today" || activeView === "oversight" || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>}
-      {activeView === "today" && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>} 
+      {(activeView === "today" || (activeView === "oversight" && !oversightEnabled)) && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
       {activeView === "oversight" && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading oversight…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", metric === "all" ? {} : { oversightMetric: metric })} todayItems={items} todayState={connection} onOpenTodayItem={openAttention}/></Suspense>}
       {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenForm={(id) => navigate("forms", { formTemplateID: id })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
       {activeView === "ropa" && target.ropaPage === "reports" && <section className="workspace-loading" aria-live="polite"><div><h1>Processing activity reports</h1><p>Report definitions and saved report results are not available in this workspace. Return to the register to review processing activities.</p></div></section>}

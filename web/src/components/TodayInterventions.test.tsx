@@ -17,10 +17,10 @@ describe("TodayInterventions", () => {
     expect(screen.getByText("Not scheduled")).toBeTruthy();
     expect(screen.queryByText("Ready now")).toBeNull();
   });
-  it("uses Today as the practical work surface and keeps status checks collapsed", () => {
+  it("uses assigned work as the practical oversight scope and keeps status checks collapsed", () => {
     const onOpen = vi.fn();
     render(<TodayInterventions items={[item]} connection="live" readiness={readiness} readinessState="live" onOpenItem={onOpen}/>);
-    expect(screen.getByText("Today", { selector: ".eyebrow" })).toBeTruthy();
+    expect(screen.getByText("Assigned work", { selector: ".eyebrow" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "1 item needs your action" })).toBeTruthy();
     expect(screen.getByText("Assigned work and operational exceptions you are permitted to handle.")).toBeTruthy();
     expect(screen.getByText("Seven provisions may change current obligations.")).toBeTruthy();
@@ -121,15 +121,15 @@ describe("TodayInterventions", () => {
     expect(inspect).toHaveBeenCalledWith(authorized);
   });
 
-  it("does not claim an empty Today list while assigned work is still loading", () => {
+  it("does not claim an empty assigned-work list while assigned work is still loading", () => {
     render(<TodayInterventions items={[]} connection="loading" readiness={null} readinessState="loading" onOpenItem={vi.fn()}/>);
-    expect(screen.getByRole("heading", { name: "Loading Today" })).toBeTruthy();
-    expect(screen.getByText("Loading Today…")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Loading assigned work" })).toBeTruthy();
+    expect(screen.getByText("Loading assigned work…")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Nothing needs your action right now" })).toBeNull();
     expect(screen.queryByText("0 items need your action")).toBeNull();
   });
 
-  it("provides a working retry action when Today is unavailable", () => {
+  it("provides a working retry action when assigned work is unavailable", () => {
     const onRetry = vi.fn();
     render(<TodayInterventions items={[]} connection="unavailable" readiness={null} readinessState="unavailable" onOpenItem={vi.fn()} onRetry={onRetry}/>);
 
