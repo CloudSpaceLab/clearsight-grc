@@ -81,6 +81,10 @@ type ReportDefinition struct {
 	Filter         *ReportFilterExpression `json:"filter,omitempty"`
 	Status         DefinitionStatus        `json:"status"`
 	CurrentVersion int                     `json:"current_version"`
+	// Effective is derived at the verified command time. Status remains ACTIVE
+	// for a future-dated definition, while this marker prevents it being called
+	// current before its effective window opens.
+	Effective bool `json:"effective"`
 	// StoredChecksum is the persisted digest; Checksum() computes the
 	// governed content digest from the current definition.
 	StoredChecksum string     `json:"checksum"`
@@ -125,11 +129,12 @@ type ReportDefinitionRevision struct {
 // Lifecycle timestamps and actors belong to the revision ledger; this record is
 // the command's audit input.
 type DecisionRecord struct {
-	ActorID      string    `json:"actor_id"`
-	Action       string    `json:"action"`
-	Note         string    `json:"note,omitempty"`
-	ChecksumSeen string    `json:"checksum_seen"`
-	Timestamp    time.Time `json:"timestamp"`
+	ActorID       string     `json:"actor_id"`
+	Action        string     `json:"action"`
+	Note          string     `json:"note,omitempty"`
+	ChecksumSeen  string     `json:"checksum_seen"`
+	Timestamp     time.Time  `json:"timestamp"`
+	EffectiveFrom *time.Time `json:"effective_from,omitempty"`
 }
 
 // ReportRun is the immutable receipt for one bounded report execution.
@@ -139,7 +144,10 @@ type ReportRun struct {
 	LegalEntityID      string                  `json:"legal_entity_id"`
 	DefinitionID       string                  `json:"definition_id"`
 	DefinitionVersion  int                     `json:"definition_version"`
+	DefinitionCode     string                  `json:"definition_code"`
 	DefinitionChecksum string                  `json:"definition_checksum"`
+	ScopeKind          ReportScopeKind         `json:"scope_kind"`
+	ScopeRef           string                  `json:"scope_ref,omitempty"`
 	RequestedByRef     string                  `json:"requested_by_ref"`
 	AsOf               time.Time               `json:"as_of"`
 	Filter             *ReportFilterExpression `json:"filter"`
