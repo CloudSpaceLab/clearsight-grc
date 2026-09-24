@@ -356,6 +356,157 @@
       }
     },
 
+    "/api/v1/ropa/reports/filter-fields": {
+      "get": {
+        "operationId": "listReportFilterFields",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "responses": {
+          "200": { "description": "The closed report filter vocabulary available to the report builder." },
+          "default": { "description": "The report filter vocabulary could not be read." }
+        }
+      }
+    },
+    "/api/v1/ropa/reports/definitions": {
+      "get": {
+        "operationId": "listReportDefinitions",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          { "name": "tenant_id", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "include_retired", "in": "query", "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": {
+          "200": { "description": "Report definitions in the signed-in legal entity." },
+          "default": { "description": "Report definitions could not be read." }
+        }
+      },
+      "post": {
+        "operationId": "proposeReportDefinition",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": {
+          "201": { "description": "The proposed report definition." },
+          "default": { "description": "The report definition could not be proposed." }
+        }
+      }
+    },
+    "/api/v1/ropa/reports/definitions/{id}": {
+      "get": {
+        "operationId": "getReportDefinition",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "tenant_id", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The current governed report definition." },
+          "default": { "description": "The report definition could not be read." }
+        }
+      }
+    },
+    "/api/v1/ropa/reports/definitions/{id}/history": {
+      "get": {
+        "operationId": "getReportDefinitionHistory",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "tenant_id", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The immutable report definition revision history." },
+          "default": { "description": "The report definition history could not be read." }
+        }
+      }
+    },
+    "/api/v1/ropa/reports/definitions/{id}/submit": {
+      "post": {
+        "operationId": "submitReportDefinition",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "200": { "description": "The report definition after submission for review." }, "default": { "description": "The report definition could not be submitted." } }
+      }
+    },
+    "/api/v1/ropa/reports/definitions/{id}/review": {
+      "post": {
+        "operationId": "reviewReportDefinition",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "200": { "description": "The independently reviewed report definition." }, "default": { "description": "The report definition could not be reviewed." } }
+      }
+    },
+    "/api/v1/ropa/reports/definitions/{id}/activate": {
+      "post": {
+        "operationId": "activateReportDefinition",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "200": { "description": "The authorized report definition." }, "default": { "description": "The report definition could not be activated." } }
+      }
+    },
+    "/api/v1/ropa/reports/definitions/{id}/reject": {
+      "post": {
+        "operationId": "rejectReportDefinition",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "200": { "description": "The rejected report definition." }, "default": { "description": "The report definition could not be rejected." } }
+      }
+    },
+    "/api/v1/ropa/reports/definitions/{id}/retire": {
+      "post": {
+        "operationId": "retireReportDefinition",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "200": { "description": "The retired report definition." }, "default": { "description": "The report definition could not be retired." } }
+      }
+    },
+    "/api/v1/ropa/reports/runs": {
+      "get": {
+        "operationId": "listReportRuns",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          { "name": "tenant_id", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "definition_id", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } }
+        ],
+        "responses": { "200": { "description": "Report runs in the signed-in legal entity." }, "default": { "description": "Report runs could not be read." } }
+      },
+      "post": {
+        "operationId": "createReportRun",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "201": { "description": "The queued report run." }, "default": { "description": "The report run could not be queued." } }
+      }
+    },
+    "/api/v1/ropa/reports/runs/{id}": {
+      "get": {
+        "operationId": "getReportRun",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "tenant_id", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "The report run receipt." }, "default": { "description": "The report run could not be read." } }
+      }
+    },
+    "/api/v1/ropa/reports/runs/{id}/download": {
+      "get": {
+        "operationId": "downloadReportRun",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "REPORT_DOWNLOAD",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "tenant_id", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The protected CSV or NDJSON report artefact." },
+          "default": { "description": "The report artefact could not be downloaded." }
+        }
+      }
+    },
+
     "/api/v1/authority/resolve": { "post": { "operationId": "resolveAuthority", "x-clearsight-route-class": "AUTHENTICATED_OPERATION" } },
     "/api/v1/authority/simulate": { "post": { "operationId": "simulateAuthority", "x-clearsight-route-class": "AUTHENTICATED_OPERATION", "x-clearsight-permission": "CONFIG_READ" } },
     "/api/v1/authority/integrity": { "get": { "operationId": "authorityIntegrity", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "CONFIG_READ" } },

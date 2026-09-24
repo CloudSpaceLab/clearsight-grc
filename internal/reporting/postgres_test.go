@@ -290,6 +290,28 @@ func TestClaimQueuedRunsDoesNotClaimATerminalRun(t *testing.T) {
 	}
 }
 
+func TestListQueuedRunScopesReturnsOnlyDurableQueuedWork(t *testing.T) {
+	fixture := newReportingPostgresFixture(t)
+	definition, _ := fixture.proposal(t, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())
+	queued := fixture.createRun(t, definition, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())
+	definition, err := fixture.repository.GetDefinition(context.Background(), fixture.scope, definition.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	terminal := fixture.createRun(t, definition, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())
+	if _, err := fixture.pool.Exec(context.Background(), `UPDATE report_runs SET status='FAILED',failure_code=$3,completed_at=$4 WHERE tenant_id=$1 AND id=$2`,
+		fixture.tenantID, terminal.ID, FailureByteLimitExceeded, fixture.now.Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	scopes, err := fixture.repository.ListQueuedRunScopes(context.Background(), 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(scopes) != 1 || scopes[0] != fixture.scope {
+		t.Fatalf("queued report scopes = %#v, want only %s for run %s", scopes, fixture.scope, queued.ID)
+	}
+}
+
 func TestCompleteRunRefusesWithoutArtefacts(t *testing.T) {
 	fixture := newReportingPostgresFixture(t)
 	definition, _ := fixture.proposal(t, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())

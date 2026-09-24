@@ -36,7 +36,7 @@ const (
 	FailureRetryBudgetExhausted   = "retry_budget_exhausted"
 	FailureSourceBoundaryMismatch = "source_boundary_mismatch"
 
-	reportClaimBatch = 100
+	reportClaimBatch = 1
 	maxDecisionNote  = 1000
 )
 
@@ -65,6 +65,15 @@ func NewService(repository Repository, objects evidence.ObjectStore, authorityCh
 }
 
 type ProposeInput struct {
+	// Scope and governance-identity fields are accepted only for wire
+	// compatibility. Propose always overwrites them from verified context.
+	TenantID      string `json:"tenant_id,omitempty"`
+	LegalEntityID string `json:"legal_entity_id,omitempty"`
+	ActorID       string `json:"actor_id,omitempty"`
+	ReviewerID    string `json:"reviewer_id,omitempty"`
+	AuthorizerID  string `json:"authorizer_id,omitempty"`
+	CheckerID     string `json:"checker_id,omitempty"`
+
 	Code           string                  `json:"code"`
 	Name           string                  `json:"name"`
 	Description    string                  `json:"description"`
@@ -81,18 +90,31 @@ type ProposeInput struct {
 }
 
 type DefinitionTransitionInput struct {
-	Scope           ReportScope `json:"-"`
-	DefinitionID    string      `json:"definition_id"`
-	ExpectedVersion int64       `json:"expected_version"`
-	ChecksumSeen    string      `json:"checksum_seen"`
-	Note            string      `json:"note,omitempty"`
-	EffectiveFrom   *time.Time  `json:"effective_from,omitempty"`
+	Scope ReportScope `json:"-"`
+
+	TenantID      string `json:"tenant_id,omitempty"`
+	LegalEntityID string `json:"legal_entity_id,omitempty"`
+	ActorID       string `json:"actor_id,omitempty"`
+	ReviewerID    string `json:"reviewer_id,omitempty"`
+	AuthorizerID  string `json:"authorizer_id,omitempty"`
+	CheckerID     string `json:"checker_id,omitempty"`
+
+	DefinitionID    string     `json:"definition_id"`
+	ExpectedVersion int64      `json:"expected_version"`
+	ChecksumSeen    string     `json:"checksum_seen"`
+	Note            string     `json:"note,omitempty"`
+	EffectiveFrom   *time.Time `json:"effective_from,omitempty"`
 }
 
 type CreateRunInput struct {
-	Scope                     ReportScope `json:"-"`
-	DefinitionID              string      `json:"definition_id"`
-	ExpectedDefinitionVersion int         `json:"expected_definition_version"`
+	Scope ReportScope `json:"-"`
+
+	TenantID      string `json:"tenant_id,omitempty"`
+	LegalEntityID string `json:"legal_entity_id,omitempty"`
+	ActorID       string `json:"actor_id,omitempty"`
+
+	DefinitionID              string `json:"definition_id"`
+	ExpectedDefinitionVersion int    `json:"expected_definition_version"`
 	// RequestedByRef is accepted for wire compatibility but always overwritten
 	// from the verified actor.
 	RequestedByRef string `json:"requested_by_ref,omitempty"`
@@ -143,6 +165,61 @@ func ValidateTransitionForWrite(current ReportDefinition, next DefinitionStatus)
 		return ErrInvalid
 	}
 	return nil
+}
+
+func (s *Service) ListDefinitions(ctx context.Context, scope ReportScope, includeRetired bool) ([]ReportDefinition, error) {
+	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	if err != nil {
+		return nil, err
+	}
+	if s.repo == nil {
+		return nil, ErrInvalid
+	}
+	return s.repo.ListDefinitions(ctx, verifiedScope, includeRetired)
+}
+
+func (s *Service) GetDefinition(ctx context.Context, scope ReportScope, id string) (ReportDefinition, error) {
+	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	if err != nil {
+		return ReportDefinition{}, err
+	}
+	if s.repo == nil || strings.TrimSpace(id) == "" {
+		return ReportDefinition{}, ErrInvalid
+	}
+	return s.repo.GetDefinition(ctx, verifiedScope, id)
+}
+
+func (s *Service) GetDefinitionHistory(ctx context.Context, scope ReportScope, id string) ([]ReportDefinitionRevision, error) {
+	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	if err != nil {
+		return nil, err
+	}
+	if s.repo == nil || strings.TrimSpace(id) == "" {
+		return nil, ErrInvalid
+	}
+	return s.repo.ListDefinitionHistory(ctx, verifiedScope, id)
+}
+
+func (s *Service) ListRuns(ctx context.Context, scope ReportScope, definitionID string, limit int) ([]ReportRun, error) {
+	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	if err != nil {
+		return nil, err
+	}
+	if s.repo == nil {
+		return nil, ErrInvalid
+	}
+	return s.repo.ListRuns(ctx, verifiedScope, definitionID, limit)
+}
+
+func (s *Service) GetRun(ctx context.Context, scope ReportScope, id string) (ReportRun, error) {
+	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	if err != nil {
+		return ReportRun{}, err
+	}
+	if s.repo == nil || strings.TrimSpace(id) == "" {
+		return ReportRun{}, ErrInvalid
+	}
+	return s.repo.GetRun(ctx, verifiedScope, id)
 }
 
 func (s *Service) Propose(ctx context.Context, input ProposeInput) (ReportDefinition, error) {
@@ -351,18 +428,12 @@ func (s *Service) ExecuteRun(ctx context.Context, requested ReportRun) (ReportRu
 	if err != nil {
 		return ReportRun{}, err
 	}
-	var run ReportRun
-	found := false
-	for _, candidate := range claimedRuns {
-		if candidate.ID == requested.ID {
-			run = candidate
-			found = true
-			break
-		}
-	}
-	if !found {
+	if len(claimedRuns) != 1 {
 		return ReportRun{}, ErrConflict
 	}
+	// The requested row is a polling hint. Claim exactly one row so a worker
+	// cannot strand additional RUNNING rows that it will never execute.
+	run := claimedRuns[0]
 	if err := validateClaimedRun(run); err != nil {
 		return ReportRun{}, err
 	}
@@ -537,10 +608,20 @@ func (s *Service) Open(ctx context.Context, scope ReportScope, runID string) (Re
 	if err != nil {
 		return ReportRun{}, nil, err
 	}
-	if run.TenantID != verifiedScope.TenantID || run.LegalEntityID != verifiedScope.LegalEntityID ||
-		run.Status != RunReady || run.DataObjectKey == "" || run.DataSHA256 == "" ||
-		!s.now().Before(run.ExpiresAt) {
+	if run.TenantID != verifiedScope.TenantID || run.LegalEntityID != verifiedScope.LegalEntityID {
 		return ReportRun{}, nil, ErrNotFound
+	}
+	if run.Status == RunFailed && run.FailureCode == FailureRowLimitExceeded {
+		return ReportRun{}, nil, ErrReportBoundStopped
+	}
+	if run.Status != RunReady {
+		return ReportRun{}, nil, ErrReportNotReady
+	}
+	if run.DataObjectKey == "" || run.DataSHA256 == "" || run.ManifestObjectKey == "" || run.ManifestSHA256 == "" {
+		return ReportRun{}, nil, ErrNotFound
+	}
+	if !s.now().Before(run.ExpiresAt) {
+		return ReportRun{}, nil, ErrReportExpired
 	}
 	reader, err := s.objects.Open(ctx, run.DataObjectKey)
 	if err != nil {
@@ -645,7 +726,7 @@ func (s *Service) authorized(ctx context.Context, actor identity.Actor, scope Re
 		DecisionType: decisionType, Materiality: materiality, At: s.now(),
 	})
 	if err != nil {
-		return err
+		return errors.Join(ErrAuthorityUnavailable, err)
 	}
 	if strings.TrimSpace(resolution.PolicyVersion) == "" || !resolution.AllowsPrincipal(actor.PrincipalID) {
 		return ErrClosureBlocked

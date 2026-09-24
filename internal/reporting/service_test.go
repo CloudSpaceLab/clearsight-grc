@@ -539,8 +539,8 @@ func TestOpenRunRejectsAnExpiredRun(t *testing.T) {
 	repository.runs[run.ID] = run
 	authorityChecker.expected[authority.ResponsibilityPerformer] = testPerformerID
 	_, _, err := service.Open(reportActorContext(testPerformerID), testScope(), run.ID)
-	if !errors.Is(err, ErrNotFound) {
-		t.Fatalf("expired open error = %v, want ErrNotFound", err)
+	if !errors.Is(err, ErrReportExpired) {
+		t.Fatalf("expired open error = %v, want ErrReportExpired", err)
 	}
 	if repository.downloads != 0 {
 		t.Fatal("expired run recorded a download")

@@ -14,7 +14,8 @@ func (a *API) productionRoutes() []routeSpec {
 	activity := a.activityRoutes()
 	gatewayTransports := a.aiGatewayTransportRoutes()
 	ropa := a.ropaRoutes()
-	routes := make([]routeSpec, 0, len(base)+len(distributions)+len(communications)+len(proposals)+len(policies)+len(activity)+len(gatewayTransports)+len(ropa))
+	reporting := a.reportingRoutes()
+	routes := make([]routeSpec, 0, len(base)+len(distributions)+len(communications)+len(proposals)+len(policies)+len(activity)+len(gatewayTransports)+len(ropa)+len(reporting))
 	routes = append(routes, base...)
 	routes = append(routes, distributions...)
 	routes = append(routes, communications...)
@@ -23,6 +24,7 @@ func (a *API) productionRoutes() []routeSpec {
 	routes = append(routes, activity...)
 	routes = append(routes, gatewayTransports...)
 	routes = append(routes, ropa...)
+	routes = append(routes, reporting...)
 	return routes
 }
 

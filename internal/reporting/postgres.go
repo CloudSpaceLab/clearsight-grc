@@ -511,6 +511,33 @@ func (r *PostgresRepository) ClaimQueuedRuns(ctx context.Context, scope ReportSc
 	return values, nil
 }
 
+func (r *PostgresRepository) ListQueuedRunScopes(ctx context.Context, limit int) ([]ReportScope, error) {
+	if r == nil || r.pool == nil || ctx == nil {
+		return nil, ErrInvalid
+	}
+	limit = boundedRepositoryLimit(limit, 5)
+	rows, err := r.pool.Query(ctx, `SELECT tenant_id::text,legal_entity_id::text
+		FROM report_runs WHERE status='QUEUED'
+		GROUP BY tenant_id,legal_entity_id
+		ORDER BY min(created_at),tenant_id,legal_entity_id LIMIT $1`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list queued report run scopes: %w", err)
+	}
+	defer rows.Close()
+	scopes := make([]ReportScope, 0, limit)
+	for rows.Next() {
+		var scope ReportScope
+		if err := rows.Scan(&scope.TenantID, &scope.LegalEntityID); err != nil {
+			return nil, fmt.Errorf("scan queued report run scope: %w", err)
+		}
+		scopes = append(scopes, scope)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list queued report run scopes: %w", err)
+	}
+	return scopes, nil
+}
+
 func (r *PostgresRepository) CompleteRun(ctx context.Context, scope ReportScope, run ReportRun) (ReportRun, error) {
 	if err := r.validateInput(ctx, scope, run.ID); err != nil {
 		return ReportRun{}, err

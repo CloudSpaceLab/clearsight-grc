@@ -20,4 +20,14 @@ var (
 	// ErrArtifactIntegrity is returned when stored bytes do not match the digest
 	// calculated over the exact bytes offered to object storage.
 	ErrArtifactIntegrity = errors.New("reporting: stored artefact integrity mismatch")
+	// ErrAuthorityUnavailable is returned when the current report authority
+	// service cannot produce a decision. Callers fail closed without writing.
+	ErrAuthorityUnavailable = errors.New("reporting: current authority is unavailable")
+	// ErrReportExpired is returned only after current download authority and
+	// exact legal-entity scope have been checked.
+	ErrReportExpired = errors.New("reporting: report file expired")
+	// ErrReportNotReady identifies a scoped run that cannot yet produce bytes.
+	ErrReportNotReady = errors.New("reporting: report is not ready")
+	// ErrReportBoundStopped identifies a terminal bounded-stop receipt.
+	ErrReportBoundStopped = errors.New("reporting: report stopped at a configured bound")
 )

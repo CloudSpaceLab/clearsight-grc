@@ -227,7 +227,8 @@ const (
 	MaxReportRunRows   = 10_000
 	MaxReportRunBytes  = int64(32 << 20)
 	ReportRunRetention = 7 * 24 * time.Hour
-	MaxReportRunLease  = 2 * time.Minute
+	ReportRunLease     = 2 * time.Minute
+	MaxReportRunLease  = ReportRunLease
 	MaxReportRunTries  = 5
 
 	reportManifestSchema = "clearsight.report-run.v1"
