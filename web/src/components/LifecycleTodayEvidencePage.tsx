@@ -77,12 +77,12 @@ export function LifecycleTodayEvidencePage() {
   return <div className="app-shell" data-evidence-fixture="today-lifecycle">
     <aside className="sidebar" aria-label="Primary navigation">
       <div className="brand-mark" aria-label="ClearSight">C</div>
-      <nav><button className="nav-item active" type="button" aria-current="page"><NavigationIcon view="today"/><b>Today</b></button></nav>
+      <nav><button className="nav-item active" type="button" aria-current="page"><NavigationIcon view="today"/><b>Oversight</b></button></nav>
       <div className="avatar" aria-label="Signed in as Ada Nwosu">AN</div>
     </aside>
     <main>
       <div className="context-bar" aria-label="Active workspace context"><div><strong>Meridian Trust Bank</strong><span>Meridian Trust Bank Nigeria</span></div><div className="context-role"><span>Independent reviewer</span></div></div>
-      <header className="topbar today-topbar"><div><span className="eyebrow">Meridian Trust Bank</span><h1>Today</h1><p>Work requiring your review, decision or confirmation.</p></div></header>
+      <header className="topbar today-topbar"><div><span className="eyebrow">Meridian Trust Bank</span><h1>Oversight</h1><p>Work requiring your review, decision or confirmation.</p></div></header>
       <TodayInterventions items={items} connection="live" readiness={readiness} readinessState="live" onOpenItem={() => {}} onInspectAuthority={() => {}}/>
     </main>
   </div>;
