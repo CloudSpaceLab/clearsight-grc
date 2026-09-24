@@ -256,6 +256,19 @@ describe("runtime navigation", () => {
     expect((await screen.findAllByRole("button", { name: "Oversight" })).length).toBeGreaterThan(0);
   });
 
+  it("moves legacy Today entry into Oversight while retaining assigned work", async () => {
+    vi.mocked(loadContext).mockResolvedValue({ ...runtime(false), capabilities: { ...runtime(false).capabilities, oversight_read: true } });
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention("request-assigned")], generated_at: "2026-08-07T15:00:00Z" });
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.hash).toBe("#oversight"));
+    expect(await screen.findByText("Confirm assigned evidence")).toBeTruthy();
+    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
+    expect(within(primaryNavigation).queryByRole("button", { name: "Today" })).toBeNull();
+    expect(within(primaryNavigation).getByRole("button", { name: "Oversight" }).getAttribute("aria-current")).toBe("page");
+  });
+
   it("does not turn platform administration into risk oversight access", async () => {
     vi.mocked(loadContext).mockResolvedValue({
       ...runtime(false),
