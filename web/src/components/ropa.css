@@ -99,6 +99,18 @@
   border-top: 2px solid var(--amber);
 }
 
+/* The badge is an inline-flex row, so its text is a flex item that refuses to
+   shrink below its content width and spills over the neighbouring card. Allow
+   the flex line to break so the full label stays readable, while keeping the
+   inline-flex layout that carries the non-colour status marker. */
+.ropa-dashboard-strip__metric > .cs-status-badge {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .ropa-dashboard-strip__coverage {
   justify-content: space-between;
   flex-wrap: wrap;
