@@ -221,7 +221,7 @@ function page(url: URL): ProcessingActivityPageWire {
     if (search && !`${activity.name} ${activity.code} ${activity.purpose} ${activity.description}`.toLowerCase().includes(search)) return false;
     return true;
   });
-  return { Rows: rows, NextCursor: "", HasMore: false };
+  return { rows, has_more: false };
 }
 
 function currentEvidenceVariant(): "STALE" | "CURRENT" {
