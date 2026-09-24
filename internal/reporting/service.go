@@ -675,6 +675,16 @@ func validateDefinitionForCreate(definition ReportDefinition) error {
 	return nil
 }
 
+func validateDefinitionRevision(revision ReportDefinitionRevision, definition ReportDefinition) error {
+	if revision.DefinitionID != definition.ID || revision.TenantID != definition.TenantID || revision.LegalEntityID != definition.LegalEntityID ||
+		revision.Version != definition.CurrentVersion || revision.BaseVersion != 0 || revision.Dataset != definition.Dataset ||
+		revision.ScopeKind != definition.ScopeKind || revision.ScopeRef != definition.ScopeRef || revision.Format != definition.Format ||
+		revision.Checksum != definition.StoredChecksum || revision.MakerID != definition.MakerID || revision.Decision != "PROPOSED" {
+		return ErrInvalid
+	}
+	return nil
+}
+
 func validReportDataset(dataset ReportDataset) bool {
 	return dataset == DatasetProcessingActivities || dataset == DatasetProcessingActivityExceptions ||
 		dataset == DatasetPrograms || dataset == DatasetMatterExceptions
@@ -736,10 +746,27 @@ func definitionIsEffective(definition ReportDefinition, now time.Time) bool {
 }
 
 func validateReportScope(scope ReportScope) error {
-	if !isUUID(strings.TrimSpace(scope.TenantID)) || !isUUID(strings.TrimSpace(scope.LegalEntityID)) {
+	// The default non-production demo uses the same readable identifiers as the
+	// existing bank installer. Production PostgreSQL still parses both values
+	// as UUID parameters, so an invalid production scope fails at the database
+	// boundary without weakening exact tenant/legal-entity matching.
+	if !validReportScopeIdentifier(scope.TenantID) || !validReportScopeIdentifier(scope.LegalEntityID) {
 		return ErrInvalid
 	}
 	return nil
+}
+
+func validReportScopeIdentifier(value string) bool {
+	value = strings.TrimSpace(value)
+	if value == "" || utf8.RuneCountInString(value) > 128 {
+		return false
+	}
+	for _, character := range value {
+		if character < 0x20 || character == 0x7f {
+			return false
+		}
+	}
+	return true
 }
 
 func validateSourceBoundary(boundary SourceBoundary) error {
@@ -896,6 +923,11 @@ func reportExtension(format ReportFormat) string {
 		return ".ndjson"
 	}
 	return ".csv"
+}
+
+func timePtrCopy(value time.Time) *time.Time {
+	result := value.UTC()
+	return &result
 }
 
 func normalizedTimeValue(value *time.Time) *time.Time {

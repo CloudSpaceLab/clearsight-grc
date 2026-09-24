@@ -760,68 +760,6 @@ func scanRun(row reportingRowScanner) (ReportRun, error) {
 	return value, nil
 }
 
-func validateDefinitionRevision(revision ReportDefinitionRevision, definition ReportDefinition) error {
-	if revision.DefinitionID != definition.ID || revision.TenantID != definition.TenantID || revision.LegalEntityID != definition.LegalEntityID ||
-		revision.Version != definition.CurrentVersion || revision.BaseVersion != 0 || revision.Dataset != definition.Dataset ||
-		revision.ScopeKind != definition.ScopeKind || revision.ScopeRef != definition.ScopeRef || revision.Format != definition.Format ||
-		revision.Checksum != definition.StoredChecksum || revision.MakerID != definition.MakerID || revision.Decision != "PROPOSED" {
-		return ErrInvalid
-	}
-	return nil
-}
-
-func validateDefinitionDecision(current ReportDefinition, next DefinitionStatus, decision DecisionRecord) error {
-	expected := DefinitionStatus("")
-	switch decision.Action {
-	case DecisionSubmit:
-		expected = DefinitionPendingReview
-	case DecisionReview:
-		expected = DefinitionReviewed
-	case DecisionActivate:
-		expected = DefinitionActive
-	case DecisionReject, DecisionRetire:
-		expected = DefinitionRetired
-	default:
-		return ErrInvalid
-	}
-	if expected != next || decision.Timestamp.Before(current.UpdatedAt) {
-		return ErrInvalid
-	}
-	if decision.Action == DecisionSubmit && decision.ActorID != current.MakerID {
-		return ErrClosureBlocked
-	}
-	if (decision.Action == DecisionReview || decision.Action == DecisionReject) && decision.ActorID == current.MakerID {
-		return ErrClosureBlocked
-	}
-	if decision.Action == DecisionActivate && (decision.ActorID == current.MakerID || decision.ActorID == current.ReviewerID) {
-		return ErrClosureBlocked
-	}
-	return nil
-}
-
-func applyDefinitionDecision(current ReportDefinition, next DefinitionStatus, decision DecisionRecord) ReportDefinition {
-	result := current
-	result.Status = next
-	switch decision.Action {
-	case DecisionSubmit:
-		result.SubmittedAt = timePtrCopy(decision.Timestamp)
-	case DecisionReview:
-		result.ReviewerID = decision.ActorID
-		result.ReviewerNote = decision.Note
-	case DecisionActivate:
-		result.CheckerID = decision.ActorID
-		result.ApprovedAt = timePtrCopy(decision.Timestamp)
-		if decision.EffectiveFrom == nil {
-			result.EffectiveFrom = timePtrCopy(decision.Timestamp)
-		} else {
-			result.EffectiveFrom = timePtrCopy(decision.EffectiveFrom.UTC())
-		}
-	case DecisionReject, DecisionRetire:
-		result.RetiredAt = timePtrCopy(decision.Timestamp)
-	}
-	return result
-}
-
 func revisionDecisionSQL(next DefinitionStatus, decision DecisionRecord) string {
 	switch decision.Action {
 	case DecisionSubmit:
@@ -890,11 +828,6 @@ func nullableText(value string) any {
 		return nil
 	}
 	return value
-}
-
-func timePtrCopy(value time.Time) *time.Time {
-	result := value.UTC()
-	return &result
 }
 
 func boundedRepositoryLimit(value, fallback int) int {
