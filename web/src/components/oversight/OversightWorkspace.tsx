@@ -1,14 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadOversight, type OversightSnapshot } from "../../oversightApi";
 import { Button, DataTable, EmptyState, Tabs } from "../ui";
+import type { AttentionItem } from "../../types";
 import "../../oversight.css";
 
 type DetailView = "pressure" | "outlook" | "performance";
+export type OversightMetricFilter = "all" | "critical-high" | "overdue" | "routing-gaps" | "outcome-failures";
+type TodayState = "loading" | "live" | "unavailable";
 
-export function OversightWorkspace({ organizationName, legalEntityName, onOpenMatter, loadSnapshot = loadOversight }: { organizationName: string; legalEntityName: string; onOpenMatter: (id: string) => void; loadSnapshot?: () => Promise<OversightSnapshot> }) {
+export function OversightWorkspace({ organizationName, legalEntityName, onOpenMatter, loadSnapshot = loadOversight, metricFilter = "all", onMetricFilterChange, todayItems = [], todayState = "loading", onOpenTodayItem, onOpenToday }: { organizationName: string; legalEntityName: string; onOpenMatter: (id: string) => void; loadSnapshot?: () => Promise<OversightSnapshot>; metricFilter?: OversightMetricFilter; onMetricFilterChange?: (filter: OversightMetricFilter) => void; todayItems?: AttentionItem[]; todayState?: TodayState; onOpenTodayItem?: (item: AttentionItem) => void; onOpenToday?: () => void }) {
   const [snapshot, setSnapshot] = useState<OversightSnapshot | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
   const [view, setView] = useState<DetailView>("pressure");
+  const [localMetricFilter, setLocalMetricFilter] = useState<OversightMetricFilter>(metricFilter);
+  const selectedMetricFilter = onMetricFilterChange ? metricFilter : localMetricFilter;
+
+  useEffect(() => { setLocalMetricFilter(metricFilter); }, [metricFilter]);
+
+  function selectMetric(filter: OversightMetricFilter) {
+    if (onMetricFilterChange) onMetricFilterChange(filter);
+    else setLocalMetricFilter(filter);
+    if (filter !== "all") {
+      document.getElementById("oversight-attention")?.scrollIntoView?.({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    }
+  }
 
   async function load() {
     setState("loading");
@@ -27,6 +42,7 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
   if (state === "unavailable" || !snapshot) return <section className="oversight-workspace"><div className="oversight-unavailable"><span className="eyebrow">{legalEntityName}</span><h1>Oversight information is unavailable</h1><p>No current snapshot could be loaded. Check projection operations or retry after the next processing cycle.</p><Button onPress={() => void load()}>Retry oversight</Button></div></section>;
 
   const coverage = `${snapshot.coverage.population} issues checked · ${formatKnown(snapshot.coverage.excluded)} excluded · ${formatKnown(snapshot.coverage.unknown)} unknown`;
+  const interventions = filterInterventions(snapshot.interventions, selectedMetricFilter);
   return <section className="oversight-workspace">
     <header className="oversight-header">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Risk and delivery oversight</h1><p>Review issues requiring intervention, resolution outlook and operating workload for this legal entity.</p></div>
@@ -40,19 +56,21 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
     </details>
 
     <div className="oversight-counts" aria-label="Issues requiring oversight">
-      <Metric label="Critical and high" value={snapshot.counts.critical_high} tone="critical" detail="Open priority 4–5 issues"/>
-      <Metric label="Overdue" value={snapshot.counts.overdue} tone="warning" detail="Open issues past their due date"/>
-      <Metric label="Routing gaps" value={snapshot.counts.routing_failures} tone="warning" detail="Active work without a resolved recipient"/>
-      <Metric label="Outcome failures" value={snapshot.counts.outcome_failures} tone="critical" detail="Latest outcome check failed or inconclusive"/>
+      <Metric label="Critical and high" value={snapshot.counts.critical_high} tone="critical" detail="Open priority 4–5 issues" filter="critical-high" active={selectedMetricFilter === "critical-high"} onSelect={selectMetric}/>
+      <Metric label="Overdue" value={snapshot.counts.overdue} tone="warning" detail="Open issues past their due date" filter="overdue" active={selectedMetricFilter === "overdue"} onSelect={selectMetric}/>
+      <Metric label="Routing gaps" value={snapshot.counts.routing_failures} tone="warning" detail="Active work without a resolved recipient" filter="routing-gaps" active={selectedMetricFilter === "routing-gaps"} onSelect={selectMetric}/>
+      <Metric label="Outcome failures" value={snapshot.counts.outcome_failures} tone="critical" detail="Latest outcome check failed or inconclusive" filter="outcome-failures" active={selectedMetricFilter === "outcome-failures"} onSelect={selectMetric}/>
     </div>
 
-    <section className="oversight-attention" aria-labelledby="oversight-attention-heading">
-      <div className="section-header"><div><span className="eyebrow">What needs attention now</span><h2 id="oversight-attention-heading">Priority interventions</h2><p>Ranked by overdue state, priority and current deadline.</p></div><div className="oversight-inline-counts"><span>{snapshot.counts.due_soon} due soon</span><span>{snapshot.counts.unassigned} unassigned</span></div></div>
-      {snapshot.interventions.length ? <div className="oversight-intervention-list">{snapshot.interventions.map((item) => <article key={`${item.target_type}-${item.target_id}`}>
+    <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem} onOpenToday={onOpenToday}/>
+
+    <section id="oversight-attention" className="oversight-attention" aria-labelledby="oversight-attention-heading">
+      <div className="section-header"><div><span className="eyebrow">What needs attention now</span><h2 id="oversight-attention-heading">{selectedMetricFilter === "all" ? "Priority interventions" : metricFilterLabel(selectedMetricFilter)}</h2><p>{selectedMetricFilter === "all" ? "Ranked by overdue state, priority and current deadline." : "Ranked intervention records matching the selected measure."}</p></div><div className="oversight-inline-counts"><span>{snapshot.counts.due_soon} due soon</span><span>{snapshot.counts.unassigned} unassigned</span></div></div>
+      {interventions.length ? <div className="oversight-intervention-list">{interventions.map((item) => <article key={`${item.target_type}-${item.target_id}`}>
         <div className={`oversight-priority p${item.priority}`}><span>P{item.priority}</span></div>
         <div><div className="oversight-intervention-title"><strong>{item.title}</strong><span>{humanize(item.category)}</span></div><p>{item.reason}</p><small>{item.owner_name || "No owner recorded"}{item.due_at ? ` · Due ${formatDate(item.due_at)}` : " · No due date recorded"} · {humanize(item.state)}</small></div>
         <div className="oversight-action"><Button size="compact" onPress={() => onOpenMatter(item.target_id)} aria-label={`Review ${item.title}`}>{item.next_action}</Button></div>
-      </article>)}</div> : <EmptyState population={`${snapshot.coverage.population} issues checked in ${legalEntityName}`} title="No issue meets the current intervention criteria" description="Review the freshness and coverage above before treating this result as complete."/>}
+      </article>)}</div> : <EmptyState population={`${snapshot.coverage.population} issues checked in ${legalEntityName}`} title={selectedMetricFilter === "all" ? "No issue meets the current intervention criteria" : "No ranked intervention matches this measure"} description="Review the freshness and coverage above before treating this result as complete."/>}
     </section>
 
     <div className="oversight-analysis"><Tabs ariaLabel="Oversight analysis" items={detailViews} selectedKey={view} onSelectionChange={setView}>{(selected) => <div className="oversight-detail">
@@ -63,8 +81,21 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
   </section>;
 }
 
-function Metric({ label, value, detail, tone }: { label: string; value: number; detail: string; tone: string }) {
-  return <article className={`oversight-metric ${tone}`}><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>;
+function Metric({ label, value, detail, tone, filter, active, onSelect }: { label: string; value: number; detail: string; tone: string; filter: OversightMetricFilter; active: boolean; onSelect: (filter: OversightMetricFilter) => void }) {
+  const action = active ? "Show all priority interventions" : `Show ${label.toLowerCase()} interventions`;
+  return <button type="button" className={`oversight-metric ${tone}`} aria-pressed={active} aria-controls="oversight-attention-heading" onClick={() => onSelect(active ? "all" : filter)}>
+    <span>{label}</span><strong>{value}</strong><small>{detail}</small><em>{action}</em>
+  </button>;
+}
+
+function OversightToday({ items, state, onOpenItem, onOpenToday }: { items: AttentionItem[]; state: TodayState; onOpenItem?: (item: AttentionItem) => void; onOpenToday?: () => void }) {
+  const visible = items.slice(0, 4);
+  return <section className="oversight-today" aria-labelledby="oversight-today-heading">
+    <div className="section-header"><div><span className="eyebrow">Today</span><h2 id="oversight-today-heading">Your work today</h2><p>Assigned decisions, evidence and exceptions requiring your current responsibility.</p></div>{onOpenToday && <Button size="compact" onPress={onOpenToday}>Open Today</Button>}</div>
+    {state === "loading" ? <p className="oversight-today-status" aria-live="polite" aria-busy="true">Loading assigned work…</p> : state === "unavailable" ? <p className="oversight-today-status">Assigned work is unavailable. Refresh Today before relying on the current queue.</p> : visible.length ? <div className="oversight-today-list">{visible.map((item) => <button type="button" className="oversight-today-item" key={item.id} onClick={() => onOpenItem?.(item)} disabled={!onOpenItem} aria-label={`Open ${item.title}`}>
+      <span className="oversight-today-item__main"><strong>{item.title}</strong><small>{item.why_now}</small></span><span className="oversight-today-item__meta"><span>{item.owner}</span><time>{formatTodayDue(item.due_at)}</time></span>
+    </button>)}</div> : <p className="oversight-today-status">No assigned work or permitted operational exceptions are open for you.</p>}
+  </section>;
 }
 
 function RiskPressure({ snapshot }: { snapshot: OversightSnapshot }) {
@@ -129,3 +160,28 @@ function formatDate(value: string) { return new Intl.DateTimeFormat(undefined, {
 function formatDateTime(value: string) { return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(value)); }
 function formatDuration(hours: number) { return hours < 48 ? `${Math.round(hours)}h` : `${(hours / 24).toFixed(hours % 24 === 0 ? 0 : 1)}d`; }
 function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
+
+function filterInterventions(items: OversightSnapshot["interventions"], filter: OversightMetricFilter) {
+  if (filter === "all") return items;
+  return items.filter((item) => {
+    if (filter === "critical-high") return item.priority >= 4;
+    if (filter === "overdue") return Boolean(item.due_at && Date.parse(item.due_at) < Date.now());
+    if (filter === "routing-gaps") return !item.owner_id && !item.owner_name;
+    return /outcome|verification|inconclusive|failed/i.test(`${item.category} ${item.state} ${item.reason}`);
+  });
+}
+
+function metricFilterLabel(filter: Exclude<OversightMetricFilter, "all">) {
+  switch (filter) {
+    case "critical-high": return "Critical and high interventions";
+    case "overdue": return "Overdue interventions";
+    case "routing-gaps": return "Routing gap interventions";
+    case "outcome-failures": return "Outcome failure interventions";
+  }
+}
+
+function formatTodayDue(value: string) {
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return "No deadline";
+  return `Due ${new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(parsed))}`;
+}

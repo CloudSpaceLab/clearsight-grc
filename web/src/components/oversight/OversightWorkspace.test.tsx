@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { OversightWorkspace } from "./OversightWorkspace";
+import type { AttentionItem } from "../../types";
 
 const api = vi.hoisted(() => ({ loadOversight: vi.fn() }));
 vi.mock("../../oversightApi", () => api);
@@ -54,4 +55,23 @@ it("keeps unavailable projection state explicit instead of substituting sample m
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
   await waitFor(() => expect(screen.getByRole("heading", { name: "Oversight information is unavailable" })).toBeTruthy());
   expect(screen.queryByText("7")).toBeNull();
+});
+
+it("filters interventions from an accessible metric and keeps Today work available in oversight", async () => {
+  const onMetricFilterChange = vi.fn();
+  const onOpenTodayItem = vi.fn();
+  const todayItems: AttentionItem[] = [{
+    id: "today-1", type: "MATTER", title: "Confirm the NDPA evidence owner", state: "ACTION_IN_PROGRESS",
+    why_now: "The evidence review is due this week.", scope: "Clear Bank Nigeria", evidence: "NDPA program", owner: "Hakeem",
+    due_at: "2026-09-25T10:00:00Z", primary_action: "Confirm evidence owner", action_target_type: "MATTER", action_target_id: "matter-1",
+  }];
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}
+    metricFilter="all" onMetricFilterChange={onMetricFilterChange} todayItems={todayItems} todayState="live" onOpenTodayItem={onOpenTodayItem}/>);
+
+  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  fireEvent.click(screen.getByRole("button", { name: /Overdue.*4/i }));
+  expect(onMetricFilterChange).toHaveBeenCalledWith("overdue");
+  expect(screen.getByRole("heading", { name: "Your work today" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Open Confirm the NDPA evidence owner" }));
+  expect(onOpenTodayItem).toHaveBeenCalledWith(todayItems[0]);
 });

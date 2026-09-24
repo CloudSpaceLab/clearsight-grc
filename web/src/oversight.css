@@ -17,12 +17,27 @@
 .oversight-data-freshness dt { color: var(--muted); font-size: .68rem; }
 .oversight-data-freshness dd { margin: 0; font-size: .74rem; font-weight: 650; }
 .oversight-counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
-.oversight-metric { display: grid; gap: 5px; min-height: 130px; padding: 17px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-14); background: var(--surface); box-shadow: var(--cs-shadow-raised); }
+.oversight-metric { display: grid; width: 100%; gap: 5px; min-height: 130px; padding: 17px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-14); background: var(--surface); box-shadow: var(--cs-shadow-raised); color: var(--text); text-align: left; cursor: pointer; transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
 .oversight-metric > span { color: var(--muted); font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .oversight-metric strong { align-self: end; font-size: 2rem; line-height: 1; }
 .oversight-metric small { color: var(--muted); font-size: .72rem; }
+.oversight-metric em { align-self: end; margin-top: 4px; color: var(--cyan); font-size: .72rem; font-style: normal; font-weight: 700; }
+.oversight-metric[data-hovered], .oversight-metric[data-pressed] { border-color: var(--cyan); box-shadow: var(--cs-shadow-raised); transform: translateY(-2px); }
+.oversight-metric[aria-pressed="true"] { border-color: var(--cyan); background: var(--cyan-soft); }
+.oversight-metric:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
 .oversight-metric.critical { border-top: 3px solid var(--coral); }
 .oversight-metric.warning { border-top: 3px solid var(--amber); }
+.oversight-today { margin: 0 0 18px; padding: 18px 20px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-14); background: var(--surface); }
+.oversight-today .section-header { align-items: center; }
+.oversight-today-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 14px; }
+.oversight-today-item { display: grid; min-width: 0; gap: 10px; padding: 13px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-10); background: var(--surface-2); color: var(--text); text-align: left; cursor: pointer; transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease; }
+.oversight-today-item__main { display: grid; gap: 4px; min-width: 0; }
+.oversight-today-item__main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .84rem; }
+.oversight-today-item__main small, .oversight-today-item__meta { color: var(--muted); font-size: .72rem; }
+.oversight-today-item__meta { display: flex; justify-content: space-between; gap: 8px; }
+.oversight-today-item[data-hovered], .oversight-today-item[data-pressed] { border-color: var(--cyan); background: var(--cyan-soft); transform: translateY(-1px); }
+.oversight-today-item:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+.oversight-today-status { margin: 13px 0 0; color: var(--muted); font-size: .8rem; }
 .oversight-attention, .oversight-panel { padding: 20px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-14); background: var(--surface); }
 .oversight-attention h2, .oversight-panel h2 { margin: 4px 0; font-size: 1.15rem; }
 .oversight-inline-counts { display: flex; gap: 8px; }
@@ -71,8 +86,16 @@
   .oversight-workspace { padding: 24px 14px 90px; }
   .oversight-counts { grid-template-columns: 1fr 1fr; gap: 8px; }
   .oversight-metric { min-height: 116px; padding: 13px; }
+  .oversight-metric em { display: none; }
+  .oversight-today { padding: 16px; }
+  .oversight-today-list { grid-template-columns: 1fr; }
   .oversight-intervention-list article { grid-template-columns: 38px minmax(0, 1fr); }
   .oversight-action { grid-column: 2; justify-self: start; max-width: 100%; }
   .oversight-bars > div { grid-template-columns: 105px minmax(90px, 1fr) 24px; }
   .oversight-inline-counts { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oversight-metric, .oversight-today-item { transition: none; }
+  .oversight-metric[data-hovered], .oversight-metric[data-pressed], .oversight-today-item[data-hovered], .oversight-today-item[data-pressed] { transform: none; }
 }
