@@ -338,6 +338,27 @@ func TestCreateRunQueuesWithoutRenderingInline(t *testing.T) {
 	}
 }
 
+func TestServiceCompleteRunRefusesWithoutArtefacts(t *testing.T) {
+	service, repository, _, _ := newReportingServiceTest()
+	now := serviceTestNow
+	run := ReportRun{
+		ID: "00000000-0000-7000-8000-000000000301", TenantID: testTenantID, LegalEntityID: testEntityA,
+		DefinitionID: testDefinitionID, DefinitionVersion: 1, DefinitionCode: "ROPA-EXCEPTIONS",
+		DefinitionChecksum: strings.Repeat("a", 64), ScopeKind: ScopeLegalEntity,
+		RequestedByRef: testPerformerID, AsOf: now, Filter: emptyReportFilter(),
+		Dataset: DatasetProcessingActivityExceptions, Format: FormatCSV, Status: RunReady,
+		RowCount: 0, CompletedAt: &now, CreatedAt: now, ExpiresAt: now.Add(ReportRunRetention),
+		SourceBoundary: testSourceBoundary(0),
+	}
+
+	if _, err := service.completeRun(context.Background(), testScope(), run); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("service completion without artefacts error = %v, want ErrInvalid", err)
+	}
+	if repository.completeCalls != 0 {
+		t.Fatal("service completion without artefacts reached the repository")
+	}
+}
+
 func TestCreateRunStopsAtTheRowBound(t *testing.T) {
 	service, repository, objects, authorityChecker := newReportingServiceTest()
 	definition := installActiveDefinition(repository)
@@ -733,6 +754,7 @@ type serviceTestRepository struct {
 	pageErr              error
 	failRunErr           error
 	claimAttemptOverride int
+	completeCalls        int
 }
 
 func newServiceTestRepository() *serviceTestRepository {
@@ -880,6 +902,7 @@ func (r *serviceTestRepository) ClaimQueuedRuns(_ context.Context, scope ReportS
 }
 
 func (r *serviceTestRepository) CompleteRun(_ context.Context, scope ReportScope, run ReportRun) (ReportRun, error) {
+	r.completeCalls++
 	if run.TenantID != scope.TenantID || run.LegalEntityID != scope.LegalEntityID {
 		return ReportRun{}, ErrNotFound
 	}

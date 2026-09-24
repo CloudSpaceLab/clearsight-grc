@@ -435,7 +435,7 @@ func (s *Service) ExecuteRun(ctx context.Context, requested ReportRun) (ReportRu
 	run.ManifestObjectKey = manifestKey
 	run.ManifestSHA256 = manifestChecksum
 	run.CompletedAt = &completedAt
-	completed, err := s.repo.CompleteRun(ctx, scope, run)
+	completed, err := s.completeRun(ctx, scope, run)
 	if err != nil {
 		// Both complete objects are present, so a reclaimed execution can
 		// deterministically replace them. Do not delete one and publish a
@@ -559,6 +559,37 @@ func (s *Service) Open(ctx context.Context, scope ReportScope, runID string) (Re
 		return ReportRun{}, nil, err
 	}
 	return run, io.NopCloser(bytes.NewReader(data)), nil
+}
+
+func (s *Service) completeRun(ctx context.Context, scope ReportScope, run ReportRun) (ReportRun, error) {
+	if s == nil || s.repo == nil {
+		return ReportRun{}, ErrInvalid
+	}
+	if err := validateReadyRunForWrite(run); err != nil {
+		return ReportRun{}, err
+	}
+	return s.repo.CompleteRun(ctx, scope, run)
+}
+
+func validateReadyRunForWrite(run ReportRun) error {
+	if run.Status != RunReady || run.RowCount < 0 || run.CompletedAt == nil || run.CompletedAt.IsZero() ||
+		strings.TrimSpace(run.DataObjectKey) == "" || strings.TrimSpace(run.ManifestObjectKey) == "" ||
+		!isSHA256Hex(run.DataSHA256) || !isSHA256Hex(run.ManifestSHA256) {
+		return ErrInvalid
+	}
+	return nil
+}
+
+func isSHA256Hex(value string) bool {
+	if len(value) != 64 {
+		return false
+	}
+	for _, character := range value {
+		if !((character >= '0' && character <= '9') || (character >= 'a' && character <= 'f')) {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *Service) failRun(ctx context.Context, run ReportRun, code string, cause error) error {

@@ -295,7 +295,9 @@ func renderReportFilterNode(expression *ReportFilterExpression, position *int, a
 		*args = append(*args, expression.Value)
 		bound := *position
 		(*position)++
-		return fmt.Sprintf(fragment, bound), nil
+		// Replace only the closed placeholder token. Calling fmt.Sprintf on the
+		// fragment would interpret the SQL wildcard '%' in an ILIKE predicate.
+		return strings.ReplaceAll(fragment, "%d", strconv.Itoa(bound)), nil
 	case "group":
 		parts := make([]string, 0, len(expression.Children))
 		for index := range expression.Children {
