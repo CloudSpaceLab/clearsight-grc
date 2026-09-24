@@ -13,7 +13,7 @@ import { CollectionRecord } from "./CollectionRecord";
 
 const FormBuilder = lazy(() => import("./FormBuilder").then((module) => ({ default: module.FormBuilder })));
 
-type Props = { aggregate: ProgramAggregate; actorPrincipalID: string; canConfigureSources: boolean; operations: ProgramOperation[]; onOpenMatter?: (matterID: string) => void };
+type Props = { aggregate: ProgramAggregate; actorPrincipalID: string; canConfigureSources: boolean; operations: ProgramOperation[]; onOpenMatter?: (matterID: string) => void; onOpenForm?: (formID: string) => void };
 type SetupMode = "closed" | "choose" | "form" | "source";
 
 function latestByID<T extends { id: string; version: number }>(values: T[]) {
@@ -81,7 +81,7 @@ function hasScoredQuestions(form: FormTemplate) {
   return form.fields.some((field) => Boolean(field.scoring && Object.keys(field.scoring.answer_scores ?? {}).length));
 }
 
-export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSources, operations, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; } }: Props) {
+export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSources, operations, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; }, onOpenForm }: Props) {
   const [forms, setForms] = useState<FormTemplate[]>([]);
   const [checks, setChecks] = useState<MonitoringCheck[]>([]);
   const [collectionSummaries, setCollectionSummaries] = useState<Record<string, CollectionSummary>>({});
@@ -300,6 +300,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
       {unlinkedForms.map((form) => <article className="monitoring-record" key={form.id}>
         <div><span className="record-type">Collection form</span><h4>{form.name}</h4><p>{form.fields.length} question{form.fields.length === 1 ? "" : "s"} · {statusLabel(form.status)}</p></div>
         <div className="record-actions">
+          {onOpenForm && <button className="secondary-button" type="button" onClick={() => onOpenForm(form.id)}>Open form</button>}
           {formTransitionOperation(form.id)?.can_act && formTransitionOperation(form.id)?.allowed_targets?.includes("PENDING_APPROVAL") && form.status === "DRAFT" && <button className="secondary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "PENDING_APPROVAL")}>Send for approval</button>}
           {formTransitionOperation(form.id)?.can_act && formTransitionOperation(form.id)?.allowed_targets?.includes("ACTIVE") && form.status === "PENDING_APPROVAL" && form.submitted_by !== actorPrincipalID && <button className="primary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "ACTIVE")}>Approve form</button>}
           {form.status === "PENDING_APPROVAL" && form.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this form.</span>}
@@ -318,6 +319,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
           <div className="collection-record-work">
             <MonitoringResultPanel check={check} result={result} formFields={formFields}/>
             <div className="record-actions">
+              {form && onOpenForm && <button className="secondary-button" type="button" onClick={() => onOpenForm(form.id)}>Open form</button>}
               {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("PENDING_APPROVAL") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "PENDING_APPROVAL")}>Send for approval</button>}
               {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("ACTIVE") && check.status === "PENDING_APPROVAL" && check.submitted_by !== actorPrincipalID && <button className="primary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "ACTIVE")}>Approve check</button>}
               {transitionOperation?.can_act && transitionOperation.allowed_targets?.includes("REJECTED") && <button className="secondary-button" disabled={busy === check.id} onClick={() => void changeCheck(check, "REJECTED")}>Return check</button>}
