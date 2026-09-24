@@ -454,7 +454,10 @@
   line-height: 1;
 }
 
-.report-status-strip__metric > .cs-status-badge {
+/* The shared badge is an inline-flex row. Keep the non-colour marker, but
+   allow its label to use another flex line so a long report state grows the
+   pill instead of spilling below its own background. */
+.reporting-page .cs-status-badge {
   min-width: 0;
   max-width: 100%;
   flex-wrap: wrap;
@@ -739,8 +742,8 @@
 
 .report-source-boundary li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
   align-items: baseline;
   color: var(--muted);
   font-size: 11px;
@@ -748,7 +751,8 @@
 
 .report-source-boundary li time {
   color: var(--text);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .report-run-outcome > span {

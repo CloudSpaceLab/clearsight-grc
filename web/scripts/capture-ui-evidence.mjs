@@ -46,6 +46,7 @@ const captures = [
   { name: "140-report-definitions-light-1440x900", route: "#ropa/reports", title: "Processing activity reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Processing activities with open exceptions", scrollToReportSection: "definitions", state: "report-definitions" },
   { name: "141-report-definitions-dark-mobile-390x844", route: "#ropa/reports", title: "Processing activity reports", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", scrollToReportSection: "definitions", state: "report-definitions-mobile" },
   { name: "142-report-run-failed-light-1440x900", route: "#ropa/reports", title: "Processing activity reports", fixture: "report-run-failed", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Failed at row limit", scrollToReportSection: "runs", state: "report-run-failed" },
+  { name: "143-report-definitions-reviewed-dark-mobile-compact-390x844", route: "#ropa/reports", title: "Processing activity reports", fixture: "report-definitions", theme: "dark", density: "compact", viewport: { width: 390, height: 844 }, touch: true, expectText: "Program health review", scrollToReportRow: "Program health review", state: "report-definitions-reviewed-mobile" },
 ];
 
 try {
@@ -106,6 +107,11 @@ async function capturePage(capture) {
         window.scrollTo({ top: Math.max(0, top - 150), behavior: "instant" });
       }, capture.scrollToReportSection);
     }
+    if (capture.scrollToReportRow) {
+      const row = page.getByRole("row", { name: new RegExp(capture.scrollToReportRow, "i") }).first();
+      await row.waitFor({ state: "visible" });
+      await row.locator('td[data-kind="status"]').scrollIntoViewIfNeeded();
+    }
     if (capture.openMatterSetup) {
       await page.getByRole("button", { name: "New issue or change" }).click();
       const heading = page.getByRole("heading", { name: "New issue or change" });
@@ -155,6 +161,7 @@ async function capturePage(capture) {
     const recordedCapture = capture.openRopaActivity ? { ...capture, route: new URL(page.url()).hash } : capture;
     await record(page, recordedCapture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
     await assertNoHorizontalOverflow(page, capture.name);
+    if (capture.name.startsWith("report-")) await assertReportLayout(page, capture.name);
     if (capture.state === "report-definitions-mobile") {
       const replacement = await page.evaluate(() => {
         const table = document.querySelector('[aria-label="Report definitions"]');
@@ -237,6 +244,53 @@ async function assertNoHorizontalOverflow(page, name) {
   if (metrics.scrollWidth > metrics.clientWidth + 1) {
     const overflowing = await page.evaluate(() => [...document.querySelectorAll("body *")].filter((element) => element.getBoundingClientRect().right > document.documentElement.clientWidth + 1).slice(-12).map((element) => ({ tag: element.tagName, class: element.className, right: element.getBoundingClientRect().right })));
     throw new Error(`${name} has horizontal overflow: ${metrics.scrollWidth}px content in ${metrics.clientWidth}px viewport; ${JSON.stringify(overflowing)}`);
+  }
+}
+
+async function assertReportLayout(page, name) {
+  const reportLayout = await page.evaluate(() => {
+    const rectangle = (element) => {
+      const value = typeof element.getBoundingClientRect === "function" ? element.getBoundingClientRect() : element;
+      return { x: value.x, y: value.y, width: value.width, height: value.height, right: value.right, bottom: value.bottom };
+    };
+    const textRects = (element) => {
+      const range = document.createRange();
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      const values = [];
+      let node;
+      while ((node = walker.nextNode())) {
+        if (!node.textContent?.trim()) continue;
+        range.selectNodeContents(node);
+        values.push(...[...range.getClientRects()].map((value) => rectangle(value)));
+      }
+      return values;
+    };
+    return {
+      badges: [...document.querySelectorAll(".reporting-page .cs-status-badge")].map((badge) => ({
+        label: badge.textContent?.trim() ?? "",
+        flexWrap: getComputedStyle(badge).flexWrap,
+        outer: rectangle(badge),
+        marker: badge.querySelector(".cs-status-badge__marker") ? rectangle(badge.querySelector(".cs-status-badge__marker")) : undefined,
+        textRects: textRects(badge),
+      })),
+      sources: [...document.querySelectorAll(".reporting-page .report-source-boundary li")].map((item) => {
+        const label = item.querySelector("span");
+        const time = item.querySelector("time");
+        return { label: label ? rectangle(label) : undefined, time: time ? rectangle(time) : undefined };
+      }),
+    };
+  });
+
+  for (const badge of reportLayout.badges) {
+    if (badge.flexWrap !== "wrap") throw new Error(`${name} leaves the report status badge on a single flex line: ${badge.label}`);
+    const contained = badge.textRects.every((line) => line.x >= badge.outer.x - 1 && line.right <= badge.outer.right + 1 && line.y >= badge.outer.y - 1 && line.bottom <= badge.outer.bottom + 1);
+    const markerContained = !badge.marker || (badge.marker.x >= badge.outer.x - 1 && badge.marker.right <= badge.outer.right + 1 && badge.marker.y >= badge.outer.y - 1 && badge.marker.bottom <= badge.outer.bottom + 1);
+    if (!contained || !markerContained) throw new Error(`${name} lets report status text or marker leave its pill: ${badge.label}`);
+  }
+  for (const source of reportLayout.sources) {
+    if (!source.label || !source.time || source.time.y < source.label.bottom + 1) {
+      throw new Error(`${name} runs the source high-water name into its timestamp`);
+    }
   }
 }
 
