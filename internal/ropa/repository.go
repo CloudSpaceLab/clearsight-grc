@@ -54,9 +54,9 @@ type ListActivitiesFilter struct {
 }
 
 type ActivityPage struct {
-	Rows       []ProcessingActivity
-	NextCursor string
-	HasMore    bool
+	Rows       []ProcessingActivity `json:"rows"`
+	NextCursor string               `json:"next_cursor,omitempty"`
+	HasMore    bool                 `json:"has_more"`
 }
 
 // ActivityLister returns bounded, keyset-paginated pages for one exact scope.

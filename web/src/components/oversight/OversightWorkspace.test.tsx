@@ -71,7 +71,7 @@ it("filters interventions from an accessible metric and keeps Today work availab
   await screen.findByRole("heading", { name: "Risk and delivery oversight" });
   fireEvent.click(screen.getByRole("button", { name: /Overdue.*4/i }));
   expect(onMetricFilterChange).toHaveBeenCalledWith("overdue");
-  expect(screen.getByRole("heading", { name: "Your work today" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Your assigned work" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Open Confirm the NDPA evidence owner" }));
   expect(onOpenTodayItem).toHaveBeenCalledWith(todayItems[0]);
 });

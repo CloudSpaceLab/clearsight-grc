@@ -21,6 +21,7 @@ const (
 	PermissionPlatformOperationsWrite = "PLATFORM_OPERATIONS_WRITE"
 	PermissionPlatformJobsRead        = "PLATFORM_JOBS_READ"
 	PermissionAuditExport             = "AUDIT_EXPORT"
+	PermissionReportDownload          = "REPORT_DOWNLOAD"
 	PermissionOversightRead           = "OVERSIGHT_READ"
 )
 

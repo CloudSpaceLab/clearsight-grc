@@ -172,6 +172,13 @@ it("opens the selected activity from the register row action", async () => {
   expect(onOpenActivity).toHaveBeenCalledWith("activity-1");
 });
 
+it("opens the governed report workspace from the register", async () => {
+  const onOpenReports = vi.fn();
+  render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities} onOpenReports={onOpenReports}/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Open reports" }));
+  expect(onOpenReports).toHaveBeenCalledTimes(1);
+});
+
 it("retries a summary failure without hiding the register read", async () => {
   api.fetchDashboard.mockRejectedValueOnce(new Error("offline"));
   render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities}/>);

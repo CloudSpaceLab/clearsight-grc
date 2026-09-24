@@ -8,7 +8,7 @@ type DetailView = "pressure" | "outlook" | "performance";
 export type OversightMetricFilter = "all" | "critical-high" | "overdue" | "routing-gaps" | "outcome-failures";
 type TodayState = "loading" | "live" | "unavailable";
 
-export function OversightWorkspace({ organizationName, legalEntityName, onOpenMatter, loadSnapshot = loadOversight, metricFilter = "all", onMetricFilterChange, todayItems = [], todayState = "loading", onOpenTodayItem, onOpenToday }: { organizationName: string; legalEntityName: string; onOpenMatter: (id: string) => void; loadSnapshot?: () => Promise<OversightSnapshot>; metricFilter?: OversightMetricFilter; onMetricFilterChange?: (filter: OversightMetricFilter) => void; todayItems?: AttentionItem[]; todayState?: TodayState; onOpenTodayItem?: (item: AttentionItem) => void; onOpenToday?: () => void }) {
+export function OversightWorkspace({ organizationName, legalEntityName, onOpenMatter, loadSnapshot = loadOversight, metricFilter = "all", onMetricFilterChange, todayItems = [], todayState = "loading", onOpenTodayItem }: { organizationName: string; legalEntityName: string; onOpenMatter: (id: string) => void; loadSnapshot?: () => Promise<OversightSnapshot>; metricFilter?: OversightMetricFilter; onMetricFilterChange?: (filter: OversightMetricFilter) => void; todayItems?: AttentionItem[]; todayState?: TodayState; onOpenTodayItem?: (item: AttentionItem) => void }) {
   const [snapshot, setSnapshot] = useState<OversightSnapshot | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
   const [view, setView] = useState<DetailView>("pressure");
@@ -21,7 +21,11 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
     if (onMetricFilterChange) onMetricFilterChange(filter);
     else setLocalMetricFilter(filter);
     if (filter !== "all") {
-      document.getElementById("oversight-attention")?.scrollIntoView?.({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+      requestAnimationFrame(() => {
+        const attention = document.getElementById("oversight-attention");
+        attention?.scrollIntoView?.({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+        attention?.focus();
+      });
     }
   }
 
@@ -62,10 +66,11 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
       <Metric label="Outcome failures" value={snapshot.counts.outcome_failures} tone="critical" detail="Latest outcome check failed or inconclusive" filter="outcome-failures" active={selectedMetricFilter === "outcome-failures"} onSelect={selectMetric}/>
     </div>
 
-    <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem} onOpenToday={onOpenToday}/>
+    <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>
 
-    <section id="oversight-attention" className="oversight-attention" aria-labelledby="oversight-attention-heading">
+    <section id="oversight-attention" className="oversight-attention" aria-labelledby="oversight-attention-heading" tabIndex={-1}>
       <div className="section-header"><div><span className="eyebrow">What needs attention now</span><h2 id="oversight-attention-heading">{selectedMetricFilter === "all" ? "Priority interventions" : metricFilterLabel(selectedMetricFilter)}</h2><p>{selectedMetricFilter === "all" ? "Ranked by overdue state, priority and current deadline." : "Ranked intervention records matching the selected measure."}</p></div><div className="oversight-inline-counts"><span>{snapshot.counts.due_soon} due soon</span><span>{snapshot.counts.unassigned} unassigned</span></div></div>
+      {selectedMetricFilter !== "all" && <p className="oversight-result-count" aria-live="polite">{interventions.length} ranked {interventions.length === 1 ? "issue" : "issues"} shown for {metricFilterLabel(selectedMetricFilter).toLowerCase()}.</p>}
       {interventions.length ? <div className="oversight-intervention-list">{interventions.map((item) => <article key={`${item.target_type}-${item.target_id}`}>
         <div className={`oversight-priority p${item.priority}`}><span>P{item.priority}</span></div>
         <div><div className="oversight-intervention-title"><strong>{item.title}</strong><span>{humanize(item.category)}</span></div><p>{item.reason}</p><small>{item.owner_name || "No owner recorded"}{item.due_at ? ` · Due ${formatDate(item.due_at)}` : " · No due date recorded"} · {humanize(item.state)}</small></div>
@@ -83,16 +88,16 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
 
 function Metric({ label, value, detail, tone, filter, active, onSelect }: { label: string; value: number; detail: string; tone: string; filter: OversightMetricFilter; active: boolean; onSelect: (filter: OversightMetricFilter) => void }) {
   const action = active ? "Show all priority interventions" : `Show ${label.toLowerCase()} interventions`;
-  return <button type="button" className={`oversight-metric ${tone}`} aria-pressed={active} aria-controls="oversight-attention-heading" onClick={() => onSelect(active ? "all" : filter)}>
+  return <button type="button" className={`oversight-metric ${tone}`} aria-pressed={active} aria-controls="oversight-attention" onClick={() => onSelect(active ? "all" : filter)}>
     <span>{label}</span><strong>{value}</strong><small>{detail}</small><em>{action}</em>
   </button>;
 }
 
-function OversightToday({ items, state, onOpenItem, onOpenToday }: { items: AttentionItem[]; state: TodayState; onOpenItem?: (item: AttentionItem) => void; onOpenToday?: () => void }) {
+function OversightToday({ items, state, onOpenItem }: { items: AttentionItem[]; state: TodayState; onOpenItem?: (item: AttentionItem) => void }) {
   const visible = items.slice(0, 4);
   return <section className="oversight-today" aria-labelledby="oversight-today-heading">
-    <div className="section-header"><div><span className="eyebrow">Today</span><h2 id="oversight-today-heading">Your work today</h2><p>Assigned decisions, evidence and exceptions requiring your current responsibility.</p></div>{onOpenToday && <Button size="compact" onPress={onOpenToday}>Open Today</Button>}</div>
-    {state === "loading" ? <p className="oversight-today-status" aria-live="polite" aria-busy="true">Loading assigned work…</p> : state === "unavailable" ? <p className="oversight-today-status">Assigned work is unavailable. Refresh Today before relying on the current queue.</p> : visible.length ? <div className="oversight-today-list">{visible.map((item) => <button type="button" className="oversight-today-item" key={item.id} onClick={() => onOpenItem?.(item)} disabled={!onOpenItem} aria-label={`Open ${item.title}`}>
+    <div className="section-header"><div><span className="eyebrow">Assigned work</span><h2 id="oversight-today-heading">Your assigned work</h2><p>Assigned decisions, evidence and exceptions requiring your current responsibility.</p></div></div>
+    {state === "loading" ? <p className="oversight-today-status" aria-live="polite" aria-busy="true">Loading assigned work…</p> : state === "unavailable" ? <p className="oversight-today-status">Assigned work is unavailable. Refresh before relying on the current queue.</p> : visible.length ? <div className="oversight-today-list">{visible.map((item) => <button type="button" className="oversight-today-item" key={item.id} onClick={() => onOpenItem?.(item)} disabled={!onOpenItem} aria-label={`Open ${item.title}`}>
       <span className="oversight-today-item__main"><strong>{item.title}</strong><small>{item.why_now}</small></span><span className="oversight-today-item__meta"><span>{item.owner}</span><time>{formatTodayDue(item.due_at)}</time></span>
     </button>)}</div> : <p className="oversight-today-status">No assigned work or permitted operational exceptions are open for you.</p>}
   </section>;

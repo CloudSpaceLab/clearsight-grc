@@ -1,0 +1,144 @@
+import { loadContext } from "./api";
+import { apiErrorKind, requestBlob, requestJSON, type ApiErrorKind } from "./http";
+import type {
+  ReportDefinition,
+  ReportDefinitionAction,
+  ReportDefinitionInput,
+  ReportDefinitionRevision,
+  ReportDefinitionTransitionInput,
+  ReportFilterFieldResponse,
+  ReportRun,
+  ReportRunInput,
+} from "./reportingTypes";
+
+const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
+
+const readFailure = "Report definitions and runs could not be loaded. Check the connection and try again.";
+const commandFailure = "The report request could not be completed. No change was made; check the current definition and try again.";
+
+type ReportFailure = Error & { kind?: ApiErrorKind; code?: string };
+
+function isAbortError(error: unknown) {
+  return typeof error === "object" && error !== null && "name" in error && error.name === "AbortError";
+}
+
+function reportFailure(error: unknown, message: string): ReportFailure {
+  if (isAbortError(error)) throw error;
+  const failure = new Error(message) as ReportFailure;
+  const kind = apiErrorKind(error);
+  if (kind !== "unknown") Object.defineProperty(failure, "kind", { value: kind, enumerable: false });
+  if (typeof error === "object" && error !== null && "code" in error && typeof error.code === "string") {
+    Object.defineProperty(failure, "code", { value: error.code, enumerable: false });
+  }
+  return failure;
+}
+
+async function scopedPath(path: string, values: Record<string, string | number | boolean | undefined> = {}) {
+  const context = await loadContext();
+  const query = new URLSearchParams({ tenant_id: context.tenant.id });
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  }
+  return `${path}?${query.toString()}`;
+}
+
+async function scopedRequest<T>(path: string, values: Record<string, string | number | boolean | undefined>, signal: AbortSignal | undefined, failureMessage: string): Promise<T> {
+  try {
+    return await requestJSON<T>(apiBase, await scopedPath(path, values), signal ? { signal } : undefined);
+  } catch (error) {
+    throw reportFailure(error, failureMessage);
+  }
+}
+
+export async function listReportFilterFields(signal?: AbortSignal): Promise<ReportFilterFieldResponse> {
+  try {
+    return await requestJSON<ReportFilterFieldResponse>(apiBase, "/api/v1/ropa/reports/filter-fields", signal ? { signal } : undefined);
+  } catch (error) {
+    throw reportFailure(error, "The published report filter fields could not be loaded. Check the connection and try again.");
+  }
+}
+
+export async function listReportDefinitions(includeRetired = false, signal?: AbortSignal): Promise<ReportDefinition[]> {
+  const response = await scopedRequest<{ items?: ReportDefinition[] }>("/api/v1/ropa/reports/definitions", { include_retired: includeRetired ? "true" : undefined }, signal, readFailure);
+  return response.items ?? [];
+}
+
+export async function getReportDefinition(id: string, signal?: AbortSignal): Promise<ReportDefinition> {
+  return scopedRequest<ReportDefinition>(`/api/v1/ropa/reports/definitions/${encodeURIComponent(id)}`, {}, signal, readFailure);
+}
+
+export async function getReportDefinitionHistory(id: string, signal?: AbortSignal): Promise<ReportDefinitionRevision[]> {
+  const response = await scopedRequest<{ items?: ReportDefinitionRevision[] }>(`/api/v1/ropa/reports/definitions/${encodeURIComponent(id)}/history`, {}, signal, readFailure);
+  return response.items ?? [];
+}
+
+export async function createReportDefinition(input: ReportDefinitionInput, signal?: AbortSignal): Promise<ReportDefinition> {
+  try {
+    return await requestJSON<ReportDefinition>(apiBase, "/api/v1/ropa/reports/definitions", {
+      method: "POST",
+      body: JSON.stringify(input),
+      ...(signal ? { signal } : {}),
+    });
+  } catch (error) {
+    throw reportFailure(error, commandFailure);
+  }
+}
+
+export async function transitionReportDefinition(id: string, action: ReportDefinitionAction, input: ReportDefinitionTransitionInput, signal?: AbortSignal): Promise<ReportDefinition> {
+  try {
+    return await requestJSON<ReportDefinition>(apiBase, `/api/v1/ropa/reports/definitions/${encodeURIComponent(id)}/${action}`, {
+      method: "POST",
+      body: JSON.stringify(input),
+      ...(signal ? { signal } : {}),
+    });
+  } catch (error) {
+    throw reportFailure(error, commandFailure);
+  }
+}
+
+export async function listReportRuns(params: { definitionId?: string; limit?: number } = {}, signal?: AbortSignal): Promise<ReportRun[]> {
+  const response = await scopedRequest<{ items?: ReportRun[] }>("/api/v1/ropa/reports/runs", {
+    definition_id: params.definitionId,
+    limit: params.limit,
+  }, signal, readFailure);
+  return response.items ?? [];
+}
+
+export async function getReportRun(id: string, signal?: AbortSignal): Promise<ReportRun> {
+  return scopedRequest<ReportRun>(`/api/v1/ropa/reports/runs/${encodeURIComponent(id)}`, {}, signal, readFailure);
+}
+
+export async function createReportRun(definitionId: string, expectedDefinitionVersion: number, signal?: AbortSignal): Promise<ReportRun> {
+  const input: ReportRunInput = { definition_id: definitionId, expected_definition_version: expectedDefinitionVersion };
+  try {
+    return await requestJSON<ReportRun>(apiBase, "/api/v1/ropa/reports/runs", {
+      method: "POST",
+      body: JSON.stringify(input),
+      ...(signal ? { signal } : {}),
+    });
+  } catch (error) {
+    throw reportFailure(error, commandFailure);
+  }
+}
+
+export async function downloadReportRun(id: string, signal?: AbortSignal): Promise<{ blob: Blob; filename?: string }> {
+  try {
+    return await requestBlob(apiBase, await scopedPath(`/api/v1/ropa/reports/runs/${encodeURIComponent(id)}/download`), signal ? { signal } : undefined);
+  } catch (error) {
+    throw reportFailure(error, "The report file could not be downloaded. Check the run state and try again.");
+  }
+}
+
+// Descriptive aliases keep the client convenient for callers that use the same
+// read naming as the register without changing the server route contract.
+export const fetchReportFilterFields = listReportFilterFields;
+export const fetchReportDefinitions = listReportDefinitions;
+export const fetchReportDefinition = getReportDefinition;
+export const fetchReportDefinitionHistory = getReportDefinitionHistory;
+export const fetchReportRuns = listReportRuns;
+export const fetchReportRun = getReportRun;
+export const submitReportDefinition = (id: string, input: ReportDefinitionTransitionInput, signal?: AbortSignal) => transitionReportDefinition(id, "submit", input, signal);
+export const reviewReportDefinition = (id: string, input: ReportDefinitionTransitionInput, signal?: AbortSignal) => transitionReportDefinition(id, "review", input, signal);
+export const activateReportDefinition = (id: string, input: ReportDefinitionTransitionInput, signal?: AbortSignal) => transitionReportDefinition(id, "activate", input, signal);
+export const rejectReportDefinition = (id: string, input: ReportDefinitionTransitionInput, signal?: AbortSignal) => transitionReportDefinition(id, "reject", input, signal);
+export const retireReportDefinition = (id: string, input: ReportDefinitionTransitionInput, signal?: AbortSignal) => transitionReportDefinition(id, "retire", input, signal);

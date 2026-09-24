@@ -37,5 +37,5 @@ const todayItems: AttentionItem[] = [
 ];
 
 export function OversightEvidencePage() {
-  return <OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={() => {}} loadSnapshot={async () => snapshot} todayItems={todayItems} todayState="live" onOpenTodayItem={() => {}} onOpenToday={() => {}}/>;
+  return <OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={() => {}} loadSnapshot={async () => snapshot} todayItems={todayItems} todayState="live" onOpenTodayItem={() => {}}/>;
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reconciliation"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/ropa"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
@@ -38,6 +39,7 @@ const (
 	oversightProjectionClass            = "oversight-projection"
 	formPolicyMaintenanceClass          = "form-response-policy-maintenance"
 	ropaSummaryProjectionClass          = "ropa-summary-projection"
+	reportRunClass                      = "report-run"
 )
 
 // ropaSummaryProjectionMaintainer adapts the scope-oriented ROPA projection
@@ -122,6 +124,9 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	ropaService.SetLister(ropaLister)
 	ropaSummaryMaintainer := ropa.NewSummaryMaintainer(ropaRepository, ropaSummaries, ropaService)
 	authorityService := authority.NewEffectivePostgresService(pool)
+	reportingRepository := reporting.NewPostgresRepository(pool)
+	reportingService := reporting.NewService(reportingRepository, store, authorityService)
+	reportingService.WorkerID = cfg.WorkerID
 	autonomyService := autonomy.NewService(autonomy.NewPostgresRepository(pool))
 	aiGovernanceRetention := &aigovernance.RetentionMaintainer{Repo: aigovernance.NewPostgresRepository(pool)}
 	sourceHealth := &reconciliation.SourceHealthConsumer{
@@ -208,6 +213,11 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.ConfigureClass(aiGovernanceRetentionClass, workflowruntime.WorkClassOptions{Poll: time.Hour, Batch: 500})
 	service.ConfigureClass(oversightProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 20})
 	service.ConfigureClass(ropaSummaryProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 20})
+	// Report retries are durable on report_runs.attempt_count; this class is
+	// only the bounded polling loop and declares no runtime attempt budget.
+	service.ConfigureClass(reportRunClass, workflowruntime.WorkClassOptions{
+		Poll: 15 * time.Second, Batch: 5, Timeout: reporting.ReportRunLease, Lease: reporting.ReportRunLease,
+	})
 	service.ConfigureClass(formPolicyMaintenanceClass, workflowruntime.WorkClassOptions{Poll: 30 * time.Second, Timeout: 20 * time.Second, Lease: time.Minute, Batch: 100})
 
 	assessmentProvisioner := thirdparty.NewAssessmentProvisioner(assessmentRepository, continuityService, cfg.WorkerID)
@@ -234,6 +244,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(aiGovernanceRetentionClass, aiGovernanceRetention)
 	service.AddMaintainerClass(oversightProjectionClass, &oversight.Maintainer{Repository: oversight.NewPostgresRepository(pool)})
 	service.AddMaintainerClass(ropaSummaryProjectionClass, &ropaSummaryProjectionMaintainer{pool: pool, maintainer: ropaSummaryMaintainer})
+	service.AddMaintainerClass(reportRunClass, reporting.NewRunMaintainer(reportingRepository, reportingService))
 	service.AddMaintainerClass(formPolicyMaintenanceClass, formpolicy.NewMaintainer(formPolicyRepository, formPolicyExecutor, cfg.WorkerID))
 	return workerSet{Runtime: service, Close: pool.Close}, nil
 }
