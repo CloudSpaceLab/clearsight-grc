@@ -23,6 +23,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -71,11 +72,12 @@ type sourceRecordManifest struct {
 	Groups  []sourceRecordGroup `json:"groups"`
 }
 type sourceRecordReceipt struct {
-	Groups   int              `json:"groups"`
-	Records  int              `json:"records"`
-	Matters  int              `json:"matters"`
-	Captures int              `json:"captures"`
-	Items    []map[string]any `json:"items"`
+	Groups            int              `json:"groups"`
+	Records           int              `json:"records"`
+	Matters           int              `json:"matters"`
+	Captures          int              `json:"captures"`
+	ReportDefinitions int              `json:"report_definitions"`
+	Items             []map[string]any `json:"items"`
 }
 
 var ndpaChecklistColumns = []string{
@@ -221,6 +223,7 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 		return receipt, err
 	}
 	programs := map[string]string{}
+	reportPrograms := map[string]string{}
 	for _, filename := range []string{"source_records_it_vendor.json", "source_records_ops.json", "source_records_ndpa.json"} {
 		data, readErr := fs.ReadFile(sourceRecordFiles, filename)
 		if readErr != nil {
@@ -244,6 +247,7 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 				}
 				programs[group.ProgramCode] = programID
 			}
+			reportPrograms[group.Key] = programID
 			receipt.Groups++
 			receipt.Records += len(group.Records)
 			vendor := strings.HasPrefix(group.Key, "third-party-risk-register")
@@ -367,6 +371,11 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 			return receipt, err
 		}
 	}
+	definitions, err := ensureSourceReportPacks(ctx, pool, seed, reportPrograms)
+	if err != nil {
+		return receipt, err
+	}
+	receipt.ReportDefinitions = definitions
 	maintainer := continuity.ProjectionMaintainer{Service: cs, Repo: cr, WorkerID: "source-record-installer"}
 	for batch := 0; batch < 20; batch++ {
 		count, e := maintainer.Maintain(ctx, time.Now().UTC(), 100)
@@ -459,6 +468,97 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 		matter, err = cs.AddAction(ctx, continuity.AddActionInput{TenantID: seed.TenantID, MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, Title: sourceShort(record.Action, 200), Description: record.Action + "\nSource owner: " + record.Owner + ". Source status: " + record.Status + ". Verify the outcome before closure.", OwnerPrincipalID: owner, DueAt: due, ActorID: seed.ActorID, OriginKey: key})
 	}
 	return matter, err
+}
+
+type sourceReportPack struct {
+	ID          string
+	Code        string
+	Name        string
+	Description string
+	Dataset     reporting.ReportDataset
+	ScopeKind   reporting.ReportScopeKind
+	ScopeRef    string
+	Filter      *reporting.ReportFilterExpression
+}
+
+func ensureSourceReportPacks(ctx context.Context, pool *pgxpool.Pool, seed bankverticals.SeedConfig, programs map[string]string) (int, error) {
+	findProgram := func(match string) string {
+		for key, id := range programs {
+			if strings.Contains(strings.ToLower(key), match) {
+				return id
+			}
+		}
+		return ""
+	}
+	thirdPartyProgram := findProgram("third-party")
+	itProgram := findProgram("it-risk")
+	ndpaProgram := findProgram("ndpa")
+	packs := []sourceReportPack{}
+	if thirdPartyProgram != "" {
+		packs = append(packs, sourceReportPack{
+			ID: "00000000-0000-4000-8000-000000000601", Code: "THIRD-PARTY-RISK-REGISTER", Name: "Third-party risk register",
+			Description: "Sample data from Sample Third-Party Risk Register (1).xlsx. Source assessment facts and current issue state remain distinct.",
+			Dataset:     reporting.DatasetMatterExceptions, ScopeKind: reporting.ScopeLegalEntity,
+			Filter: &reporting.ReportFilterExpression{Kind: "condition", Field: reporting.ReportFieldMatterProgram, Operator: "is", Value: thirdPartyProgram},
+		})
+	}
+	if itProgram != "" {
+		packs = append(packs, sourceReportPack{
+			ID: "00000000-0000-4000-8000-000000000602", Code: "IT-RISK-EXCEPTION-REGISTER", Name: "IT risk exception register",
+			Description: "Sample data from Sample IT Risk Exception Register (1).xlsx. Source assessment facts and current issue state remain distinct.",
+			Dataset:     reporting.DatasetMatterExceptions, ScopeKind: reporting.ScopeLegalEntity,
+			Filter: &reporting.ReportFilterExpression{Kind: "condition", Field: reporting.ReportFieldMatterProgram, Operator: "is", Value: itProgram},
+		}, sourceReportPack{
+			ID: "00000000-0000-4000-8000-000000000603", Code: "IT-RISK-WORKPLAN", Name: "IT risk workplan",
+			Description: "Current IT risk Program scope and linked work seeded from Sample IT Risk Workplan (1).xlsx.",
+			Dataset:     reporting.DatasetPrograms, ScopeKind: reporting.ScopeProgram, ScopeRef: itProgram,
+			Filter: &reporting.ReportFilterExpression{Kind: "group", Operator: "and", Children: []reporting.ReportFilterExpression{}},
+		})
+	}
+	if ndpaProgram != "" {
+		packs = append(packs, sourceReportPack{
+			ID: "00000000-0000-4000-8000-000000000604", Code: "NDPA-PROGRAM-POSITION", Name: "NDPA compliance program position",
+			Description: "Current NDPA Program position. The source checklist remains a draft intake until applicability, owner and evidence decisions are recorded.",
+			Dataset:     reporting.DatasetPrograms, ScopeKind: reporting.ScopeProgram, ScopeRef: ndpaProgram,
+			Filter: &reporting.ReportFilterExpression{Kind: "group", Operator: "and", Children: []reporting.ReportFilterExpression{}},
+		})
+	}
+	if len(packs) == 0 {
+		return 0, nil
+	}
+	now := time.Now().UTC()
+	created := 0
+	for _, pack := range packs {
+		definition := reporting.ReportDefinition{
+			ID: pack.ID, TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, Code: pack.Code, Name: pack.Name,
+			Description: pack.Description, Dataset: pack.Dataset, ScopeKind: pack.ScopeKind, ScopeRef: pack.ScopeRef,
+			Format: reporting.FormatXLSX, Filter: pack.Filter, CurrentVersion: 1, MakerID: seed.ActorID,
+		}
+		definition.StoredChecksum = definition.Checksum()
+		filter, err := json.Marshal(pack.Filter)
+		if err != nil {
+			return created, err
+		}
+		var inserted string
+		err = pool.QueryRow(ctx, `INSERT INTO report_definitions
+  (id,tenant_id,legal_entity_id,code,name,description,dataset,scope_kind,scope_ref,format,filter,status,current_version,checksum,maker_id,checker_id,reviewer_id,reviewer_note,effective_from,submitted_at,approved_at,created_at,updated_at,version)
+ VALUES ($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7,$8,NULLIF($9,'')::uuid,$10,$11::jsonb,'ACTIVE',1,$12,$13::uuid,$14::uuid,'Sample report pack checked against the imported source register.',$15,$15,$15,$15,$15,1)
+ ON CONFLICT (tenant_id,legal_entity_id,code) WHERE status <> 'RETIRED' DO NOTHING
+ RETURNING id::text`, pack.ID, seed.TenantID, seed.LegalEntityID, pack.Code, pack.Name, pack.Description, pack.Dataset, pack.ScopeKind, pack.ScopeRef, reporting.FormatXLSX, filter, definition.StoredChecksum, seed.ActorID, seed.SignatoryPrincipalID, seed.ReviewerPrincipalID, now).Scan(&inserted)
+		if errors.Is(err, pgx.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return created, fmt.Errorf("create report pack %s: %w", pack.Code, err)
+		}
+		if _, err = pool.Exec(ctx, `INSERT INTO report_definition_revisions
+  (definition_id,tenant_id,legal_entity_id,version,base_version,dataset,scope_kind,scope_ref,format,filter,checksum,maker_id,created_at,reviewed_by,reviewed_at,approved_by,approved_at,decision,decision_note)
+ VALUES ($1::uuid,$2::uuid,$3::uuid,1,0,$4,$5,NULLIF($6,'')::uuid,$7,$8::jsonb,$9,$10::uuid,$11,$12::uuid,$11,$13::uuid,$11,'APPROVED','Sample report pack checked against the imported source register.')`, inserted, seed.TenantID, seed.LegalEntityID, pack.Dataset, pack.ScopeKind, pack.ScopeRef, reporting.FormatXLSX, filter, definition.StoredChecksum, seed.ActorID, now, seed.ReviewerPrincipalID, seed.SignatoryPrincipalID); err != nil {
+			return created, fmt.Errorf("create report pack revision %s: %w", pack.Code, err)
+		}
+		created++
+	}
+	return created, nil
 }
 
 func sourceRecordText(record sourceRecord) string {

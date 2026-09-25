@@ -338,6 +338,30 @@ func TestCreateRunQueuesWithoutRenderingInline(t *testing.T) {
 	}
 }
 
+func TestExecuteRunWritesAnXLSXReport(t *testing.T) {
+	service, repository, objects, authorityChecker := newReportingServiceTest()
+	authorityChecker.expected[authority.ResponsibilityPerformer] = testPerformerID
+	definition := installActiveDefinition(repository)
+	definition.Format = FormatXLSX
+	definition.StoredChecksum = definition.Checksum()
+	repository.definitions[definition.ID] = definition
+	repository.rows[definition.ID] = []ReportRow{{ID: "row-1", Values: map[string]any{"reference": "TPR-001", "status": "ACTION_IN_PROGRESS"}}}
+	repository.boundary = testSourceBoundary(1)
+	run := createQueuedRun(t, service, definition)
+
+	completed, err := service.ExecuteRun(context.Background(), run)
+	if err != nil {
+		t.Fatalf("execute xlsx report: %v", err)
+	}
+	if completed.Status != RunReady || completed.Format != FormatXLSX || !strings.HasSuffix(completed.DataObjectKey, ".xlsx") {
+		t.Fatalf("xlsx run = %#v", completed)
+	}
+	data := objects.objects[completed.DataObjectKey]
+	if !bytes.HasPrefix(data, []byte("PK")) {
+		t.Fatalf("xlsx report was not stored as a workbook")
+	}
+}
+
 func TestServiceCompleteRunRefusesWithoutArtefacts(t *testing.T) {
 	service, repository, _, _ := newReportingServiceTest()
 	now := serviceTestNow

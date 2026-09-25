@@ -263,6 +263,7 @@ describe("runtime navigation", () => {
     render(<App />);
 
     await waitFor(() => expect(window.location.hash).toBe("#oversight"));
+    expect(await screen.findByText("Confirm assigned evidence")).toBeTruthy();
     const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
     expect(within(primaryNavigation).queryByRole("button", { name: "Today" })).toBeNull();
     expect(within(primaryNavigation).getByRole("button", { name: "Oversight" }).getAttribute("aria-current")).toBe("page");

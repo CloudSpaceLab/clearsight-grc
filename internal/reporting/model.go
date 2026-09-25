@@ -63,6 +63,7 @@ type ReportFormat string
 const (
 	FormatCSV    ReportFormat = "CSV"
 	FormatNDJSON ReportFormat = "NDJSON"
+	FormatXLSX   ReportFormat = "XLSX"
 )
 
 // ReportDefinition is the current governed row for a report definition. The

@@ -520,12 +520,13 @@ func (s *Service) renderRun(ctx context.Context, run ReportRun) ([]byte, int, er
 	buffer := &boundedReportBuffer{max: MaxReportRunBytes}
 	var csvWriter *csv.Writer
 	var jsonEncoder *json.Encoder
+	var xlsxRows []ReportRow
 	if run.Format == FormatCSV {
 		csvWriter = csv.NewWriter(buffer)
 	} else if run.Format == FormatNDJSON {
 		jsonEncoder = json.NewEncoder(buffer)
 		jsonEncoder.SetEscapeHTML(false)
-	} else {
+	} else if run.Format != FormatXLSX {
 		return nil, 0, ErrInvalid
 	}
 
@@ -541,10 +542,12 @@ func (s *Service) renderRun(ctx context.Context, run ReportRun) ([]byte, int, er
 		if len(page.Rows) > ReportRunPageSize {
 			return nil, 0, ErrInvalid
 		}
-		if csvWriter != nil && len(page.Rows) > 0 && !columnsWritten {
+		if (csvWriter != nil || run.Format == FormatXLSX) && len(page.Rows) > 0 && !columnsWritten {
 			columns = reportColumns(page)
-			if err := csvWriter.Write(columns); err != nil {
-				return nil, 0, normalizeRenderError(err)
+			if csvWriter != nil {
+				if err := csvWriter.Write(columns); err != nil {
+					return nil, 0, normalizeRenderError(err)
+				}
 			}
 			columnsWritten = true
 		}
@@ -564,8 +567,12 @@ func (s *Service) renderRun(ctx context.Context, run ReportRun) ([]byte, int, er
 				if err := csvWriter.Write(spreadsheetSafeReportRow(values)); err != nil {
 					return nil, 0, normalizeRenderError(err)
 				}
-			} else if err := jsonEncoder.Encode(row); err != nil {
-				return nil, 0, normalizeRenderError(err)
+			} else if jsonEncoder != nil {
+				if err := jsonEncoder.Encode(row); err != nil {
+					return nil, 0, normalizeRenderError(err)
+				}
+			} else {
+				xlsxRows = append(xlsxRows, row)
 			}
 			rowCount++
 		}
@@ -588,6 +595,16 @@ func (s *Service) renderRun(ctx context.Context, run ReportRun) ([]byte, int, er
 	}
 	if run.SourceBoundary.PopulationComplete && rowCount != run.SourceBoundary.Population {
 		return nil, 0, &sourceBoundaryError{Expected: run.SourceBoundary.Population, Actual: rowCount}
+	}
+	if run.Format == FormatXLSX {
+		data, err := renderXLSXReport(run.DefinitionCode, run.AsOf, columns, xlsxRows)
+		if err != nil {
+			return nil, 0, err
+		}
+		if int64(len(data)) > MaxReportRunBytes {
+			return nil, 0, &reportLimitError{Code: FailureByteLimitExceeded, Limit: "byte"}
+		}
+		return data, rowCount, nil
 	}
 	return append([]byte(nil), buffer.Bytes()...), rowCount, nil
 }
@@ -746,7 +763,7 @@ func validateDefinitionForCreate(definition ReportDefinition) error {
 		utf8.RuneCountInString(definition.Name) < 3 || utf8.RuneCountInString(definition.Name) > 120 ||
 		utf8.RuneCountInString(definition.Description) > 1000 ||
 		!validReportDataset(definition.Dataset) || !validReportDatasetScope(definition.Dataset, definition.ScopeKind) || !validReportScope(definition.ScopeKind, definition.ScopeRef) ||
-		(definition.Format != FormatCSV && definition.Format != FormatNDJSON) ||
+		(definition.Format != FormatCSV && definition.Format != FormatNDJSON && definition.Format != FormatXLSX) ||
 		strings.TrimSpace(definition.MakerID) == "" || definition.Filter == nil {
 		return ErrInvalid
 	}
@@ -1000,6 +1017,9 @@ func reportObjectKeys(run ReportRun) (string, string) {
 }
 
 func reportExtension(format ReportFormat) string {
+	if format == FormatXLSX {
+		return ".xlsx"
+	}
 	if format == FormatNDJSON {
 		return ".ndjson"
 	}
