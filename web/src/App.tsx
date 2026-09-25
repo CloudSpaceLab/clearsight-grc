@@ -269,7 +269,6 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const operatingNavigation: Array<{ label: string; view: View }> = [
     { label: "Oversight", view: "oversight" as View },
     { label: "Programs", view: "programs" },
-    { label: "Reports", view: "reports" },
     { label: "Processing activities", view: "ropa" },
     { label: "Work", view: "work" },
     { label: "Vendors", view: "vendors" },
