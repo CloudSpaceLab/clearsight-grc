@@ -42,7 +42,11 @@ const areaOptions = [
   { id: "MATTER_EXCEPTIONS", label: "Work" },
 ] as const;
 
-const generationAreaOptions = areaOptions.slice(1);
+const generationAreaOptions: readonly { id: Exclude<ReportArea, "ALL">; label: string }[] = [
+  { id: "VENDORS", label: "Vendors" },
+  { id: "PROGRAMS", label: "Programs" },
+  { id: "MATTER_EXCEPTIONS", label: "Work" },
+];
 
 export function ReportsWorkspace({
   organizationName,
@@ -261,7 +265,7 @@ export function ReportsWorkspace({
 
           <div className="reports-library__toolbar">
             <SearchField label="Search generated reports" value={query} onChange={setQuery} placeholder="Search reports" isLoading={state === "loading"} />
-            <SelectField label="Area" value={area} options={areaOptions} allowsEmpty={false} onChange={(value) => setArea((value || "ALL") as ReportArea)} />
+            <SelectField label="Area" value={area} placeholder="All reports" options={areaOptions} allowsEmpty={false} onChange={(value) => setArea((value || "ALL") as ReportArea)} />
           </div>
 
           {state === "error" && <Notice tone="error"><span>{error}</span> <Button variant="secondary" size="compact" onPress={refresh}>Retry</Button></Notice>}
@@ -303,6 +307,7 @@ export function ReportsWorkspace({
         <SelectField
           label="Area"
           value={generationArea}
+          placeholder="Choose an area"
           options={generationAreaOptions}
           allowsEmpty={false}
           onChange={(value) => setGenerationArea((value || "VENDORS") as Exclude<ReportArea, "ALL">)}
@@ -311,6 +316,7 @@ export function ReportsWorkspace({
           <SelectField
             label="Report template"
             value={generationDefinitionID}
+            placeholder="Choose a report template"
             options={activeGenerationDefinitions.map((definition) => ({ id: definition.id, label: definition.name }))}
             allowsEmpty={false}
             onChange={setGenerationDefinitionID}
@@ -400,13 +406,14 @@ function reportDatasetLabel(dataset: ReportDataset | ReportArea) {
   }
 }
 
-function runStatusLabel(run: ReportRun) {
+function runStatusLabel(run: ReportRun): string {
   if (run.status === "READY" && isExpired(run)) return "Expired";
   switch (run.status) {
     case "QUEUED": return "Queued";
     case "RUNNING": return "Generating";
     case "READY": return "Ready";
     case "FAILED": return "Failed";
+    default: return "Unknown";
   }
 }
 
@@ -417,6 +424,7 @@ function runStatusTone(run: ReportRun): StatusTone {
     case "QUEUED":
     case "RUNNING": return "info";
     case "FAILED": return "error";
+    default: return "unknown";
   }
 }
 
