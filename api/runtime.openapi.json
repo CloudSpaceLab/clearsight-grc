@@ -356,7 +356,7 @@
       }
     },
 
-    "/api/v1/ropa/reports/filter-fields": {
+    "/api/v1/reports/filter-fields": {
       "get": {
         "operationId": "listReportFilterFields",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
@@ -366,7 +366,7 @@
         }
       }
     },
-    "/api/v1/ropa/reports/definitions": {
+    "/api/v1/reports/definitions": {
       "get": {
         "operationId": "listReportDefinitions",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
@@ -389,7 +389,7 @@
         }
       }
     },
-    "/api/v1/ropa/reports/definitions/{id}": {
+    "/api/v1/reports/definitions/{id}": {
       "get": {
         "operationId": "getReportDefinition",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
@@ -403,7 +403,7 @@
         }
       }
     },
-    "/api/v1/ropa/reports/definitions/{id}/history": {
+    "/api/v1/reports/definitions/{id}/history": {
       "get": {
         "operationId": "getReportDefinitionHistory",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
@@ -417,7 +417,7 @@
         }
       }
     },
-    "/api/v1/ropa/reports/definitions/{id}/submit": {
+    "/api/v1/reports/definitions/{id}/submit": {
       "post": {
         "operationId": "submitReportDefinition",
         "x-clearsight-route-class": "MATERIAL_COMMAND",
@@ -426,7 +426,7 @@
         "responses": { "200": { "description": "The report definition after submission for review." }, "default": { "description": "The report definition could not be submitted." } }
       }
     },
-    "/api/v1/ropa/reports/definitions/{id}/review": {
+    "/api/v1/reports/definitions/{id}/review": {
       "post": {
         "operationId": "reviewReportDefinition",
         "x-clearsight-route-class": "MATERIAL_COMMAND",
@@ -435,7 +435,7 @@
         "responses": { "200": { "description": "The independently reviewed report definition." }, "default": { "description": "The report definition could not be reviewed." } }
       }
     },
-    "/api/v1/ropa/reports/definitions/{id}/activate": {
+    "/api/v1/reports/definitions/{id}/activate": {
       "post": {
         "operationId": "activateReportDefinition",
         "x-clearsight-route-class": "MATERIAL_COMMAND",
@@ -444,7 +444,7 @@
         "responses": { "200": { "description": "The authorized report definition." }, "default": { "description": "The report definition could not be activated." } }
       }
     },
-    "/api/v1/ropa/reports/definitions/{id}/reject": {
+    "/api/v1/reports/definitions/{id}/reject": {
       "post": {
         "operationId": "rejectReportDefinition",
         "x-clearsight-route-class": "MATERIAL_COMMAND",
@@ -453,7 +453,7 @@
         "responses": { "200": { "description": "The rejected report definition." }, "default": { "description": "The report definition could not be rejected." } }
       }
     },
-    "/api/v1/ropa/reports/definitions/{id}/retire": {
+    "/api/v1/reports/definitions/{id}/retire": {
       "post": {
         "operationId": "retireReportDefinition",
         "x-clearsight-route-class": "MATERIAL_COMMAND",
@@ -462,7 +462,7 @@
         "responses": { "200": { "description": "The retired report definition." }, "default": { "description": "The report definition could not be retired." } }
       }
     },
-    "/api/v1/ropa/reports/runs": {
+    "/api/v1/reports/runs": {
       "get": {
         "operationId": "listReportRuns",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
@@ -481,7 +481,7 @@
         "responses": { "201": { "description": "The queued report run." }, "default": { "description": "The report run could not be queued." } }
       }
     },
-    "/api/v1/ropa/reports/runs/{id}": {
+    "/api/v1/reports/runs/{id}": {
       "get": {
         "operationId": "getReportRun",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
@@ -492,7 +492,7 @@
         "responses": { "200": { "description": "The report run receipt." }, "default": { "description": "The report run could not be read." } }
       }
     },
-    "/api/v1/ropa/reports/runs/{id}/download": {
+    "/api/v1/reports/runs/{id}/download": {
       "get": {
         "operationId": "downloadReportRun",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
