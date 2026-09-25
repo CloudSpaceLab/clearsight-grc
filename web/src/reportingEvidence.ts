@@ -313,11 +313,11 @@ export function installReportingEvidence() {
     const recordRead = () => window.reportingEvidenceReads?.push(`${path}${url.search}`);
     const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
 
-    if (path === "/api/v1/ropa/reports/filter-fields") {
+    if (path === "/api/v1/reports/filter-fields") {
       recordRead();
       return json({ fields });
     }
-    if (path === "/api/v1/ropa/reports/definitions") {
+    if (path === "/api/v1/reports/definitions") {
       recordRead();
       return json({ items: definitions });
     }
@@ -333,7 +333,7 @@ export function installReportingEvidence() {
       const definition = definitions.find((item) => item.id === decodeURIComponent(definitionDetail[1]!));
       return definition ? json(definition) : notFound();
     }
-    if (path === "/api/v1/ropa/reports/runs") {
+    if (path === "/api/v1/reports/runs") {
       recordRead();
       const items = boundedStopVariant ? [failedRun] : [readyRun, failedRun];
       const requestedDefinition = url.searchParams.get("definition_id");
