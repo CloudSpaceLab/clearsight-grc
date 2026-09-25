@@ -84,7 +84,7 @@ describe("Program evidence authority gating", () => {
 
   it("loads source choices for the Program's exact legal entity", async () => {
     render(<ProgramEvidencePanel aggregate={aggregate} operations={operations} actorPrincipalID="actor-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
-    expect(await screen.findByText("No evidence result recorded")).toBeTruthy();
+    expect(await screen.findByText("No Program assessment recorded")).toBeTruthy();
     expect(loadEvidenceSources).toHaveBeenCalledWith("entity-1");
   });
 
