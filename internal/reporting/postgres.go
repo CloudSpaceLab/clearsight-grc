@@ -682,7 +682,7 @@ func (r *PostgresRepository) CaptureSourceBoundary(ctx context.Context, scope Re
 	if definition.Dataset == DatasetPrograms {
 		return r.captureProgramSourceBoundary(ctx, scope, definition)
 	}
-	if definition.Dataset == DatasetMatterExceptions {
+	if definition.Dataset == DatasetMatters || definition.Dataset == DatasetMatterExceptions {
 		return r.captureMatterSourceBoundary(ctx, scope, definition)
 	}
 	if definition.Dataset == DatasetVendors {
