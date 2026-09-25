@@ -437,6 +437,60 @@ func (r *PostgresRepository) ListRuns(ctx context.Context, scope ReportScope, de
 	return values, nil
 }
 
+
+func (r *PostgresRepository) ListRunHistory(ctx context.Context, scope ReportScope, definitionID, cursor string, limit int) (RunHistoryPage, error) {
+	definitionID = strings.TrimSpace(definitionID)
+	if definitionID != "" && !isUUID(definitionID) {
+		return RunHistoryPage{}, ErrInvalid
+	}
+	if err := r.validateInput(ctx, scope, "list-history"); err != nil {
+		return RunHistoryPage{}, err
+	}
+	position, err := decodeRunHistoryCursor(cursor)
+	if err != nil {
+		return RunHistoryPage{}, err
+	}
+	limit = boundedRepositoryLimit(limit, 50)
+	hasCursor := position.ID != ""
+	cursorTime := time.Time{}
+	cursorID := ""
+	if hasCursor {
+		cursorTime = position.CreatedAt
+		cursorID = position.ID
+	}
+	rows, err := r.pool.Query(ctx, `SELECT `+runProjection+`
+		FROM report_runs r
+		WHERE r.tenant_id=$1::uuid AND r.legal_entity_id=$2::uuid
+		  AND ($3='' OR r.definition_id=NULLIF($3,'')::uuid)
+		  AND ($4=false OR r.created_at<$5::timestamptz OR (r.created_at=$5::timestamptz AND r.id<$6::uuid))
+		ORDER BY r.created_at DESC,r.id DESC
+		LIMIT $7`, scope.TenantID, scope.LegalEntityID, definitionID, hasCursor, cursorTime, cursorID, limit+1)
+	if err != nil {
+		return RunHistoryPage{}, fmt.Errorf("list report run history: %w", err)
+	}
+	defer rows.Close()
+	values := make([]ReportRun, 0, limit+1)
+	for rows.Next() {
+		value, err := scanRun(rows)
+		if err != nil {
+			return RunHistoryPage{}, fmt.Errorf("scan report run history: %w", err)
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return RunHistoryPage{}, fmt.Errorf("list report run history: %w", err)
+	}
+	page := RunHistoryPage{Items: values}
+	if len(page.Items) > limit {
+		page.Items = page.Items[:limit]
+		page.NextCursor, err = encodeRunHistoryCursor(page.Items[len(page.Items)-1])
+		if err != nil {
+			return RunHistoryPage{}, fmt.Errorf("encode report run history cursor: %w", err)
+		}
+	}
+	return page, nil
+}
+
 func (r *PostgresRepository) ClaimQueuedRuns(ctx context.Context, scope ReportScope, workerID string, limit int) ([]ReportRun, error) {
 	workerID = strings.TrimSpace(workerID)
 	if err := r.validateInput(ctx, scope, workerID); err != nil {
@@ -871,3 +925,4 @@ func boundedRepositoryLimit(value, fallback int) int {
 }
 
 var _ Repository = (*PostgresRepository)(nil)
+var _ RunHistoryRepository = (*PostgresRepository)(nil)
