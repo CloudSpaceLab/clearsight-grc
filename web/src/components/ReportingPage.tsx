@@ -360,7 +360,8 @@ function DefinitionCreateForm({ draft, fields, error, busy, onChange, onSave }: 
       <SelectField label="Dataset" value={draft.dataset} placeholder="Choose a dataset" options={[
         { id: "VENDORS", label: "Vendors" },
         { id: "PROGRAMS", label: "Programs" },
-        { id: "MATTER_EXCEPTIONS", label: "Work — issues and changes" },
+        { id: "MATTERS", label: "Work — all issues and changes" },
+        { id: "MATTER_EXCEPTIONS", label: "Work — exceptions and overdue obligations" },
         { id: "PROCESSING_ACTIVITIES", label: "Processing activities" },
         { id: "PROCESSING_ACTIVITY_EXCEPTIONS", label: "Processing activities with open exceptions" },
       ]} onChange={(value) => value && onChange({ dataset: value, scope_kind: value === "VENDORS" ? "LEGAL_ENTITY" : draft.scope_kind, filter: { kind: "group", operator: "and", children: [] }, scope_ref: "" })} isRequired />
@@ -562,7 +563,8 @@ function datasetLabel(dataset: ReportDataset) {
   if (dataset === "PROCESSING_ACTIVITIES") return "Processing activities";
   if (dataset === "PROCESSING_ACTIVITY_EXCEPTIONS") return "Processing activities with open exceptions";
   if (dataset === "PROGRAMS") return "Programs";
-  return "Work — issues and changes";
+  if (dataset === "MATTERS") return "Work — all issues and changes";
+  return "Work — exceptions and overdue obligations";
 }
 
 function scopeDefinitionLabel(definition: ReportDefinition) {
