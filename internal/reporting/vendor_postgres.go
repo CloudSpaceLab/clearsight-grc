@@ -113,10 +113,10 @@ func (r *PostgresRepository) captureVendorSourceBoundary(ctx context.Context, sc
 		highWater = &captured
 	}
 	return SourceBoundary{
-		CapturedAt: captured,
-		ProjectionVersion: "vendor-relationship-report.v1",
-		SourceHighWater: map[string]time.Time{"vendor_relationships": highWater.UTC()},
-		Population: population,
+		CapturedAt:          captured,
+		ProjectionVersion:   "vendor-relationship-report.v1",
+		SourceHighWater:     map[string]time.Time{"vendor_relationships": highWater.UTC()},
+		Population:          population,
 		PopulationComplete: false,
 	}, nil
 }
@@ -197,24 +197,24 @@ func scanVendorReportRow(row reportingRowScanner) (ReportRow, error) {
 		renewal = renewalAt.Time.UTC()
 	}
 	return ReportRow{ID: id, Values: map[string]any{
-		"tenant_id": tenantID,
-		"legal_entity_id": entityID,
-		"vendor_id": vendorID,
-		"vendor_name": vendorName,
-		"trading_name": tradingName,
-		"registration_ref": registrationRef,
-		"jurisdiction": jurisdiction,
-		"vendor_status": vendorStatus,
-		"service_name": serviceName,
+		"tenant_id":          tenantID,
+		"legal_entity_id":    entityID,
+		"vendor_id":          vendorID,
+		"vendor_name":        vendorName,
+		"trading_name":       tradingName,
+		"registration_ref":   registrationRef,
+		"jurisdiction":       jurisdiction,
+		"vendor_status":      vendorStatus,
+		"service_name":       serviceName,
 		"owner_principal_id": ownerID,
-		"criticality": criticality,
-		"privacy_role": privacyRole,
-		"status": status,
-		"effective_from": effective,
-		"renewal_at": renewal,
-		"created_at": createdAt.UTC(),
-		"updated_at": updatedAt.UTC(),
-		"version": version,
+		"criticality":        criticality,
+		"privacy_role":       privacyRole,
+		"status":             status,
+		"effective_from":     effective,
+		"renewal_at":         renewal,
+		"created_at":         createdAt.UTC(),
+		"updated_at":         updatedAt.UTC(),
+		"version":            version,
 	}}, nil
 }
 
