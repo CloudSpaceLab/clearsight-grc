@@ -69,6 +69,14 @@ var ReportFilterFieldVocabulary = []ReportFilterFieldDefinition{
 	{Field: ReportFieldJurisdiction, Label: "Program jurisdiction", Dataset: DatasetPrograms, Operators: []string{"is"}, Indexed: false},
 	{Field: ReportFieldHasOpenMatters, Label: "Open issues and changes", Dataset: DatasetPrograms, Operators: []string{"is"}, Indexed: true},
 
+	{Field: ReportFieldStatus, Label: "Issue or change status", Dataset: DatasetMatters, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldOwner, Label: "Issue or change owner", Dataset: DatasetMatters, Operators: []string{"is", "is_not"}, Indexed: true},
+	{Field: ReportFieldMatterType, Label: "Issue or change type", Dataset: DatasetMatters, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldPriority, Label: "Priority", Dataset: DatasetMatters, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldDueCondition, Label: "Due condition", Dataset: DatasetMatters, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldMatterProgram, Label: "Related Program", Dataset: DatasetMatters, Operators: []string{"is", "is_not"}, Indexed: true},
+	{Field: ReportFieldLatestVerificationResult, Label: "Latest outcome result", Dataset: DatasetMatters, Operators: []string{"is"}, Indexed: true},
+
 	{Field: ReportFieldStatus, Label: "Issue or change status", Dataset: DatasetMatterExceptions, Operators: []string{"is"}, Indexed: true},
 	{Field: ReportFieldOwner, Label: "Issue or change owner", Dataset: DatasetMatterExceptions, Operators: []string{"is", "is_not"}, Indexed: true},
 	{Field: ReportFieldMatterType, Label: "Issue or change type", Dataset: DatasetMatterExceptions, Operators: []string{"is"}, Indexed: true},
@@ -357,7 +365,7 @@ func normalizeReportFilterValue(dataset ReportDataset, field ReportFilterField, 
 			}
 			return value, nil
 		}
-		if dataset == DatasetMatterExceptions {
+		if dataset == DatasetMatters || dataset == DatasetMatterExceptions {
 			if !oneOfReportFilterValue(value, "DRAFT", "TRIAGE", "ASSESSMENT", "DECISION_REQUIRED", "ACTION_IN_PROGRESS", "RESPONSE_PREPARATION", "VERIFICATION", "CLOSED", "CANCELLED") {
 				return "", invalidReportFilter("%q is not a recorded Matter status", value)
 			}
@@ -454,7 +462,7 @@ func reportFieldAllowedForDataset(dataset ReportDataset, field ReportFilterField
 		case ReportFieldStatus, ReportFieldOwner, ReportFieldOverallState, ReportFieldJurisdiction, ReportFieldHasOpenMatters:
 			return true
 		}
-	case DatasetMatterExceptions:
+	case DatasetMatters, DatasetMatterExceptions:
 		switch field {
 		case ReportFieldStatus, ReportFieldOwner, ReportFieldMatterType, ReportFieldPriority, ReportFieldDueCondition,
 			ReportFieldMatterProgram, ReportFieldLatestVerificationResult:
