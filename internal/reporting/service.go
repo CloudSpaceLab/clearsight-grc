@@ -785,14 +785,14 @@ func validateDefinitionRevision(revision ReportDefinitionRevision, definition Re
 
 func validReportDataset(dataset ReportDataset) bool {
 	return dataset == DatasetProcessingActivities || dataset == DatasetProcessingActivityExceptions ||
-		dataset == DatasetPrograms || dataset == DatasetMatterExceptions || dataset == DatasetVendors
+		dataset == DatasetPrograms || dataset == DatasetMatters || dataset == DatasetMatterExceptions || dataset == DatasetVendors
 }
 
 func validReportDatasetScope(dataset ReportDataset, kind ReportScopeKind) bool {
 	switch dataset {
 	case DatasetPrograms:
 		return kind == ScopeLegalEntity || kind == ScopeProgram
-	case DatasetMatterExceptions:
+	case DatasetMatters, DatasetMatterExceptions:
 		return kind == ScopeLegalEntity || kind == ScopeMatter
 	case DatasetVendors:
 		return kind == ScopeLegalEntity
