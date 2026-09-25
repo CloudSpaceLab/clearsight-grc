@@ -321,13 +321,13 @@ export function installReportingEvidence() {
       recordRead();
       return json({ items: definitions });
     }
-    const definitionHistory = /^\/api\/v1\/ropa\/reports\/definitions\/([^/]+)\/history$/.exec(path);
+    const definitionHistory = /^\/api\/v1\/reports\/definitions\/([^/]+)\/history$/.exec(path);
     if (definitionHistory) {
       recordRead();
       const id = decodeURIComponent(definitionHistory[1]!);
       return histories[id] ? json({ items: histories[id] }) : notFound();
     }
-    const definitionDetail = /^\/api\/v1\/ropa\/reports\/definitions\/([^/]+)$/.exec(path);
+    const definitionDetail = /^\/api\/v1\/reports\/definitions\/([^/]+)$/.exec(path);
     if (definitionDetail) {
       recordRead();
       const definition = definitions.find((item) => item.id === decodeURIComponent(definitionDetail[1]!));
@@ -339,13 +339,13 @@ export function installReportingEvidence() {
       const requestedDefinition = url.searchParams.get("definition_id");
       return json({ items: requestedDefinition ? items.filter((run) => run.definition_id === requestedDefinition) : items });
     }
-    const runDetail = /^\/api\/v1\/ropa\/reports\/runs\/([^/]+)$/.exec(path);
+    const runDetail = /^\/api\/v1\/reports\/runs\/([^/]+)$/.exec(path);
     if (runDetail) {
       recordRead();
       const run = [readyRun, failedRun].find((item) => item.id === decodeURIComponent(runDetail[1]!));
       return run ? json(run) : notFound();
     }
-    const download = /^\/api\/v1\/ropa\/reports\/runs\/([^/]+)\/download$/.exec(path);
+    const download = /^\/api\/v1\/reports\/runs\/([^/]+)\/download$/.exec(path);
     if (download) {
       recordRead();
       const run = [readyRun, failedRun].find((item) => item.id === decodeURIComponent(download[1]!));
