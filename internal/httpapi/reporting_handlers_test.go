@@ -109,7 +109,7 @@ func reportingRequest(handler http.Handler, method, path, principal string, role
 
 func TestFilterVocabularyEndpointIsPublished(t *testing.T) {
 	handler, _, _, _, _ := reportingHTTPFixture(t)
-	response := reportingRequest(handler, http.MethodGet, "/api/v1/ropa/reports/filter-fields", reportingMakerID, nil, "")
+	response := reportingRequest(handler, http.MethodGet, "/api/v1/reports/filter-fields", reportingMakerID, nil, "")
 	if response.Code != http.StatusOK {
 		t.Fatalf("filter vocabulary status = %d: %s", response.Code, response.Body.String())
 	}
@@ -136,7 +136,7 @@ func TestFilterVocabularyEndpointIsPublished(t *testing.T) {
 func TestUnknownFilterFieldIsRejectedWithA400NamingTheField(t *testing.T) {
 	handler, _, _, _, _ := reportingHTTPFixture(t)
 	body := `{"tenant_id":"00000000-0000-7000-8000-000000000699","legal_entity_id":"00000000-0000-7000-8000-000000000698","maker_id":"forged-maker","code":"SAFE-ACTIVITY-REPORT","name":"Safe activity report","dataset":"PROCESSING_ACTIVITIES","scope_kind":"LEGAL_ENTITY","format":"CSV","filter":{"kind":"condition","field":"secret_column","operator":"is","value":"x"}}`
-	response := reportingRequest(handler, http.MethodPost, "/api/v1/ropa/reports/definitions", reportingMakerID, nil, body)
+	response := reportingRequest(handler, http.MethodPost, "/api/v1/reports/definitions", reportingMakerID, nil, body)
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("unknown filter field status = %d: %s", response.Code, response.Body.String())
 	}
@@ -149,7 +149,7 @@ func TestUnknownFilterFieldIsRejectedWithA400NamingTheField(t *testing.T) {
 func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 	handler, _, _, _, _ := reportingHTTPFixture(t)
 	proposeBody := `{"tenant_id":"forged-tenant","legal_entity_id":"forged-entity","actor_id":"forged-actor","maker_id":"forged-maker","reviewer_id":"forged-reviewer","authorizer_id":"forged-authorizer","checker_id":"forged-checker","code":"ROPA-SCOPE-TEST","name":"Scope binding test","dataset":"PROCESSING_ACTIVITY_EXCEPTIONS","scope_kind":"LEGAL_ENTITY","format":"CSV","filter":{"kind":"group","operator":"and"}}`
-	response := reportingRequest(handler, http.MethodPost, "/api/v1/ropa/reports/definitions", reportingMakerID, nil, proposeBody)
+	response := reportingRequest(handler, http.MethodPost, "/api/v1/reports/definitions", reportingMakerID, nil, proposeBody)
 	if response.Code != http.StatusCreated {
 		t.Fatalf("propose status = %d: %s", response.Code, response.Body.String())
 	}
@@ -179,15 +179,15 @@ func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 		return next
 	}
 
-	submit("/api/v1/ropa/reports/definitions/"+definition.ID+"/submit", reportingMakerID, "submit", definition.Version)
-	submit("/api/v1/ropa/reports/definitions/"+definition.ID+"/review", reportingReviewerID, "review", definition.Version)
-	activated := submit("/api/v1/ropa/reports/definitions/"+definition.ID+"/activate", reportingAuthorizerID, "activate", definition.Version)
+	submit("/api/v1/reports/definitions/"+definition.ID+"/submit", reportingMakerID, "submit", definition.Version)
+	submit("/api/v1/reports/definitions/"+definition.ID+"/review", reportingReviewerID, "review", definition.Version)
+	activated := submit("/api/v1/reports/definitions/"+definition.ID+"/activate", reportingAuthorizerID, "activate", definition.Version)
 	if activated.MakerID != reportingMakerID || activated.ReviewerID != reportingReviewerID || activated.CheckerID != reportingAuthorizerID {
 		t.Fatalf("transition actors were not bound from verified identities: %#v", activated)
 	}
 
 	runBody := `{"tenant_id":"forged-run-tenant","legal_entity_id":"forged-run-entity","actor_id":"forged-run-actor","requested_by_ref":"forged-run-performer","definition_id":"` + definition.ID + `","expected_definition_version":` + jsonNumber(int64(definition.CurrentVersion)) + `}`
-	runResponse := reportingRequest(handler, http.MethodPost, "/api/v1/ropa/reports/runs", reportingPerformerID, nil, runBody)
+	runResponse := reportingRequest(handler, http.MethodPost, "/api/v1/reports/runs", reportingPerformerID, nil, runBody)
 	if runResponse.Code != http.StatusCreated {
 		t.Fatalf("run status = %d: %s", runResponse.Code, runResponse.Body.String())
 	}
@@ -199,7 +199,7 @@ func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 		t.Fatalf("run trusted forged scope or actor: %#v", run)
 	}
 
-	second := reportingRequest(handler, http.MethodPost, "/api/v1/ropa/reports/definitions", reportingMakerID, nil, `{"code":"ROPA-REJECT-SCOPE","name":"Reject scope test","dataset":"PROCESSING_ACTIVITIES","scope_kind":"LEGAL_ENTITY","format":"CSV","filter":{"kind":"group","operator":"and"}}`)
+	second := reportingRequest(handler, http.MethodPost, "/api/v1/reports/definitions", reportingMakerID, nil, `{"code":"ROPA-REJECT-SCOPE","name":"Reject scope test","dataset":"PROCESSING_ACTIVITIES","scope_kind":"LEGAL_ENTITY","format":"CSV","filter":{"kind":"group","operator":"and"}}`)
 	if second.Code != http.StatusCreated {
 		t.Fatalf("second propose = %d: %s", second.Code, second.Body.String())
 	}
@@ -210,14 +210,14 @@ func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 	transitionBody := func(version int64) string {
 		return `{"tenant_id":"forged-reject-tenant","legal_entity_id":"forged-reject-entity","actor_id":"forged-reject-actor","expected_version":` + jsonNumber(version) + `,"checksum_seen":"` + rejectDefinition.StoredChecksum + `"}`
 	}
-	response = reportingRequest(handler, http.MethodPost, "/api/v1/ropa/reports/definitions/"+rejectDefinition.ID+"/submit", reportingMakerID, nil, transitionBody(rejectDefinition.Version))
+	response = reportingRequest(handler, http.MethodPost, "/api/v1/reports/definitions/"+rejectDefinition.ID+"/submit", reportingMakerID, nil, transitionBody(rejectDefinition.Version))
 	if response.Code != http.StatusOK {
 		t.Fatalf("second submit = %d: %s", response.Code, response.Body.String())
 	}
 	if err := json.NewDecoder(response.Body).Decode(&rejectDefinition); err != nil {
 		t.Fatal(err)
 	}
-	response = reportingRequest(handler, http.MethodPost, "/api/v1/ropa/reports/definitions/"+rejectDefinition.ID+"/reject", reportingReviewerID, nil, transitionBody(rejectDefinition.Version))
+	response = reportingRequest(handler, http.MethodPost, "/api/v1/reports/definitions/"+rejectDefinition.ID+"/reject", reportingReviewerID, nil, transitionBody(rejectDefinition.Version))
 	if response.Code != http.StatusOK {
 		t.Fatalf("reject = %d: %s", response.Code, response.Body.String())
 	}
@@ -227,7 +227,7 @@ func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 	if rejectDefinition.TenantID != reportingTenantID || rejectDefinition.LegalEntityID != reportingEntityID {
 		t.Fatalf("reject trusted forged scope: %#v", rejectDefinition)
 	}
-	historyResponse := reportingRequest(handler, http.MethodGet, "/api/v1/ropa/reports/definitions/"+rejectDefinition.ID+"/history", reportingReviewerID, nil, "")
+	historyResponse := reportingRequest(handler, http.MethodGet, "/api/v1/reports/definitions/"+rejectDefinition.ID+"/history", reportingReviewerID, nil, "")
 	if historyResponse.Code != http.StatusOK {
 		t.Fatalf("reject history = %d: %s", historyResponse.Code, historyResponse.Body.String())
 	}
@@ -242,7 +242,7 @@ func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 	}
 
 	retireBody := `{"tenant_id":"forged-retire-tenant","legal_entity_id":"forged-retire-entity","actor_id":"forged-retire-actor","reviewer_id":"forged-retire-reviewer","authorizer_id":"forged-retire-authorizer","checker_id":"forged-retire-checker","expected_version":` + jsonNumber(activated.Version) + `,"checksum_seen":"` + activated.StoredChecksum + `"}`
-	response = reportingRequest(handler, http.MethodPost, "/api/v1/ropa/reports/definitions/"+activated.ID+"/retire", reportingAuthorizerID, nil, retireBody)
+	response = reportingRequest(handler, http.MethodPost, "/api/v1/reports/definitions/"+activated.ID+"/retire", reportingAuthorizerID, nil, retireBody)
 	if response.Code != http.StatusOK {
 		t.Fatalf("retire = %d: %s", response.Code, response.Body.String())
 	}
@@ -259,16 +259,16 @@ func TestRunDownloadReAuthorisesAndRequiresReportDownloadPermission(t *testing.T
 	handler, service, repository, objects, authorityChecker := reportingHTTPFixture(t)
 	run, _ := installReadyHTTPReport(t, service, repository, objects, time.Now().UTC())
 
-	list := reportingRequest(handler, http.MethodGet, "/api/v1/ropa/reports/runs", reportingPerformerID, []string{"CRO"}, "")
+	list := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs", reportingPerformerID, []string{"CRO"}, "")
 	if list.Code != http.StatusOK {
 		t.Fatalf("list without report-download permission = %d: %s", list.Code, list.Body.String())
 	}
-	forbidden := reportingRequest(handler, http.MethodGet, "/api/v1/ropa/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CRO"}, "")
+	forbidden := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CRO"}, "")
 	if forbidden.Code != http.StatusForbidden {
 		t.Fatalf("download without report permission = %d: %s", forbidden.Code, forbidden.Body.String())
 	}
 
-	allowed := reportingRequest(handler, http.MethodGet, "/api/v1/ropa/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
+	allowed := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
 	if allowed.Code != http.StatusOK {
 		t.Fatalf("authorized download = %d: %s", allowed.Code, allowed.Body.String())
 	}
@@ -280,7 +280,7 @@ func TestRunDownloadReAuthorisesAndRequiresReportDownloadPermission(t *testing.T
 	authorityChecker.mu.Lock()
 	authorityChecker.failResponsibility = authority.ResponsibilityPerformer
 	authorityChecker.mu.Unlock()
-	unavailable := reportingRequest(handler, http.MethodGet, "/api/v1/ropa/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
+	unavailable := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
 	if unavailable.Code != http.StatusServiceUnavailable {
 		t.Fatalf("download after authority outage = %d: %s", unavailable.Code, unavailable.Body.String())
 	}
@@ -292,7 +292,7 @@ func TestRunDownloadReAuthorisesAndRequiresReportDownloadPermission(t *testing.T
 func TestRunDownloadSendsNoStoreAndContentDisposition(t *testing.T) {
 	handler, service, repository, objects, _ := reportingHTTPFixture(t)
 	run, data := installReadyHTTPReport(t, service, repository, objects, time.Now().UTC())
-	response := reportingRequest(handler, http.MethodGet, "/api/v1/ropa/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
+	response := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
 	if response.Code != http.StatusOK {
 		t.Fatalf("download = %d: %s", response.Code, response.Body.String())
 	}
@@ -317,7 +317,7 @@ func TestRunDownloadSendsNoStoreAndContentDisposition(t *testing.T) {
 func TestRunDownloadRefusesAnExpiredRunWithAnExplanation(t *testing.T) {
 	handler, service, repository, objects, authorityChecker := reportingHTTPFixture(t)
 	run, _ := installReadyHTTPReport(t, service, repository, objects, time.Now().UTC().Add(-8*24*time.Hour))
-	response := reportingRequest(handler, http.MethodGet, "/api/v1/ropa/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
+	response := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
 	if response.Code != http.StatusGone {
 		t.Fatalf("expired download = %d: %s", response.Code, response.Body.String())
 	}
@@ -328,7 +328,7 @@ func TestRunDownloadRefusesAnExpiredRunWithAnExplanation(t *testing.T) {
 	authorityChecker.mu.Lock()
 	authorityChecker.failResponsibility = authority.ResponsibilityPerformer
 	authorityChecker.mu.Unlock()
-	unavailable := reportingRequest(handler, http.MethodGet, "/api/v1/ropa/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
+	unavailable := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
 	if unavailable.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expired download disclosed run state during authority outage: %d %s", unavailable.Code, unavailable.Body.String())
 	}
