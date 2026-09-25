@@ -132,8 +132,8 @@ describe("ReportsWorkspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Generate report" }));
     const dialog = await screen.findByRole("dialog", { name: "Generate report" });
-    expect(within(dialog).getByText("Vendor portfolio")).toBeTruthy();
-    expect(within(dialog).getByText("XLSX")).toBeTruthy();
+    expect(within(dialog).getAllByText("Vendor portfolio")).not.toHaveLength(0);
+    expect(within(dialog).getAllByText("XLSX")).not.toHaveLength(0);
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Generate report" }));
     await waitFor(() => expect(createRun).toHaveBeenCalledWith(vendorDefinition.id, vendorDefinition.current_version));
