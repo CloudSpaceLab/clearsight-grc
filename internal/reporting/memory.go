@@ -532,7 +532,7 @@ func (r *MemoryRepository) CaptureSourceBoundary(ctx context.Context, scope Repo
 	switch definition.Dataset {
 	case DatasetPrograms:
 		key = "programs"
-	case DatasetMatterExceptions:
+	case DatasetMatters, DatasetMatterExceptions:
 		key = "matters"
 	case DatasetVendors:
 		key = "vendor_relationships"
