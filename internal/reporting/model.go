@@ -48,6 +48,7 @@ const (
 	DatasetProcessingActivityExceptions ReportDataset = "PROCESSING_ACTIVITY_EXCEPTIONS"
 	DatasetPrograms                     ReportDataset = "PROGRAMS"
 	DatasetMatterExceptions             ReportDataset = "MATTER_EXCEPTIONS"
+	DatasetVendors                      ReportDataset = "VENDORS"
 )
 
 type ReportScopeKind string
