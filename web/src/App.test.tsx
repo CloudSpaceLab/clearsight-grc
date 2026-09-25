@@ -281,6 +281,14 @@ describe("runtime navigation", () => {
     expect(within(screen.getByRole("complementary", { name: "Primary navigation" })).getByRole("button", { name: "Oversight" })).toBeTruthy();
   });
 
+  it("keeps Reports out of product navigation until the rebuilt workspace is approved", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    await screen.findAllByRole("button", { name: "Vendors" });
+    expect(screen.queryByRole("button", { name: "Reports" })).toBeNull();
+  });
+
   it("provides Vendors as a first-class navigation destination", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
