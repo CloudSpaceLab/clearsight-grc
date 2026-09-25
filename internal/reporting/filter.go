@@ -41,6 +41,10 @@ const (
 	ReportFieldDueCondition             ReportFilterField = "due_condition"
 	ReportFieldMatterProgram            ReportFilterField = "program"
 	ReportFieldLatestVerificationResult ReportFilterField = "latest_verification_result"
+	ReportFieldVendorName               ReportFilterField = "vendor_name"
+	ReportFieldServiceName              ReportFilterField = "service_name"
+	ReportFieldCriticality              ReportFilterField = "criticality"
+	ReportFieldPrivacyRole              ReportFilterField = "privacy_role"
 )
 
 // ReportFilterFieldVocabulary is published to the web workspace so the builder
@@ -72,6 +76,14 @@ var ReportFilterFieldVocabulary = []ReportFilterFieldDefinition{
 	{Field: ReportFieldDueCondition, Label: "Due condition", Dataset: DatasetMatterExceptions, Operators: []string{"is"}, Indexed: true},
 	{Field: ReportFieldMatterProgram, Label: "Related Program", Dataset: DatasetMatterExceptions, Operators: []string{"is", "is_not"}, Indexed: true},
 	{Field: ReportFieldLatestVerificationResult, Label: "Latest outcome result", Dataset: DatasetMatterExceptions, Operators: []string{"is"}, Indexed: true},
+
+	{Field: ReportFieldStatus, Label: "Vendor relationship status", Dataset: DatasetVendors, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldOwner, Label: "Business owner", Dataset: DatasetVendors, Operators: []string{"is", "is_not"}, Indexed: true},
+	{Field: ReportFieldCriticality, Label: "Criticality", Dataset: DatasetVendors, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldPrivacyRole, Label: "Privacy role", Dataset: DatasetVendors, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldJurisdiction, Label: "Vendor jurisdiction", Dataset: DatasetVendors, Operators: []string{"is"}, Indexed: true},
+	{Field: ReportFieldVendorName, Label: "Vendor name contains", Dataset: DatasetVendors, Operators: []string{"contains"}, Indexed: false},
+	{Field: ReportFieldServiceName, Label: "Service contains", Dataset: DatasetVendors, Operators: []string{"contains"}, Indexed: false},
 }
 
 type ReportFilterFieldDefinition struct {
@@ -210,6 +222,26 @@ func filterSQLFragment(field ReportFilterField, operator string) (string, error)
 			return "", fmt.Errorf("latest verification result supports only the is operator")
 		}
 		return "a.latest_verification_result = $%d", nil
+	case ReportFieldVendorName:
+		if operator != "contains" {
+			return "", fmt.Errorf("vendor name supports only the contains operator")
+		}
+		return "a.vendor_name ILIKE '%' || $%d || '%'", nil
+	case ReportFieldServiceName:
+		if operator != "contains" {
+			return "", fmt.Errorf("service name supports only the contains operator")
+		}
+		return "a.service_name ILIKE '%' || $%d || '%'", nil
+	case ReportFieldCriticality:
+		if operator != "is" {
+			return "", fmt.Errorf("vendor criticality supports only the is operator")
+		}
+		return "a.criticality = $%d", nil
+	case ReportFieldPrivacyRole:
+		if operator != "is" {
+			return "", fmt.Errorf("vendor privacy role supports only the is operator")
+		}
+		return "a.privacy_role = $%d", nil
 	}
 	return "", fmt.Errorf("field %q is not available for report filtering", field)
 }
@@ -331,6 +363,12 @@ func normalizeReportFilterValue(dataset ReportDataset, field ReportFilterField, 
 			}
 			return value, nil
 		}
+		if dataset == DatasetVendors {
+			if !oneOfReportFilterValue(value, "PROPOSED", "UNDER_REVIEW", "ACTIVE", "RESTRICTED", "SUSPENDED", "EXITING", "TERMINATED") {
+				return "", invalidReportFilter("%q is not a recorded vendor relationship status", value)
+			}
+			return value, nil
+		}
 		if !ropa.ValidStatus(ropa.Status(value)) {
 			return "", invalidReportFilter("%q is not a recorded processing activity status", value)
 		}
@@ -380,7 +418,19 @@ func normalizeReportFilterValue(dataset ReportDataset, field ReportFilterField, 
 			return "", invalidReportFilter("%q is not a recorded verification result", value)
 		}
 		return value, nil
-	case ReportFieldLawfulBasis, ReportFieldJurisdiction, ReportFieldName:
+	case ReportFieldCriticality:
+		value = strings.ToUpper(value)
+		if !oneOfReportFilterValue(value, "STANDARD", "IMPORTANT", "CRITICAL") {
+			return "", invalidReportFilter("%q is not a recorded vendor criticality", value)
+		}
+		return value, nil
+	case ReportFieldPrivacyRole:
+		value = strings.ToUpper(value)
+		if !oneOfReportFilterValue(value, "NONE", "PROCESSOR", "JOINT_CONTROLLER") {
+			return "", invalidReportFilter("%q is not a recorded vendor privacy role", value)
+		}
+		return value, nil
+	case ReportFieldLawfulBasis, ReportFieldJurisdiction, ReportFieldName, ReportFieldVendorName, ReportFieldServiceName:
 		return value, nil
 	default:
 		return "", invalidReportFilter("field %q is not available for report filtering", field)
@@ -408,6 +458,12 @@ func reportFieldAllowedForDataset(dataset ReportDataset, field ReportFilterField
 		switch field {
 		case ReportFieldStatus, ReportFieldOwner, ReportFieldMatterType, ReportFieldPriority, ReportFieldDueCondition,
 			ReportFieldMatterProgram, ReportFieldLatestVerificationResult:
+			return true
+		}
+	case DatasetVendors:
+		switch field {
+		case ReportFieldStatus, ReportFieldOwner, ReportFieldCriticality, ReportFieldPrivacyRole,
+			ReportFieldJurisdiction, ReportFieldVendorName, ReportFieldServiceName:
 			return true
 		}
 	}
