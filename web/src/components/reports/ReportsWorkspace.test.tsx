@@ -80,14 +80,14 @@ const failedRun: ReportRun = {
 
 describe("ReportsWorkspace", () => {
   const loadDefinitions = vi.fn();
-  const loadRuns = vi.fn();
+  const loadRunPage = vi.fn();
   const createRun = vi.fn();
   const downloadRun = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     loadDefinitions.mockResolvedValue([vendorDefinition, programDefinition]);
-    loadRuns.mockResolvedValue([readyRun, failedRun]);
+    loadRunPage.mockResolvedValue({ items: [readyRun, failedRun] });
     createRun.mockResolvedValue({
       ...readyRun,
       id: "run-queued",
@@ -104,7 +104,7 @@ describe("ReportsWorkspace", () => {
       organizationName="Meridian Trust Bank"
       legalEntityName="Meridian Trust Bank Nigeria"
       loadDefinitions={loadDefinitions}
-      loadRuns={loadRuns}
+      loadRunPage={loadRunPage}
       createRun={createRun}
       downloadRun={downloadRun}
     />);
@@ -122,7 +122,7 @@ describe("ReportsWorkspace", () => {
     const summary = screen.getByRole("region", { name: "Report library summary" });
     expect(within(summary).getByText("Available files").nextElementSibling?.textContent).toBe("1");
     expect(within(summary).getByText("Failed").nextElementSibling?.textContent).toBe("1");
-    expect(loadRuns).toHaveBeenCalledWith({ limit: 100 }, expect.any(AbortSignal));
+    expect(loadRunPage).toHaveBeenCalledWith({ limit: 50 }, expect.any(AbortSignal));
     expect(loadDefinitions).toHaveBeenCalledWith(true, expect.any(AbortSignal));
   });
 
@@ -139,6 +139,29 @@ describe("ReportsWorkspace", () => {
     await waitFor(() => expect(createRun).toHaveBeenCalledWith(vendorDefinition.id, vendorDefinition.current_version));
     expect(await screen.findByText(/Vendor portfolio was queued/)).toBeTruthy();
     expect(screen.getByRole("row", { name: /Vendor portfolio/ })).toBeTruthy();
+  });
+
+  it("loads older history pages without duplicating runs already in the library", async () => {
+    const olderRun: ReportRun = {
+      ...readyRun,
+      id: "run-older",
+      created_at: "2026-09-20T08:01:00Z",
+      completed_at: "2026-09-20T08:02:00Z",
+    };
+    loadRunPage
+      .mockResolvedValueOnce({ items: [readyRun, failedRun], next_cursor: "older-page" })
+      .mockResolvedValueOnce({ items: [readyRun, olderRun] });
+
+    renderWorkspace();
+    const table = await screen.findByRole("table", { name: "Generated reports" });
+    expect(screen.getByRole("button", { name: "Load older reports" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Load older reports" }));
+    await waitFor(() => expect(loadRunPage).toHaveBeenLastCalledWith({ limit: 50, cursor: "older-page" }));
+
+    const vendorRows = within(table).getAllByRole("row", { name: /Vendor portfolio/ });
+    expect(vendorRows).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "Load older reports" })).toBeNull();
   });
 
   it("shows report details from the central library without entering template governance", async () => {
