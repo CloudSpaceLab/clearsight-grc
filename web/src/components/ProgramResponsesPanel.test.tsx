@@ -42,7 +42,8 @@ describe("Program submitted data panel", () => {
     expect(screen.getByText("42% compliance")).toBeTruthy();
     expect(screen.getByText("Below required level")).toBeTruthy();
     expect(screen.getByText("High concern")).toBeTruthy();
-    expect(screen.getByText("90%")).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Assessment result" })).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "Coverage" })).toBeNull();
     expect(api.loadCompletedResponses).toHaveBeenCalledWith({ subject_type: "PROGRAM", subject_id: "program-1", current_only: true, sort: "COMPLETED_DESC", limit: 20, cursor: undefined });
 
     fireEvent.click(screen.getByRole("button", { name: "Load more responses" }));
@@ -87,6 +88,8 @@ describe("Program submitted data panel", () => {
     expect(within(dialog).getByRole("tab", { name: "Review" })).toBeTruthy();
     expect(within(dialog).getByRole("region", { name: "Assess response-1" })).toBeTruthy();
     expect(within(dialog).getByText("Email verified")).toBeTruthy();
+    expect(within(dialog).getByText("Scoring coverage")).toBeTruthy();
+    expect(within(dialog).getByText("90%")).toBeTruthy();
 
     fireEvent.click(within(dialog).getByRole("tab", { name: "Review" }));
     expect(await within(dialog).findByRole("region", { name: "Assess response-1" })).toBeTruthy();

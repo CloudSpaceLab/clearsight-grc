@@ -1,5 +1,11 @@
 # Program Follow-up Clarity Implementation Plan
 
+## Release scope — 25 September 2026
+
+Implemented: grouped internal assessment/source/issue follow-up with tab navigation; clearer portfolio status; consolidated response assessment results; per-vendor classification of response fields, documents and bank-assessed findings; selected-field clarification labels; durable issue-comment mention email notifications and receipt-schema migration. Existing reassignment supersession checks are preserved.
+
+The tasks below describe the broader design, not completed release claims. Cross-vendor Program totals, automatic expired-field preselection, reminders for already-completed assessments, and email delivery failure events in the issue timeline remain outstanding. Selected-field clarification retains its existing review-state eligibility. Synthetic scoring acceptance records are not relabelled or deleted by this release.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Distinguish outdated third-party answers, documents, and internal work in Program review, and deliver reliable follow-up notifications.

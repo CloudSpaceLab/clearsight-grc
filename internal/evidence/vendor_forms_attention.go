@@ -31,10 +31,10 @@ func populateVendorFormAttention(req Request, answers map[string]formcontract.An
 			}
 		}
 		kind := "VENDOR_RESPONSE_FIELD"
-		if source == "REVIEW" {
-			kind = "INTERNAL_REVIEW"
-		} else if sourceFields[field].Type == string(formcontract.TypeVendorDocument) {
+		if sourceFields[field].Type == string(formcontract.TypeVendorDocument) {
 			kind = "VENDOR_DOCUMENT"
+		} else if source == "REVIEW" {
+			kind = "INTERNAL_REVIEW"
 		}
 		row.AttentionItems = append(row.AttentionItems, VendorFormAttention{FieldID: field, RuleID: rule, Label: label, State: state, Source: source, Kind: kind})
 	}

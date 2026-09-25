@@ -86,14 +86,12 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
   const columns: readonly DataColumn<CompletedResponseSummary>[] = [
     { id: "form", header: "Form", render: (value) => <div className="program-responses__form"><strong>{value.title}</strong><span>Revision {value.revision}{value.current ? " · Current" : " · Historical"} · Form revision {value.form_template_version}</span></div>, accessibleText: (value) => `${value.title}, response revision ${value.revision}, form revision ${value.form_template_version}` },
     { id: "completed", header: "Submitted", render: (value) => <time dateTime={value.completed_at}>{formatDateTime(value.completed_at)}</time>, accessibleText: (value) => formatDateTime(value.completed_at) },
-    { id: "score", header: "Score", render: (value) => <ScoreCell score={value.score}/>, accessibleText: (value) => scoreAccessibleText(value.score) },
-    { id: "concern", header: "Concern", kind: "status", render: (value) => <ConcernBadge score={value.score}/>, accessibleText: (value) => concernText(value.score) },
-    { id: "coverage", header: "Coverage", kind: "number", render: (value) => coverageText(value.score), accessibleText: (value) => coverageText(value.score) },
+    { id: "score", header: "Assessment result", render: (value) => <div className="program-response-result"><ConcernBadge score={value.score}/><ScoreCell score={value.score}/></div>, accessibleText: (value) => `${concernText(value.score)} · ${scoreAccessibleText(value.score)}` },
     { id: "action", header: "Review", kind: "action", render: (value) => <Button variant="quiet" aria-label={`Review ${value.title} response`} onPress={() => void openResponse(value.id)}>Review response</Button>, accessibleText: (value) => `Review ${value.title} response` },
   ];
 
   return <article className="program-record-panel program-wide-panel program-responses-panel" aria-labelledby="program-responses-heading">
-    <div className="program-panel-heading"><div><span className="eyebrow">Responses</span><h2 id="program-responses-heading">Submitted data</h2><p>Completed responses collected for this Program. Open a response to review answers, submitted documents and assessment.</p></div></div>
+    <div className="program-panel-heading"><div><span className="eyebrow">Responses</span><h2 id="program-responses-heading">Submitted data</h2><p>Submitted answers and documents · Assessment scores do not establish document validity.</p></div>{items.length > 0 && <span className="program-response-count">{items.length} responses loaded{nextCursor ? " · More available" : ""}</span>}</div>
 
     {listState === "loading" && items.length === 0 && <p role="status">Loading submitted responses for this Program…</p>}
     {listState === "unavailable" && items.length === 0 && <RecordEmptyState kind="unavailable" label="Completed responses for this Program" title="Submitted data could not be loaded" description="Completed responses cannot be reviewed while the response list is unavailable. Retry the list before reviewing evidence." action="Retry submitted data" onAction={() => void loadList()}/>}
@@ -128,6 +126,7 @@ function ResponseReviewSheet({ state, detail, error, onRetry }: { state: DetailS
       <div><dt>Response revision</dt><dd>{detail.response.revision}{detail.response.current ? " · Current" : " · Historical"}</dd></div>
       <div><dt>Assurance</dt><dd>{assuranceLabel(detail.revision.achieved_assurance)}</dd></div>
       <div><dt>Form revision</dt><dd>{detail.response.form_template_version}</dd></div>
+      <div><dt>Scoring coverage</dt><dd>{coverageText(score)}</dd></div>
     </dl>
     <Tabs ariaLabel="Response sections" compactLabel="Response section" retainVisitedPanels items={responseSections} selectedKey={section} onSelectionChange={setSection}>
       {(active) => active === "ANSWERS" ? <ResponseAssessment responseID={detail.response.id} answersOnly showDocumentLauncher={false}/> : active === "DOCUMENTS" ? <DocumentBrowser responseRevisionID={detail.response.id} scopeLabel={detail.response.title + " · Revision " + detail.response.revision}/> : <ResponseAssessment responseID={detail.response.id} submissionScore={score} showResponseContext={false} showDocumentLauncher={false} current={detail.response.current}/>}

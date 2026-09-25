@@ -86,7 +86,7 @@ function ComplianceOverview({ relationshipID, serviceName, summary, summaryState
           <div className="vendor-compliance__form-footer"><div>
             {items.some((item) => attentionKind(item) === "VENDOR_RESPONSE_FIELD") && <p>Submitted response fields require follow-up</p>}
             {items.some((item) => attentionKind(item) === "VENDOR_DOCUMENT") && <p>Vendor documents require replacement or review</p>}
-            {items.some((item) => attentionKind(item) === "INTERNAL_REVIEW") && <p>Bank review requires a decision</p>}
+            {items.some((item) => attentionKind(item) === "INTERNAL_REVIEW") && <p>Bank-assessed findings require follow-up</p>}
             {(row.held_required ?? 0) > 0 && <p>{row.held_required} {row.held_required === 1 ? "document" : "documents"} received</p>}
             {row.response_currency === "PARTIALLY_REPLACED" && <p>Partly replaced · Review required</p>}
             {row.outdated && !items.some((item) => item.state === "EXPIRED") && <p>Outdated response</p>}
@@ -125,7 +125,7 @@ function attentionKind(item: NonNullable<VendorFormRow["attention_items"]>[numbe
   return item.source === "REVIEW" ? "INTERNAL_REVIEW" : "VENDOR_RESPONSE_FIELD";
 }
 function attentionKindLabel(item: NonNullable<VendorFormRow["attention_items"]>[number]) {
-  const labels = { VENDOR_RESPONSE_FIELD: "Vendor response field", VENDOR_DOCUMENT: "Vendor document", INTERNAL_REVIEW: "Bank review" };
+  const labels = { VENDOR_RESPONSE_FIELD: "Vendor response field", VENDOR_DOCUMENT: "Vendor document", INTERNAL_REVIEW: "Bank-assessed finding" };
   return labels[attentionKind(item)];
 }
 function followUpSummary(rows: VendorFormRow[], hasMore: boolean) {
@@ -135,8 +135,8 @@ function followUpSummary(rows: VendorFormRow[], hasMore: boolean) {
   for (const row of affectedForms) for (const item of itemsFor(row)) counts[attentionKind(item)]++;
   const parts = [
     counts.VENDOR_RESPONSE_FIELD && `${counts.VENDOR_RESPONSE_FIELD} vendor response ${counts.VENDOR_RESPONSE_FIELD === 1 ? "field needs" : "fields need"} updating`,
-    counts.VENDOR_DOCUMENT && `${counts.VENDOR_DOCUMENT} vendor ${counts.VENDOR_DOCUMENT === 1 ? "document needs" : "documents need"} replacing`,
-    counts.INTERNAL_REVIEW && `${counts.INTERNAL_REVIEW} internal ${counts.INTERNAL_REVIEW === 1 ? "review needs" : "reviews need"} a decision`,
+    counts.VENDOR_DOCUMENT && `${counts.VENDOR_DOCUMENT} vendor ${counts.VENDOR_DOCUMENT === 1 ? "document needs" : "documents need"} follow-up`,
+    counts.INTERNAL_REVIEW && `${counts.INTERNAL_REVIEW} bank-assessed ${counts.INTERNAL_REVIEW === 1 ? "finding needs" : "findings need"} follow-up`,
   ].filter(Boolean);
   return `${parts.join("; ")}. ${affectedForms.length} ${affectedForms.length === 1 ? "form is" : "forms are"} affected ${hasMore ? "within the loaded forms" : "for this vendor"}.`;
 }

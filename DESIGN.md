@@ -4,6 +4,8 @@ This is the fast, implementation-ready design contract for people and coding age
 
 ## Product and users
 
+Program follow-up groups assessment expiry, missing assessments, source updates and open issues into compact rows. Each row names the affected population, expands its supporting reasons and links to the relevant Program section. Desktop actions align beside the reason; below 560px they stack below it with a 44px minimum target. Supporting information status does not establish vendor document or response freshness. Submitted-response tables combine score and concern under Assessment result; scoring coverage remains in response detail. Existing theme and focus tokens apply.
+
 The selected vendor overview prioritizes failed requirements from submitted custom forms, using Missing, Expired, Not met and Awaiting review. A compact selected-vendor heading, plain service summary and inline work counts keep response gaps near the first viewport; identity edits remain in expandable details. The [vendor compliance overview brief](docs/design/2026-09-09-vendor-compliance-overview.md) preserves assessed conclusions, source attribution, unknown freshness and paginated scope without inventing a vendor compliance percentage.
 
 Forms library rows expose a server-authorized Edit draft or Edit form action alongside Details. The detail sheet places its permitted actions before version and ownership facts. Editing saves a draft version through the existing approval flow; published and latest versions remain separate. Unavailable or denied actions identify the responsible editor/reviewer or the recovery step. The [Forms editing brief](docs/design/2026-09-09-forms-edit-actions.md) defines the responsive and authority state matrix.

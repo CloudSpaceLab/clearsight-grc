@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import type { ProgramAggregate } from "../types";
 import type { ProgramOperations } from "../programOperationsApi";
 import type { ProgramReviewDigest } from "../programReviewApi";
@@ -46,9 +46,11 @@ describe("Program calculation truth", () => {
   });
 
   it("names an expired Program assessment without implying that a vendor response is stale", () => {
-    render(<ProgramCurrentPosition aggregate={{ ...aggregate, current_state: { ...current, reasons: [{ code: "EVIDENCE_EXPIRED", summary: "Evidence is out of date for Annual control review.", object_type: "EVIDENCE_CONTRACT", object_id: "contract-1" }] } }} operations={operations} digest={digest}/>);
-    expect(screen.getByText("Program assessment expired")).toBeTruthy();
-    expect(screen.getByText("Annual control review requires a new assessment of its supporting source.")).toBeTruthy();
-    expect(screen.queryByText("Evidence is out of date for Annual control review.")).toBeNull();
+    const onNavigate = vi.fn();
+    render(<ProgramCurrentPosition aggregate={{ ...aggregate, current_state: { ...current, reasons: [{ code: "EVIDENCE_EXPIRED", summary: "Evidence is out of date for Annual control review.", object_type: "EVIDENCE_CONTRACT", object_id: "contract-1" }] } }} operations={operations} digest={digest} onNavigate={onNavigate}/>);
+    expect(screen.getByText("1 · Assessments need renewal")).toBeTruthy();
+    expect(screen.getByText("Validity has ended for these internal assessments.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Review assessments" }));
+    expect(onNavigate).toHaveBeenCalledWith("evidence-results");
   });
 });

@@ -1,12 +1,15 @@
 import type { ProgramOperations, ProgramOperation } from "../programOperationsApi";
 import type { ProgramReviewDigest } from "../programReviewApi";
 import type { ProgramAggregate } from "../types";
+import type { ProgramSection } from "../appRouting";
+import { ProgramAttention } from "./ProgramAttention";
 
 type Props = {
   aggregate: ProgramAggregate;
   operations: ProgramOperations;
   digest: ProgramReviewDigest;
   onOpenOwnerChange?: () => void;
+  onNavigate?: (section: ProgramSection) => void;
 };
 
 const actionOrder = [
@@ -43,7 +46,7 @@ function actionTarget(command: string) {
   return "program-details-panel";
 }
 
-export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOwnerChange }: Props) {
+export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOwnerChange, onNavigate }: Props) {
   const current = aggregate.current_state;
   const assessedVersion = current?.program_version ?? 0;
   const assessmentVersionKnown = Number.isInteger(assessedVersion) && assessedVersion > 0;
@@ -57,48 +60,34 @@ export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOw
   const calculatedAt = validCalculationTime ? new Date(current!.generated_at).toLocaleString() : "Time unavailable";
   const openIssues = current?.open_matter_count;
   const knownOpenIssues = typeof openIssues === "number" && Number.isInteger(openIssues) && openIssues >= 0;
+  const navigate = onNavigate ?? ((section: ProgramSection) => { window.location.hash = `#programs/${encodeURIComponent(aggregate.program.id)}/${section}`; });
 
   function goToAction() {
     if (!action) return;
 	if (action.command === "program.assign" && onOpenOwnerChange) {
+	  navigate("overview");
 	  onOpenOwnerChange();
 	  return;
 	}
-	const target = document.getElementById(actionTarget(action.command));
-	if (target && typeof target.scrollIntoView === "function") target.scrollIntoView({ behavior: "smooth", block: "start" });
+	const command = action.command;
+	navigate(command.startsWith("program.monitoring.") ? "monitoring" : command.startsWith("program.evidence.") ? "evidence-results" : command === "program.safeguard.define" || command === "program.requirement.add" || command === "program.applicability.decide" ? "requirements-controls" : "overview");
+	window.requestAnimationFrame(() => document.getElementById(actionTarget(command))?.scrollIntoView?.({ behavior: "smooth", block: "start" }));
   }
 
   return <section className="program-current-position" aria-labelledby="program-current-position-heading">
-    <div>
+    <div className="program-position-header"><div>
       <span className="eyebrow">Current position</span>
-      <h2 id="program-current-position-heading">{!current || !assessmentVersionKnown ? "Unknown" : stale ? "Out of date" : aggregate.state_label}</h2>
+      <h2 id="program-current-position-heading">{!current || !assessmentVersionKnown ? "Unknown" : stale ? "Out of date" : aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</h2>
       <p>{!current ? "No Program status calculation is available." : <>{!assessmentVersionKnown ? "The assessment version is unavailable. " : stale ? `Last assessed at version ${assessedVersion}; Program is version ${aggregate.program.version}. ` : "Status reflects the latest Program version. "}{validCalculationTime ? <>Calculated <time dateTime={current.generated_at}>{calculatedAt}</time>.</> : "Calculation time is unavailable."}</>}</p>
+      </div><div className="program-dominant-next">
+        {action ? <button data-testid="program-dominant-action" className="primary-button" type="button" onClick={goToAction}>{action.label}</button> : <small>Review access · Changes require an assigned owner or reviewer.</small>}
+      </div></div><div>
       <div className="program-position-facts">
         <span><strong>Owner</strong> {owner?.display_name ?? storedOwner ?? (aggregate.program.owner_principal_id ? "Recorded Program owner unavailable" : "Program owner not assigned")}</span>
         <span><strong>Open issues</strong> {knownOpenIssues ? `${openIssues}${stale ? " (last calculation)" : ""}` : "Unknown"}</span>
         <span><strong>Requirements</strong> {aggregate.requirements.filter((requirement) => requirement.status === "APPROVED").length}</span>
       </div>
-      {reasons.length > 0 ? <div className="program-position-reasons"><h3>{stale ? "Reasons from the last calculation" : "What needs attention"}</h3><ul>{reasons.map((reason) => {
-        const presentation = programReasonPresentation(reason);
-        return <li key={`${reason.code}-${reason.object_id ?? ""}`}><strong>{presentation.title}</strong><span>{presentation.detail}</span></li>;
-      })}</ul></div> : <p>{!current || !Array.isArray(current.reasons) ? "Status reasons are unavailable." : stale ? "No status reasons were recorded for the previous calculation." : "No status reasons are recorded for this calculation."}</p>}
-    </div>
-    <div className="program-dominant-next">
-      {action ? <><button data-testid="program-dominant-action" className="primary-button" type="button" onClick={goToAction}>{action.label}</button><small>{action.reason}</small></> : <div className="program-readonly-next"><strong>No change is assigned to you</strong><span>Current Program details and responsibilities remain visible.</span></div>}
+      {reasons.length > 0 ? <div className="program-position-reasons"><h3>{stale ? "Follow-up from the last calculation" : "What needs attention"}</h3><ProgramAttention aggregate={aggregate} onNavigate={navigate}/></div> : <p>{!current || !Array.isArray(current.reasons) ? "Status reasons are unavailable." : stale ? "No status reasons were recorded for the previous calculation." : "No status reasons are recorded for this calculation."}</p>}
     </div>
   </section>;
-}
-
-export function programReasonPresentation(reason: { code: string; summary: string; object_type?: string; object_id?: string }) {
-  if (reason.code === "EVIDENCE_EXPIRED" && reason.object_type === "EVIDENCE_CONTRACT") {
-    const match = reason.summary.match(/(?:for|assessment for) (.+?)(?: has passed its validity date|\.)$/i);
-    const name = match?.[1] ?? "The evidence check";
-    return { title: "Program assessment expired", detail: `${name} requires a new assessment of its supporting source.` };
-  }
-  if (reason.code === "EVIDENCE_NOT_ASSESSED" && reason.object_type === "EVIDENCE_CONTRACT") {
-    const match = reason.summary.match(/for (.+?)\.?$/i);
-    const name = match?.[1] ?? "The evidence check";
-    return { title: "Program assessment missing", detail: `${name} needs an assessment of its supporting source.` };
-  }
-  return { title: reason.summary, detail: "Review the current Program record and record the required outcome." };
 }

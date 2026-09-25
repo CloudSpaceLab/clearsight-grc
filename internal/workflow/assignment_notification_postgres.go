@@ -22,7 +22,7 @@ func (r *PostgresRepository) LoadAssignmentNotification(ctx context.Context, eve
 			SELECT le.id::text,le.name,p.display_name,
 			       COALESCE((SELECT su.user_name FROM scim_users su JOIN scim_sources ss ON ss.tenant_id=su.tenant_id AND ss.id=su.source_id
 			                 WHERE su.tenant_id=m.tenant_id AND su.principal_id=$3::uuid AND su.active AND su.deleted_at IS NULL AND ss.status='ACTIVE' LIMIT 1),''),
-			       $3::text,m.id::text,m.title,CASE WHEN $4 THEN 'Review mentioned comment' ELSE 'Confirm scope and owner' END,m.due_at
+			       COALESCE(m.owner_principal_id::text,''),m.id::text,m.title,CASE WHEN $4 THEN 'Review mentioned comment' ELSE 'Confirm scope and owner' END,m.due_at
 			FROM matters m
 			JOIN tenants t ON t.id=m.tenant_id
 			JOIN legal_entities le ON le.tenant_id=m.tenant_id AND le.id=m.legal_entity_id

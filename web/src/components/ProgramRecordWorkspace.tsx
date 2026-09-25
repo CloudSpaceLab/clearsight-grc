@@ -8,7 +8,8 @@ import { loadProgramReviewDigest } from "../programReviewApi";
 import type { ProgramReviewDigest as ReviewDigest } from "../programReviewApi";
 import type { ProgramAggregate } from "../types";
 import { EmptyState } from "./EmptyState";
-import { dominantProgramAction, programReasonPresentation, ProgramCurrentPosition } from "./ProgramCurrentPosition";
+import { dominantProgramAction, ProgramCurrentPosition } from "./ProgramCurrentPosition";
+import { ProgramAttention } from "./ProgramAttention";
 import { ProgramReviewDigest } from "./ProgramReviewDigest";
 import { ProgramDetailsPanel } from "./ProgramDetailsPanel";
 import { ProgramRequirementsPanel } from "./ProgramRequirementsPanel";
@@ -227,7 +228,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
     {aggregate && <>
       <header className="program-record-header">
         <div><span className="program-kicker">{aggregate.program.code} · {aggregate.program.owning_function}</span><h1>{aggregate.program.name}</h1><p>{aggregate.program.jurisdiction || "Jurisdiction not recorded"}</p></div>
-        <dl><div><dt>Operating status</dt><dd>{statusLabel(aggregate.program.status)}</dd></div><div><dt>Calculated state</dt><dd>{aggregate.state_label}</dd></div><div><dt>Record version</dt><dd>{aggregate.program.version}</dd></div></dl>
+        <dl><div><dt>Operating status</dt><dd>{statusLabel(aggregate.program.status)}</dd></div><div><dt>Calculated state</dt><dd>{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</dd></div><div><dt>Record version</dt><dd>{aggregate.program.version}</dd></div></dl>
       </header>
       {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking who can act on this Program.</strong> Program details remain visible while assignments are loading.</div>}
       {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Program assignments could not be checked.</strong> Details and recorded owners remain visible, but changes are disabled until assignments can be confirmed. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry assignments</button></div>}
@@ -238,8 +239,8 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       {reviewState === "unavailable" && <div className="inline-notice" role="status"><strong>Program review status could not be checked.</strong> Program values and calculated status remain visible, but changes are disabled until the current review position is available. <button className="text-button" type="button" onClick={() => void loadReview()}>Retry review status</button></div>}
       {reviewOutdated && <div className="inline-notice" role="status"><strong>Program review status is out of date.</strong> Program values and review history remain visible, but changes are disabled until the latest Program changes have been assessed. <button className="text-button" type="button" onClick={() => void loadReview()}>Reload review status</button></div>}
       {digest
-        ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
-        : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label}</h2><div className="program-position-reasons"><h3>What needs attention</h3><ul>{(aggregate.current_state?.reasons ?? []).map((reason) => { const presentation = programReasonPresentation(reason); return <li key={`${reason.code}-${reason.object_id ?? ""}`}><strong>{presentation.title}</strong><span>{presentation.detail}</span></li>; })}</ul></div></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
+        ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest} onNavigate={selectSection} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
+        : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</h2><ProgramAttention aggregate={aggregate} onNavigate={selectSection}/></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
       {requestedItem && aggregateState === "live" && !itemAvailable && <Notice><strong>The requested {requestedItem.kind === "requirement" ? "requirement" : "control objective"} is unavailable in this Program.</strong><p>Return to the import to check its result, or review the available requirements and controls below.</p></Notice>}
       {panels && <ProgramDetailSections section={activeSection} panels={panels} onSectionChange={selectSection}/>}
     </>}

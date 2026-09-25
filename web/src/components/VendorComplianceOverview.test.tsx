@@ -68,9 +68,9 @@ describe("vendor compliance overview", () => {
       { rule_id: "review", label: "Audit right", state: "GAP", source: "REVIEW", kind: "INTERNAL_REVIEW" },
     ] }], observed_at: summary.observed_at });
     render(<VendorComplianceOverview {...props}/>);
-    expect(await screen.findByText(/1 vendor response field needs updating; 1 vendor document needs replacing; 1 internal review needs a decision/)).toBeTruthy();
+    expect(await screen.findByText(/1 vendor response field needs updating; 1 vendor document needs follow-up; 1 bank-assessed finding needs follow-up/)).toBeTruthy();
     expect(screen.getByText("Vendor document")).toBeTruthy();
-    expect(screen.getByText("Bank review")).toBeTruthy();
+    expect(screen.getByText("Bank-assessed finding")).toBeTruthy();
   });
   it("retains a page boundary and loads the next page only on request", async () => {
     api.loadVendorForms.mockResolvedValueOnce({ items: [row], next_cursor: "cursor-2", observed_at: summary.observed_at }).mockResolvedValueOnce({ items: [{ ...row, request_id: "request-2", title: "Privacy review" }], observed_at: summary.observed_at });
@@ -113,6 +113,6 @@ describe("vendor compliance overview", () => {
     render(<VendorComplianceOverview {...props}/>);
     await screen.findByText("SLA audit rights");
     expect(screen.getAllByText("SLA audit rights")).toHaveLength(1);
-    expect(screen.getByText("Bank review requires a decision")).toBeTruthy();
+    expect(screen.getByText("Bank-assessed findings require follow-up")).toBeTruthy();
   });
 });

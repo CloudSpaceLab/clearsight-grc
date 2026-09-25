@@ -201,7 +201,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
         const assessmentMissing = !hasAssessment(summaryItem);
         const assessmentStale = needsAssessment(summaryItem);
         const displayState = assessmentStale ? "UNKNOWN" : summaryItem.overall_state;
-        const displayLabel = assessmentMissing ? "Unknown" : assessmentStale ? "Out of date" : summaryItem.state_label || "Unknown";
+        const displayLabel = assessmentMissing ? "Unknown" : assessmentStale ? "Out of date" : summaryItem.state_label === "Evidence incomplete" ? "Supporting information needs review" : summaryItem.state_label || "Unknown";
         const openIssues = summaryItem.open_matter_count;
         const knownOpenIssues = !assessmentMissing && typeof openIssues === "number" && Number.isInteger(openIssues) && openIssues >= 0;
         return <article className={targetID === program.id ? "program-card targeted" : "program-card"} id={`program-${program.id}`} key={program.id}>
@@ -209,7 +209,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
             <span className="program-icon"><ProgramIcon/></span>
             <span className="program-primary"><span className="program-kicker">{program.code} · {program.owning_function}</span><strong>{program.name}</strong>{program.jurisdiction && <small>{program.jurisdiction}</small>}</span>
             <span className="program-counts"><span><b>{summaryItem.requirement_count}</b> requirements</span><span><b>{summaryItem.evidence_check_count}</b> evidence checks</span><span><b>{knownOpenIssues ? openIssues : "Unknown"}</b> open issues{knownOpenIssues && assessmentStale ? " (last calculation)" : ""}</span></span>
-            <span className={`program-state ${stateClass(displayState)}`}><strong>{displayLabel}</strong></span>
+            <span className={`program-state ${stateClass(displayState)}`}><strong>{displayLabel}</strong><small>Review follow-up →</small></span>
           </a>
         </article>;
       })}
