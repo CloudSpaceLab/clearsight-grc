@@ -224,12 +224,18 @@ func (a *API) listReportRuns(w http.ResponseWriter, r *http.Request) {
 		}
 		limit = parsed
 	}
-	runs, err := service.ListRuns(r.Context(), requestScope.Scope, strings.TrimSpace(r.URL.Query().Get("definition_id")), limit)
+	page, err := service.ListRunHistory(
+		r.Context(),
+		requestScope.Scope,
+		strings.TrimSpace(r.URL.Query().Get("definition_id")),
+		strings.TrimSpace(r.URL.Query().Get("cursor")),
+		limit,
+	)
 	if err != nil {
 		writeReportError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": runs})
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": page.Items, "next_cursor": page.NextCursor})
 }
 
 func (a *API) createReportRun(w http.ResponseWriter, r *http.Request) {
