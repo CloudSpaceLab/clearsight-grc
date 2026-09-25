@@ -28,17 +28,24 @@ export type DataTableProps<Row> = {
   selectedKey?: string;
   onSelectionChange?: (row: Row) => void;
   onRowAction?: (row: Row) => void;
+  /**
+   * Visible text for the per-row action. A table that offers a row action must
+   * show a control for it: an action reachable only by double-click or a
+   * keyboard shortcut is undiscoverable, and double-tap is unreliable on a
+   * touch screen. Keep it a verb naming the result.
+   */
+  rowActionLabel?: string;
   isLoading?: boolean;
   pagination?: DataTablePagination;
   responsiveTo?: "viewport" | "container";
 };
 
-export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, selectedKey, onSelectionChange, onRowAction, isLoading = false, pagination, responsiveTo = "viewport" }: DataTableProps<Row>) {
+export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, selectedKey, onSelectionChange, onRowAction, rowActionLabel = "View details", isLoading = false, pagination, responsiveTo = "viewport" }: DataTableProps<Row>) {
   const activeKey = rows.some((row) => rowKey(row) === selectedKey) ? selectedKey : rows[0] && rowKey(rows[0]);
   return <div className="cs-data-table" data-responsive-to={responsiveTo}>
     <div className="cs-data-table__viewport">
       <table aria-label={ariaLabel} aria-busy={isLoading || undefined}>
-        <thead><tr>{columns.map((column) => <th key={column.id} scope="col" data-kind={column.kind ?? "text"}>{column.header}</th>)}</tr></thead>
+        <thead><tr>{columns.map((column) => <th key={column.id} scope="col" data-kind={column.kind ?? "text"}>{column.header}</th>)}{onRowAction && <th scope="col" className="cs-data-table__action-heading"><span className="cs-sr-only">Row action</span></th>}</tr></thead>
         <tbody>{rows.map((row, index) => {
           const key = rowKey(row);
           const selected = selectedKey === key;
@@ -62,6 +69,17 @@ export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, sele
               }
             }}>
             {columns.map((column) => <td key={column.id} data-label={column.header} data-kind={column.kind ?? "text"} data-mobile-layout={column.mobileLayout} aria-label={`${column.header}: ${column.accessibleText(row)}`}>{column.render(row)}</td>)}
+            {onRowAction && <td className="cs-data-table__action">
+              <Button
+                variant="secondary"
+                onPress={() => onRowAction(row)}
+                // The visible text stays short and identical across rows; the
+                // accessible name carries which record it acts on, so a screen
+                // reader user hearing eight "View details" buttons knows which
+                // record each one opens.
+                aria-label={`${rowActionLabel} for ${rowName(row)}`}
+              >{rowActionLabel}</Button>
+            </td>}
           </tr>;
         })}</tbody>
       </table>

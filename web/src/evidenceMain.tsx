@@ -8,6 +8,8 @@ import { installUITruthEvidence, UITruthEvidencePage } from "./uiTruthEvidence";
 import { VendorCaptureEvidencePage, type VendorCaptureEvidenceState } from "./vendorCaptureEvidence";
 import { VendorReleaseEvidencePage } from "./vendorReleaseEvidence";
 import { installVendorComplianceEvidence, VendorComplianceEvidencePage } from "./vendorComplianceEvidence";
+import { installRopaEvidence } from "./ropaEvidence";
+import { installReportingEvidence } from "./reportingEvidence";
 import { FindingFollowUpEvidence } from "./FindingFollowUpEvidence";
 import { consumeCaptureInvitation } from "./captureInvitationBrowser";
 import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
@@ -47,6 +49,8 @@ installVendorAssessmentEvidence();
 installVendorCollectionEvidence();
 installUITruthEvidence();
 installVendorComplianceEvidence();
+installRopaEvidence();
+installReportingEvidence();
 const application = invitationToken !== null
   ? <ExternalCaptureApp invitationToken={invitationToken}/>
   : fixture === "finding-followup" ? <FindingFollowUpEvidence/>

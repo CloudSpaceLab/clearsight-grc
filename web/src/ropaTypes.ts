@@ -115,13 +115,15 @@ export type ProcessingActivityHistoryResponse = {
   has_more: boolean;
 };
 
-// The Go page currently serializes these three fields with their exported Go
-// names because ActivityPage has no JSON tags. Keep that wire shape explicit,
-// then expose the snake_case shape used by the web register below.
+// The register client keeps a small compatibility shape for older responses
+// while the current ActivityPage contract is stable snake_case JSON.
 export type ProcessingActivityPageWire = {
-  Rows: ProcessingActivity[];
-  NextCursor: string;
-  HasMore: boolean;
+  rows?: ProcessingActivity[];
+  next_cursor?: string;
+  has_more?: boolean;
+  Rows?: ProcessingActivity[];
+  NextCursor?: string;
+  HasMore?: boolean;
 };
 
 export type ProcessingActivityPage = {

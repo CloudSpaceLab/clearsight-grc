@@ -12,23 +12,23 @@ let failure = null;
 await mkdir(outputDir, { recursive: true });
 
 const captures = [
-  { name: "01-today-dark-comfortable-1440x900", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
-  { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
-  { name: "03-today-dark-compact-1440x900", route: "#today", title: "Today", theme: "dark", density: "compact", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
+  { name: "01-today-dark-comfortable-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
+  { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
+  { name: "03-today-dark-compact-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "compact", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "04-program-light-1440x900", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "07-import-dark-1440x900", route: "#imports", title: "Imports", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "08-configure-light-1440x900", route: "#configure", title: "Configuration", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Configuration areas" },
-  { name: "09-today-dark-tablet-1024x768", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 1024, height: 768 }, touch: true, assertFirstActionVisible: true },
-  { name: "10-today-light-mobile-390x844", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, assertFirstActionVisible: true },
-  { name: "11-today-dark-reflow-320x800", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 320, height: 800 }, touch: true },
-  { name: "17-today-empty-light-1440x900", route: "#today", title: "Today", fixture: "today-empty", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Nothing needs your action right now" },
-  { name: "18-today-loading-dark-1440x900", route: "#today", title: "Today", fixture: "today-loading", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Loading Today…" },
-  { name: "19-today-unavailable-light-1440x900", route: "#today", title: "Today", fixture: "today-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Today is unavailable" },
+  { name: "09-today-dark-tablet-1024x768", route: "#today", title: "Oversight", theme: "dark", density: "comfortable", viewport: { width: 1024, height: 768 }, touch: true, assertFirstActionVisible: true },
+  { name: "10-today-light-mobile-390x844", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, assertFirstActionVisible: true },
+  { name: "11-today-dark-reflow-320x800", route: "#today", title: "Oversight", theme: "dark", density: "comfortable", viewport: { width: 320, height: 800 }, touch: true },
+  { name: "17-today-empty-light-1440x900", route: "#today", title: "Oversight", fixture: "today-empty", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Nothing needs your action right now" },
+  { name: "18-today-loading-dark-1440x900", route: "#today", title: "Oversight", fixture: "today-loading", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Loading assigned work…" },
+  { name: "19-today-unavailable-light-1440x900", route: "#today", title: "Oversight", fixture: "today-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Assigned work is unavailable" },
   { name: "20-evidence-partial-light-1440x900", route: "#work/evidence", title: "Work", fixture: "evidence-requests-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Evidence requests are unavailable" },
   { name: "21-configure-partial-dark-1440x900", route: "#configure/authority", title: "Configuration", fixture: "configure-partial", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Routing policies are unavailable" },
-  { name: "22-no-config-access-light-1440x900", route: "#configure", title: "Today", fixture: "no-config-access", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Assigned work and operational exceptions you are permitted to handle.", assertNoConfigureNav: true },
+  { name: "22-no-config-access-light-1440x900", route: "#configure", title: "Oversight", fixture: "no-config-access", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Assigned work and operational exceptions you are permitted to handle.", assertNoConfigureNav: true },
   { name: "27-evidence-long-content-mobile-390x844", route: "#work/evidence", title: "Work", fixture: "long-content", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Confirm the accountable owner for the processor register" },
   { name: "37-new-work-light-1440x900", route: "#work/matters", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openMatterSetup: true },
   { name: "38-new-work-dark-mobile-390x844", route: "#work/matters", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openMatterSetup: true },
@@ -40,6 +40,18 @@ const captures = [
   { name: "88-vendor-link-sheet-dark-mobile-390x844", route: "#programs/program-ndpa/issues-actions", title: "Programs", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "vendor-link-focused-sheet-mobile", openVendorLink: true },
   { name: "129-oversight-completeness-light-1440x900", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "oversight-completeness" },
   { name: "130-oversight-completeness-dark-mobile-390x844", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "oversight-completeness-mobile" },
+  { name: "131-ropa-register-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-register" },
+  // The register capture sits above the activity table, so the per-row control
+  // that opens an activity's details is proved by a capture scrolled to the
+  // rows themselves. Without this the affordance exists in the DOM but is never
+  // seen in review evidence.
+  { name: "131a-ropa-register-row-action-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "View details", state: "ropa-register-row-action", scrollIntoViewText: "Choose View details" },
+  { name: "132-ropa-register-dark-mobile-390x844", route: "#ropa", title: "Processing activity register", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Customer account opening", state: "ropa-register-mobile" },
+  { name: "133-ropa-activity-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-activity", openRopaActivity: true },
+  { name: "140-report-definitions-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Processing activities with open exceptions", scrollToReportSection: "definitions", state: "report-definitions" },
+  { name: "141-report-definitions-dark-mobile-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", scrollToReportSection: "definitions", state: "report-definitions-mobile" },
+  { name: "142-report-run-failed-light-1440x900", route: "#reports", title: "Reports", fixture: "report-run-failed", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Failed at row limit", scrollToReportSection: "runs", state: "report-run-failed" },
+  { name: "143-report-definitions-reviewed-dark-mobile-compact-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "compact", viewport: { width: 390, height: 844 }, touch: true, expectText: "Program health review", scrollToReportRow: "Program health review", state: "report-definitions-reviewed-mobile" },
 ];
 
 try {
@@ -77,7 +89,43 @@ try {
 async function capturePage(capture) {
   const { context, page } = await openPage(capture);
   try {
+    if (capture.openRopaActivity) {
+      const seededRow = page.getByRole("row", { name: /Customer account opening/ }).first();
+      await seededRow.waitFor({ state: "visible" });
+      await seededRow.dblclick();
+      await page.waitForFunction(() => window.location.hash.startsWith("#ropa/activity/"));
+      await page.getByRole("heading", { name: "Customer account opening", exact: true }).waitFor({ state: "visible" });
+    }
     if (capture.expectText) await page.getByText(capture.expectText, { exact: false }).first().waitFor({ state: "visible" });
+    if (capture.scrollIntoViewText) {
+      // Some controls sit below the fold at the capture viewport. Scroll them
+      // into view so the screenshot proves the control is actually rendered,
+      // rather than leaving it present in the DOM but absent from the evidence.
+      const scrollTarget = page.getByText(capture.scrollIntoViewText, { exact: false }).first();
+      await scrollTarget.waitFor({ state: "visible" });
+      await scrollTarget.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(150);
+    }
+    if (capture.scrollToReportSection) {
+      const target = capture.scrollToReportSection === "runs"
+        ? page.getByRole("heading", { name: "Report runs", exact: true })
+        : page.getByRole("table", { name: "Report definitions", exact: true });
+      await target.waitFor({ state: "visible" });
+      await target.evaluate((element, section) => {
+        if (section === "runs") {
+          const maximum = document.documentElement.scrollHeight - window.innerHeight;
+          window.scrollTo({ top: Math.max(0, maximum - 60), behavior: "instant" });
+          return;
+        }
+        const top = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: Math.max(0, top - 150), behavior: "instant" });
+      }, capture.scrollToReportSection);
+    }
+    if (capture.scrollToReportRow) {
+      const row = page.getByRole("row", { name: new RegExp(capture.scrollToReportRow, "i") }).first();
+      await row.waitFor({ state: "visible" });
+      await row.locator('td[data-kind="status"]').scrollIntoViewIfNeeded();
+    }
     if (capture.openMatterSetup) {
       await page.getByRole("button", { name: "New issue or change" }).click();
       const heading = page.getByRole("heading", { name: "New issue or change" });
@@ -124,8 +172,19 @@ async function capturePage(capture) {
       await action.scrollIntoViewIfNeeded();
     }
     await saveScreenshot(page, capture.name);
-    await record(page, capture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
+    const recordedCapture = capture.openRopaActivity ? { ...capture, route: new URL(page.url()).hash } : capture;
+    await record(page, recordedCapture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
     await assertNoHorizontalOverflow(page, capture.name);
+    if (capture.name.startsWith("report-")) await assertReportLayout(page, capture.name);
+    if (capture.state === "report-definitions-mobile") {
+      const replacement = await page.evaluate(() => {
+        const table = document.querySelector('[aria-label="Report definitions"]');
+        const row = table?.querySelector("tbody tr");
+        const head = table?.querySelector("thead");
+        return { rowDisplay: row ? getComputedStyle(row).display : "", headPosition: head ? getComputedStyle(head).position : "" };
+      });
+      if (replacement.rowDisplay !== "grid" || replacement.headPosition !== "absolute") throw new Error(`${capture.name} did not replace the definitions table with stacked mobile records`);
+    }
     await assertGuideLauncherDoesNotBlockNavigation(page, capture.name, capture.viewport.width);
     if (capture.assertFirstActionVisible) await assertFirstActionVisible(page, capture.viewport.height, capture.name, capture.touch === true);
     if (capture.assertNoConfigureNav && await page.getByRole("button", { name: /Configure/ }).count()) throw new Error(`${capture.name} exposes Configure without config-read capability`);
@@ -199,6 +258,53 @@ async function assertNoHorizontalOverflow(page, name) {
   if (metrics.scrollWidth > metrics.clientWidth + 1) {
     const overflowing = await page.evaluate(() => [...document.querySelectorAll("body *")].filter((element) => element.getBoundingClientRect().right > document.documentElement.clientWidth + 1).slice(-12).map((element) => ({ tag: element.tagName, class: element.className, right: element.getBoundingClientRect().right })));
     throw new Error(`${name} has horizontal overflow: ${metrics.scrollWidth}px content in ${metrics.clientWidth}px viewport; ${JSON.stringify(overflowing)}`);
+  }
+}
+
+async function assertReportLayout(page, name) {
+  const reportLayout = await page.evaluate(() => {
+    const rectangle = (element) => {
+      const value = typeof element.getBoundingClientRect === "function" ? element.getBoundingClientRect() : element;
+      return { x: value.x, y: value.y, width: value.width, height: value.height, right: value.right, bottom: value.bottom };
+    };
+    const textRects = (element) => {
+      const range = document.createRange();
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      const values = [];
+      let node;
+      while ((node = walker.nextNode())) {
+        if (!node.textContent?.trim()) continue;
+        range.selectNodeContents(node);
+        values.push(...[...range.getClientRects()].map((value) => rectangle(value)));
+      }
+      return values;
+    };
+    return {
+      badges: [...document.querySelectorAll(".reporting-page .cs-status-badge")].map((badge) => ({
+        label: badge.textContent?.trim() ?? "",
+        flexWrap: getComputedStyle(badge).flexWrap,
+        outer: rectangle(badge),
+        marker: badge.querySelector(".cs-status-badge__marker") ? rectangle(badge.querySelector(".cs-status-badge__marker")) : undefined,
+        textRects: textRects(badge),
+      })),
+      sources: [...document.querySelectorAll(".reporting-page .report-source-boundary li")].map((item) => {
+        const label = item.querySelector("span");
+        const time = item.querySelector("time");
+        return { label: label ? rectangle(label) : undefined, time: time ? rectangle(time) : undefined };
+      }),
+    };
+  });
+
+  for (const badge of reportLayout.badges) {
+    if (badge.flexWrap !== "wrap") throw new Error(`${name} leaves the report status badge on a single flex line: ${badge.label}`);
+    const contained = badge.textRects.every((line) => line.x >= badge.outer.x - 1 && line.right <= badge.outer.right + 1 && line.y >= badge.outer.y - 1 && line.bottom <= badge.outer.bottom + 1);
+    const markerContained = !badge.marker || (badge.marker.x >= badge.outer.x - 1 && badge.marker.right <= badge.outer.right + 1 && badge.marker.y >= badge.outer.y - 1 && badge.marker.bottom <= badge.outer.bottom + 1);
+    if (!contained || !markerContained) throw new Error(`${name} lets report status text or marker leave its pill: ${badge.label}`);
+  }
+  for (const source of reportLayout.sources) {
+    if (!source.label || !source.time || source.time.y < source.label.bottom + 1) {
+      throw new Error(`${name} runs the source high-water name into its timestamp`);
+    }
   }
 }
 
@@ -446,7 +552,7 @@ async function captureDocumentResultHandoffs() {
 }
 
 async function captureRouting() {
-  const capture = { name: "12-authority-dark-1440x900", route: "#today", title: "Today", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "12-authority-dark-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await page.getByRole("button", { name: "Check authority" }).click();
@@ -462,7 +568,7 @@ async function captureRouting() {
 }
 
 async function captureAuthorityForbidden() {
-  const capture = { name: "23-authority-forbidden-light-1440x900", route: "#today", title: "Today", fixture: "authority-forbidden", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "23-authority-forbidden-light-1440x900", route: "#today", title: "Oversight", fixture: "authority-forbidden", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await page.getByRole("button", { name: "Check authority" }).click();
@@ -488,7 +594,7 @@ async function fillCapture(page) {
 }
 
 async function captureEvidenceReviewAndReceipt() {
-  const capture = { name: "13-capture-entry-light-1440x900", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "13-capture-entry-light-1440x900", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
@@ -515,7 +621,7 @@ async function captureEvidenceReviewAndReceipt() {
 }
 
 async function captureCaptureNotFound() {
-  const capture = { name: "24-capture-not-found-dark-1440x900", route: "#today", title: "Today", fixture: "capture-not-found", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "24-capture-not-found-dark-1440x900", route: "#today", title: "Oversight", fixture: "capture-not-found", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
@@ -528,7 +634,7 @@ async function captureCaptureNotFound() {
 }
 
 async function captureCaptureTerminal() {
-  const capture = { name: "25-capture-expired-light-1440x900", route: "#today", title: "Today", fixture: "capture-terminal", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "25-capture-expired-light-1440x900", route: "#today", title: "Oversight", fixture: "capture-terminal", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
@@ -542,7 +648,7 @@ async function captureCaptureTerminal() {
 }
 
 async function captureCaptureConflict() {
-  const capture = { name: "26-capture-conflict-light-1440x900", route: "#today", title: "Today", fixture: "capture-conflict", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "26-capture-conflict-light-1440x900", route: "#today", title: "Oversight", fixture: "capture-conflict", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await openEvidenceCapture(page);
@@ -560,7 +666,7 @@ async function captureCaptureConflict() {
 }
 
 async function captureMobileCaptureAndFocus() {
-  const capture = { name: "28-capture-mobile-light-390x844", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true };
+  const capture = { name: "28-capture-mobile-light-390x844", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true };
   const { context, page } = await openPage(capture);
   try {
     const more = page.getByText("More actions", { exact: true });
@@ -579,7 +685,7 @@ async function captureMobileCaptureAndFocus() {
 }
 
 async function captureZoomProxy() {
-  const capture = { name: "16-today-light-200pct-zoom-proxy", route: "#today", title: "Today", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const capture = { name: "16-today-light-200pct-zoom-proxy", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(capture);
   try {
     await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
@@ -732,7 +838,7 @@ async function captureVendorActivationRecovery() {
   const axeSource = await readFile(path.resolve("node_modules/axe-core/axe.min.js"), "utf8");
   for (const theme of ["light", "dark"]) for (const width of [1440, 390, 320]) {
     const capture = { route: "#vendors/register", title: "Vendors", theme, density: "comfortable", viewport: { width, height: width === 1440 ? 900 : 844 }, touch: width < 800 };
-    const { context, page } = await openPage({ ...capture, route: "#today", title: "Today" });
+    const { context, page } = await openPage({ ...capture, route: "#today", title: "Oversight" });
     try {
       // This runner-only fixture exercises the real workspace and HTTP client.
       // All activation results are fictional; no material server command is sent.

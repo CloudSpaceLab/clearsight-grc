@@ -36,6 +36,7 @@ const ConfigureWorkspace = lazy(() => import("./components/configure/ConfigureWo
 const OversightWorkspace = lazy(() => import("./components/oversight/OversightWorkspace").then((module) => ({ default: module.OversightWorkspace })));
 const RopaRegisterPage = lazy(() => import("./components/RopaRegisterPage").then((module) => ({ default: module.RopaRegisterPage })));
 const RopaActivityPage = lazy(() => import("./components/RopaActivityPage").then((module) => ({ default: module.RopaActivityPage })));
+const ReportingPage = lazy(() => import("./components/ReportingPage").then((module) => ({ default: module.ReportingPage })));
 const EmployeeProfileWorkspace = lazy(() => import("./components/EmployeeProfileWorkspace").then((module) => ({ default: module.EmployeeProfileWorkspace })));
 
 type LoadState = "idle" | "loading" | "live" | "unavailable";
@@ -147,8 +148,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   }, [currentEvidenceScopeKey, primaryEvidenceTargetID]);
 
   useEffect(() => {
+    if (/^#\/?today(?:[/?]|$)/i.test(window.location.hash)) window.history.replaceState(null, "", "#oversight");
     const syncRoute = () => {
       const route = parseRoute(window.location.hash);
+      if (/^#\/?today(?:[/?]|$)/i.test(window.location.hash)) window.history.replaceState(null, "", "#oversight");
       setActiveView(route.view);
       if (route.workTab) setWorkTab(route.workTab);
       setTarget(route.target);
@@ -165,9 +168,8 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   useEffect(() => {
     document.documentElement.dataset.clearsightDemo = demoMode ? "on" : "off";
     if (!runtime) return;
-    if ((!referenceJourneysEnabled && activeView === "explore") || (!importsEnabled && activeView === "imports") || (!configureEnabled && activeView === "configure") || (!oversightEnabled && activeView === "oversight")) navigate("today");
-    if (oversightEnabled && activeView === "today") navigate("oversight");
-  }, [runtime, referenceJourneysEnabled, importsEnabled, configureEnabled, oversightEnabled, activeView]);
+    if ((!referenceJourneysEnabled && activeView === "explore") || (!importsEnabled && activeView === "imports") || (!configureEnabled && activeView === "configure")) navigate("oversight");
+  }, [runtime, referenceJourneysEnabled, importsEnabled, configureEnabled, activeView]);
 
   async function loadEvidenceWorkspace(requestedID?: string) {
     const loadID = ++evidenceWorkspaceLoadID.current;
@@ -265,8 +267,9 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const actorName = runtime?.actor.name || runtime?.actor.id || "User unavailable";
   const roleName = humanRole(runtime?.actor.role_codes?.[0]) || "Role not provided";
   const operatingNavigation: Array<{ label: string; view: View }> = [
-    ...(oversightEnabled ? [{ label: "Oversight", view: "oversight" as View }] : [{ label: "Today", view: "today" as View }]),
+    { label: "Oversight", view: "oversight" as View },
     { label: "Programs", view: "programs" },
+    { label: "Reports", view: "reports" },
     { label: "Processing activities", view: "ropa" },
     { label: "Work", view: "work" },
     { label: "Vendors", view: "vendors" },
@@ -347,8 +350,8 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   }
 
   async function executeGuideStep(step: GuideStep) {
-    if (step.intent === "open-routing") { navigate(oversightEnabled ? "oversight" : "today"); const authorityItem = items.find((item) => item.authority && item.action_target_type && item.action_target_id); if (authorityItem) await inspectRouting(authorityItem); return; }
-    if (step.intent === "open-capture") { navigate(oversightEnabled ? "oversight" : "today"); await openPrimaryEvidence(); return; }
+    if (step.intent === "open-routing") { navigate("oversight"); const authorityItem = items.find((item) => item.authority && item.action_target_type && item.action_target_id); if (authorityItem) await inspectRouting(authorityItem); return; }
+    if (step.intent === "open-capture") { navigate("oversight"); await openPrimaryEvidence(); return; }
     if (step.intent === "open-first-attention" && items[0]) { openAttention(items[0]); return; }
     if (step.intent === "open-first-program") { navigate("programs", { openFirstProgram: true }); return; }
     if (step.intent === "open-first-matter") { navigate("work", { openFirstMatter: true }, "matters"); return; }
@@ -410,13 +413,13 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
           {serverDemoMode ? <mark>{demoMode ? "Stakeholder demo" : "Non-production data"}</mark> : null}
         </div>
       </div>
-      {(activeView === "today" || activeView === "oversight" || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>}
-      {activeView === "today" && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>} 
-      {activeView === "oversight" && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading oversight…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", metric === "all" ? {} : { oversightMetric: metric })} todayItems={items} todayState={connection} onOpenTodayItem={openAttention} onOpenToday={() => navigate("today")}/></Suspense>}
-      {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
-      {activeView === "ropa" && target.ropaPage === "reports" && <section className="workspace-loading" aria-live="polite"><div><h1>Processing activity reports</h1><p>Report definitions and saved report results are not available in this workspace. Return to the register to review processing activities.</p></div></section>}
+      {(activeView === "oversight" || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>}
+      {activeView === "oversight" && !oversightEnabled && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
+      {activeView === "oversight" && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading oversight…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", metric === "all" ? {} : { oversightMetric: metric })} todayItems={items} todayState={connection} onOpenTodayItem={openAttention}/></Suspense>}
+      {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenForm={(id) => navigate("forms", { formTemplateID: id })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
+      {activeView === "reports" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading reports…</div>}><ReportingPage organizationName={organizationName} legalEntityName={legalEntityName} onOpenRegister={() => navigate("ropa", { ropaPage: "register" })}/></Suspense>}
       {activeView === "ropa" && target.ropaPage !== "reports" && target.ropaActivityID && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading processing activity…</div>}><RopaActivityPage activityID={target.ropaActivityID} organizationName={organizationName} legalEntityName={legalEntityName} onBack={() => navigate("ropa")}/></Suspense>}
-      {activeView === "ropa" && target.ropaPage !== "reports" && !target.ropaActivityID && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading processing activity register…</div>}><RopaRegisterPage organizationName={organizationName} legalEntityName={legalEntityName} onOpenActivity={(id) => navigate("ropa", { ropaPage: "register", ropaActivityID: id })}/></Suspense>}
+      {activeView === "ropa" && target.ropaPage !== "reports" && !target.ropaActivityID && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading processing activity register…</div>}><RopaRegisterPage organizationName={organizationName} legalEntityName={legalEntityName} onOpenActivity={(id) => navigate("ropa", { ropaPage: "register", ropaActivityID: id })} onOpenReports={() => navigate("ropa", { ropaPage: "reports" })}/></Suspense>}
       {activeView === "work" && <WorkView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} evidenceScopeToken={evidenceScopeEpoch.current} tab={workTab} onTab={(tab) => navigate("work", {}, tab)} onBackMatter={() => navigate("work", {}, "matters")} sources={sources} requests={evidenceRequests} evidenceSourceState={evidenceSourceState === "idle" ? "loading" : evidenceSourceState} evidenceRequestState={evidenceRequestState === "idle" ? "loading" : evidenceRequestState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} onEvidenceRequestUpdated={updateEvidenceEntity} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
       {activeView === "vendors" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships…</div>}><VendorsWorkspace organizationName={organizationName} legalEntityName={legalEntityName} page={target.vendorPage ?? "overview"} targetID={target.vendorRelationshipID} guideIntent={vendorGuideIntent} onGuideIntentCompleted={completeVendorGuideIntent} onGuideIntentFailed={failVendorGuideIntent} onPage={(vendorPage) => navigate("vendors", { vendorPage })} onTarget={(id) => navigate("vendors", id ? { vendorPage: "register", vendorRelationshipID: id } : { vendorPage: "register" })} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} onOpenForms={() => navigate("forms")}/></Suspense>}
       {activeView === "people" && <Suspense fallback={<div className="workspace-loading" aria-live="polite">Loading employee record…</div>}><EmployeeProfileWorkspace personID={target.personID} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")}/></Suspense>}

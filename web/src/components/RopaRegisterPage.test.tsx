@@ -172,6 +172,31 @@ it("opens the selected activity from the register row action", async () => {
   expect(onOpenActivity).toHaveBeenCalledWith("activity-1");
 });
 
+it("shows a visible control that opens each activity's details", async () => {
+  // A row action reachable only by double-click or a keyboard shortcut cannot be
+  // discovered, and double-tap is unreliable on a touch screen, so every row
+  // must carry a control that names the record it opens.
+  const onOpenActivity = vi.fn();
+  render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities} onOpenActivity={onOpenActivity}/>);
+  const control = await screen.findByRole("button", { name: /View details for Customer onboarding/ });
+  fireEvent.click(control);
+  expect(onOpenActivity).toHaveBeenCalledWith("activity-1");
+});
+
+it("does not describe the interaction instead of naming the action", async () => {
+  render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities} onOpenActivity={vi.fn()}/>);
+  await screen.findByRole("row", { name: /Customer onboarding/ });
+  expect(screen.getByText(/Choose View details/)).toBeTruthy();
+  expect(screen.queryByText(/Double-click/)).toBeNull();
+});
+
+it("opens the governed report workspace from the register", async () => {
+  const onOpenReports = vi.fn();
+  render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities} onOpenReports={onOpenReports}/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Open reports" }));
+  expect(onOpenReports).toHaveBeenCalledTimes(1);
+});
+
 it("retries a summary failure without hiding the register read", async () => {
   api.fetchDashboard.mockRejectedValueOnce(new Error("offline"));
   render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities}/>);

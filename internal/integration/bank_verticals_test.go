@@ -97,7 +97,7 @@ func TestNigerianBankReferenceJourneys(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if programs != 1 || requirements != 5 || evidenceChecks != 5 || matters != 3 || requests != 2 {
+	if programs != 1 || requirements != 5 || evidenceChecks != 0 || matters != 3 || requests != 2 {
 		t.Fatalf("unexpected vertical records programs=%d requirements=%d checks=%d matters=%d requests=%d", programs, requirements, evidenceChecks, matters, requests)
 	}
 

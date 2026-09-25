@@ -772,6 +772,12 @@ func validTransition(from, to Status) bool {
 	}
 }
 
+// ClosureBlockersForTest exposes the register's closure decision to other
+// packages so the report's exception predicate can be proven equal to it. A
+// second implementation of this rule is how a register and its report would
+// start disagreeing.
+func ClosureBlockersForTest(activity ProcessingActivity) []string { return closureBlockers(activity) }
+
 // closureBlockers names each fact an operator must supply before closure. A
 // completed review means at least one review has a non-nil CompletedAt and an
 // Outcome of CONFIRMED or REVISED; a nil completion, empty outcome, or

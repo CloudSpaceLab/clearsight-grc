@@ -9,6 +9,7 @@ type RegisterPageProps = {
   organizationName?: string;
   legalEntityName?: string;
   onOpenActivity?: (id: string) => void;
+  onOpenReports?: () => void;
   loadSummary?: (signal?: AbortSignal) => Promise<RegisterSummary>;
   loadActivities?: (params?: RopaProcessingActivityListParams, signal?: AbortSignal) => Promise<ProcessingActivityPage>;
 };
@@ -30,7 +31,7 @@ const statusOptions: ReadonlyArray<{ id: ProcessingActivityStatus; label: string
   { id: "CLOSED", label: "Complete" },
 ];
 
-export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActivity, loadSummary = fetchDashboard, loadActivities = listProcessingActivities }: RegisterPageProps) {
+export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActivity, onOpenReports, loadSummary = fetchDashboard, loadActivities = listProcessingActivities }: RegisterPageProps) {
   const scope = legalEntityName || "this legal entity";
   const summaryReader = loadSummary ?? unavailableSummary;
   const activityReader = loadActivities ?? unavailableActivities;
@@ -112,6 +113,14 @@ export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActi
     if (typeof window !== "undefined") window.location.hash = `#ropa/activity/${encodeURIComponent(id)}`;
   }
 
+  function openReports() {
+    if (onOpenReports) {
+      onOpenReports();
+      return;
+    }
+    if (typeof window !== "undefined") window.location.hash = "#ropa/reports";
+  }
+
   const hasFilters = Boolean(search.trim() || status);
   const pagination = (cursors.length > 0 || (page.has_more && Boolean(page.next_cursor))) ? {
     label: "Processing activity pages",
@@ -145,6 +154,7 @@ export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActi
         <p>Review the purpose, lawful basis, accountable owner and review date recorded for each processing activity in {scope}.</p>
       </div>
       <div className="topbar-actions">
+        <Button variant="secondary" onPress={openReports}>Open reports</Button>
         <Button variant="secondary" onPress={() => { retrySummary(); retryList(); }} isLoading={summaryState === "loading" || listState === "loading"}>Refresh register</Button>
       </div>
     </header>
@@ -157,7 +167,7 @@ export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActi
 
     <section className="ropa-register-list" aria-labelledby="ropa-register-list-heading">
       <div className="section-header ropa-register-list__header">
-        <div><h2 id="ropa-register-list-heading">Processing activities</h2><p>Open a row to review the recorded privacy facts and review history. Double-click a row or press Enter or Space to open it.</p></div>
+        <div><h2 id="ropa-register-list-heading">Processing activities</h2><p>Choose View details on an activity to read its recorded purpose, lawful basis, owner, systems and review history.</p></div>
       </div>
       <FilterBar
         label="Processing activity filters"

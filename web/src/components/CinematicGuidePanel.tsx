@@ -21,9 +21,9 @@ export function CinematicGuidePanel({ variant, role, title, description, busy = 
   const titleID = useId();
   const descriptionID = useId();
   const isVendors = variant === "vendors";
-  const workspace = isVendors ? "Vendors" : "Today";
+  const workspace = isVendors ? "Vendors" : "Oversight";
 
-  return <aside className={`cinematic-guide cinematic-guide--${variant}`} aria-label={`${isVendors ? "Vendor" : "Today"} guide`}>
+  return <aside className={`cinematic-guide cinematic-guide--${variant}`} aria-label={`${isVendors ? "Vendor" : "Oversight"} guide`}>
     <div className="cinematic-guide__visual">
       <svg
         className="cinematic-guide__scene"
@@ -32,7 +32,7 @@ export function CinematicGuidePanel({ variant, role, title, description, busy = 
         aria-labelledby={`${titleID} ${descriptionID}`}
         preserveAspectRatio="xMidYMid meet"
       >
-        <title id={titleID}>{isVendors ? "Vendor relationship path" : "Today work path"}</title>
+        <title id={titleID}>{isVendors ? "Vendor relationship path" : "Oversight work path"}</title>
         <desc id={descriptionID}>{isVendors
           ? "A vendor relationship moves from the register through missing-fact collection, exception review and requested action to outcome confirmation."
           : "Current source context leads to assigned work, the required review or authority and a confirmed outcome."}</desc>

@@ -14,6 +14,49 @@ const columns: readonly DataColumn<Row>[] = [
 ];
 
 describe("DataTable", () => {
+  it("gives every row a visible control when a row action is offered", () => {
+    // Without a visible control the action is reachable only by double-click or
+    // a keyboard shortcut, which is undiscoverable and unreliable on touch.
+    const open = vi.fn();
+    render(<DataTable
+      ariaLabel="Documents"
+      rows={rows}
+      rowKey={(row: Row) => row.id}
+      rowName={(row: Row) => row.title}
+      columns={columns}
+      onRowAction={open}
+    />);
+    expect(screen.getAllByRole("button", { name: /^View details for / })).toHaveLength(rows.length);
+    fireEvent.click(screen.getByRole("button", { name: `View details for ${rows[1]!.title}` }));
+    expect(open).toHaveBeenCalledWith(rows[1]);
+  });
+
+  it("accepts a caller-supplied action label and keeps the record in its accessible name", () => {
+    const open = vi.fn();
+    render(<DataTable
+      ariaLabel="Distributions"
+      rows={rows}
+      rowKey={(row: Row) => row.id}
+      rowName={(row: Row) => row.title}
+      columns={columns}
+      onRowAction={open}
+      rowActionLabel="Open distribution"
+    />);
+    const control = screen.getByRole("button", { name: `Open distribution for ${rows[0]!.title}` });
+    expect(control.textContent).toBe("Open distribution");
+  });
+
+  it("renders no action column when the table offers no row action", () => {
+    render(<DataTable
+      ariaLabel="Documents"
+      rows={rows}
+      rowKey={(row: Row) => row.id}
+      rowName={(row: Row) => row.title}
+      columns={columns}
+    />);
+    expect(screen.queryByRole("button", { name: /^View details for / })).toBeNull();
+  });
+
   it("opts into container layout without replacing selected rows or their keyboard actions", () => {
     const open = vi.fn();
     const props = { ariaLabel: "Documents", rows, rowKey: (row: Row) => row.id, rowName: (row: Row) => row.title, columns, selectedKey: rows[0]!.id, onRowAction: open };
