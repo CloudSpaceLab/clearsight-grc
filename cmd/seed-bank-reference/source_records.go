@@ -542,7 +542,7 @@ func ensureSourceReportPacks(ctx context.Context, pool *pgxpool.Pool, seed bankv
 		var inserted string
 		err = pool.QueryRow(ctx, `INSERT INTO report_definitions
   (id,tenant_id,legal_entity_id,code,name,description,dataset,scope_kind,scope_ref,format,filter,status,current_version,checksum,maker_id,checker_id,reviewer_id,reviewer_note,effective_from,submitted_at,approved_at,created_at,updated_at,version)
- VALUES ($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7,$8,NULLIF($9,'')::uuid,$10,$11::jsonb,'ACTIVE',1,$12,$13::uuid,$14::uuid,'Sample report pack checked against the imported source register.',$15,$15,$15,$15,$15,1)
+ VALUES ($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7,$8,NULLIF($9,'')::uuid,$10,$11::jsonb,'ACTIVE',1,$12,$13::uuid,$14::uuid,$15::uuid,'Sample report pack checked against the imported source register.',$16,$16,$16,$16,$16,1)
  ON CONFLICT (tenant_id,legal_entity_id,code) WHERE status <> 'RETIRED' DO NOTHING
  RETURNING id::text`, pack.ID, seed.TenantID, seed.LegalEntityID, pack.Code, pack.Name, pack.Description, pack.Dataset, pack.ScopeKind, pack.ScopeRef, reporting.FormatXLSX, filter, definition.StoredChecksum, seed.ActorID, seed.SignatoryPrincipalID, seed.ReviewerPrincipalID, now).Scan(&inserted)
 		if errors.Is(err, pgx.ErrNoRows) {
