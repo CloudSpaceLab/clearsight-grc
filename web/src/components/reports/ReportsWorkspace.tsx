@@ -3,7 +3,7 @@ import {
   createReportRun as createReportRunRequest,
   downloadReportRun as downloadReportRunRequest,
   listReportDefinitions as listReportDefinitionsRequest,
-  listReportRuns as listReportRunsRequest,
+  listReportRunPage as listReportRunPageRequest,
 } from "../../reportingApi";
 import type { ReportDataset, ReportDefinition, ReportRun } from "../../reportingTypes";
 import { ReportingPage } from "../ReportingPage";
@@ -30,7 +30,7 @@ export type ReportsWorkspaceProps = {
   organizationName?: string;
   legalEntityName?: string;
   loadDefinitions?: typeof listReportDefinitionsRequest;
-  loadRuns?: typeof listReportRunsRequest;
+  loadRunPage?: typeof listReportRunPageRequest;
   createRun?: typeof createReportRunRequest;
   downloadRun?: typeof downloadReportRunRequest;
 };
@@ -52,13 +52,15 @@ export function ReportsWorkspace({
   organizationName,
   legalEntityName,
   loadDefinitions = listReportDefinitionsRequest,
-  loadRuns = listReportRunsRequest,
+  loadRunPage = listReportRunPageRequest,
   createRun = createReportRunRequest,
   downloadRun = downloadReportRunRequest,
 }: ReportsWorkspaceProps) {
   const [tab, setTab] = useState<WorkspaceTab>("library");
   const [definitions, setDefinitions] = useState<ReportDefinition[]>([]);
   const [runs, setRuns] = useState<ReportRun[]>([]);
+  const [nextCursor, setNextCursor] = useState<string>();
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [state, setState] = useState<LoadState>("loading");
   const [error, setError] = useState<string>();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -78,11 +80,12 @@ export function ReportsWorkspace({
     setError(undefined);
     void Promise.all([
       loadDefinitions(true, controller.signal),
-      loadRuns({ limit: 100 }, controller.signal),
-    ]).then(([nextDefinitions, nextRuns]) => {
+      loadRunPage({ limit: 50 }, controller.signal),
+    ]).then(([nextDefinitions, runPage]) => {
       if (controller.signal.aborted) return;
       setDefinitions(nextDefinitions);
-      setRuns(nextRuns);
+      setRuns(runPage.items);
+      setNextCursor(runPage.next_cursor);
       setState("live");
     }).catch((reason: unknown) => {
       if (controller.signal.aborted || isAbortError(reason)) return;
@@ -90,7 +93,7 @@ export function ReportsWorkspace({
       setError(readError(reason, "Reports could not be loaded. Check the connection and try again."));
     });
     return () => controller.abort();
-  }, [loadDefinitions, loadRuns, refreshKey]);
+  }, [loadDefinitions, loadRunPage, refreshKey]);
 
   const definitionsByID = useMemo(
     () => new Map(definitions.map((definition) => [definition.id, definition])),
@@ -138,6 +141,21 @@ export function ReportsWorkspace({
 
   function refresh() {
     setRefreshKey((value) => value + 1);
+  }
+
+  async function loadOlderReports() {
+    if (!nextCursor || loadingOlder) return;
+    setLoadingOlder(true);
+    setCommandError(undefined);
+    try {
+      const page = await loadRunPage({ limit: 50, cursor: nextCursor });
+      setRuns((current) => mergeReportRuns(current, page.items));
+      setNextCursor(page.next_cursor);
+    } catch (reason: unknown) {
+      setCommandError(readError(reason, "Older report history could not be loaded. Try again."));
+    } finally {
+      setLoadingOlder(false);
+    }
   }
 
   function openTemplates() {
@@ -285,6 +303,9 @@ export function ReportsWorkspace({
             rowActionLabel="View"
             isLoading={state === "loading"}
           />}
+          {nextCursor && <div className="reports-library__history-footer">
+            <Button variant="secondary" isLoading={loadingOlder} onPress={() => void loadOlderReports()}>Load older reports</Button>
+          </div>}
         </div>
         : <div className="reports-templates">
           <ReportingPage
@@ -393,6 +414,15 @@ function ReportRunDetails({ run, definition, downloading, onDownload }: { run: R
       </Button>
     </div>
   </div>;
+}
+
+function mergeReportRuns(current: ReportRun[], incoming: ReportRun[]) {
+  const byID = new Map(current.map((run) => [run.id, run]));
+  for (const run of incoming) byID.set(run.id, run);
+  return [...byID.values()].sort((left, right) => {
+    const dateDifference = Date.parse(right.created_at) - Date.parse(left.created_at);
+    return dateDifference || right.id.localeCompare(left.id);
+  });
 }
 
 function reportDatasetLabel(dataset: ReportDataset | ReportArea) {
