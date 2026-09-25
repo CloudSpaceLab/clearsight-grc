@@ -119,8 +119,9 @@ describe("ReportsWorkspace", () => {
     const table = await screen.findByRole("table", { name: "Generated reports" });
     expect(within(table).getByRole("row", { name: /Vendor portfolio/ })).toBeTruthy();
     expect(within(table).getByRole("row", { name: /Program health/ })).toBeTruthy();
-    expect(screen.getByText("Available files").nextElementSibling?.textContent).toBe("1");
-    expect(screen.getByText("Failed").nextElementSibling?.textContent).toBe("1");
+    const summary = screen.getByRole("region", { name: "Report library summary" });
+    expect(within(summary).getByText("Available files").nextElementSibling?.textContent).toBe("1");
+    expect(within(summary).getByText("Failed").nextElementSibling?.textContent).toBe("1");
     expect(loadRuns).toHaveBeenCalledWith({ limit: 100 }, expect.any(AbortSignal));
     expect(loadDefinitions).toHaveBeenCalledWith(true, expect.any(AbortSignal));
   });
