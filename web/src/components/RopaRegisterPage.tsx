@@ -167,7 +167,7 @@ export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActi
 
     <section className="ropa-register-list" aria-labelledby="ropa-register-list-heading">
       <div className="section-header ropa-register-list__header">
-        <div><h2 id="ropa-register-list-heading">Processing activities</h2><p>Open a row to review the recorded privacy facts and review history. Double-click a row or press Enter or Space to open it.</p></div>
+        <div><h2 id="ropa-register-list-heading">Processing activities</h2><p>Choose View details on an activity to read its recorded purpose, lawful basis, owner, systems and review history.</p></div>
       </div>
       <FilterBar
         label="Processing activity filters"

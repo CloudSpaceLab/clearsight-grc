@@ -33,6 +33,12 @@
 .cs-data-table [data-kind="status"] { text-align: center; }
 .cs-data-table__pagination { display: flex; justify-content: flex-end; gap: var(--cs-table-pagination-gap); padding-block-start: var(--cs-table-pagination-gap); }
 
+/* A row action is the row's own next step, so it sits at the end of the row and
+   never wraps away from the record it acts on. Sizing the column to its
+   content keeps the data columns from being squeezed by a long action label. */
+.cs-data-table__action-heading, .cs-data-table__action { inline-size: 1%; white-space: nowrap; text-align: end; }
+.cs-data-table__action-heading { background: var(--cs-table-heading-bg); }
+
 @media (max-width: 700px) {
   .cs-filter-bar { align-items: stretch; flex-direction: column; }
   .cs-filter-bar__fields { align-items: stretch; flex-direction: column; }
@@ -46,6 +52,12 @@
   .cs-data-table tbody tr td { display: grid; min-inline-size: 0; grid-template-columns: minmax(var(--cs-table-mobile-label-width), 0.7fr) minmax(0, 1.3fr); gap: var(--cs-table-mobile-row-gap); padding: 0; border: 0; overflow-wrap: anywhere; text-align: start; }
   .cs-data-table tbody tr td::before { color: var(--cs-table-heading-text); font-size: var(--cs-table-heading-size); font-weight: var(--cs-table-heading-weight); content: attr(data-label); }
   .cs-data-table tbody tr td[data-mobile-layout="full-width"] { grid-template-columns: minmax(0, 1fr); }
+  /* The row action has no column header to repeat in the stacked card, so it
+     drops the label column and takes the card's full width. That keeps the
+     primary action reachable with a thumb and visibly separate from the facts. */
+  .cs-data-table tbody tr td.cs-data-table__action { grid-template-columns: minmax(0, 1fr); text-align: start; }
+  .cs-data-table tbody tr td.cs-data-table__action::before { content: none; }
+  .cs-data-table tbody tr td.cs-data-table__action .cs-button { inline-size: 100%; }
 }
 
 @media (max-width: 380px) {

@@ -96,6 +96,7 @@ const expectedNames = [
   "129-oversight-completeness-light-1440x900",
   "130-oversight-completeness-dark-mobile-390x844",
   "131-ropa-register-light-1440x900",
+  "131a-ropa-register-row-action-light-1440x900",
   "132-ropa-register-dark-mobile-390x844",
   "133-ropa-activity-light-1440x900",
   "140-report-definitions-light-1440x900",
