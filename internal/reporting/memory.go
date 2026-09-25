@@ -534,6 +534,8 @@ func (r *MemoryRepository) CaptureSourceBoundary(ctx context.Context, scope Repo
 		key = "programs"
 	case DatasetMatterExceptions:
 		key = "matters"
+	case DatasetVendors:
+		key = "vendor_relationships"
 	}
 	return SourceBoundary{
 		CapturedAt: now, ProjectionVersion: "memory-report-source.v1",
