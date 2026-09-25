@@ -479,7 +479,6 @@ func (f *reportingPostgresFixture) insertMatterWithFacts(t *testing.T, entityID,
 	return id
 }
 
-
 func TestWorkReportPageSQLKeepsVisibleWorkBeyondExceptions(t *testing.T) {
 	query := WorkReportPageSQL("TRUE", 0)
 	if query == "" {
