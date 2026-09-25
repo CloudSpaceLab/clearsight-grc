@@ -138,7 +138,7 @@ describe("ReportsWorkspace", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Generate report" }));
     await waitFor(() => expect(createRun).toHaveBeenCalledWith(vendorDefinition.id, vendorDefinition.current_version));
     expect(await screen.findByText(/Vendor portfolio was queued/)).toBeTruthy();
-    expect(screen.getByRole("row", { name: /Vendor portfolio/ })).toBeTruthy();
+    expect(screen.getAllByRole("row", { name: /Vendor portfolio/ }).some((row) => within(row).queryByText("Queued"))).toBe(true);
   });
 
   it("loads older history pages without duplicating runs already in the library", async () => {
