@@ -92,6 +92,12 @@
   align-items: end;
 }
 
+.reports-library__history-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--cs-space-inline);
+}
+
 .reports-library__loading {
   margin: 0;
   padding: var(--cs-space-section);
