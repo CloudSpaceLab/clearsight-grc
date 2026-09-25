@@ -116,6 +116,11 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	ropaService.SetLister(ropaLister)
 	reportingRepository := reporting.NewPostgresRepository(pool)
 	reportingService := reporting.NewService(reportingRepository, store, authorityService)
+	if cfg.DemoMode {
+		if err := installPostgresDemo(ctx, pool, ropaService, reportingService); err != nil {
+			return serviceSet{}, err
+		}
+	}
 	assessmentSetup := thirdparty.NewAssessmentProvisioner(thirdPartyRepo, continuityService, "postgres-api")
 	aiGovernanceRepo := aigovernance.NewPostgresRepository(pool)
 	aiGovernanceService := aigovernance.NewService(aiGovernanceRepo, auto, sourceCatalog, continuityService)
