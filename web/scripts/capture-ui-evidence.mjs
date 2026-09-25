@@ -98,7 +98,14 @@ async function capturePage(capture) {
       await page.getByRole("heading", { name: "Customer account opening", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.openReportTemplates) {
-      await page.getByRole("tab", { name: "Templates", exact: true }).click();
+      const templatesTab = page.getByRole("tab", { name: "Templates", exact: true });
+      if (await templatesTab.isVisible()) {
+        await templatesTab.click();
+      } else {
+        const compactReportsView = page.locator(".cs-tabs__compact .cs-select-field__trigger");
+        await compactReportsView.click();
+        await page.getByRole("option", { name: "Templates", exact: true }).click();
+      }
       await page.getByRole("heading", { name: "Report templates", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.openFailedReport) {
