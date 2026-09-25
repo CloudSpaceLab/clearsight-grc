@@ -2,6 +2,7 @@ package ropa
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"strings"
@@ -23,6 +24,33 @@ const (
 	DemoRequiredAuthorityID = "role-cro"
 	DemoCISOPrincipalID     = "role-ciso"
 )
+
+// DemoScope carries the resolved identifiers a demo install needs. The memory
+// composition addresses demo records by slug, but a PostgreSQL composition must
+// address the same records by UUID, so an install cannot assume either
+// representation. The caller resolves the scope; the installer only writes.
+type DemoScope struct {
+	TenantID            string
+	LegalEntityID       string
+	OwnerPrincipalID    string
+	ReviewerPrincipalID string
+	ActorPrincipalID    string
+	RequiredAuthorityID string
+	RequiredCISOID      string
+}
+
+// MemoryDemoScope is the slug-addressed scope the memory composition uses.
+func MemoryDemoScope() DemoScope {
+	return DemoScope{
+		TenantID:            DemoTenant,
+		LegalEntityID:       DemoLegalEntity,
+		OwnerPrincipalID:    DemoOwnerPrincipalID,
+		ReviewerPrincipalID: DemoReviewerPrincipalID,
+		ActorPrincipalID:    DemoActorPrincipalID,
+		RequiredAuthorityID: DemoRequiredAuthorityID,
+		RequiredCISOID:      DemoCISOPrincipalID,
+	}
+}
 
 const (
 	demoSystemFinacleTreasury      = "Finacle Treasury"
@@ -57,6 +85,7 @@ type demoSeed struct {
 	retentionPeriod        string
 	securityMeasures       string
 	owner                  string
+	ownerName              string
 	authority              string
 	status                 Status
 	startDate              time.Time
@@ -83,6 +112,7 @@ var demoSeeds = []demoSeed{
 		retentionPeriod:        "7 years after account closure",
 		securityMeasures:       "Encryption at rest and in transit; role-based access; BVN matching and soft-token authentication",
 		owner:                  demoSourcePrincipalID("Somto"),
+		ownerName:              "Somto",
 		authority:              DemoRequiredAuthorityID,
 		status:                 StatusOpen,
 		startDate:              time.Date(2024, 2, 12, 0, 0, 0, 0, time.UTC),
@@ -109,6 +139,7 @@ var demoSeeds = []demoSeed{
 		retentionPeriod:        "7 years after loan closure or withdrawal",
 		securityMeasures:       "Encryption at rest; restricted credit-team access; BVN matching and soft-token authentication",
 		owner:                  demoSourcePrincipalID("Godspower"),
+		ownerName:              "Godspower",
 		authority:              DemoRequiredAuthorityID,
 		status:                 StatusOpen,
 		startDate:              time.Date(2024, 5, 6, 0, 0, 0, 0, time.UTC),
@@ -136,6 +167,7 @@ var demoSeeds = []demoSeed{
 		retentionPeriod:        "5 years after the last customer interaction",
 		securityMeasures:       "Encryption at rest; masked contact details in reports; role-based access",
 		owner:                  demoSourcePrincipalID("Tobi"),
+		ownerName:              "Tobi",
 		authority:              DemoRequiredAuthorityID,
 		status:                 StatusOpen,
 		startDate:              time.Date(2023, 11, 20, 0, 0, 0, 0, time.UTC),
@@ -165,6 +197,7 @@ var demoSeeds = []demoSeed{
 		retentionPeriod:        "10 years after the applicable records period",
 		securityMeasures:       "Read-only archive storage; restricted retrieval approval",
 		owner:                  demoSourcePrincipalID("Tobi"),
+		ownerName:              "Tobi",
 		authority:              DemoRequiredAuthorityID,
 		status:                 StatusClosed,
 		startDate:              time.Date(2022, 3, 1, 0, 0, 0, 0, time.UTC),
@@ -189,6 +222,7 @@ var demoSeeds = []demoSeed{
 		retentionPeriod:        "7 years after the applicable payment record period",
 		securityMeasures:       "Tokenisation; encryption in transit and at rest; role-based access; domestic processor oversight",
 		owner:                  demoSourcePrincipalID("Hakeem"),
+		ownerName:              "Hakeem",
 		authority:              DemoRequiredAuthorityID,
 		status:                 StatusOpen,
 		startDate:              time.Date(2023, 4, 1, 0, 0, 0, 0, time.UTC),
@@ -230,6 +264,7 @@ var demoSeeds = []demoSeed{
 		retentionPeriod:        "7 years after the applicable security record period",
 		securityMeasures:       "Central log review; vulnerability scanning; privileged-access review; firewall and credential monitoring",
 		owner:                  demoSourcePrincipalID("Sikiru"),
+		ownerName:              "Sikiru",
 		authority:              DemoRequiredAuthorityID,
 		status:                 StatusOpen,
 		startDate:              time.Date(2024, 9, 24, 0, 0, 0, 0, time.UTC),
@@ -321,14 +356,28 @@ var demoSeeds = []demoSeed{
 	},
 }
 
+// InstallDemo seeds the memory composition, which addresses demo records by
+// slug. It is a thin wrapper over InstallDemoInto.
 func InstallDemo(ctx context.Context, service *Service) error {
+	return InstallDemoInto(ctx, service, MemoryDemoScope())
+}
+
+// InstallDemoInto seeds the register for a caller-resolved scope. The same
+// seeds run against the memory and PostgreSQL repositories, so the demo shows
+// one estate rather than two divergent ones. A stable activity code is the
+// idempotency key: a repeat install must not recreate a row or rewrite its
+// governed revision history.
+func InstallDemoInto(ctx context.Context, service *Service, scope DemoScope) error {
 	if service == nil || service.repository == nil {
+		return ErrInvalid
+	}
+	if scope.TenantID == "" || scope.LegalEntityID == "" {
 		return ErrInvalid
 	}
 
 	now := service.now()
 	for _, seed := range demoSeeds {
-		input := demoCreateInput(seed, now)
+		input := demoCreateInput(seed, now, scope)
 		activity, err := service.CreateActivity(ctx, input)
 		if err != nil {
 			if errors.Is(err, ErrDuplicate) {
@@ -340,6 +389,10 @@ func InstallDemo(ctx context.Context, service *Service) error {
 		}
 
 		if seed.status != StatusNew {
+			actor := scope.ActorPrincipalID
+			if actor == "" {
+				actor = DemoActorPrincipalID
+			}
 			_, err = service.TransitionActivity(ctx, TransitionActivityInput{
 				TenantID:        activity.TenantID,
 				LegalEntityID:   activity.LegalEntityID,
@@ -347,7 +400,7 @@ func InstallDemo(ctx context.Context, service *Service) error {
 				ExpectedVersion: activity.Version,
 				To:              seed.status,
 				EndDate:         input.EndDate,
-				ActorID:         DemoActorPrincipalID,
+				ActorID:         actor,
 			})
 			if err != nil {
 				return fmt.Errorf("transition demo processing activity %s to %s: %w", seed.code, seed.status, err)
@@ -363,7 +416,7 @@ func IsDemoScope(tenantID, legalEntityID string) bool {
 	return strings.TrimSpace(tenantID) == DemoTenant && strings.TrimSpace(legalEntityID) == DemoLegalEntity
 }
 
-func demoCreateInput(seed demoSeed, now time.Time) CreateActivityInput {
+func demoCreateInput(seed demoSeed, now time.Time, scope DemoScope) CreateActivityInput {
 	startDate := seed.startDate
 	if startDate.IsZero() {
 		startDate = now.AddDate(-2, 0, 0)
@@ -385,9 +438,30 @@ func demoCreateInput(seed demoSeed, now time.Time) CreateActivityInput {
 	if review.ID == "" {
 		review = demoReview(now, seed.code+"-review")
 	}
+	// The review's reviewer is a foreign key, so it is resolved once here from
+	// the installing composition rather than captured in the seed literals,
+	// which are built before any scope is known.
+	review.ReviewerPrincipalID = scope.ReviewerPrincipalID
+	if review.ReviewerPrincipalID == "" {
+		review.ReviewerPrincipalID = DemoReviewerPrincipalID
+	}
+	// Two seeded activities name the CISO as the accountable owner. That is a
+	// composition-owned principal in PostgreSQL, so the scope substitutes it
+	// rather than leaving a slug in a foreign key.
+	owner := seed.owner
+	if owner == DemoCISOPrincipalID && scope.RequiredCISOID != "" {
+		owner = scope.RequiredCISOID
+	}
+	// The authority is scope-owned. The seeds record the memory composition's
+	// slug, so a PostgreSQL install must substitute its own resolved authority
+	// or every activity would point at a principal that does not exist there.
+	authority := seed.authority
+	if scope.RequiredAuthorityID != "" {
+		authority = scope.RequiredAuthorityID
+	}
 	return CreateActivityInput{
-		TenantID:                     DemoTenant,
-		LegalEntityID:                DemoLegalEntity,
+		TenantID:                     scope.TenantID,
+		LegalEntityID:                scope.LegalEntityID,
 		Code:                         seed.code,
 		Name:                         seed.name,
 		Description:                  seed.description,
@@ -402,13 +476,13 @@ func demoCreateInput(seed demoSeed, now time.Time) CreateActivityInput {
 		StartDate:                    &startDate,
 		EndDate:                      endDate,
 		NextReviewDate:               nextReviewDate,
-		OwnerPrincipalID:             seed.owner,
-		RequiredAuthorityPrincipalID: seed.authority,
+		OwnerPrincipalID:             owner,
+		RequiredAuthorityPrincipalID: authority,
 		DataCategories:               seed.dataCategories,
 		Recipients:                   seed.recipients,
 		Systems:                      seed.systems,
 		Reviews:                      []Review{review},
-		ActorID:                      DemoActorPrincipalID,
+		ActorID:                      scope.ActorPrincipalID,
 	}
 }
 
@@ -417,21 +491,36 @@ func demoReview(now time.Time, id string) Review {
 	createdAt := dueDate.AddDate(0, 0, -30)
 	completedAt := dueDate.AddDate(0, 0, -7)
 	return Review{
-		ID:                  id,
-		CreatedAt:           createdAt,
-		DueDate:             dueDate,
-		CompletedAt:         &completedAt,
-		Outcome:             "CONFIRMED",
-		ReviewerPrincipalID: DemoReviewerPrincipalID,
+		ID:          demoDerivedID(id),
+		CreatedAt:   createdAt,
+		DueDate:     dueDate,
+		CompletedAt: &completedAt,
+		Outcome:     "CONFIRMED",
 	}
 }
 
+// demoDerivedID turns a stable seed label into a deterministic UUID. The
+// memory repository tolerates a readable string identifier, but the
+// PostgreSQL review column is a uuid, so the same seed has to resolve to the
+// same UUID in every composition. Deriving it from the label keeps the two
+// installs identical and makes a repeat install a no-op.
+func demoDerivedID(label string) string {
+	key := "fidelity-source-samples-v1:ropa:" + label
+	sum := sha256.Sum256([]byte(key))
+	sum[6] = (sum[6] & 0x0f) | 0x50
+	sum[8] = (sum[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", sum[0:4], sum[4:6], sum[6:8], sum[8:10], sum[10:16])
+}
+
+// openDemoReview is a deliberately uncompleted review: a real finding with a
+// past due date and no outcome, so the register's overdue and exception
+// counters have genuine content rather than a hand-set number. The reviewer is
+// resolved later, from the installing composition's scope.
 func openDemoReview(id string, createdAt, dueDate time.Time) Review {
 	return Review{
-		ID:                  id,
-		CreatedAt:           createdAt.UTC(),
-		DueDate:             dueDate.UTC(),
-		ReviewerPrincipalID: DemoReviewerPrincipalID,
+		ID:        demoDerivedID(id),
+		CreatedAt: createdAt.UTC(),
+		DueDate:   dueDate.UTC(),
 	}
 }
 
@@ -440,4 +529,26 @@ func openDemoReview(id string, createdAt, dueDate time.Time) Review {
 // reference field.
 func demoSourcePrincipalID(displayName string) string {
 	return identity.DemoSourceEmployeePrincipalID(displayName)
+}
+
+// DemoOwnerDisplayNames returns the distinct display names the seeded register
+// uses as accountable owners, in a stable order. A composition that installs
+// this register into a PostgreSQL database must first ensure a principal exists
+// for each name, because the activity owner is a foreign key and the
+// deterministic identifier comes from the name.
+func DemoOwnerDisplayNames() []string {
+	seen := make(map[string]struct{}, len(demoSeeds))
+	names := make([]string, 0, len(demoSeeds))
+	for _, seed := range demoSeeds {
+		name := seed.ownerName
+		if name == "" {
+			continue
+		}
+		if _, duplicate := seen[name]; duplicate {
+			continue
+		}
+		seen[name] = struct{}{}
+		names = append(names, name)
+	}
+	return names
 }
