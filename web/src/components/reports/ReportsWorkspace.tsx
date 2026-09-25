@@ -141,9 +141,22 @@ export function ReportsWorkspace({
 
   useEffect(() => {
     if (tab !== "library" || state !== "live" || runningCount === 0) return;
-    const refreshTimer = window.setTimeout(() => setRefreshKey((value) => value + 1), 5000);
-    return () => window.clearTimeout(refreshTimer);
-  }, [runningCount, state, tab]);
+    const controller = new AbortController();
+    const refreshTimer = window.setTimeout(() => {
+      void loadRunPage({ limit: 50 }, controller.signal).then((page) => {
+        if (controller.signal.aborted) return;
+        setRuns((current) => mergeReportRuns(current, page.items));
+      }).catch((reason: unknown) => {
+        if (controller.signal.aborted || isAbortError(reason)) return;
+        // Background status refresh is best-effort. Manual Refresh remains the
+        // explicit recovery path and should own any operator-facing error.
+      });
+    }, 5000);
+    return () => {
+      window.clearTimeout(refreshTimer);
+      controller.abort();
+    };
+  }, [loadRunPage, runningCount, state, tab]);
 
   function refresh() {
     setRefreshKey((value) => value + 1);
