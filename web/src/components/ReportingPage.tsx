@@ -364,14 +364,8 @@ function DefinitionCreateForm({ draft, fields, error, busy, onChange, onSave }: 
         { id: "MATTER_EXCEPTIONS", label: "Work — exceptions and overdue obligations" },
         { id: "PROCESSING_ACTIVITIES", label: "Processing activities" },
         { id: "PROCESSING_ACTIVITY_EXCEPTIONS", label: "Processing activities with open exceptions" },
-      ]} onChange={(value) => value && onChange({ dataset: value, scope_kind: value === "VENDORS" ? "LEGAL_ENTITY" : draft.scope_kind, filter: { kind: "group", operator: "and", children: [] }, scope_ref: "" })} isRequired />
-      <SelectField label="Scope" value={draft.scope_kind} placeholder="Choose a scope" options={draft.dataset === "VENDORS" ? [
-        { id: "LEGAL_ENTITY", label: "Whole legal entity" },
-      ] : [
-        { id: "LEGAL_ENTITY", label: "Whole legal entity" },
-        { id: "PROGRAM", label: "One Program" },
-        { id: "MATTER", label: "One issue or change" },
-      ]} onChange={(value) => value && onChange({ scope_kind: value, scope_ref: "" })} isRequired />
+      ]} onChange={(value) => value && onChange({ dataset: value, scope_kind: "LEGAL_ENTITY", filter: { kind: "group", operator: "and", children: [] }, scope_ref: "" })} isRequired />
+      <SelectField label="Scope" value={draft.scope_kind} placeholder="Choose a scope" options={scopeOptionsForDataset(draft.dataset)} onChange={(value) => value && onChange({ scope_kind: value, scope_ref: "" })} isRequired />
       {draft.scope_kind !== "LEGAL_ENTITY" && <TextField label={draft.scope_kind === "PROGRAM" ? "Program identifier" : "Issue or change identifier"} value={draft.scope_ref} onChange={(value) => onChange({ scope_ref: value })} description="Enter the stored identifier returned by the authoritative record." isRequired />}
       <SelectField label="File format" value={draft.format} placeholder="Choose a file format" options={[{ id: "XLSX", label: "Excel workbook" }, { id: "CSV", label: "CSV spreadsheet" }, { id: "NDJSON", label: "NDJSON data file" }]} onChange={(value) => value && onChange({ format: value })} isRequired />
       <TextField label="Effective from" type="date" value={draft.effective_from} onChange={(value) => onChange({ effective_from: value })} description="Leave blank if the authorizer should choose the effective date during activation." />
@@ -379,6 +373,14 @@ function DefinitionCreateForm({ draft, fields, error, busy, onChange, onSave }: 
     <ReportFilterEditor fields={fields} dataset={draft.dataset} value={draft.filter} onChange={(filter) => onChange({ filter })} onSave={() => onSave()} />
     <div className="report-create-panel__actions"><Button variant="primary" onPress={onSave} isLoading={busy}>Save report draft</Button></div>
   </section>;
+}
+
+function scopeOptionsForDataset(dataset: ReportDataset): readonly { id: ReportScopeKind; label: string }[] {
+  const legalEntity = { id: "LEGAL_ENTITY" as const, label: "Whole legal entity" };
+  if (dataset === "VENDORS") return [legalEntity];
+  if (dataset === "PROGRAMS") return [legalEntity, { id: "PROGRAM", label: "One Program" }];
+  if (dataset === "MATTERS" || dataset === "MATTER_EXCEPTIONS") return [legalEntity, { id: "MATTER", label: "One issue or change" }];
+  return [legalEntity, { id: "PROGRAM", label: "One Program" }, { id: "MATTER", label: "One issue or change" }];
 }
 
 function DefinitionTable({ definitions, selectedID, onSelect }: { definitions: readonly ReportDefinition[]; selectedID?: string; onSelect: (id: string) => void }) {
