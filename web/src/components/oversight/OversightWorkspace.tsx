@@ -43,7 +43,7 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
   useEffect(() => { void load(); }, []);
 
   if (state === "loading") return <section className="oversight-workspace" aria-busy="true"><header className="oversight-header"><div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Risk and delivery oversight</h1><p>Loading the latest oversight snapshot…</p></div></header></section>;
-  if (state === "unavailable" || !snapshot) return <section className="oversight-workspace"><div className="oversight-unavailable"><span className="eyebrow">{legalEntityName}</span><h1>Oversight information is unavailable</h1><p>No current snapshot could be loaded. Check projection operations or retry after the next processing cycle.</p><Button onPress={() => void load()}>Retry oversight</Button></div></section>;
+  if (state === "unavailable" || !snapshot) return <section className="oversight-workspace"><div className="oversight-unavailable"><span className="eyebrow">{legalEntityName}</span><h1>Oversight information is unavailable</h1><p>No current snapshot could be loaded. Check projection operations or retry after the next processing cycle.</p><Button onPress={() => void load()}>Retry oversight</Button></div><OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/></section>;
 
   const coverage = `${snapshot.coverage.population} issues checked · ${formatKnown(snapshot.coverage.excluded)} excluded · ${formatKnown(snapshot.coverage.unknown)} unknown`;
   const interventions = filterInterventions(snapshot.interventions, selectedMetricFilter);
