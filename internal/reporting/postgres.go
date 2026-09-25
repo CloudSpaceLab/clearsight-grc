@@ -437,7 +437,6 @@ func (r *PostgresRepository) ListRuns(ctx context.Context, scope ReportScope, de
 	return values, nil
 }
 
-
 func (r *PostgresRepository) ListRunHistory(ctx context.Context, scope ReportScope, definitionID, cursor string, limit int) (RunHistoryPage, error) {
 	definitionID = strings.TrimSpace(definitionID)
 	if definitionID != "" && !isUUID(definitionID) {
