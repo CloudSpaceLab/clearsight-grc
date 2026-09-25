@@ -7,15 +7,15 @@ import (
 	"testing"
 )
 
-func TestVendorReportMigrationExtendsEveryDatasetConstraint(t *testing.T) {
-	up, err := os.ReadFile(filepath.Join("..", "..", "migrations", "000095_reporting_vendors.up.sql"))
+func TestReportDomainMigrationExtendsEveryDatasetConstraint(t *testing.T) {
+	up, err := os.ReadFile(filepath.Join("..", "..", "migrations", "000095_reporting_domains.up.sql"))
 	if err != nil {
-		t.Fatalf("read vendor report migration: %v", err)
+		t.Fatalf("read report domain migration: %v", err)
 	}
 	sql := string(up)
 	for _, table := range []string{"report_definitions", "report_definition_revisions", "report_runs"} {
 		if !strings.Contains(sql, "ALTER TABLE "+table) {
-			t.Fatalf("vendor report migration does not alter %s", table)
+			t.Fatalf("report domain migration does not alter %s", table)
 		}
 	}
 	if count := strings.Count(sql, "'VENDORS'"); count != 3 {
@@ -26,10 +26,10 @@ func TestVendorReportMigrationExtendsEveryDatasetConstraint(t *testing.T) {
 	}
 }
 
-func TestVendorReportMigrationDownRefusesToEraseHistory(t *testing.T) {
-	down, err := os.ReadFile(filepath.Join("..", "..", "migrations", "000095_reporting_vendors.down.sql"))
+func TestReportDomainMigrationDownRefusesToEraseHistory(t *testing.T) {
+	down, err := os.ReadFile(filepath.Join("..", "..", "migrations", "000095_reporting_domains.down.sql"))
 	if err != nil {
-		t.Fatalf("read vendor report rollback: %v", err)
+		t.Fatalf("read report domain rollback: %v", err)
 	}
 	sql := string(down)
 	for _, table := range []string{"report_definitions", "report_definition_revisions", "report_runs"} {
