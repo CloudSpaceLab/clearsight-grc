@@ -17,17 +17,24 @@ import (
 // open-Matter count is calculated in SQL, and the page CTE applies tenant,
 // legal-entity, scope, filter, and keyset predicates before its limit.
 func ProgramReportPageSQL(filterFragment string, filterArgumentCount int) string {
-	return reportProgramMatterPageSQL(filterFragment, filterArgumentCount, true)
+	return reportProgramMatterPageSQL(filterFragment, filterArgumentCount, true, false)
 }
 
 // MatterReportPageSQL returns one bounded Matter exception page. The access
 // policy is deliberately evaluated in the page CTE's WHERE clause, before its
 // keyset and limit, and uses the canonical fail-closed predicate.
 func MatterReportPageSQL(filterFragment string, filterArgumentCount int) string {
-	return reportProgramMatterPageSQL(filterFragment, filterArgumentCount, false)
+	return reportProgramMatterPageSQL(filterFragment, filterArgumentCount, false, true)
 }
 
-func reportProgramMatterPageSQL(filterFragment string, filterArgumentCount int, program bool) string {
+// WorkReportPageSQL returns all visible issue/change rows selected by the
+// governed Work template. Unlike MatterReportPageSQL it does not silently
+// narrow the population to exception/overdue records.
+func WorkReportPageSQL(filterFragment string, filterArgumentCount int) string {
+	return reportProgramMatterPageSQL(filterFragment, filterArgumentCount, false, false)
+}
+
+func reportProgramMatterPageSQL(filterFragment string, filterArgumentCount int, program, exceptionsOnly bool) string {
 	if strings.TrimSpace(filterFragment) == "" || filterArgumentCount < 0 || filterArgumentCount > maxReportFilterNodes {
 		return ""
 	}
@@ -168,6 +175,11 @@ ORDER BY CASE page.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT'
 		).Replace(template)
 	}
 
+	matterPopulationPredicate := "TRUE"
+	if exceptionsOnly {
+		matterPopulationPredicate = MatterReportExceptionPredicateSQL
+	}
+
 	template := `
 WITH matter_rows AS (
   SELECT a.id::text,
@@ -271,7 +283,7 @@ WITH matter_rows AS (
   FROM matter_rows a
   WHERE ($3='' OR a.id=NULLIF($3,'')::text)
     AND ` + MatterReportVisibilitySQL + `
-    AND ` + MatterReportExceptionPredicateSQL + `
+    AND ` + matterPopulationPredicate + `
     AND (__REPORT_FILTER__)
     AND (
       $__HAS_CURSOR__=false OR
@@ -385,13 +397,19 @@ func (r *PostgresRepository) listProgramReportRows(ctx context.Context, scope Re
 }
 
 func (r *PostgresRepository) listMatterReportRows(ctx context.Context, scope ReportScope, run ReportRun, cursor string, limit int) (ReportPage, error) {
-	filter, args, err := ReportFilterSQLForDataset(DatasetMatterExceptions, run.Filter, 6)
-	if err != nil {
-		return ReportPage{}, fmt.Errorf("build Matter report filter: %w", err)
+	if run.Dataset != DatasetMatters && run.Dataset != DatasetMatterExceptions {
+		return ReportPage{}, ErrInvalid
 	}
-	query := MatterReportPageSQL(filter, len(args))
+	filter, args, err := ReportFilterSQLForDataset(run.Dataset, run.Filter, 6)
+	if err != nil {
+		return ReportPage{}, fmt.Errorf("build Work report filter: %w", err)
+	}
+	query := WorkReportPageSQL(filter, len(args))
+	if run.Dataset == DatasetMatterExceptions {
+		query = MatterReportPageSQL(filter, len(args))
+	}
 	if query == "" {
-		return ReportPage{}, fmt.Errorf("Matter report page SQL was empty for filter %q with %d arguments", filter, len(args))
+		return ReportPage{}, fmt.Errorf("Work report page SQL was empty for filter %q with %d arguments", filter, len(args))
 	}
 	position, err := decodeMatterReportCursor(cursor)
 	if err != nil {
