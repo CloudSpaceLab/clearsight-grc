@@ -211,6 +211,21 @@ func (s *Service) ListRuns(ctx context.Context, scope ReportScope, definitionID 
 	return s.repo.ListRuns(ctx, verifiedScope, definitionID, limit)
 }
 
+func (s *Service) ListRunHistory(ctx context.Context, scope ReportScope, definitionID, cursor string, limit int) (RunHistoryPage, error) {
+	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	if err != nil {
+		return RunHistoryPage{}, err
+	}
+	if s.repo == nil {
+		return RunHistoryPage{}, ErrInvalid
+	}
+	historyRepository, ok := s.repo.(RunHistoryRepository)
+	if !ok {
+		return RunHistoryPage{}, ErrInvalid
+	}
+	return historyRepository.ListRunHistory(ctx, verifiedScope, definitionID, cursor, limit)
+}
+
 func (s *Service) GetRun(ctx context.Context, scope ReportScope, id string) (ReportRun, error) {
 	_, verifiedScope, err := s.scopedActor(ctx, scope)
 	if err != nil {
