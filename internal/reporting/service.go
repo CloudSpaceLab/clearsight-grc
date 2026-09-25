@@ -785,7 +785,7 @@ func validateDefinitionRevision(revision ReportDefinitionRevision, definition Re
 
 func validReportDataset(dataset ReportDataset) bool {
 	return dataset == DatasetProcessingActivities || dataset == DatasetProcessingActivityExceptions ||
-		dataset == DatasetPrograms || dataset == DatasetMatterExceptions
+		dataset == DatasetPrograms || dataset == DatasetMatterExceptions || dataset == DatasetVendors
 }
 
 func validReportDatasetScope(dataset ReportDataset, kind ReportScopeKind) bool {
@@ -794,6 +794,8 @@ func validReportDatasetScope(dataset ReportDataset, kind ReportScopeKind) bool {
 		return kind == ScopeLegalEntity || kind == ScopeProgram
 	case DatasetMatterExceptions:
 		return kind == ScopeLegalEntity || kind == ScopeMatter
+	case DatasetVendors:
+		return kind == ScopeLegalEntity
 	default:
 		return kind == ScopeLegalEntity || kind == ScopeProgram || kind == ScopeMatter
 	}
