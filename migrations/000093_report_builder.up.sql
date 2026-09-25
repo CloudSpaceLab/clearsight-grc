@@ -22,7 +22,7 @@ CREATE TABLE report_definitions (
         'PROCESSING_ACTIVITIES','PROCESSING_ACTIVITY_EXCEPTIONS','PROGRAMS','MATTER_EXCEPTIONS')),
     scope_kind text NOT NULL CHECK (scope_kind IN ('LEGAL_ENTITY','PROGRAM','MATTER')),
     scope_ref uuid,
-    format text NOT NULL CHECK (format IN ('CSV','NDJSON','XLSX')),
+    format text NOT NULL CHECK (format IN ('CSV','NDJSON')),
     filter jsonb NOT NULL DEFAULT '{"kind":"group","operator":"and","children":[]}'::jsonb
         CHECK (jsonb_typeof(filter)='object' AND octet_length(filter::text) <= 8192),
     status text NOT NULL CHECK (status IN ('DRAFT','PENDING_REVIEW','REVIEWED','ACTIVE','RETIRED')),
@@ -97,7 +97,7 @@ CREATE TABLE report_definition_revisions (
         'PROCESSING_ACTIVITIES','PROCESSING_ACTIVITY_EXCEPTIONS','PROGRAMS','MATTER_EXCEPTIONS')),
     scope_kind text NOT NULL CHECK (scope_kind IN ('LEGAL_ENTITY','PROGRAM','MATTER')),
     scope_ref uuid,
-    format text NOT NULL CHECK (format IN ('CSV','NDJSON','XLSX')),
+    format text NOT NULL CHECK (format IN ('CSV','NDJSON')),
     filter jsonb NOT NULL CHECK (jsonb_typeof(filter)='object' AND octet_length(filter::text) <= 8192),
     checksum text NOT NULL CHECK (checksum ~ '^[0-9a-f]{64}$'),
     maker_id uuid NOT NULL,
@@ -196,7 +196,7 @@ CREATE TABLE report_runs (
     filter jsonb NOT NULL CHECK (jsonb_typeof(filter)='object' AND octet_length(filter::text) <= 8192),
     dataset text NOT NULL CHECK (dataset IN (
         'PROCESSING_ACTIVITIES','PROCESSING_ACTIVITY_EXCEPTIONS','PROGRAMS','MATTER_EXCEPTIONS')),
-    format text NOT NULL CHECK (format IN ('CSV','NDJSON','XLSX')),
+    format text NOT NULL CHECK (format IN ('CSV','NDJSON')),
     status text NOT NULL CHECK (status IN ('QUEUED','RUNNING','READY','FAILED')),
     attempt_count integer NOT NULL DEFAULT 0 CHECK (attempt_count >= 0 AND attempt_count <= 5),
     row_count integer NOT NULL DEFAULT 0 CHECK (row_count >= 0),
