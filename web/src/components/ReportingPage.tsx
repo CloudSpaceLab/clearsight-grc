@@ -33,6 +33,7 @@ type RunState = LoadState;
 export type ReportingPageProps = {
   organizationName?: string;
   legalEntityName?: string;
+  embedded?: boolean;
   onOpenRegister?: () => void;
   onBack?: () => void;
   loadFilterFields?: typeof listReportFilterFieldsRequest;
@@ -72,6 +73,7 @@ type DefinitionDraft = {
 export function ReportingPage({
   organizationName,
   legalEntityName,
+  embedded = false,
   onOpenRegister,
   onBack,
   loadFilterFields = listReportFilterFieldsRequest,
@@ -278,8 +280,14 @@ export function ReportingPage({
   const statusCounts = countDefinitionStates(definitions);
   const scopeLabel = `${scope} · report definitions`;
 
-  return <section className="reporting-page" aria-labelledby="reporting-heading">
-    <header className="topbar ropa-page-header">
+  return <section className="reporting-page" aria-labelledby={embedded ? undefined : "reporting-heading"} aria-label={embedded ? "Report templates" : undefined}>
+    {embedded ? <div className="section-header report-section-header">
+      <div><span className="eyebrow">Report governance</span><h2>Report templates</h2><p>Configure reusable report populations and keep review, authorisation and version history separate from generated files.</p></div>
+      <div className="topbar-actions">
+        <Button variant="secondary" onPress={refresh} isLoading={state === "loading" || runsState === "loading"}>Refresh</Button>
+        <Button variant="primary" onPress={showCreate ? () => setShowCreate(false) : beginCreate}>{showCreate ? "Close form" : "New template"}</Button>
+      </div>
+    </div> : <header className="topbar ropa-page-header">
       <div>
         <span className="eyebrow">{organizationName || "ClearSight"} · {scope}</span>
         <h1 id="reporting-heading">Reports</h1>
@@ -290,7 +298,7 @@ export function ReportingPage({
         <Button variant="secondary" onPress={refresh} isLoading={state === "loading" || runsState === "loading"}>Refresh reports</Button>
         <Button variant="primary" onPress={showCreate ? () => setShowCreate(false) : beginCreate}>{showCreate ? "Close report form" : "Define a report"}</Button>
       </div>
-    </header>
+    </header>}
 
     <section className="report-status-strip" aria-label="Report definition status">
       <div><span className="eyebrow">Report governance</span><h2>Definitions checked for {scope}</h2><p>These counts come from the report definitions returned for the current legal entity.</p></div>
@@ -328,7 +336,7 @@ export function ReportingPage({
       onRun={runSelected}
     />}
 
-    <section className="report-runs" aria-labelledby="report-runs-heading">
+    {!embedded && <section className="report-runs" aria-labelledby="report-runs-heading">
       <div className="section-header report-section-header">
         <div><h2 id="report-runs-heading">Report runs</h2><p>Each row records the material source boundary used to generate the file and whether the bounded population completed.</p></div>
       </div>
@@ -336,7 +344,7 @@ export function ReportingPage({
       {runsState === "error" && <Notice tone="error"><span>{runsError || "Report runs could not be loaded. Check the connection and try again."}</span> <Button variant="secondary" size="compact" onPress={refresh}>Retry runs</Button></Notice>}
       {runsState === "live" && visibleRuns.length === 0 && <EmptyState population={`${scope} · report runs for ${selectedDefinition?.name || "the selected definition"}`} title="No report runs are recorded for this definition" description="The selected definition has no queued, completed or failed run in the current legal entity. The next valid action is to activate the definition or run it when its governance state allows." />}
       {visibleRuns.length > 0 && <RunTable runs={visibleRuns} onDownload={downloadSelected} downloading={commandState === "downloading"} />}
-    </section>
+    </section>}
   </section>;
 }
 
@@ -350,12 +358,15 @@ function DefinitionCreateForm({ draft, fields, error, busy, onChange, onSave }: 
       <TextField label="Report name" value={draft.name} onChange={(value) => onChange({ name: value })} description="Name the business question or population this report answers." isRequired maxLength={120} />
       <TextArea label="Description" value={draft.description} onChange={(value) => onChange({ description: value })} description="State the purpose, audience or evidence question this report supports." maxLength={1000} />
       <SelectField label="Dataset" value={draft.dataset} placeholder="Choose a dataset" options={[
+        { id: "VENDORS", label: "Vendors" },
+        { id: "PROGRAMS", label: "Programs" },
+        { id: "MATTER_EXCEPTIONS", label: "Work — issues and changes" },
         { id: "PROCESSING_ACTIVITIES", label: "Processing activities" },
         { id: "PROCESSING_ACTIVITY_EXCEPTIONS", label: "Processing activities with open exceptions" },
-        { id: "PROGRAMS", label: "Programs" },
-        { id: "MATTER_EXCEPTIONS", label: "Issues and changes with open exceptions or overdue obligations" },
-      ]} onChange={(value) => value && onChange({ dataset: value, filter: { kind: "group", operator: "and", children: [] }, scope_ref: "" })} isRequired />
-      <SelectField label="Scope" value={draft.scope_kind} placeholder="Choose a scope" options={[
+      ]} onChange={(value) => value && onChange({ dataset: value, scope_kind: value === "VENDORS" ? "LEGAL_ENTITY" : draft.scope_kind, filter: { kind: "group", operator: "and", children: [] }, scope_ref: "" })} isRequired />
+      <SelectField label="Scope" value={draft.scope_kind} placeholder="Choose a scope" options={draft.dataset === "VENDORS" ? [
+        { id: "LEGAL_ENTITY", label: "Whole legal entity" },
+      ] : [
         { id: "LEGAL_ENTITY", label: "Whole legal entity" },
         { id: "PROGRAM", label: "One Program" },
         { id: "MATTER", label: "One issue or change" },
@@ -547,10 +558,11 @@ function sourceBoundaryAccessibleText(run: ReportRun) {
 }
 
 function datasetLabel(dataset: ReportDataset) {
+  if (dataset === "VENDORS") return "Vendors";
   if (dataset === "PROCESSING_ACTIVITIES") return "Processing activities";
   if (dataset === "PROCESSING_ACTIVITY_EXCEPTIONS") return "Processing activities with open exceptions";
   if (dataset === "PROGRAMS") return "Programs";
-  return "Issues and changes with open exceptions or overdue obligations";
+  return "Work — issues and changes";
 }
 
 function scopeDefinitionLabel(definition: ReportDefinition) {
