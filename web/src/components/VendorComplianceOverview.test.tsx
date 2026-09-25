@@ -57,8 +57,20 @@ describe("vendor compliance overview", () => {
     api.loadVendorForms.mockResolvedValue({ items: [{ ...row, outdated: true, attention_items: [{ field_id: "pci", label: "PCI DSS attestation", state: "EXPIRED", source: "RESPONSE" }] }], observed_at: summary.observed_at });
     render(<VendorComplianceOverview {...props} summary={{ ...summary, outdated_forms: 1 }}/>);
     expect(await screen.findByText("PCI DSS attestation")).toBeTruthy();
+    expect(screen.getByText("Vendor response field")).toBeTruthy();
     expect(screen.getByText("Expired")).toBeTruthy();
     expect(screen.queryByText("Satisfactory")).toBeNull();
+  });
+  it("summarises response fields, vendor documents and internal reviews in one follow-up line", async () => {
+    api.loadVendorForms.mockResolvedValue({ items: [{ ...row, attention_items: [
+      { field_id: "attestation", label: "PCI attestation", state: "EXPIRED", source: "RESPONSE", kind: "VENDOR_RESPONSE_FIELD" },
+      { field_id: "certificate", label: "ISO certificate", state: "EXPIRED", source: "RESPONSE", kind: "VENDOR_DOCUMENT" },
+      { rule_id: "review", label: "Audit right", state: "GAP", source: "REVIEW", kind: "INTERNAL_REVIEW" },
+    ] }], observed_at: summary.observed_at });
+    render(<VendorComplianceOverview {...props}/>);
+    expect(await screen.findByText(/1 vendor response field needs updating; 1 vendor document needs replacing; 1 internal review needs a decision/)).toBeTruthy();
+    expect(screen.getByText("Vendor document")).toBeTruthy();
+    expect(screen.getByText("Bank review")).toBeTruthy();
   });
   it("retains a page boundary and loads the next page only on request", async () => {
     api.loadVendorForms.mockResolvedValueOnce({ items: [row], next_cursor: "cursor-2", observed_at: summary.observed_at }).mockResolvedValueOnce({ items: [{ ...row, request_id: "request-2", title: "Privacy review" }], observed_at: summary.observed_at });
@@ -80,7 +92,7 @@ describe("vendor compliance overview", () => {
     render(<VendorComplianceOverview {...props} summary={{ ...summary, awaiting_review: 1, unassessed_forms: 1, assessed_forms: 0, highest_concern: undefined }}/>);
     expect(await screen.findByText("SLA audit rights")).toBeTruthy();
     expect(screen.getByText("Not met")).toBeTruthy();
-    expect(screen.getByText("Based on submitted answers")).toBeTruthy();
+    expect(screen.getByText("Submitted response fields require follow-up")).toBeTruthy();
     expect(screen.getByText("1 check awaiting review")).toBeTruthy();
     expect(screen.getByText("Action required")).toBeTruthy();
   });
@@ -101,6 +113,6 @@ describe("vendor compliance overview", () => {
     render(<VendorComplianceOverview {...props}/>);
     await screen.findByText("SLA audit rights");
     expect(screen.getAllByText("SLA audit rights")).toHaveLength(1);
-    expect(screen.getByText("Includes reviewed findings")).toBeTruthy();
+    expect(screen.getByText("Bank review requires a decision")).toBeTruthy();
   });
 });

@@ -353,10 +353,10 @@ export function VendorDueDiligence({
       setClarificationDueDate("");
       setSelectedClarificationFields([]);
       setPanel(null);
-      if (outcome.state === "DELIVERED") setNotice("Clarification sent. The assessment will return to review when the vendor responds.");
-      else if (outcome.state === "LINK_CREATED_EMAIL_NOT_SENT") setNotice("Clarification request created. Email delivery did not complete.");
-      else setNotice("Clarification request prepared. Secure vendor access was not issued.");
-    }, "The clarification request was not sent. Re-enter the vendor contact email before trying again.");
+      if (outcome.state === "DELIVERED") setNotice("Updated-field request sent. The assessment returns to review when the vendor responds.");
+      else if (outcome.state === "LINK_CREATED_EMAIL_NOT_SENT") setNotice("Updated-field request created. Email delivery did not complete.");
+      else setNotice("Updated-field request prepared. Secure vendor access was not issued.");
+    }, "The updated-field request was not sent. Re-enter the vendor contact email before trying again.");
   }
 
   async function submitDeficiency(event: React.FormEvent) {
@@ -468,9 +468,9 @@ export function VendorDueDiligence({
     if (!clarificationOutcome?.capture_url) return;
     try {
       await navigator.clipboard.writeText(clarificationOutcome.capture_url);
-      setNotice("Clarification link copied.");
+      setNotice("Updated-field request link copied.");
     } catch {
-      setError("The clarification link could not be copied. Use the request status to retry delivery.");
+      setError("The updated-field request link could not be copied. Use the request status to retry delivery.");
     }
   }
 
@@ -511,8 +511,8 @@ export function VendorDueDiligence({
     {setupFailure && status === "SETUP_PENDING" && <Notice tone="error"><strong>Review setup needs attention</strong> {setupFailure}</Notice>}
     {effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" && <Notice tone="error"><strong>The request is ready, but secure access was not issued</strong> {effectiveOutcome.recovery ?? "Retry invitation creation for this request."}</Notice>}
     {effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && <Notice tone="error"><strong>Email delivery did not complete</strong> {effectiveOutcome.recovery ?? "Copy the secure link or review delivery status."}</Notice>}
-    {clarificationOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" && <Notice tone="error"><strong>Clarification access was not issued</strong> {clarificationOutcome.recovery ?? "Review the clarification request before retrying secure access."}</Notice>}
-    {clarificationOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && <Notice tone="error"><strong>Clarification email delivery did not complete</strong> {clarificationOutcome.recovery ?? "Use the returned secure link or review delivery status."}</Notice>}
+    {clarificationOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" && <Notice tone="error"><strong>Updated-field request access was not issued</strong> {clarificationOutcome.recovery ?? "Review the updated-field request before retrying secure access."}</Notice>}
+    {clarificationOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && <Notice tone="error"><strong>Updated-field request email was not delivered</strong> {clarificationOutcome.recovery ?? "Use the returned secure link or review delivery status."}</Notice>}
     {notice && <Notice tone="success">{notice}</Notice>}
     {error && panel !== "document" && <Notice tone="error">{error}</Notice>}
 
@@ -535,7 +535,7 @@ export function VendorDueDiligence({
     {panel === "cancelAssessment" && <CancelAssessmentPanel reason={cancellationReason} busy={busy} onReason={setCancellationReason} onCancel={() => setPanel(null)} onSubmit={cancelAssessment}/>}
 
     {!panel && <div className="vdd-actions">
-      {status === "COLLECTING" ? <><Button type="button" variant="primary" onPress={() => requestID && onOpenRequest?.(requestID)} isDisabled={!requestID || !onOpenRequest}>Review request status</Button>{clarificationOutcome?.capture_url && <Button type="button" variant="secondary" onPress={() => void copyClarificationLink()}>Copy clarification link</Button>}{effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <Button type="button" variant="secondary" onPress={() => void copyCaptureLink()}>{effectiveOutcomeKind === "replacement" ? "Copy new link" : "Copy secure link"}</Button> : <Button type="button" variant="secondary" onPress={() => openPanel("reissue")} isDisabled={!onReissue}>{effectiveOutcomeKind === "replacement" && effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? "Retry new link" : "Send another link"}</Button>}</>
+      {status === "COLLECTING" ? <><Button type="button" variant="primary" onPress={() => requestID && onOpenRequest?.(requestID)} isDisabled={!requestID || !onOpenRequest}>Review request status</Button>{clarificationOutcome?.capture_url && <Button type="button" variant="secondary" onPress={() => void copyClarificationLink()}>Copy updated-field request link</Button>}{effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <Button type="button" variant="secondary" onPress={() => void copyCaptureLink()}>{effectiveOutcomeKind === "replacement" ? "Copy new link" : "Copy secure link"}</Button> : <Button type="button" variant="secondary" onPress={() => openPanel("reissue")} isDisabled={!onReissue}>{effectiveOutcomeKind === "replacement" && effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? "Retry new link" : "Send another link"}</Button>}</>
         : effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <Button type="button" variant="primary" onPress={() => void copyCaptureLink()}>Copy secure link</Button>
         : effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? <Button type="button" variant="primary" onPress={() => openPanel("send")} isDisabled={!onSend}>Retry invitation creation</Button>
           : startMode ? availableForms.length ? <Button type="button" variant="primary" onPress={() => openPanel("start")} isDisabled={!onStart}>{startActionLabel(startMode)}</Button> : <><Button type="button" variant="primary" onPress={onSetUpForm} isDisabled={!onSetUpForm}>Use a starter template</Button>{onOpenForms && <Button type="button" variant="secondary" onPress={onOpenForms}>Open Forms</Button>}</>
@@ -545,7 +545,7 @@ export function VendorDueDiligence({
                 : status === "SUBMITTED" ? <Button type="button" variant="primary" onPress={() => void startReview()} isDisabled={!onStartReview || busy || reviewState !== "live"}>{busy ? "Opening review…" : "Review vendor response"}</Button>
                     : status === "UNDER_REVIEW" && (!responseRequiresApplication || applicationComplete) ? <Button type="button" variant="primary" onPress={() => openPanel("conclusion")} isDisabled={!onComplete || reviewState !== "live"}>Record assessment conclusion</Button>
                       : null}
-      {status === "UNDER_REVIEW" && onRequestClarification && <Button type="button" variant="secondary" onPress={() => openPanel("clarification")}>Request clarification</Button>}
+      {status === "UNDER_REVIEW" && onRequestClarification && <Button type="button" variant="secondary" onPress={() => openPanel("clarification")}>Request updated fields</Button>}
       {effectiveAssessment && !["COMPLETED", "CANCELLED"].includes(effectiveAssessment.status) && onCancelAssessment && <Button type="button" variant="secondary" onPress={() => openPanel("cancelAssessment")}>Cancel assessment</Button>}
     </div>}
 
@@ -600,8 +600,8 @@ function ReissuePanel({ recipient, invitationMinutes, busy, onRecipient, onInvit
 
 function ClarificationPanel({ fields, selected, message, recipient, dueDate, invitationMinutes, minimumDate, reviewDueAt, busy, onSelected, onMessage, onRecipient, onDueDate, onInvitationMinutes, onCancel, onSubmit }: { fields: { id: string; label: string }[]; selected: string[]; message: string; recipient: string; dueDate: string; invitationMinutes: number; minimumDate: string; reviewDueAt: string; busy: boolean; onSelected: (value: string[]) => void; onMessage: (value: string) => void; onRecipient: (value: string) => void; onDueDate: (value: string) => void; onInvitationMinutes: (value: number) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
-    <div><span className="eyebrow">Vendor follow-up</span><h3>Request clarification</h3><p>Select only the submitted fields that the vendor must update or support.</p></div>
-    {fields.length ? <fieldset className="vdd-fieldset"><legend>Fields requiring clarification</legend>{fields.map((field) => <CheckboxField key={field.id} label={field.label} isSelected={selected.includes(field.id)} onChange={(checked) => onSelected(checked ? [...selected, field.id] : selected.filter((id) => id !== field.id))}/>)}</fieldset> : <p className="vdd-limitation">No response fields are available for clarification. Reload the submitted response before creating a request.</p>}
+    <div><span className="eyebrow">Vendor follow-up</span><h3>Request updated vendor information</h3><p>Select only the response fields that need a new answer or supporting document. The vendor receives an email for this selected work only.</p></div>
+    {fields.length ? <fieldset className="vdd-fieldset"><legend>Fields to update</legend>{fields.map((field) => <CheckboxField key={field.id} label={field.label} isSelected={selected.includes(field.id)} onChange={(checked) => onSelected(checked ? [...selected, field.id] : selected.filter((id) => id !== field.id))}/>)}</fieldset> : <p className="vdd-limitation">No submitted response fields are available. Reload the vendor response before sending an updated-field request.</p>}
     <TextArea label="What the vendor must provide" rows={4} maxLength={2000} value={message} onChange={(value) => onMessage(value)} isRequired/>
     <div className="vdd-form-grid">
       <div className="vdd-wide"><TextField label="Vendor contact email" type="email" inputMode="email" autoComplete="email" maxLength={254} value={recipient} onChange={(value) => onRecipient(value)} isRequired/></div>
@@ -609,7 +609,7 @@ function ClarificationPanel({ fields, selected, message, recipient, dueDate, inv
       <SelectField label="Secure link valid for" value={String(invitationMinutes)} placeholder="Choose link expiry" allowsEmpty={false} options={linkExpiryOptions} onChange={(value) => { if (value) onInvitationMinutes(Number(value)); }}/>
     </div>
     <p className="vdd-limitation">The email address is used only for this secure invitation and is cleared from this screen after every attempt.</p>
-    <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Cancel</Button><Button type="submit" variant="primary" isDisabled={busy || fields.length === 0}>{busy ? "Creating request…" : "Send clarification request"}</Button></div>
+    <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Cancel</Button><Button type="submit" variant="primary" isDisabled={busy || fields.length === 0}>{busy ? "Creating request…" : "Email updated-field request"}</Button></div>
   </form>;
 }
 

@@ -15,4 +15,16 @@ describe("Matter activity timeline", () => {
     expect(await screen.findByText("Earlier update")).toBeTruthy();
     expect(screen.getByText("Latest update")).toBeTruthy();
   });
+
+  it("confirms that a mentioned colleague is queued for email notification", async () => {
+    api.loadMatterActivity.mockResolvedValue({ items: [] });
+    api.addMatterComment.mockResolvedValue({});
+    render(<MatterActivityTimeline matterID="matter-1" matterVersion={3} candidates={[{ id: "hakeem", display_name: "Hakeem Bello" } as never]}/>);
+    await screen.findByText("0 recent entries");
+    fireEvent.change(screen.getByLabelText("Add internal comment"), { target: { value: "Please confirm the vendor update." } });
+    fireEvent.change(screen.getByLabelText("Mention colleague"), { target: { value: "hakeem" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add comment" }));
+    expect(await screen.findByText("Comment recorded. Email notification queued for Hakeem Bello.")).toBeTruthy();
+    expect(api.addMatterComment).toHaveBeenCalledWith("matter-1", 3, "Please confirm the vendor update.", ["hakeem"]);
+  });
 });

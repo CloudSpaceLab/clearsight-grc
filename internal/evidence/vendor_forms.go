@@ -27,6 +27,7 @@ type VendorFormAttention struct {
 	Label   string `json:"label"`
 	State   string `json:"state"`
 	Source  string `json:"source"`
+	Kind    string `json:"kind"`
 }
 type VendorFormRow struct {
 	reviewedFields      map[string]bool

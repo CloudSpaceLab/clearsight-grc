@@ -332,7 +332,7 @@ describe("VendorDueDiligence", () => {
     const reviewRegion = screen.getByRole("region", { name: "Vendor response review" });
     expect(within(reviewRegion).getByText(/14 answers · 2 documents/)).toBeTruthy();
     expect(within(reviewRegion).getByText("independent-security-test.pdf")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Request clarification" }).classList.contains("cs-button--secondary")).toBe(true);
+    expect(screen.getByRole("button", { name: "Request updated fields" }).classList.contains("cs-button--secondary")).toBe(true);
     expect(screen.getByRole("button", { name: "Record assessment conclusion" }).classList.contains("cs-button--primary")).toBe(true);
 	fireEvent.click(screen.getByRole("button", { name: "Open finding" }));
 	expect(openMatter).toHaveBeenCalledWith("finding-1");
@@ -460,13 +460,13 @@ describe("VendorDueDiligence", () => {
     const onRequestClarification = vi.fn().mockResolvedValue(outcome);
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onRequestClarification={onRequestClarification} onOpenRequest={vi.fn()} onComplete={vi.fn()}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Request clarification" }));
+    fireEvent.click(screen.getByRole("button", { name: "Request updated fields" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Independent security testing" }));
     fireEvent.change(screen.getByLabelText("What the vendor must provide", { exact: false }), { target: { value: "Provide the current independent security test report." } });
     fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
     fireEvent.change(screen.getByLabelText("Response due date", { exact: false }), { target: { value: "2099-09-12" } });
     await chooseOption("Secure link valid for", "1 hour");
-    fireEvent.click(screen.getByRole("button", { name: "Send clarification request" }));
+    fireEvent.click(screen.getByRole("button", { name: "Email updated-field request" }));
 
     await waitFor(() => expect(onRequestClarification).toHaveBeenCalledWith("assessment-1", {
       expected_version: 3,
@@ -479,7 +479,7 @@ describe("VendorDueDiligence", () => {
     expect(screen.queryByText("security@vendor.example")).toBeNull();
     expect(screen.queryByDisplayValue("security@vendor.example")).toBeNull();
     expect(screen.queryByText(/clarification-secret/)).toBeNull();
-    fireEvent.click(await screen.findByRole("button", { name: "Copy clarification link" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Copy updated-field request link" }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(outcome.capture_url));
     expect(primaryActions()).toHaveLength(1);
   });
@@ -492,14 +492,14 @@ describe("VendorDueDiligence", () => {
     };
     render(<VendorDueDiligence relationship={relationship} assessment={assessment("UNDER_REVIEW")} review={review} form={form} onRequestClarification={vi.fn().mockRejectedValue(new Error("unavailable"))} onComplete={vi.fn()}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Request clarification" }));
+    fireEvent.click(screen.getByRole("button", { name: "Request updated fields" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Independent security testing" }));
     fireEvent.change(screen.getByLabelText("What the vendor must provide", { exact: false }), { target: { value: "Provide the current report." } });
     fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
     fireEvent.change(screen.getByLabelText("Response due date", { exact: false }), { target: { value: "2099-09-12" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send clarification request" }));
+    fireEvent.click(screen.getByRole("button", { name: "Email updated-field request" }));
 
-    expect(await screen.findByText("The clarification request was not sent. Re-enter the vendor contact email before trying again.")).toBeTruthy();
+    expect(await screen.findByText("The updated-field request was not sent. Re-enter the vendor contact email before trying again.")).toBeTruthy();
     expect((screen.getByLabelText("Vendor contact email", { exact: false }) as HTMLInputElement).value).toBe("");
   });
 

@@ -20,13 +20,23 @@ type vendorDocumentFact struct {
 func populateVendorFormAttention(req Request, answers map[string]formcontract.AnswerValue, known bool, row *VendorFormRow, facts map[string]vendorDocumentFact, now time.Time) {
 	row.AttentionItems = []VendorFormAttention{}
 	row.Outdated = nil
+	sourceFields := map[string]Field{}
+	for _, field := range req.Fields {
+		sourceFields[field.ID] = field
+	}
 	add := func(field, rule, label, state, source string) {
 		for _, item := range row.AttentionItems {
 			if item.FieldID == field && item.RuleID == rule && item.State == state && item.Source == source {
 				return
 			}
 		}
-		row.AttentionItems = append(row.AttentionItems, VendorFormAttention{field, rule, label, state, source})
+		kind := "VENDOR_RESPONSE_FIELD"
+		if source == "REVIEW" {
+			kind = "INTERNAL_REVIEW"
+		} else if sourceFields[field].Type == string(formcontract.TypeVendorDocument) {
+			kind = "VENDOR_DOCUMENT"
+		}
+		row.AttentionItems = append(row.AttentionItems, VendorFormAttention{FieldID: field, RuleID: rule, Label: label, State: state, Source: source, Kind: kind})
 	}
 	for _, field := range row.MissingFields {
 		add(field.ID, "", field.Label, "MISSING", "RESPONSE")
@@ -72,10 +82,6 @@ func populateVendorFormAttention(req Request, answers map[string]formcontract.An
 				reviewed[result.ID] = true
 			}
 		}
-	}
-	sourceFields := map[string]Field{}
-	for _, field := range req.Fields {
-		sourceFields[field.ID] = field
 	}
 	knownDates, unknownDates, expired := 0, false, false
 	for _, field := range visible {

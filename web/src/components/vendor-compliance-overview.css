@@ -4,6 +4,8 @@
 .vendor-compliance__heading, .vendor-compliance__heading > div, .vendor-compliance__subheading, .vendor-compliance__form-heading, .vendor-compliance__form-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cs-primitive-space-2); }
 .vendor-compliance__heading > div { justify-content: start; }
 .vendor-compliance__scope { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+.vendor-compliance__follow-up { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--cs-primitive-space-2); border-inline-start: 3px solid var(--cs-status-warning); padding-inline-start: var(--cs-primitive-space-2); color: var(--cs-text-default); font-size: var(--cs-font-size-caption); }
+.vendor-compliance__follow-up strong { color: var(--cs-text-strong); }
 .vendor-compliance__counts { display: flex; flex-wrap: wrap; margin: 0; border-block: var(--cs-surface-border-width) solid var(--cs-border-default); padding-block: var(--cs-primitive-space-2); gap: var(--cs-primitive-space-2) var(--cs-primitive-space-4); }
 .vendor-compliance__counts > div { display: flex; align-items: baseline; gap: var(--cs-primitive-space-1); flex-wrap: wrap; }
 .vendor-compliance__counts dt, .vendor-compliance__counts small { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); overflow-wrap: anywhere; }
@@ -15,6 +17,8 @@
 .vendor-compliance__score { color: var(--cs-text-strong); font-size: var(--cs-font-size-caption); font-weight: 700; white-space: nowrap; }
 .vendor-compliance__items { gap: var(--cs-primitive-space-2); }
 .vendor-compliance__items > li { display: grid; grid-template-columns: minmax(0,1fr) max-content; align-items: start; gap: var(--cs-primitive-space-2); }
-.vendor-compliance__items > li > span { overflow-wrap: anywhere; min-inline-size: 0; }
+.vendor-compliance__items > li > span { display: grid; gap: 2px; overflow-wrap: anywhere; min-inline-size: 0; }
+.vendor-compliance__items strong { font-weight: 600; }
+.vendor-compliance__items small { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
 .vendor-compliance__form-footer p, .vendor-compliance__review { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
 @media (max-width: 400px) { .vendor-compliance__heading { align-items: stretch; flex-direction: column; } .vendor-compliance__heading > div { justify-content: space-between; } }

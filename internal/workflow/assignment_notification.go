@@ -31,6 +31,7 @@ const (
 	matterOwnerNotificationKind     = "MATTER_OWNER_ASSIGNED"
 	actionPerformerNotificationKind = "ACTION_PERFORMER_ASSIGNED"
 	actionUpdateNotificationKind    = "ACTION_UPDATE_REQUESTED"
+	commentMentionNotificationKind  = "MATTER_COMMENT_MENTIONED"
 )
 
 type assignmentNotificationEvent struct {
@@ -41,6 +42,7 @@ type assignmentNotificationEvent struct {
 	ActionVersion    int64
 	UpdateMessage    string
 	UpdateDueAt      *time.Time
+	CommentMentioned bool
 }
 
 type AssignmentNotificationTarget struct {
@@ -109,13 +111,22 @@ func NewAssignmentNotificationConsumer(repository assignmentNotificationReposito
 }
 
 func (consumer *AssignmentNotificationConsumer) Publish(ctx context.Context, event workflowruntime.OutboxEvent) error {
-	assignment, relevant, err := decodeAssignmentNotificationEvent(event)
+	assignments, relevant, err := decodeAssignmentNotificationEvent(event)
 	if err != nil {
 		return err
 	}
 	if !relevant {
 		return nil
 	}
+	for _, assignment := range assignments {
+		if err := consumer.publishAssignment(ctx, event, assignment); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (consumer *AssignmentNotificationConsumer) publishAssignment(ctx context.Context, event workflowruntime.OutboxEvent, assignment assignmentNotificationEvent) error {
 	prior, found, err := consumer.repository.GetAssignmentNotification(ctx, event, assignment)
 	if err != nil {
 		return err
@@ -128,7 +139,7 @@ func (consumer *AssignmentNotificationConsumer) Publish(ctx context.Context, eve
 		return err
 	}
 	now := consumer.currentTime()
-	if strings.TrimSpace(notificationContext.CurrentPrincipalID) != assignment.PrincipalID {
+	if !assignment.CommentMentioned && strings.TrimSpace(notificationContext.CurrentPrincipalID) != assignment.PrincipalID {
 		return consumer.repository.RecordAssignmentNotification(ctx, event, assignment, assignmentNotificationRecord{Status: assignmentNotificationSuperseded, AttemptedAt: now})
 	}
 	address := strings.TrimSpace(notificationContext.RecipientAddress)
@@ -167,7 +178,7 @@ func (consumer *AssignmentNotificationConsumer) Publish(ctx context.Context, eve
 		BankName: notificationContext.BankName, RecipientName: notificationContext.RecipientName,
 		MatterTitle: notificationContext.MatterTitle, WorkTitle: notificationContext.WorkTitle,
 		Responsibility: responsibility, DueAt: notificationContext.DueAt,
-		IssueURL: issueURL, UpdateRequested: assignment.NotificationKind == actionUpdateNotificationKind, UpdateMessage: assignment.UpdateMessage,
+		IssueURL: issueURL, UpdateRequested: assignment.NotificationKind == actionUpdateNotificationKind, UpdateMessage: assignment.UpdateMessage, CommentMentioned: assignment.CommentMentioned,
 	})
 	if err != nil {
 		return fmt.Errorf("build staff assignment notification: %w", err)
@@ -204,9 +215,9 @@ func validStaffMailbox(address string) bool {
 	return err == nil && strings.EqualFold(parsed.Address, strings.TrimSpace(address))
 }
 
-func decodeAssignmentNotificationEvent(event workflowruntime.OutboxEvent) (assignmentNotificationEvent, bool, error) {
-	if event.AggregateType != "MATTER" || (event.EventType != continuity.EventMatterOwnerChanged && event.EventType != continuity.EventActionAssigned && event.EventType != continuity.EventMatterActionUpdateRequested) {
-		return assignmentNotificationEvent{}, false, nil
+func decodeAssignmentNotificationEvent(event workflowruntime.OutboxEvent) ([]assignmentNotificationEvent, bool, error) {
+	if event.AggregateType != "MATTER" || (event.EventType != continuity.EventMatterOwnerChanged && event.EventType != continuity.EventActionAssigned && event.EventType != continuity.EventMatterActionUpdateRequested && event.EventType != continuity.EventMatterCommentAdded) {
+		return nil, false, nil
 	}
 	var envelope struct {
 		Matter struct {
@@ -217,45 +228,61 @@ func decodeAssignmentNotificationEvent(event workflowruntime.OutboxEvent) (assig
 			MatterID string `json:"matter_id"`
 			Version  int64  `json:"version"`
 		} `json:"action"`
-		PreviousOwnerID      string     `json:"previous_owner_principal_id"`
-		OwnerPrincipalID     string     `json:"owner_principal_id"`
-		ID                   string     `json:"id"`
-		MatterID             string     `json:"matter_id"`
-		ActionID             string     `json:"action_id"`
-		RecipientPrincipalID string     `json:"recipient_principal_id"`
-		Message              string     `json:"message"`
-		DueAt                *time.Time `json:"due_at"`
+		PreviousOwnerID       string     `json:"previous_owner_principal_id"`
+		OwnerPrincipalID      string     `json:"owner_principal_id"`
+		ID                    string     `json:"id"`
+		MatterID              string     `json:"matter_id"`
+		ActionID              string     `json:"action_id"`
+		RecipientPrincipalID  string     `json:"recipient_principal_id"`
+		Message               string     `json:"message"`
+		DueAt                 *time.Time `json:"due_at"`
+		MentionedPrincipalIDs []string   `json:"mentioned_principal_ids"`
 	}
 	if err := json.Unmarshal(event.Payload, &envelope); err != nil {
-		return assignmentNotificationEvent{}, true, fmt.Errorf("decode staff assignment event: %w", err)
+		return nil, true, fmt.Errorf("decode staff assignment event: %w", err)
 	}
 	assignment := assignmentNotificationEvent{PrincipalID: strings.TrimSpace(envelope.OwnerPrincipalID), PreviousOwnerID: strings.TrimSpace(envelope.PreviousOwnerID)}
 	if event.EventType == continuity.EventMatterOwnerChanged {
 		assignment.NotificationKind = matterOwnerNotificationKind
 		if strings.TrimSpace(envelope.Matter.ID) != strings.TrimSpace(event.AggregateID) {
-			return assignmentNotificationEvent{}, true, fmt.Errorf("staff assignment event Matter does not match aggregate")
+			return nil, true, fmt.Errorf("staff assignment event Matter does not match aggregate")
 		}
 	} else if event.EventType == continuity.EventActionAssigned {
 		assignment.NotificationKind = actionPerformerNotificationKind
 		assignment.ActionID = strings.TrimSpace(envelope.Action.ID)
 		assignment.ActionVersion = envelope.Action.Version
 		if strings.TrimSpace(envelope.Action.MatterID) != strings.TrimSpace(event.AggregateID) || assignment.ActionID == "" || assignment.ActionVersion < 1 {
-			return assignmentNotificationEvent{}, true, fmt.Errorf("staff assignment event Action does not match aggregate")
+			return nil, true, fmt.Errorf("staff assignment event Action does not match aggregate")
 		}
-	} else {
+	} else if event.EventType == continuity.EventMatterActionUpdateRequested {
 		assignment.NotificationKind = actionUpdateNotificationKind
 		assignment.PrincipalID = strings.TrimSpace(envelope.RecipientPrincipalID)
 		assignment.ActionID = strings.TrimSpace(envelope.ActionID)
 		assignment.UpdateMessage = strings.TrimSpace(envelope.Message)
 		assignment.UpdateDueAt = envelope.DueAt
 		if strings.TrimSpace(envelope.MatterID) != strings.TrimSpace(event.AggregateID) || assignment.ActionID == "" || assignment.PrincipalID == "" {
-			return assignmentNotificationEvent{}, true, fmt.Errorf("status update request does not match aggregate")
+			return nil, true, fmt.Errorf("status update request does not match aggregate")
 		}
+	} else {
+		if strings.TrimSpace(envelope.MatterID) != strings.TrimSpace(event.AggregateID) {
+			return nil, true, fmt.Errorf("comment mention does not match aggregate")
+		}
+		seen := map[string]bool{}
+		mentions := make([]assignmentNotificationEvent, 0, len(envelope.MentionedPrincipalIDs))
+		for _, principalID := range envelope.MentionedPrincipalIDs {
+			principalID = strings.TrimSpace(principalID)
+			if principalID == "" || seen[principalID] {
+				continue
+			}
+			seen[principalID] = true
+			mentions = append(mentions, assignmentNotificationEvent{NotificationKind: commentMentionNotificationKind, PrincipalID: principalID, CommentMentioned: true})
+		}
+		return mentions, true, nil
 	}
 	if assignment.PrincipalID == "" || (assignment.NotificationKind != actionUpdateNotificationKind && assignment.PrincipalID == assignment.PreviousOwnerID) {
-		return assignmentNotificationEvent{}, true, fmt.Errorf("staff assignment event does not identify a changed owner")
+		return nil, true, fmt.Errorf("staff assignment event does not identify a changed owner")
 	}
-	return assignment, true, nil
+	return []assignmentNotificationEvent{assignment}, true, nil
 }
 
 func assignmentNotificationStatus(receipt evidence.InvitationDeliveryReceipt, deliveryErr error) string {

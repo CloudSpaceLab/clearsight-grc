@@ -78,10 +78,27 @@ export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOw
         <span><strong>Open issues</strong> {knownOpenIssues ? `${openIssues}${stale ? " (last calculation)" : ""}` : "Unknown"}</span>
         <span><strong>Requirements</strong> {aggregate.requirements.filter((requirement) => requirement.status === "APPROVED").length}</span>
       </div>
-      {reasons.length > 0 ? <div className="program-position-reasons"><h3>{stale ? "Reasons from the last calculation" : "Why this status"}</h3><ul>{reasons.map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul></div> : <p>{!current || !Array.isArray(current.reasons) ? "Status reasons are unavailable." : stale ? "No status reasons were recorded for the previous calculation." : "No status reasons are recorded for this calculation."}</p>}
+      {reasons.length > 0 ? <div className="program-position-reasons"><h3>{stale ? "Reasons from the last calculation" : "What needs attention"}</h3><ul>{reasons.map((reason) => {
+        const presentation = programReasonPresentation(reason);
+        return <li key={`${reason.code}-${reason.object_id ?? ""}`}><strong>{presentation.title}</strong><span>{presentation.detail}</span></li>;
+      })}</ul></div> : <p>{!current || !Array.isArray(current.reasons) ? "Status reasons are unavailable." : stale ? "No status reasons were recorded for the previous calculation." : "No status reasons are recorded for this calculation."}</p>}
     </div>
     <div className="program-dominant-next">
       {action ? <><button data-testid="program-dominant-action" className="primary-button" type="button" onClick={goToAction}>{action.label}</button><small>{action.reason}</small></> : <div className="program-readonly-next"><strong>No change is assigned to you</strong><span>Current Program details and responsibilities remain visible.</span></div>}
     </div>
   </section>;
+}
+
+export function programReasonPresentation(reason: { code: string; summary: string; object_type?: string; object_id?: string }) {
+  if (reason.code === "EVIDENCE_EXPIRED" && reason.object_type === "EVIDENCE_CONTRACT") {
+    const match = reason.summary.match(/(?:for|assessment for) (.+?)(?: has passed its validity date|\.)$/i);
+    const name = match?.[1] ?? "The evidence check";
+    return { title: "Program assessment expired", detail: `${name} requires a new assessment of its supporting source.` };
+  }
+  if (reason.code === "EVIDENCE_NOT_ASSESSED" && reason.object_type === "EVIDENCE_CONTRACT") {
+    const match = reason.summary.match(/for (.+?)\.?$/i);
+    const name = match?.[1] ?? "The evidence check";
+    return { title: "Program assessment missing", detail: `${name} needs an assessment of its supporting source.` };
+  }
+  return { title: reason.summary, detail: "Review the current Program record and record the required outcome." };
 }

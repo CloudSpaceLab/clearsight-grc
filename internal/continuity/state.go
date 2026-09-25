@@ -191,7 +191,7 @@ func deriveProgramStateWithSourceState(aggregate ProgramAggregate, openMatters i
 		validUntil := boundedAssessmentValidity(assessment, contract)
 		if validUntil.IsZero() || !now.Before(validUntil) {
 			expiredContracts++
-			reasons = append(reasons, StateReason{Code: "EVIDENCE_EXPIRED", Summary: fmt.Sprintf("Evidence is out of date for %s.", contract.Name), ObjectType: "EVIDENCE_CONTRACT", ObjectID: contract.ID})
+			reasons = append(reasons, StateReason{Code: "EVIDENCE_EXPIRED", Summary: fmt.Sprintf("The Program assessment for %s has passed its validity date.", contract.Name), ObjectType: "EVIDENCE_CONTRACT", ObjectID: contract.ID})
 			continue
 		}
 		if assessment.Coverage < contract.MinimumCoverage {

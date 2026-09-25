@@ -11,15 +11,16 @@ import (
 // OperationalNotificationContext contains protected message-time values. It
 // must not be persisted or logged as a formatted value.
 type OperationalNotificationContext struct {
-	BankName        string
-	RecipientName   string
-	MatterTitle     string
-	WorkTitle       string
-	Responsibility  string
-	DueAt           time.Time
-	IssueURL        string
-	UpdateRequested bool
-	UpdateMessage   string
+	BankName         string
+	RecipientName    string
+	MatterTitle      string
+	WorkTitle        string
+	Responsibility   string
+	DueAt            time.Time
+	IssueURL         string
+	UpdateRequested  bool
+	UpdateMessage    string
+	CommentMentioned bool
 }
 
 func (OperationalNotificationContext) String() string {
@@ -63,7 +64,16 @@ func RenderOperationalNotification(context OperationalNotificationContext) (Rend
 		bodyHTML = `<p style="margin:0 0 12px;"><strong>Status update requested.</strong></p><p style="margin:0 0 12px;">` + html.EscapeString(context.UpdateMessage) + `</p><p style="margin:0;">Open the issue and add your current status. This request does not complete the action or close the issue.</p>`
 		preheader, actionLabel = "Status update requested: "+context.WorkTitle, "Open issue"
 	}
+	if context.CommentMentioned {
+		intro = fmt.Sprintf("%s, you were mentioned in an internal comment on this issue.", context.RecipientName)
+		bodyPlain = "Open the issue to review the current update and add a response if work is required. A mention does not change ownership, approval or sign-off responsibility."
+		bodyHTML = `<p style="margin:0 0 12px;"><strong>You were mentioned in an internal comment.</strong></p><p style="margin:0;">Open the issue to review the current update and add a response if work is required. A mention does not change ownership, approval or sign-off responsibility.</p>`
+		preheader, actionLabel = "Mentioned in issue: "+context.MatterTitle, "Open issue"
+	}
 	facts := []emailFact{{Label: "Responsibility", Value: responsibility}}
+	if context.CommentMentioned {
+		facts = []emailFact{{Label: "Activity", Value: "Mentioned in internal comment"}}
+	}
 	if !context.DueAt.IsZero() {
 		facts = append(facts, emailFact{Label: "Due", Value: context.DueAt.UTC().Format("2 Jan 2006, 15:04 UTC")})
 	}
@@ -75,8 +85,15 @@ func RenderOperationalNotification(context OperationalNotificationContext) (Rend
 	if err != nil {
 		return RenderedMessage{}, err
 	}
+	subjectPrefix := "Assigned issue work: "
+	if context.UpdateRequested {
+		subjectPrefix = "Status update requested: "
+	}
+	if context.CommentMentioned {
+		subjectPrefix = "Mentioned in issue: "
+	}
 	return RenderedMessage{
-		Subject:   protectedString{value: map[bool]string{true: "Status update requested: ", false: "Assigned issue work: "}[context.UpdateRequested] + context.MatterTitle},
+		Subject:   protectedString{value: subjectPrefix + context.MatterTitle},
 		PlainText: protectedString{value: presentation.PlainText}, HTML: protectedString{value: presentation.HTML},
 	}, nil
 }

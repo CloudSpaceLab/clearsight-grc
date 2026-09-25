@@ -37,6 +37,7 @@ function ComplianceOverview({ relationshipID, serviceName, summary, summaryState
   useEffect(() => { void load(); return () => { sequence.current++; }; }, [refreshKey]);
   const available = summaryState === "live" && !!summary && !!page && !error;
   const rows = page?.items ?? [];
+  const followUp = followUpSummary(rows, Boolean(page?.next_cursor));
   const attention = rows.some((row) => row.current && !!itemsFor(row).length);
   const unchecked = rows.some((row) => row.current && row.response_state === "SUBMITTED" && (row.outdated == null || row.attention_items === undefined));
   const overdueReview = !!assessment?.next_review_recommended_at && new Date(assessment.next_review_recommended_at).getTime() <= Date.now();
@@ -67,6 +68,7 @@ function ComplianceOverview({ relationshipID, serviceName, summary, summaryState
       <div><dt>Outdated</dt><dd>{outdated ?? "—"}</dd>{outdated === undefined ? <small>Not checked</small> : (summary.freshness_unknown_forms ?? 0) > 0 && <small>{summary.freshness_unknown_forms} not checked</small>}</div>
       {summary.submitted_forms > 0 && <div><dt>Assessed</dt><dd>{summary.assessed_forms}/{summary.submitted_forms}</dd></div>}
     </dl>}
+    {available && followUp && <p className="vendor-compliance__follow-up"><strong>Follow-up required</strong><span>{followUp}</span></p>}
     {conclusion && <p className="vendor-compliance__review"><strong>Last review: {conclusion}</strong>{assessment?.completed_at && <> · {dateTime(assessment.completed_at)}</>}{overdueReview && <> · Review overdue</>}</p>}
     {(error || summaryState === "unavailable") && <Notice tone="error"><strong>Compliance status unavailable</strong><p>Vendor forms could not be checked.</p><Button onPress={() => { void load(); onUpdated(); }}>Retry</Button></Notice>}
     {loading && !page && <p role="status">Loading vendor forms…</p>}
@@ -80,10 +82,11 @@ function ComplianceOverview({ relationshipID, serviceName, summary, summaryState
         const submitted = row.response_state === "SUBMITTED";
         return <li key={`${row.request_id}:${row.response_id ?? "pending"}`}>
           <div className="vendor-compliance__form-heading"><strong>{row.title}</strong><div className="vendor-compliance__form-status">{!historical && score?.raw_score != null && <span className="vendor-compliance__score">{scoreValue(score.raw_score)}% {score.mode === "RISK" ? "risk" : "compliance"}</span>}{!historical && score?.band && <StatusBadge tone={concernTone(score.band)}>{concernLabel(score.band)}</StatusBadge>}<StatusBadge tone={historical || submitted || received ? "neutral" : "info"}>{formStateLabel(row)}</StatusBadge></div></div>
-          {items.length > 0 && <ul className="vendor-compliance__items">{items.map((item) => <li key={`${item.field_id ?? item.rule_id ?? item.label}:${item.state}`}><span>{item.label}</span><StatusBadge tone={item.state === "GAP" ? "warning" : "error"}>{item.state === "MISSING" ? "Missing" : item.state === "EXPIRED" ? "Expired" : "Not met"}</StatusBadge></li>)}</ul>}
+          {items.length > 0 && <ul className="vendor-compliance__items">{items.map((item) => <li key={`${item.field_id ?? item.rule_id ?? item.label}:${item.state}`}><span><strong>{item.label}</strong><small>{attentionKindLabel(item)}</small></span><StatusBadge tone={item.state === "GAP" ? "warning" : "error"}>{item.state === "MISSING" ? "Missing" : item.state === "EXPIRED" ? "Expired" : "Not met"}</StatusBadge></li>)}</ul>}
           <div className="vendor-compliance__form-footer"><div>
-            {items.some((item) => item.source === "RESPONSE") && <p>Based on submitted answers</p>}
-            {items.some((item) => item.source === "REVIEW") && <p>Includes reviewed findings</p>}
+            {items.some((item) => attentionKind(item) === "VENDOR_RESPONSE_FIELD") && <p>Submitted response fields require follow-up</p>}
+            {items.some((item) => attentionKind(item) === "VENDOR_DOCUMENT") && <p>Vendor documents require replacement or review</p>}
+            {items.some((item) => attentionKind(item) === "INTERNAL_REVIEW") && <p>Bank review requires a decision</p>}
             {(row.held_required ?? 0) > 0 && <p>{row.held_required} {row.held_required === 1 ? "document" : "documents"} received</p>}
             {row.response_currency === "PARTIALLY_REPLACED" && <p>Partly replaced · Review required</p>}
             {row.outdated && !items.some((item) => item.state === "EXPIRED") && <p>Outdated response</p>}
@@ -114,8 +117,28 @@ function itemsFor(row: VendorFormRow) {
     if (existing < 0) items.push(item);
     else if (item.source === "REVIEW") items[existing] = item;
   }
-  for (const field of row.missing_fields ?? []) if (!items.some((item) => item.field_id === field.id)) items.push({ field_id: field.id, label: field.label, state: "MISSING", source: "RESPONSE" });
+  for (const field of row.missing_fields ?? []) if (!items.some((item) => item.field_id === field.id)) items.push({ field_id: field.id, label: field.label, state: "MISSING", source: "RESPONSE", kind: "VENDOR_RESPONSE_FIELD" });
   return items;
+}
+function attentionKind(item: NonNullable<VendorFormRow["attention_items"]>[number]) {
+  if (item.kind) return item.kind;
+  return item.source === "REVIEW" ? "INTERNAL_REVIEW" : "VENDOR_RESPONSE_FIELD";
+}
+function attentionKindLabel(item: NonNullable<VendorFormRow["attention_items"]>[number]) {
+  const labels = { VENDOR_RESPONSE_FIELD: "Vendor response field", VENDOR_DOCUMENT: "Vendor document", INTERNAL_REVIEW: "Bank review" };
+  return labels[attentionKind(item)];
+}
+function followUpSummary(rows: VendorFormRow[], hasMore: boolean) {
+  const affectedForms = rows.filter((row) => row.current && itemsFor(row).length > 0);
+  if (!affectedForms.length) return "";
+  const counts = { VENDOR_RESPONSE_FIELD: 0, VENDOR_DOCUMENT: 0, INTERNAL_REVIEW: 0 };
+  for (const row of affectedForms) for (const item of itemsFor(row)) counts[attentionKind(item)]++;
+  const parts = [
+    counts.VENDOR_RESPONSE_FIELD && `${counts.VENDOR_RESPONSE_FIELD} vendor response ${counts.VENDOR_RESPONSE_FIELD === 1 ? "field needs" : "fields need"} updating`,
+    counts.VENDOR_DOCUMENT && `${counts.VENDOR_DOCUMENT} vendor ${counts.VENDOR_DOCUMENT === 1 ? "document needs" : "documents need"} replacing`,
+    counts.INTERNAL_REVIEW && `${counts.INTERNAL_REVIEW} internal ${counts.INTERNAL_REVIEW === 1 ? "review needs" : "reviews need"} a decision`,
+  ].filter(Boolean);
+  return `${parts.join("; ")}. ${affectedForms.length} ${affectedForms.length === 1 ? "form is" : "forms are"} affected ${hasMore ? "within the loaded forms" : "for this vendor"}.`;
 }
 function scoreValue(value: number) { return Number.isInteger(value) ? String(value) : value.toFixed(1); }
 function concernLabel(value: string) { return value.charAt(0) + value.slice(1).toLowerCase(); }

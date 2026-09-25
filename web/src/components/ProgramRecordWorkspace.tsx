@@ -8,7 +8,7 @@ import { loadProgramReviewDigest } from "../programReviewApi";
 import type { ProgramReviewDigest as ReviewDigest } from "../programReviewApi";
 import type { ProgramAggregate } from "../types";
 import { EmptyState } from "./EmptyState";
-import { dominantProgramAction, ProgramCurrentPosition } from "./ProgramCurrentPosition";
+import { dominantProgramAction, programReasonPresentation, ProgramCurrentPosition } from "./ProgramCurrentPosition";
 import { ProgramReviewDigest } from "./ProgramReviewDigest";
 import { ProgramDetailsPanel } from "./ProgramDetailsPanel";
 import { ProgramRequirementsPanel } from "./ProgramRequirementsPanel";
@@ -239,7 +239,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       {reviewOutdated && <div className="inline-notice" role="status"><strong>Program review status is out of date.</strong> Program values and review history remain visible, but changes are disabled until the latest Program changes have been assessed. <button className="text-button" type="button" onClick={() => void loadReview()}>Reload review status</button></div>}
       {digest
         ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
-        : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label}</h2><div className="program-position-reasons"><h3>Why this status</h3><ul>{(aggregate.current_state?.reasons ?? []).map((reason) => <li key={`${reason.code}-${reason.object_id ?? ""}`}>{reason.summary}</li>)}</ul></div></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
+        : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label}</h2><div className="program-position-reasons"><h3>What needs attention</h3><ul>{(aggregate.current_state?.reasons ?? []).map((reason) => { const presentation = programReasonPresentation(reason); return <li key={`${reason.code}-${reason.object_id ?? ""}`}><strong>{presentation.title}</strong><span>{presentation.detail}</span></li>; })}</ul></div></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
       {requestedItem && aggregateState === "live" && !itemAvailable && <Notice><strong>The requested {requestedItem.kind === "requirement" ? "requirement" : "control objective"} is unavailable in this Program.</strong><p>Return to the import to check its result, or review the available requirements and controls below.</p></Notice>}
       {panels && <ProgramDetailSections section={activeSection} panels={panels} onSectionChange={selectSection}/>}
     </>}

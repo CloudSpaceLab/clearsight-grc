@@ -195,6 +195,31 @@ func TestAssignmentNotificationDeliversActionUpdateRequest(t *testing.T) {
 	}
 }
 
+func TestAssignmentNotificationDeliversOneEmailForEachCommentMention(t *testing.T) {
+	context := deliverableAssignmentContext()
+	context.CurrentPrincipalID = "00000000-0000-4000-8000-000000000706"
+	repo := &assignmentNotificationRepositoryStub{context: context}
+	delivery := &assignmentDeliveryStub{receipt: evidence.InvitationDeliveryReceipt{Status: evidence.InvitationDelivered}}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := json.Marshal(map[string]any{
+		"id": "00000000-0000-4000-8000-000000000711", "matter_id": "00000000-0000-4000-8000-000000000701",
+		"mentioned_principal_ids": []string{"00000000-0000-4000-8000-000000000706", "00000000-0000-4000-8000-000000000706"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	event := workflowruntime.OutboxEvent{ID: "00000000-0000-4000-8000-000000000712", TenantID: "bank-1", AggregateType: "MATTER", AggregateID: "00000000-0000-4000-8000-000000000701", EventType: continuity.EventMatterCommentAdded, Payload: payload}
+	if err := consumer.Publish(t.Context(), event); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 1 || !strings.Contains(delivery.request.Subject, "Mentioned in issue") || strings.Contains(delivery.request.PlainText, "comment body") {
+		t.Fatalf("mention notification = %#v calls=%d", delivery.request, delivery.calls)
+	}
+}
+
 func TestAssignmentNotificationUsesResolvedExactInternalRequestLink(t *testing.T) {
 	notificationContext := deliverableAssignmentContext()
 	notificationContext.WorkTitle = "Confirm the registered address"

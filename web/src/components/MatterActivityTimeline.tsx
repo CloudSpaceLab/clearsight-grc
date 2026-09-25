@@ -23,6 +23,7 @@ export function MatterActivityTimeline({ matterID, matterVersion, candidates, on
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [mentionedIDs, setMentionedIDs] = useState<string[]>([]);
   const [selectedMentionID, setSelectedMentionID] = useState("");
   const uniqueCandidates = candidates.filter((candidate, index) => candidates.findIndex((value) => value.id === candidate.id) === index);
@@ -37,11 +38,13 @@ export function MatterActivityTimeline({ matterID, matterVersion, candidates, on
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!body.trim()) return;
-    setSaving(true); setError("");
+    setSaving(true); setError(""); setNotice("");
     try {
+      const mentionedNames = mentionedIDs.map((id) => uniqueCandidates.find((candidate) => candidate.id === id)?.display_name ?? "colleague");
       await addMatterComment(matterID, matterVersion, body.trim(), mentionedIDs);
       setBody("");
       setMentionedIDs([]);
+      if (mentionedNames.length) setNotice(`Comment recorded. Email notification queued for ${mentionedNames.join(", ")}.`);
       onUpdated?.();
       const page = await loadMatterActivity(matterID);
       setItems(page.items); setNextBefore(page.next_before_version);
@@ -58,7 +61,7 @@ export function MatterActivityTimeline({ matterID, matterVersion, candidates, on
   return <aside className="matter-activity" aria-label="Issue activity">
     <header><div><span className="eyebrow">Activity</span><h2>Updates and history</h2></div><span>{items.length} recent entries</span></header>
     <form className="matter-activity-composer" onSubmit={submit}>
-      <TextArea label="Add internal comment" value={body} onChange={setBody} rows={3} description="Comments are recorded in the issue history."/>
+      <TextArea label="Add internal comment" value={body} onChange={setBody} rows={3} description="Mentioned colleagues receive an email with the issue link."/>
       {uniqueCandidates.length > 0 && <div className="matter-comment-mentions">
         <label><span>Mention colleague</span><select value={selectedMentionID} onChange={(event) => {
           const value = event.target.value;
@@ -70,6 +73,7 @@ export function MatterActivityTimeline({ matterID, matterVersion, candidates, on
       <Button type="submit" variant="primary" isDisabled={!body.trim()} isLoading={saving}>Add comment</Button>
     </form>
     {error && <Notice tone="error">{error}</Notice>}
+    {notice && <Notice tone="success">{notice}</Notice>}
     {loading ? <p className="matter-activity-state" role="status">Loading issue activity…</p> : <ol className="matter-activity-list">{items.map(item => <li key={item.event_id}>
       <div className="matter-activity-entry-heading"><strong>{activityLabel(item)}</strong><time dateTime={item.occurred_at}>{new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(item.occurred_at))}</time></div>
       <p>{item.comment?.body ?? item.update_request?.message ?? "Issue state changed."}</p>

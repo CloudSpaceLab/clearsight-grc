@@ -46,3 +46,17 @@ func TestRenderOperationalNotificationRejectsNonHTTPSLinkAndControlCharacters(t 
 		t.Fatal("header control characters accepted")
 	}
 }
+
+func TestRenderOperationalNotificationKeepsCommentBodyOutOfMentionEmail(t *testing.T) {
+	message, err := RenderOperationalNotification(OperationalNotificationContext{
+		BankName: "Clear Bank", RecipientName: "Hakeem Bello", MatterTitle: "Vendor security finding",
+		WorkTitle: "Review mentioned comment", Responsibility: "COLLEAGUE", IssueURL: "https://clearsight.example.test/#work/matters/matter-1", CommentMentioned: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview := revealPreview(message)
+	if !strings.Contains(preview.Subject, "Mentioned in issue") || !strings.Contains(preview.PlainText, "mentioned in an internal comment") {
+		t.Fatalf("mention notification = %#v", preview)
+	}
+}

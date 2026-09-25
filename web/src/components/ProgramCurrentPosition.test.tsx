@@ -44,4 +44,11 @@ describe("Program calculation truth", () => {
     expect(screen.getByText(/The assessment version is unavailable/)).toBeTruthy();
     expect(screen.queryByText(/version 0|latest Program version/)).toBeNull();
   });
+
+  it("names an expired Program assessment without implying that a vendor response is stale", () => {
+    render(<ProgramCurrentPosition aggregate={{ ...aggregate, current_state: { ...current, reasons: [{ code: "EVIDENCE_EXPIRED", summary: "Evidence is out of date for Annual control review.", object_type: "EVIDENCE_CONTRACT", object_id: "contract-1" }] } }} operations={operations} digest={digest}/>);
+    expect(screen.getByText("Program assessment expired")).toBeTruthy();
+    expect(screen.getByText("Annual control review requires a new assessment of its supporting source.")).toBeTruthy();
+    expect(screen.queryByText("Evidence is out of date for Annual control review.")).toBeNull();
+  });
 });

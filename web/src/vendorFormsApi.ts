@@ -3,7 +3,7 @@ import { requestJSON } from "./http";
 export type VendorFormsFilter = "AWAITING_VENDOR" | "AWAITING_REVIEW" | "WITH_RISKS" | "HIGH_RISK" | "OVERDUE" | "NOT_ASSESSED";
 export type VendorFormsQuery = { filter?: VendorFormsFilter; form_template_id?: string; cursor?: string; limit?: number };
 export type VendorFormRow = {
-  attention_items?: Array<{ field_id?: string; rule_id?: string; label: string; state: "MISSING" | "EXPIRED" | "GAP"; source: "RESPONSE" | "REVIEW" }>;
+  attention_items?: Array<{ field_id?: string; rule_id?: string; label: string; state: "MISSING" | "EXPIRED" | "GAP"; source: "RESPONSE" | "REVIEW"; kind?: "VENDOR_RESPONSE_FIELD" | "VENDOR_DOCUMENT" | "INTERNAL_REVIEW" }>;
   outdated?: boolean | null;
   request_id: string; relationship_id: string; distribution_id?: string; response_id?: string; form_template_id: string; form_template_version: number;
   title: string; purpose?: string; origin_type?: string; origin_id?: string; response_state: string; recipient_hint?: string; delivery_state?: string;

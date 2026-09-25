@@ -736,17 +736,17 @@ describe("VendorsWorkspace", () => {
     render(<VendorsWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" targetID="relationship-1" onOpenRequest={vi.fn()}/>);
     fireEvent.click(await screen.findByRole("tab", { name: "Due diligence" }));
 
-    fireEvent.click(await screen.findByRole("button", { name: "Request clarification" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Request updated fields" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Independent security testing" }));
     fireEvent.change(screen.getByLabelText("What the vendor must provide", { exact: false }), { target: { value: "Provide the current independent test report." } });
     fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
     fireEvent.change(screen.getByLabelText("Response due date", { exact: false }), { target: { value: "2099-09-12" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send clarification request" }));
+    fireEvent.click(screen.getByRole("button", { name: "Email updated-field request" }));
 
     await waitFor(() => expect(requestVendorAssessmentClarification).toHaveBeenCalledWith("assessment-1", expect.objectContaining({
       expected_version: 3, request_fields: ["security-testing"], audience: "security@vendor.example", invitation_ttl_minutes: 1440,
     })));
-    expect(await screen.findByText("Clarification sent. The assessment will return to review when the vendor responds.")).toBeTruthy();
+    expect(await screen.findByText("Updated-field request sent. The assessment returns to review when the vendor responds.")).toBeTruthy();
     expect(screen.queryByText("security@vendor.example")).toBeNull();
   });
 
