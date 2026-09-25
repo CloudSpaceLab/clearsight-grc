@@ -14,20 +14,20 @@ func TestReportingRoutesAreRegistered(t *testing.T) {
 		registered[route.Method+" "+route.Path] = route
 	}
 	for _, key := range []string{
-		http.MethodGet + " /api/v1/ropa/reports/filter-fields",
-		http.MethodGet + " /api/v1/ropa/reports/definitions",
-		http.MethodPost + " /api/v1/ropa/reports/definitions",
-		http.MethodGet + " /api/v1/ropa/reports/definitions/{id}",
-		http.MethodGet + " /api/v1/ropa/reports/definitions/{id}/history",
-		http.MethodPost + " /api/v1/ropa/reports/definitions/{id}/submit",
-		http.MethodPost + " /api/v1/ropa/reports/definitions/{id}/review",
-		http.MethodPost + " /api/v1/ropa/reports/definitions/{id}/activate",
-		http.MethodPost + " /api/v1/ropa/reports/definitions/{id}/reject",
-		http.MethodPost + " /api/v1/ropa/reports/definitions/{id}/retire",
-		http.MethodGet + " /api/v1/ropa/reports/runs",
-		http.MethodPost + " /api/v1/ropa/reports/runs",
-		http.MethodGet + " /api/v1/ropa/reports/runs/{id}",
-		http.MethodGet + " /api/v1/ropa/reports/runs/{id}/download",
+		http.MethodGet + " /api/v1/reports/filter-fields",
+		http.MethodGet + " /api/v1/reports/definitions",
+		http.MethodPost + " /api/v1/reports/definitions",
+		http.MethodGet + " /api/v1/reports/definitions/{id}",
+		http.MethodGet + " /api/v1/reports/definitions/{id}/history",
+		http.MethodPost + " /api/v1/reports/definitions/{id}/submit",
+		http.MethodPost + " /api/v1/reports/definitions/{id}/review",
+		http.MethodPost + " /api/v1/reports/definitions/{id}/activate",
+		http.MethodPost + " /api/v1/reports/definitions/{id}/reject",
+		http.MethodPost + " /api/v1/reports/definitions/{id}/retire",
+		http.MethodGet + " /api/v1/reports/runs",
+		http.MethodPost + " /api/v1/reports/runs",
+		http.MethodGet + " /api/v1/reports/runs/{id}",
+		http.MethodGet + " /api/v1/reports/runs/{id}/download",
 	} {
 		if _, ok := registered[key]; !ok {
 			t.Errorf("reporting route %s is not registered", key)
@@ -42,25 +42,25 @@ func TestReportingMaterialRoutesCarryDistinctAuthorityPolicies(t *testing.T) {
 		materiality    int
 		bindEntity     bool
 	}{
-		"POST /api/v1/ropa/reports/definitions": {
+		"POST /api/v1/reports/definitions": {
 			name: "report.definition.propose", responsibility: authority.ResponsibilityProposer, materiality: 4, bindEntity: true,
 		},
-		"POST /api/v1/ropa/reports/definitions/{id}/submit": {
+		"POST /api/v1/reports/definitions/{id}/submit": {
 			name: "report.definition.submit", responsibility: authority.ResponsibilityProposer, materiality: 4,
 		},
-		"POST /api/v1/ropa/reports/definitions/{id}/review": {
+		"POST /api/v1/reports/definitions/{id}/review": {
 			name: "report.definition.review", responsibility: authority.ResponsibilityReviewer, materiality: 4,
 		},
-		"POST /api/v1/ropa/reports/definitions/{id}/activate": {
+		"POST /api/v1/reports/definitions/{id}/activate": {
 			name: "report.definition.activate", responsibility: authority.ResponsibilityAuthorizer, materiality: 5,
 		},
-		"POST /api/v1/ropa/reports/definitions/{id}/reject": {
+		"POST /api/v1/reports/definitions/{id}/reject": {
 			name: "report.definition.reject", responsibility: authority.ResponsibilityReviewer, materiality: 4,
 		},
-		"POST /api/v1/ropa/reports/definitions/{id}/retire": {
+		"POST /api/v1/reports/definitions/{id}/retire": {
 			name: "report.definition.retire", responsibility: authority.ResponsibilityAuthorizer, materiality: 5,
 		},
-		"POST /api/v1/ropa/reports/runs": {
+		"POST /api/v1/reports/runs": {
 			name: "report.run.create", responsibility: authority.ResponsibilityPerformer, materiality: 3, bindEntity: true,
 		},
 	}
@@ -92,9 +92,9 @@ func TestReportReviewAndActivationUseDifferentResponsibilities(t *testing.T) {
 	var review, activate routeSpec
 	for _, route := range routes {
 		switch route.Method + " " + route.Path {
-		case http.MethodPost + " /api/v1/ropa/reports/definitions/{id}/review":
+		case http.MethodPost + " /api/v1/reports/definitions/{id}/review":
 			review = route
-		case http.MethodPost + " /api/v1/ropa/reports/definitions/{id}/activate":
+		case http.MethodPost + " /api/v1/reports/definitions/{id}/activate":
 			activate = route
 		}
 	}
@@ -114,7 +114,7 @@ func TestReportReviewAndActivationUseDifferentResponsibilities(t *testing.T) {
 
 func TestReportDownloadRequiresItsOwnPermission(t *testing.T) {
 	for _, route := range (&API{}).productionRoutes() {
-		if route.Method == http.MethodGet && route.Path == "/api/v1/ropa/reports/runs/{id}/download" {
+		if route.Method == http.MethodGet && route.Path == "/api/v1/reports/runs/{id}/download" {
 			if route.Permission != identity.PermissionReportDownload {
 				t.Fatalf("report download permission = %q, want %q", route.Permission, identity.PermissionReportDownload)
 			}
