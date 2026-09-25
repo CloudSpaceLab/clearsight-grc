@@ -1,0 +1,37 @@
+package reporting
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestVendorReportMigrationExtendsEveryDatasetConstraint(t *testing.T) {
+	up, err := os.ReadFile(filepath.Join("..", "..", "migrations", "000095_reporting_vendors.up.sql"))
+	if err != nil {
+		t.Fatalf("read vendor report migration: %v", err)
+	}
+	sql := string(up)
+	for _, table := range []string{"report_definitions", "report_definition_revisions", "report_runs"} {
+		if !strings.Contains(sql, "ALTER TABLE "+table) {
+			t.Fatalf("vendor report migration does not alter %s", table)
+		}
+	}
+	if count := strings.Count(sql, "'VENDORS'"); count != 3 {
+		t.Fatalf("vendor dataset must be enabled for definitions, revisions and runs; found %d occurrences", count)
+	}
+}
+
+func TestVendorReportMigrationDownRefusesToEraseHistory(t *testing.T) {
+	down, err := os.ReadFile(filepath.Join("..", "..", "migrations", "000095_reporting_vendors.down.sql"))
+	if err != nil {
+		t.Fatalf("read vendor report rollback: %v", err)
+	}
+	sql := string(down)
+	for _, table := range []string{"report_definitions", "report_definition_revisions", "report_runs"} {
+		if !strings.Contains(sql, "SELECT 1 FROM "+table+" WHERE dataset='VENDORS'") {
+			t.Fatalf("vendor report rollback does not guard %s history", table)
+		}
+	}
+}
