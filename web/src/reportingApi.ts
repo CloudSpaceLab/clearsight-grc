@@ -96,12 +96,22 @@ export async function transitionReportDefinition(id: string, action: ReportDefin
   }
 }
 
-export async function listReportRuns(params: { definitionId?: string; limit?: number } = {}, signal?: AbortSignal): Promise<ReportRun[]> {
-  const response = await scopedRequest<{ items?: ReportRun[] }>("/api/v1/ropa/reports/runs", {
+export type ReportRunPage = {
+  items: ReportRun[];
+  next_cursor?: string;
+};
+
+export async function listReportRunPage(params: { definitionId?: string; limit?: number; cursor?: string } = {}, signal?: AbortSignal): Promise<ReportRunPage> {
+  const response = await scopedRequest<{ items?: ReportRun[]; next_cursor?: string }>("/api/v1/ropa/reports/runs", {
     definition_id: params.definitionId,
     limit: params.limit,
+    cursor: params.cursor,
   }, signal, readFailure);
-  return response.items ?? [];
+  return { items: response.items ?? [], next_cursor: response.next_cursor || undefined };
+}
+
+export async function listReportRuns(params: { definitionId?: string; limit?: number } = {}, signal?: AbortSignal): Promise<ReportRun[]> {
+  return (await listReportRunPage(params, signal)).items;
 }
 
 export async function getReportRun(id: string, signal?: AbortSignal): Promise<ReportRun> {
@@ -136,6 +146,7 @@ export const fetchReportDefinitions = listReportDefinitions;
 export const fetchReportDefinition = getReportDefinition;
 export const fetchReportDefinitionHistory = getReportDefinitionHistory;
 export const fetchReportRuns = listReportRuns;
+export const fetchReportRunPage = listReportRunPage;
 export const fetchReportRun = getReportRun;
 export const submitReportDefinition = (id: string, input: ReportDefinitionTransitionInput, signal?: AbortSignal) => transitionReportDefinition(id, "submit", input, signal);
 export const reviewReportDefinition = (id: string, input: ReportDefinitionTransitionInput, signal?: AbortSignal) => transitionReportDefinition(id, "review", input, signal);
