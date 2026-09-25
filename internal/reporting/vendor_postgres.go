@@ -113,10 +113,10 @@ func (r *PostgresRepository) captureVendorSourceBoundary(ctx context.Context, sc
 		highWater = &captured
 	}
 	return SourceBoundary{
-		CapturedAt:          captured,
-		ProjectionVersion:   "vendor-relationship-report.v1",
-		SourceHighWater:     map[string]time.Time{"vendor_relationships": highWater.UTC()},
-		Population:          population,
+		CapturedAt:         captured,
+		ProjectionVersion:  "vendor-relationship-report.v1",
+		SourceHighWater:    map[string]time.Time{"vendor_relationships": highWater.UTC()},
+		Population:         population,
 		PopulationComplete: false,
 	}, nil
 }
