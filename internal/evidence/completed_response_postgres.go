@@ -60,6 +60,7 @@ func (s *PostgresDistributionStore) ListCompletedResponses(ctx context.Context, 
 		  AND ($12::numeric IS NULL OR r.adverse_score >= $12) AND ($13::numeric IS NULL OR r.adverse_score <= $13)
 		  AND ($14::timestamptz IS NULL OR r.created_at >= $14) AND ($15::timestamptz IS NULL OR r.created_at <= $15)
 		  AND (NOT $16::boolean OR (r.is_current AND d.status NOT IN ('REVOKED','SUPERSEDED')))`+currentIndexSQL+scoreStateIndexSQL+`
+		  AND NOT EXISTS (SELECT 1 FROM demo_form_distribution_archives archive WHERE archive.distribution_id=d.id AND archive.tenant_id=d.tenant_id AND archive.legal_entity_id=d.legal_entity_id AND archive.restored_at IS NULL)
 		  AND (`+completedResponseDiscoverySQL(17, 18)+`)
 		  AND (`+cursorSQL+`)
 		ORDER BY `+orderSQL+`
@@ -133,6 +134,7 @@ func (s *PostgresDistributionStore) GetCompletedResponseForExecution(ctx context
 		JOIN capture_form_distributions d
 		  ON d.id=r.distribution_id AND d.tenant_id=r.tenant_id AND d.legal_entity_id=r.legal_entity_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND r.id::text=$2 AND r.is_current AND d.status NOT IN ('REVOKED','SUPERSEDED')
+		  AND NOT EXISTS (SELECT 1 FROM demo_form_distribution_archives archive WHERE archive.distribution_id=d.id AND archive.tenant_id=d.tenant_id AND archive.legal_entity_id=d.legal_entity_id AND archive.restored_at IS NULL)
 		  AND r.state IN ('FINAL','PROVISIONAL') AND (r.score_state IN ('FINAL','PROVISIONAL') OR EXISTS(SELECT 1 FROM capture_response_assessments a WHERE a.tenant_id=r.tenant_id AND a.response_revision_id=r.id))`, tenantID, revisionID), &formID, &formVersion, &title, &subjectType, &subjectID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return CompletedResponseSummary{}, ErrNotFound

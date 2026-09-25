@@ -135,6 +135,7 @@ func (r *PostgresRepository) ListRecipientRequests(ctx context.Context, tenant, 
 		JOIN tenants t ON t.id=er.tenant_id
 		LEFT JOIN principals rp ON rp.tenant_id=er.tenant_id AND rp.id=er.recipient_principal_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND NOT EXISTS (SELECT 1 FROM demo_form_distribution_archives archive WHERE archive.distribution_id=er.distribution_id AND archive.tenant_id=er.tenant_id AND archive.legal_entity_id=er.legal_entity_id AND archive.restored_at IS NULL)
 		  AND er.recipient_type='INTERNAL_PRINCIPAL'
 		  AND er.recipient_state='ASSIGNED'
 		  AND er.recipient_principal_id=$2::uuid

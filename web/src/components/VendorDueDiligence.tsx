@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { demoUnscannedAllowed, documentReviewAllowed } from "../submittedDocumentApi";
+import { loadVendorForms } from "../vendorFormsApi";
 import { DocumentDemoNotice } from "./documents/DocumentFile";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import type {
@@ -126,6 +127,8 @@ export function VendorDueDiligence({
   const [selectedFormKey, setSelectedFormKey] = useState(form ? `${form.id}:${form.version}` : "");
   const [scopeKind, setScopeKind] = useState<"FULL" | "FOCUSED">("FULL");
   const [selectedFieldIDs, setSelectedFieldIDs] = useState<string[]>([]);
+  const [expiredFields, setExpiredFields] = useState<Array<{ formID: string; fieldID: string }>>([]);
+  const [expiryState, setExpiryState] = useState<"loading" | "live" | "unavailable">("loading");
   const [applicationComplete, setApplicationComplete] = useState(false);
   const [recipient, setRecipient] = useState("");
   const [collection, setCollection] = useState<VendorCollection>();
@@ -200,11 +203,47 @@ export function VendorDueDiligence({
   const responseRequiresApplication = Boolean(onApplyResponse && review?.answers.some((answer) => answer.baseline));
 
   useEffect(() => {
+    if (status !== "COMPLETED") return;
+    let active = true;
+    setExpiryState("loading");
+    void (async () => {
+      const ids = new Map<string, { formID: string; fieldID: string }>();
+      let cursor: string | undefined;
+      let scanned = 0;
+      do {
+        const page = await loadVendorForms(relationship.relationship.id, { limit: 100, ...(cursor ? { cursor } : {}) });
+        scanned += page.items.length;
+        for (const row of page.items) {
+          if (!row.current || row.response_state !== "SUBMITTED") continue;
+          for (const item of row.attention_items ?? []) {
+            if (item.state === "EXPIRED" && item.field_id && (item.kind === "VENDOR_DOCUMENT" || item.kind === "VENDOR_RESPONSE_FIELD")) {
+              const key = `${row.form_template_id}:${item.field_id}`;
+              ids.set(key, { formID: row.form_template_id, fieldID: item.field_id });
+            }
+          }
+        }
+        cursor = page.next_cursor;
+        if (scanned > 500) throw new Error("Vendor form review exceeds the supported page limit.");
+      } while (cursor);
+      if (active) { setExpiredFields([...ids.values()]); setExpiryState("live"); }
+    })().catch(() => { if (active) setExpiryState("unavailable"); });
+    return () => { active = false; };
+  }, [relationship.relationship.id, status]);
+
+  useEffect(() => {
     if (!availableForms.length) { setSelectedFormKey(""); return; }
     if (!availableForms.some((value) => `${value.id}:${value.version}` === selectedFormKey)) setSelectedFormKey(`${availableForms[0]!.id}:${availableForms[0]!.version}`);
   }, [availableForms, selectedFormKey]);
 
   function openPanel(next: ActionPanel) {
+    if (next === "start" && startMode === "reassessment") {
+      const renewalForm = availableForms.find(candidate => expiredFields.some(expired => expired.formID === candidate.id && candidate.fields?.some(field => field.id === expired.fieldID))) ?? selectedForm;
+      const matching = renewalForm?.fields?.filter(field => expiredFields.some(expired => expired.formID === renewalForm.id && expired.fieldID === field.id)).map(field => field.id) ?? [];
+      if (renewalForm) setSelectedFormKey(`${renewalForm.id}:${renewalForm.version}`);
+      setScopeKind(matching.length ? "FOCUSED" : "FULL");
+      setSelectedFieldIDs(matching);
+      if (matching.length) { setReviewKind("TRIGGERED"); setReviewReference("Expired vendor information renewal"); }
+    }
     setPanel(next);
     setError("");
     setNotice("");
@@ -213,7 +252,7 @@ export function VendorDueDiligence({
   async function startAssessment(event: React.FormEvent) {
     event.preventDefault();
     if (!selectedForm || !onStart || !reviewDueDate || Date.parse(endOfDay(reviewDueDate)) <= Date.now() || (startMode === "reassessment" && (!reviewReference.trim() || (scopeKind === "FOCUSED" && selectedFieldIDs.length === 0)))) {
-      setError(startMode === "reassessment" ? "Choose a review type, enter the review reference and set a future due date. A focused review must include at least one held record." : "Choose an active collection form and review due date before starting due diligence.");
+      setError(startMode === "reassessment" ? "Choose a review type, enter the review reference and set a future due date. A focused review must include at least one field." : "Choose an active collection form and review due date before starting due diligence.");
       return;
     }
     setBusy(true);
@@ -301,7 +340,7 @@ export function VendorDueDiligence({
       setLocalOutcome(outcome);
       setLocalOutcomeKind("replacement");
       setPanel(null);
-      if (outcome.state === "DELIVERED") setNotice("Another link was sent. Earlier links remain available until their printed expiry unless you cancel the request.");
+      if (outcome.state === "DELIVERED") setNotice("Follow-up email sent with a new secure link. Earlier links remain available until their printed expiry unless you cancel the request.");
     } catch {
       setPanel(null);
       setError("The new link was not sent. Re-enter the vendor contact email before trying again.");
@@ -515,6 +554,8 @@ export function VendorDueDiligence({
     {clarificationOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && <Notice tone="error"><strong>Updated-field request email was not delivered</strong> {clarificationOutcome.recovery ?? "Use the returned secure link or review delivery status."}</Notice>}
     {notice && <Notice tone="success">{notice}</Notice>}
     {error && panel !== "document" && <Notice tone="error">{error}</Notice>}
+    {status === "COMPLETED" && expiryState === "live" && expiredFields.length > 0 && <Notice tone="warning"><strong>{expiredFields.length} expired vendor {expiredFields.length === 1 ? "item needs" : "items need"} renewal.</strong> Start a focused reassessment, then send the selected items to the vendor. The completed review remains on record.</Notice>}
+    {status === "COMPLETED" && expiryState === "unavailable" && <Notice tone="warning">Current vendor form expiry could not be checked. Review the selected fields before sending a reassessment.</Notice>}
 
     {effectiveAssessment && needsReviewView(status) && reviewState === "loading" && <div className="vdd-review-state" aria-live="polite" aria-busy="true">Loading the submitted response and supporting documents…</div>}
     {effectiveAssessment && needsReviewView(status) && reviewState === "unavailable" && <Notice tone="error"><strong>Vendor response is unavailable</strong> The submitted answers and documents could not be loaded. Reload them before starting or completing the review. {onRefreshReview && <Button type="button" variant="secondary" onPress={() => void onRefreshReview(effectiveAssessment.id)}>Reload vendor response</Button>}</Notice>}
@@ -538,7 +579,7 @@ export function VendorDueDiligence({
       {status === "COLLECTING" ? <><Button type="button" variant="primary" onPress={() => requestID && onOpenRequest?.(requestID)} isDisabled={!requestID || !onOpenRequest}>Review request status</Button>{clarificationOutcome?.capture_url && <Button type="button" variant="secondary" onPress={() => void copyClarificationLink()}>Copy updated-field request link</Button>}{effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <Button type="button" variant="secondary" onPress={() => void copyCaptureLink()}>{effectiveOutcomeKind === "replacement" ? "Copy new link" : "Copy secure link"}</Button> : <Button type="button" variant="secondary" onPress={() => openPanel("reissue")} isDisabled={!onReissue}>{effectiveOutcomeKind === "replacement" && effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? "Retry new link" : "Send another link"}</Button>}</>
         : effectiveOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && effectiveOutcome.capture_url ? <Button type="button" variant="primary" onPress={() => void copyCaptureLink()}>Copy secure link</Button>
         : effectiveOutcome?.state === "REQUEST_READY_INVITATION_NOT_ISSUED" ? <Button type="button" variant="primary" onPress={() => openPanel("send")} isDisabled={!onSend}>Retry invitation creation</Button>
-          : startMode ? availableForms.length ? <Button type="button" variant="primary" onPress={() => openPanel("start")} isDisabled={!onStart}>{startActionLabel(startMode)}</Button> : <><Button type="button" variant="primary" onPress={onSetUpForm} isDisabled={!onSetUpForm}>Use a starter template</Button>{onOpenForms && <Button type="button" variant="secondary" onPress={onOpenForms}>Open Forms</Button>}</>
+          : startMode ? availableForms.length ? <Button type="button" variant="primary" onPress={() => openPanel("start")} isDisabled={!onStart || (status === "COMPLETED" && expiryState === "loading")}>{status === "COMPLETED" && expiryState === "loading" ? "Checking expired items…" : startActionLabel(startMode)}</Button> : <><Button type="button" variant="primary" onPress={onSetUpForm} isDisabled={!onSetUpForm}>Use a starter template</Button>{onOpenForms && <Button type="button" variant="secondary" onPress={onOpenForms}>Open Forms</Button>}</>
             : status === "SETUP_PENDING" ? setupFailure ? <Button type="button" variant="primary" onPress={() => void retrySetup()} isDisabled={!onRetrySetup || busy}>{busy ? "Queuing setup…" : "Retry due diligence setup"}</Button> : <Button type="button" variant="primary" onPress={() => void onRefresh?.()} isDisabled={!onRefresh}>View setup status</Button>
               : collection?.can_start_review && ["READY_TO_SEND", "COLLECTING"].includes(status ?? "") ? <Button type="button" variant="primary" onPress={() => void startReview()} isDisabled={!onStartReview || busy}>Review existing evidence</Button>
               : status === "READY_TO_SEND" ? <Button type="button" variant="primary" onPress={() => openPanel("send")} isDisabled={!onSend}>{onPrepare && !effectiveAssessment?.current_request_id ? "Prepare request" : "Send due diligence request"}</Button>
@@ -563,13 +604,13 @@ function CancelAssessmentPanel({ reason, busy, onReason, onCancel, onSubmit }: {
 
 function StartPanel({ mode, forms, selectedForm, onSelectedForm, scopeKind, selectedFieldIDs, onScopeKind, onSelectedFieldIDs, reviewDueDate, reviewKind, reviewReference, minimumDate, busy, onReviewDueDate, onReviewKind, onReviewReference, onCancel, onSubmit }: { mode: AssessmentStartMode; forms: VendorAssessmentFormOption[]; selectedForm?: VendorAssessmentFormOption; onSelectedForm: (value: string) => void; scopeKind: "FULL" | "FOCUSED"; selectedFieldIDs: string[]; onScopeKind: (value: "FULL" | "FOCUSED") => void; onSelectedFieldIDs: (value: string[]) => void; reviewDueDate: string; reviewKind: Extract<VendorAssessmentReviewKind, "PERIODIC" | "TRIGGERED">; reviewReference: string; minimumDate: string; busy: boolean; onReviewDueDate: (value: string) => void; onReviewKind: (value: Extract<VendorAssessmentReviewKind, "PERIODIC" | "TRIGGERED">) => void; onReviewReference: (value: string) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
   const action = startActionLabel(mode);
-  const refreshFields = selectedForm?.fields?.filter((field) => field.collection_intent && field.collection_intent !== "CAPTURE" && field.target_key) ?? [];
+  const refreshFields = selectedForm?.fields ?? [];
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
     <div><span className="eyebrow">Assessment setup</span><h3>{action}</h3><p>{mode === "reassessment" ? "Use the review reference that identifies this review. Known vendor and service details will remain available to the form." : mode === "restart" ? "Start a new onboarding review while preserving the cancelled assessment and its history." : "The selected form will use the current vendor and service details as known context."}</p></div>
     <SelectField label="Active collection form" value={selectedForm ? `${selectedForm.id}:${selectedForm.version}` : undefined} placeholder="Select an active form" options={forms.map((item) => ({ id: `${item.id}:${item.version}`, label: `${item.name} · version ${item.version}` }))} onChange={(value) => { onSelectedForm(value ?? ""); onSelectedFieldIDs([]); }}/>
     <dl className="vdd-preview"><div><dt>Collection form</dt><dd>{selectedForm?.name ?? "No active form"}</dd></div><div><dt>Form version</dt><dd>{selectedForm ? `Version ${selectedForm.version}` : "Not available"}</dd></div><div><dt>Response layout</dt><dd>{selectedForm ? presentationLabel(selectedForm.presentation) : "Not available"}</dd></div></dl>
     {mode === "reassessment" && <div className="vdd-form-grid"><SelectField label="Review type" value={reviewKind} placeholder="Select review type" allowsEmpty={false} options={[{ id: "PERIODIC", label: "Scheduled review" }, { id: "TRIGGERED", label: "Event or change" }]} onChange={(value) => { if (value) onReviewKind(value); }}/><TextField label="Review reference" value={reviewReference} maxLength={128} onChange={(value) => onReviewReference(value)} isRequired/></div>}
-    {mode === "reassessment" && <fieldset className="vdd-fieldset"><legend>Information to request</legend><label><input type="radio" name="assessment-scope" checked={scopeKind === "FULL"} onChange={() => { onScopeKind("FULL"); onSelectedFieldIDs([]); }}/><span>Full form</span></label><label><input type="radio" name="assessment-scope" checked={scopeKind === "FOCUSED"} disabled={refreshFields.length === 0} onChange={() => { onScopeKind("FOCUSED"); onSelectedFieldIDs(refreshFields.map((field) => field.id)); }}/><span>Selected held records only</span></label>{scopeKind === "FOCUSED" && <div className="vdd-refresh-fields">{refreshFields.map((field) => <CheckboxField key={field.id} label={field.label} description={humanizeStatus(field.collection_intent ?? "CAPTURE")} isSelected={selectedFieldIDs.includes(field.id)} onChange={(selected) => onSelectedFieldIDs(selected ? [...selectedFieldIDs, field.id] : selectedFieldIDs.filter((id) => id !== field.id))}/>)}</div>}</fieldset>}
+    {mode === "reassessment" && <fieldset className="vdd-fieldset"><legend>Information to request</legend><label><input type="radio" name="assessment-scope" checked={scopeKind === "FULL"} onChange={() => { onScopeKind("FULL"); onSelectedFieldIDs([]); }}/><span>Full form</span></label><label><input type="radio" name="assessment-scope" checked={scopeKind === "FOCUSED"} disabled={refreshFields.length === 0} onChange={() => { onScopeKind("FOCUSED"); onSelectedFieldIDs(refreshFields.map(field => field.id)); }}/><span>Selected fields</span></label>{scopeKind === "FOCUSED" && <div className="vdd-refresh-fields">{refreshFields.map((field) => <CheckboxField key={field.id} label={field.label} description={humanizeStatus(field.collection_intent ?? "CAPTURE")} isSelected={selectedFieldIDs.includes(field.id)} onChange={(selected) => onSelectedFieldIDs(selected ? [...selectedFieldIDs, field.id] : selectedFieldIDs.filter((id) => id !== field.id))}/>)}</div>}</fieldset>}
     <TextField label="Review due date" type="date" min={minimumDate} value={reviewDueDate} onChange={(value) => onReviewDueDate(value)} isRequired/>
     <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Cancel</Button><Button type="submit" variant="primary" isDisabled={busy || !selectedForm || (mode === "reassessment" && (!reviewReference.trim() || (scopeKind === "FOCUSED" && selectedFieldIDs.length === 0)))}>{busy ? "Starting…" : action}</Button></div>
   </form>;
@@ -589,12 +630,12 @@ function SendPanel({ preparing = false, prepared = false, preparedDeadline, audi
 
 function ReissuePanel({ recipient, invitationMinutes, busy, onRecipient, onInvitationMinutes, onCancel, onSubmit }: { recipient: string; invitationMinutes: number; busy: boolean; onRecipient: (value: string) => void; onInvitationMinutes: (value: number) => void; onCancel: () => void; onSubmit: (event: React.FormEvent) => void }) {
   return <form className="vdd-panel" onSubmit={onSubmit} noValidate>
-    <div><span className="eyebrow">Vendor request access</span><h3>Send another link</h3><p>Each link remains available until its printed expiry. Cancel the request when all active links must stop working.</p></div>
+    <div><span className="eyebrow">Vendor request follow-up</span><h3>Email vendor reminder</h3><p>The reminder includes a new secure link for the outstanding request. Earlier links remain available until their printed expiry.</p></div>
     <div className="vdd-form-grid">
       <div className="vdd-wide"><TextField label="Vendor contact email" type="email" inputMode="email" autoComplete="email" value={recipient} onChange={(value) => onRecipient(value)} isRequired/></div>
       <SelectField label="New link valid for" value={String(invitationMinutes)} placeholder="Choose link expiry" allowsEmpty={false} options={linkExpiryOptions} onChange={(value) => { if (value) onInvitationMinutes(Number(value)); }}/>
     </div>
-    <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Cancel</Button><Button type="submit" variant="primary" isDisabled={busy}>{busy ? "Sending…" : "Send another link"}</Button></div>
+    <div className="vdd-panel-actions"><Button type="button" variant="secondary" onPress={onCancel} isDisabled={busy}>Cancel</Button><Button type="submit" variant="primary" isDisabled={busy}>{busy ? "Sending…" : "Email vendor reminder"}</Button></div>
   </form>;
 }
 

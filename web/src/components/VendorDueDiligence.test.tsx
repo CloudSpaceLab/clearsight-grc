@@ -5,7 +5,9 @@ import type { VendorRelationshipAggregate } from "../vendorTypes";
 import type { VendorAssessment, VendorAssessmentReviewView } from "../vendorAssessmentTypes";
 import { VendorDueDiligence } from "./VendorDueDiligence";
 import { loadVendorCollection } from "../vendorCollectionApi";
+import { loadVendorForms, type VendorFormRow } from "../vendorFormsApi";
 vi.mock("../vendorCollectionApi", () => ({ loadVendorCollection: vi.fn().mockResolvedValue({ assessment_id: "assessment-1", assessment_version: 3, prepared: false, can_reconcile: false, observed_at: "2026-09-08T10:00:00Z", fields: [], vendor_pending_count: 0, bank_pending_count: 0 }) }));
+vi.mock("../vendorFormsApi", () => ({ loadVendorForms: vi.fn().mockResolvedValue({ items: [], observed_at: "2026-09-08T10:00:00Z" }) }));
 
 const relationship: VendorRelationshipAggregate = {
   vendor: { id: "vendor-1", tenant_id: "bank", legal_name: "Acme Processing Limited", jurisdiction: "Nigeria", status: "ACTIVE", created_at: "2026-08-25T12:00:00Z", updated_at: "2026-08-25T12:00:00Z", version: 1 },
@@ -140,10 +142,10 @@ describe("VendorDueDiligence", () => {
     const onStart = vi.fn().mockResolvedValue({ ...assessment("SETUP_PENDING"), review_kind: "TRIGGERED", source_trigger: "change-2099-0042" });
     render(<VendorDueDiligence relationship={managedRelationship} assessment={assessment("COMPLETED")} form={form} defaultReviewDueDate="2099-09-30" onStart={onStart}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Start reassessment" }));
     await chooseOption("Review type", "Event or change");
     fireEvent.change(screen.getByLabelText("Review reference", { exact: false }), { target: { value: "change-2099-0042" } });
-    fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Start reassessment" }));
 
     await waitFor(() => expect(onStart).toHaveBeenCalledWith({
       relationship_version: 4,
@@ -163,9 +165,9 @@ describe("VendorDueDiligence", () => {
     const onStart = vi.fn().mockResolvedValue(assessment("SETUP_PENDING"));
     render(<VendorDueDiligence relationship={managedRelationship} assessment={assessment("COMPLETED")} form={focusedForm} defaultReviewDueDate="2099-09-30" onStart={onStart}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Start reassessment" }));
     fireEvent.change(screen.getByLabelText("Review reference", { exact: false }), { target: { value: "address-refresh-2099" } });
-    fireEvent.click(screen.getByLabelText("Selected held records only", { exact: false }));
+    fireEvent.click(screen.getByLabelText("Selected fields", { exact: false }));
     expect((screen.getByLabelText(/Registered address/) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
 
@@ -174,6 +176,21 @@ describe("VendorDueDiligence", () => {
       selected_field_ids: ["registered-address"],
       source_trigger: "address-refresh-2099",
     })));
+  });
+
+  it("preselects only expired fields from the matching completed form", async () => {
+    vi.mocked(loadVendorForms).mockResolvedValueOnce({ observed_at: "2026-09-25T10:00:00Z", items: [{ current: true, response_state: "SUBMITTED", form_template_id: form.id, form_template_version: form.version, attention_items: [{ field_id: "expired-document", label: "Certificate", state: "EXPIRED", source: "RESPONSE", kind: "VENDOR_DOCUMENT" }] } as VendorFormRow] });
+    const managedRelationship = { ...relationship, relationship: { ...relationship.relationship, status: "ACTIVE" as const } };
+    const renewalForm = { ...form, fields: [{ id: "expired-document", label: "Certificate" }, { id: "current-address", label: "Address" }] };
+    const onStart = vi.fn().mockResolvedValue(assessment("SETUP_PENDING"));
+    render(<VendorDueDiligence relationship={managedRelationship} assessment={assessment("COMPLETED")} form={renewalForm} defaultReviewDueDate="2099-09-30" onStart={onStart}/>);
+    expect(await screen.findByText(/1 expired vendor item needs renewal/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
+    expect((screen.getByLabelText("Selected fields") as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText(/Certificate/) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText(/Address/) as HTMLInputElement).checked).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Start reassessment" }));
+    await waitFor(() => expect(onStart).toHaveBeenCalledWith(expect.objectContaining({ scope_kind: "FOCUSED", selected_field_ids: ["expired-document"], source_trigger: "Expired vendor information renewal" })));
   });
 
   it.each([
@@ -261,10 +278,10 @@ describe("VendorDueDiligence", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
     fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
     await chooseOption("New link valid for", "7 days");
-    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Email vendor reminder" }));
 
     await waitFor(() => expect(onReissue).toHaveBeenCalledWith({ expected_version: 3, audience: "security@vendor.example", invitation_ttl_minutes: 10080 }));
-    expect(await screen.findByText("Another link was sent. Earlier links remain available until their printed expiry unless you cancel the request.")).toBeTruthy();
+    expect(await screen.findByText("Follow-up email sent with a new secure link. Earlier links remain available until their printed expiry unless you cancel the request.")).toBeTruthy();
     expect(screen.queryByText("security@vendor.example")).toBeNull();
     expect(screen.queryByDisplayValue("security@vendor.example")).toBeNull();
     expect(primaryActions()).toHaveLength(1);
@@ -276,7 +293,7 @@ describe("VendorDueDiligence", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
     fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Email vendor reminder" }));
 
     expect(await screen.findByText("The new link was not sent. Re-enter the vendor contact email before trying again.")).toBeTruthy();
     expect(screen.queryByText("security@vendor.example")).toBeNull();
@@ -289,7 +306,7 @@ describe("VendorDueDiligence", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
     fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "not-an-email" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Email vendor reminder" }));
 
     expect(await screen.findByText("Enter a valid vendor contact email before sending another link.")).toBeTruthy();
     expect((screen.getByLabelText("Vendor contact email", { exact: false }) as HTMLInputElement).value).toBe("");
@@ -308,7 +325,7 @@ describe("VendorDueDiligence", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
     fireEvent.change(screen.getByLabelText("Vendor contact email", { exact: false }), { target: { value: "security@vendor.example" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send another link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Email vendor reminder" }));
 
     fireEvent.click(await screen.findByRole("button", { name: "Copy new link" }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("https://capture.example.test/?capture_invite=replacement-secret"));

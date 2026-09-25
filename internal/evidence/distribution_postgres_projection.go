@@ -93,6 +93,7 @@ func (s *PostgresDistributionStore) ListDistributions(ctx context.Context, query
 		JOIN tenants t ON t.id=d.tenant_id
 		JOIN legal_entities le ON le.id=d.legal_entity_id AND le.tenant_id=d.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2)
+		  AND NOT EXISTS (SELECT 1 FROM demo_form_distribution_archives archive WHERE archive.distribution_id=d.id AND archive.tenant_id=d.tenant_id AND archive.legal_entity_id=d.legal_entity_id AND archive.restored_at IS NULL)
 		  AND ($3='' OR d.status=$3)
 		  AND ($4::timestamptz IS NULL OR (d.updated_at,d.id) < ($4::timestamptz,$5::uuid))
 		  AND ($6='' OR upper(d.subject_type)=$6)

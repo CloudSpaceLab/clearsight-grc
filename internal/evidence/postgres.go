@@ -333,7 +333,9 @@ func (r *PostgresRepository) CreateRequest(ctx context.Context, value Request) (
 }
 
 func (r *PostgresRepository) ListRequests(ctx context.Context, tenant string, limit int) ([]Request, error) {
-	rows, err := r.pool.Query(ctx, requestSelect+` WHERE (t.id::text=$1 OR t.slug=$1) ORDER BY er.deadline,er.id LIMIT $2`, tenant, limit)
+	rows, err := r.pool.Query(ctx, requestSelect+` WHERE (t.id::text=$1 OR t.slug=$1)
+	  AND NOT EXISTS (SELECT 1 FROM demo_form_distribution_archives archive WHERE archive.distribution_id=er.distribution_id AND archive.tenant_id=er.tenant_id AND archive.legal_entity_id=er.legal_entity_id AND archive.restored_at IS NULL)
+	  ORDER BY er.deadline,er.id LIMIT $2`, tenant, limit)
 	if err != nil {
 		return nil, err
 	}

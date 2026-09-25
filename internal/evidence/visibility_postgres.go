@@ -34,6 +34,9 @@ func (r *PostgresRepository) listActorRequests(ctx context.Context, tenant, lega
 		LEFT JOIN programs p ON er.subject_type='PROGRAM' AND p.tenant_id=er.tenant_id AND p.id::text=er.subject_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND ($5='' OR er.legal_entity_id=NULLIF($5,'')::uuid)
+		  AND NOT EXISTS (SELECT 1 FROM demo_form_distribution_archives archive
+		                  WHERE archive.distribution_id=er.distribution_id AND archive.tenant_id=er.tenant_id
+		                    AND archive.legal_entity_id=er.legal_entity_id AND archive.restored_at IS NULL)
 		  AND (
 			(er.recipient_type='INTERNAL_PRINCIPAL' AND er.recipient_state='ASSIGNED' AND er.recipient_principal_id=$2::uuid)
 			OR ($4::boolean AND er.created_by=$2::uuid)

@@ -10,6 +10,7 @@ import type { ProgramAggregate } from "../types";
 import { EmptyState } from "./EmptyState";
 import { dominantProgramAction, ProgramCurrentPosition } from "./ProgramCurrentPosition";
 import { ProgramAttention } from "./ProgramAttention";
+import { ProgramVendorFollowUp } from "./ProgramVendorFollowUp";
 import { ProgramReviewDigest } from "./ProgramReviewDigest";
 import { ProgramDetailsPanel } from "./ProgramDetailsPanel";
 import { ProgramRequirementsPanel } from "./ProgramRequirementsPanel";
@@ -241,6 +242,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       {digest
         ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest} onNavigate={selectSection} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
         : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</h2><ProgramAttention aggregate={aggregate} onNavigate={selectSection}/></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
+      {activeSection === "overview" && <ProgramVendorFollowUp programID={aggregate.program.id}/>}
       {requestedItem && aggregateState === "live" && !itemAvailable && <Notice><strong>The requested {requestedItem.kind === "requirement" ? "requirement" : "control objective"} is unavailable in this Program.</strong><p>Return to the import to check its result, or review the available requirements and controls below.</p></Notice>}
       {panels && <ProgramDetailSections section={activeSection} panels={panels} onSectionChange={selectSection}/>}
     </>}
