@@ -18,6 +18,19 @@ func TestProgramDatasetRejectsAMatterScope(t *testing.T) {
 	}
 }
 
+func TestFullWorkDatasetRejectsAProgramScope(t *testing.T) {
+	definition := ReportDefinition{
+		ID: testDefinitionID, TenantID: testTenantID, LegalEntityID: testEntityA,
+		Code: "WORK-SCOPE", Name: "Work scope", Dataset: DatasetMatters,
+		ScopeKind: ScopeProgram, ScopeRef: testEntityB, Format: FormatCSV,
+		Filter: emptyReportFilter(), Status: DefinitionDraft, CurrentVersion: 1,
+		MakerID: testMakerID, Version: 1,
+	}
+	if err := validateDefinitionForCreate(definition); err == nil {
+		t.Fatal("full Work dataset accepted a Program-only scope")
+	}
+}
+
 func TestMatterDatasetRejectsAProgramScope(t *testing.T) {
 	definition := ReportDefinition{
 		ID: testDefinitionID, TenantID: testTenantID, LegalEntityID: testEntityA,
@@ -62,6 +75,22 @@ func TestProgramReportFilterAcceptsItsClosedVocabulary(t *testing.T) {
 	}
 	if expression == nil || expression.Children[0].Value != "AT_RISK" || expression.Children[1].Value != "true" {
 		t.Fatalf("Program filter was not normalized: %#v", expression)
+	}
+}
+
+func TestFullWorkReportFilterAcceptsMatterVocabulary(t *testing.T) {
+	expression, err := NormalizeReportFilterForDataset(DatasetMatters, &ReportFilterExpression{
+		Kind: "group", Operator: "and", Children: []ReportFilterExpression{
+			{Kind: "condition", Field: ReportFieldMatterType, Operator: "is", Value: "issue"},
+			{Kind: "condition", Field: ReportFieldPriority, Operator: "is", Value: "3"},
+			{Kind: "condition", Field: ReportFieldStatus, Operator: "is", Value: "closed"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("full Work closed vocabulary was rejected: %v", err)
+	}
+	if expression == nil || expression.Children[0].Value != "ISSUE" || expression.Children[1].Value != "3" || expression.Children[2].Value != "CLOSED" {
+		t.Fatalf("full Work filter was not normalized: %#v", expression)
 	}
 }
 
