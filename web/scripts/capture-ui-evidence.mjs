@@ -48,10 +48,11 @@ const captures = [
   { name: "131a-ropa-register-row-action-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "View details", state: "ropa-register-row-action", scrollIntoViewText: "Choose View details" },
   { name: "132-ropa-register-dark-mobile-390x844", route: "#ropa", title: "Processing activity register", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Customer account opening", state: "ropa-register-mobile" },
   { name: "133-ropa-activity-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-activity", openRopaActivity: true },
-  { name: "140-report-definitions-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Processing activities with open exceptions", scrollToReportSection: "definitions", state: "report-definitions" },
-  { name: "141-report-definitions-dark-mobile-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", scrollToReportSection: "definitions", state: "report-definitions-mobile" },
-  { name: "142-report-run-failed-light-1440x900", route: "#reports", title: "Reports", fixture: "report-run-failed", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Failed at row limit", scrollToReportSection: "runs", state: "report-run-failed" },
-  { name: "143-report-definitions-reviewed-dark-mobile-compact-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "compact", viewport: { width: 390, height: 844 }, touch: true, expectText: "Program health review", scrollToReportRow: "Program health review", state: "report-definitions-reviewed-mobile" },
+  { name: "140-report-library-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Generated reports", state: "report-library" },
+  { name: "141-report-library-dark-mobile-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", state: "report-library-mobile" },
+  { name: "142-report-run-failed-light-1440x900", route: "#reports", title: "Reports", fixture: "report-run-failed", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openFailedReport: true, expectText: "Generation stopped: Row Limit Exceeded", state: "report-run-failed" },
+  { name: "143-report-templates-dark-mobile-compact-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "compact", viewport: { width: 390, height: 844 }, touch: true, openReportTemplates: true, expectText: "Program health review", state: "report-templates-mobile" },
+  { name: "144-report-generate-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openReportGenerate: true, expectText: "No active vendors report template", state: "report-generate" },
 ];
 
 try {
@@ -95,6 +96,20 @@ async function capturePage(capture) {
       await seededRow.dblclick();
       await page.waitForFunction(() => window.location.hash.startsWith("#ropa/activity/"));
       await page.getByRole("heading", { name: "Customer account opening", exact: true }).waitFor({ state: "visible" });
+    }
+    if (capture.openReportTemplates) {
+      await page.getByRole("tab", { name: "Templates", exact: true }).click();
+      await page.getByRole("heading", { name: "Report templates", exact: true }).waitFor({ state: "visible" });
+    }
+    if (capture.openFailedReport) {
+      const failedRow = page.getByRole("table", { name: "Generated reports" }).getByRole("row").filter({ hasText: "Failed" }).first();
+      await failedRow.waitFor({ state: "visible" });
+      await failedRow.getByRole("button", { name: /View for/ }).click();
+      await page.getByRole("dialog", { name: "Report details" }).waitFor({ state: "visible" });
+    }
+    if (capture.openReportGenerate) {
+      await page.getByRole("button", { name: "Generate report", exact: true }).click();
+      await page.getByRole("dialog", { name: "Generate report" }).waitFor({ state: "visible" });
     }
     if (capture.expectText) await page.getByText(capture.expectText, { exact: false }).first().waitFor({ state: "visible" });
     if (capture.scrollIntoViewText) {
@@ -176,14 +191,14 @@ async function capturePage(capture) {
     await record(page, recordedCapture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
     await assertNoHorizontalOverflow(page, capture.name);
     if (capture.name.startsWith("report-")) await assertReportLayout(page, capture.name);
-    if (capture.state === "report-definitions-mobile") {
+    if (capture.state === "report-library-mobile") {
       const replacement = await page.evaluate(() => {
-        const table = document.querySelector('[aria-label="Report definitions"]');
+        const table = document.querySelector('[aria-label="Generated reports"]');
         const row = table?.querySelector("tbody tr");
         const head = table?.querySelector("thead");
         return { rowDisplay: row ? getComputedStyle(row).display : "", headPosition: head ? getComputedStyle(head).position : "" };
       });
-      if (replacement.rowDisplay !== "grid" || replacement.headPosition !== "absolute") throw new Error(`${capture.name} did not replace the definitions table with stacked mobile records`);
+      if (replacement.rowDisplay !== "grid" || replacement.headPosition !== "absolute") throw new Error(`${capture.name} did not replace the generated-report table with stacked mobile records`);
     }
     await assertGuideLauncherDoesNotBlockNavigation(page, capture.name, capture.viewport.width);
     if (capture.assertFirstActionVisible) await assertFirstActionVisible(page, capture.viewport.height, capture.name, capture.touch === true);
