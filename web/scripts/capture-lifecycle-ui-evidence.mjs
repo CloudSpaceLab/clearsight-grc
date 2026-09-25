@@ -54,7 +54,7 @@ try {
 }
 
 async function assertLifecycleContent(page, browserErrors) {
-  await page.getByRole("heading", { name: "Today", exact: true }).waitFor({ state: "visible" });
+  await page.getByRole("heading", { name: "Oversight", exact: true }).waitFor({ state: "visible" });
   await page.getByText("Confirm restored ATM availability", { exact: true }).waitFor({ state: "visible" });
   await page.getByText("NDPC incident response", { exact: true }).waitFor({ state: "visible" });
   await page.getByText("External response", { exact: true }).waitFor({ state: "visible" });
