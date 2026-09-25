@@ -139,6 +139,12 @@ export function ReportsWorkspace({
   const runningCount = runs.filter((run) => run.status === "QUEUED" || run.status === "RUNNING").length;
   const failedCount = runs.filter((run) => run.status === "FAILED").length;
 
+  useEffect(() => {
+    if (tab !== "library" || state !== "live" || runningCount === 0) return;
+    const refreshTimer = window.setTimeout(() => setRefreshKey((value) => value + 1), 5000);
+    return () => window.clearTimeout(refreshTimer);
+  }, [runningCount, state, tab]);
+
   function refresh() {
     setRefreshKey((value) => value + 1);
   }
