@@ -478,3 +478,20 @@ func (f *reportingPostgresFixture) insertMatterWithFacts(t *testing.T, entityID,
 	}
 	return id
 }
+
+
+func TestWorkReportPageSQLKeepsVisibleWorkBeyondExceptions(t *testing.T) {
+	query := WorkReportPageSQL("TRUE", 0)
+	if query == "" {
+		t.Fatal("full Work report query was empty")
+	}
+	if strings.Contains(query, MatterReportExceptionPredicateSQL) {
+		t.Fatal("full Work report silently inherited the exception-only population predicate")
+	}
+	if !strings.Contains(query, MatterReportVisibilitySQL) {
+		t.Fatal("full Work report must retain the canonical fail-closed Matter visibility predicate")
+	}
+	if !strings.Contains(query, "AND TRUE") {
+		t.Fatal("full Work report did not replace the exception-only predicate with an unrestricted governed population")
+	}
+}
