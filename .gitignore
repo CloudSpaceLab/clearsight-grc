@@ -16,10 +16,15 @@ coverage.out
 # Web
 web/node_modules/
 web/dist/
-web/dist-evidence/
+web/dist-evidence*/
 web/.vite/
 web/ui-evidence/
 web/evidence/dist-truth-evidence/
+
+# Lockfiles for package managers this repository does not use. The web build is
+# npm, so a stray pnpm or yarn lock left by another tool is local noise.
+web/pnpm-lock.yaml
+web/yarn.lock
 
 # Local agent tooling scratch
 .codex-tmp/
