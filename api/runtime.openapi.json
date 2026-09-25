@@ -469,9 +469,10 @@
         "parameters": [
           { "name": "tenant_id", "in": "query", "required": true, "schema": { "type": "string" } },
           { "name": "definition_id", "in": "query", "schema": { "type": "string" } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" }, "description": "Opaque keyset cursor returned by the previous report history page." },
           { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } }
         ],
-        "responses": { "200": { "description": "Report runs in the signed-in legal entity." }, "default": { "description": "Report runs could not be read." } }
+        "responses": { "200": { "description": "Keyset-paginated report runs in the signed-in legal entity." }, "default": { "description": "Report runs could not be read." } }
       },
       "post": {
         "operationId": "createReportRun",
