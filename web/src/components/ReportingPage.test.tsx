@@ -189,7 +189,7 @@ function renderPage() {
 describe("ReportingPage", () => {
   it("lists definitions with human governance states and separate decision roles", async () => {
     renderPage();
-    expect(await screen.findByRole("heading", { name: "Processing activity reports" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Reports" })).toBeTruthy();
     const table = screen.getByRole("table", { name: "Report definitions" });
     const activeRow = within(table).getByRole("row", { name: /Processing activities with open exceptions/ });
     expect(within(activeRow).getByText("Active")).toBeTruthy();
@@ -204,7 +204,7 @@ describe("ReportingPage", () => {
 
   it("disables run for a definition waiting for review and names the review step", async () => {
     renderPage();
-    await screen.findByRole("heading", { name: "Processing activity reports" });
+    await screen.findByRole("heading", { name: "Reports" });
     fireEvent.click(screen.getByRole("row", { name: /Quarterly processing review/ }));
     const panel = screen.getByRole("region", { name: "Selected report definition" });
     expect(within(panel).getByRole("button", { name: "Run report" })).toHaveProperty("disabled", true);
@@ -214,7 +214,7 @@ describe("ReportingPage", () => {
 
   it("distinguishes a reviewed definition from one still waiting for review", async () => {
     renderPage();
-    await screen.findByRole("heading", { name: "Processing activity reports" });
+    await screen.findByRole("heading", { name: "Reports" });
     fireEvent.click(screen.getByRole("row", { name: /Cross-border transfer review/ }));
     const panel = screen.getByRole("region", { name: "Selected report definition" });
     expect(within(panel).getByRole("button", { name: "Run report" })).toHaveProperty("disabled", true);
@@ -224,7 +224,7 @@ describe("ReportingPage", () => {
 
   it("shows run freshness, source boundary and bounded-stop failure instead of a short successful report", async () => {
     renderPage();
-    await screen.findByRole("heading", { name: "Processing activity reports" });
+    await screen.findByRole("heading", { name: "Reports" });
     const table = screen.getByRole("table", { name: "Report runs" });
     const readyRow = within(table).getByRole("row", { name: /Ready/ });
     expect(within(readyRow).getByText(/As of/)).toBeTruthy();
@@ -243,7 +243,7 @@ describe("ReportingPage", () => {
 
   it("shows the selected definition's decision history with proposer, reviewer and authorizer", async () => {
     renderPage();
-    await screen.findByRole("heading", { name: "Processing activity reports" });
+    await screen.findByRole("heading", { name: "Reports" });
     const historyRegion = screen.getByRole("region", { name: "Report definition history" });
     expect(await within(historyRegion).findByText(/proposed by/i)).toBeTruthy();
     expect(within(historyRegion).getByText(/reviewed by/i)).toBeTruthy();
