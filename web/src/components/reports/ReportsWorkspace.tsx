@@ -399,6 +399,7 @@ function reportDatasetLabel(dataset: ReportDataset | ReportArea) {
   switch (dataset) {
     case "VENDORS": return "Vendors";
     case "PROGRAMS": return "Programs";
+    case "WORK":
     case "MATTERS":
     case "MATTER_EXCEPTIONS": return "Work";
     case "PROCESSING_ACTIVITIES":
