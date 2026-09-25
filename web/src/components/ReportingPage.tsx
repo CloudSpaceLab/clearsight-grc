@@ -118,7 +118,7 @@ export function ReportingPage({
     void Promise.allSettled([
       loadFilterFields(controller.signal),
       loadDefinitions(false, controller.signal),
-      loadRuns({}, controller.signal),
+      embedded ? Promise.resolve([] as ReportRun[]) : loadRuns({}, controller.signal),
     ]).then(([fieldResult, definitionResult, runResult]) => {
       if (controller.signal.aborted) return;
       if (fieldResult.status === "fulfilled") setFieldResponse(fieldResult.value);
@@ -334,6 +334,7 @@ export function ReportingPage({
       onRetryHistory={() => setHistoryRetry((value) => value + 1)}
       onTransition={transitionSelected}
       onRun={runSelected}
+      showRunAction={!embedded}
     />}
 
     {!embedded && <section className="report-runs" aria-labelledby="report-runs-heading">
@@ -396,7 +397,7 @@ function DefinitionTable({ definitions, selectedID, onSelect }: { definitions: r
   return <DataTable ariaLabel="Report definitions" rows={definitions} rowKey={(definition) => definition.id} rowName={(definition) => `${definition.name}, ${definitionStatusLabel(definition.status)}, ${datasetLabel(definition.dataset)}, ${scopeDefinitionLabel(definition)}`} columns={columns} selectedKey={selectedID} onSelectionChange={(definition) => onSelect(definition.id)} onRowAction={(definition) => onSelect(definition.id)} />;
 }
 
-function SelectedDefinitionPanel({ definition, history, historyState, historyError, commandState, onRetryHistory, onTransition, onRun }: { definition: ReportDefinition; history: readonly ReportDefinitionRevision[]; historyState: LoadState; historyError?: string; commandState: string; onRetryHistory: () => void; onTransition: (action: ReportDefinitionAction) => void; onRun: () => void }) {
+function SelectedDefinitionPanel({ definition, history, historyState, historyError, commandState, onRetryHistory, onTransition, onRun, showRunAction }: { definition: ReportDefinition; history: readonly ReportDefinitionRevision[]; historyState: LoadState; historyError?: string; commandState: string; onRetryHistory: () => void; onTransition: (action: ReportDefinitionAction) => void; onRun: () => void; showRunAction: boolean }) {
   const availability = runAvailability(definition);
   return <>
     <section className="report-selected-definition" role="region" aria-label="Selected report definition">
@@ -413,8 +414,10 @@ function SelectedDefinitionPanel({ definition, history, historyState, historyErr
         <Fact label="Effective date" value={effectiveDateLabel(definition)} />
       </dl>
       <div className="report-selected-definition__actions">
-        <Button variant="primary" onPress={onRun} isDisabled={!availability.allowed} isLoading={commandState === "running"} aria-describedby="report-run-reason">Run report</Button>
-        <span id="report-run-reason" className="report-control-reason">{availability.reason}</span>
+        {showRunAction && <>
+          <Button variant="primary" onPress={onRun} isDisabled={!availability.allowed} isLoading={commandState === "running"} aria-describedby="report-run-reason">Run report</Button>
+          <span id="report-run-reason" className="report-control-reason">{availability.reason}</span>
+        </>}
         {definition.status === "DRAFT" && <Button variant="secondary" onPress={() => onTransition("submit")} isLoading={commandState === "saving"}>Send for review</Button>}
         {definition.status === "PENDING_REVIEW" && <Button variant="secondary" onPress={() => onTransition("review")} isLoading={commandState === "saving"}>Record review</Button>}
         {definition.status === "REVIEWED" && <Button variant="secondary" onPress={() => onTransition("activate")} isLoading={commandState === "saving"}>Activate report</Button>}
