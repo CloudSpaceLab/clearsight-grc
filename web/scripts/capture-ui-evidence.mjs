@@ -41,6 +41,11 @@ const captures = [
   { name: "129-oversight-completeness-light-1440x900", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "oversight-completeness" },
   { name: "130-oversight-completeness-dark-mobile-390x844", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "oversight-completeness-mobile" },
   { name: "131-ropa-register-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-register" },
+  // The register capture sits above the activity table, so the per-row control
+  // that opens an activity's details is proved by a capture scrolled to the
+  // rows themselves. Without this the affordance exists in the DOM but is never
+  // seen in review evidence.
+  { name: "131a-ropa-register-row-action-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "View details", state: "ropa-register-row-action", scrollIntoViewText: "Choose View details" },
   { name: "132-ropa-register-dark-mobile-390x844", route: "#ropa", title: "Processing activity register", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Customer account opening", state: "ropa-register-mobile" },
   { name: "133-ropa-activity-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-activity", openRopaActivity: true },
   { name: "140-report-definitions-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Processing activities with open exceptions", scrollToReportSection: "definitions", state: "report-definitions" },
@@ -92,6 +97,15 @@ async function capturePage(capture) {
       await page.getByRole("heading", { name: "Customer account opening", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.expectText) await page.getByText(capture.expectText, { exact: false }).first().waitFor({ state: "visible" });
+    if (capture.scrollIntoViewText) {
+      // Some controls sit below the fold at the capture viewport. Scroll them
+      // into view so the screenshot proves the control is actually rendered,
+      // rather than leaving it present in the DOM but absent from the evidence.
+      const scrollTarget = page.getByText(capture.scrollIntoViewText, { exact: false }).first();
+      await scrollTarget.waitFor({ state: "visible" });
+      await scrollTarget.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(150);
+    }
     if (capture.scrollToReportSection) {
       const target = capture.scrollToReportSection === "runs"
         ? page.getByRole("heading", { name: "Report runs", exact: true })
