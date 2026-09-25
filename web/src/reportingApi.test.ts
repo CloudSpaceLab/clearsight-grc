@@ -9,6 +9,7 @@ import {
   getReportRun,
   listReportDefinitions,
   listReportFilterFields,
+  listReportRunPage,
   listReportRuns,
   transitionReportDefinition,
 } from "./reportingApi";
@@ -112,6 +113,22 @@ describe("reporting API", () => {
     expect(runsURL.pathname).toBe("/api/v1/ropa/reports/runs");
     expect(Object.fromEntries(runsURL.searchParams)).toEqual({ tenant_id: "tenant-1", limit: "20", definition_id: "definition-1" });
     expect(String(fetchMock.mock.calls[4]?.[0])).toBe("/api/v1/ropa/reports/runs/run%2F1?tenant_id=tenant-1");
+  });
+
+  it("forwards the opaque report history cursor without interpreting it", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ items: [run], next_cursor: "next-page" }), { status: 200 }));
+
+    await expect(listReportRunPage({ limit: 50, cursor: "current-page" })).resolves.toEqual({
+      items: [run],
+      next_cursor: "next-page",
+    });
+
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]), "https://example.test");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      tenant_id: "tenant-1",
+      limit: "50",
+      cursor: "current-page",
+    });
   });
 
   it("sends governed definition and run commands without trusting browser actor fields", async () => {
