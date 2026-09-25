@@ -685,6 +685,9 @@ func (r *PostgresRepository) CaptureSourceBoundary(ctx context.Context, scope Re
 	if definition.Dataset == DatasetMatterExceptions {
 		return r.captureMatterSourceBoundary(ctx, scope, definition)
 	}
+	if definition.Dataset == DatasetVendors {
+		return r.captureVendorSourceBoundary(ctx, scope, definition)
+	}
 	_, predicate, ok := reportDatasetFragments(definition.Dataset)
 	if !ok {
 		return SourceBoundary{}, ErrInvalid
