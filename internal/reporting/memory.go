@@ -374,7 +374,6 @@ func (r *MemoryRepository) ListRuns(ctx context.Context, scope ReportScope, defi
 	return runs, nil
 }
 
-
 func (r *MemoryRepository) ListRunHistory(ctx context.Context, scope ReportScope, definitionID, cursor string, limit int) (RunHistoryPage, error) {
 	if r == nil || ctx == nil {
 		return RunHistoryPage{}, ErrInvalid
