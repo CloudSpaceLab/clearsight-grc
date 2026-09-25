@@ -125,7 +125,7 @@ func (r *PostgresRepository) ListReportRows(ctx context.Context, scope ReportSco
 	if persisted.Dataset == DatasetPrograms {
 		return r.listProgramReportRows(ctx, scope, persisted, cursor, limit)
 	}
-	if persisted.Dataset == DatasetMatterExceptions {
+	if persisted.Dataset == DatasetMatters || persisted.Dataset == DatasetMatterExceptions {
 		return r.listMatterReportRows(ctx, scope, persisted, cursor, limit)
 	}
 	if persisted.Dataset == DatasetVendors {
