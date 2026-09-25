@@ -23,7 +23,7 @@ import {
 import "./reports.css";
 
 type WorkspaceTab = "library" | "templates";
-type ReportArea = "ALL" | "VENDORS" | "PROGRAMS" | "MATTER_EXCEPTIONS";
+type ReportArea = "ALL" | "VENDORS" | "PROGRAMS" | "WORK";
 type LoadState = "loading" | "live" | "error";
 
 export type ReportsWorkspaceProps = {
@@ -39,13 +39,13 @@ const areaOptions = [
   { id: "ALL", label: "All reports" },
   { id: "VENDORS", label: "Vendors" },
   { id: "PROGRAMS", label: "Programs" },
-  { id: "MATTER_EXCEPTIONS", label: "Work" },
+  { id: "WORK", label: "Work" },
 ] as const;
 
 const generationAreaOptions: readonly { id: Exclude<ReportArea, "ALL">; label: string }[] = [
   { id: "VENDORS", label: "Vendors" },
   { id: "PROGRAMS", label: "Programs" },
-  { id: "MATTER_EXCEPTIONS", label: "Work" },
+  { id: "WORK", label: "Work" },
 ];
 
 export function ReportsWorkspace({
@@ -99,7 +99,7 @@ export function ReportsWorkspace({
 
   const activeGenerationDefinitions = useMemo(
     () => definitions.filter((definition) =>
-      definition.dataset === generationArea &&
+      reportBelongsToArea(definition.dataset, generationArea) &&
       definition.status === "ACTIVE" &&
       definition.effective
     ),
@@ -118,7 +118,7 @@ export function ReportsWorkspace({
     const normalized = query.trim().toLowerCase();
     return [...runs]
       .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at))
-      .filter((run) => area === "ALL" || run.dataset === area)
+      .filter((run) => area === "ALL" || reportBelongsToArea(run.dataset, area))
       .filter((run) => {
         if (!normalized) return true;
         const definition = definitionsByID.get(run.definition_id);
@@ -399,11 +399,17 @@ function reportDatasetLabel(dataset: ReportDataset | ReportArea) {
   switch (dataset) {
     case "VENDORS": return "Vendors";
     case "PROGRAMS": return "Programs";
+    case "MATTERS":
     case "MATTER_EXCEPTIONS": return "Work";
     case "PROCESSING_ACTIVITIES":
     case "PROCESSING_ACTIVITY_EXCEPTIONS": return "Processing activities";
     default: return "All reports";
   }
+}
+
+function reportBelongsToArea(dataset: ReportDataset, area: Exclude<ReportArea, "ALL">) {
+  if (area === "WORK") return dataset === "MATTERS" || dataset === "MATTER_EXCEPTIONS";
+  return dataset === area;
 }
 
 function runStatusLabel(run: ReportRun): string {
