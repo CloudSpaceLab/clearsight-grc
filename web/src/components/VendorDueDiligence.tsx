@@ -200,6 +200,7 @@ export function VendorDueDiligence({
   const statusCopy = useMemo(() => assessmentStatusCopy(effectiveAssessment, setupFailure), [effectiveAssessment, setupFailure]);
   const startMode = assessmentStartMode(relationship.relationship.status, effectiveAssessment);
   const selectedForm = availableForms.find((value) => `${value.id}:${value.version}` === selectedFormKey) ?? availableForms[0];
+  const matchingExpiredFields = expiredFields.filter(expired => availableForms.some(candidate => candidate.id === expired.formID && candidate.fields?.some(field => field.id === expired.fieldID))).length;
   const responseRequiresApplication = Boolean(onApplyResponse && review?.answers.some((answer) => answer.baseline));
 
   useEffect(() => {
@@ -554,7 +555,7 @@ export function VendorDueDiligence({
     {clarificationOutcome?.state === "LINK_CREATED_EMAIL_NOT_SENT" && <Notice tone="error"><strong>Updated-field request email was not delivered</strong> {clarificationOutcome.recovery ?? "Use the returned secure link or review delivery status."}</Notice>}
     {notice && <Notice tone="success">{notice}</Notice>}
     {error && panel !== "document" && <Notice tone="error">{error}</Notice>}
-    {status === "COMPLETED" && expiryState === "live" && expiredFields.length > 0 && <Notice tone="warning"><strong>{expiredFields.length} expired vendor {expiredFields.length === 1 ? "item needs" : "items need"} renewal.</strong> Start a focused reassessment, then send the selected items to the vendor. The completed review remains on record.</Notice>}
+    {status === "COMPLETED" && expiryState === "live" && expiredFields.length > 0 && <Notice tone="warning"><strong>{expiredFields.length} expired vendor {expiredFields.length === 1 ? "item needs" : "items need"} renewal.</strong> {matchingExpiredFields === expiredFields.length ? "Start a focused reassessment, then send the selected items to the vendor." : `${matchingExpiredFields} ${matchingExpiredFields === 1 ? "item is" : "items are"} available on active forms. Approve a revised form for the remaining items before requesting their replacement.`} The completed review remains on record.</Notice>}
     {status === "COMPLETED" && expiryState === "unavailable" && <Notice tone="warning">Current vendor form expiry could not be checked. Review the selected fields before sending a reassessment.</Notice>}
 
     {effectiveAssessment && needsReviewView(status) && reviewState === "loading" && <div className="vdd-review-state" aria-live="polite" aria-busy="true">Loading the submitted response and supporting documents…</div>}
