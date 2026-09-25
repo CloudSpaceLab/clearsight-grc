@@ -2,10 +2,10 @@ BEGIN;
 
 DO $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM report_definitions WHERE dataset='VENDORS')
-       OR EXISTS (SELECT 1 FROM report_definition_revisions WHERE dataset='VENDORS')
-       OR EXISTS (SELECT 1 FROM report_runs WHERE dataset='VENDORS') THEN
-        RAISE EXCEPTION 'vendor report history exists; refusing to remove VENDORS dataset support';
+    IF EXISTS (SELECT 1 FROM report_definitions WHERE dataset IN ('VENDORS','MATTERS'))
+       OR EXISTS (SELECT 1 FROM report_definition_revisions WHERE dataset IN ('VENDORS','MATTERS'))
+       OR EXISTS (SELECT 1 FROM report_runs WHERE dataset IN ('VENDORS','MATTERS')) THEN
+        RAISE EXCEPTION 'vendor or Work report history exists; refusing to remove dataset support';
     END IF;
 END
 $$;
