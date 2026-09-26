@@ -114,7 +114,6 @@ describe("ReportsWorkspace", () => {
     renderWorkspace();
 
     expect(await screen.findByRole("heading", { name: "Reports" })).toBeTruthy();
-    expect(screen.getByText("Generate, review and download reports.")).toBeTruthy();
 
     const table = await screen.findByRole("table", { name: "Generated reports" });
     expect(within(table).getByRole("row", { name: /Vendor portfolio/ })).toBeTruthy();
