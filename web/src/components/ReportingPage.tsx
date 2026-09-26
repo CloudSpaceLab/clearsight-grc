@@ -207,6 +207,7 @@ export function ReportingPage({
       <SelectField
         label="Area"
         value={area}
+        placeholder="Choose an area"
         allowsEmpty={false}
         options={reportSetupAreaOptions.map((option) => ({ id: option.id, label: option.label, description: option.description }))}
         onChange={(value) => value && setArea(value as ReportSetupArea)}
