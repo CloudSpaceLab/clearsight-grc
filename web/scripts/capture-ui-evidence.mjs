@@ -106,7 +106,7 @@ async function capturePage(capture) {
         await compactReportsView.click();
         await page.getByRole("option", { name: "Saved setups", exact: true }).click();
       }
-      await page.getByRole("heading", { name: "Saved report setups", exact: true }).waitFor({ state: "visible" });
+      await page.getByRole("heading", { name: "Saved setups", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.openFailedReport) {
       const failedRow = page.getByRole("table", { name: "Generated reports" }).getByRole("row").filter({ hasText: "Failed" }).first();
