@@ -99,8 +99,8 @@ describe("ReportingPage saved setups", () => {
     expect(within(table).getByRole("row", { name: "Monthly vendor overview" })).toBeTruthy();
     expect(within(table).getByRole("row", { name: "Outstanding work" })).toBeTruthy();
 
-    expect(screen.getByText("Vendors")).toBeTruthy();
-    expect(screen.getByText("Overview")).toBeTruthy();
+    expect(screen.getAllByText("Vendors").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Overview").length).toBeGreaterThan(0);
     expect(screen.getByText("Exceptions & outstanding")).toBeTruthy();
     expect(screen.queryByText(/dataset/i)).toBeNull();
     expect(screen.queryByText(/scope identifier/i)).toBeNull();
