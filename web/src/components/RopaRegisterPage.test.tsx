@@ -92,26 +92,26 @@ it("renders the stored register counts and exception signals", () => {
   expect(within(strip).getByText("4 missing lawful basis")).toBeTruthy();
   expect(within(strip).getByText("3 missing owner")).toBeTruthy();
   expect(within(strip).getByText("5 missing data subjects")).toBeTruthy();
-  expect(within(strip).getByText("42 activities checked · 2 excluded · 1 unknown")).toBeTruthy();
+  expect(within(strip).getByText("42 checked · 2 excluded · 1 unknown")).toBeTruthy();
 });
 
 it("keeps undefined coverage values as unknown rather than zero", () => {
   render(<RopaDashboardStrip summary={{ ...summary, coverage: { population: 7 } }}/>);
   const strip = screen.getByRole("region", { name: "Processing activity status and coverage" });
-  expect(within(strip).getByText("7 activities checked · excluded: unknown · unknown records: unknown")).toBeTruthy();
+  expect(within(strip).getByText("7 checked · excluded: unknown · unknown records: unknown")).toBeTruthy();
   expect(strip.textContent).not.toContain("excluded: 0");
   expect(strip.textContent).not.toContain("unknown records: 0");
 });
 
 it("labels a stale summary with its generation time and omits that warning for a current summary", () => {
   const { unmount } = render(<RopaDashboardStrip summary={{ ...summary, freshness: "STALE" }}/>);
-  expect(screen.getByText("Stale register summary")).toBeTruthy();
+  expect(screen.getByText("Stale")).toBeTruthy();
   expect(screen.getByText("24 Sept 2026, 08:00")).toBeTruthy();
   unmount();
 
   render(<RopaDashboardStrip summary={summary}/>);
-  expect(screen.queryByText("Stale register summary")).toBeNull();
-  expect(screen.getByText("Current register summary")).toBeTruthy();
+  expect(screen.queryByText("Stale")).toBeNull();
+  expect(screen.getByText("Current")).toBeTruthy();
 });
 
 it("renders one register row per activity with working-language status", async () => {
