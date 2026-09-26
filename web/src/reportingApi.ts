@@ -15,8 +15,8 @@ const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 const reportBase = "/api/v1/reports";
 const legacyReportBase = "/api/v1/ropa/reports";
 
-const readFailure = "Report definitions and runs could not be loaded. Check the connection and try again.";
-const commandFailure = "The report request could not be completed. No change was made; check the current definition and try again.";
+const readFailure = "Couldn’t load reports.";
+const commandFailure = "Report action failed.";
 
 type ReportFailure = Error & { kind?: ApiErrorKind; code?: string };
 
@@ -78,7 +78,7 @@ export async function listReportFilterFields(signal?: AbortSignal): Promise<Repo
   try {
     return await reportRequest<ReportFilterFieldResponse>(`${reportBase}/filter-fields`, signal ? { signal } : undefined);
   } catch (error) {
-    throw reportFailure(error, "The published report filter fields could not be loaded. Check the connection and try again.");
+    throw reportFailure(error, "Couldn’t load report filters.");
   }
 }
 
@@ -159,7 +159,7 @@ export async function downloadReportRun(id: string, signal?: AbortSignal): Promi
   try {
     return await reportBlob(await scopedPath(`${reportBase}/runs/${encodeURIComponent(id)}/download`), signal ? { signal } : undefined);
   } catch (error) {
-    throw reportFailure(error, "The report file could not be downloaded. Check the run state and try again.");
+    throw reportFailure(error, "Download failed.");
   }
 }
 

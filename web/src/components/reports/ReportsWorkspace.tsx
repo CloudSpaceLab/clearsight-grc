@@ -93,7 +93,7 @@ export function ReportsWorkspace({
         setDefinitionState("live");
       } else if (!isAbortError(definitionResult.reason)) {
         setDefinitionState("error");
-        setDefinitionError("Saved report setups are temporarily unavailable. Existing generated reports remain accessible.");
+        setDefinitionError("Saved setups unavailable. Reports remain available.");
       }
       if (runResult.status === "fulfilled") {
         setRuns(runResult.value.items);
@@ -101,7 +101,7 @@ export function ReportsWorkspace({
         setRunState("live");
       } else if (!isAbortError(runResult.reason)) {
         setRunState("error");
-        setRunError("Generated reports could not be loaded. Try again.");
+        setRunError("Reports failed to load.");
       }
     });
     return () => controller.abort();
@@ -183,7 +183,7 @@ export function ReportsWorkspace({
       setRuns((current) => mergeReportRuns(current, page.items));
       setNextCursor(page.next_cursor);
     } catch (reason: unknown) {
-      setCommandError(readError(reason, "Older report history could not be loaded. Try again."));
+      setCommandError(readError(reason, "Couldn’t load older reports."));
     } finally {
       setLoadingOlder(false);
     }
@@ -205,9 +205,9 @@ export function ReportsWorkspace({
       setRuns((current) => [run, ...current.filter((item) => item.id !== run.id)]);
       setGenerateOpen(false);
       setTab("library");
-      setCommandMessage(`${definition.name} was queued. Its file will appear here when generation completes.`);
+      setCommandMessage(`${definition.name} queued.`);
     } catch (reason: unknown) {
-      setCommandError(readError(reason, "The report could not be queued. Check the template state and try again."));
+      setCommandError(readError(reason, "Couldn’t generate report. Retry."));
     } finally {
       setCommand("idle");
     }
@@ -220,9 +220,9 @@ export function ReportsWorkspace({
     try {
       const result = await downloadRun(run.id);
       saveBlob(result.blob, result.filename ?? reportFilename(run));
-      setCommandMessage("The report file was downloaded after the protected access check.");
+      setCommandMessage("Report downloaded.");
     } catch (reason: unknown) {
-      setCommandError(readError(reason, "The report file could not be downloaded. Refresh its status and try again."));
+      setCommandError(readError(reason, "Download failed. Refresh and retry."));
     } finally {
       setCommand("idle");
     }
@@ -286,7 +286,6 @@ export function ReportsWorkspace({
       <div>
         <span className="eyebrow">{organizationName || "ClearSight"} · {legalEntityName || "Current legal entity"}</span>
         <h1 id="reports-heading">Reports</h1>
-        <p>One place for generated reports across vendors, programs and work.</p>
       </div>
       {tab === "library" && <div className="reports-workspace__actions">
         <Button variant="secondary" onPress={refresh} isLoading={runState === "loading" || definitionState === "loading"}>Refresh</Button>
@@ -304,14 +303,14 @@ export function ReportsWorkspace({
       {(activeTab) => activeTab === "library"
         ? <div className="reports-library">
           <section className="reports-summary" aria-label="Report library summary">
-            <ReportSummaryMetric label="Available files" value={readyCount} note="Ready and not expired" />
-            <ReportSummaryMetric label="In progress" value={runningCount} note="Queued or generating" tone={runningCount ? "info" : "neutral"} />
-            <ReportSummaryMetric label="Failed" value={failedCount} note="Generation stopped" tone={failedCount ? "error" : "neutral"} />
+            <ReportSummaryMetric label="Available" value={readyCount} />
+            <ReportSummaryMetric label="In progress" value={runningCount} tone={runningCount ? "info" : "neutral"} />
+            <ReportSummaryMetric label="Failed" value={failedCount} tone={failedCount ? "error" : "neutral"} />
           </section>
 
           {commandMessage && <Notice tone="success"><span>{commandMessage}</span></Notice>}
           {commandError && <Notice tone="error"><span>{commandError}</span></Notice>}
-          {definitionState === "error" && <Notice tone="warning"><span>{definitionError || "Saved report setups are temporarily unavailable. Existing generated reports remain accessible."}</span></Notice>}
+          {definitionState === "error" && <Notice tone="warning"><span>{definitionError || "Saved setups unavailable. Reports remain available."}</span></Notice>}
 
           <div className="reports-library__toolbar">
             <SearchField label="Search generated reports" value={query} onChange={setQuery} placeholder="Search reports" isLoading={runState === "loading"} />
@@ -319,11 +318,11 @@ export function ReportsWorkspace({
           </div>
 
           {runState === "error" && <Notice tone="error"><span>{runError}</span> <Button variant="secondary" size="compact" onPress={refresh}>Retry</Button></Notice>}
-          {runState === "loading" && runs.length === 0 && <p className="reports-library__loading" role="status">Loading generated reports…</p>}
+          {runState === "loading" && runs.length === 0 && <p className="reports-library__loading" role="status">Loading reports…</p>}
           {runState === "live" && filteredRuns.length === 0 && <EmptyState
             population={area === "ALL" ? "generated reports" : reportDatasetLabel(area)}
-            title={runs.length ? "No reports match this view" : "No generated reports yet"}
-            description={runs.length ? "Change the search or area filter to see other generated reports." : "Generate a report from a ready saved setup. Completed files stay here with their history."}
+            title={runs.length ? "No matches" : "No reports yet"}
+            description={runs.length ? "Change filters or search." : "Generate a report to get started."}
           />}
           {filteredRuns.length > 0 && <DataTable
             ariaLabel="Generated reports"
@@ -353,9 +352,8 @@ export function ReportsWorkspace({
     {generateOpen && <FocusedSheet label="Generate report" onClose={() => setGenerateOpen(false)}>
       <div className="reports-generate">
         <div className="reports-generate__heading">
-          <span className="eyebrow">New report</span>
           <h2>Generate report</h2>
-          <p>Choose an area and a saved setup. ClearSight generates the summary, chart and supporting detail.</p>
+          <p>Select area and setup.</p>
         </div>
         <SelectField
           label="Area"
@@ -384,7 +382,7 @@ export function ReportsWorkspace({
           <EmptyState
             population={reportDatasetLabel(generationArea)}
             title={`No ready ${reportDatasetLabel(generationArea).toLowerCase()} setup`}
-            description="Create a simple saved setup, then complete its review so it can be reused here."
+            description="Create and approve a setup first."
           />
           <Button variant="primary" onPress={openTemplates}>Create saved setup</Button>
         </div>}
@@ -402,11 +400,10 @@ export function ReportsWorkspace({
   </section>;
 }
 
-function ReportSummaryMetric({ label, value, note, tone = "neutral" }: { label: string; value: number; note: string; tone?: StatusTone }) {
+function ReportSummaryMetric({ label, value, tone = "neutral" }: { label: string; value: number; tone?: StatusTone }) {
   return <div className="reports-summary__metric" data-tone={tone}>
     <span>{label}</span>
     <strong>{value.toLocaleString()}</strong>
-    <small>{note}</small>
   </div>;
 }
 
@@ -424,8 +421,7 @@ function ReportRunDetails({ run, definition, downloading, onDownload }: { run: R
     <div>
       <span className="eyebrow">{reportDatasetLabel(run.dataset)}</span>
       <h2>{definition?.name || humanizeCode(run.definition_code)}</h2>
-      <p>Protected snapshot generated from the saved report setup.</p>
-    </div>
+          </div>
     <StatusBadge tone={runStatusTone(run)}>{runStatusLabel(run)}</StatusBadge>
     <dl>
       <div><dt>Requested</dt><dd>{formatDateTime(run.created_at)}</dd></div>

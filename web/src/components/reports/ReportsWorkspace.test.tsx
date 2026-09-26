@@ -114,13 +114,12 @@ describe("ReportsWorkspace", () => {
     renderWorkspace();
 
     expect(await screen.findByRole("heading", { name: "Reports" })).toBeTruthy();
-    expect(screen.getByText("One place for generated reports across vendors, programs and work.")).toBeTruthy();
 
     const table = await screen.findByRole("table", { name: "Generated reports" });
     expect(within(table).getByRole("row", { name: /Vendor portfolio/ })).toBeTruthy();
     expect(within(table).getByRole("row", { name: /Program health/ })).toBeTruthy();
     const summary = screen.getByRole("region", { name: "Report library summary" });
-    expect(within(summary).getByText("Available files").nextElementSibling?.textContent).toBe("1");
+    expect(within(summary).getByText("Available").nextElementSibling?.textContent).toBe("1");
     expect(within(summary).getByText("Failed").nextElementSibling?.textContent).toBe("1");
     expect(loadRunPage).toHaveBeenCalledWith({ limit: 50 }, expect.any(AbortSignal));
     expect(loadDefinitions).toHaveBeenCalledWith(true, expect.any(AbortSignal));
@@ -137,7 +136,7 @@ describe("ReportsWorkspace", () => {
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Generate report" }));
     await waitFor(() => expect(createRun).toHaveBeenCalledWith(vendorDefinition.id, vendorDefinition.current_version));
-    expect(await screen.findByText(/Vendor portfolio was queued/)).toBeTruthy();
+    expect(await screen.findByText(/Vendor portfolio queued/)).toBeTruthy();
     expect(screen.getAllByRole("row", { name: /Vendor portfolio/ }).some((row) => within(row).queryByText("Queued"))).toBe(true);
   });
 
@@ -148,7 +147,7 @@ describe("ReportsWorkspace", () => {
 
     const table = await screen.findByRole("table", { name: "Generated reports" });
     expect(within(table).getByRole("row", { name: /Vendor Portfolio/i })).toBeTruthy();
-    expect(screen.getByText(/Saved report setups are temporarily unavailable/i)).toBeTruthy();
+    expect(screen.getByText(/Saved setups unavailable/i)).toBeTruthy();
     expect(screen.queryByText(/Generated reports could not be loaded/i)).toBeNull();
     expect(screen.getByRole("button", { name: "Generate report" })).toHaveProperty("disabled", true);
   });
