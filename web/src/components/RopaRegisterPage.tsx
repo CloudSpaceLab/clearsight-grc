@@ -18,7 +18,7 @@ type ListState = "loading" | "live" | "error";
 type SummaryState = "loading" | "live" | "error";
 
 const unavailableSummary = async (_signal?: AbortSignal): Promise<RegisterSummary> => {
-  throw new Error("The processing activity register could not be loaded. Try again.");
+  throw new Error("Couldn’t load processing activities.");
 };
 
 const unavailableActivities = async (_params?: RopaProcessingActivityListParams, _signal?: AbortSignal): Promise<ProcessingActivityPage> => {
@@ -136,12 +136,12 @@ export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActi
       id: "activity",
       header: "Processing activity",
       mobileLayout: "full-width",
-      render: (item) => <span className="ropa-register-identity"><strong>{item.name || "Processing activity name not recorded"}</strong><small>{item.code || "Code not recorded"}</small></span>,
-      accessibleText: (item) => `${item.name || "Processing activity name not recorded"}, ${item.code || "code not recorded"}`,
+      render: (item) => <span className="ropa-register-identity"><strong>{item.name || "Unnamed activity"}</strong><small>{item.code || "No code"}</small></span>,
+      accessibleText: (item) => `${item.name || "Unnamed activity"}, ${item.code || "No code"}`,
     },
     { id: "purpose", header: "Purpose", render: (item) => valueOrNotRecorded(item.purpose), accessibleText: (item) => valueOrNotRecorded(item.purpose) },
     { id: "lawful_basis", header: "Lawful basis", render: (item) => valueOrNotRecorded(item.lawful_basis), accessibleText: (item) => valueOrNotRecorded(item.lawful_basis) },
-    { id: "owner", header: "Owner", render: (item) => valueOrNotRecorded(item.owner_principal_id), accessibleText: (item) => valueOrNotRecorded(item.owner_principal_id) },
+    { id: "owner", header: "Owner", render: ownerLabel, accessibleText: ownerLabel },
     { id: "review", header: "Next review", render: (item) => <ReviewValue activity={item}/>, accessibleText: (item) => reviewAccessibleText(item) },
     { id: "status", header: "Status", kind: "status", render: (item) => <StatusBadge tone={statusTone(item.status)}>{statusLabel(item.status)}</StatusBadge>, accessibleText: (item) => statusLabel(item.status) },
   ];
@@ -151,23 +151,22 @@ export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActi
       <div>
         <span className="eyebrow">{organizationName || "Processing activity register"}</span>
         <h1 id="ropa-register-heading">Processing activity register</h1>
-        <p>Review the purpose, lawful basis, accountable owner and review date recorded for each processing activity in {scope}.</p>
       </div>
       <div className="topbar-actions">
         <Button variant="secondary" onPress={openReports}>Open reports</Button>
-        <Button variant="secondary" onPress={() => { retrySummary(); retryList(); }} isLoading={summaryState === "loading" || listState === "loading"}>Refresh register</Button>
+        <Button variant="secondary" onPress={() => { retrySummary(); retryList(); }} isLoading={summaryState === "loading" || listState === "loading"}>Refresh</Button>
       </div>
     </header>
 
-    {summaryState === "loading" && !summary && <p className="ropa-load-state" role="status">Loading the stored register status…</p>}
+    {summaryState === "loading" && !summary && <p className="ropa-load-state" role="status">Loading status…</p>}
     {summaryState === "error" && <Notice tone="error">
-      <span>The register summary could not be loaded, so these status counts are unavailable. Check the register connection and try again.</span> <Button variant="secondary" size="compact" onPress={retrySummary}>Retry summary</Button>
+      <span>Couldn’t load summary.</span> <Button variant="secondary" size="compact" onPress={retrySummary}>Retry</Button>
     </Notice>}
     {summary && <RopaDashboardStrip summary={summary} legalEntityName={scope} onRetry={retrySummary} onOpenStatus={(nextStatus) => { setSearch(""); setStatus(nextStatus); setCursors([]); setListRetry((value) => value + 1); }}/>}
 
     <section className="ropa-register-list" aria-labelledby="ropa-register-list-heading">
       <div className="section-header ropa-register-list__header">
-        <div><h2 id="ropa-register-list-heading">Processing activities</h2><p>Choose View details on an activity to read its recorded purpose, lawful basis, owner, systems and review history.</p></div>
+        <div><h2 id="ropa-register-list-heading">Processing activities</h2></div>
       </div>
       <FilterBar
         label="Processing activity filters"
@@ -176,19 +175,19 @@ export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActi
           <SelectField label="Activity status" value={status} placeholder="All activity statuses" options={statusOptions} onChange={changeStatus}/>
         </>}
         resultCount={listState === "live" ? page.rows.length : undefined}
-        resultLabel={(count) => `${count} ${count === 1 ? "activity" : "activities"} on this page`}
+        resultLabel={(count) => `${count} ${count === 1 ? "activity" : "activities"}`}
         clearLabel="Clear register filters"
         onClear={hasFilters ? clearFilters : undefined}
       />
 
       {listState === "loading" && page.rows.length === 0 && <p className="ropa-load-state" role="status">Loading processing activities…</p>}
       {listState === "error" && <Notice tone="error">
-        <span>The processing activity register could not be loaded. Check the connection and access, then try again.</span> <Button variant="secondary" size="compact" onPress={retryList}>Retry register</Button>
+        <span>Couldn’t load processing activities.</span> <Button variant="secondary" size="compact" onPress={retryList}>Retry</Button>
       </Notice>}
       {listState === "live" && page.rows.length === 0 && hasFilters
-        ? <EmptyState population={`${scope} · current register filters`} title="No processing activities match the current filters" description="The current search and status filter returned no processing activities. Clear the filters to check the full legal entity population."/>
+        ? <EmptyState population={`${scope} · current register filters`} title="No matches" description="Change filters or search."/>
         : listState === "live" && page.rows.length === 0
-          ? <EmptyState population={`${scope} · current register`} title="No processing activities recorded in this legal entity yet" description="The next valid action is to add the first processing activity through the bank's approved intake process, then return here to review its purpose, owner and review date."/>
+          ? <EmptyState population={`${scope} · current register`} title="No processing activities" description="Add a processing activity to get started."/>
           : null}
       {page.rows.length > 0 && <DataTable
         ariaLabel="Processing activity register"
@@ -200,7 +199,7 @@ export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActi
         isLoading={listState === "loading"}
         pagination={pagination}
       />}
-      {listState === "live" && page.has_more && !page.next_cursor && <Notice tone="warning">More processing activities were reported, but the register did not provide a continuation cursor. Retry the page before relying on the complete result.</Notice>}
+      {listState === "live" && page.has_more && !page.next_cursor && <Notice tone="warning">More results unavailable. Retry.</Notice>}
     </section>
   </section>;
 }
@@ -210,14 +209,14 @@ function ReviewValue({ activity }: { activity: ProcessingActivity }) {
   if (!activity.next_review_date) return <span>Not recorded</span>;
   if (!review) return <span>Review date unavailable</span>;
   const overdue = review.getTime() < startOfToday().getTime();
-  return <StatusBadge tone={overdue ? "error" : "info"}>{overdue ? `Overdue · ${formatDate(activity.next_review_date!)}` : `Review due ${formatDate(activity.next_review_date!)}`}</StatusBadge>;
+  return <StatusBadge tone={overdue ? "error" : "info"}>{overdue ? `Overdue · ${formatDate(activity.next_review_date!)}` : `Due · ${formatDate(activity.next_review_date!)}`}</StatusBadge>;
 }
 
 function reviewAccessibleText(activity: ProcessingActivity): string {
   if (!activity.next_review_date) return "Not recorded";
   const review = parseReviewDate(activity.next_review_date);
   if (!review) return "Review date unavailable";
-  return review.getTime() < startOfToday().getTime() ? `Overdue, ${formatDate(activity.next_review_date)}` : `Review due ${formatDate(activity.next_review_date)}`;
+  return review.getTime() < startOfToday().getTime() ? `Overdue, ${formatDate(activity.next_review_date)}` : `Due ${formatDate(activity.next_review_date)}`;
 }
 
 function valueOrNotRecorded(value: string | undefined): string {
