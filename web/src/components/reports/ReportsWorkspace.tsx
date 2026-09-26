@@ -236,7 +236,7 @@ export function ReportsWorkspace({
         const definition = definitionsByID.get(run.definition_id);
         return <span className="reports-library__name"><strong>{definition?.name || humanizeCode(run.definition_code)}</strong></span>;
       },
-      accessibleText: (run) => definitionsByID.get(run.definition_id)?.name || run.definition_code,
+      accessibleText: (run) => definitionsByID.get(run.definition_id)?.name || humanizeCode(run.definition_code),
     },
     {
       id: "area",
@@ -329,7 +329,7 @@ export function ReportsWorkspace({
             ariaLabel="Generated reports"
             rows={filteredRuns}
             rowKey={(run) => run.id}
-            rowName={(run) => definitionsByID.get(run.definition_id)?.name || run.definition_code}
+            rowName={(run) => definitionsByID.get(run.definition_id)?.name || humanizeCode(run.definition_code)}
             columns={columns}
             onRowAction={setSelectedRun}
             rowActionLabel="View"
