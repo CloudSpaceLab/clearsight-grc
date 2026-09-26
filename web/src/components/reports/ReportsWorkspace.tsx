@@ -93,7 +93,7 @@ export function ReportsWorkspace({
         setDefinitionState("live");
       } else if (!isAbortError(definitionResult.reason)) {
         setDefinitionState("error");
-        setDefinitionError(readError(definitionResult.reason, "Saved report setups are temporarily unavailable."));
+        setDefinitionError("Saved report setups are temporarily unavailable. Existing generated reports remain accessible.");
       }
       if (runResult.status === "fulfilled") {
         setRuns(runResult.value.items);
@@ -101,7 +101,7 @@ export function ReportsWorkspace({
         setRunState("live");
       } else if (!isAbortError(runResult.reason)) {
         setRunState("error");
-        setRunError(readError(runResult.reason, "Generated reports could not be loaded. Try again."));
+        setRunError("Generated reports could not be loaded. Try again.");
       }
     });
     return () => controller.abort();
