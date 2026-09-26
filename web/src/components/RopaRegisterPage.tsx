@@ -18,7 +18,7 @@ type ListState = "loading" | "live" | "error";
 type SummaryState = "loading" | "live" | "error";
 
 const unavailableSummary = async (_signal?: AbortSignal): Promise<RegisterSummary> => {
-  throw new Error("The processing activity register could not be loaded. Try again.");
+  throw new Error("Couldn’t load processing activities.");
 };
 
 const unavailableActivities = async (_params?: RopaProcessingActivityListParams, _signal?: AbortSignal): Promise<ProcessingActivityPage> => {
@@ -141,7 +141,7 @@ export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActi
     },
     { id: "purpose", header: "Purpose", render: (item) => valueOrNotRecorded(item.purpose), accessibleText: (item) => valueOrNotRecorded(item.purpose) },
     { id: "lawful_basis", header: "Lawful basis", render: (item) => valueOrNotRecorded(item.lawful_basis), accessibleText: (item) => valueOrNotRecorded(item.lawful_basis) },
-    { id: "owner", header: "Owner", render: (item) => valueOrNotRecorded(item.owner_principal_id), accessibleText: (item) => valueOrNotRecorded(item.owner_principal_id) },
+    { id: "owner", header: "Owner", render: (item) => ownerLabel(item), accessibleText: (item) => ownerLabel(item) },
     { id: "review", header: "Next review", render: (item) => <ReviewValue activity={item}/>, accessibleText: (item) => reviewAccessibleText(item) },
     { id: "status", header: "Status", kind: "status", render: (item) => <StatusBadge tone={statusTone(item.status)}>{statusLabel(item.status)}</StatusBadge>, accessibleText: (item) => statusLabel(item.status) },
   ];
@@ -151,44 +151,43 @@ export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActi
       <div>
         <span className="eyebrow">{organizationName || "Processing activity register"}</span>
         <h1 id="ropa-register-heading">Processing activity register</h1>
-        <p>Review the purpose, lawful basis, accountable owner and review date recorded for each processing activity in {scope}.</p>
       </div>
       <div className="topbar-actions">
-        <Button variant="secondary" onPress={openReports}>Open reports</Button>
-        <Button variant="secondary" onPress={() => { retrySummary(); retryList(); }} isLoading={summaryState === "loading" || listState === "loading"}>Refresh register</Button>
+        <Button variant="secondary" onPress={openReports}>Reports</Button>
+        <Button variant="secondary" onPress={() => { retrySummary(); retryList(); }} isLoading={summaryState === "loading" || listState === "loading"}>Refresh</Button>
       </div>
     </header>
 
-    {summaryState === "loading" && !summary && <p className="ropa-load-state" role="status">Loading the stored register status…</p>}
+    {summaryState === "loading" && !summary && <p className="ropa-load-state" role="status">Loading summary…</p>}
     {summaryState === "error" && <Notice tone="error">
-      <span>The register summary could not be loaded, so these status counts are unavailable. Check the register connection and try again.</span> <Button variant="secondary" size="compact" onPress={retrySummary}>Retry summary</Button>
+      <span>Summary unavailable.</span> <Button variant="secondary" size="compact" onPress={retrySummary}>Retry</Button>
     </Notice>}
     {summary && <RopaDashboardStrip summary={summary} legalEntityName={scope} onRetry={retrySummary} onOpenStatus={(nextStatus) => { setSearch(""); setStatus(nextStatus); setCursors([]); setListRetry((value) => value + 1); }}/>}
 
     <section className="ropa-register-list" aria-labelledby="ropa-register-list-heading">
       <div className="section-header ropa-register-list__header">
-        <div><h2 id="ropa-register-list-heading">Processing activities</h2><p>Choose View details on an activity to read its recorded purpose, lawful basis, owner, systems and review history.</p></div>
+        <div><h2 id="ropa-register-list-heading">Processing activities</h2></div>
       </div>
       <FilterBar
         label="Processing activity filters"
         fields={<>
-          <SearchField label="Search processing activities" value={search} onChange={changeSearch} placeholder="Search by name, code or purpose" isLoading={listState === "loading"}/>
+          <SearchField label="Search processing activities" value={search} onChange={changeSearch} placeholder="Name, code or purpose" isLoading={listState === "loading"}/>
           <SelectField label="Activity status" value={status} placeholder="All activity statuses" options={statusOptions} onChange={changeStatus}/>
         </>}
         resultCount={listState === "live" ? page.rows.length : undefined}
-        resultLabel={(count) => `${count} ${count === 1 ? "activity" : "activities"} on this page`}
-        clearLabel="Clear register filters"
+        resultLabel={(count) => `${count} shown`}
+        clearLabel="Clear filters"
         onClear={hasFilters ? clearFilters : undefined}
       />
 
-      {listState === "loading" && page.rows.length === 0 && <p className="ropa-load-state" role="status">Loading processing activities…</p>}
+      {listState === "loading" && page.rows.length === 0 && <p className="ropa-load-state" role="status">Loading activities…</p>}
       {listState === "error" && <Notice tone="error">
-        <span>The processing activity register could not be loaded. Check the connection and access, then try again.</span> <Button variant="secondary" size="compact" onPress={retryList}>Retry register</Button>
+        <span>Couldn’t load activities.</span> <Button variant="secondary" size="compact" onPress={retryList}>Retry</Button>
       </Notice>}
       {listState === "live" && page.rows.length === 0 && hasFilters
-        ? <EmptyState population={`${scope} · current register filters`} title="No processing activities match the current filters" description="The current search and status filter returned no processing activities. Clear the filters to check the full legal entity population."/>
+        ? <EmptyState population={`${scope} · current register filters`} title="No matches" description="Change filters or search."/>
         : listState === "live" && page.rows.length === 0
-          ? <EmptyState population={`${scope} · current register`} title="No processing activities recorded in this legal entity yet" description="The next valid action is to add the first processing activity through the bank's approved intake process, then return here to review its purpose, owner and review date."/>
+          ? <EmptyState population={`${scope} · current register`} title="No activities" description="Add the first processing activity."/>
           : null}
       {page.rows.length > 0 && <DataTable
         ariaLabel="Processing activity register"
@@ -200,7 +199,7 @@ export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActi
         isLoading={listState === "loading"}
         pagination={pagination}
       />}
-      {listState === "live" && page.has_more && !page.next_cursor && <Notice tone="warning">More processing activities were reported, but the register did not provide a continuation cursor. Retry the page before relying on the complete result.</Notice>}
+      {listState === "live" && page.has_more && !page.next_cursor && <Notice tone="warning">More activities exist. Retry to continue.</Notice>}
     </section>
   </section>;
 }
@@ -222,6 +221,11 @@ function reviewAccessibleText(activity: ProcessingActivity): string {
 
 function valueOrNotRecorded(value: string | undefined): string {
   return value && value.trim() ? value : "Not recorded";
+}
+
+function ownerLabel(activity: ProcessingActivity): string {
+  if (activity.owner_display_name?.trim()) return activity.owner_display_name.trim();
+  return activity.owner_principal_id ? "Assigned" : "Not assigned";
 }
 
 function statusLabel(status: ProcessingActivityStatus): string {
