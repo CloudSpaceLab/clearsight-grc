@@ -286,7 +286,6 @@ export function ReportsWorkspace({
       <div>
         <span className="eyebrow">{organizationName || "ClearSight"} · {legalEntityName || "Current legal entity"}</span>
         <h1 id="reports-heading">Reports</h1>
-        <p>Generate, review and download reports.</p>
       </div>
       {tab === "library" && <div className="reports-workspace__actions">
         <Button variant="secondary" onPress={refresh} isLoading={runState === "loading" || definitionState === "loading"}>Refresh</Button>
@@ -304,9 +303,9 @@ export function ReportsWorkspace({
       {(activeTab) => activeTab === "library"
         ? <div className="reports-library">
           <section className="reports-summary" aria-label="Report library summary">
-            <ReportSummaryMetric label="Available" value={readyCount} note="Ready to download" />
-            <ReportSummaryMetric label="In progress" value={runningCount} note="Queued / generating" tone={runningCount ? "info" : "neutral"} />
-            <ReportSummaryMetric label="Failed" value={failedCount} note="Needs attention" tone={failedCount ? "error" : "neutral"} />
+            <ReportSummaryMetric label="Available" value={readyCount} />
+            <ReportSummaryMetric label="In progress" value={runningCount} tone={runningCount ? "info" : "neutral"} />
+            <ReportSummaryMetric label="Failed" value={failedCount} tone={failedCount ? "error" : "neutral"} />
           </section>
 
           {commandMessage && <Notice tone="success"><span>{commandMessage}</span></Notice>}
@@ -401,11 +400,10 @@ export function ReportsWorkspace({
   </section>;
 }
 
-function ReportSummaryMetric({ label, value, note, tone = "neutral" }: { label: string; value: number; note: string; tone?: StatusTone }) {
+function ReportSummaryMetric({ label, value, tone = "neutral" }: { label: string; value: number; tone?: StatusTone }) {
   return <div className="reports-summary__metric" data-tone={tone}>
     <span>{label}</span>
     <strong>{value.toLocaleString()}</strong>
-    <small>{note}</small>
   </div>;
 }
 
