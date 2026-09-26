@@ -9,7 +9,7 @@ export type RopaDashboardStripProps = {
   onOpenStatus?: (status: ProcessingActivityStatus | undefined) => void;
 };
 
-export function RopaDashboardStrip({ summary, legalEntityName, onRetry, onOpenStatus }: RopaDashboardStripProps) {
+export function RopaDashboardStrip({ summary, onRetry, onOpenStatus }: RopaDashboardStripProps) {
   const stale = summary.freshness !== "CURRENT";
   const counts = summary.counts;
 
