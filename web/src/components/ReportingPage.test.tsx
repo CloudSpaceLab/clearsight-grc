@@ -94,8 +94,8 @@ describe("ReportingPage saved setups", () => {
   it("shows business-facing setup fields instead of the low-level report definition model", async () => {
     renderPage();
 
-    expect(await screen.findByRole("heading", { name: "Saved report setups" })).toBeTruthy();
-    const table = screen.getByRole("table", { name: "Saved report setups" });
+    expect(await screen.findByRole("heading", { name: "Saved setups" })).toBeTruthy();
+    const table = screen.getByRole("table", { name: "Saved setups" });
     expect(within(table).getByRole("row", { name: "Monthly vendor overview" })).toBeTruthy();
     expect(within(table).getByRole("row", { name: "Outstanding work" })).toBeTruthy();
 
@@ -109,12 +109,11 @@ describe("ReportingPage saved setups", () => {
 
   it("creates a reusable overview with only a name and intent visible to the operator", async () => {
     renderPage();
-    await screen.findByRole("table", { name: "Saved report setups" });
+    await screen.findByRole("table", { name: "Saved setups" });
 
     fireEvent.click(screen.getByRole("button", { name: "New setup" }));
-    expect(screen.getByRole("heading", { name: "What should this report show?" })).toBeTruthy();
-    expect(screen.getByText(/Choose an overview or focus on exceptions and outstanding items/i)).toBeTruthy();
-
+    expect(screen.getByRole("heading", { name: "New report setup" })).toBeTruthy();
+    
     fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: "Board vendor summary" } });
     fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
 
@@ -135,7 +134,7 @@ describe("ReportingPage saved setups", () => {
     fireEvent.click(within(table).getByRole("row", { name: "Outstanding work" }));
 
     const detail = screen.getByRole("complementary", { name: "Selected report setup" });
-    expect(within(detail).getByText(/saved but not yet available/i)).toBeTruthy();
+    expect(within(detail).getByText("Send for review.")).toBeTruthy();
     fireEvent.click(within(detail).getByRole("button", { name: "Send for review" }));
 
     await waitFor(() => expect(api.transitionDefinition).toHaveBeenCalledWith(
