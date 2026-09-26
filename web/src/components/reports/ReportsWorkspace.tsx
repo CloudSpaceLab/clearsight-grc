@@ -93,7 +93,7 @@ export function ReportsWorkspace({
         setDefinitionState("live");
       } else if (!isAbortError(definitionResult.reason)) {
         setDefinitionState("error");
-        setDefinitionError("Saved setups unavailable. Existing reports remain available.");
+        setDefinitionError("Saved setups unavailable. Reports remain available.");
       }
       if (runResult.status === "fulfilled") {
         setRuns(runResult.value.items);
@@ -310,7 +310,7 @@ export function ReportsWorkspace({
 
           {commandMessage && <Notice tone="success"><span>{commandMessage}</span></Notice>}
           {commandError && <Notice tone="error"><span>{commandError}</span></Notice>}
-          {definitionState === "error" && <Notice tone="warning"><span>{definitionError || "Saved setups unavailable. Existing reports remain available."}</span></Notice>}
+          {definitionState === "error" && <Notice tone="warning"><span>{definitionError || "Saved setups unavailable. Reports remain available."}</span></Notice>}
 
           <div className="reports-library__toolbar">
             <SearchField label="Search generated reports" value={query} onChange={setQuery} placeholder="Search reports" isLoading={runState === "loading"} />
