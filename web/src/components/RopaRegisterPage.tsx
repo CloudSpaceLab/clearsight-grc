@@ -219,6 +219,13 @@ function reviewAccessibleText(activity: ProcessingActivity): string {
   return review.getTime() < startOfToday().getTime() ? `Overdue, ${formatDate(activity.next_review_date)}` : `Due ${formatDate(activity.next_review_date)}`;
 }
 
+function ownerLabel(activity: ProcessingActivity): string {
+  const displayName = activity.owner_display_name?.trim();
+  if (displayName) return displayName;
+  if (activity.owner_principal_id) return "Assigned";
+  return "Not assigned";
+}
+
 function valueOrNotRecorded(value: string | undefined): string {
   return value && value.trim() ? value : "Not recorded";
 }
