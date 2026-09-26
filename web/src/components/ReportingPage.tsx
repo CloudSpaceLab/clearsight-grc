@@ -91,7 +91,7 @@ export function ReportingPage({
   async function saveSetup() {
     const trimmed = name.trim();
     if (trimmed.length < 3) {
-      setError("Give this report setup a short, recognizable name.");
+      setError("Enter a setup name.");
       return;
     }
     setCommand("saving");
@@ -102,9 +102,9 @@ export function ReportingPage({
       setDefinitions((current) => [created, ...current.filter((item) => item.id !== created.id)]);
       setSelectedID(created.id);
       setShowCreate(false);
-      setMessage(`${created.name} was saved. Send it for review when you want it available for report generation.`);
+      setMessage(`${created.name} saved.`);
     } catch (reason: unknown) {
-      setError(readCommandError(reason, "The report setup could not be saved. Try again."));
+      setError(readCommandError(reason, "Couldn’t save setup. Retry."));
     } finally {
       setCommand("idle");
     }
@@ -164,12 +164,11 @@ export function ReportingPage({
     },
   ], []);
 
-  return <section className="report-setup-workspace" aria-label={embedded ? "Saved report setups" : undefined} aria-labelledby={embedded ? undefined : "report-setup-heading"}>
+  return <section className="report-setup-workspace" aria-label={embedded ? "Saved setups" : undefined} aria-labelledby={embedded ? undefined : "report-setup-heading"}>
     <header className="report-setup-header">
       <div>
         <span className="eyebrow">{organizationName || "ClearSight"} · {legalEntityName || "Current legal entity"}</span>
-        <h2 id={embedded ? undefined : "report-setup-heading"}>Saved report setups</h2>
-        <p>Save a reusable report view. Choose the business area and what you want to see; ClearSight handles the rest.</p>
+        <h2 id={embedded ? undefined : "report-setup-heading"}>Saved setups</h2>
       </div>
       <div className="report-setup-actions">
         {onBack && <Button variant="secondary" onPress={onBack}>Generated reports</Button>}
@@ -178,10 +177,10 @@ export function ReportingPage({
       </div>
     </header>
 
-    <section className="report-setup-summary" aria-label="Saved report setup summary">
-      <div><span>Ready to use</span><strong>{activeCount}</strong><small>Available from Generate report</small></div>
-      <div><span>Needs approval</span><strong>{approvalCount}</strong><small>Review or activation pending</small></div>
-      <div><span>Total setups</span><strong>{definitions.filter((item) => item.status !== "RETIRED").length}</strong><small>Current saved report views</small></div>
+    <section className="report-setup-summary" aria-label="Setup summary">
+      <div><span>Ready</span><strong>{activeCount}</strong></div>
+      <div><span>Approval</span><strong>{approvalCount}</strong></div>
+      <div><span>Total</span><strong>{definitions.filter((item) => item.status !== "RETIRED").length}</strong></div>
     </section>
 
     {message && <Notice tone="success"><span>{message}</span></Notice>}
@@ -190,9 +189,8 @@ export function ReportingPage({
 
     {showCreate && <section className="report-setup-create" aria-labelledby="new-report-setup-heading">
       <div className="report-setup-create__heading">
-        <span className="eyebrow">New saved setup</span>
-        <h3 id="new-report-setup-heading">What should this report show?</h3>
-        <p>Choose an overview or focus on exceptions and outstanding items.</p>
+        <span className="eyebrow">New setup</span>
+        <h3 id="new-report-setup-heading">New report setup</h3>
       </div>
 
       <TextField
@@ -214,7 +212,7 @@ export function ReportingPage({
       />
 
       <fieldset className="report-focus-picker">
-        <legend>Show me</legend>
+        <legend>Report type</legend>
         <div>
           {reportSetupFocusOptions.map((option) => <button
             key={option.id}
@@ -231,7 +229,7 @@ export function ReportingPage({
       </fieldset>
 
       <div className="report-setup-create__preview">
-        <span>ClearSight will prepare</span>
+        <span>Output</span>
         <strong>{reportSetupAreaLabel(area)} · {reportSetupFocusLabel(focus)}</strong>
         <small>Summary · chart · supporting detail</small>
       </div>
@@ -242,16 +240,16 @@ export function ReportingPage({
       </div>
     </section>}
 
-    {state === "loading" && definitions.length === 0 && <p role="status" className="reports-library__loading">Loading saved report setups…</p>}
+    {state === "loading" && definitions.length === 0 && <p role="status" className="reports-library__loading">Loading setups…</p>}
     {state === "live" && definitions.length === 0 && !showCreate && <EmptyState
-      population="saved report setups"
-      title="No saved setups yet"
-      description="Create a simple reusable view for an overview or for exceptions and outstanding work."
+      population="saved setups"
+      title="No saved setups"
+      description="Create a setup to generate reports."
     />}
 
     {definitions.length > 0 && <div className="report-setup-layout">
       <DataTable
-        ariaLabel="Saved report setups"
+        ariaLabel="Saved setups"
         rows={definitions.filter((item) => item.status !== "RETIRED")}
         rowKey={(definition) => definition.id}
         rowName={(definition) => definition.name}
@@ -274,7 +272,6 @@ function SetupDetail({ definition, busy, onAction }: { definition: ReportDefinit
   return <aside className="report-setup-detail" aria-label="Selected report setup">
     <div className="report-setup-detail__heading">
       <div>
-        <span className="eyebrow">Selected setup</span>
         <h3>{definition.name}</h3>
         <p>{setupSummary(definition)}</p>
       </div>
@@ -293,7 +290,6 @@ function SetupDetail({ definition, busy, onAction }: { definition: ReportDefinit
       {action && <Button variant="primary" isLoading={busy} onPress={() => onAction(action.action)}>{action.label}</Button>}
       {definition.status === "ACTIVE" && <Button variant="quiet" isLoading={busy} onPress={() => onAction("retire")}>Retire setup</Button>}
     </div>
-    <small className="report-setup-detail__audit">Approval and change history is recorded automatically for audit.</small>
   </aside>;
 }
 
@@ -305,11 +301,11 @@ function nextSetupAction(status: ReportDefinitionStatus): { action: ReportDefini
 }
 
 function setupGuidance(status: ReportDefinitionStatus) {
-  if (status === "DRAFT") return "This setup is saved but not yet available for report generation.";
-  if (status === "PENDING_REVIEW") return "An independent reviewer needs to confirm the setup before activation.";
-  if (status === "REVIEWED") return "Review is complete. An authorized approver can make this setup available.";
-  if (status === "ACTIVE") return "Ready. This setup now appears under Generate report.";
-  return "This setup is retired and no longer available for new reports.";
+  if (status === "DRAFT") return "Send for review.";
+  if (status === "PENDING_REVIEW") return "Awaiting review.";
+  if (status === "REVIEWED") return "Ready to activate.";
+  if (status === "ACTIVE") return "Ready to generate.";
+  return "Retired.";
 }
 
 function setupSummary(definition: ReportDefinition) {
@@ -334,16 +330,16 @@ function setupStatusTone(status: ReportDefinitionStatus): StatusTone {
 
 function transitionMessage(action: ReportDefinitionAction) {
   if (action === "submit") return "Sent for review.";
-  if (action === "review") return "Review recorded. The setup is ready for activation.";
-  if (action === "activate") return "Setup activated. It is now available from Generate report.";
+  if (action === "review") return "Review recorded.";
+  if (action === "activate") return "Activated.";
   if (action === "retire") return "Setup retired.";
   return "Report setup updated.";
 }
 
 function transitionFailure(action: ReportDefinitionAction) {
-  if (action === "review") return "This review must be completed by an authorized independent reviewer.";
-  if (action === "activate") return "This activation must be completed by an authorized approver.";
-  return "This report setup action could not be completed.";
+  if (action === "review") return "Independent reviewer required.";
+  if (action === "activate") return "Authorized approver required.";
+  return "Action failed.";
 }
 
 function readCommandError(error: unknown, fallback: string) {
