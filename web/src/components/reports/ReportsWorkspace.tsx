@@ -7,6 +7,7 @@ import {
 } from "../../reportingApi";
 import type { ReportDataset, ReportDefinition, ReportRun } from "../../reportingTypes";
 import { ReportingPage } from "../ReportingPage";
+import { reportSetupFocus, reportSetupFocusLabel } from "./reportTemplatePresets";
 import {
   Button,
   DataTable,
@@ -61,8 +62,10 @@ export function ReportsWorkspace({
   const [runs, setRuns] = useState<ReportRun[]>([]);
   const [nextCursor, setNextCursor] = useState<string>();
   const [loadingOlder, setLoadingOlder] = useState(false);
-  const [state, setState] = useState<LoadState>("loading");
-  const [error, setError] = useState<string>();
+  const [runState, setRunState] = useState<LoadState>("loading");
+  const [runError, setRunError] = useState<string>();
+  const [definitionState, setDefinitionState] = useState<LoadState>("loading");
+  const [definitionError, setDefinitionError] = useState<string>();
   const [refreshKey, setRefreshKey] = useState(0);
   const [query, setQuery] = useState("");
   const [area, setArea] = useState<ReportArea>("ALL");
@@ -76,21 +79,30 @@ export function ReportsWorkspace({
 
   useEffect(() => {
     const controller = new AbortController();
-    setState("loading");
-    setError(undefined);
-    void Promise.all([
+    setRunState("loading");
+    setDefinitionState("loading");
+    setRunError(undefined);
+    setDefinitionError(undefined);
+    void Promise.allSettled([
       loadDefinitions(true, controller.signal),
       loadRunPage({ limit: 50 }, controller.signal),
-    ]).then(([nextDefinitions, runPage]) => {
+    ]).then(([definitionResult, runResult]) => {
       if (controller.signal.aborted) return;
-      setDefinitions(nextDefinitions);
-      setRuns(runPage.items);
-      setNextCursor(runPage.next_cursor);
-      setState("live");
-    }).catch((reason: unknown) => {
-      if (controller.signal.aborted || isAbortError(reason)) return;
-      setState("error");
-      setError(readError(reason, "Reports could not be loaded. Check the connection and try again."));
+      if (definitionResult.status === "fulfilled") {
+        setDefinitions(definitionResult.value);
+        setDefinitionState("live");
+      } else if (!isAbortError(definitionResult.reason)) {
+        setDefinitionState("error");
+        setDefinitionError(readError(definitionResult.reason, "Saved report setups are temporarily unavailable."));
+      }
+      if (runResult.status === "fulfilled") {
+        setRuns(runResult.value.items);
+        setNextCursor(runResult.value.next_cursor);
+        setRunState("live");
+      } else if (!isAbortError(runResult.reason)) {
+        setRunState("error");
+        setRunError(readError(runResult.reason, "Generated reports could not be loaded. Try again."));
+      }
     });
     return () => controller.abort();
   }, [loadDefinitions, loadRunPage, refreshKey]);
@@ -140,7 +152,7 @@ export function ReportsWorkspace({
   const failedCount = runs.filter((run) => run.status === "FAILED").length;
 
   useEffect(() => {
-    if (tab !== "library" || state !== "live" || runningCount === 0) return;
+    if (tab !== "library" || runState !== "live" || runningCount === 0) return;
     const controller = new AbortController();
     const refreshTimer = window.setTimeout(() => {
       void loadRunPage({ limit: 50 }, controller.signal).then((page) => {
@@ -156,7 +168,7 @@ export function ReportsWorkspace({
       window.clearTimeout(refreshTimer);
       controller.abort();
     };
-  }, [loadRunPage, runningCount, state, tab]);
+  }, [loadRunPage, runState, runningCount, tab]);
 
   function refresh() {
     setRefreshKey((value) => value + 1);
@@ -222,7 +234,7 @@ export function ReportsWorkspace({
       header: "Report",
       render: (run) => {
         const definition = definitionsByID.get(run.definition_id);
-        return <span className="reports-library__name"><strong>{definition?.name || humanizeCode(run.definition_code)}</strong><small>{run.definition_code}</small></span>;
+        return <span className="reports-library__name"><strong>{definition?.name || humanizeCode(run.definition_code)}</strong></span>;
       },
       accessibleText: (run) => definitionsByID.get(run.definition_id)?.name || run.definition_code,
     },
@@ -277,15 +289,15 @@ export function ReportsWorkspace({
         <p>One place for generated reports across vendors, programs and work.</p>
       </div>
       {tab === "library" && <div className="reports-workspace__actions">
-        <Button variant="secondary" onPress={refresh} isLoading={state === "loading"}>Refresh</Button>
-        <Button variant="primary" onPress={() => setGenerateOpen(true)}>Generate report</Button>
+        <Button variant="secondary" onPress={refresh} isLoading={runState === "loading" || definitionState === "loading"}>Refresh</Button>
+        <Button variant="primary" isDisabled={definitionState === "error"} onPress={() => setGenerateOpen(true)}>Generate report</Button>
       </div>}
     </header>
 
     <Tabs
       ariaLabel="Reports workspace"
       compactLabel="Reports view"
-      items={[{ id: "library", label: "Generated reports" }, { id: "templates", label: "Templates" }]}
+      items={[{ id: "library", label: "Generated reports" }, { id: "templates", label: "Saved setups" }]}
       selectedKey={tab}
       onSelectionChange={setTab}
     >
@@ -299,18 +311,19 @@ export function ReportsWorkspace({
 
           {commandMessage && <Notice tone="success"><span>{commandMessage}</span></Notice>}
           {commandError && <Notice tone="error"><span>{commandError}</span></Notice>}
+          {definitionState === "error" && <Notice tone="warning"><span>{definitionError || "Saved report setups are temporarily unavailable. Existing generated reports remain accessible."}</span></Notice>}
 
           <div className="reports-library__toolbar">
-            <SearchField label="Search generated reports" value={query} onChange={setQuery} placeholder="Search reports" isLoading={state === "loading"} />
+            <SearchField label="Search generated reports" value={query} onChange={setQuery} placeholder="Search reports" isLoading={runState === "loading"} />
             <SelectField label="Area" value={area} placeholder="All reports" options={areaOptions} allowsEmpty={false} onChange={(value) => setArea((value || "ALL") as ReportArea)} />
           </div>
 
-          {state === "error" && <Notice tone="error"><span>{error}</span> <Button variant="secondary" size="compact" onPress={refresh}>Retry</Button></Notice>}
-          {state === "loading" && runs.length === 0 && <p className="reports-library__loading" role="status">Loading generated reports…</p>}
-          {state === "live" && filteredRuns.length === 0 && <EmptyState
+          {runState === "error" && <Notice tone="error"><span>{runError}</span> <Button variant="secondary" size="compact" onPress={refresh}>Retry</Button></Notice>}
+          {runState === "loading" && runs.length === 0 && <p className="reports-library__loading" role="status">Loading generated reports…</p>}
+          {runState === "live" && filteredRuns.length === 0 && <EmptyState
             population={area === "ALL" ? "generated reports" : reportDatasetLabel(area)}
             title={runs.length ? "No reports match this view" : "No generated reports yet"}
-            description={runs.length ? "Change the search or area filter to see other generated reports." : "Generate a report from an approved template. Completed files will remain visible here with their generation history."}
+            description={runs.length ? "Change the search or area filter to see other generated reports." : "Generate a report from a ready saved setup. Completed files stay here with their history."}
           />}
           {filteredRuns.length > 0 && <DataTable
             ariaLabel="Generated reports"
@@ -320,7 +333,7 @@ export function ReportsWorkspace({
             columns={columns}
             onRowAction={setSelectedRun}
             rowActionLabel="View"
-            isLoading={state === "loading"}
+            isLoading={runState === "loading"}
           />}
           {nextCursor && <div className="reports-library__history-footer">
             <Button variant="secondary" isLoading={loadingOlder} onPress={() => void loadOlderReports()}>Load older reports</Button>
@@ -341,8 +354,8 @@ export function ReportsWorkspace({
       <div className="reports-generate">
         <div className="reports-generate__heading">
           <span className="eyebrow">New report</span>
-          <h2>Generate from an approved template</h2>
-          <p>Choose the business area, then select the governed report template to run.</p>
+          <h2>Generate report</h2>
+          <p>Choose an area and a saved setup. ClearSight handles the protected data snapshot and file generation.</p>
         </div>
         <SelectField
           label="Area"
@@ -354,9 +367,9 @@ export function ReportsWorkspace({
         />
         {activeGenerationDefinitions.length > 0 ? <>
           <SelectField
-            label="Report template"
+            label="Saved setup"
             value={generationDefinitionID}
-            placeholder="Choose a report template"
+            placeholder="Choose a saved setup"
             options={activeGenerationDefinitions.map((definition) => ({ id: definition.id, label: definition.name }))}
             allowsEmpty={false}
             onChange={setGenerationDefinitionID}
@@ -370,10 +383,10 @@ export function ReportsWorkspace({
         </> : <div className="reports-generate__empty">
           <EmptyState
             population={reportDatasetLabel(generationArea)}
-            title={`No active ${reportDatasetLabel(generationArea).toLowerCase()} report template`}
-            description="A report template must be reviewed and active before it can generate a governed file."
+            title={`No ready ${reportDatasetLabel(generationArea).toLowerCase()} setup`}
+            description="Create a simple saved setup, then complete its review so it can be reused here."
           />
-          <Button variant="primary" onPress={openTemplates}>Manage report templates</Button>
+          <Button variant="primary" onPress={openTemplates}>Create saved setup</Button>
         </div>}
       </div>
     </FocusedSheet>}
@@ -401,9 +414,7 @@ function ReportTemplateSummary({ definition }: { definition?: ReportDefinition }
   if (!definition) return null;
   return <dl className="reports-generate__summary">
     <div><dt>Area</dt><dd>{reportDatasetLabel(definition.dataset)}</dd></div>
-    <div><dt>Format</dt><dd>{definition.format}</dd></div>
-    <div><dt>Scope</dt><dd>{definition.scope_kind === "LEGAL_ENTITY" ? "Current legal entity" : humanizeCode(definition.scope_kind)}</dd></div>
-    <div><dt>Version</dt><dd>{definition.current_version}</dd></div>
+    <div><dt>Shows</dt><dd>{reportSetupFocusLabel(reportSetupFocus(definition))}</dd></div>
   </dl>;
 }
 
@@ -413,7 +424,7 @@ function ReportRunDetails({ run, definition, downloading, onDownload }: { run: R
     <div>
       <span className="eyebrow">{reportDatasetLabel(run.dataset)}</span>
       <h2>{definition?.name || humanizeCode(run.definition_code)}</h2>
-      <p>{run.definition_code} · version {run.definition_version}</p>
+      <p>Protected snapshot generated from the saved report setup.</p>
     </div>
     <StatusBadge tone={runStatusTone(run)}>{runStatusLabel(run)}</StatusBadge>
     <dl>
@@ -423,8 +434,6 @@ function ReportRunDetails({ run, definition, downloading, onDownload }: { run: R
       <div><dt>Rows</dt><dd>{run.status === "READY" ? run.row_count.toLocaleString() : "—"}</dd></div>
       <div><dt>Format</dt><dd>{run.format}</dd></div>
       <div><dt>Expires</dt><dd>{formatDateTime(run.expires_at)}</dd></div>
-      <div><dt>Source version</dt><dd>{run.source_boundary.projection_version}</dd></div>
-      <div><dt>Population</dt><dd>{run.source_boundary.population.toLocaleString()}{run.source_boundary.population_complete ? "" : " · bounded source"}</dd></div>
     </dl>
     {run.failure_code && <Notice tone="error"><span>Generation stopped: {humanizeCode(run.failure_code)}</span></Notice>}
     <div className="report-run-details__footer">
