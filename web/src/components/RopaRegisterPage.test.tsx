@@ -54,6 +54,7 @@ function activity(overrides: Partial<ProcessingActivity> = {}): ProcessingActivi
     start_date: "2024-01-01",
     next_review_date: "2026-10-01",
     owner_principal_id: "owner-1",
+    owner_display_name: "Amina Okafor",
     version: 4,
     created_at: "2024-01-01T08:00:00Z",
     updated_at: "2026-09-20T08:00:00Z",
@@ -125,6 +126,8 @@ it("renders one register row per activity with working-language status", async (
   const secondRow = within(table).getByRole("row", { name: /Card payment notices/ });
   const thirdRow = within(table).getByRole("row", { name: /Archived payroll import/ });
   expect(within(firstRow).getByText("In progress")).toBeTruthy();
+  expect(within(firstRow).getByText("Amina Okafor")).toBeTruthy();
+  expect(within(firstRow).queryByText("owner-1")).toBeNull();
   expect(within(secondRow).getByText("Not started")).toBeTruthy();
   expect(within(thirdRow).getByText("Complete")).toBeTruthy();
   expect(screen.queryByText("OPEN")).toBeNull();
@@ -136,17 +139,16 @@ it("shows the empty population and the next action when no activities match", as
   api.listProcessingActivities.mockResolvedValue({ rows: [], has_more: false });
   render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities}/>);
 
-  expect(await screen.findByText("No processing activities recorded in this legal entity yet")).toBeTruthy();
-  expect(screen.getByText(/next valid action/i)).toBeTruthy();
-  expect(screen.getByText(/add the first processing activity/i)).toBeTruthy();
+  expect(await screen.findByText("No activities")).toBeTruthy();
+  expect(screen.getByText("Add the first processing activity.")).toBeTruthy();
 });
 
 it("shows a retry that reloads a failed register read", async () => {
   api.listProcessingActivities.mockRejectedValueOnce(new Error("offline"));
   render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities}/>);
 
-  expect(await screen.findByText(/processing activity register could not be loaded/i)).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: /retry register/i }));
+  expect(await screen.findByText("Couldn’t load activities.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   expect(await screen.findByText("Customer onboarding")).toBeTruthy();
   expect(api.listProcessingActivities).toHaveBeenCalledTimes(2);
 });
@@ -160,7 +162,7 @@ it("lists every closure blocker and explains why closing is unavailable", async 
   expect(within(blockerPanel).getByText("Named owner")).toBeTruthy();
   expect(within(blockerPanel).getByText("Data subject category")).toBeTruthy();
   expect(within(blockerPanel).getByText("Completed review")).toBeTruthy();
-  expect(within(blockerPanel).getByText(/cannot be closed/i)).toBeTruthy();
+  expect(within(blockerPanel).getByText("Complete all required facts before closing.")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Close processing activity" })).toHaveProperty("disabled", true);
 });
 
@@ -186,14 +188,14 @@ it("shows a visible control that opens each activity's details", async () => {
 it("does not describe the interaction instead of naming the action", async () => {
   render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities} onOpenActivity={vi.fn()}/>);
   await screen.findByRole("row", { name: /Customer onboarding/ });
-  expect(screen.getByText(/Choose View details/)).toBeTruthy();
+  expect(screen.queryByText(/Choose View details/)).toBeNull();
   expect(screen.queryByText(/Double-click/)).toBeNull();
 });
 
 it("opens the governed report workspace from the register", async () => {
   const onOpenReports = vi.fn();
   render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities} onOpenReports={onOpenReports}/>);
-  fireEvent.click(await screen.findByRole("button", { name: "Open reports" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Reports" }));
   expect(onOpenReports).toHaveBeenCalledTimes(1);
 });
 
@@ -201,9 +203,9 @@ it("retries a summary failure without hiding the register read", async () => {
   api.fetchDashboard.mockRejectedValueOnce(new Error("offline"));
   render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities}/>);
 
-  expect(await screen.findByText(/register summary could not be loaded/i)).toBeTruthy();
+  expect(await screen.findByText("Summary unavailable.")).toBeTruthy();
   expect(screen.getByText("Customer onboarding")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: /retry summary/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   await waitFor(() => expect(api.fetchDashboard).toHaveBeenCalledTimes(2));
 });
 
@@ -214,7 +216,7 @@ it("sends search to the register read and clears the active search", async () =>
   const search = screen.getByRole("searchbox", { name: "Search processing activities" });
   fireEvent.change(search, { target: { value: "payments" } });
   await waitFor(() => expect(api.listProcessingActivities).toHaveBeenLastCalledWith(expect.objectContaining({ search: "payments" }), expect.anything()));
-  fireEvent.click(screen.getByRole("button", { name: "Clear register filters" }));
+  fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
   await waitFor(() => expect(api.listProcessingActivities).toHaveBeenLastCalledWith(expect.objectContaining({ search: undefined }), expect.anything()));
 });
 
@@ -238,8 +240,8 @@ it("shows a recoverable error when the activity read fails", async () => {
   render(<RopaActivityPage activityID="activity-1" loadActivity={api.fetchProcessingActivity} loadHistory={api.fetchProcessingActivityHistory}/>);
 
   expect(await screen.findByRole("heading", { name: "Processing activity unavailable" })).toBeTruthy();
-  expect(screen.getByText(/could not be loaded/i)).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Retry activity" }));
+  expect(screen.getByText("Couldn’t load activity.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   expect(await screen.findByRole("heading", { name: "Customer onboarding" })).toBeTruthy();
 });
 
@@ -248,7 +250,7 @@ it("shows the not-found state when the activity is outside the current scope", a
   render(<RopaActivityPage activityID="missing-activity" loadActivity={api.fetchProcessingActivity} loadHistory={api.fetchProcessingActivityHistory}/>);
 
   expect(await screen.findByRole("heading", { name: "Processing activity not found" })).toBeTruthy();
-  expect(screen.getByText(/not available in the current legal entity/i)).toBeTruthy();
+  expect(screen.getByText("Return to the register.")).toBeTruthy();
 });
 
 it("shows stored category sensitivity, cross-border safeguards, systems and review outcomes", async () => {
@@ -260,7 +262,7 @@ it("shows stored category sensitivity, cross-border safeguards, systems and revi
       data_categories: [{ category: "Biometric data", sensitivity: "SENSITIVE_BY_LAW" }],
       recipients: [{ recipient: "Cloud processor", recipient_kind: "EXTERNAL", country_code: "GB", is_cross_border: true, transfer_basis: "STANDARD_CONTRACT_CLAUSES" }],
       systems: [{ system_name: "Customer platform", system_kind: "APPLICATION" }],
-      reviews: [{ id: "review-1", created_at: "2026-01-01T00:00:00Z", due_date: "2026-02-01", completed_at: "2026-01-31T00:00:00Z", outcome: "CONFIRMED", reviewer_principal_id: "reviewer-1" }],
+      reviews: [{ id: "review-1", created_at: "2026-01-01T00:00:00Z", due_date: "2026-02-01", completed_at: "2026-01-31T00:00:00Z", outcome: "CONFIRMED", reviewer_principal_id: "reviewer-1", reviewer_display_name: "Chika Nwosu" }],
     },
   });
   render(<RopaActivityPage activityID="activity-1" loadActivity={api.fetchProcessingActivity} loadHistory={api.fetchProcessingActivityHistory}/>);
@@ -271,6 +273,8 @@ it("shows stored category sensitivity, cross-border safeguards, systems and revi
   expect(screen.getByText("Customer platform")).toBeTruthy();
   expect(screen.getByText("Confirmed")).toBeTruthy();
   expect(screen.getByText("Review completed 31 Jan 2026")).toBeTruthy();
+  expect(screen.getByText("Chika Nwosu")).toBeTruthy();
+  expect(screen.queryByText(/reviewer-1/)).toBeNull();
   expect(screen.queryByText("SENSITIVE_BY_LAW")).toBeNull();
   expect(screen.queryByText("STANDARD_CONTRACT_CLAUSES")).toBeNull();
 });
