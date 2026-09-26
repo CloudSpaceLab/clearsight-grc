@@ -128,9 +128,7 @@ func renderReportSummarySheet(book *excelize.File, title string, asOf time.Time,
 				Categories: fmt.Sprintf("%s!$A$8:$A$%d", reportSummarySheet, lastRow),
 				Values:     fmt.Sprintf("%s!$B$8:$B$%d", reportSummarySheet, lastRow),
 			}},
-			Title: excelize.ChartTitle{
-				Paragraph: []excelize.RichTextRun{{Text: breakdown.Label}},
-			},
+			Title: []excelize.RichTextRun{{Text: breakdown.Label}},
 			PlotArea: excelize.ChartPlotArea{
 				ShowCatName: false,
 				ShowSerName: false,
