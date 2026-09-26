@@ -22,7 +22,7 @@ const unavailableSummary = async (_signal?: AbortSignal): Promise<RegisterSummar
 };
 
 const unavailableActivities = async (_params?: RopaProcessingActivityListParams, _signal?: AbortSignal): Promise<ProcessingActivityPage> => {
-  throw new Error("The processing activity register could not be loaded. Try again.");
+  throw new Error("Couldn’t load processing activities.");
 };
 
 const statusOptions: ReadonlyArray<{ id: ProcessingActivityStatus; label: string }> = [
