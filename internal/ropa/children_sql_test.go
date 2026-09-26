@@ -119,6 +119,24 @@ func TestChildReadBuildersSelectEveryCollectionWithinParentScope(t *testing.T) {
 	}
 }
 
+func TestReadHydrationResolvesPrincipalDisplayNamesInOneBoundedQuery(t *testing.T) {
+	source := normalizeSQL(readPostgresSource(t, "current_postgres.go"))
+	for _, fragment := range []string{
+		"func activityprincipalnamessql() string",
+		"select id::text, display_name from principals where tenant_id = $1::uuid and id=any($2::uuid[])",
+		"addprincipal(activity.ownerprincipalid)",
+		"addprincipal(activity.requiredauthorityprincipalid)",
+		"addprincipal(review.reviewerprincipalid)",
+		"activity.ownerdisplayname = names[activity.ownerprincipalid]",
+		"activity.requiredauthoritydisplayname = names[activity.requiredauthorityprincipalid]",
+		"activity.reviews[index].reviewerdisplayname = names[activity.reviews[index].reviewerprincipalid]",
+	} {
+		if !strings.Contains(source, fragment) {
+			t.Errorf("principal display-name hydration must contain %q", fragment)
+		}
+	}
+}
+
 func TestChildInsertExecutionBuildsOneStatementPerChildRow(t *testing.T) {
 	source := normalizeSQL(readPostgresSource(t, "postgres.go"))
 	if !strings.Contains(source, "func buildactivitychildinsertstatements(activity processingactivity) []activitychildinsertstatement") {
