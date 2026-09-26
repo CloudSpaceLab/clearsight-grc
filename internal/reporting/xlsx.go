@@ -229,8 +229,8 @@ func renderReportInformationSheet(book *excelize.File, title string, asOf time.T
 
 func reportHeaderStyle(book *excelize.File) (int, error) {
 	style, err := book.NewStyle(&excelize.Style{
-		Font: &excelize.Font{Bold: true, Color: "FFFFFF"},
-		Fill: excelize.Fill{Type: "pattern", Color: []string{"0F766E"}, Pattern: 1},
+		Font:      &excelize.Font{Bold: true, Color: "FFFFFF"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"0F766E"}, Pattern: 1},
 		Alignment: &excelize.Alignment{WrapText: true, Vertical: "center"},
 	})
 	if err != nil {
