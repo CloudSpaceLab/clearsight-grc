@@ -37,7 +37,7 @@ describe("report setup presets", () => {
       format: "XLSX",
       filter: { kind: "group", operator: "and", children: [] },
     });
-    expect(input.code).toMatch(/^VENDORS_OVERVIEW_[0-9A-F]{8}$/);
+    expect(input.code).toMatch(/^VENDOR_OVERVIEW_[0-9A-F]{8}$/);
   });
 
   it("uses exception datasets where the platform already has a canonical outstanding population", () => {
