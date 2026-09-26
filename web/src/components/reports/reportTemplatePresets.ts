@@ -45,7 +45,7 @@ export function reportSetupFocus(definition: ReportDefinition): ReportSetupFocus
 export function buildReportSetupInput(name: string, area: ReportSetupArea, focus: ReportSetupFocus): ReportDefinitionInput {
   const normalizedName = name.trim();
   return {
-    code: reportSetupCode(area, focus),
+    code: reportSetupCode(normalizedName, area, focus),
     name: normalizedName,
     description: setupDescription(area, focus),
     dataset: setupDataset(area, focus),
@@ -100,10 +100,15 @@ function setupDescription(area: ReportSetupArea, focus: ReportSetupFocus) {
     : `Current ${subject} overview for the legal entity.`;
 }
 
-function reportSetupCode(area: ReportSetupArea, focus: ReportSetupFocus) {
-  const prefix = `${area === "PROCESSING" ? "PROCESSING" : area}_${focus}`;
+function reportSetupCode(name: string, area: ReportSetupArea, focus: ReportSetupFocus) {
+  const readable = name
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  const fallback = `${area === "PROCESSING" ? "PROCESSING" : area}_${focus}`;
+  const base = readable.length >= 3 ? readable : fallback;
   const suffix = randomSuffix();
-  return `${prefix.slice(0, 38)}_${suffix}`;
+  return `${base.slice(0, 39).replace(/_+$/g, "")}_${suffix}`;
 }
 
 function randomSuffix() {
