@@ -169,7 +169,7 @@ export function ReportingPage({
       <div>
         <span className="eyebrow">{organizationName || "ClearSight"} · {legalEntityName || "Current legal entity"}</span>
         <h2 id={embedded ? undefined : "report-setup-heading"}>Saved report setups</h2>
-        <p>Save what you want to see. ClearSight handles the data scope, security, source boundary and spreadsheet structure automatically.</p>
+        <p>Save a reusable report view. Choose the business area and what you want to see; ClearSight handles the rest.</p>
       </div>
       <div className="report-setup-actions">
         {onBack && <Button variant="secondary" onPress={onBack}>Generated reports</Button>}
@@ -192,7 +192,7 @@ export function ReportingPage({
       <div className="report-setup-create__heading">
         <span className="eyebrow">New saved setup</span>
         <h3 id="new-report-setup-heading">What should this report show?</h3>
-        <p>No dataset IDs, report codes, file formats or effective dates to configure.</p>
+        <p>Choose an overview or focus on exceptions and outstanding items.</p>
       </div>
 
       <TextField
@@ -233,7 +233,7 @@ export function ReportingPage({
       <div className="report-setup-create__preview">
         <span>ClearSight will prepare</span>
         <strong>{reportSetupAreaLabel(area)} · {reportSetupFocusLabel(focus)}</strong>
-        <small>Current legal entity · Excel workbook · protected report history</small>
+        <small>Summary · chart · supporting detail</small>
       </div>
 
       <div className="report-setup-create__footer">
