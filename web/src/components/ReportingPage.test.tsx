@@ -113,7 +113,7 @@ describe("ReportingPage saved setups", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "New setup" }));
     expect(screen.getByRole("heading", { name: "What should this report show?" })).toBeTruthy();
-    expect(screen.getByText(/No dataset IDs, report codes, file formats or effective dates/i)).toBeTruthy();
+    expect(screen.getByText(/Choose an overview or focus on exceptions and outstanding items/i)).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: "Board vendor summary" } });
     fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
