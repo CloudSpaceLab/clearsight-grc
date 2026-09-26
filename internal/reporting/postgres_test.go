@@ -228,6 +228,23 @@ func TestDefinitionReadsNeverExposeAnotherLegalEntity(t *testing.T) {
 	}
 }
 
+func TestListRunHistoryFirstPageAcceptsEmptyCursor(t *testing.T) {
+	fixture := newReportingPostgresFixture(t)
+	definition, _ := fixture.proposal(t, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())
+	run := fixture.createRun(t, definition, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())
+
+	page, err := fixture.repository.ListRunHistory(context.Background(), fixture.scope, "", "", 50)
+	if err != nil {
+		t.Fatalf("list first report history page: %v", err)
+	}
+	if len(page.Items) != 1 || page.Items[0].ID != run.ID {
+		t.Fatalf("first report history page = %#v, want run %s", page.Items, run.ID)
+	}
+	if page.NextCursor != "" {
+		t.Fatalf("single-run first page returned cursor %q", page.NextCursor)
+	}
+}
+
 func TestClaimQueuedRunsLeasesExactlyOnce(t *testing.T) {
 	fixture := newReportingPostgresFixture(t)
 	definition, _ := fixture.proposal(t, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())

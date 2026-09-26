@@ -17,7 +17,7 @@ type PageState = "loading" | "live" | "not-found" | "error";
 type HistoryState = "loading" | "live" | "error";
 
 const unavailableActivity = async (_id?: string, _signal?: AbortSignal): Promise<ProcessingActivityResponse> => {
-  throw new Error("The processing activity could not be loaded. Try again.");
+  throw new Error("Couldn’t load processing activity.");
 };
 
 const emptyHistory = async (_id?: string, _params?: RopaProcessingActivityHistoryParams, _signal?: AbortSignal): Promise<ProcessingActivityHistoryResponse> => ({ events: [], has_more: false });
@@ -76,14 +76,13 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
   if (state === "loading") return <section className="ropa-activity-page" aria-busy="true">
     <Button variant="quiet" onPress={goBack}>Back to register</Button>
     <h1>Loading processing activity</h1>
-    <p role="status">The processing activity record is being loaded for this legal entity.</p>
   </section>;
 
   if (state === "not-found") return <section className="ropa-activity-page" aria-label="Processing activity not found">
     <EmptyState
       population="Processing activities in this legal entity"
       title="Processing activity not found"
-      description="This processing activity is not available in the current legal entity. Return to the register and choose another activity."
+      description="Return to the register."
       action={<Button onPress={goBack}>Back to register</Button>}
     />
   </section>;
@@ -91,7 +90,7 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
   if (state === "error" || !response) return <section className="ropa-activity-page" aria-labelledby="ropa-activity-error">
     <h1 id="ropa-activity-error">Processing activity unavailable</h1>
     <Notice tone="error">
-      <span>The processing activity could not be loaded. Check the connection and access, then try again.</span> <Button variant="secondary" size="compact" onPress={retryLoads}>Retry activity</Button>
+      <span>Couldn’t load processing activity.</span> <Button variant="secondary" size="compact" onPress={retryLoads}>Retry</Button>
     </Notice>
     <Button variant="quiet" onPress={goBack}>Back to register</Button>
   </section>;
@@ -105,8 +104,8 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
     <header className="topbar ropa-page-header">
       <div>
         <span className="eyebrow">{organizationName || "Processing activity register"} · {scope}</span>
-        <h1 id="ropa-activity-heading">{activity.name || "Processing activity name not recorded"}</h1>
-        <p>{activity.code ? `Activity code ${activity.code}` : "Activity code not recorded"} · Current record version {activity.version}</p>
+        <h1 id="ropa-activity-heading">{activity.name || "Unnamed activity"}</h1>
+        <p>{activity.code || "No code"} · v{activity.version}</p>
       </div>
       <div className="topbar-actions">
         <StatusBadge tone={activityStatusTone(activity.status)}>{activityStatusLabel(activity.status)}</StatusBadge>
@@ -120,19 +119,19 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
       <div className="ropa-closure-blockers__heading">
         <StatusBadge tone="warning">Closure blocked</StatusBadge>
         <h2 id="ropa-closure-blockers-heading">Complete these facts before closing</h2>
-        <p id={descriptionID}>This processing activity cannot be closed until the register records all four required facts. Complete each item below, then reopen the activity and check the closure state.</p>
+        <p id={descriptionID}>Complete all required facts.</p>
       </div>
       <ul className="ropa-closure-blockers__list">
         {blockers.map((blocker) => <li key={blocker}><strong>{blockerLabel(blocker)}</strong><span>{blockerInstruction(blocker)}</span></li>)}
       </ul>
       <div className="ropa-closure-blockers__action">
         <Button variant="primary" isDisabled aria-describedby={descriptionID}>Close processing activity</Button>
-        <span>Closing is unavailable until the blockers above are recorded.</span>
+        <span>Resolve blockers first.</span>
       </div>
-    </section> : <Notice tone="success">The four closure facts are recorded. Closing is not available from this screen; use the governed activity workflow after the required facts are recorded.</Notice>}
+    </section> : <Notice tone="success">Closure checks passed.</Notice>}
 
     <section className="ropa-activity-facts" aria-labelledby="ropa-facts-heading">
-      <div className="section-header"><div><h2 id="ropa-facts-heading">Processing activity facts</h2><p>These facts describe the processing activity stored for {scope}.</p></div></div>
+      <div className="section-header"><div><h2 id="ropa-facts-heading">Processing activity facts</h2></div></div>
       <dl className="ropa-fact-grid">
         <Fact label="Purpose" value={recordedValue(activity.purpose)}/>
         <Fact label="Lawful basis" value={recordedValue(activity.lawful_basis)}/>
@@ -146,8 +145,8 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
         <Fact label="Start date" value={dateOrNotRecorded(activity.start_date, "start date")}/>
         <Fact label="End date" value={dateOrNotRecorded(activity.end_date, "end date")}/>
         <Fact label="Next review" value={<ReviewDate value={activity.next_review_date}/>} />
-        <Fact label="Accountable owner" value={activity.owner_principal_id || "Not recorded"}/>
-        <Fact label="Required authority" value={activity.required_authority_principal_id || "Not recorded"}/>
+        <Fact label="Accountable owner" value={principalLabel(activity.owner_display_name, activity.owner_principal_id)}/>
+        <Fact label="Required authority" value={principalLabel(activity.required_authority_display_name, activity.required_authority_principal_id)}/>
       </dl>
     </section>
 
@@ -158,14 +157,14 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
     </div>
 
     <section className="ropa-review-history" aria-labelledby="ropa-review-heading">
-      <div className="section-header"><div><h2 id="ropa-review-heading">Review history</h2><p>Review dates and outcomes recorded for this processing activity.</p></div></div>
+      <div className="section-header"><div><h2 id="ropa-review-heading">Review history</h2></div></div>
       <Reviews reviews={activity.reviews ?? []} activityName={activity.name}/>
     </section>
 
     <section className="ropa-change-history" aria-labelledby="ropa-change-heading">
-      <div className="section-header"><div><h2 id="ropa-change-heading">Change history</h2><p>Recorded changes to this processing activity.</p></div></div>
-      {historyState === "loading" && <p className="ropa-load-state" role="status">Loading recorded changes…</p>}
-      {historyState === "error" && <Notice tone="error"><span>The processing activity change history could not be loaded. Review the current facts and try again.</span> <Button variant="secondary" size="compact" onPress={retryLoads}>Retry history</Button></Notice>}
+      <div className="section-header"><div><h2 id="ropa-change-heading">Change history</h2></div></div>
+      {historyState === "loading" && <p className="ropa-load-state" role="status">Loading history…</p>}
+      {historyState === "error" && <Notice tone="error"><span>Couldn’t load history.</span> <Button variant="secondary" size="compact" onPress={retryLoads}>Retry</Button></Notice>}
       {historyState === "live" && history && <History events={history.events} hasMore={history.has_more} activityName={activity.name}/>}
     </section>
   </section>;
@@ -179,7 +178,7 @@ function DataCategories({ activity }: { activity: ProcessingActivity }) {
   const categories = activity.data_categories ?? [];
   return <section className="ropa-activity-list" aria-labelledby="ropa-data-categories-heading">
     <h2 id="ropa-data-categories-heading">Personal data categories</h2>
-    {categories.length > 0 ? <ul>{categories.map((category) => <li key={category.category}><strong>{category.category}</strong><StatusBadge tone={sensitivityTone(category.sensitivity)}>{sensitivityLabel(category.sensitivity)}</StatusBadge></li>)}</ul> : <EmptyState population={`Personal data categories for ${activity.name || "this processing activity"}`} title="No data categories recorded" description="Record the categories of personal data processed by this activity so the privacy review can assess the stored processing facts."/>}
+    {categories.length > 0 ? <ul>{categories.map((category) => <li key={category.category}><strong>{category.category}</strong><StatusBadge tone={sensitivityTone(category.sensitivity)}>{sensitivityLabel(category.sensitivity)}</StatusBadge></li>)}</ul> : <EmptyState population={`Personal data categories for ${activity.name || "this processing activity"}`} title="No data categories" description="Add data categories."/>}
   </section>;
 }
 
@@ -187,7 +186,7 @@ function Recipients({ activity }: { activity: ProcessingActivity }) {
   const recipients = activity.recipients ?? [];
   return <section className="ropa-activity-list" aria-labelledby="ropa-recipients-heading">
     <h2 id="ropa-recipients-heading">Recipients and transfers</h2>
-    {recipients.length > 0 ? <ul>{recipients.map((recipient) => <RecipientRow key={recipient.recipient} recipient={recipient}/>)}</ul> : <EmptyState population={`Recipients for ${activity.name || "this processing activity"}`} title="No recipients recorded" description="Record who receives personal data from this activity, including any cross-border country and safeguard."/>}
+    {recipients.length > 0 ? <ul>{recipients.map((recipient) => <RecipientRow key={recipient.recipient} recipient={recipient}/>)}</ul> : <EmptyState population={`Recipients for ${activity.name || "this processing activity"}`} title="No recipients" description="Add recipients where applicable."/>}
   </section>;
 }
 
@@ -195,7 +194,7 @@ function RecipientRow({ recipient }: { recipient: Recipient }) {
   return <li>
     <strong>{recipient.recipient || "Recipient name not recorded"}</strong>
     <span>{recipientKindLabel(recipient.recipient_kind)}</span>
-    {recipient.is_cross_border ? <small>Country: {recipient.country_code || "Not recorded"} · Safeguard: {transferBasisLabel(recipient.transfer_basis)}</small> : <small>No cross-border transfer recorded.</small>}
+    {recipient.is_cross_border ? <small>Country: {recipient.country_code || "Not recorded"} · Safeguard: {transferBasisLabel(recipient.transfer_basis)}</small> : <small>No cross-border transfer</small>}
   </li>;
 }
 
@@ -203,24 +202,24 @@ function Systems({ activity }: { activity: ProcessingActivity }) {
   const systems = activity.systems ?? [];
   return <section className="ropa-activity-list" aria-labelledby="ropa-systems-heading">
     <h2 id="ropa-systems-heading">Systems</h2>
-    {systems.length > 0 ? <ul>{systems.map((system) => <li key={system.system_name}><strong>{system.system_name || "System name not recorded"}</strong><span>{systemKindLabel(system.system_kind)}</span></li>)}</ul> : <EmptyState population={`Systems for ${activity.name || "this processing activity"}`} title="No systems recorded" description="Record the applications, databases or manual processes that support this processing activity."/>}
+    {systems.length > 0 ? <ul>{systems.map((system) => <li key={system.system_name}><strong>{system.system_name || "System name not recorded"}</strong><span>{systemKindLabel(system.system_kind)}</span></li>)}</ul> : <EmptyState population={`Systems for ${activity.name || "this processing activity"}`} title="No systems" description="Add supporting systems."/>}
   </section>;
 }
 
 function Reviews({ reviews, activityName }: { reviews: Review[]; activityName: string }) {
-  if (reviews.length === 0) return <EmptyState population={`Review history for ${activityName || "this processing activity"}`} title="No review history recorded" description="No review cycle or completed outcome is recorded for this activity. Record a review before treating its next review date as complete."/>;
+  if (reviews.length === 0) return <EmptyState population={`Review history for ${activityName || "this processing activity"}`} title="No reviews" description="Record a review."/>;
   return <ul className="ropa-review-list">{reviews.map((review) => <li key={review.id}>
     <div><strong>{review.completed_at ? `Review completed ${formatActivityDate(review.completed_at)}` : `Review due ${formatActivityDate(review.due_date)}`}</strong><StatusBadge tone={reviewTone(review)}>{reviewStatusLabel(review)}</StatusBadge></div>
     <span>{review.outcome ? `Outcome: ${outcomeLabel(review.outcome)}` : "Outcome not recorded"}</span>
-    <small>{review.reviewer_principal_id ? `Reviewer principal ${review.reviewer_principal_id}` : "Reviewer not recorded"}</small>
+    <small>{principalLabel(review.reviewer_display_name, review.reviewer_principal_id, "No reviewer")}</small>
   </li>)}</ul>;
 }
 
 function History({ events, hasMore, activityName }: { events: ProcessingActivityHistoryResponse["events"]; hasMore: boolean; activityName: string }) {
-  if (events.length === 0) return <EmptyState population={`Recorded changes for ${activityName || "this processing activity"}`} title="No processing activity history recorded" description="No recorded changes were returned for this activity in the history checked."/>;
+  if (events.length === 0) return <EmptyState population={`Recorded changes for ${activityName || "this processing activity"}`} title="No history" description="No changes recorded."/>;
   return <>
     <ol className="ropa-history-list">{events.map((event) => <li key={event.id}><strong>{eventTypeLabel(event.type)}</strong><span>{formatActivityDate(event.occurred_at)}</span><small>Record version {event.aggregate_version}</small></li>)}</ol>
-    {hasMore && <p className="ropa-load-state">More recorded changes are available beyond the history checked here.</p>}
+    {hasMore && <p className="ropa-load-state">More history available.</p>}
   </>;
 }
 
@@ -229,7 +228,13 @@ function ReviewDate({ value }: { value?: string }) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return <span>Review date unavailable</span>;
   const overdue = new Date(value).getTime() < startOfToday().getTime();
-  return <StatusBadge tone={overdue ? "error" : "info"}>{overdue ? `Overdue · ${formatActivityDate(value)}` : `Review due ${formatActivityDate(value)}`}</StatusBadge>;
+  return <StatusBadge tone={overdue ? "error" : "info"}>{overdue ? `Overdue · ${formatActivityDate(value)}` : `Due · ${formatActivityDate(value)}`}</StatusBadge>;
+}
+
+function principalLabel(displayName: string | undefined, principalID: string | undefined, empty = "Not assigned"): string {
+  const name = displayName?.trim();
+  if (name) return name;
+  return principalID ? "Assigned" : empty;
 }
 
 function recordedValue(value: string | undefined): string {
@@ -251,11 +256,11 @@ function blockerLabel(blocker: string): string {
 
 function blockerInstruction(blocker: string): string {
   const normalized = blocker.toLowerCase();
-  if (normalized.includes("lawful")) return "Record the lawful basis for this processing activity before closing it.";
-  if (normalized.includes("owner")) return "Assign the accountable owner for this processing activity before closing it.";
-  if (normalized.includes("subject")) return "Record at least one data subject category before closing this activity.";
-  if (normalized.includes("review")) return "Complete a review with a confirmed or revised outcome before closing this activity.";
-  return "Record this required closure fact before closing this activity.";
+  if (normalized.includes("lawful")) return "Add lawful basis before closing.";
+  if (normalized.includes("owner")) return "Assign an owner before closing.";
+  if (normalized.includes("subject")) return "Add a data subject category before closing.";
+  if (normalized.includes("review")) return "Complete a review before closing.";
+  return "Complete this item before closing.";
 }
 
 function sensitivityLabel(value: string): string {

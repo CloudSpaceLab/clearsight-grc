@@ -226,6 +226,14 @@ WHERE tenant_id = $1::uuid
 ORDER BY activity_id, created_at, id`
 }
 
+func activityPrincipalNamesSQL() string {
+	return `
+SELECT id::text, display_name
+FROM principals
+WHERE tenant_id = $1::uuid
+  AND id=ANY($2::uuid[])`
+}
+
 func loadActivityChildren(ctx context.Context, queryer activityChildQueryer, activity *ProcessingActivity) error {
 	if activity == nil {
 		return ErrInvalid
@@ -390,6 +398,55 @@ func loadActivityChildrenForScopes(ctx context.Context, queryer activityChildQue
 		return fmt.Errorf("read processing activity reviews: %w", err)
 	}
 	reviewRows.Close()
+
+	principalIDs := make([]string, 0, len(activities)*2)
+	seenPrincipals := make(map[string]struct{}, len(activities)*2)
+	addPrincipal := func(id string) {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			return
+		}
+		if _, exists := seenPrincipals[id]; exists {
+			return
+		}
+		seenPrincipals[id] = struct{}{}
+		principalIDs = append(principalIDs, id)
+	}
+	for _, activity := range byID {
+		addPrincipal(activity.OwnerPrincipalID)
+		addPrincipal(activity.RequiredAuthorityPrincipalID)
+		for _, review := range activity.Reviews {
+			addPrincipal(review.ReviewerPrincipalID)
+		}
+	}
+	if len(principalIDs) > 0 {
+		principalRows, err := queryer.Query(ctx, activityPrincipalNamesSQL(), tenantID, principalIDs)
+		if err != nil {
+			return fmt.Errorf("read processing activity principal names: %w", err)
+		}
+		names := make(map[string]string, len(principalIDs))
+		for principalRows.Next() {
+			var id, displayName string
+			if err := principalRows.Scan(&id, &displayName); err != nil {
+				principalRows.Close()
+				return fmt.Errorf("scan processing activity principal name: %w", err)
+			}
+			names[id] = strings.TrimSpace(displayName)
+		}
+		if err := principalRows.Err(); err != nil {
+			principalRows.Close()
+			return fmt.Errorf("read processing activity principal names: %w", err)
+		}
+		principalRows.Close()
+
+		for _, activity := range byID {
+			activity.OwnerDisplayName = names[activity.OwnerPrincipalID]
+			activity.RequiredAuthorityDisplayName = names[activity.RequiredAuthorityPrincipalID]
+			for index := range activity.Reviews {
+				activity.Reviews[index].ReviewerDisplayName = names[activity.Reviews[index].ReviewerPrincipalID]
+			}
+		}
+	}
 
 	for _, activity := range byID {
 		*activity = normalizeProcessingActivity(*activity)

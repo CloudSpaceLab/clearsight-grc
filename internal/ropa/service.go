@@ -431,7 +431,7 @@ func (s *Service) now() time.Time {
 }
 
 func (s *Service) newActivityEvent(activity ProcessingActivity, eventType, actorID string, occurredAt time.Time) (Event, error) {
-	payload, err := json.Marshal(activity)
+	payload, err := json.Marshal(withoutActivityDisplayEnrichment(activity))
 	if err != nil {
 		return Event{}, err
 	}
@@ -457,6 +457,15 @@ func (s *Service) newActivityEvent(activity ProcessingActivity, eventType, actor
 		ActorID:          actorID,
 		OccurredAt:       occurredAt.UTC(),
 	}, nil
+}
+
+func withoutActivityDisplayEnrichment(activity ProcessingActivity) ProcessingActivity {
+	activity.OwnerDisplayName = ""
+	activity.RequiredAuthorityDisplayName = ""
+	for index := range activity.Reviews {
+		activity.Reviews[index].ReviewerDisplayName = ""
+	}
+	return activity
 }
 
 func inputActivityID(activityID, id string) string {

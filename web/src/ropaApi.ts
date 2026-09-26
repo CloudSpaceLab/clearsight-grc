@@ -64,7 +64,7 @@ function normalizeActivityPage(value: ProcessingActivityPagePayload): ActivityPa
 }
 
 export function fetchDashboard(signal?: AbortSignal): Promise<RegisterSummary> {
-  return scopedRequest<RegisterSummary>("/api/v1/ropa/dashboard", {}, signal, "The processing activity register could not be loaded. Try again.");
+  return scopedRequest<RegisterSummary>("/api/v1/ropa/dashboard", {}, signal, "Couldn’t load processing activities.");
 }
 
 export function listProcessingActivities(params: RopaProcessingActivityListParams = {}, signal?: AbortSignal): Promise<ProcessingActivityPage> {
@@ -86,7 +86,7 @@ export function fetchProcessingActivity(id: string, signal?: AbortSignal): Promi
     `/api/v1/ropa/processing-activities/${encodeURIComponent(id)}`,
     {},
     signal,
-    "The processing activity could not be loaded. Try again.",
+    "Couldn’t load processing activity.",
   );
 }
 
@@ -95,6 +95,6 @@ export function fetchProcessingActivityHistory(id: string, params: RopaProcessin
     `/api/v1/ropa/processing-activities/${encodeURIComponent(id)}/history`,
     { after_version: params.after_version, limit: params.limit },
     signal,
-    "The processing activity history could not be loaded. Try again.",
+    "Couldn’t load history.",
   );
 }

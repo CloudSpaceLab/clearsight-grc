@@ -45,7 +45,7 @@ const captures = [
   // that opens an activity's details is proved by a capture scrolled to the
   // rows themselves. Without this the affordance exists in the DOM but is never
   // seen in review evidence.
-  { name: "131a-ropa-register-row-action-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "View details", state: "ropa-register-row-action", scrollIntoViewText: "Choose View details" },
+  { name: "131a-ropa-register-row-action-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "View details", state: "ropa-register-row-action", scrollIntoViewText: "View details" },
   { name: "132-ropa-register-dark-mobile-390x844", route: "#ropa", title: "Processing activity register", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Customer account opening", state: "ropa-register-mobile" },
   { name: "133-ropa-activity-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-activity", openRopaActivity: true },
   { name: "140-report-library-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-library" },

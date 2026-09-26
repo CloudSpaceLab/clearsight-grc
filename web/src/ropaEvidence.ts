@@ -45,7 +45,9 @@ const customerAccountOpening: ProcessingActivity = {
   start_date: "2024-02-12",
   next_review_date: "2027-01-22",
   owner_principal_id: "Somto · BVN and Digital Identity",
+  owner_display_name: "Somto · BVN and Digital Identity",
   required_authority_principal_id: "Amina Yusuf · Head of Data Privacy",
+  required_authority_display_name: "Amina Yusuf · Head of Data Privacy",
   version: 3,
   created_at: "2026-08-14T09:00:00Z",
   updated_at: "2026-09-20T15:30:00Z",
@@ -57,7 +59,7 @@ const customerAccountOpening: ProcessingActivity = {
     { system_name: sampleSystems.bvn, system_kind: "APPLICATION" },
     { system_name: sampleSystems.softToken, system_kind: "APPLICATION" },
   ],
-  reviews: [{ id: "sample-review-account-opening-2026", created_at: "2026-07-26T09:00:00Z", due_date: "2026-08-25", completed_at: "2026-08-18T09:00:00Z", outcome: "CONFIRMED", reviewer_principal_id: "Aminat Yusuf · Independent privacy reviewer" }],
+  reviews: [{ id: "sample-review-account-opening-2026", created_at: "2026-07-26T09:00:00Z", due_date: "2026-08-25", completed_at: "2026-08-18T09:00:00Z", outcome: "CONFIRMED", reviewer_principal_id: "Aminat Yusuf · Independent privacy reviewer", reviewer_display_name: "Aminat Yusuf · Independent privacy reviewer" }],
 };
 
 const loanApplication: ProcessingActivity = {
@@ -80,7 +82,9 @@ const loanApplication: ProcessingActivity = {
   start_date: "2024-05-06",
   next_review_date: "2026-12-23",
   owner_principal_id: "Godspower · Fincore/Coligo",
+  owner_display_name: "Godspower · Fincore/Coligo",
   required_authority_principal_id: "Amina Yusuf · Head of Data Privacy",
+  required_authority_display_name: "Amina Yusuf · Head of Data Privacy",
   version: 5,
   created_at: "2026-08-10T10:00:00Z",
   updated_at: "2026-09-18T11:20:00Z",
@@ -93,7 +97,7 @@ const loanApplication: ProcessingActivity = {
     { system_name: sampleSystems.bvn, system_kind: "APPLICATION" },
     { system_name: sampleSystems.softToken, system_kind: "APPLICATION" },
   ],
-  reviews: [{ id: "sample-review-loan-2026", created_at: "2026-07-26T09:00:00Z", due_date: "2026-08-25", completed_at: "2026-08-18T09:00:00Z", outcome: "CONFIRMED", reviewer_principal_id: "Aminat Yusuf · Independent privacy reviewer" }],
+  reviews: [{ id: "sample-review-loan-2026", created_at: "2026-07-26T09:00:00Z", due_date: "2026-08-25", completed_at: "2026-08-18T09:00:00Z", outcome: "CONFIRMED", reviewer_principal_id: "Aminat Yusuf · Independent privacy reviewer", reviewer_display_name: "Aminat Yusuf · Independent privacy reviewer" }],
 };
 
 const customerServiceChannel: ProcessingActivity = {
@@ -116,7 +120,9 @@ const customerServiceChannel: ProcessingActivity = {
   start_date: "2023-11-20",
   next_review_date: "2026-09-17",
   owner_principal_id: "Tobi · Ringo sms and Card Management",
+  owner_display_name: "Tobi · Ringo sms and Card Management",
   required_authority_principal_id: "Amina Yusuf · Head of Data Privacy",
+  required_authority_display_name: "Amina Yusuf · Head of Data Privacy",
   version: 4,
   created_at: "2026-08-12T08:30:00Z",
   updated_at: "2026-09-17T16:45:00Z",
@@ -129,7 +135,7 @@ const customerServiceChannel: ProcessingActivity = {
     { system_name: sampleSystems.ringo, system_kind: "APPLICATION" },
     { system_name: sampleSystems.card, system_kind: "APPLICATION" },
   ],
-  reviews: [{ id: "sample-review-service-channel-2026", created_at: "2026-07-26T09:00:00Z", due_date: "2026-08-25", completed_at: "2026-08-18T09:00:00Z", outcome: "CONFIRMED", reviewer_principal_id: "Aminat Yusuf · Independent privacy reviewer" }],
+  reviews: [{ id: "sample-review-service-channel-2026", created_at: "2026-07-26T09:00:00Z", due_date: "2026-08-25", completed_at: "2026-08-18T09:00:00Z", outcome: "CONFIRMED", reviewer_principal_id: "Aminat Yusuf · Independent privacy reviewer", reviewer_display_name: "Aminat Yusuf · Independent privacy reviewer" }],
 };
 
 const archivedCustomerRecords: ProcessingActivity = {
@@ -152,7 +158,9 @@ const archivedCustomerRecords: ProcessingActivity = {
   start_date: "2022-03-01",
   end_date: "2026-08-24",
   owner_principal_id: "Tobi · Finacle Treasury",
+  owner_display_name: "Tobi · Finacle Treasury",
   required_authority_principal_id: "Amina Yusuf · Head of Data Privacy",
+  required_authority_display_name: "Amina Yusuf · Head of Data Privacy",
   version: 6,
   created_at: "2026-08-05T09:00:00Z",
   updated_at: "2026-08-31T17:00:00Z",
@@ -161,7 +169,7 @@ const archivedCustomerRecords: ProcessingActivity = {
     { category: "Transaction history", sensitivity: "SENSITIVE_BY_NATURE" },
   ],
   systems: [{ system_name: sampleSystems.finacle, system_kind: "APPLICATION" }],
-  reviews: [{ id: "sample-review-archive-2026", created_at: "2026-07-26T09:00:00Z", due_date: "2026-08-25", completed_at: "2026-08-18T09:00:00Z", outcome: "CONFIRMED", reviewer_principal_id: "Aminat Yusuf · Independent privacy reviewer" }],
+  reviews: [{ id: "sample-review-archive-2026", created_at: "2026-07-26T09:00:00Z", due_date: "2026-08-25", completed_at: "2026-08-18T09:00:00Z", outcome: "CONFIRMED", reviewer_principal_id: "Aminat Yusuf · Independent privacy reviewer", reviewer_display_name: "Aminat Yusuf · Independent privacy reviewer" }],
 };
 
 const paymentsAndTreasury: ProcessingActivity = {
@@ -184,7 +192,9 @@ const paymentsAndTreasury: ProcessingActivity = {
   start_date: "2023-04-01",
   next_review_date: "2026-03-31",
   owner_principal_id: "Hakeem · POS Business",
+  owner_display_name: "Hakeem · POS Business",
   required_authority_principal_id: "Amina Yusuf · Head of Data Privacy",
+  required_authority_display_name: "Amina Yusuf · Head of Data Privacy",
   version: 2,
   created_at: "2026-08-06T09:00:00Z",
   updated_at: "2026-09-20T12:00:00Z",
@@ -201,7 +211,7 @@ const paymentsAndTreasury: ProcessingActivity = {
     { system_name: sampleSystems.cloudspacePOS, system_kind: "THIRD_PARTY" },
     { system_name: sampleSystems.cloudspaceMontgomery, system_kind: "THIRD_PARTY" },
   ],
-  reviews: [{ id: "sample-review-payments-treasury-2026", created_at: "2026-02-02T00:00:00Z", due_date: "2026-03-31", reviewer_principal_id: "Amina Yusuf · Independent privacy reviewer" }],
+  reviews: [{ id: "sample-review-payments-treasury-2026", created_at: "2026-02-02T00:00:00Z", due_date: "2026-03-31", reviewer_principal_id: "Amina Yusuf · Independent privacy reviewer", reviewer_display_name: "Amina Yusuf · Independent privacy reviewer" }],
 };
 
 const securityMonitoring: ProcessingActivity = {
@@ -224,7 +234,9 @@ const securityMonitoring: ProcessingActivity = {
   start_date: "2024-09-24",
   next_review_date: "2026-11-23",
   owner_principal_id: "Sikiru · GRC",
+  owner_display_name: "Sikiru · GRC",
   required_authority_principal_id: "Amina Yusuf · Head of Data Privacy",
+  required_authority_display_name: "Amina Yusuf · Head of Data Privacy",
   version: 2,
   created_at: "2026-08-07T09:00:00Z",
   updated_at: "2026-09-20T12:00:00Z",
@@ -245,7 +257,7 @@ const securityMonitoring: ProcessingActivity = {
     { system_name: sampleSystems.falcon, system_kind: "APPLICATION" },
     { system_name: sampleSystems.entrust, system_kind: "APPLICATION" },
   ],
-  reviews: [{ id: "sample-review-security-monitoring-2026", created_at: "2026-07-26T09:00:00Z", due_date: "2026-08-25", completed_at: "2026-08-18T09:00:00Z", outcome: "CONFIRMED", reviewer_principal_id: "Aminat Yusuf · Independent privacy reviewer" }],
+  reviews: [{ id: "sample-review-security-monitoring-2026", created_at: "2026-07-26T09:00:00Z", due_date: "2026-08-25", completed_at: "2026-08-18T09:00:00Z", outcome: "CONFIRMED", reviewer_principal_id: "Aminat Yusuf · Independent privacy reviewer", reviewer_display_name: "Aminat Yusuf · Independent privacy reviewer" }],
 };
 
 const azureUserAccess: ProcessingActivity = {
@@ -268,7 +280,9 @@ const azureUserAccess: ProcessingActivity = {
   start_date: "2025-10-29",
   next_review_date: "2026-01-31",
   owner_principal_id: "CISO · Meridian Trust Bank",
+  owner_display_name: "CISO · Meridian Trust Bank",
   required_authority_principal_id: "Amina Yusuf · Head of Data Privacy",
+  required_authority_display_name: "Amina Yusuf · Head of Data Privacy",
   version: 2,
   created_at: "2025-10-29T09:00:00Z",
   updated_at: "2026-09-20T12:00:00Z",
@@ -281,7 +295,7 @@ const azureUserAccess: ProcessingActivity = {
     { system_name: sampleSystems.falcon, system_kind: "APPLICATION" },
     { system_name: sampleSystems.entrust, system_kind: "APPLICATION" },
   ],
-  reviews: [{ id: "sample-review-azure-user-access-2026", created_at: "2025-10-29T00:00:00Z", due_date: "2026-01-31", reviewer_principal_id: "Amina Yusuf · Independent privacy reviewer" }],
+  reviews: [{ id: "sample-review-azure-user-access-2026", created_at: "2025-10-29T00:00:00Z", due_date: "2026-01-31", reviewer_principal_id: "Amina Yusuf · Independent privacy reviewer", reviewer_display_name: "Amina Yusuf · Independent privacy reviewer" }],
 };
 
 const azureDeviceCompliance: ProcessingActivity = {
@@ -304,7 +318,9 @@ const azureDeviceCompliance: ProcessingActivity = {
   start_date: "2025-10-29",
   next_review_date: "2026-01-31",
   owner_principal_id: "CISO / Security Engr / TVM",
+  owner_display_name: "CISO / Security Engr / TVM",
   required_authority_principal_id: "Amina Yusuf · Head of Data Privacy",
+  required_authority_display_name: "Amina Yusuf · Head of Data Privacy",
   version: 2,
   created_at: "2025-10-29T09:00:00Z",
   updated_at: "2026-09-20T12:00:00Z",
@@ -319,7 +335,7 @@ const azureDeviceCompliance: ProcessingActivity = {
     { system_name: sampleSystems.falcon, system_kind: "APPLICATION" },
     { system_name: sampleSystems.entrust, system_kind: "APPLICATION" },
   ],
-  reviews: [{ id: "sample-review-azure-device-compliance-2026", created_at: "2025-10-29T00:00:00Z", due_date: "2026-01-31", reviewer_principal_id: "Amina Yusuf · Independent privacy reviewer" }],
+  reviews: [{ id: "sample-review-azure-device-compliance-2026", created_at: "2025-10-29T00:00:00Z", due_date: "2026-01-31", reviewer_principal_id: "Amina Yusuf · Independent privacy reviewer", reviewer_display_name: "Amina Yusuf · Independent privacy reviewer" }],
 };
 
 const activities = [customerAccountOpening, loanApplication, customerServiceChannel, archivedCustomerRecords, paymentsAndTreasury, securityMonitoring, azureUserAccess, azureDeviceCompliance];
