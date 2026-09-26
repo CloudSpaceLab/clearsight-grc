@@ -126,7 +126,7 @@ describe("ReportingPage saved setups", () => {
       format: "XLSX",
       filter: { kind: "group", operator: "and", children: [] },
     });
-    expect(String(api.createDefinition.mock.calls[0]?.[0]?.code)).toMatch(/^VENDORS_OVERVIEW_[0-9A-F]{8}$/);
+    expect(String(api.createDefinition.mock.calls[0]?.[0]?.code)).toMatch(/^BOARD_VENDOR_SUMMARY_[0-9A-F]{8}$/);
   });
 
   it("keeps approval as a short contextual next step instead of exposing governance internals", async () => {
