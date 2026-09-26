@@ -70,7 +70,7 @@ export function ReportingPage({
     }).catch((reason: unknown) => {
       if (controller.signal.aborted || isAbortError(reason)) return;
       setState("error");
-      setLoadError(readError(reason, "Saved report setups could not be loaded. Try again."));
+      setLoadError(readError(reason, "Couldn’t load setups."));
     });
     return () => controller.abort();
   }, [loadDefinitions, refreshKey]);
