@@ -130,7 +130,7 @@ describe("ReportingPage saved setups", () => {
 
   it("keeps approval as a short contextual next step instead of exposing governance internals", async () => {
     renderPage();
-    const table = await screen.findByRole("table", { name: "Saved report setups" });
+    const table = await screen.findByRole("table", { name: "Saved setups" });
     fireEvent.click(within(table).getByRole("row", { name: "Outstanding work" }));
 
     const detail = screen.getByRole("complementary", { name: "Selected report setup" });
