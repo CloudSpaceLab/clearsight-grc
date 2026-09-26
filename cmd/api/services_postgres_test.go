@@ -242,6 +242,13 @@ func assertPostgresDemoComposition(t *testing.T, services serviceSet, databaseUR
 	if err != nil {
 		t.Fatal(err)
 	}
+	history, err := services.Reporting.ListRunHistory(ctx, reportScope, "", "", 50)
+	if err != nil {
+		t.Fatalf("list first PostgreSQL report history page without cursor: %v", err)
+	}
+	if len(history.Items) != len(runs) || len(history.Items) == 0 || history.Items[0].ID != runs[0].ID {
+		t.Fatalf("PostgreSQL report history first page = %#v, runs = %#v", history.Items, runs)
+	}
 	if len(definitions) != 4 || len(runs) != 1 {
 		t.Fatalf("PostgreSQL demo reports definitions=%d runs=%d, want 4 and 1", len(definitions), len(runs))
 	}
