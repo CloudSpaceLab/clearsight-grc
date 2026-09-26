@@ -38,7 +38,7 @@ func (a *API) createAIGovernancePolicy(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	v, err := a.deps.AIGovernance.CreatePolicy(r.Context(), in)
+	v, err := a.deps.AIGovernance.CreateGovernedPolicy(r.Context(), in)
 	writeAIGovernanceResult(w, v, err, http.StatusCreated)
 }
 func (a *API) aiGovernancePolicyAction(action string) http.HandlerFunc {
@@ -55,7 +55,7 @@ func (a *API) aiGovernancePolicyAction(action string) http.HandlerFunc {
 		in.ID = r.PathValue("id")
 		in.TenantID = actor.TenantID
 		in.ActorID = actor.PrincipalID
-		v, err := a.deps.AIGovernance.TransitionPolicy(r.Context(), action, in)
+		v, err := a.deps.AIGovernance.TransitionGovernedPolicy(r.Context(), action, in)
 		writeAIGovernanceResult(w, v, err, http.StatusOK)
 	}
 }
