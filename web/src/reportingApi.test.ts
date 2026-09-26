@@ -173,6 +173,6 @@ describe("reporting API", () => {
 
   it("turns report service failures into an operator recovery message", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "report_request_invalid", message: "raw server detail" } }), { status: 400 }));
-    await expect(listReportDefinitions()).rejects.toMatchObject({ message: "Report definitions and runs could not be loaded. Check the connection and try again.", kind: "validation" });
+    await expect(listReportDefinitions()).rejects.toMatchObject({ message: "Couldn’t load reports.", kind: "validation" });
   });
 });
