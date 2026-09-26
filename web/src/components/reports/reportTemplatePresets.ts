@@ -5,15 +5,15 @@ export type ReportSetupFocus = "OVERVIEW" | "ATTENTION";
 export type ReportSetupFocusLabel = ReportSetupFocus | "CUSTOM";
 
 export const reportSetupAreaOptions: readonly { id: ReportSetupArea; label: string; description: string }[] = [
-  { id: "VENDORS", label: "Vendors", description: "Vendor relationships, services, criticality and status." },
-  { id: "PROGRAMS", label: "Programs", description: "Program health, state and open issues." },
-  { id: "WORK", label: "Work", description: "Issues, changes, actions and outstanding obligations." },
-  { id: "PROCESSING", label: "Processing activities", description: "Processing inventory and privacy exceptions." },
+  { id: "VENDORS", label: "Vendors", description: "Status · services · criticality" },
+  { id: "PROGRAMS", label: "Programs", description: "Health · status · open work" },
+  { id: "WORK", label: "Work", description: "Issues · changes · actions" },
+  { id: "PROCESSING", label: "Processing activities", description: "Inventory · privacy exceptions" },
 ];
 
 export const reportSetupFocusOptions: readonly { id: ReportSetupFocus; label: string; description: string }[] = [
-  { id: "OVERVIEW", label: "Overview", description: "Summarize the current population and status." },
-  { id: "ATTENTION", label: "Exceptions & outstanding", description: "Focus on items that need attention or follow-up." },
+  { id: "OVERVIEW", label: "Overview", description: "Summary and charts" },
+  { id: "ATTENTION", label: "Exceptions & outstanding", description: "Items needing action" },
 ];
 
 export function reportSetupAreaLabel(area: ReportSetupArea) {
