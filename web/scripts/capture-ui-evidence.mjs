@@ -48,7 +48,7 @@ const captures = [
   { name: "131a-ropa-register-row-action-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "View details", state: "ropa-register-row-action", scrollIntoViewText: "Choose View details" },
   { name: "132-ropa-register-dark-mobile-390x844", route: "#ropa", title: "Processing activity register", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Customer account opening", state: "ropa-register-mobile" },
   { name: "133-ropa-activity-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-activity", openRopaActivity: true },
-  { name: "140-report-library-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Generated reports", state: "report-library" },
+  { name: "140-report-library-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-library" },
   { name: "141-report-library-dark-mobile-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", state: "report-library-mobile" },
   { name: "142-report-run-failed-light-1440x900", route: "#reports", title: "Reports", fixture: "report-run-failed", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openFailedReport: true, expectText: "Generation stopped: Row Limit Exceeded", state: "report-run-failed" },
   { name: "143-report-setups-dark-mobile-compact-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "compact", viewport: { width: 390, height: 844 }, touch: true, openReportTemplates: true, expectText: "Program health review", state: "report-setups-mobile" },
@@ -90,6 +90,9 @@ try {
 async function capturePage(capture) {
   const { context, page } = await openPage(capture);
   try {
+    if (capture.state === "report-library") {
+      await page.getByRole("table", { name: "Generated reports" }).waitFor({ state: "visible" });
+    }
     if (capture.openRopaActivity) {
       const seededRow = page.getByRole("row", { name: /Customer account opening/ }).first();
       await seededRow.waitFor({ state: "visible" });
