@@ -247,7 +247,7 @@ it("shows a recoverable error when the activity read fails", async () => {
 });
 
 it("shows the not-found state when the activity is outside the current scope", async () => {
-  api.fetchProcessingActivity.mockRejectedValueOnce({ kind: "not_found", message: "The processing activity could not be loaded. Try again." });
+  api.fetchProcessingActivity.mockRejectedValueOnce({ kind: "not_found", message: "Couldn’t load processing activity." });
   render(<RopaActivityPage activityID="missing-activity" loadActivity={api.fetchProcessingActivity} loadHistory={api.fetchProcessingActivityHistory}/>);
 
   expect(await screen.findByRole("heading", { name: "Processing activity not found" })).toBeTruthy();
