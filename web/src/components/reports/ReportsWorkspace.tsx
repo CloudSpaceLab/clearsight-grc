@@ -310,7 +310,7 @@ export function ReportsWorkspace({
 
           {commandMessage && <Notice tone="success"><span>{commandMessage}</span></Notice>}
           {commandError && <Notice tone="error"><span>{commandError}</span></Notice>}
-          {definitionState === "error" && <Notice tone="warning"><span>{definitionError || "Saved report setups are temporarily unavailable. Existing generated reports remain accessible."}</span></Notice>}
+          {definitionState === "error" && <Notice tone="warning"><span>{definitionError || "Saved setups unavailable. Existing reports remain available."}</span></Notice>}
 
           <div className="reports-library__toolbar">
             <SearchField label="Search generated reports" value={query} onChange={setQuery} placeholder="Search reports" isLoading={runState === "loading"} />
