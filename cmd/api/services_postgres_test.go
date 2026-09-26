@@ -228,6 +228,19 @@ func assertPostgresDemoComposition(t *testing.T, services serviceSet, databaseUR
 	if len(page.Rows) != 7 {
 		t.Fatalf("PostgreSQL demo ROPA live rows = %d, want 7", len(page.Rows))
 	}
+	namedOwner := false
+	for _, activity := range page.Rows {
+		if activity.OwnerPrincipalID == "" {
+			continue
+		}
+		namedOwner = true
+		if strings.TrimSpace(activity.OwnerDisplayName) == "" {
+			t.Fatalf("PostgreSQL demo ROPA owner %s was not resolved to a display name", activity.OwnerPrincipalID)
+		}
+	}
+	if !namedOwner {
+		t.Fatal("PostgreSQL demo ROPA page has no owned activity to validate")
+	}
 
 	now := time.Now().UTC()
 	actor := identity.Actor{TenantID: identity.DurableDemoTenantID, LegalEntityID: identity.DurableDemoLegalEntityID,
@@ -241,6 +254,13 @@ func assertPostgresDemoComposition(t *testing.T, services serviceSet, databaseUR
 	runs, err := services.Reporting.ListRuns(ctx, reportScope, "", 50)
 	if err != nil {
 		t.Fatal(err)
+	}
+	history, err := services.Reporting.ListRunHistory(ctx, reportScope, "", "", 50)
+	if err != nil {
+		t.Fatalf("list first PostgreSQL report history page without cursor: %v", err)
+	}
+	if len(history.Items) != len(runs) || len(history.Items) == 0 || history.Items[0].ID != runs[0].ID {
+		t.Fatalf("PostgreSQL report history first page = %#v, runs = %#v", history.Items, runs)
 	}
 	if len(definitions) != 4 || len(runs) != 1 {
 		t.Fatalf("PostgreSQL demo reports definitions=%d runs=%d, want 4 and 1", len(definitions), len(runs))

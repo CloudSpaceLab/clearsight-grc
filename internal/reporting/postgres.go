@@ -461,7 +461,7 @@ func (r *PostgresRepository) ListRunHistory(ctx context.Context, scope ReportSco
 		FROM report_runs r
 		WHERE r.tenant_id=$1::uuid AND r.legal_entity_id=$2::uuid
 		  AND ($3='' OR r.definition_id=NULLIF($3,'')::uuid)
-		  AND ($4=false OR r.created_at<$5::timestamptz OR (r.created_at=$5::timestamptz AND r.id<$6::uuid))
+		  AND ($4=false OR r.created_at<$5::timestamptz OR (r.created_at=$5::timestamptz AND r.id<NULLIF($6,'')::uuid))
 		ORDER BY r.created_at DESC,r.id DESC
 		LIMIT $7`, scope.TenantID, scope.LegalEntityID, definitionID, hasCursor, cursorTime, cursorID, limit+1)
 	if err != nil {

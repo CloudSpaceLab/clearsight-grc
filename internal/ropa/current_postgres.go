@@ -233,9 +233,9 @@ func loadActivityChildren(ctx context.Context, queryer activityChildQueryer, act
 	return loadActivityChildrenForScopes(ctx, queryer, activity.TenantID, activity.LegalEntityID, []*ProcessingActivity{activity})
 }
 
-// loadActivityChildrenForPage uses four set-based reads for the materialized
-// page. The child population is bounded by the requested page size and the
-// domain's per-collection bounds; it never expands into an unbounded scan.
+// loadActivityChildrenForPage uses bounded set-based reads for the materialized
+// page. The child population and principal-name resolution are bounded by the
+// requested page size; it never expands into an unbounded scan.
 func loadActivityChildrenForPage(ctx context.Context, queryer activityChildQueryer, activities []ProcessingActivity) error {
 	if len(activities) == 0 {
 		return nil
@@ -391,8 +391,68 @@ func loadActivityChildrenForScopes(ctx context.Context, queryer activityChildQue
 	}
 	reviewRows.Close()
 
+	if err := resolveActivityPrincipalNames(ctx, queryer, tenantID, byID); err != nil {
+		return err
+	}
 	for _, activity := range byID {
 		*activity = normalizeProcessingActivity(*activity)
+	}
+	return nil
+}
+
+func resolveActivityPrincipalNames(ctx context.Context, queryer activityChildQueryer, tenantID string, activities map[string]*ProcessingActivity) error {
+	ids := make([]string, 0, len(activities)*3)
+	seen := make(map[string]struct{}, len(activities)*3)
+	add := func(id string) {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			return
+		}
+		if _, ok := seen[id]; ok {
+			return
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, id)
+	}
+	for _, activity := range activities {
+		add(activity.OwnerPrincipalID)
+		add(activity.RequiredAuthorityPrincipalID)
+		for _, review := range activity.Reviews {
+			add(review.ReviewerPrincipalID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+
+	rows, err := queryer.Query(ctx, `
+SELECT id::text, display_name
+FROM principals
+WHERE tenant_id=$1::uuid AND id=ANY($2::uuid[])
+`, tenantID, ids)
+	if err != nil {
+		return fmt.Errorf("resolve processing activity principal names: %w", err)
+	}
+	defer rows.Close()
+
+	names := make(map[string]string, len(ids))
+	for rows.Next() {
+		var id, name string
+		if err := rows.Scan(&id, &name); err != nil {
+			return fmt.Errorf("scan processing activity principal name: %w", err)
+		}
+		names[id] = strings.TrimSpace(name)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("resolve processing activity principal names: %w", err)
+	}
+
+	for _, activity := range activities {
+		activity.OwnerDisplayName = names[activity.OwnerPrincipalID]
+		activity.RequiredAuthorityDisplayName = names[activity.RequiredAuthorityPrincipalID]
+		for index := range activity.Reviews {
+			activity.Reviews[index].ReviewerDisplayName = names[activity.Reviews[index].ReviewerPrincipalID]
+		}
 	}
 	return nil
 }
