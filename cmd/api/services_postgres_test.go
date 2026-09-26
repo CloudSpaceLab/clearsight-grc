@@ -228,6 +228,19 @@ func assertPostgresDemoComposition(t *testing.T, services serviceSet, databaseUR
 	if len(page.Rows) != 7 {
 		t.Fatalf("PostgreSQL demo ROPA live rows = %d, want 7", len(page.Rows))
 	}
+	namedOwner := false
+	for _, activity := range page.Rows {
+		if activity.OwnerPrincipalID == "" {
+			continue
+		}
+		namedOwner = true
+		if strings.TrimSpace(activity.OwnerDisplayName) == "" {
+			t.Fatalf("PostgreSQL demo ROPA owner %s was not resolved to a display name", activity.OwnerPrincipalID)
+		}
+	}
+	if !namedOwner {
+		t.Fatal("PostgreSQL demo ROPA page has no owned activity to validate")
+	}
 
 	now := time.Now().UTC()
 	actor := identity.Actor{TenantID: identity.DurableDemoTenantID, LegalEntityID: identity.DurableDemoLegalEntityID,
