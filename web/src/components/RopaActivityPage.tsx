@@ -231,6 +231,12 @@ function ReviewDate({ value }: { value?: string }) {
   return <StatusBadge tone={overdue ? "error" : "info"}>{overdue ? `Overdue · ${formatActivityDate(value)}` : `Due · ${formatActivityDate(value)}`}</StatusBadge>;
 }
 
+function principalLabel(displayName: string | undefined, principalID: string | undefined, empty = "Not assigned"): string {
+  const name = displayName?.trim();
+  if (name) return name;
+  return principalID ? "Assigned" : empty;
+}
+
 function recordedValue(value: string | undefined): string {
   return value && value.trim() ? value : "Not recorded";
 }
