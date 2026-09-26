@@ -51,8 +51,8 @@ const captures = [
   { name: "140-report-library-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Generated reports", state: "report-library" },
   { name: "141-report-library-dark-mobile-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", state: "report-library-mobile" },
   { name: "142-report-run-failed-light-1440x900", route: "#reports", title: "Reports", fixture: "report-run-failed", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openFailedReport: true, expectText: "Generation stopped: Row Limit Exceeded", state: "report-run-failed" },
-  { name: "143-report-templates-dark-mobile-compact-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "compact", viewport: { width: 390, height: 844 }, touch: true, openReportTemplates: true, expectText: "Program health review", state: "report-templates-mobile" },
-  { name: "144-report-generate-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openReportGenerate: true, expectText: "No active vendors report template", state: "report-generate" },
+  { name: "143-report-setups-dark-mobile-compact-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "compact", viewport: { width: 390, height: 844 }, touch: true, openReportTemplates: true, expectText: "Program health review", state: "report-setups-mobile" },
+  { name: "144-report-generate-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openReportGenerate: true, expectText: "No ready vendors setup", state: "report-generate" },
 ];
 
 try {
@@ -98,15 +98,15 @@ async function capturePage(capture) {
       await page.getByRole("heading", { name: "Customer account opening", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.openReportTemplates) {
-      const templatesTab = page.getByRole("tab", { name: "Templates", exact: true });
+      const templatesTab = page.getByRole("tab", { name: "Saved setups", exact: true });
       if (await templatesTab.isVisible()) {
         await templatesTab.click();
       } else {
         const compactReportsView = page.locator(".cs-tabs__compact .cs-select-field__trigger");
         await compactReportsView.click();
-        await page.getByRole("option", { name: "Templates", exact: true }).click();
+        await page.getByRole("option", { name: "Saved setups", exact: true }).click();
       }
-      await page.getByRole("heading", { name: "Report templates", exact: true }).waitFor({ state: "visible" });
+      await page.getByRole("heading", { name: "Saved report setups", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.openFailedReport) {
       const failedRow = page.getByRole("table", { name: "Generated reports" }).getByRole("row").filter({ hasText: "Failed" }).first();

@@ -92,6 +92,17 @@ describe("reporting API", () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toBe("/api/v1/reports/filter-fields");
   });
 
+  it("falls back to the legacy ROPA report route during rolling deployments", async () => {
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "not_found", message: "route not found" } }), { status: 404, headers: { "Content-Type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [definition] }), { status: 200, headers: { "Content-Type": "application/json" } }));
+
+    await expect(listReportDefinitions()).resolves.toEqual([definition]);
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("/api/v1/reports/definitions?tenant_id=tenant-1");
+    expect(String(fetchMock.mock.calls[1]?.[0])).toBe("/api/v1/ropa/reports/definitions?tenant_id=tenant-1");
+  });
+
   it("scopes definition, history, detail and run reads to the verified tenant", async () => {
     fetchMock
       .mockResolvedValueOnce(new Response(JSON.stringify({ items: [definition] }), { status: 200 }))

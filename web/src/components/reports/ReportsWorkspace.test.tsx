@@ -110,7 +110,7 @@ describe("ReportsWorkspace", () => {
     />);
   }
 
-  it("opens on the generated-report library rather than the template builder", async () => {
+  it("opens on the generated-report library rather than setup management", async () => {
     renderWorkspace();
 
     expect(await screen.findByRole("heading", { name: "Reports" })).toBeTruthy();
@@ -126,19 +126,31 @@ describe("ReportsWorkspace", () => {
     expect(loadDefinitions).toHaveBeenCalledWith(true, expect.any(AbortSignal));
   });
 
-  it("generates a vendor report from an active governed template", async () => {
+  it("generates a vendor report from a ready saved setup", async () => {
     renderWorkspace();
     await screen.findByRole("table", { name: "Generated reports" });
 
     fireEvent.click(screen.getByRole("button", { name: "Generate report" }));
     const dialog = await screen.findByRole("dialog", { name: "Generate report" });
     expect(within(dialog).getAllByText("Vendor portfolio")).not.toHaveLength(0);
-    expect(within(dialog).getAllByText("XLSX")).not.toHaveLength(0);
+    expect(within(dialog).getAllByText("Overview")).not.toHaveLength(0);
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Generate report" }));
     await waitFor(() => expect(createRun).toHaveBeenCalledWith(vendorDefinition.id, vendorDefinition.current_version));
     expect(await screen.findByText(/Vendor portfolio was queued/)).toBeTruthy();
     expect(screen.getAllByRole("row", { name: /Vendor portfolio/ }).some((row) => within(row).queryByText("Queued"))).toBe(true);
+  });
+
+  it("keeps generated report history usable when saved setups fail to load", async () => {
+    loadDefinitions.mockRejectedValueOnce(new Error("setup endpoint unavailable"));
+
+    renderWorkspace();
+
+    const table = await screen.findByRole("table", { name: "Generated reports" });
+    expect(within(table).getByRole("row", { name: /Vendor Portfolio/i })).toBeTruthy();
+    expect(screen.getByText(/Saved report setups are temporarily unavailable/i)).toBeTruthy();
+    expect(screen.queryByText(/Generated reports could not be loaded/i)).toBeNull();
+    expect(screen.getByRole("button", { name: "Generate report" })).toHaveProperty("disabled", true);
   });
 
   it("loads older history pages without duplicating runs already in the library", async () => {
@@ -164,7 +176,7 @@ describe("ReportsWorkspace", () => {
     expect(screen.queryByRole("button", { name: "Load older reports" })).toBeNull();
   });
 
-  it("shows report details from the central library without entering template governance", async () => {
+  it("shows concise report details from the central library", async () => {
     renderWorkspace();
     const table = await screen.findByRole("table", { name: "Generated reports" });
     const vendorRow = within(table).getByRole("row", { name: /Vendor portfolio/ });
@@ -172,7 +184,8 @@ describe("ReportsWorkspace", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Report details" });
     expect(within(dialog).getByRole("heading", { name: "Vendor portfolio" })).toBeTruthy();
-    expect(within(dialog).getByText("vendor-relationship-report.v1")).toBeTruthy();
-    expect(within(dialog).getByText(/18 · bounded source/)).toBeTruthy();
+    expect(within(dialog).getByText("18")).toBeTruthy();
+    expect(within(dialog).getByText("XLSX")).toBeTruthy();
+    expect(within(dialog).queryByText("vendor-relationship-report.v1")).toBeNull();
   });
 });
