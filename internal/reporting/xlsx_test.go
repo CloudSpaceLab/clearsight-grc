@@ -70,6 +70,15 @@ func TestReportBreakdownPrefersMeaningfulStatusAndBoundsChartBuckets(t *testing.
 	}
 }
 
+func TestReportDisplayTitleRemovesGeneratedCodeSuffix(t *testing.T) {
+	if got := reportDisplayTitle("BOARD_VENDOR_SUMMARY_1234ABCD"); got != "Board Vendor Summary" {
+		t.Fatalf("display title = %q, want Board Vendor Summary", got)
+	}
+	if got := reportDisplayTitle("Board vendor summary"); got != "Board vendor summary" {
+		t.Fatalf("human title changed to %q", got)
+	}
+}
+
 func TestXLSXReportUsesTheWorkbookExtension(t *testing.T) {
 	if got := reportExtension(FormatXLSX); got != ".xlsx" {
 		t.Fatalf("xlsx extension = %q, want .xlsx", got)
