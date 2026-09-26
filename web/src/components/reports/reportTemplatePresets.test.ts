@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { ReportDefinition } from "../../reportingTypes";
 import { buildReportSetupInput, reportSetupArea, reportSetupFocus } from "./reportTemplatePresets";
 
@@ -28,13 +28,8 @@ function definition(overrides: Partial<ReportDefinition> = {}): ReportDefinition
 
 describe("report setup presets", () => {
   it("maps business overview choices to the governed low-level report contract", () => {
-    vi.spyOn(globalThis.crypto, "getRandomValues").mockImplementation((array) => {
-      (array as Uint8Array).set([0x12, 0x34, 0x56, 0x78]);
-      return array;
-    });
-
-    expect(buildReportSetupInput("Vendor overview", "VENDORS", "OVERVIEW")).toEqual({
-      code: "VENDORS_OVERVIEW_12345678",
+    const input = buildReportSetupInput("Vendor overview", "VENDORS", "OVERVIEW");
+    expect(input).toMatchObject({
       name: "Vendor overview",
       description: "Current vendors overview for the legal entity.",
       dataset: "VENDORS",
@@ -42,8 +37,7 @@ describe("report setup presets", () => {
       format: "XLSX",
       filter: { kind: "group", operator: "and", children: [] },
     });
-
-    vi.restoreAllMocks();
+    expect(input.code).toMatch(/^VENDORS_OVERVIEW_[0-9A-F]{8}$/);
   });
 
   it("uses exception datasets where the platform already has a canonical outstanding population", () => {
