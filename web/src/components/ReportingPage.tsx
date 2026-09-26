@@ -220,7 +220,7 @@ export function ReportingPage({
             key={option.id}
             type="button"
             className="report-focus-option"
-            data-selected={focus === option.id || undefined}
+            data-selected={focus === option.id ? "true" : undefined}
             aria-pressed={focus === option.id}
             onClick={() => setFocus(option.id)}
           >
