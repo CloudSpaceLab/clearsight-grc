@@ -35,6 +35,7 @@ export type Review = {
   completed_at?: string;
   outcome?: "CONFIRMED" | "REVISED" | "WITHDRAWN";
   reviewer_principal_id?: string;
+  reviewer_display_name?: string;
 };
 
 export type ProcessingActivity = {
@@ -58,7 +59,9 @@ export type ProcessingActivity = {
   end_date?: string;
   next_review_date?: string;
   owner_principal_id?: string;
+  owner_display_name?: string;
   required_authority_principal_id?: string;
+  required_authority_display_name?: string;
   program_id?: string;
   version: number;
   created_at: string;
