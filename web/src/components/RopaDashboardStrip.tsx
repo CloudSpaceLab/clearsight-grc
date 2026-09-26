@@ -19,17 +19,16 @@ export function RopaDashboardStrip({ summary, legalEntityName, onRetry, onOpenSt
       <div>
         <span className="eyebrow">Register status</span>
         <h2>Processing activity status</h2>
-        <p>These counts describe the stored processing activity register for {scope}.</p>
       </div>
       <div className="ropa-dashboard-strip__freshness">
-        <StatusBadge tone={stale ? "warning" : "success"}>{stale ? "Stale register summary" : "Current register summary"}</StatusBadge>
-        <span>Generated <time dateTime={summary.generated_at}>{formatDateTime(summary.generated_at)}</time></span>
+        <StatusBadge tone={stale ? "warning" : "success"}>{stale ? "Stale" : "Current"}</StatusBadge>
+        <span><time dateTime={summary.generated_at}>{formatDateTime(summary.generated_at)}</time></span>
       </div>
     </div>
 
     {stale && <Notice tone="warning">
-      <strong>Stale register summary.</strong> It was generated at {formatDateTime(summary.generated_at)} and may be out of date because it may not reflect the latest processing activity records. Retry after the register refresh, then review the rows before relying on these counts.
-      {onRetry && <Button variant="secondary" size="compact" onPress={onRetry}>Retry summary</Button>}
+      <strong>Summary is stale.</strong> Last updated {formatDateTime(summary.generated_at)}.
+      {onRetry && <Button variant="secondary" size="compact" onPress={onRetry}>Refresh</Button>}
     </Notice>}
 
     <div className="ropa-dashboard-strip__metrics" aria-label="Stored processing activity counts">
@@ -43,12 +42,12 @@ export function RopaDashboardStrip({ summary, legalEntityName, onRetry, onOpenSt
 
     <div className="ropa-dashboard-strip__coverage" aria-label="Register coverage">
       <p>{coverageSummary(summary.coverage)}</p>
-      <p>Register data through <time dateTime={summary.source_high_water}>{formatDateTime(summary.source_high_water)}</time></p>
+      <p>Data through <time dateTime={summary.source_high_water}>{formatDateTime(summary.source_high_water)}</time></p>
     </div>
 
     {onOpenStatus && <div className="ropa-dashboard-strip__links" aria-label="Open matching register rows">
-      <Button variant="quiet" size="compact" onPress={() => onOpenStatus(undefined)}>Open all processing activities</Button>
-      <Button variant="quiet" size="compact" onPress={() => onOpenStatus("OPEN")}>Open in-progress activities</Button>
+      <Button variant="quiet" size="compact" onPress={() => onOpenStatus(undefined)}>All activities</Button>
+      <Button variant="quiet" size="compact" onPress={() => onOpenStatus("OPEN")}>In progress</Button>
     </div>}
   </section>;
 }
