@@ -29,6 +29,7 @@ type reportBreakdown struct {
 }
 
 func renderXLSXReport(title string, asOf time.Time, columns []string, rows []ReportRow) ([]byte, error) {
+	title = reportDisplayTitle(title)
 	book := excelize.NewFile()
 	defer book.Close()
 
@@ -323,6 +324,34 @@ func reportBreakdownLabel(column string) string {
 	default:
 		return humanizeReportValue(column)
 	}
+}
+
+func reportDisplayTitle(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "ClearSight report"
+	}
+	if value != strings.ToUpper(value) || strings.ContainsAny(value, " \t") {
+		return value
+	}
+	parts := strings.Split(value, "_")
+	if len(parts) > 1 && isShortHexSuffix(parts[len(parts)-1]) {
+		parts = parts[:len(parts)-1]
+		value = strings.Join(parts, "_")
+	}
+	return humanizeReportValue(value)
+}
+
+func isShortHexSuffix(value string) bool {
+	if len(value) != 8 {
+		return false
+	}
+	for _, character := range value {
+		if !((character >= '0' && character <= '9') || (character >= 'A' && character <= 'F')) {
+			return false
+		}
+	}
+	return true
 }
 
 func humanizeReportValue(value string) string {
