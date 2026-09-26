@@ -355,7 +355,7 @@ export function ReportsWorkspace({
         <div className="reports-generate__heading">
           <span className="eyebrow">New report</span>
           <h2>Generate report</h2>
-          <p>Choose an area and a saved setup. ClearSight handles the protected data snapshot and file generation.</p>
+          <p>Choose an area and a saved setup. ClearSight generates the summary, chart and supporting detail.</p>
         </div>
         <SelectField
           label="Area"
