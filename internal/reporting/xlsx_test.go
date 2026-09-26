@@ -51,7 +51,7 @@ func TestReportBreakdownPrefersMeaningfulStatusAndBoundsChartBuckets(t *testing.
 	rows := make([]ReportRow, 0, 14)
 	for index := 0; index < 14; index++ {
 		rows = append(rows, ReportRow{Values: map[string]any{
-			"status": fmt.Sprintf("STATE_%02d", index),
+			"status":   fmt.Sprintf("STATE_%02d", index),
 			"priority": index % 5,
 		}})
 	}
