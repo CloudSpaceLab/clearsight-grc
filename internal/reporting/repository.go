@@ -22,6 +22,13 @@ type DefinitionRepository interface {
 	TransitionDefinition(ctx context.Context, scope ReportScope, id string, expectedVersion int64, next DefinitionStatus, decision DecisionRecord) (ReportDefinition, error)
 }
 
+// RunHistoryRepository is intentionally separate from the worker-facing
+// RunRepository. Interactive history needs stable keyset pagination, while
+// worker/demo callers retain the small bounded ListRuns contract.
+type RunHistoryRepository interface {
+	ListRunHistory(ctx context.Context, scope ReportScope, definitionID, cursor string, limit int) (RunHistoryPage, error)
+}
+
 type RunRepository interface {
 	CreateRun(ctx context.Context, scope ReportScope, run ReportRun) (ReportRun, error)
 	GetRun(ctx context.Context, scope ReportScope, id string) (ReportRun, error)

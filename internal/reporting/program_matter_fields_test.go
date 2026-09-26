@@ -18,6 +18,19 @@ func TestProgramDatasetRejectsAMatterScope(t *testing.T) {
 	}
 }
 
+func TestFullWorkDatasetRejectsAProgramScope(t *testing.T) {
+	definition := ReportDefinition{
+		ID: testDefinitionID, TenantID: testTenantID, LegalEntityID: testEntityA,
+		Code: "WORK-SCOPE", Name: "Work scope", Dataset: DatasetMatters,
+		ScopeKind: ScopeProgram, ScopeRef: testEntityB, Format: FormatCSV,
+		Filter: emptyReportFilter(), Status: DefinitionDraft, CurrentVersion: 1,
+		MakerID: testMakerID, Version: 1,
+	}
+	if err := validateDefinitionForCreate(definition); err == nil {
+		t.Fatal("full Work dataset accepted a Program-only scope")
+	}
+}
+
 func TestMatterDatasetRejectsAProgramScope(t *testing.T) {
 	definition := ReportDefinition{
 		ID: testDefinitionID, TenantID: testTenantID, LegalEntityID: testEntityA,
@@ -65,6 +78,22 @@ func TestProgramReportFilterAcceptsItsClosedVocabulary(t *testing.T) {
 	}
 }
 
+func TestFullWorkReportFilterAcceptsMatterVocabulary(t *testing.T) {
+	expression, err := NormalizeReportFilterForDataset(DatasetMatters, &ReportFilterExpression{
+		Kind: "group", Operator: "and", Children: []ReportFilterExpression{
+			{Kind: "condition", Field: ReportFieldMatterType, Operator: "is", Value: "exception"},
+			{Kind: "condition", Field: ReportFieldPriority, Operator: "is", Value: "3"},
+			{Kind: "condition", Field: ReportFieldStatus, Operator: "is", Value: "closed"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("full Work closed vocabulary was rejected: %v", err)
+	}
+	if expression == nil || expression.Children[0].Value != "EXCEPTION" || expression.Children[1].Value != "3" || expression.Children[2].Value != "CLOSED" {
+		t.Fatalf("full Work filter was not normalized: %#v", expression)
+	}
+}
+
 func TestMatterReportFilterAcceptsItsClosedVocabulary(t *testing.T) {
 	expression, err := NormalizeReportFilterForDataset(DatasetMatterExceptions, &ReportFilterExpression{
 		Kind: "group", Operator: "and", Children: []ReportFilterExpression{
@@ -95,22 +124,31 @@ func TestMatterReportFilterAcceptsEveryRecordedMatterType(t *testing.T) {
 }
 
 func TestProgramAndMatterVocabularyFieldsArePublishedWithTheirDataset(t *testing.T) {
-	wanted := map[ReportFilterField]ReportDataset{
-		ReportFieldOverallState:             DatasetPrograms,
-		ReportFieldHasOpenMatters:           DatasetPrograms,
-		ReportFieldJurisdiction:             DatasetPrograms,
-		ReportFieldMatterType:               DatasetMatterExceptions,
-		ReportFieldPriority:                 DatasetMatterExceptions,
-		ReportFieldDueCondition:             DatasetMatterExceptions,
-		ReportFieldLatestVerificationResult: DatasetMatterExceptions,
+	wanted := map[ReportDataset][]ReportFilterField{
+		DatasetPrograms: {
+			ReportFieldOverallState,
+			ReportFieldHasOpenMatters,
+			ReportFieldJurisdiction,
+		},
+		DatasetMatterExceptions: {
+			ReportFieldMatterType,
+			ReportFieldPriority,
+			ReportFieldDueCondition,
+			ReportFieldLatestVerificationResult,
+		},
 	}
-	found := make(map[ReportFilterField]ReportDataset)
+	published := make(map[ReportDataset]map[ReportFilterField]bool)
 	for _, definition := range ReportFilterFieldVocabulary {
-		found[definition.Field] = definition.Dataset
+		if published[definition.Dataset] == nil {
+			published[definition.Dataset] = make(map[ReportFilterField]bool)
+		}
+		published[definition.Dataset][definition.Field] = true
 	}
-	for field, dataset := range wanted {
-		if found[field] != dataset {
-			t.Errorf("field %q is published for %q, want %q", field, found[field], dataset)
+	for dataset, fields := range wanted {
+		for _, field := range fields {
+			if !published[dataset][field] {
+				t.Errorf("field %q is not published for %q", field, dataset)
+			}
 		}
 	}
 }

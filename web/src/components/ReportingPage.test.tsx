@@ -171,8 +171,9 @@ beforeEach(() => {
   api.downloadReportRun.mockResolvedValue({ blob: new Blob(["id,name"]), filename: "ROPA-OPEN-EXCEPTIONS.csv" });
 });
 
-function renderPage() {
+function renderPage(embedded = false) {
   return render(<ReportingPage
+    embedded={embedded}
     organizationName="Meridian Trust Bank"
     legalEntityName="Meridian Trust Bank Nigeria"
     loadFilterFields={api.listReportFilterFields}
@@ -187,6 +188,14 @@ function renderPage() {
 }
 
 describe("ReportingPage", () => {
+  it("keeps embedded template governance separate from report generation", async () => {
+    renderPage(true);
+
+    expect(await screen.findByRole("region", { name: "Report templates" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Run report" })).toBeNull();
+    expect(api.listReportRuns).not.toHaveBeenCalled();
+  });
+
   it("lists definitions with human governance states and separate decision roles", async () => {
     renderPage();
     expect(await screen.findByRole("heading", { name: "Reports" })).toBeTruthy();

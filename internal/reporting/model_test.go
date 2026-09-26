@@ -100,7 +100,9 @@ func TestReportModelIncludesAllDatasetsAndSeparateReviewProvenance(t *testing.T)
 		DatasetProcessingActivities,
 		DatasetProcessingActivityExceptions,
 		DatasetPrograms,
+		DatasetMatters,
 		DatasetMatterExceptions,
+		DatasetVendors,
 	}
 	seen := make(map[ReportDataset]struct{}, len(datasets))
 	for _, dataset := range datasets {

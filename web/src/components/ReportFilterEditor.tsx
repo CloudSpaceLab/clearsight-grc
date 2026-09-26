@@ -231,8 +231,10 @@ function operatorLabel(operator: string) {
 }
 
 function datasetLabel(dataset: ReportDataset) {
+  if (dataset === "VENDORS") return "Vendors";
   if (dataset === "PROCESSING_ACTIVITIES") return "Processing activities";
   if (dataset === "PROCESSING_ACTIVITY_EXCEPTIONS") return "Processing activities with open exceptions";
   if (dataset === "PROGRAMS") return "Programs";
-  return "Issues and changes with open exceptions or overdue obligations";
+  if (dataset === "MATTERS") return "Work — all issues and changes";
+  return "Work — exceptions and overdue obligations";
 }

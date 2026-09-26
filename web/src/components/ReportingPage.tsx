@@ -33,6 +33,7 @@ type RunState = LoadState;
 export type ReportingPageProps = {
   organizationName?: string;
   legalEntityName?: string;
+  embedded?: boolean;
   onOpenRegister?: () => void;
   onBack?: () => void;
   loadFilterFields?: typeof listReportFilterFieldsRequest;
@@ -72,6 +73,7 @@ type DefinitionDraft = {
 export function ReportingPage({
   organizationName,
   legalEntityName,
+  embedded = false,
   onOpenRegister,
   onBack,
   loadFilterFields = listReportFilterFieldsRequest,
@@ -116,7 +118,7 @@ export function ReportingPage({
     void Promise.allSettled([
       loadFilterFields(controller.signal),
       loadDefinitions(false, controller.signal),
-      loadRuns({}, controller.signal),
+      embedded ? Promise.resolve([] as ReportRun[]) : loadRuns({}, controller.signal),
     ]).then(([fieldResult, definitionResult, runResult]) => {
       if (controller.signal.aborted) return;
       if (fieldResult.status === "fulfilled") setFieldResponse(fieldResult.value);
@@ -278,8 +280,14 @@ export function ReportingPage({
   const statusCounts = countDefinitionStates(definitions);
   const scopeLabel = `${scope} · report definitions`;
 
-  return <section className="reporting-page" aria-labelledby="reporting-heading">
-    <header className="topbar ropa-page-header">
+  return <section className="reporting-page" aria-labelledby={embedded ? undefined : "reporting-heading"} aria-label={embedded ? "Report templates" : undefined}>
+    {embedded ? <div className="section-header report-section-header">
+      <div><span className="eyebrow">Report governance</span><h2>Report templates</h2><p>Configure reusable report populations and keep review, authorisation and version history separate from generated files.</p></div>
+      <div className="topbar-actions">
+        <Button variant="secondary" onPress={refresh} isLoading={state === "loading" || runsState === "loading"}>Refresh</Button>
+        <Button variant="primary" onPress={showCreate ? () => setShowCreate(false) : beginCreate}>{showCreate ? "Close form" : "New template"}</Button>
+      </div>
+    </div> : <header className="topbar ropa-page-header">
       <div>
         <span className="eyebrow">{organizationName || "ClearSight"} · {scope}</span>
         <h1 id="reporting-heading">Reports</h1>
@@ -290,7 +298,7 @@ export function ReportingPage({
         <Button variant="secondary" onPress={refresh} isLoading={state === "loading" || runsState === "loading"}>Refresh reports</Button>
         <Button variant="primary" onPress={showCreate ? () => setShowCreate(false) : beginCreate}>{showCreate ? "Close report form" : "Define a report"}</Button>
       </div>
-    </header>
+    </header>}
 
     <section className="report-status-strip" aria-label="Report definition status">
       <div><span className="eyebrow">Report governance</span><h2>Definitions checked for {scope}</h2><p>These counts come from the report definitions returned for the current legal entity.</p></div>
@@ -326,9 +334,10 @@ export function ReportingPage({
       onRetryHistory={() => setHistoryRetry((value) => value + 1)}
       onTransition={transitionSelected}
       onRun={runSelected}
+      showRunAction={!embedded}
     />}
 
-    <section className="report-runs" aria-labelledby="report-runs-heading">
+    {!embedded && <section className="report-runs" aria-labelledby="report-runs-heading">
       <div className="section-header report-section-header">
         <div><h2 id="report-runs-heading">Report runs</h2><p>Each row records the material source boundary used to generate the file and whether the bounded population completed.</p></div>
       </div>
@@ -336,7 +345,7 @@ export function ReportingPage({
       {runsState === "error" && <Notice tone="error"><span>{runsError || "Report runs could not be loaded. Check the connection and try again."}</span> <Button variant="secondary" size="compact" onPress={refresh}>Retry runs</Button></Notice>}
       {runsState === "live" && visibleRuns.length === 0 && <EmptyState population={`${scope} · report runs for ${selectedDefinition?.name || "the selected definition"}`} title="No report runs are recorded for this definition" description="The selected definition has no queued, completed or failed run in the current legal entity. The next valid action is to activate the definition or run it when its governance state allows." />}
       {visibleRuns.length > 0 && <RunTable runs={visibleRuns} onDownload={downloadSelected} downloading={commandState === "downloading"} />}
-    </section>
+    </section>}
   </section>;
 }
 
@@ -350,16 +359,14 @@ function DefinitionCreateForm({ draft, fields, error, busy, onChange, onSave }: 
       <TextField label="Report name" value={draft.name} onChange={(value) => onChange({ name: value })} description="Name the business question or population this report answers." isRequired maxLength={120} />
       <TextArea label="Description" value={draft.description} onChange={(value) => onChange({ description: value })} description="State the purpose, audience or evidence question this report supports." maxLength={1000} />
       <SelectField label="Dataset" value={draft.dataset} placeholder="Choose a dataset" options={[
+        { id: "VENDORS", label: "Vendors" },
+        { id: "PROGRAMS", label: "Programs" },
+        { id: "MATTERS", label: "Work — all issues and changes" },
+        { id: "MATTER_EXCEPTIONS", label: "Work — exceptions and overdue obligations" },
         { id: "PROCESSING_ACTIVITIES", label: "Processing activities" },
         { id: "PROCESSING_ACTIVITY_EXCEPTIONS", label: "Processing activities with open exceptions" },
-        { id: "PROGRAMS", label: "Programs" },
-        { id: "MATTER_EXCEPTIONS", label: "Issues and changes with open exceptions or overdue obligations" },
-      ]} onChange={(value) => value && onChange({ dataset: value, filter: { kind: "group", operator: "and", children: [] }, scope_ref: "" })} isRequired />
-      <SelectField label="Scope" value={draft.scope_kind} placeholder="Choose a scope" options={[
-        { id: "LEGAL_ENTITY", label: "Whole legal entity" },
-        { id: "PROGRAM", label: "One Program" },
-        { id: "MATTER", label: "One issue or change" },
-      ]} onChange={(value) => value && onChange({ scope_kind: value, scope_ref: "" })} isRequired />
+      ]} onChange={(value) => value && onChange({ dataset: value, scope_kind: "LEGAL_ENTITY", filter: { kind: "group", operator: "and", children: [] }, scope_ref: "" })} isRequired />
+      <SelectField label="Scope" value={draft.scope_kind} placeholder="Choose a scope" options={scopeOptionsForDataset(draft.dataset)} onChange={(value) => value && onChange({ scope_kind: value, scope_ref: "" })} isRequired />
       {draft.scope_kind !== "LEGAL_ENTITY" && <TextField label={draft.scope_kind === "PROGRAM" ? "Program identifier" : "Issue or change identifier"} value={draft.scope_ref} onChange={(value) => onChange({ scope_ref: value })} description="Enter the stored identifier returned by the authoritative record." isRequired />}
       <SelectField label="File format" value={draft.format} placeholder="Choose a file format" options={[{ id: "XLSX", label: "Excel workbook" }, { id: "CSV", label: "CSV spreadsheet" }, { id: "NDJSON", label: "NDJSON data file" }]} onChange={(value) => value && onChange({ format: value })} isRequired />
       <TextField label="Effective from" type="date" value={draft.effective_from} onChange={(value) => onChange({ effective_from: value })} description="Leave blank if the authorizer should choose the effective date during activation." />
@@ -367,6 +374,14 @@ function DefinitionCreateForm({ draft, fields, error, busy, onChange, onSave }: 
     <ReportFilterEditor fields={fields} dataset={draft.dataset} value={draft.filter} onChange={(filter) => onChange({ filter })} onSave={() => onSave()} />
     <div className="report-create-panel__actions"><Button variant="primary" onPress={onSave} isLoading={busy}>Save report draft</Button></div>
   </section>;
+}
+
+function scopeOptionsForDataset(dataset: ReportDataset): readonly { id: ReportScopeKind; label: string }[] {
+  const legalEntity = { id: "LEGAL_ENTITY" as const, label: "Whole legal entity" };
+  if (dataset === "VENDORS") return [legalEntity];
+  if (dataset === "PROGRAMS") return [legalEntity, { id: "PROGRAM", label: "One Program" }];
+  if (dataset === "MATTERS" || dataset === "MATTER_EXCEPTIONS") return [legalEntity, { id: "MATTER", label: "One issue or change" }];
+  return [legalEntity, { id: "PROGRAM", label: "One Program" }, { id: "MATTER", label: "One issue or change" }];
 }
 
 function DefinitionTable({ definitions, selectedID, onSelect }: { definitions: readonly ReportDefinition[]; selectedID?: string; onSelect: (id: string) => void }) {
@@ -382,7 +397,7 @@ function DefinitionTable({ definitions, selectedID, onSelect }: { definitions: r
   return <DataTable ariaLabel="Report definitions" rows={definitions} rowKey={(definition) => definition.id} rowName={(definition) => `${definition.name}, ${definitionStatusLabel(definition.status)}, ${datasetLabel(definition.dataset)}, ${scopeDefinitionLabel(definition)}`} columns={columns} selectedKey={selectedID} onSelectionChange={(definition) => onSelect(definition.id)} onRowAction={(definition) => onSelect(definition.id)} />;
 }
 
-function SelectedDefinitionPanel({ definition, history, historyState, historyError, commandState, onRetryHistory, onTransition, onRun }: { definition: ReportDefinition; history: readonly ReportDefinitionRevision[]; historyState: LoadState; historyError?: string; commandState: string; onRetryHistory: () => void; onTransition: (action: ReportDefinitionAction) => void; onRun: () => void }) {
+function SelectedDefinitionPanel({ definition, history, historyState, historyError, commandState, onRetryHistory, onTransition, onRun, showRunAction }: { definition: ReportDefinition; history: readonly ReportDefinitionRevision[]; historyState: LoadState; historyError?: string; commandState: string; onRetryHistory: () => void; onTransition: (action: ReportDefinitionAction) => void; onRun: () => void; showRunAction: boolean }) {
   const availability = runAvailability(definition);
   return <>
     <section className="report-selected-definition" role="region" aria-label="Selected report definition">
@@ -399,8 +414,10 @@ function SelectedDefinitionPanel({ definition, history, historyState, historyErr
         <Fact label="Effective date" value={effectiveDateLabel(definition)} />
       </dl>
       <div className="report-selected-definition__actions">
-        <Button variant="primary" onPress={onRun} isDisabled={!availability.allowed} isLoading={commandState === "running"} aria-describedby="report-run-reason">Run report</Button>
-        <span id="report-run-reason" className="report-control-reason">{availability.reason}</span>
+        {showRunAction && <>
+          <Button variant="primary" onPress={onRun} isDisabled={!availability.allowed} isLoading={commandState === "running"} aria-describedby="report-run-reason">Run report</Button>
+          <span id="report-run-reason" className="report-control-reason">{availability.reason}</span>
+        </>}
         {definition.status === "DRAFT" && <Button variant="secondary" onPress={() => onTransition("submit")} isLoading={commandState === "saving"}>Send for review</Button>}
         {definition.status === "PENDING_REVIEW" && <Button variant="secondary" onPress={() => onTransition("review")} isLoading={commandState === "saving"}>Record review</Button>}
         {definition.status === "REVIEWED" && <Button variant="secondary" onPress={() => onTransition("activate")} isLoading={commandState === "saving"}>Activate report</Button>}
@@ -547,10 +564,12 @@ function sourceBoundaryAccessibleText(run: ReportRun) {
 }
 
 function datasetLabel(dataset: ReportDataset) {
+  if (dataset === "VENDORS") return "Vendors";
   if (dataset === "PROCESSING_ACTIVITIES") return "Processing activities";
   if (dataset === "PROCESSING_ACTIVITY_EXCEPTIONS") return "Processing activities with open exceptions";
   if (dataset === "PROGRAMS") return "Programs";
-  return "Issues and changes with open exceptions or overdue obligations";
+  if (dataset === "MATTERS") return "Work — all issues and changes";
+  return "Work — exceptions and overdue obligations";
 }
 
 function scopeDefinitionLabel(definition: ReportDefinition) {

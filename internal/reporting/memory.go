@@ -374,6 +374,55 @@ func (r *MemoryRepository) ListRuns(ctx context.Context, scope ReportScope, defi
 	return runs, nil
 }
 
+func (r *MemoryRepository) ListRunHistory(ctx context.Context, scope ReportScope, definitionID, cursor string, limit int) (RunHistoryPage, error) {
+	if r == nil || ctx == nil {
+		return RunHistoryPage{}, ErrInvalid
+	}
+	if err := validateReportScope(scope); err != nil {
+		return RunHistoryPage{}, err
+	}
+	definitionID = strings.TrimSpace(definitionID)
+	if definitionID != "" && !isUUID(definitionID) {
+		return RunHistoryPage{}, ErrInvalid
+	}
+	position, err := decodeRunHistoryCursor(cursor)
+	if err != nil {
+		return RunHistoryPage{}, err
+	}
+	limit = boundedMemoryListLimit(limit, 50)
+	r.mu.Lock()
+	runs := make([]ReportRun, 0)
+	for _, run := range r.runs {
+		if run.TenantID != scope.TenantID || run.LegalEntityID != scope.LegalEntityID {
+			continue
+		}
+		if definitionID != "" && run.DefinitionID != definitionID {
+			continue
+		}
+		if position.ID != "" && !(run.CreatedAt.Before(position.CreatedAt) ||
+			(run.CreatedAt.Equal(position.CreatedAt) && strings.ToLower(run.ID) < position.ID)) {
+			continue
+		}
+		runs = append(runs, cloneReportRun(run))
+	}
+	r.mu.Unlock()
+	sort.Slice(runs, func(i, j int) bool {
+		if runs[i].CreatedAt.Equal(runs[j].CreatedAt) {
+			return runs[i].ID > runs[j].ID
+		}
+		return runs[i].CreatedAt.After(runs[j].CreatedAt)
+	})
+	page := RunHistoryPage{Items: runs}
+	if len(page.Items) > limit {
+		page.Items = page.Items[:limit]
+		page.NextCursor, err = encodeRunHistoryCursor(page.Items[len(page.Items)-1])
+		if err != nil {
+			return RunHistoryPage{}, err
+		}
+	}
+	return page, nil
+}
+
 func (r *MemoryRepository) ClaimQueuedRuns(ctx context.Context, scope ReportScope, workerID string, limit int) ([]ReportRun, error) {
 	if r == nil || ctx == nil {
 		return nil, ErrInvalid
@@ -532,8 +581,10 @@ func (r *MemoryRepository) CaptureSourceBoundary(ctx context.Context, scope Repo
 	switch definition.Dataset {
 	case DatasetPrograms:
 		key = "programs"
-	case DatasetMatterExceptions:
+	case DatasetMatters, DatasetMatterExceptions:
 		key = "matters"
+	case DatasetVendors:
+		key = "vendor_relationships"
 	}
 	return SourceBoundary{
 		CapturedAt: now, ProjectionVersion: "memory-report-source.v1",

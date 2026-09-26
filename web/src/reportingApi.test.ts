@@ -9,6 +9,7 @@ import {
   getReportRun,
   listReportDefinitions,
   listReportFilterFields,
+  listReportRunPage,
   listReportRuns,
   transitionReportDefinition,
 } from "./reportingApi";
@@ -88,7 +89,7 @@ describe("reporting API", () => {
   it("reads the published filter vocabulary without inventing fields", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ fields }), { status: 200 }));
     await expect(listReportFilterFields()).resolves.toEqual({ fields });
-    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("/api/v1/ropa/reports/filter-fields");
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("/api/v1/reports/filter-fields");
   });
 
   it("scopes definition, history, detail and run reads to the verified tenant", async () => {
@@ -106,12 +107,28 @@ describe("reporting API", () => {
     await expect(getReportRun("run/1")).resolves.toEqual(run);
 
     expect(Object.fromEntries(new URL(String(fetchMock.mock.calls[0]?.[0]), "https://example.test").searchParams)).toEqual({ tenant_id: "tenant-1" });
-    expect(String(fetchMock.mock.calls[1]?.[0])).toBe("/api/v1/ropa/reports/definitions/definition%2F1/history?tenant_id=tenant-1");
-    expect(String(fetchMock.mock.calls[2]?.[0])).toBe("/api/v1/ropa/reports/definitions/definition%2F1?tenant_id=tenant-1");
+    expect(String(fetchMock.mock.calls[1]?.[0])).toBe("/api/v1/reports/definitions/definition%2F1/history?tenant_id=tenant-1");
+    expect(String(fetchMock.mock.calls[2]?.[0])).toBe("/api/v1/reports/definitions/definition%2F1?tenant_id=tenant-1");
     const runsURL = new URL(String(fetchMock.mock.calls[3]?.[0]), "https://example.test");
-    expect(runsURL.pathname).toBe("/api/v1/ropa/reports/runs");
+    expect(runsURL.pathname).toBe("/api/v1/reports/runs");
     expect(Object.fromEntries(runsURL.searchParams)).toEqual({ tenant_id: "tenant-1", limit: "20", definition_id: "definition-1" });
-    expect(String(fetchMock.mock.calls[4]?.[0])).toBe("/api/v1/ropa/reports/runs/run%2F1?tenant_id=tenant-1");
+    expect(String(fetchMock.mock.calls[4]?.[0])).toBe("/api/v1/reports/runs/run%2F1?tenant_id=tenant-1");
+  });
+
+  it("forwards the opaque report history cursor without interpreting it", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ items: [run], next_cursor: "next-page" }), { status: 200 }));
+
+    await expect(listReportRunPage({ limit: 50, cursor: "current-page" })).resolves.toEqual({
+      items: [run],
+      next_cursor: "next-page",
+    });
+
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]), "https://example.test");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      tenant_id: "tenant-1",
+      limit: "50",
+      cursor: "current-page",
+    });
   });
 
   it("sends governed definition and run commands without trusting browser actor fields", async () => {
@@ -130,7 +147,7 @@ describe("reporting API", () => {
     expect(firstBody).not.toHaveProperty("tenant_id");
     const transitionInit = fetchMock.mock.calls[1]?.[1] as RequestInit;
     expect(transitionInit.method).toBe("POST");
-    expect(String(fetchMock.mock.calls[1]?.[0])).toBe("/api/v1/ropa/reports/definitions/definition-1/review");
+    expect(String(fetchMock.mock.calls[1]?.[0])).toBe("/api/v1/reports/definitions/definition-1/review");
     expect(JSON.parse(String(transitionInit.body))).toEqual({ expected_version: 1, checksum_seen: "a".repeat(64), note: "Checked the filter and scope." });
     expect(JSON.parse(String((fetchMock.mock.calls[2]?.[1] as RequestInit).body))).toEqual({ definition_id: "definition-1", expected_definition_version: 1 });
   });
@@ -140,7 +157,7 @@ describe("reporting API", () => {
     const result = await downloadReportRun("run-1");
     expect(result.filename).toBe("ROPA-EXCEPTIONS.csv");
     expect(await result.blob.text()).toContain("Customer account opening");
-    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("/api/v1/ropa/reports/runs/run-1/download?tenant_id=tenant-1");
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("/api/v1/reports/runs/run-1/download?tenant_id=tenant-1");
   });
 
   it("turns report service failures into an operator recovery message", async () => {
