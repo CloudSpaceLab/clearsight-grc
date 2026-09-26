@@ -88,9 +88,11 @@ type ProcessingActivity struct {
 	EndDate                 *time.Time `json:"end_date,omitempty"`
 	NextReviewDate          *time.Time `json:"next_review_date,omitempty"`
 	// OwnerPrincipalID is the accountable owner; required authority is a separate responsibility.
-	OwnerPrincipalID             string    `json:"owner_principal_id,omitempty"`
-	RequiredAuthorityPrincipalID string    `json:"required_authority_principal_id,omitempty"`
-	ProgramID                    string    `json:"program_id,omitempty"`
+	OwnerPrincipalID                 string    `json:"owner_principal_id,omitempty"`
+	OwnerDisplayName                 string    `json:"owner_display_name,omitempty"`
+	RequiredAuthorityPrincipalID     string    `json:"required_authority_principal_id,omitempty"`
+	RequiredAuthorityDisplayName     string    `json:"required_authority_display_name,omitempty"`
+	ProgramID                        string    `json:"program_id,omitempty"`
 	Version                      int64     `json:"version"`
 	CreatedAt                    time.Time `json:"created_at"`
 	UpdatedAt                    time.Time `json:"updated_at"`
@@ -134,6 +136,7 @@ type Review struct {
 	CompletedAt         *time.Time `json:"completed_at,omitempty"`
 	Outcome             string     `json:"outcome,omitempty"`
 	ReviewerPrincipalID string     `json:"reviewer_principal_id,omitempty"`
+	ReviewerDisplayName string     `json:"reviewer_display_name,omitempty"`
 }
 
 type Event struct {
