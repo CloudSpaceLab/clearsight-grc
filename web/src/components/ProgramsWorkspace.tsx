@@ -169,7 +169,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   }, [state, items, targetID, openFirst, search, status, overallState, jurisdiction, assignedToMe]);
 
   if (state === "loading") return <section id="programs-workspace" className="workspace-loading" aria-live="polite" aria-busy="true">Loading programs…</section>;
-  if (state === "unavailable") return <div id="programs-workspace"><EmptyState label="Programs" title="Programs could not be loaded" description="The service is unavailable. No program totals are shown." action="Try again" onAction={() => void load(true)}/></div>;
+  if (state === "unavailable") return <div id="programs-workspace"><EmptyState label="Programs" title="Programs could not be loaded" description="Service unavailable." action="Try again" onAction={() => void load(true)}/></div>;
 
   const briefTitle = summary.attention > 0
     ? `${summary.attention} loaded program${summary.attention === 1 ? " requires" : "s require"} follow-up`
@@ -181,7 +181,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
 
   return <div id="programs-workspace">
     <section className="workspace-brief">
-        <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2><p>Open a Program to review its requirements, collected data, evidence results and open issues.</p></div>
+        <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2></div>
       <div className="workspace-brief-side"><div className="workspace-brief-facts" aria-label="Loaded Program status"><span><strong>{summary.attention}</strong> follow-up</span><span><strong>{summary.current}</strong> current</span><span><strong>{summary.setup}</strong> setup, review or assessment needed</span></div><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
     </section>
     {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
@@ -195,7 +195,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
       {filtersActive && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
     </form>
     {filtersActive && <div className="workspace-filter-chips" aria-label="Applied Program filters">{search && <span>Search: {search}</span>}{status && <span>{status === "DRAFT" ? "Setup in progress" : status[0] + status.slice(1).toLowerCase()}</span>}{overallState && <span>{humanizeProgramState(overallState)}</span>}{jurisdiction && <span>{jurisdiction}</span>}{assignedToMe && <span>Assigned to me</span>}</div>}
-      {!items.length ? <EmptyState label="Programs" title={filtersActive ? "No programs match these filters" : "No programs in this scope"} description={filtersActive ? "Change or clear the filters to see other Programs in your access scope." : "There are no ongoing compliance or control Programs in your current access scope."} action={filtersActive ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list">
+      {!items.length ? <EmptyState label="Programs" title={filtersActive ? "No programs match these filters" : "No programs in this scope"} description={filtersActive ? "Change filters." : "No Programs in this scope."} action={filtersActive ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list">
       {items.map((summaryItem) => {
         const program = summaryItem.program;
         const assessmentMissing = !hasAssessment(summaryItem);
