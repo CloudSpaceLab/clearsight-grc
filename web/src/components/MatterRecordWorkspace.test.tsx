@@ -438,7 +438,7 @@ describe("Matter record workspace", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Change issue owner" }));
     expect(screen.getByRole("dialog", { name: "Change issue owner" })).toBeTruthy();
-    expect(screen.getByText(/attempt delivery of an assignment email/i)).toBeTruthy();
+    expect(screen.getByText(/Assignment still applies if email delivery is unavailable/i)).toBeTruthy();
     await chooseSharedOption("New issue owner", "Privacy Operations Lead · PROGRAM_OWNER");
     fireEvent.change(screen.getByLabelText(/Reason for reassignment/), { target: { value: "Assign the current Privacy Operations owner." } });
     fireEvent.click(screen.getByRole("button", { name: "Assign issue owner" }));
@@ -575,7 +575,7 @@ describe("Matter record workspace", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Change owner for Update the annual return evidence checklist" }));
     expect(screen.getByRole("dialog", { name: "Change action owner" })).toBeTruthy();
-    expect(screen.getByText(/attempt delivery of an assignment email/i)).toBeTruthy();
+    expect(screen.getByText(/Assignment still applies if email delivery is unavailable/i)).toBeTruthy();
     await chooseSharedOption("New action owner", /^Privacy Operations Lead/);
     fireEvent.change(screen.getByLabelText(/Reason for action reassignment/), { target: { value: "Assign the process owner who maintains the evidence." } });
     fireEvent.click(screen.getByRole("button", { name: "Assign action owner" }));
