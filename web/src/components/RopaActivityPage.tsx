@@ -99,7 +99,6 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
   const activity = response.activity;
   const blockers = response.closure_blockers ?? [];
   const scope = legalEntityName || "this legal entity";
-  const descriptionID = "ropa-closure-blockers-description";
 
   return <section className="ropa-activity-page" aria-labelledby="ropa-activity-heading">
     <header className="topbar ropa-page-header">
@@ -119,17 +118,15 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
     {blockers.length > 0 ? <section className="ropa-closure-blockers" aria-labelledby="ropa-closure-blockers-heading">
       <div className="ropa-closure-blockers__heading">
         <StatusBadge tone="warning">Closure blocked</StatusBadge>
-        <h2 id="ropa-closure-blockers-heading">Complete these facts before closing</h2>
-        <p id={descriptionID}>Complete all required facts before closing.</p>
+        <h2 id="ropa-closure-blockers-heading">Closure blockers</h2>
       </div>
       <ul className="ropa-closure-blockers__list">
         {blockers.map((blocker) => <li key={blocker}><strong>{blockerLabel(blocker)}</strong><span>{blockerInstruction(blocker)}</span></li>)}
       </ul>
       <div className="ropa-closure-blockers__action">
-        <Button variant="primary" isDisabled aria-describedby={descriptionID}>Close processing activity</Button>
-        <span>Complete blockers first.</span>
+        <Button variant="primary" isDisabled>Close processing activity</Button>
       </div>
-    </section> : <Notice tone="success">Closure requirements complete.</Notice>}
+    </section> : <Notice tone="success">Ready to close.</Notice>}
 
     <section className="ropa-activity-facts" aria-labelledby="ropa-facts-heading">
       <div className="section-header"><div><h2 id="ropa-facts-heading">Activity details</h2></div></div>
@@ -179,7 +176,7 @@ function DataCategories({ activity }: { activity: ProcessingActivity }) {
   const categories = activity.data_categories ?? [];
   return <section className="ropa-activity-list" aria-labelledby="ropa-data-categories-heading">
     <h2 id="ropa-data-categories-heading">Personal data categories</h2>
-    {categories.length > 0 ? <ul>{categories.map((category) => <li key={category.category}><strong>{category.category}</strong><StatusBadge tone={sensitivityTone(category.sensitivity)}>{sensitivityLabel(category.sensitivity)}</StatusBadge></li>)}</ul> : <EmptyState population={`Personal data categories for ${activity.name || "this processing activity"}`} title="No data categories recorded" description="Add personal data categories."/>}
+    {categories.length > 0 ? <ul>{categories.map((category) => <li key={category.category}><strong>{category.category}</strong><StatusBadge tone={sensitivityTone(category.sensitivity)}>{sensitivityLabel(category.sensitivity)}</StatusBadge></li>)}</ul> : <EmptyState population={`Personal data categories for ${activity.name || "this processing activity"}`} title="No data categories" description="Add a category."/>}
   </section>;
 }
 
@@ -187,7 +184,7 @@ function Recipients({ activity }: { activity: ProcessingActivity }) {
   const recipients = activity.recipients ?? [];
   return <section className="ropa-activity-list" aria-labelledby="ropa-recipients-heading">
     <h2 id="ropa-recipients-heading">Recipients and transfers</h2>
-    {recipients.length > 0 ? <ul>{recipients.map((recipient) => <RecipientRow key={recipient.recipient} recipient={recipient}/>)}</ul> : <EmptyState population={`Recipients for ${activity.name || "this processing activity"}`} title="No recipients recorded" description="Add recipients and transfer details."/>}
+    {recipients.length > 0 ? <ul>{recipients.map((recipient) => <RecipientRow key={recipient.recipient} recipient={recipient}/>)}</ul> : <EmptyState population={`Recipients for ${activity.name || "this processing activity"}`} title="No recipients" description="Add a recipient."/>}
   </section>;
 }
 
@@ -195,7 +192,7 @@ function RecipientRow({ recipient }: { recipient: Recipient }) {
   return <li>
     <strong>{recipient.recipient || "Recipient name not recorded"}</strong>
     <span>{recipientKindLabel(recipient.recipient_kind)}</span>
-    {recipient.is_cross_border ? <small>Country: {recipient.country_code || "Not recorded"} · Safeguard: {transferBasisLabel(recipient.transfer_basis)}</small> : <small>No cross-border transfer recorded.</small>}
+    {recipient.is_cross_border ? <small>Country: {recipient.country_code || "Not recorded"} · Safeguard: {transferBasisLabel(recipient.transfer_basis)}</small> : <small>No cross-border transfer</small>}
   </li>;
 }
 
@@ -203,12 +200,12 @@ function Systems({ activity }: { activity: ProcessingActivity }) {
   const systems = activity.systems ?? [];
   return <section className="ropa-activity-list" aria-labelledby="ropa-systems-heading">
     <h2 id="ropa-systems-heading">Systems</h2>
-    {systems.length > 0 ? <ul>{systems.map((system) => <li key={system.system_name}><strong>{system.system_name || "System name not recorded"}</strong><span>{systemKindLabel(system.system_kind)}</span></li>)}</ul> : <EmptyState population={`Systems for ${activity.name || "this processing activity"}`} title="No systems recorded" description="Add systems used by this activity."/>}
+    {systems.length > 0 ? <ul>{systems.map((system) => <li key={system.system_name}><strong>{system.system_name || "System name not recorded"}</strong><span>{systemKindLabel(system.system_kind)}</span></li>)}</ul> : <EmptyState population={`Systems for ${activity.name || "this processing activity"}`} title="No systems" description="Add a system."/>}
   </section>;
 }
 
 function Reviews({ reviews, activityName }: { reviews: Review[]; activityName: string }) {
-  if (reviews.length === 0) return <EmptyState population={`Review history for ${activityName || "this processing activity"}`} title="No review history recorded" description="No reviews recorded."/>;
+  if (reviews.length === 0) return <EmptyState population={`Review history for ${activityName || "this processing activity"}`} title="No reviews" description="Add a review."/>;
   return <ul className="ropa-review-list">{reviews.map((review) => <li key={review.id}>
     <div><strong>{review.completed_at ? `Review completed ${formatActivityDate(review.completed_at)}` : `Review due ${formatActivityDate(review.due_date)}`}</strong><StatusBadge tone={reviewTone(review)}>{reviewStatusLabel(review)}</StatusBadge></div>
     <span>{review.outcome ? `Outcome: ${outcomeLabel(review.outcome)}` : "Outcome not recorded"}</span>
@@ -217,7 +214,7 @@ function Reviews({ reviews, activityName }: { reviews: Review[]; activityName: s
 }
 
 function History({ events, hasMore, activityName }: { events: ProcessingActivityHistoryResponse["events"]; hasMore: boolean; activityName: string }) {
-  if (events.length === 0) return <EmptyState population={`Recorded changes for ${activityName || "this processing activity"}`} title="No changes recorded" description="No history available."/>;
+  if (events.length === 0) return <EmptyState population={`Recorded changes for ${activityName || "this processing activity"}`} title="No changes" description="Changes will appear here."/>;
   return <>
     <ol className="ropa-history-list">{events.map((event) => <li key={event.id}><strong>{eventTypeLabel(event.type)}</strong><span>{formatActivityDate(event.occurred_at)}</span><small>Record version {event.aggregate_version}</small></li>)}</ol>
     {hasMore && <p className="ropa-load-state">More changes available.</p>}

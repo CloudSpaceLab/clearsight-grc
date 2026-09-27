@@ -149,22 +149,22 @@ export function MatterActionsPanel({ aggregate, operations, responsibleParties =
       {activeAction && <p className="matter-form-context wide">Changing: {activeAction.title}</p>}
     </form>}
     {active?.kind === "assign" && <FocusedSheet label="Change action owner" closeLabel="Close action reassignment" onClose={() => setActive(null)}>
-      <div className="cs-sheet-heading"><span className="eyebrow">Assigned performer</span><h2>Change action owner</h2><p>Choose an eligible performer for this action and record why the work is moving.</p></div>
+      <div className="cs-sheet-heading"><span className="eyebrow">Assigned performer</span><h2>Change action owner</h2></div>
       <form className="cs-sheet-form" onSubmit={submit}>
         <dl className="cs-sheet-facts"><div><dt>Action</dt><dd>{activeAction?.title ?? "Selected action"}</dd></div><div><dt>Current performer</dt><dd>{currentPerformerName ?? "Recorded performer unavailable"}</dd></div></dl>
         <SelectField label="New action owner" value={owner || undefined} placeholder={reassignmentCandidates.length ? "Select an eligible performer" : "No alternative performer available"} allowsEmpty={false} isRequired isDisabled={!reassignmentCandidates.length} options={reassignmentCandidates.map((candidate) => ({ id: candidate.id, label: candidate.display_name, description: candidate.role ? `Eligible as ${responsibilityLabel(candidate.role)}` : undefined }))} onChange={(value) => setOwner(value ?? "")}/>
-        {!reassignmentCandidates.length && <Notice tone="warning">No alternative performer is currently eligible for this action. Update the responsibility route before changing the owner.</Notice>}
-        <Notice tone="info">After the assignment is recorded, ClearSight will attempt delivery of an assignment email to the staff mailbox held in the active directory. If no usable mailbox is available, the action assignment still takes effect and email delivery is recorded as unavailable.</Notice>
-        <TextArea label="Reason for action reassignment" value={rationale} onChange={setRationale} rows={3} isRequired description="This reason remains with the action assignment history."/>
+        {!reassignmentCandidates.length && <Notice tone="warning">No alternative performer. Update the responsibility route.</Notice>}
+        <Notice tone="info">Assignment still applies if email delivery is unavailable.</Notice>
+        <TextArea label="Reason for action reassignment" value={rationale} onChange={setRationale} rows={3} isRequired description="Stored in assignment history."/>
         {error && <Notice tone="error"><span>{error}</span>{conflict && <Button variant="secondary" onPress={onReload}>Reload current issue</Button>}</Notice>}
         <div className="cs-sheet-actions"><Button type="button" variant="quiet" isDisabled={saving} onPress={() => setActive(null)}>Cancel</Button><Button type="submit" variant="primary" isDisabled={!owner || !rationale.trim()} isLoading={saving}>Assign action owner</Button></div>
       </form>
     </FocusedSheet>}
     {active?.kind === "request" && <FocusedSheet label="Request action update" closeLabel="Close update request" onClose={() => setActive(null)}>
-      <div className="cs-sheet-heading"><span className="eyebrow">Action follow-up</span><h2>Request a status update</h2><p>The assigned performer receives an email request and can report progress or a blocker in the issue activity.</p></div>
+      <div className="cs-sheet-heading"><span className="eyebrow">Action follow-up</span><h2>Request a status update</h2><p>Email the assigned performer.</p></div>
       <form className="cs-sheet-form" onSubmit={submit}>
         <dl className="cs-sheet-facts"><div><dt>Action</dt><dd>{activeAction?.title ?? "Selected action"}</dd></div><div><dt>Assigned performer</dt><dd>{currentPerformerName ?? "Recorded performer unavailable"}</dd></div></dl>
-        <TextArea label="Update requested" value={requestMessage} onChange={setRequestMessage} rows={4} isRequired description="Ask for the status, expected completion date or blocker needed for the next decision."/>
+        <TextArea label="Update requested" value={requestMessage} onChange={setRequestMessage} rows={4} isRequired description="Ask for status, completion date or blocker."/>
         <label className="cs-sheet-date"><span>Response due date</span><input type="date" value={requestDueDate} onChange={(event) => setRequestDueDate(event.target.value)}/></label>
         {error && <Notice tone="error"><span>{error}</span>{conflict && <Button variant="secondary" onPress={onReload}>Reload current issue</Button>}</Notice>}
         <div className="cs-sheet-actions"><Button type="button" variant="quiet" isDisabled={saving} onPress={() => setActive(null)}>Cancel</Button><Button type="submit" variant="primary" isDisabled={!requestMessage.trim()} isLoading={saving}>Send update request</Button></div>

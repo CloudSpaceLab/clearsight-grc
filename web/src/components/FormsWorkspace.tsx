@@ -407,7 +407,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     editingRow.current = undefined;
     setEditor(null);
     choose(form.id);
-    setNotice(form.status === "PENDING_APPROVAL" ? "Draft sent for independent approval." : "Form draft saved as a new version.");
+    setNotice(form.status === "PENDING_APPROVAL" ? "Sent for approval." : "Draft saved.");
     await Promise.all([refresh(), refreshReusableTemplates()]);
   }
 
@@ -421,7 +421,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     setError(null);
     try {
       await transitionFormTemplateRevision(item.template.id, item.template.version, to);
-      setNotice(to === "PENDING_APPROVAL" ? "Draft sent for independent approval." : to === "ACTIVE" ? "The approved revision is now active." : "The revision state was updated.");
+      setNotice(to === "PENDING_APPROVAL" ? "Sent for approval." : to === "ACTIVE" ? "Revision active." : "State updated.");
       await Promise.all([refresh(), refreshReusableTemplates()]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The form state could not be changed.");
@@ -509,7 +509,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         {selectedItems.length > 0 && <div className="forms-bulk" role="status"><strong>{selectedItems.length} selected</strong>{bulkTransition ? <Button isLoading={busy === "bulk-transition"} onPress={() => void runBulkTransition()}>Send {selectedItems.length} for approval</Button> : <span>Bulk approval is available only when every selected row is an approval-ready draft with the same permitted lifecycle action.</span>}<Button variant="quiet" onPress={() => setSelectedIDs(new Set())}>Clear selection</Button></div>}
 
         {state === "loading" ? <div className="forms-loading" aria-live="polite" aria-busy="true">Loading form templates…</div>
-          : state === "unavailable" ? <FormsEmptyState population="Form templates in this legal entity" title="Forms are temporarily unavailable" detail="The library could not be read, and no template state was changed." actions={<Button onPress={() => void refresh()}>Retry</Button>}/>
+          : state === "unavailable" ? <FormsEmptyState population="Form templates in this legal entity" title="Forms are temporarily unavailable" detail="Retry." actions={<Button onPress={() => void refresh()}>Retry</Button>}/>
           : page.items.length === 0 ? <FormsEmptyState
             population={query.search ? `Form templates matching “${query.search}”` : "Form templates in this legal entity"}
             title={query.search ? `No templates match “${query.search}”` : "Create your governed form library"}

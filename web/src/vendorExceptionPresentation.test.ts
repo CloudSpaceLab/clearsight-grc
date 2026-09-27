@@ -51,6 +51,19 @@ describe("vendor exception presentation", () => {
     expect(presentVendorExceptions(fixtures, "ALL", now).at(-1)?.band).toBe("CLOSED");
   });
 
+  it("never presents identifier-shaped owner values as names", () => {
+    const identifierOwner = finding(
+      "identifier-owner",
+      "Identifier owner",
+      "ASSESSMENT",
+      [{ due_at: "2026-10-01T00:00:00Z" }],
+      { source_owner: "00000000-0000-4000-8000-000000000107", source_rating: "Medium" },
+    );
+    const row = presentVendorExceptions([identifierOwner], "ALL", now)[0];
+    expect(row?.owner).toBe("Assigned");
+    expect(row?.owner).not.toContain("00000000");
+  });
+
   it("does not turn a missing deadline into an overdue deadline", () => {
     const row = presentVendorExceptions(fixtures, "OPEN", now).find(value => value.item.record.matter.id === "no-deadline");
     expect(row).toMatchObject({ band: "INCOMPLETE", overdueActionCount: 0 });

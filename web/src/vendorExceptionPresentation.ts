@@ -26,6 +26,14 @@ function recordedText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function ownerDisplay(value: unknown) {
+  const owner = recordedText(value);
+  if (!owner) return undefined;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(owner)) return "Assigned";
+  if (/^\d{4,}$/.test(owner)) return "Assigned";
+  return owner;
+}
+
 function actionDeadline(action?: MatterAction) {
   if (!action?.due_at) return Number.POSITIVE_INFINITY;
   const parsed = Date.parse(action.due_at);
@@ -37,7 +45,7 @@ function present(item: VendorRiskFinding, now: number): VendorExceptionRow {
   const openActions = item.record.actions.filter(openRiskAction).sort((left, right) => actionDeadline(left) - actionDeadline(right) || left.title.localeCompare(right.title));
   const overdueActions = openActions.filter(action => overdueRiskAction(action, now));
   const nextAction = openActions[0];
-  const owner = recordedText(facts.source_owner);
+  const owner = ownerDisplay(facts.source_owner);
   const sourceRating = recordedText(facts.source_rating);
   let band: VendorExceptionBand = "OPEN";
   if (!openFinding(item)) band = "CLOSED";

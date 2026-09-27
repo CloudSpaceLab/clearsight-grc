@@ -108,7 +108,7 @@ describe("Task 11 governed form views", () => {
     expect(screen.getByText("92% compliance")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review Quarterly control review response" }));
     expect(await screen.findByText("Email verified")).toBeTruthy();
-    expect(screen.getByText(/submitted version cannot be changed/i)).toBeTruthy();
+    expect(screen.getByText(/Submitted versions are read-only/i)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Edit response" })).toBeNull();
   });
 

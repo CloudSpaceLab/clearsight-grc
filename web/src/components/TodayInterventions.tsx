@@ -23,15 +23,15 @@ export function TodayInterventions({ items, connection, readiness, readinessStat
   return <>
     <section className="intervention-brief" id="today-brief" aria-labelledby="intervention-heading">
       <header className="intervention-heading">
-        <div><span className="eyebrow">Assigned work</span><h2 id="intervention-heading">{title}</h2><p>Assigned work and operational exceptions you are permitted to handle.</p></div>
+        <div><span className="eyebrow">Assigned work</span><h2 id="intervention-heading">{title}</h2></div>
       </header>
       {connection === "loading"
         ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading assigned work…</div>
         : connection === "unavailable"
-          ? <EmptyState kind="unavailable" label="Assigned work" title="Assigned work could not be loaded" description="Retry the assigned-work list before relying on its current items." action="Try again" onAction={onRetry}/>
+          ? <EmptyState kind="unavailable" label="Assigned work" title="Assigned work could not be loaded" description="Retry." action="Try again" onAction={onRetry}/>
           : items.length
             ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
-            : <div id="attention-list"><EmptyState label="Assigned work" title="Nothing needs your action right now" description="No assigned work or permitted operational exceptions are open for you in this scope."/></div>}
+            : <div id="attention-list"><EmptyState label="Assigned work" title="Nothing needs your action right now" description="No open assigned work."/></div>}
     </section>
     <StatusChecks readiness={readiness} state={readinessState}/>
   </>;
@@ -94,7 +94,7 @@ function VerificationContext({ item }: { item: AttentionItem }) {
 
 function StatusChecks({ readiness, state }: { readiness: Readiness | null; state: ReadinessState }) {
   if (state === "loading") return <div className="continuous-checks quiet" aria-live="polite">Status checks are loading…</div>;
-  if (state === "unavailable" || !readiness) return <div className="continuous-checks quiet"><strong>Status checks unavailable</strong><span>The latest status checks could not be loaded. Try again before reviewing readiness.</span></div>;
+  if (state === "unavailable" || !readiness) return <div className="continuous-checks quiet"><strong>Status checks unavailable</strong><span>Retry.</span></div>;
   const dimensions = readiness.dimensions;
   const active = dimensions.aging + dimensions.at_risk + dimensions.unknown + dimensions.blocked_routing + dimensions.pending_human;
   const status = readiness.status.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
@@ -113,7 +113,7 @@ function StatusChecks({ readiness, state }: { readiness: Readiness | null; state
         <div><dt>Awaiting review</dt><dd>{dimensions.pending_human}</dd></div>
       </dl>
       {readiness.recommended_actions.length > 0 && <div><h3>Suggested follow-up</h3><ul>{readiness.recommended_actions.map((action) => <li key={action}>{action}</li>)}</ul></div>}
-      {!readiness.baseline_known && <p>Coverage is incomplete, so these counts are not a complete view of compliance status.</p>}
+      {!readiness.baseline_known && <p>Coverage incomplete.</p>}
     </div>
   </details>;
 }

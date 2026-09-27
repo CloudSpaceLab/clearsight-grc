@@ -22,7 +22,6 @@ describe("TodayInterventions", () => {
     render(<TodayInterventions items={[item]} connection="live" readiness={readiness} readinessState="live" onOpenItem={onOpen}/>);
     expect(screen.getByText("Assigned work", { selector: ".eyebrow" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "1 item needs your action" })).toBeTruthy();
-    expect(screen.getByText("Assigned work and operational exceptions you are permitted to handle.")).toBeTruthy();
     expect(screen.getByText("Seven provisions may change current obligations.")).toBeTruthy();
     expect(screen.getByText("Recommended action")).toBeTruthy();
     const statusChecks = screen.getByText("Status checks").closest("details") as HTMLDetailsElement | null;

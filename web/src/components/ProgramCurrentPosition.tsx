@@ -78,16 +78,16 @@ export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOw
     <div className="program-position-header"><div>
       <span className="eyebrow">Current position</span>
       <h2 id="program-current-position-heading">{!current || !assessmentVersionKnown ? "Unknown" : stale ? "Out of date" : aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</h2>
-      <p>{!current ? "No Program status calculation is available." : <>{!assessmentVersionKnown ? "The assessment version is unavailable. " : stale ? `Last assessed at version ${assessedVersion}; Program is version ${aggregate.program.version}. ` : "Status reflects the latest Program version. "}{validCalculationTime ? <>Calculated <time dateTime={current.generated_at}>{calculatedAt}</time>.</> : "Calculation time is unavailable."}</>}</p>
+      <p>{!current ? "No status calculation." : <>{!assessmentVersionKnown ? "Assessment version unavailable" : stale ? `Assessment v${assessedVersion} · Program v${aggregate.program.version}` : `Program v${aggregate.program.version}`}{validCalculationTime ? <> · <time dateTime={current.generated_at}>{calculatedAt}</time></> : null}</>}</p>
       </div><div className="program-dominant-next">
-        {action ? <button data-testid="program-dominant-action" className="primary-button" type="button" onClick={goToAction}>{action.label}</button> : <small>Review access · Changes require an assigned owner or reviewer.</small>}
+        {action ? <button data-testid="program-dominant-action" className="primary-button" type="button" onClick={goToAction}>{action.label}</button> : <small>No available action.</small>}
       </div></div><div>
       <div className="program-position-facts">
         <span><strong>Owner</strong> {owner?.display_name ?? storedOwner ?? (aggregate.program.owner_principal_id ? "Recorded Program owner unavailable" : "Program owner not assigned")}</span>
         <span><strong>Open issues</strong> {knownOpenIssues ? `${openIssues}${stale ? " (last calculation)" : ""}` : "Unknown"}</span>
         <span><strong>Requirements</strong> {aggregate.requirements.filter((requirement) => requirement.status === "APPROVED").length}</span>
       </div>
-      {reasons.length > 0 ? <div className="program-position-reasons"><h3>{stale ? "Follow-up from the last calculation" : "What needs attention"}</h3><ProgramAttention aggregate={aggregate} onNavigate={navigate}/></div> : <p>{!current || !Array.isArray(current.reasons) ? "Status reasons are unavailable." : stale ? "No status reasons were recorded for the previous calculation." : "No status reasons are recorded for this calculation."}</p>}
+      {reasons.length > 0 ? <div className="program-position-reasons"><h3>{stale ? "Follow-up from the last calculation" : "What needs attention"}</h3><ProgramAttention aggregate={aggregate} onNavigate={navigate}/></div> : <p>{!current || !Array.isArray(current.reasons) ? "Status reasons unavailable." : stale ? "No prior status reasons." : "No status reasons."}</p>}
     </div>
   </section>;
 }

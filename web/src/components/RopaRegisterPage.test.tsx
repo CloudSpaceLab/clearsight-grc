@@ -157,12 +157,11 @@ it("lists every closure blocker and explains why closing is unavailable", async 
   render(<RopaActivityPage activityID="activity-1" loadActivity={api.fetchProcessingActivity} loadHistory={api.fetchProcessingActivityHistory}/>);
 
   expect(await screen.findByRole("heading", { name: "Customer onboarding" })).toBeTruthy();
-  const blockerPanel = screen.getByRole("region", { name: "Complete these facts before closing" });
+  const blockerPanel = screen.getByRole("region", { name: "Closure blockers" });
   expect(within(blockerPanel).getByText("Lawful basis")).toBeTruthy();
   expect(within(blockerPanel).getByText("Named owner")).toBeTruthy();
   expect(within(blockerPanel).getByText("Data subject category")).toBeTruthy();
   expect(within(blockerPanel).getByText("Completed review")).toBeTruthy();
-  expect(within(blockerPanel).getByText("Complete all required facts before closing.")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Close processing activity" })).toHaveProperty("disabled", true);
 });
 

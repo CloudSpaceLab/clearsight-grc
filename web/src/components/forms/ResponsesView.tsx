@@ -208,10 +208,10 @@ export function ResponsesView() {
     </div>}
 
     <div className="forms-responses__results" aria-live="polite">
-      {listState === "loading" && items.length === 0 && <Surface><p role="status">Loading responses matching the current filters…</p></Surface>}
-      {listState === "sign-in-required" && <EmptyState population="Responses matching the current filters" title="Sign in to review responses" description="Your session ended before this response list could be loaded." action={<ActionLink href="/">Sign in again</ActionLink>}/>}
-      {listState === "error" && <EmptyState population="Responses matching the current filters" title="Responses could not be loaded" description={error ?? "The current response query could not be completed."} action={<Button onPress={() => void refresh()}>Try again</Button>}/>}
-      {listState === "live" && items.length === 0 && <EmptyState population="Responses matching the current filters" title="No responses match these filters" description="Change or clear the filters to review a different response population."/>}
+      {listState === "loading" && items.length === 0 && <Surface><p role="status">Loading responses…</p></Surface>}
+      {listState === "sign-in-required" && <EmptyState population="Responses matching the current filters" title="Sign in to review responses" description="Session expired." action={<ActionLink href="/">Sign in again</ActionLink>}/>}
+      {listState === "error" && <EmptyState population="Responses matching the current filters" title="Responses could not be loaded" description={error ?? "Retry."} action={<Button onPress={() => void refresh()}>Try again</Button>}/>}
+      {listState === "live" && items.length === 0 && <EmptyState population="Responses matching the current filters" title="No responses match these filters" description="Change filters."/>}
       {(listState === "live" || items.length > 0) && items.length > 0 && <DataTable
         ariaLabel="Submitted form responses"
         rows={items}
@@ -241,7 +241,7 @@ function ConcernBadge({ score }: { score?: ResponseScore }) {
 function ResponseReview({ state, detail, error, revisions, revisionsError, onRetry, onRetryHistory }: { state: DetailState; detail?: CompletedResponseDetail; error?: string; revisions: ResponseRevision[]; revisionsError?: string; onRetry: () => void; onRetryHistory: () => void }) {
   const [section, setSection] = useState<"ANSWERS" | "DOCUMENTS" | "REVIEW" | "HISTORY">("ANSWERS");
   if (state === "loading") return <p role="status">Loading the submitted response and score explanation…</p>;
-  if (state === "error") return <EmptyState population="The selected submitted response" title="Response details could not be loaded" description={error ?? "Retry to load this submitted response."} action={<Button onPress={onRetry}>Retry response</Button>}/>;
+  if (state === "error") return <EmptyState population="The selected submitted response" title="Response details could not be loaded" description={error ?? "Retry."} action={<Button onPress={onRetry}>Retry response</Button>}/>;
   if (state !== "live" || !detail) return null;
   const score = detail.response.score ?? detail.revision.score;
   return <div className="forms-response-review__content">
@@ -259,7 +259,7 @@ function ResponseReview({ state, detail, error, revisions, revisionsError, onRet
       {revisions.length === 0 && !revisionsError && <p>No version history was returned for this response.</p>}
       <details><summary>Response references</summary><p>Subject: {detail.response.subject_id} · Response: {detail.response.id}</p><p>Scoring profile: {score?.profile_version || detail.revision.scoring_policy_version || "Not configured"}</p></details>
     </section>}</Tabs>
-    <Notice tone="info">This submitted version cannot be changed. Send an amended form when the subject must provide updated information.</Notice>
+    <Notice tone="info">Submitted versions are read-only. Send an amended form for updates.</Notice>
   </div>;
 }
 
