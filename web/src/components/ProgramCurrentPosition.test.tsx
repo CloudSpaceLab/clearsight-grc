@@ -34,14 +34,14 @@ describe("Program calculation truth", () => {
 
   it("does not turn missing reasons or an invalid timestamp into a clean latest calculation", () => {
     render(<ProgramCurrentPosition aggregate={{ ...aggregate, current_state: { ...current, reasons: undefined, generated_at: "invalid" } as unknown as typeof current }} operations={operations} digest={digest}/>);
-    expect(screen.getByText("Status reasons are unavailable.")).toBeTruthy();
+    expect(screen.getByText("Status reasons unavailable.")).toBeTruthy();
     expect(screen.queryByText(/No status exceptions|Invalid Date/)).toBeNull();
   });
 
   it("does not invent an assessment version when freshness metadata is absent", () => {
     render(<ProgramCurrentPosition aggregate={{ ...aggregate, current_state: { ...current, program_version: undefined } as unknown as typeof current }} operations={operations} digest={digest}/>);
     expect(screen.getByRole("heading", { name: "Unknown" })).toBeTruthy();
-    expect(screen.getByText(/The assessment version is unavailable/)).toBeTruthy();
+    expect(screen.getByText(/Assessment version unavailable/)).toBeTruthy();
     expect(screen.queryByText(/version 0|latest Program version/)).toBeNull();
   });
 
