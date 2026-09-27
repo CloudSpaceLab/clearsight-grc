@@ -111,17 +111,17 @@ export function SentFormsView() {
   }}/>;
 
   const selectedItem = items.find((item) => item.id === selectedID);
-  const detailContent = selectedID ? renderDetailState(detailState, detail, detailError, busy, lifecycle, () => setChangeMode("amend"), () => setChangeMode("supersede")) : <><p className="forms-sent-detail__type">Distribution detail</p><h3>Select a sent form</h3><p>Open one sent form to review recipient progress, deadline and access method.</p></>;
+  const detailContent = selectedID ? renderDetailState(detailState, detail, detailError, busy, lifecycle, () => setChangeMode("amend"), () => setChangeMode("supersede")) : <><p className="forms-sent-detail__type">Distribution detail</p><h3>Select a sent form</h3></>;
 
   return <section className="forms-sent" aria-labelledby="sent-forms-title">
-    <header className="forms-sent__heading"><div><p>Sender workspace</p><h2 id="sent-forms-title">Sent forms</h2><p>Track each sent form, its recipients, response status, access method and deadline.</p></div><Button variant="primary" onPress={() => setComposerOpen(true)}>Send form</Button></header>
+    <header className="forms-sent__heading"><div><p>Sender workspace</p><h2 id="sent-forms-title">Sent forms</h2></div><Button variant="primary" onPress={() => setComposerOpen(true)}>Send form</Button></header>
     {notice && <Notice tone="success">{notice}</Notice>}
     <SentFormsFilters query={query} resultCount={listState === "live" ? items.length : undefined} onChange={updateQuery} onClear={clearFilters}/>
     <div className="forms-sent__results" aria-live="polite">
-      {listState === "loading" && <Surface><p role="status" aria-label="Loading sent forms matching the current filters">Loading sent forms matching the current filters…</p></Surface>}
-      {listState === "sign-in-required" && <EmptyState population="Sent forms matching the current filters" title="Sign in to review sent forms" description="Your session ended before this sent-form list could be loaded." action={<ActionLink href="/">Sign in again</ActionLink>}/>}
-      {listState === "error" && <EmptyState population="Sent forms matching the current filters" title="Sent forms could not be loaded" description={error ?? "The current sent-form query could not be completed."} action={<Button onPress={() => void refresh()}>Try again</Button>}/>}
-      {listState === "live" && items.length === 0 && <EmptyState population="Sent forms matching the current filters" title="No sent forms match these filters" description="Change the filters. To create a request for a recipient and subject, use Send form above."/>}
+      {listState === "loading" && <Surface><p role="status" aria-label="Loading sent forms matching the current filters">Loading sent forms…</p></Surface>}
+      {listState === "sign-in-required" && <EmptyState population="Sent forms matching the current filters" title="Sign in to review sent forms" description="Session expired." action={<ActionLink href="/">Sign in again</ActionLink>}/>}
+      {listState === "error" && <EmptyState population="Sent forms matching the current filters" title="Sent forms could not be loaded" description={error ?? "Retry."} action={<Button onPress={() => void refresh()}>Try again</Button>}/>}
+      {listState === "live" && items.length === 0 && <EmptyState population="Sent forms matching the current filters" title="No sent forms match these filters" description="Change filters."/>}
       {listState === "live" && items.length > 0 && <div className={`forms-sent__layout${wideDetail ? "" : " forms-sent__layout--single"}`}>
         <SentFormsTable items={items} selectedID={selectedID} nextCursor={nextCursor} loadingMore={busy === "more"} onSelect={setSelectedID} onLoadMore={() => void loadMore()}/>
         {wideDetail && <aside className="forms-sent__detail" aria-label={selectedItem ? `${selectedItem.title} details` : "Selected distribution"}>{detailContent}</aside>}
@@ -132,7 +132,7 @@ export function SentFormsView() {
 }
 
 function renderDetailState(state: DetailState, detail: DistributionDetail | undefined, detailError: string | undefined, busy: string | undefined, lifecycle: (action: "lock" | "reopen" | "revoke") => Promise<void>, onAmend: () => void, onSupersede: () => void): ReactNode {
-  if (state === "loading") return <p role="status" aria-label="Loading the selected sent form">Loading the selected sent form…</p>;
+  if (state === "loading") return <p role="status" aria-label="Loading the selected sent form">Loading sent form…</p>;
   if (state === "error") return <Notice tone="error">{detailError} Select the sent form again to retry.</Notice>;
   if (state === "live" && detail) return <SentFormDetail detail={detail} error={detailError} busy={busy} onLifecycle={(action) => void lifecycle(action)} onAmend={onAmend} onSupersede={onSupersede}/>;
   return null;
