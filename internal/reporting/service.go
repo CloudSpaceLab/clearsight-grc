@@ -387,13 +387,6 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 	if s.repo == nil || s.objects == nil || definitionID == "" || input.ExpectedDefinitionVersion <= 0 {
 		return ReportRun{}, ErrInvalid
 	}
-	runID, err := id.NewUUIDv7()
-	if err != nil {
-		return ReportRun{}, err
-	}
-	if err := s.authorized(ctx, actor, scope, "REPORT_RUN", runID, authority.ResponsibilityPerformer, "report.run.create", 3); err != nil {
-		return ReportRun{}, err
-	}
 	definition, err := s.repo.GetDefinition(ctx, scope, definitionID)
 	if err != nil {
 		return ReportRun{}, err
@@ -405,8 +398,12 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 		return ReportRun{}, ErrConflict
 	}
 	now := s.now()
-	if definition.Status != DefinitionActive || strings.TrimSpace(definition.ReviewerID) == "" || strings.TrimSpace(definition.CheckerID) == "" || definition.ApprovedAt == nil || !definitionIsEffective(definition, now) {
+	if definition.Status != DefinitionActive || !definitionIsEffective(definition, now) {
 		return ReportRun{}, ErrClosureBlocked
+	}
+	runID, err := id.NewUUIDv7()
+	if err != nil {
+		return ReportRun{}, err
 	}
 	filter, err := normalizedStoredFilter(definition.Dataset, definition.Filter)
 	if err != nil {
@@ -857,7 +854,8 @@ func cloneReportFilter(expression *ReportFilterExpression) *ReportFilterExpressi
 }
 
 func definitionIsEffective(definition ReportDefinition, now time.Time) bool {
-	if definition.Status != DefinitionActive || definition.EffectiveFrom == nil || definition.ApprovedAt == nil || definition.ReviewerID == "" {
+	if definition.Status != DefinitionActive || definition.EffectiveFrom == nil || definition.ApprovedAt == nil ||
+		strings.TrimSpace(definition.ReviewerID) == "" || strings.TrimSpace(definition.CheckerID) == "" {
 		return false
 	}
 	if now.Before(definition.EffectiveFrom.UTC()) {
