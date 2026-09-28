@@ -589,9 +589,10 @@ func (r *MemoryRepository) CaptureSourceBoundary(ctx context.Context, scope Repo
 	case DatasetVendors:
 		key = "vendor_relationships"
 	}
+	populationComplete := parameters.StartDate == "" && parameters.EndDate == "" && parameters.OwnerPrincipalID == ""
 	return SourceBoundary{
 		CapturedAt: now, ProjectionVersion: "memory-report-source.v1",
-		SourceHighWater: map[string]time.Time{key: now}, Population: 0, PopulationComplete: true,
+		SourceHighWater: map[string]time.Time{key: now}, Population: 0, PopulationComplete: populationComplete,
 	}, nil
 }
 
