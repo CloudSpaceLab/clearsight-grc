@@ -13,11 +13,11 @@ type ReportOwnerOption struct {
 }
 
 type ReportOwnerRepository interface {
-	ListReportOwners(ctx context.Context, scope ReportScope, dataset ReportDataset, limit int) ([]ReportOwnerOption, error)
+	ListReportOwners(ctx context.Context, scope ReportScope, requestedBy string, dataset ReportDataset, limit int) ([]ReportOwnerOption, error)
 }
 
 func (s *Service) ListOwners(ctx context.Context, scope ReportScope, dataset ReportDataset, limit int) ([]ReportOwnerOption, error) {
-	_, verifiedScope, err := s.scopedActor(ctx, scope)
+	actor, verifiedScope, err := s.scopedActor(ctx, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (s *Service) ListOwners(ctx context.Context, scope ReportScope, dataset Rep
 	if !ok {
 		return []ReportOwnerOption{}, nil
 	}
-	values, err := repository.ListReportOwners(ctx, verifiedScope, dataset, limit)
+	values, err := repository.ListReportOwners(ctx, verifiedScope, actor.PrincipalID, dataset, limit)
 	if err != nil {
 		return nil, err
 	}
