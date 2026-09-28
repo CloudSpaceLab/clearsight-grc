@@ -8,8 +8,8 @@ import (
 
 func TestNormalizeReportRunParameters(t *testing.T) {
 	value, err := NormalizeReportRunParameters(ReportRunParameters{
-		StartDate: " 2026-09-01 ",
-		EndDate: "2026-09-30",
+		StartDate:        " 2026-09-01 ",
+		EndDate:          "2026-09-30",
 		OwnerPrincipalID: " owner-1 ",
 	})
 	if err != nil {
@@ -32,8 +32,8 @@ func TestNormalizeReportRunParameters(t *testing.T) {
 
 func TestReportRunParametersSQLUsesBoundArguments(t *testing.T) {
 	fragment, args, err := ReportRunParametersSQL(ReportRunParameters{
-		StartDate: "2026-09-01",
-		EndDate: "2026-09-30",
+		StartDate:        "2026-09-01",
+		EndDate:          "2026-09-30",
 		OwnerPrincipalID: "owner-1",
 	}, 6)
 	if err != nil {
