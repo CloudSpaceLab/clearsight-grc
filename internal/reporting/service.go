@@ -416,7 +416,7 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 	if err != nil {
 		return ReportRun{}, err
 	}
-	boundary, err := s.repo.CaptureSourceBoundary(ctx, scope, definition)
+	boundary, err := s.repo.CaptureSourceBoundary(ctx, scope, definition, parameters)
 	if err != nil {
 		return ReportRun{}, err
 	}
