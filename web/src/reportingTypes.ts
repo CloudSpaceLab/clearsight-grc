@@ -77,6 +77,17 @@ export type ReportDefinitionRevision = {
   decision_note: string;
 };
 
+export type ReportRunParameters = {
+  start_date?: string;
+  end_date?: string;
+  owner_principal_id?: string;
+};
+
+export type ReportOwnerOption = {
+  principal_id: string;
+  display_name: string;
+};
+
 export type ReportSourceBoundary = {
   captured_at: string;
   projection_version: string;
@@ -98,6 +109,7 @@ export type ReportRun = {
   requested_by_ref: string;
   as_of: string;
   filter: ReportFilterExpression;
+  parameters: ReportRunParameters;
   dataset: ReportDataset;
   format: ReportFormat;
   status: ReportRunStatus;
@@ -137,4 +149,5 @@ export type ReportDefinitionTransitionInput = {
 export type ReportRunInput = {
   definition_id: string;
   expected_definition_version: number;
+  parameters?: ReportRunParameters;
 };
