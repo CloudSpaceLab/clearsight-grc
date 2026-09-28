@@ -113,8 +113,9 @@ type CreateRunInput struct {
 	LegalEntityID string `json:"legal_entity_id,omitempty"`
 	ActorID       string `json:"actor_id,omitempty"`
 
-	DefinitionID              string `json:"definition_id"`
-	ExpectedDefinitionVersion int    `json:"expected_definition_version"`
+	DefinitionID              string              `json:"definition_id"`
+	ExpectedDefinitionVersion int                 `json:"expected_definition_version"`
+	Parameters                ReportRunParameters `json:"parameters,omitempty"`
 	// RequestedByRef is accepted for wire compatibility but always overwritten
 	// from the verified actor.
 	RequestedByRef string `json:"requested_by_ref,omitempty"`
@@ -411,6 +412,10 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 	if err != nil {
 		return ReportRun{}, err
 	}
+	parameters, err := NormalizeReportRunParameters(input.Parameters)
+	if err != nil {
+		return ReportRun{}, err
+	}
 	boundary, err := s.repo.CaptureSourceBoundary(ctx, scope, definition)
 	if err != nil {
 		return ReportRun{}, err
@@ -425,7 +430,7 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 		DefinitionCode: definition.Code, DefinitionChecksum: definition.StoredChecksum,
 		ScopeKind: definition.ScopeKind, ScopeRef: definition.ScopeRef,
 		RequestedByRef: actor.PrincipalID, AsOf: now, SourceBoundary: boundary,
-		Filter: filter, Dataset: definition.Dataset, Format: definition.Format, Status: RunQueued,
+		Filter: filter, Parameters: parameters, Dataset: definition.Dataset, Format: definition.Format, Status: RunQueued,
 		CreatedAt: now, ExpiresAt: now.Add(ReportRunRetention),
 	}
 	return s.repo.CreateRun(ctx, scope, run)
@@ -490,6 +495,7 @@ func (s *Service) ExecuteRun(ctx context.Context, requested ReportRun) (ReportRu
 		DefinitionCode: run.DefinitionCode, DefinitionVersion: run.DefinitionVersion,
 		DefinitionChecksum: run.DefinitionChecksum, Dataset: run.Dataset,
 		ScopeKind: run.ScopeKind, ScopeRef: run.ScopeRef, RowCount: rowCount,
+		Parameters: run.Parameters,
 		PopulationComplete: run.SourceBoundary.PopulationComplete, Filter: cloneReportFilter(run.Filter),
 		Coverage:   ManifestCoverage{Population: run.SourceBoundary.Population},
 		DataSHA256: dataChecksum, RetentionUntil: run.ExpiresAt,
