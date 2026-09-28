@@ -201,6 +201,9 @@ func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 	if run.Parameters.StartDate != "2026-09-01" || run.Parameters.EndDate != "2026-09-30" || run.Parameters.OwnerPrincipalID != "owner-1" {
 		t.Fatalf("run did not retain execution parameters: %#v", run.Parameters)
 	}
+	if calls := authorityChecker.callCount(authority.ResponsibilityPerformer); calls != 1 {
+		t.Fatalf("report generation performer authority calls = %d, want one HTTP command-guard decision", calls)
+	}
 	if run.SourceBoundary.PopulationComplete {
 		t.Fatal("run-time filters must not claim the saved-setup population is complete")
 	}
