@@ -345,14 +345,14 @@ func TestCaptureSourceBoundaryUsesExactScopeProjection(t *testing.T) {
 	fixture.insertActivities(t, fixture.scope, 3, activitySeedOptions{})
 	fixture.seedRopaSummary(3)
 	definition, _ := fixture.proposal(t, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())
-	boundary, err := fixture.repository.CaptureSourceBoundary(context.Background(), fixture.scope, definition)
+	boundary, err := fixture.repository.CaptureSourceBoundary(context.Background(), fixture.scope, definition, ReportRunParameters{})
 	if err != nil {
 		t.Fatalf("capture source boundary: %v", err)
 	}
 	if boundary.ProjectionVersion != "ropa-register-test.v1" || boundary.Population != 3 || boundary.SourceHighWater["processing_activities"] != fixture.now {
 		t.Fatalf("source boundary = %#v", boundary)
 	}
-	if _, err := fixture.repository.CaptureSourceBoundary(context.Background(), fixture.otherScope, definition); !errors.Is(err, ErrNotFound) {
+	if _, err := fixture.repository.CaptureSourceBoundary(context.Background(), fixture.otherScope, definition, ReportRunParameters{}); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("missing second-entity projection error = %v, want ErrNotFound", err)
 	}
 }
