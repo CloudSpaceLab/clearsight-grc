@@ -63,6 +63,33 @@ func (a *API) listReportFilterFields(w http.ResponseWriter, _ *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"fields": fields})
 }
 
+func (a *API) listReportOwners(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.reportingService(w)
+	if !ok {
+		return
+	}
+	requestScope, ok := a.reportingReadScope(w, r)
+	if !ok {
+		return
+	}
+	dataset := reporting.ReportDataset(strings.TrimSpace(r.URL.Query().Get("dataset")))
+	limit := 200
+	if value := strings.TrimSpace(r.URL.Query().Get("limit")); value != "" {
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed < 1 || parsed > 200 {
+			httpx.WriteError(w, http.StatusBadRequest, "report_owner_limit_invalid", "The owner option limit must be a whole number from 1 through 200.")
+			return
+		}
+		limit = parsed
+	}
+	owners, err := service.ListOwners(r.Context(), requestScope.Scope, dataset, limit)
+	if err != nil {
+		writeReportError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": owners})
+}
+
 func (a *API) listReportDefinitions(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.reportingService(w)
 	if !ok {
