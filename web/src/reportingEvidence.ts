@@ -317,6 +317,16 @@ export function installReportingEvidence() {
       recordRead();
       return json({ fields });
     }
+    if (path === "/api/v1/reports/owners") {
+      recordRead();
+      const dataset = url.searchParams.get("dataset");
+      const items = dataset === "PROGRAMS"
+        ? [{ principal_id: "owner-program", display_name: "Amina Yusuf" }]
+        : dataset === "MATTERS" || dataset === "MATTER_EXCEPTIONS"
+          ? [{ principal_id: "owner-work", display_name: "Tunde Adebayo" }]
+          : [{ principal_id: "owner-privacy", display_name: "Kemi Adebayo" }];
+      return json({ items });
+    }
     if (path === "/api/v1/reports/definitions") {
       recordRead();
       return json({ items: definitions });
