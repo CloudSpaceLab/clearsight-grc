@@ -118,10 +118,14 @@ func TestWorkOwnerOptionsHideRestrictedMatterOwners(t *testing.T) {
 	fixture := newReportingPostgresFixture(t)
 	visible := fixture.insertMatter(t, fixture.entityAID, "MATTER-OWNER-VISIBLE", 1, "EXCEPTION", `{"access":"INTERNAL"}`, fixture.now.Add(time.Hour))
 	hidden := fixture.insertMatter(t, fixture.entityAID, "MATTER-OWNER-HIDDEN", 1, "EXCEPTION", `{"access":"RESTRICTED","allowed_principal_ids":["`+fixture.reviewerID+`"]}`, fixture.now.Add(time.Hour))
-	if _, err := fixture.pool.Exec(fixture.ctx, `
-		UPDATE matters SET owner_principal_id=$1::uuid WHERE tenant_id=$2::uuid AND id=$3::uuid;
-		UPDATE matters SET owner_principal_id=$4::uuid WHERE tenant_id=$2::uuid AND id=$5::uuid
-	`, fixture.makerID, fixture.tenantID, visible, fixture.reviewerID, hidden); err != nil {
+	if _, err := fixture.pool.Exec(fixture.ctx,
+		`UPDATE matters SET owner_principal_id=$1::uuid WHERE tenant_id=$2::uuid AND id=$3::uuid`,
+		fixture.makerID, fixture.tenantID, visible); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.pool.Exec(fixture.ctx,
+		`UPDATE matters SET owner_principal_id=$1::uuid WHERE tenant_id=$2::uuid AND id=$3::uuid`,
+		fixture.reviewerID, fixture.tenantID, hidden); err != nil {
 		t.Fatal(err)
 	}
 
