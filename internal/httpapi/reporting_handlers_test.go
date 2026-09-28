@@ -282,8 +282,8 @@ func TestRunDownloadReAuthorisesAndRequiresReportDownloadPermission(t *testing.T
 		t.Fatalf("authorized download = %d: %s", allowed.Code, allowed.Body.String())
 	}
 	firstCalls := authorityChecker.callCount(authority.ResponsibilityPerformer)
-	if firstCalls < 2 { // command-independent route permission plus service re-authorization
-		t.Fatalf("first download authority calls = %d, want separate route and service checks", firstCalls)
+	if firstCalls != 1 { // Download permission is route-scoped; the service independently re-authorizes the existing run once.
+		t.Fatalf("first download authority calls = %d, want one current-run service authorization", firstCalls)
 	}
 
 	authorityChecker.mu.Lock()
