@@ -29,7 +29,7 @@ const (
 // and id ordering are used by the cursor and ORDER BY.
 func ReportPageSQL(dataset ReportDataset, filterFragment string, filterArgumentCount int) string {
 	columnSQL, predicateSQL, ok := reportDatasetFragments(dataset)
-	if !ok || strings.TrimSpace(filterFragment) == "" || filterArgumentCount < 0 || filterArgumentCount > maxReportFilterNodes {
+	if !ok || strings.TrimSpace(filterFragment) == "" || filterArgumentCount < 0 || filterArgumentCount > maxReportFilterNodes+maxReportRunParameterArgs {
 		return ""
 	}
 	hasCursor := 6 + filterArgumentCount
@@ -139,7 +139,7 @@ func (r *PostgresRepository) ListReportRows(ctx context.Context, scope ReportSco
 	if err != nil {
 		return ReportPage{}, err
 	}
-	filterFragment, filterArgs, err := ReportFilterSQLForDataset(persisted.Dataset, persisted.Filter, 6)
+	filterFragment, filterArgs, err := combineReportRunFilter(persisted.Parameters, persisted.Dataset, persisted.Filter, 6)
 	if err != nil {
 		return ReportPage{}, err
 	}
