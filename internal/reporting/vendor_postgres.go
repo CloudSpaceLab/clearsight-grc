@@ -18,7 +18,7 @@ import (
 // applied before LIMIT so hidden or out-of-scope relationships cannot consume
 // page slots.
 func VendorReportPageSQL(filterFragment string, filterArgumentCount int) string {
-	if strings.TrimSpace(filterFragment) == "" || filterArgumentCount < 0 || filterArgumentCount > maxReportFilterNodes {
+	if strings.TrimSpace(filterFragment) == "" || filterArgumentCount < 0 || filterArgumentCount > maxReportFilterNodes+maxReportRunParameterArgs {
 		return ""
 	}
 	hasCursor := 6 + filterArgumentCount
@@ -122,7 +122,7 @@ func (r *PostgresRepository) captureVendorSourceBoundary(ctx context.Context, sc
 }
 
 func (r *PostgresRepository) listVendorReportRows(ctx context.Context, scope ReportScope, run ReportRun, cursor string, limit int) (ReportPage, error) {
-	filter, args, err := ReportFilterSQLForDataset(DatasetVendors, run.Filter, 6)
+	filter, args, err := combineReportRunFilter(run.Parameters, DatasetVendors, run.Filter, 6)
 	if err != nil {
 		return ReportPage{}, fmt.Errorf("build vendor report filter: %w", err)
 	}
