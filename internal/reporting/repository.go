@@ -40,7 +40,7 @@ type RunRepository interface {
 	// CaptureSourceBoundary freezes the reconstruction facts before the queued
 	// row is written. ListReportRows reads only that exact run snapshot and
 	// returns at most one bounded keyset page.
-	CaptureSourceBoundary(ctx context.Context, scope ReportScope, definition ReportDefinition) (SourceBoundary, error)
+	CaptureSourceBoundary(ctx context.Context, scope ReportScope, definition ReportDefinition, parameters ReportRunParameters) (SourceBoundary, error)
 	ListReportRows(ctx context.Context, scope ReportScope, run ReportRun, cursor string, limit int) (ReportPage, error)
 }
 
