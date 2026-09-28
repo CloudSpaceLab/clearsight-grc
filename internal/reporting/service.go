@@ -495,7 +495,7 @@ func (s *Service) ExecuteRun(ctx context.Context, requested ReportRun) (ReportRu
 		DefinitionCode: run.DefinitionCode, DefinitionVersion: run.DefinitionVersion,
 		DefinitionChecksum: run.DefinitionChecksum, Dataset: run.Dataset,
 		ScopeKind: run.ScopeKind, ScopeRef: run.ScopeRef, RowCount: rowCount,
-		Parameters: run.Parameters,
+		Parameters:         run.Parameters,
 		PopulationComplete: run.SourceBoundary.PopulationComplete, Filter: cloneReportFilter(run.Filter),
 		Coverage:   ManifestCoverage{Population: run.SourceBoundary.Population},
 		DataSHA256: dataChecksum, RetentionUntil: run.ExpiresAt,
