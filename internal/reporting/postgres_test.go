@@ -468,7 +468,7 @@ func TestListReportOwnersReturnsAssignedDisplayNames(t *testing.T) {
 	fixture.insertActivities(t, fixture.scope, 1, activitySeedOptions{OwnerID: fixture.makerID})
 	fixture.insertActivities(t, fixture.scope, 1, activitySeedOptions{OwnerID: fixture.reviewerID})
 
-	owners, err := fixture.repository.ListReportOwners(context.Background(), fixture.scope, DatasetProcessingActivities, 10)
+	owners, err := fixture.repository.ListReportOwners(context.Background(), fixture.scope, fixture.performerID, DatasetProcessingActivities, 10)
 	if err != nil {
 		t.Fatalf("list report owners: %v", err)
 	}
