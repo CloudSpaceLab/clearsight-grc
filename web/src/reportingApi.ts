@@ -7,8 +7,10 @@ import type {
   ReportDefinitionRevision,
   ReportDefinitionTransitionInput,
   ReportFilterFieldResponse,
+  ReportOwnerOption,
   ReportRun,
   ReportRunInput,
+  ReportRunParameters,
 } from "./reportingTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -82,6 +84,11 @@ export async function listReportFilterFields(signal?: AbortSignal): Promise<Repo
   }
 }
 
+export async function listReportOwnerOptions(dataset: ReportDefinition["dataset"], signal?: AbortSignal): Promise<ReportOwnerOption[]> {
+  const response = await scopedRequest<{ items?: ReportOwnerOption[] }>(`${reportBase}/owners`, { dataset, limit: 200 }, signal, "Couldn’t load assigned owners.");
+  return response.items ?? [];
+}
+
 export async function listReportDefinitions(includeRetired = false, signal?: AbortSignal): Promise<ReportDefinition[]> {
   const response = await scopedRequest<{ items?: ReportDefinition[] }>(`${reportBase}/definitions`, { include_retired: includeRetired ? "true" : undefined }, signal, readFailure);
   return response.items ?? [];
@@ -142,8 +149,8 @@ export async function getReportRun(id: string, signal?: AbortSignal): Promise<Re
   return scopedRequest<ReportRun>(`${reportBase}/runs/${encodeURIComponent(id)}`, {}, signal, readFailure);
 }
 
-export async function createReportRun(definitionId: string, expectedDefinitionVersion: number, signal?: AbortSignal): Promise<ReportRun> {
-  const input: ReportRunInput = { definition_id: definitionId, expected_definition_version: expectedDefinitionVersion };
+export async function createReportRun(definitionId: string, expectedDefinitionVersion: number, parameters: ReportRunParameters = {}, signal?: AbortSignal): Promise<ReportRun> {
+  const input: ReportRunInput = { definition_id: definitionId, expected_definition_version: expectedDefinitionVersion, parameters };
   try {
     return await reportRequest<ReportRun>(`${reportBase}/runs`, {
       method: "POST",
@@ -167,6 +174,7 @@ export async function downloadReportRun(id: string, signal?: AbortSignal): Promi
 // read naming as the register without changing the server route contract.
 export const fetchReportFilterFields = listReportFilterFields;
 export const fetchReportDefinitions = listReportDefinitions;
+export const fetchReportOwnerOptions = listReportOwnerOptions;
 export const fetchReportDefinition = getReportDefinition;
 export const fetchReportDefinitionHistory = getReportDefinitionHistory;
 export const fetchReportRuns = listReportRuns;
