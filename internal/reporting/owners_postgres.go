@@ -5,9 +5,10 @@ package reporting
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
-func (r *PostgresRepository) ListReportOwners(ctx context.Context, scope ReportScope, dataset ReportDataset, limit int) ([]ReportOwnerOption, error) {
+func (r *PostgresRepository) ListReportOwners(ctx context.Context, scope ReportScope, requestedBy string, dataset ReportDataset, limit int) ([]ReportOwnerOption, error) {
 	if err := r.validateInput(ctx, scope, "owners"); err != nil {
 		return nil, err
 	}
@@ -15,7 +16,12 @@ func (r *PostgresRepository) ListReportOwners(ctx context.Context, scope ReportS
 		limit = maxReportOwnerOptions
 	}
 
+	requestedBy = strings.TrimSpace(requestedBy)
+	if requestedBy == "" {
+		return nil, ErrInvalid
+	}
 	var query string
+	args := []any{scope.TenantID, scope.LegalEntityID, limit}
 	switch dataset {
 	case DatasetProcessingActivities, DatasetProcessingActivityExceptions:
 		query = `
@@ -41,9 +47,12 @@ func (r *PostgresRepository) ListReportOwners(ctx context.Context, scope ReportS
 			FROM matters a
 			JOIN principals p ON p.id=a.owner_principal_id AND p.tenant_id=a.tenant_id
 			WHERE a.tenant_id=$1::uuid AND a.legal_entity_id=$2::uuid
+			  AND $3=''
 			  AND a.owner_principal_id IS NOT NULL
+			  AND ` + MatterReportVisibilitySQL + `
 			ORDER BY p.display_name,p.id
-			LIMIT $3`
+			LIMIT $5`
+		args = []any{scope.TenantID, scope.LegalEntityID, "", requestedBy, limit}
 	case DatasetVendors:
 		query = `
 			SELECT DISTINCT p.id::text,p.display_name
@@ -65,7 +74,7 @@ func (r *PostgresRepository) ListReportOwners(ctx context.Context, scope ReportS
 		return nil, ErrInvalid
 	}
 
-	rows, err := r.pool.Query(ctx, query, scope.TenantID, scope.LegalEntityID, limit)
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list report owners: %w", err)
 	}
