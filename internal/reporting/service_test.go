@@ -323,6 +323,7 @@ func TestCreateRunQueuesWithoutRenderingInline(t *testing.T) {
 	run, err := service.CreateRun(reportActorContext(testPerformerID), CreateRunInput{
 		Scope: testScope(), DefinitionID: definition.ID,
 		ExpectedDefinitionVersion: definition.CurrentVersion, RequestedByRef: testAuthorizerID,
+		Parameters: ReportRunParameters{StartDate: "2026-09-01", EndDate: "2026-09-30", OwnerPrincipalID: testMakerID},
 	})
 	if err != nil {
 		t.Fatalf("create run: %v", err)
@@ -335,6 +336,23 @@ func TestCreateRunQueuesWithoutRenderingInline(t *testing.T) {
 	}
 	if run.DefinitionVersion != definition.CurrentVersion || run.DefinitionChecksum != definition.StoredChecksum {
 		t.Fatal("run did not pin the reviewed definition version and checksum")
+	}
+	if run.Parameters.StartDate != "2026-09-01" || run.Parameters.EndDate != "2026-09-30" || run.Parameters.OwnerPrincipalID != testMakerID {
+		t.Fatalf("run did not retain execution filters: %#v", run.Parameters)
+	}
+}
+
+func TestCreateRunRejectsAnInvalidPeriod(t *testing.T) {
+	service, repository, _, authorityChecker := newReportingServiceTest()
+	definition := installActiveDefinition(repository)
+	authorityChecker.expected[authority.ResponsibilityPerformer] = testPerformerID
+
+	_, err := service.CreateRun(reportActorContext(testPerformerID), CreateRunInput{
+		Scope: testScope(), DefinitionID: definition.ID, ExpectedDefinitionVersion: definition.CurrentVersion,
+		Parameters: ReportRunParameters{StartDate: "2026-10-01", EndDate: "2026-09-30"},
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("invalid report period error = %v, want ErrInvalid", err)
 	}
 }
 
