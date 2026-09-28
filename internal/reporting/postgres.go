@@ -43,7 +43,7 @@ const definitionProjection = `d.id::text,d.tenant_id::text,d.legal_entity_id::te
 
 const runProjection = `r.id::text,r.tenant_id::text,r.legal_entity_id::text,r.definition_id::text,
 	r.definition_version,r.definition_code,r.definition_checksum,r.scope_kind,COALESCE(r.scope_ref::text,''),
-	r.requested_by_ref,r.as_of,r.source_boundary,r.filter,r.dataset,r.format,r.status,r.attempt_count,
+	r.requested_by_ref,r.as_of,r.source_boundary,r.filter,r.parameters,r.dataset,r.format,r.status,r.attempt_count,
 	r.row_count,COALESCE(r.data_object_key,''),COALESCE(r.data_sha256,''),
 	COALESCE(r.manifest_object_key,''),COALESCE(r.manifest_sha256,''),COALESCE(r.failure_code,''),
 	r.created_at,r.completed_at,r.expires_at`
@@ -341,6 +341,10 @@ func (r *PostgresRepository) CreateRun(ctx context.Context, scope ReportScope, r
 	if err != nil {
 		return ReportRun{}, fmt.Errorf("encode report source boundary: %w", err)
 	}
+	parameters, err := json.Marshal(run.Parameters)
+	if err != nil {
+		return ReportRun{}, fmt.Errorf("encode report run parameters: %w", err)
+	}
 
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -363,12 +367,12 @@ func (r *PostgresRepository) CreateRun(ctx context.Context, scope ReportScope, r
 	}
 	tag, err := tx.Exec(ctx, `INSERT INTO report_runs (
 		id,tenant_id,legal_entity_id,definition_id,definition_version,definition_code,definition_checksum,
-		scope_kind,scope_ref,requested_by_ref,as_of,source_boundary,filter,dataset,format,status,attempt_count,
+		scope_kind,scope_ref,requested_by_ref,as_of,source_boundary,filter,parameters,dataset,format,status,attempt_count,
 		row_count,created_at,expires_at
-	) VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8,$9::uuid,$10,$11,$12::jsonb,$13::jsonb,
-		$14,$15,$16,0,0,$17,$18)`, run.ID, run.TenantID, run.LegalEntityID, run.DefinitionID,
+	) VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8,$9::uuid,$10,$11,$12::jsonb,$13::jsonb,$14::jsonb,
+		$15,$16,$17,0,0,$18,$19)`, run.ID, run.TenantID, run.LegalEntityID, run.DefinitionID,
 		run.DefinitionVersion, run.DefinitionCode, run.DefinitionChecksum, run.ScopeKind, nullableText(run.ScopeRef),
-		run.RequestedByRef, run.AsOf, boundary, filter, run.Dataset, run.Format, run.Status, run.CreatedAt, run.ExpiresAt)
+		run.RequestedByRef, run.AsOf, boundary, filter, parameters, run.Dataset, run.Format, run.Status, run.CreatedAt, run.ExpiresAt)
 	if err != nil {
 		if isPostgresUniqueViolation(err) {
 			return ReportRun{}, ErrConflict
@@ -823,10 +827,10 @@ func scanDefinitionRevision(row reportingRowScanner) (ReportDefinitionRevision, 
 
 func scanRun(row reportingRowScanner) (ReportRun, error) {
 	var value ReportRun
-	var boundary, filter []byte
+	var boundary, filter, parameters []byte
 	if err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.DefinitionID,
 		&value.DefinitionVersion, &value.DefinitionCode, &value.DefinitionChecksum, &value.ScopeKind, &value.ScopeRef,
-		&value.RequestedByRef, &value.AsOf, &boundary, &filter, &value.Dataset, &value.Format, &value.Status,
+		&value.RequestedByRef, &value.AsOf, &boundary, &filter, &parameters, &value.Dataset, &value.Format, &value.Status,
 		&value.AttemptCount, &value.RowCount, &value.DataObjectKey, &value.DataSHA256, &value.ManifestObjectKey,
 		&value.ManifestSHA256, &value.FailureCode, &value.CreatedAt, &value.CompletedAt, &value.ExpiresAt); err != nil {
 		return ReportRun{}, err
@@ -836,6 +840,9 @@ func scanRun(row reportingRowScanner) (ReportRun, error) {
 	}
 	if err := json.Unmarshal(filter, &value.Filter); err != nil {
 		return ReportRun{}, fmt.Errorf("decode report run filter: %w", err)
+	}
+	if err := json.Unmarshal(parameters, &value.Parameters); err != nil {
+		return ReportRun{}, fmt.Errorf("decode report run parameters: %w", err)
 	}
 	value.AsOf = value.AsOf.UTC()
 	value.CreatedAt = value.CreatedAt.UTC()
