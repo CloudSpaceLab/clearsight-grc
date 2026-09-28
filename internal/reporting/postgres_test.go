@@ -357,6 +357,25 @@ func TestCaptureSourceBoundaryUsesExactScopeProjection(t *testing.T) {
 	}
 }
 
+func TestCaptureSourceBoundaryIncludesRunDateAndOwnerFilters(t *testing.T) {
+	fixture := newReportingPostgresFixture(t)
+	fixture.insertActivities(t, fixture.scope, 2, activitySeedOptions{OwnerID: fixture.makerID})
+	fixture.insertActivities(t, fixture.scope, 1, activitySeedOptions{OwnerID: fixture.reviewerID})
+	fixture.seedRopaSummary(3)
+	definition, _ := fixture.proposal(t, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())
+
+	date := fixture.now.Format(reportDateLayout)
+	boundary, err := fixture.repository.CaptureSourceBoundary(context.Background(), fixture.scope, definition, ReportRunParameters{
+		StartDate: date, EndDate: date, OwnerPrincipalID: fixture.makerID,
+	})
+	if err != nil {
+		t.Fatalf("capture filtered source boundary: %v", err)
+	}
+	if !boundary.PopulationComplete || boundary.Population != 2 {
+		t.Fatalf("filtered source population = %#v, want exact population 2", boundary)
+	}
+}
+
 func TestReportPageSQLReturnsEachRowOnceAcrossPages(t *testing.T) {
 	fixture := newReportingPostgresFixture(t)
 	ids := fixture.insertActivities(t, fixture.scope, 1200, activitySeedOptions{})
