@@ -81,6 +81,7 @@ const failedRun: ReportRun = {
 describe("ReportsWorkspace", () => {
   const loadDefinitions = vi.fn();
   const loadRunPage = vi.fn();
+  const loadOwners = vi.fn();
   const createRun = vi.fn();
   const downloadRun = vi.fn();
 
@@ -88,6 +89,10 @@ describe("ReportsWorkspace", () => {
     vi.clearAllMocks();
     loadDefinitions.mockResolvedValue([vendorDefinition, programDefinition]);
     loadRunPage.mockResolvedValue({ items: [readyRun, failedRun] });
+    loadOwners.mockResolvedValue([
+      { principal_id: "owner-1", display_name: "Amina Okafor" },
+      { principal_id: "owner-2", display_name: "Tunde Bello" },
+    ]);
     createRun.mockResolvedValue({
       ...readyRun,
       id: "run-queued",
@@ -105,6 +110,7 @@ describe("ReportsWorkspace", () => {
       legalEntityName="Meridian Trust Bank Nigeria"
       loadDefinitions={loadDefinitions}
       loadRunPage={loadRunPage}
+      loadOwners={loadOwners}
       createRun={createRun}
       downloadRun={downloadRun}
     />);
@@ -133,9 +139,21 @@ describe("ReportsWorkspace", () => {
     const dialog = await screen.findByRole("dialog", { name: "Generate report" });
     expect(within(dialog).getAllByText("Vendor portfolio")).not.toHaveLength(0);
     expect(within(dialog).getAllByText("Overview")).not.toHaveLength(0);
+    expect(within(dialog).getByLabelText("Start date")).toBeTruthy();
+    expect(within(dialog).getByLabelText("End date")).toBeTruthy();
+
+    fireEvent.change(within(dialog).getByLabelText("Start date"), { target: { value: "2026-09-01" } });
+    fireEvent.change(within(dialog).getByLabelText("End date"), { target: { value: "2026-09-30" } });
+    await waitFor(() => expect(loadOwners).toHaveBeenCalledWith("VENDORS", expect.any(AbortSignal)));
+    fireEvent.click(within(dialog).getByRole("button", { name: /Assigned owner/ }));
+    fireEvent.click(screen.getByRole("option", { name: "Amina Okafor" }));
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Generate report" }));
-    await waitFor(() => expect(createRun).toHaveBeenCalledWith(vendorDefinition.id, vendorDefinition.current_version));
+    await waitFor(() => expect(createRun).toHaveBeenCalledWith(
+      vendorDefinition.id,
+      vendorDefinition.current_version,
+      { start_date: "2026-09-01", end_date: "2026-09-30", owner_principal_id: "owner-1" },
+    ));
     expect(await screen.findByText(/Vendor portfolio queued/)).toBeTruthy();
     expect(screen.getAllByRole("row", { name: /Vendor portfolio/ }).some((row) => within(row).queryByText("Queued"))).toBe(true);
   });

@@ -35,7 +35,7 @@ func TestVendorReportPageSQLRejectsInvalidFilterMetadata(t *testing.T) {
 	if query := VendorReportPageSQL("", 0); query != "" {
 		t.Fatalf("empty filter fragment returned query %q", query)
 	}
-	if query := VendorReportPageSQL("TRUE", maxReportFilterNodes+1); query != "" {
+	if query := VendorReportPageSQL("TRUE", maxReportFilterNodes+maxReportRunParameterArgs+1); query != "" {
 		t.Fatalf("oversized filter metadata returned query %q", query)
 	}
 }

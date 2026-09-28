@@ -113,8 +113,9 @@ type CreateRunInput struct {
 	LegalEntityID string `json:"legal_entity_id,omitempty"`
 	ActorID       string `json:"actor_id,omitempty"`
 
-	DefinitionID              string `json:"definition_id"`
-	ExpectedDefinitionVersion int    `json:"expected_definition_version"`
+	DefinitionID              string              `json:"definition_id"`
+	ExpectedDefinitionVersion int                 `json:"expected_definition_version"`
+	Parameters                ReportRunParameters `json:"parameters,omitempty"`
 	// RequestedByRef is accepted for wire compatibility but always overwritten
 	// from the verified actor.
 	RequestedByRef string `json:"requested_by_ref,omitempty"`
@@ -386,13 +387,6 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 	if s.repo == nil || s.objects == nil || definitionID == "" || input.ExpectedDefinitionVersion <= 0 {
 		return ReportRun{}, ErrInvalid
 	}
-	runID, err := id.NewUUIDv7()
-	if err != nil {
-		return ReportRun{}, err
-	}
-	if err := s.authorized(ctx, actor, scope, "REPORT_RUN", runID, authority.ResponsibilityPerformer, "report.run.create", 3); err != nil {
-		return ReportRun{}, err
-	}
 	definition, err := s.repo.GetDefinition(ctx, scope, definitionID)
 	if err != nil {
 		return ReportRun{}, err
@@ -404,14 +398,22 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 		return ReportRun{}, ErrConflict
 	}
 	now := s.now()
-	if definition.Status != DefinitionActive || strings.TrimSpace(definition.ReviewerID) == "" || strings.TrimSpace(definition.CheckerID) == "" || definition.ApprovedAt == nil || !definitionIsEffective(definition, now) {
+	if definition.Status != DefinitionActive || !definitionIsEffective(definition, now) {
 		return ReportRun{}, ErrClosureBlocked
+	}
+	runID, err := id.NewUUIDv7()
+	if err != nil {
+		return ReportRun{}, err
 	}
 	filter, err := normalizedStoredFilter(definition.Dataset, definition.Filter)
 	if err != nil {
 		return ReportRun{}, err
 	}
-	boundary, err := s.repo.CaptureSourceBoundary(ctx, scope, definition)
+	parameters, err := NormalizeReportRunParameters(input.Parameters)
+	if err != nil {
+		return ReportRun{}, err
+	}
+	boundary, err := s.repo.CaptureSourceBoundary(ctx, scope, definition, parameters)
 	if err != nil {
 		return ReportRun{}, err
 	}
@@ -425,7 +427,7 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 		DefinitionCode: definition.Code, DefinitionChecksum: definition.StoredChecksum,
 		ScopeKind: definition.ScopeKind, ScopeRef: definition.ScopeRef,
 		RequestedByRef: actor.PrincipalID, AsOf: now, SourceBoundary: boundary,
-		Filter: filter, Dataset: definition.Dataset, Format: definition.Format, Status: RunQueued,
+		Filter: filter, Parameters: parameters, Dataset: definition.Dataset, Format: definition.Format, Status: RunQueued,
 		CreatedAt: now, ExpiresAt: now.Add(ReportRunRetention),
 	}
 	return s.repo.CreateRun(ctx, scope, run)
@@ -490,6 +492,7 @@ func (s *Service) ExecuteRun(ctx context.Context, requested ReportRun) (ReportRu
 		DefinitionCode: run.DefinitionCode, DefinitionVersion: run.DefinitionVersion,
 		DefinitionChecksum: run.DefinitionChecksum, Dataset: run.Dataset,
 		ScopeKind: run.ScopeKind, ScopeRef: run.ScopeRef, RowCount: rowCount,
+		Parameters:         run.Parameters,
 		PopulationComplete: run.SourceBoundary.PopulationComplete, Filter: cloneReportFilter(run.Filter),
 		Coverage:   ManifestCoverage{Population: run.SourceBoundary.Population},
 		DataSHA256: dataChecksum, RetentionUntil: run.ExpiresAt,
@@ -851,7 +854,8 @@ func cloneReportFilter(expression *ReportFilterExpression) *ReportFilterExpressi
 }
 
 func definitionIsEffective(definition ReportDefinition, now time.Time) bool {
-	if definition.Status != DefinitionActive || definition.EffectiveFrom == nil || definition.ApprovedAt == nil || definition.ReviewerID == "" {
+	if definition.Status != DefinitionActive || definition.EffectiveFrom == nil || definition.ApprovedAt == nil ||
+		strings.TrimSpace(definition.ReviewerID) == "" || strings.TrimSpace(definition.CheckerID) == "" {
 		return false
 	}
 	if now.Before(definition.EffectiveFrom.UTC()) {
@@ -900,6 +904,9 @@ func validateReportRunIdentity(run ReportRun) error {
 		run.DefinitionVersion <= 0 || !reportCodePattern.MatchString(run.DefinitionCode) ||
 		len(run.DefinitionChecksum) != 64 || !validReportDatasetScope(run.Dataset, run.ScopeKind) || !validReportScope(run.ScopeKind, run.ScopeRef) {
 		return ErrInvalid
+	}
+	if _, err := NormalizeReportRunParameters(run.Parameters); err != nil {
+		return err
 	}
 	return nil
 }

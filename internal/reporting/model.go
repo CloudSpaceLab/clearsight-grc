@@ -154,6 +154,7 @@ type ReportRun struct {
 	RequestedByRef     string                  `json:"requested_by_ref"`
 	AsOf               time.Time               `json:"as_of"`
 	Filter             *ReportFilterExpression `json:"filter"`
+	Parameters         ReportRunParameters     `json:"parameters"`
 	Dataset            ReportDataset           `json:"dataset"`
 	Format             ReportFormat            `json:"format"`
 	Status             RunStatus               `json:"status"`
@@ -212,6 +213,7 @@ type Manifest struct {
 	RowCount           int                     `json:"row_count"`
 	PopulationComplete bool                    `json:"population_complete"`
 	Filter             *ReportFilterExpression `json:"filter,omitempty"`
+	Parameters         ReportRunParameters     `json:"parameters"`
 	Coverage           ManifestCoverage        `json:"coverage"`
 	DataSHA256         string                  `json:"data_sha256"`
 	RetentionUntil     time.Time               `json:"retention_until"`

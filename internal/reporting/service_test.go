@@ -323,6 +323,7 @@ func TestCreateRunQueuesWithoutRenderingInline(t *testing.T) {
 	run, err := service.CreateRun(reportActorContext(testPerformerID), CreateRunInput{
 		Scope: testScope(), DefinitionID: definition.ID,
 		ExpectedDefinitionVersion: definition.CurrentVersion, RequestedByRef: testAuthorizerID,
+		Parameters: ReportRunParameters{StartDate: "2026-09-01", EndDate: "2026-09-30", OwnerPrincipalID: testMakerID},
 	})
 	if err != nil {
 		t.Fatalf("create run: %v", err)
@@ -335,6 +336,52 @@ func TestCreateRunQueuesWithoutRenderingInline(t *testing.T) {
 	}
 	if run.DefinitionVersion != definition.CurrentVersion || run.DefinitionChecksum != definition.StoredChecksum {
 		t.Fatal("run did not pin the reviewed definition version and checksum")
+	}
+	if run.Parameters.StartDate != "2026-09-01" || run.Parameters.EndDate != "2026-09-30" || run.Parameters.OwnerPrincipalID != testMakerID {
+		t.Fatalf("run did not retain execution filters: %#v", run.Parameters)
+	}
+}
+
+func TestCreateRunDoesNotRequireSyntheticRunAuthority(t *testing.T) {
+	service, repository, _, authorityChecker := newReportingServiceTest()
+	definition := installActiveDefinition(repository)
+	authorityChecker.fail[authority.ResponsibilityPerformer] = errors.New("no REPORT_RUN route exists before the run is created")
+
+	run, err := service.CreateRun(reportActorContext(testPerformerID), CreateRunInput{
+		Scope: testScope(), DefinitionID: definition.ID, ExpectedDefinitionVersion: definition.CurrentVersion,
+	})
+	if err != nil {
+		t.Fatalf("approved report run was blocked by synthetic run authority: %v", err)
+	}
+	if run.Status != RunQueued || run.RequestedByRef != testPerformerID {
+		t.Fatalf("approved report run = %#v", run)
+	}
+	for _, input := range authorityChecker.inputs {
+		if input.ObjectType == "REPORT_RUN" && input.DecisionType == "report.run.create" {
+			t.Fatalf("CreateRun repeated HTTP command authorization against synthetic run id %q", input.ObjectID)
+		}
+	}
+}
+
+func TestDefinitionEffectiveRequiresAuthorizerReceipt(t *testing.T) {
+	definition := installActiveDefinition(newServiceTestRepository())
+	definition.CheckerID = ""
+	if definitionIsEffective(definition, serviceTestNow) {
+		t.Fatal("active definition without authorizer/checker was presented as effective")
+	}
+}
+
+func TestCreateRunRejectsAnInvalidPeriod(t *testing.T) {
+	service, repository, _, authorityChecker := newReportingServiceTest()
+	definition := installActiveDefinition(repository)
+	authorityChecker.expected[authority.ResponsibilityPerformer] = testPerformerID
+
+	_, err := service.CreateRun(reportActorContext(testPerformerID), CreateRunInput{
+		Scope: testScope(), DefinitionID: definition.ID, ExpectedDefinitionVersion: definition.CurrentVersion,
+		Parameters: ReportRunParameters{StartDate: "2026-10-01", EndDate: "2026-09-30"},
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("invalid report period error = %v, want ErrInvalid", err)
 	}
 }
 
@@ -964,7 +1011,7 @@ func (r *serviceTestRepository) RecordRunDownload(_ context.Context, scope Repor
 	return nil
 }
 
-func (r *serviceTestRepository) CaptureSourceBoundary(_ context.Context, scope ReportScope, definition ReportDefinition) (SourceBoundary, error) {
+func (r *serviceTestRepository) CaptureSourceBoundary(_ context.Context, scope ReportScope, definition ReportDefinition, parameters ReportRunParameters) (SourceBoundary, error) {
 	if definition.TenantID != scope.TenantID || definition.LegalEntityID != scope.LegalEntityID {
 		return SourceBoundary{}, ErrNotFound
 	}

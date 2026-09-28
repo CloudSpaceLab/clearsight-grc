@@ -557,7 +557,7 @@ func (r *MemoryRepository) RecordRunDownload(ctx context.Context, scope ReportSc
 	return nil
 }
 
-func (r *MemoryRepository) CaptureSourceBoundary(ctx context.Context, scope ReportScope, definition ReportDefinition) (SourceBoundary, error) {
+func (r *MemoryRepository) CaptureSourceBoundary(ctx context.Context, scope ReportScope, definition ReportDefinition, parameters ReportRunParameters) (SourceBoundary, error) {
 	if r == nil || ctx == nil {
 		return SourceBoundary{}, ErrInvalid
 	}
@@ -576,6 +576,9 @@ func (r *MemoryRepository) CaptureSourceBoundary(ctx context.Context, scope Repo
 	if _, err := NormalizeReportFilterForDataset(definition.Dataset, definition.Filter); err != nil {
 		return SourceBoundary{}, err
 	}
+	if _, err := NormalizeReportRunParameters(parameters); err != nil {
+		return SourceBoundary{}, err
+	}
 	now := r.clock()
 	key := "processing_activities"
 	switch definition.Dataset {
@@ -586,9 +589,10 @@ func (r *MemoryRepository) CaptureSourceBoundary(ctx context.Context, scope Repo
 	case DatasetVendors:
 		key = "vendor_relationships"
 	}
+	populationComplete := parameters.StartDate == "" && parameters.EndDate == "" && parameters.OwnerPrincipalID == ""
 	return SourceBoundary{
 		CapturedAt: now, ProjectionVersion: "memory-report-source.v1",
-		SourceHighWater: map[string]time.Time{key: now}, Population: 0, PopulationComplete: true,
+		SourceHighWater: map[string]time.Time{key: now}, Population: 0, PopulationComplete: populationComplete,
 	}, nil
 }
 

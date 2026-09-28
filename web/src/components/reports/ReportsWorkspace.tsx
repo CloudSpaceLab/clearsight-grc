@@ -3,9 +3,10 @@ import {
   createReportRun as createReportRunRequest,
   downloadReportRun as downloadReportRunRequest,
   listReportDefinitions as listReportDefinitionsRequest,
+  listReportOwnerOptions as listReportOwnerOptionsRequest,
   listReportRunPage as listReportRunPageRequest,
 } from "../../reportingApi";
-import type { ReportDataset, ReportDefinition, ReportRun } from "../../reportingTypes";
+import type { ReportDataset, ReportDefinition, ReportOwnerOption, ReportRun } from "../../reportingTypes";
 import { ReportingPage } from "../ReportingPage";
 import { reportSetupFocus, reportSetupFocusLabel } from "./reportTemplatePresets";
 import {
@@ -18,6 +19,7 @@ import {
   SelectField,
   StatusBadge,
   Tabs,
+  TextField,
   type DataColumn,
   type StatusTone,
 } from "../ui";
@@ -32,6 +34,7 @@ export type ReportsWorkspaceProps = {
   legalEntityName?: string;
   loadDefinitions?: typeof listReportDefinitionsRequest;
   loadRunPage?: typeof listReportRunPageRequest;
+  loadOwners?: typeof listReportOwnerOptionsRequest;
   createRun?: typeof createReportRunRequest;
   downloadRun?: typeof downloadReportRunRequest;
 };
@@ -54,6 +57,7 @@ export function ReportsWorkspace({
   legalEntityName,
   loadDefinitions = listReportDefinitionsRequest,
   loadRunPage = listReportRunPageRequest,
+  loadOwners = listReportOwnerOptionsRequest,
   createRun = createReportRunRequest,
   downloadRun = downloadReportRunRequest,
 }: ReportsWorkspaceProps) {
@@ -72,6 +76,12 @@ export function ReportsWorkspace({
   const [generateOpen, setGenerateOpen] = useState(false);
   const [generationArea, setGenerationArea] = useState<Exclude<ReportArea, "ALL">>("VENDORS");
   const [generationDefinitionID, setGenerationDefinitionID] = useState<string>();
+  const [generationStartDate, setGenerationStartDate] = useState("");
+  const [generationEndDate, setGenerationEndDate] = useState("");
+  const [generationOwnerID, setGenerationOwnerID] = useState<string>();
+  const [ownerOptions, setOwnerOptions] = useState<ReportOwnerOption[]>([]);
+  const [ownersLoading, setOwnersLoading] = useState(false);
+  const [ownersError, setOwnersError] = useState<string>();
   const [selectedRun, setSelectedRun] = useState<ReportRun>();
   const [command, setCommand] = useState<"idle" | "generating" | "downloading">("idle");
   const [commandMessage, setCommandMessage] = useState<string>();
@@ -128,6 +138,35 @@ export function ReportsWorkspace({
         : activeGenerationDefinitions[0]?.id
     );
   }, [activeGenerationDefinitions]);
+
+  const generationDefinition = useMemo(
+    () => activeGenerationDefinitions.find((definition) => definition.id === generationDefinitionID),
+    [activeGenerationDefinitions, generationDefinitionID],
+  );
+
+  useEffect(() => {
+    setGenerationOwnerID(undefined);
+    setOwnerOptions([]);
+    setOwnersError(undefined);
+    if (!generateOpen || !generationDefinition) {
+      setOwnersLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setOwnersLoading(true);
+    void loadOwners(generationDefinition.dataset, controller.signal).then((values) => {
+      if (!controller.signal.aborted) setOwnerOptions(values);
+    }).catch((reason: unknown) => {
+      if (!controller.signal.aborted && !isAbortError(reason)) {
+        setOwnersError(readError(reason, "Assigned owners unavailable."));
+      }
+    }).finally(() => {
+      if (!controller.signal.aborted) setOwnersLoading(false);
+    });
+    return () => controller.abort();
+  }, [generateOpen, generationDefinition, loadOwners]);
+
+  const dateRangeInvalid = Boolean(generationStartDate && generationEndDate && generationStartDate > generationEndDate);
 
   const filteredRuns = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -189,21 +228,36 @@ export function ReportsWorkspace({
     }
   }
 
+  function openGenerate() {
+    setGenerationStartDate("");
+    setGenerationEndDate("");
+    setGenerationOwnerID(undefined);
+    setCommandError(undefined);
+    setGenerateOpen(true);
+  }
+
   function openTemplates() {
     setGenerateOpen(false);
     setTab("templates");
   }
 
   async function generateReport() {
-    const definition = activeGenerationDefinitions.find((item) => item.id === generationDefinitionID);
-    if (!definition) return;
+    const definition = generationDefinition;
+    if (!definition || dateRangeInvalid) return;
     setCommand("generating");
     setCommandError(undefined);
     setCommandMessage(undefined);
     try {
-      const run = await createRun(definition.id, definition.current_version);
+      const run = await createRun(definition.id, definition.current_version, {
+        ...(generationStartDate ? { start_date: generationStartDate } : {}),
+        ...(generationEndDate ? { end_date: generationEndDate } : {}),
+        ...(generationOwnerID ? { owner_principal_id: generationOwnerID } : {}),
+      });
       setRuns((current) => [run, ...current.filter((item) => item.id !== run.id)]);
       setGenerateOpen(false);
+      setGenerationStartDate("");
+      setGenerationEndDate("");
+      setGenerationOwnerID(undefined);
       setTab("library");
       setCommandMessage(`${definition.name} queued.`);
     } catch (reason: unknown) {
@@ -289,7 +343,7 @@ export function ReportsWorkspace({
       </div>
       {tab === "library" && <div className="reports-workspace__actions">
         <Button variant="secondary" onPress={refresh} isLoading={runState === "loading" || definitionState === "loading"}>Refresh</Button>
-        <Button variant="primary" isDisabled={definitionState === "error"} onPress={() => setGenerateOpen(true)}>Generate report</Button>
+        <Button variant="primary" isDisabled={definitionState === "error"} onPress={openGenerate}>Generate report</Button>
       </div>}
     </header>
 
@@ -353,7 +407,7 @@ export function ReportsWorkspace({
       <div className="reports-generate">
         <div className="reports-generate__heading">
           <h2>Generate report</h2>
-          <p>Select area and setup.</p>
+          <p>Choose a setup, period and owner.</p>
         </div>
         <SelectField
           label="Area"
@@ -372,11 +426,39 @@ export function ReportsWorkspace({
             allowsEmpty={false}
             onChange={setGenerationDefinitionID}
           />
-          {generationDefinitionID && <ReportTemplateSummary definition={activeGenerationDefinitions.find((definition) => definition.id === generationDefinitionID)} />}
+          {generationDefinitionID && <ReportTemplateSummary definition={generationDefinition} />}
+          <div className="reports-generate__filters">
+            <TextField
+              label="Start date"
+              type="date"
+              value={generationStartDate}
+              max={generationEndDate || undefined}
+              onChange={setGenerationStartDate}
+              isInvalid={dateRangeInvalid}
+            />
+            <TextField
+              label="End date"
+              type="date"
+              value={generationEndDate}
+              min={generationStartDate || undefined}
+              onChange={setGenerationEndDate}
+              isInvalid={dateRangeInvalid}
+              errorMessage={dateRangeInvalid ? "End date must be on or after start date." : undefined}
+            />
+            <SelectField
+              label="Assigned owner"
+              value={generationOwnerID}
+              placeholder={ownersLoading ? "Loading assigned owners…" : "All assigned owners"}
+              options={ownerOptions.map((owner) => ({ id: owner.principal_id, label: owner.display_name }))}
+              isDisabled={ownersLoading || Boolean(ownersError)}
+              onChange={setGenerationOwnerID}
+            />
+          </div>
+          {ownersError && <Notice tone="warning"><span>{ownersError} Generate without an owner filter or retry.</span></Notice>}
           {commandError && <Notice tone="error"><span>{commandError}</span></Notice>}
           <div className="reports-generate__footer">
             <Button variant="secondary" onPress={() => setGenerateOpen(false)}>Cancel</Button>
-            <Button variant="primary" isLoading={command === "generating"} onPress={() => void generateReport()}>Generate report</Button>
+            <Button variant="primary" isDisabled={dateRangeInvalid} isLoading={command === "generating"} onPress={() => void generateReport()}>Generate report</Button>
           </div>
         </> : <div className="reports-generate__empty">
           <EmptyState

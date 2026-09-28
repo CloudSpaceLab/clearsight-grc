@@ -151,6 +151,17 @@
   letter-spacing: -0.025em;
 }
 
+.reports-generate__filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cs-space-inline);
+  align-items: start;
+}
+
+.reports-generate__filters > :last-child {
+  grid-column: 1 / -1;
+}
+
 .reports-generate__summary,
 .report-run-details dl {
   display: grid;
@@ -229,6 +240,7 @@
   }
 
   .reports-library__toolbar,
+  .reports-generate__filters,
   .reports-generate__summary,
   .report-run-details dl {
     grid-template-columns: 1fr;

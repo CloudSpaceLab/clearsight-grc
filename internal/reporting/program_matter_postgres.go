@@ -35,7 +35,7 @@ func WorkReportPageSQL(filterFragment string, filterArgumentCount int) string {
 }
 
 func reportProgramMatterPageSQL(filterFragment string, filterArgumentCount int, program, exceptionsOnly bool) string {
-	if strings.TrimSpace(filterFragment) == "" || filterArgumentCount < 0 || filterArgumentCount > maxReportFilterNodes {
+	if strings.TrimSpace(filterFragment) == "" || filterArgumentCount < 0 || filterArgumentCount > maxReportFilterNodes+maxReportRunParameterArgs {
 		return ""
 	}
 	hasCursor := 6 + filterArgumentCount
@@ -342,7 +342,7 @@ func (r *PostgresRepository) captureMatterSourceBoundary(ctx context.Context, sc
 }
 
 func (r *PostgresRepository) listProgramReportRows(ctx context.Context, scope ReportScope, run ReportRun, cursor string, limit int) (ReportPage, error) {
-	filter, args, err := ReportFilterSQLForDataset(DatasetPrograms, run.Filter, 6)
+	filter, args, err := combineReportRunFilter(run.Parameters, DatasetPrograms, run.Filter, 6)
 	if err != nil {
 		return ReportPage{}, fmt.Errorf("build Program report filter: %w", err)
 	}
@@ -400,7 +400,7 @@ func (r *PostgresRepository) listMatterReportRows(ctx context.Context, scope Rep
 	if run.Dataset != DatasetMatters && run.Dataset != DatasetMatterExceptions {
 		return ReportPage{}, ErrInvalid
 	}
-	filter, args, err := ReportFilterSQLForDataset(run.Dataset, run.Filter, 6)
+	filter, args, err := combineReportRunFilter(run.Parameters, run.Dataset, run.Filter, 6)
 	if err != nil {
 		return ReportPage{}, fmt.Errorf("build Work report filter: %w", err)
 	}

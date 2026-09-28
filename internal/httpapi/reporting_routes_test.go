@@ -15,6 +15,7 @@ func TestReportingRoutesAreRegistered(t *testing.T) {
 	}
 	for _, key := range []string{
 		http.MethodGet + " /api/v1/reports/filter-fields",
+		http.MethodGet + " /api/v1/reports/owners",
 		http.MethodGet + " /api/v1/reports/definitions",
 		http.MethodPost + " /api/v1/reports/definitions",
 		http.MethodGet + " /api/v1/reports/definitions/{id}",

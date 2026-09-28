@@ -147,7 +147,7 @@ func TestUnknownFilterFieldIsRejectedWithA400NamingTheField(t *testing.T) {
 }
 
 func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
-	handler, _, _, _, _ := reportingHTTPFixture(t)
+	handler, _, _, _, authorityChecker := reportingHTTPFixture(t)
 	proposeBody := `{"tenant_id":"forged-tenant","legal_entity_id":"forged-entity","actor_id":"forged-actor","maker_id":"forged-maker","reviewer_id":"forged-reviewer","authorizer_id":"forged-authorizer","checker_id":"forged-checker","code":"ROPA-SCOPE-TEST","name":"Scope binding test","dataset":"PROCESSING_ACTIVITY_EXCEPTIONS","scope_kind":"LEGAL_ENTITY","format":"CSV","filter":{"kind":"group","operator":"and"}}`
 	response := reportingRequest(handler, http.MethodPost, "/api/v1/reports/definitions", reportingMakerID, nil, proposeBody)
 	if response.Code != http.StatusCreated {
@@ -186,7 +186,7 @@ func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 		t.Fatalf("transition actors were not bound from verified identities: %#v", activated)
 	}
 
-	runBody := `{"tenant_id":"forged-run-tenant","legal_entity_id":"forged-run-entity","actor_id":"forged-run-actor","requested_by_ref":"forged-run-performer","definition_id":"` + definition.ID + `","expected_definition_version":` + jsonNumber(int64(definition.CurrentVersion)) + `}`
+	runBody := `{"tenant_id":"forged-run-tenant","legal_entity_id":"forged-run-entity","actor_id":"forged-run-actor","requested_by_ref":"forged-run-performer","definition_id":"` + definition.ID + `","expected_definition_version":` + jsonNumber(int64(definition.CurrentVersion)) + `,"parameters":{"start_date":"2026-09-01","end_date":"2026-09-30","owner_principal_id":"owner-1"}}`
 	runResponse := reportingRequest(handler, http.MethodPost, "/api/v1/reports/runs", reportingPerformerID, nil, runBody)
 	if runResponse.Code != http.StatusCreated {
 		t.Fatalf("run status = %d: %s", runResponse.Code, runResponse.Body.String())
@@ -197,6 +197,15 @@ func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 	}
 	if run.TenantID != reportingTenantID || run.LegalEntityID != reportingEntityID || run.RequestedByRef != reportingPerformerID {
 		t.Fatalf("run trusted forged scope or actor: %#v", run)
+	}
+	if run.Parameters.StartDate != "2026-09-01" || run.Parameters.EndDate != "2026-09-30" || run.Parameters.OwnerPrincipalID != "owner-1" {
+		t.Fatalf("run did not retain execution parameters: %#v", run.Parameters)
+	}
+	if calls := authorityChecker.callCount(authority.ResponsibilityPerformer); calls != 1 {
+		t.Fatalf("report generation performer authority calls = %d, want one HTTP command-guard decision", calls)
+	}
+	if run.SourceBoundary.PopulationComplete {
+		t.Fatal("run-time filters must not claim the saved-setup population is complete")
 	}
 
 	second := reportingRequest(handler, http.MethodPost, "/api/v1/reports/definitions", reportingMakerID, nil, `{"code":"ROPA-REJECT-SCOPE","name":"Reject scope test","dataset":"PROCESSING_ACTIVITIES","scope_kind":"LEGAL_ENTITY","format":"CSV","filter":{"kind":"group","operator":"and"}}`)
@@ -273,8 +282,8 @@ func TestRunDownloadReAuthorisesAndRequiresReportDownloadPermission(t *testing.T
 		t.Fatalf("authorized download = %d: %s", allowed.Code, allowed.Body.String())
 	}
 	firstCalls := authorityChecker.callCount(authority.ResponsibilityPerformer)
-	if firstCalls < 2 { // command-independent route permission plus service re-authorization
-		t.Fatalf("first download authority calls = %d, want separate route and service checks", firstCalls)
+	if firstCalls != 1 { // Download permission is route-scoped; the service independently re-authorizes the existing run once.
+		t.Fatalf("first download authority calls = %d, want one current-run service authorization", firstCalls)
 	}
 
 	authorityChecker.mu.Lock()

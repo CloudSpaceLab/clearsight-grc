@@ -66,6 +66,78 @@ func TestProgramReportPageAppliesScopeBeforeTheLimit(t *testing.T) {
 	}
 }
 
+func TestProgramReportPageAppliesRunPeriodAndOwnerBeforeLimit(t *testing.T) {
+	fixture := newReportingPostgresFixture(t)
+	recent := fixture.now.Add(-time.Minute)
+	matching := fixture.insertProgram(t, fixture.entityAID, "PROGRAM-RUN-FILTER-MATCH", 1, recent, "NG", `[]`)
+	wrongOwner := fixture.insertProgram(t, fixture.entityAID, "PROGRAM-RUN-FILTER-OWNER", 1, recent, "NG", `[]`)
+	fixture.insertProgram(t, fixture.entityAID, "PROGRAM-RUN-FILTER-OLD", 1, fixture.now.Add(-48*time.Hour), "NG", `[]`)
+	if _, err := fixture.pool.Exec(fixture.ctx, `UPDATE programs SET owner_principal_id=$1::uuid WHERE tenant_id=$2::uuid AND id=$3::uuid`,
+		fixture.reviewerID, fixture.tenantID, wrongOwner); err != nil {
+		t.Fatal(err)
+	}
+
+	definition, _ := fixture.proposal(t, DatasetPrograms, ScopeLegalEntity, "", emptyReportFilter())
+	run := fixture.createRun(t, definition, DatasetPrograms, ScopeLegalEntity, "", emptyReportFilter())
+	day := recent.UTC().Format(reportDateLayout)
+	parameters := `{"start_date":"` + day + `","end_date":"` + day + `","owner_principal_id":"` + fixture.makerID + `"}`
+	if _, err := fixture.pool.Exec(fixture.ctx, `UPDATE report_runs SET parameters=$1::jsonb WHERE tenant_id=$2::uuid AND id=$3::uuid`,
+		parameters, fixture.tenantID, run.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	page, err := fixture.repository.ListReportRows(context.Background(), fixture.scope, run, "", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Rows) != 1 || page.Rows[0].ID != matching {
+		t.Fatalf("run period/owner filters returned %#v, want only %s", page.Rows, matching)
+	}
+}
+
+func TestReportOwnerOptionsUseAssignedPrincipalDisplayNames(t *testing.T) {
+	fixture := newReportingPostgresFixture(t)
+	fixture.insertProgram(t, fixture.entityAID, "PROGRAM-OWNER-OPTION", 1, fixture.now.Add(-time.Minute), "NG", `[]`)
+
+	owners, err := fixture.repository.ListReportOwners(context.Background(), fixture.scope, fixture.performerID, DatasetPrograms, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, owner := range owners {
+		if owner.PrincipalID == fixture.makerID {
+			if owner.DisplayName != "Maker" {
+				t.Fatalf("owner label = %q, want Maker", owner.DisplayName)
+			}
+			return
+		}
+	}
+	t.Fatalf("assigned Program owner %s missing from %#v", fixture.makerID, owners)
+}
+
+func TestWorkOwnerOptionsHideRestrictedMatterOwners(t *testing.T) {
+	fixture := newReportingPostgresFixture(t)
+	visible := fixture.insertMatter(t, fixture.entityAID, "MATTER-OWNER-VISIBLE", 1, "EXCEPTION", `{"access":"INTERNAL"}`, fixture.now.Add(time.Hour))
+	hidden := fixture.insertMatter(t, fixture.entityAID, "MATTER-OWNER-HIDDEN", 1, "EXCEPTION", `{"access":"RESTRICTED","allowed_principal_ids":["`+fixture.reviewerID+`"]}`, fixture.now.Add(time.Hour))
+	if _, err := fixture.pool.Exec(fixture.ctx,
+		`UPDATE matters SET owner_principal_id=$1::uuid WHERE tenant_id=$2::uuid AND id=$3::uuid`,
+		fixture.makerID, fixture.tenantID, visible); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.pool.Exec(fixture.ctx,
+		`UPDATE matters SET owner_principal_id=$1::uuid WHERE tenant_id=$2::uuid AND id=$3::uuid`,
+		fixture.reviewerID, fixture.tenantID, hidden); err != nil {
+		t.Fatal(err)
+	}
+
+	owners, err := fixture.repository.ListReportOwners(context.Background(), fixture.scope, fixture.performerID, DatasetMatters, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(owners) != 1 || owners[0].PrincipalID != fixture.makerID || owners[0].DisplayName != "Maker" {
+		t.Fatalf("Work owner options leaked restricted Matter owners: %#v", owners)
+	}
+}
+
 func TestMatterReportPageAppliesVisibilityBeforeTheLimit(t *testing.T) {
 	fixture := newReportingPostgresFixture(t)
 	hiddenUnsupported := fixture.insertMatter(t, fixture.entityAID, "MATTER-UNSUPPORTED", 5, "REGULATORY_CHANGE", `{"access":"PARTNER"}`, time.Now().UTC().Add(-time.Hour))
@@ -385,7 +457,7 @@ func TestProgramAndMatterSourceBoundaryRejectsMismatchedScope(t *testing.T) {
 			definition, _ := fixture.proposal(t, testCase.dataset, ScopeLegalEntity, "", emptyReportFilter())
 			definition.ScopeKind = testCase.scope
 			definition.ScopeRef = fixture.entityBID
-			if _, err := fixture.repository.CaptureSourceBoundary(context.Background(), fixture.scope, definition); !errors.Is(err, ErrInvalid) {
+			if _, err := fixture.repository.CaptureSourceBoundary(context.Background(), fixture.scope, definition, ReportRunParameters{}); !errors.Is(err, ErrInvalid) {
 				t.Fatalf("mismatched source-boundary scope error = %v, want ErrInvalid", err)
 			}
 		})
