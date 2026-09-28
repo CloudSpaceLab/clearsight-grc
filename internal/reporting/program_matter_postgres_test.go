@@ -99,7 +99,7 @@ func TestReportOwnerOptionsUseAssignedPrincipalDisplayNames(t *testing.T) {
 	fixture := newReportingPostgresFixture(t)
 	fixture.insertProgram(t, fixture.entityAID, "PROGRAM-OWNER-OPTION", 1, fixture.now.Add(-time.Minute), "NG", `[]`)
 
-	owners, err := fixture.repository.ListReportOwners(context.Background(), fixture.scope, DatasetPrograms, 20)
+	owners, err := fixture.repository.ListReportOwners(context.Background(), fixture.scope, fixture.performerID, DatasetPrograms, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
