@@ -30,7 +30,7 @@ func (r *PostgresRepository) ListReportOwners(ctx context.Context, scope ReportS
 			JOIN principals p ON p.id=a.owner_principal_id AND p.tenant_id=a.tenant_id
 			WHERE a.tenant_id=$1::uuid AND a.legal_entity_id=$2::uuid
 			  AND a.owner_principal_id IS NOT NULL
-			ORDER BY p.display_name,p.id
+			ORDER BY p.display_name,p.id::text
 			LIMIT $3`
 	case DatasetPrograms:
 		query = `
@@ -39,7 +39,7 @@ func (r *PostgresRepository) ListReportOwners(ctx context.Context, scope ReportS
 			JOIN principals p ON p.id=a.owner_principal_id AND p.tenant_id=a.tenant_id
 			WHERE a.tenant_id=$1::uuid AND a.legal_entity_id=$2::uuid
 			  AND a.owner_principal_id IS NOT NULL
-			ORDER BY p.display_name,p.id
+			ORDER BY p.display_name,p.id::text
 			LIMIT $3`
 	case DatasetMatters, DatasetMatterExceptions:
 		query = `
@@ -50,7 +50,7 @@ func (r *PostgresRepository) ListReportOwners(ctx context.Context, scope ReportS
 			  AND $3=''
 			  AND a.owner_principal_id IS NOT NULL
 			  AND ` + MatterReportVisibilitySQL + `
-			ORDER BY p.display_name,p.id
+			ORDER BY p.display_name,p.id::text
 			LIMIT $5`
 		args = []any{scope.TenantID, scope.LegalEntityID, "", requestedBy, limit}
 	case DatasetVendors:
@@ -68,7 +68,7 @@ func (r *PostgresRepository) ListReportOwners(ctx context.Context, scope ReportS
 			      AND archive.record_id=a.id
 			      AND archive.restored_at IS NULL
 			  )
-			ORDER BY p.display_name,p.id
+			ORDER BY p.display_name,p.id::text
 			LIMIT $3`
 	default:
 		return nil, ErrInvalid
