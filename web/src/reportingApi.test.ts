@@ -9,6 +9,7 @@ import {
   getReportRun,
   listReportDefinitions,
   listReportFilterFields,
+  listReportOwnerOptions,
   listReportRunPage,
   listReportRuns,
   transitionReportDefinition,
@@ -92,6 +93,17 @@ describe("reporting API", () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toBe("/api/v1/reports/filter-fields");
   });
 
+  it("loads scoped assigned-owner options for the selected dataset", async () => {
+    const owners = [{ principal_id: "owner-1", display_name: "Amina Okafor" }];
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ items: owners }), { status: 200 }));
+
+    await expect(listReportOwnerOptions("VENDORS")).resolves.toEqual(owners);
+
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]), "https://example.test");
+    expect(url.pathname).toBe("/api/v1/reports/owners");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ tenant_id: "tenant-1", dataset: "VENDORS", limit: "200" });
+  });
+
   it("falls back to the legacy ROPA report route during rolling deployments", async () => {
     fetchMock
       .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "not_found", message: "route not found" } }), { status: 404, headers: { "Content-Type": "application/json" } }))
@@ -150,7 +162,7 @@ describe("reporting API", () => {
 
     await createReportDefinition({ code: "ROPA-EXCEPTIONS", name: "Open processing exceptions", description: "Report description", dataset: "PROCESSING_ACTIVITIES", scope_kind: "LEGAL_ENTITY", format: "CSV", filter: { kind: "group", operator: "and", children: [] } });
     await transitionReportDefinition("definition-1", "review", { expected_version: 1, checksum_seen: "a".repeat(64), note: "Checked the filter and scope." });
-    await createReportRun("definition-1", 1);
+    await createReportRun("definition-1", 1, { start_date: "2026-09-01", end_date: "2026-09-30", owner_principal_id: "owner-1" });
 
     const firstBody = JSON.parse(String((fetchMock.mock.calls[0]?.[1] as RequestInit).body));
     expect(firstBody).toMatchObject({ code: "ROPA-EXCEPTIONS", dataset: "PROCESSING_ACTIVITIES" });
@@ -160,7 +172,7 @@ describe("reporting API", () => {
     expect(transitionInit.method).toBe("POST");
     expect(String(fetchMock.mock.calls[1]?.[0])).toBe("/api/v1/reports/definitions/definition-1/review");
     expect(JSON.parse(String(transitionInit.body))).toEqual({ expected_version: 1, checksum_seen: "a".repeat(64), note: "Checked the filter and scope." });
-    expect(JSON.parse(String((fetchMock.mock.calls[2]?.[1] as RequestInit).body))).toEqual({ definition_id: "definition-1", expected_definition_version: 1 });
+    expect(JSON.parse(String((fetchMock.mock.calls[2]?.[1] as RequestInit).body))).toEqual({ definition_id: "definition-1", expected_definition_version: 1, parameters: { start_date: "2026-09-01", end_date: "2026-09-30", owner_principal_id: "owner-1" } });
   });
 
   it("downloads a protected report as a file without exposing a stored object key", async () => {
