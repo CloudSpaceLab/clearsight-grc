@@ -385,7 +385,7 @@ func TestProgramAndMatterSourceBoundaryRejectsMismatchedScope(t *testing.T) {
 			definition, _ := fixture.proposal(t, testCase.dataset, ScopeLegalEntity, "", emptyReportFilter())
 			definition.ScopeKind = testCase.scope
 			definition.ScopeRef = fixture.entityBID
-			if _, err := fixture.repository.CaptureSourceBoundary(context.Background(), fixture.scope, definition); !errors.Is(err, ErrInvalid) {
+			if _, err := fixture.repository.CaptureSourceBoundary(context.Background(), fixture.scope, definition, ReportRunParameters{}); !errors.Is(err, ErrInvalid) {
 				t.Fatalf("mismatched source-boundary scope error = %v, want ErrInvalid", err)
 			}
 		})
