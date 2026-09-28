@@ -186,7 +186,7 @@ func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 		t.Fatalf("transition actors were not bound from verified identities: %#v", activated)
 	}
 
-	runBody := `{"tenant_id":"forged-run-tenant","legal_entity_id":"forged-run-entity","actor_id":"forged-run-actor","requested_by_ref":"forged-run-performer","definition_id":"` + definition.ID + `","expected_definition_version":` + jsonNumber(int64(definition.CurrentVersion)) + `}`
+	runBody := `{"tenant_id":"forged-run-tenant","legal_entity_id":"forged-run-entity","actor_id":"forged-run-actor","requested_by_ref":"forged-run-performer","definition_id":"` + definition.ID + `","expected_definition_version":` + jsonNumber(int64(definition.CurrentVersion)) + `,"parameters":{"start_date":"2026-09-01","end_date":"2026-09-30","owner_principal_id":"owner-1"}}`
 	runResponse := reportingRequest(handler, http.MethodPost, "/api/v1/reports/runs", reportingPerformerID, nil, runBody)
 	if runResponse.Code != http.StatusCreated {
 		t.Fatalf("run status = %d: %s", runResponse.Code, runResponse.Body.String())
@@ -197,6 +197,12 @@ func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 	}
 	if run.TenantID != reportingTenantID || run.LegalEntityID != reportingEntityID || run.RequestedByRef != reportingPerformerID {
 		t.Fatalf("run trusted forged scope or actor: %#v", run)
+	}
+	if run.Parameters.StartDate != "2026-09-01" || run.Parameters.EndDate != "2026-09-30" || run.Parameters.OwnerPrincipalID != "owner-1" {
+		t.Fatalf("run did not retain execution parameters: %#v", run.Parameters)
+	}
+	if run.SourceBoundary.PopulationComplete {
+		t.Fatal("run-time filters must not claim the saved-setup population is complete")
 	}
 
 	second := reportingRequest(handler, http.MethodPost, "/api/v1/reports/definitions", reportingMakerID, nil, `{"code":"ROPA-REJECT-SCOPE","name":"Reject scope test","dataset":"PROCESSING_ACTIVITIES","scope_kind":"LEGAL_ENTITY","format":"CSV","filter":{"kind":"group","operator":"and"}}`)
