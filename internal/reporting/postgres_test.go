@@ -445,6 +445,38 @@ func TestReportPageSQLAppliesTheFilterBeforeTheLimit(t *testing.T) {
 	}
 }
 
+func TestReportPageSQLAppliesRunDateAndOwnerFilters(t *testing.T) {
+	fixture := newReportingPostgresFixture(t)
+	owned := fixture.insertActivities(t, fixture.scope, 1, activitySeedOptions{OwnerID: fixture.makerID})
+	fixture.insertActivities(t, fixture.scope, 1, activitySeedOptions{OwnerID: fixture.reviewerID})
+	definition, _ := fixture.proposal(t, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())
+	date := fixture.now.Format(reportDateLayout)
+	run := fixture.createRun(t, definition, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter(), ReportRunParameters{
+		StartDate: date, EndDate: date, OwnerPrincipalID: fixture.makerID,
+	})
+	page, err := fixture.repository.ListReportRows(context.Background(), fixture.scope, run, "", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Rows) != 1 || page.Rows[0].ID != owned[0] {
+		t.Fatalf("run-time report filters returned %#v", page.Rows)
+	}
+}
+
+func TestListReportOwnersReturnsAssignedDisplayNames(t *testing.T) {
+	fixture := newReportingPostgresFixture(t)
+	fixture.insertActivities(t, fixture.scope, 1, activitySeedOptions{OwnerID: fixture.makerID})
+	fixture.insertActivities(t, fixture.scope, 1, activitySeedOptions{OwnerID: fixture.reviewerID})
+
+	owners, err := fixture.repository.ListReportOwners(context.Background(), fixture.scope, DatasetProcessingActivities, 10)
+	if err != nil {
+		t.Fatalf("list report owners: %v", err)
+	}
+	if len(owners) != 2 || owners[0].DisplayName != "Maker" || owners[1].DisplayName != "Reviewer" {
+		t.Fatalf("assigned owner options = %#v", owners)
+	}
+}
+
 func TestExceptionDatasetReturnsOnlyExceptedActivities(t *testing.T) {
 	fixture := newReportingPostgresFixture(t)
 	complete := fixture.insertActivities(t, fixture.scope, 1, activitySeedOptions{Name: "Complete", LawfulBasis: "CONSENT", Subjects: "CUSTOMERS", OwnerID: fixture.makerID, ReviewOutcome: "CONFIRMED"})
@@ -590,7 +622,7 @@ func (f *reportingPostgresFixture) submit(t *testing.T, definition ReportDefinit
 	return submitted
 }
 
-func (f *reportingPostgresFixture) createRun(t *testing.T, definition ReportDefinition, dataset ReportDataset, kind ReportScopeKind, reference string, filter *ReportFilterExpression) ReportRun {
+func (f *reportingPostgresFixture) createRun(t *testing.T, definition ReportDefinition, dataset ReportDataset, kind ReportScopeKind, reference string, filter *ReportFilterExpression, parameters ...ReportRunParameters) ReportRun {
 	t.Helper()
 	if definition.Status == DefinitionDraft {
 		definition = f.submit(t, definition)
@@ -612,12 +644,16 @@ func (f *reportingPostgresFixture) createRun(t *testing.T, definition ReportDefi
 		}
 	}
 	now := f.now.Add(2 * time.Second)
+	var runParameters ReportRunParameters
+	if len(parameters) > 0 {
+		runParameters = parameters[0]
+	}
 	run := ReportRun{
 		ID: f.newID(), TenantID: f.tenantID, LegalEntityID: definition.LegalEntityID,
 		DefinitionID: definition.ID, DefinitionVersion: definition.CurrentVersion,
 		DefinitionCode: definition.Code, DefinitionChecksum: definition.StoredChecksum,
 		ScopeKind: kind, ScopeRef: reference, RequestedByRef: f.performerID, AsOf: now,
-		Filter: cloneReportFilter(filter), Dataset: dataset, Format: FormatCSV, Status: RunQueued,
+		Filter: cloneReportFilter(filter), Parameters: runParameters, Dataset: dataset, Format: FormatCSV, Status: RunQueued,
 		CreatedAt: now, ExpiresAt: now.Add(ReportRunRetention),
 		SourceBoundary: SourceBoundary{CapturedAt: now, ProjectionVersion: "test.v1", SourceHighWater: map[string]time.Time{"processing_activities": now}, PopulationComplete: true},
 	}
