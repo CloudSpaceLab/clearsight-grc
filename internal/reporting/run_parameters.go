@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	reportDateLayout            = "2006-01-02"
-	maxReportRunParameterArgs   = 3
+	reportDateLayout             = "2006-01-02"
+	maxReportRunParameterArgs    = 3
 	maxReportOwnerPrincipalRunes = 200
 )
 
