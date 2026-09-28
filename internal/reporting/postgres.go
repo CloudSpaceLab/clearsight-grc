@@ -726,7 +726,7 @@ func (r *PostgresRepository) RecordRunDownload(ctx context.Context, scope Report
 	return nil
 }
 
-func (r *PostgresRepository) CaptureSourceBoundary(ctx context.Context, scope ReportScope, definition ReportDefinition) (SourceBoundary, error) {
+func (r *PostgresRepository) CaptureSourceBoundary(ctx context.Context, scope ReportScope, definition ReportDefinition, parameters ReportRunParameters) (SourceBoundary, error) {
 	if err := r.validateInput(ctx, scope, definition.ID); err != nil {
 		return SourceBoundary{}, err
 	}
@@ -749,7 +749,7 @@ func (r *PostgresRepository) CaptureSourceBoundary(ctx context.Context, scope Re
 	if !ok {
 		return SourceBoundary{}, ErrInvalid
 	}
-	filter, filterArgs, err := ReportFilterSQLForDataset(definition.Dataset, definition.Filter, 5)
+	filter, filterArgs, err := combineReportRunFilter(parameters, definition.Dataset, definition.Filter, 5)
 	if err != nil {
 		return SourceBoundary{}, err
 	}
