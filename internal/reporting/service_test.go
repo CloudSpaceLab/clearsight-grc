@@ -982,7 +982,7 @@ func (r *serviceTestRepository) RecordRunDownload(_ context.Context, scope Repor
 	return nil
 }
 
-func (r *serviceTestRepository) CaptureSourceBoundary(_ context.Context, scope ReportScope, definition ReportDefinition) (SourceBoundary, error) {
+func (r *serviceTestRepository) CaptureSourceBoundary(_ context.Context, scope ReportScope, definition ReportDefinition, parameters ReportRunParameters) (SourceBoundary, error) {
 	if definition.TenantID != scope.TenantID || definition.LegalEntityID != scope.LegalEntityID {
 		return SourceBoundary{}, ErrNotFound
 	}
