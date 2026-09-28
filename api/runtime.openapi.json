@@ -366,6 +366,21 @@
         }
       }
     },
+    "/api/v1/reports/owners": {
+      "get": {
+        "operationId": "listReportOwners",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          { "name": "tenant_id", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "dataset", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 200 } }
+        ],
+        "responses": {
+          "200": { "description": "Assigned owners referenced by the selected report dataset." },
+          "default": { "description": "Assigned owners could not be read." }
+        }
+      }
+    },
     "/api/v1/reports/definitions": {
       "get": {
         "operationId": "listReportDefinitions",
