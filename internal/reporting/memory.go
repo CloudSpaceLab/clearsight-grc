@@ -557,7 +557,7 @@ func (r *MemoryRepository) RecordRunDownload(ctx context.Context, scope ReportSc
 	return nil
 }
 
-func (r *MemoryRepository) CaptureSourceBoundary(ctx context.Context, scope ReportScope, definition ReportDefinition) (SourceBoundary, error) {
+func (r *MemoryRepository) CaptureSourceBoundary(ctx context.Context, scope ReportScope, definition ReportDefinition, parameters ReportRunParameters) (SourceBoundary, error) {
 	if r == nil || ctx == nil {
 		return SourceBoundary{}, ErrInvalid
 	}
@@ -574,6 +574,9 @@ func (r *MemoryRepository) CaptureSourceBoundary(ctx context.Context, scope Repo
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if _, err := NormalizeReportFilterForDataset(definition.Dataset, definition.Filter); err != nil {
+		return SourceBoundary{}, err
+	}
+	if _, err := NormalizeReportRunParameters(parameters); err != nil {
 		return SourceBoundary{}, err
 	}
 	now := r.clock()
