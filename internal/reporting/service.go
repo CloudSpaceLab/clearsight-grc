@@ -907,6 +907,9 @@ func validateReportRunIdentity(run ReportRun) error {
 		len(run.DefinitionChecksum) != 64 || !validReportDatasetScope(run.Dataset, run.ScopeKind) || !validReportScope(run.ScopeKind, run.ScopeRef) {
 		return ErrInvalid
 	}
+	if _, err := NormalizeReportRunParameters(run.Parameters); err != nil {
+		return err
+	}
 	return nil
 }
 
