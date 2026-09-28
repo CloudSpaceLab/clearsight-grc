@@ -147,7 +147,7 @@ func TestUnknownFilterFieldIsRejectedWithA400NamingTheField(t *testing.T) {
 }
 
 func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
-	handler, _, _, _, _ := reportingHTTPFixture(t)
+	handler, _, _, _, authorityChecker := reportingHTTPFixture(t)
 	proposeBody := `{"tenant_id":"forged-tenant","legal_entity_id":"forged-entity","actor_id":"forged-actor","maker_id":"forged-maker","reviewer_id":"forged-reviewer","authorizer_id":"forged-authorizer","checker_id":"forged-checker","code":"ROPA-SCOPE-TEST","name":"Scope binding test","dataset":"PROCESSING_ACTIVITY_EXCEPTIONS","scope_kind":"LEGAL_ENTITY","format":"CSV","filter":{"kind":"group","operator":"and"}}`
 	response := reportingRequest(handler, http.MethodPost, "/api/v1/reports/definitions", reportingMakerID, nil, proposeBody)
 	if response.Code != http.StatusCreated {
