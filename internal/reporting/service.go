@@ -421,12 +421,6 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 		return ReportRun{}, err
 	}
 	boundary.CapturedAt = now
-	if parameters.StartDate != "" || parameters.EndDate != "" || parameters.OwnerPrincipalID != "" {
-		// CaptureSourceBoundary describes the governed setup population. Execution
-		// parameters narrow that population after capture, so the original count
-		// remains useful context but is no longer an exact report-row expectation.
-		boundary.PopulationComplete = false
-	}
 	if err := validateSourceBoundary(boundary); err != nil {
 		return ReportRun{}, err
 	}
