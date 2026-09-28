@@ -342,6 +342,35 @@ func TestCreateRunQueuesWithoutRenderingInline(t *testing.T) {
 	}
 }
 
+func TestCreateRunDoesNotRequireSyntheticRunAuthority(t *testing.T) {
+	service, repository, _, authorityChecker := newReportingServiceTest()
+	definition := installActiveDefinition(repository)
+	authorityChecker.fail[authority.ResponsibilityPerformer] = errors.New("no REPORT_RUN route exists before the run is created")
+
+	run, err := service.CreateRun(reportActorContext(testPerformerID), CreateRunInput{
+		Scope: testScope(), DefinitionID: definition.ID, ExpectedDefinitionVersion: definition.CurrentVersion,
+	})
+	if err != nil {
+		t.Fatalf("approved report run was blocked by synthetic run authority: %v", err)
+	}
+	if run.Status != RunQueued || run.RequestedByRef != testPerformerID {
+		t.Fatalf("approved report run = %#v", run)
+	}
+	for _, input := range authorityChecker.inputs {
+		if input.ObjectType == "REPORT_RUN" && input.DecisionType == "report.run.create" {
+			t.Fatalf("CreateRun repeated HTTP command authorization against synthetic run id %q", input.ObjectID)
+		}
+	}
+}
+
+func TestDefinitionEffectiveRequiresAuthorizerReceipt(t *testing.T) {
+	definition := installActiveDefinition(newServiceTestRepository())
+	definition.CheckerID = ""
+	if definitionIsEffective(definition, serviceTestNow) {
+		t.Fatal("active definition without authorizer/checker was presented as effective")
+	}
+}
+
 func TestCreateRunRejectsAnInvalidPeriod(t *testing.T) {
 	service, repository, _, authorityChecker := newReportingServiceTest()
 	definition := installActiveDefinition(repository)
