@@ -109,7 +109,7 @@ export type ReportRun = {
   requested_by_ref: string;
   as_of: string;
   filter: ReportFilterExpression;
-  parameters: ReportRunParameters;
+  parameters?: ReportRunParameters;
   dataset: ReportDataset;
   format: ReportFormat;
   status: ReportRunStatus;
