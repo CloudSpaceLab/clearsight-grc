@@ -85,3 +85,100 @@
 @media (forced-colors: active) {
   .cs-data-table tbody tr[data-selected] { outline: var(--cs-table-border-width) solid Highlight; }
 }
+
+
+.cs-metric-card {
+  --cs-metric-tone: var(--cs-status-badge-tone, var(--cs-text-muted));
+  display: grid;
+  min-inline-size: 0;
+  min-block-size: 9rem;
+  gap: var(--cs-primitive-space-2);
+  align-content: start;
+  padding: var(--cs-primitive-space-4);
+  border: var(--cs-surface-border-width) solid var(--cs-border-default);
+  border-block-start: 3px solid var(--cs-metric-tone);
+  border-radius: var(--cs-surface-radius);
+  background: color-mix(in srgb, var(--cs-metric-tone) 3%, var(--cs-bg-surface-1));
+  box-shadow: var(--cs-shadow-raised);
+  color: var(--cs-text-primary);
+  text-align: start;
+}
+
+.cs-metric-card__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cs-primitive-space-2);
+}
+
+.cs-metric-card__label {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.cs-metric-card__value {
+  margin-block-start: var(--cs-primitive-space-1);
+  color: var(--cs-text-strong);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.cs-metric-card__detail,
+.cs-metric-card__meta,
+.cs-metric-card__action {
+  overflow-wrap: anywhere;
+}
+
+.cs-metric-card__detail {
+  color: var(--cs-text-primary);
+  font-size: var(--cs-font-size-caption);
+}
+
+.cs-metric-card__meta {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+
+.cs-metric-card__action {
+  align-self: end;
+  margin-block-start: auto;
+  color: var(--cs-action-primary-bg);
+  font-size: var(--cs-font-size-caption);
+  font-weight: 700;
+}
+
+.cs-metric-card--interactive {
+  inline-size: 100%;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color var(--cs-motion-standard) var(--cs-ease-standard),
+    box-shadow var(--cs-motion-standard) var(--cs-ease-standard),
+    transform var(--cs-motion-standard) var(--cs-ease-standard);
+}
+
+.cs-metric-card--interactive[data-hovered],
+.cs-metric-card--interactive[data-pressed] {
+  border-color: var(--cs-metric-tone);
+  transform: translateY(-1px);
+}
+
+.cs-metric-card--interactive[aria-pressed="true"] {
+  box-shadow: var(--cs-shadow-raised), inset 0 0 0 1px var(--cs-metric-tone);
+}
+
+.cs-metric-card--interactive:focus-visible {
+  outline: var(--cs-focus-width) solid var(--cs-focus-ring);
+  outline-offset: var(--cs-focus-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-metric-card--interactive { transition: none; }
+  .cs-metric-card--interactive[data-hovered],
+  .cs-metric-card--interactive[data-pressed] { transform: none; }
+}
