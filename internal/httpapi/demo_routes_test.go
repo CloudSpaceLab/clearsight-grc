@@ -133,8 +133,8 @@ func TestActorContextUsesStoredWorkspaceNamesForVerifiedScope(t *testing.T) {
 			TenantName: "Stored Bank", LegalEntityName: "Stored Bank Nigeria", PrincipalName: "Stored Risk Officer",
 		},
 		hierarchy: runtimecontext.ScopeHierarchy{
-			State: runtimecontext.HierarchyComplete,
-			Root: runtimecontext.ScopeNode{ID: "tenant-uuid", Code: identity.DurableDemoTenantID, Name: "Stored Bank", Kind: runtimecontext.ScopeKindOrganization},
+			State:   runtimecontext.HierarchyComplete,
+			Root:    runtimecontext.ScopeNode{ID: "tenant-uuid", Code: identity.DurableDemoTenantID, Name: "Stored Bank", Kind: runtimecontext.ScopeKindOrganization},
 			Current: runtimecontext.ScopeNode{ID: "entity-ng-uuid", Code: identity.DurableDemoLegalEntityID, Name: "Stored Bank Nigeria", Kind: runtimecontext.ScopeKindLegalEntity, ParentID: "tenant-uuid", Current: true},
 			LegalEntities: []runtimecontext.ScopeNode{
 				{ID: "entity-ng-uuid", Code: identity.DurableDemoLegalEntityID, Name: "Stored Bank Nigeria", Kind: runtimecontext.ScopeKindLegalEntity, ParentID: "tenant-uuid", Current: true},
@@ -170,7 +170,7 @@ func TestActorContextKeepsCurrentScopeWhenHierarchyIsUnavailable(t *testing.T) {
 		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Identity: identity.NewDevelopmentAuthenticator("tenant-a", "principal-a", "entity-a"),
 		RuntimeContext: &runtimeContextStub{
-			value: runtimecontext.DisplayContext{TenantName: "Tenant A", LegalEntityName: "Entity A", PrincipalName: "Person A"},
+			value:        runtimecontext.DisplayContext{TenantName: "Tenant A", LegalEntityName: "Entity A", PrincipalName: "Person A"},
 			hierarchyErr: errors.New("directory unavailable"),
 		},
 	})
