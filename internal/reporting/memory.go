@@ -23,6 +23,8 @@ const (
 	demoDefinitionOverdueIssuesID  = "00000000-0000-7000-8000-000000000503"
 	demoDefinitionProgramHealthID  = "00000000-0000-7000-8000-000000000504"
 	demoFailedRunID                = "00000000-0000-7000-8000-000000000505"
+	demoDefinitionVendorRegisterID = "00000000-0000-7000-8000-000000000506"
+	demoDefinitionOpenWorkID       = "00000000-0000-7000-8000-000000000507"
 
 	DemoMakerPrincipalID      = "privacy-report-maker-demo"
 	DemoReviewerPrincipalID   = "privacy-report-reviewer-demo"
@@ -865,6 +867,20 @@ var demoDefinitionSeeds = []demoDefinitionSeed{
 		filter: &ReportFilterExpression{Kind: "group", Operator: "and", Children: []ReportFilterExpression{{
 			Kind: "condition", Field: ReportFieldOverallState, Operator: "is", Value: "AT_RISK",
 		}}}, status: DefinitionReviewed, version: 3,
+	},
+	{
+		id: demoDefinitionVendorRegisterID, code: "THIRD-PARTY-REGISTER",
+		name:        "Third-party register",
+		description: "Sample data: vendor relationships and services imported from the Sample Third-Party Risk Register. Source ratings and comments remain source facts; current relationship status is reported separately.",
+		dataset:     DatasetVendors, scopeKind: ScopeLegalEntity, format: FormatXLSX,
+		filter: &ReportFilterExpression{Kind: "group", Operator: "and"}, status: DefinitionActive, version: 5,
+	},
+	{
+		id: demoDefinitionOpenWorkID, code: "OPEN-WORK-REGISTER",
+		name:        "Open issues and actions",
+		description: "Sample data: open issues and actions created from the Sample Third-Party Risk Register and IT Risk Exception Register. Historical source status remains separate from current issue state.",
+		dataset:     DatasetMatterExceptions, scopeKind: ScopeLegalEntity, format: FormatXLSX,
+		filter: &ReportFilterExpression{Kind: "group", Operator: "and"}, status: DefinitionActive, version: 5,
 	},
 }
 

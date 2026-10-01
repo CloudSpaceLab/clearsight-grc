@@ -49,6 +49,10 @@ The Operations Risk source files are not reportable merely because they exist on
 
 Reports is a product-level destination because the catalogue spans vendor, IT, privacy and operational risk work. The legacy ROPA reporting address remains a compatible route into the same report workspace with the ROPA pack preselected.
 
+## Demo catalogue
+
+The deployed reference estate starts with active XLSX setups for the third-party register and open issues and actions, alongside the Program and processing-activity setups. Each setup is generated from the current scoped records; a generated file is created only when a permitted user runs it. The seeded failed run remains a separate bounded-stop receipt and is not presented as a downloadable report.
+
 ## Acceptance criteria
 
 - A permitted user can generate each available pack and download an `.xlsx` file with an as-of timestamp, scope and manifest details.

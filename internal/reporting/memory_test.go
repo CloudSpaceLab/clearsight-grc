@@ -167,7 +167,7 @@ func TestMemoryRepositoryTreatsSameTenantCrossEntityIDsAsNotFound(t *testing.T) 
 	}
 }
 
-func TestInstallDemoProvidesFourGovernanceExamplesAndABoundStop(t *testing.T) {
+func TestInstallDemoProvidesReportSetupsForEachOperatingAreaAndABoundStop(t *testing.T) {
 	ctx := context.Background()
 	repository := NewMemoryRepository()
 	service := NewService(repository, evidence.NewMemoryObjectStore(), nil)
@@ -183,8 +183,8 @@ func TestInstallDemoProvidesFourGovernanceExamplesAndABoundStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(definitions) != 4 {
-		t.Fatalf("demo definitions = %d, want 4", len(definitions))
+	if len(definitions) != 6 {
+		t.Fatalf("demo definitions = %d, want 6", len(definitions))
 	}
 	want := map[string]struct {
 		dataset   ReportDataset
@@ -196,6 +196,8 @@ func TestInstallDemoProvidesFourGovernanceExamplesAndABoundStop(t *testing.T) {
 		"ROPA-CROSS-BORDER-TRANSFERS": {DatasetProcessingActivities, ScopeProgram, DemoProgramRef, DefinitionActive},
 		"ISSUES-OVERDUE-OBLIGATIONS":  {DatasetMatterExceptions, ScopeMatter, DemoMatterRef, DefinitionPendingReview},
 		"PROGRAM-HEALTH":              {DatasetPrograms, ScopeLegalEntity, "", DefinitionReviewed},
+		"THIRD-PARTY-REGISTER":        {DatasetVendors, ScopeLegalEntity, "", DefinitionActive},
+		"OPEN-WORK-REGISTER":          {DatasetMatterExceptions, ScopeLegalEntity, "", DefinitionActive},
 	}
 	for _, definition := range definitions {
 		expected, ok := want[definition.Code]

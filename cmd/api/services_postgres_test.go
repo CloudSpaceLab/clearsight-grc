@@ -262,8 +262,8 @@ func assertPostgresDemoComposition(t *testing.T, services serviceSet, databaseUR
 	if len(history.Items) != len(runs) || len(history.Items) == 0 || history.Items[0].ID != runs[0].ID {
 		t.Fatalf("PostgreSQL report history first page = %#v, runs = %#v", history.Items, runs)
 	}
-	if len(definitions) != 4 || len(runs) != 1 {
-		t.Fatalf("PostgreSQL demo reports definitions=%d runs=%d, want 4 and 1", len(definitions), len(runs))
+	if len(definitions) != 6 || len(runs) != 1 {
+		t.Fatalf("PostgreSQL demo reports definitions=%d runs=%d, want 6 and 1", len(definitions), len(runs))
 	}
 	if runs[0].Status != reporting.RunFailed || runs[0].FailureCode != reporting.FailureRowLimitExceeded {
 		t.Fatalf("PostgreSQL demo bounded-stop run = %#v", runs[0])
@@ -274,8 +274,8 @@ func assertPostgresDemoComposition(t *testing.T, services serviceSet, databaseUR
 	// rather than only that an assertion happened to pass.
 	t.Logf("postgres demo counts: activities=%d activity_revisions=%d definitions=%d definition_revisions=%d runs=%d",
 		counts.Activities, counts.ActivityRevisions, counts.Definitions, counts.DefinitionRevisions, counts.Runs)
-	if counts.Activities != 8 || counts.Definitions != 4 || counts.Runs != 1 || counts.DefinitionRevisions < 4 {
-		t.Fatalf("PostgreSQL demo counts = %+v, want 8 activities, 4 definitions, at least 4 definition revisions and 1 run", counts)
+	if counts.Activities != 8 || counts.Definitions != 6 || counts.Runs != 1 || counts.DefinitionRevisions < 6 {
+		t.Fatalf("PostgreSQL demo counts = %+v, want 8 activities, 6 definitions, at least 6 definition revisions and 1 run", counts)
 	}
 	return counts
 }
