@@ -2,6 +2,26 @@ import { requestJSON } from "./http";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
+export type MetricSnapshot = {
+  code: string;
+  label: string;
+  value: number;
+  unit: string;
+  state: "CRITICAL" | "WARNING" | "CLEAR" | "UNKNOWN";
+  state_label: string;
+  reason: string;
+  population: number;
+  excluded?: number;
+  unknown?: number;
+  complete: boolean;
+  generated_at: string;
+  projection_version: string;
+  previous_value?: number;
+  delta?: number;
+  direction?: "UP" | "DOWN" | "FLAT" | "UNKNOWN";
+  drill_key?: string;
+};
+
 export type OversightSnapshot = {
   generated_at: string;
   period_start: string;
@@ -17,6 +37,7 @@ export type OversightSnapshot = {
   performance: Array<{ owner_id: string; owner_name: string; current_load: number; completed: number; median_hours?: number; p75_hours?: number; sla_attainment?: number; reassigned?: number; returned?: number; blocked: number; blocked_hours: number; reopened: number; measurement_samples: number }>;
   estimates: Array<{ category: string; sample_size: number; median_hours: number; lower_hours: number; upper_hours: number; confidence: string; estimated_by: string }>;
   history_quality: { completed_population: number; complete_lifecycle: number; missing_created_event: number; missing_terminal_event: number; excluded_from_durations: number; reassigned_owner_excluded: number; returned_owner_excluded?: number; blocked_owner_excluded?: number; reopened_owner_excluded?: number };
+  metrics?: MetricSnapshot[];
 };
 
 export function loadOversight() {
