@@ -9,14 +9,16 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/metric"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 )
 
 func TestOversightReturnsOnlyVerifiedActorLegalEntitySnapshot(t *testing.T) {
 	now := time.Now().UTC()
+	unknown := 0
 	repo := oversight.NewMemoryRepository([]oversight.Snapshot{
-		{TenantID: "bank", LegalEntityID: "bank-ng", GeneratedAt: now, ProjectionVersion: oversight.ProjectionVersion, Counts: oversight.Counts{Overdue: 4}},
-		{TenantID: "bank", LegalEntityID: "bank-gh", GeneratedAt: now, ProjectionVersion: oversight.ProjectionVersion, Counts: oversight.Counts{Overdue: 99}},
+		{TenantID: "bank", LegalEntityID: "bank-ng", GeneratedAt: now, ProjectionVersion: oversight.ProjectionVersion, Coverage: oversight.Coverage{Population: 12, Unknown: &unknown}, Counts: oversight.Counts{Overdue: 4}},
+		{TenantID: "bank", LegalEntityID: "bank-gh", GeneratedAt: now, ProjectionVersion: oversight.ProjectionVersion, Coverage: oversight.Coverage{Population: 30, Unknown: &unknown}, Counts: oversight.Counts{Overdue: 99}},
 	})
 	handler := New(Dependencies{
 		Logger:    slog.Default(),
@@ -35,6 +37,9 @@ func TestOversightReturnsOnlyVerifiedActorLegalEntitySnapshot(t *testing.T) {
 	}
 	if value.Counts.Overdue != 4 {
 		t.Fatalf("cross-entity snapshot selected: %#v", value.Counts)
+	}
+	if len(value.Metrics) != 4 || value.Metrics[1].Code != "overdue_open" || value.Metrics[1].Value != 4 || value.Metrics[1].State != metric.StateWarning || !value.Metrics[1].Complete {
+		t.Fatalf("headline metrics = %#v", value.Metrics)
 	}
 }
 
