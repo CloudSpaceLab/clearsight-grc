@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
+import { loadHomeMetrics, type HomeMetricBundle } from "../../metricApi";
+import { homeMetricDetail, homeMetricFilter, homeMetricMeta, homeMetricQuality, homeMetricTone, headlineMetricDefinitions, type HomeMetricFilter } from "../../homeMetricPresentation";
 import { loadOversight, type OversightSnapshot } from "../../oversightApi";
-import { Button, DataTable, EmptyState, MetricCard, Tabs } from "../ui";
+import { Button, DataTable, EmptyState, MetricCard, Notice, Tabs } from "../ui";
 import type { AttentionItem } from "../../types";
 import "../../oversight.css";
 
 type DetailView = "pressure" | "outlook" | "performance";
-export type OversightMetricFilter = "all" | "critical-high" | "overdue" | "routing-gaps" | "outcome-failures";
+export type OversightMetricFilter = HomeMetricFilter;
 type TodayState = "loading" | "live" | "unavailable";
 
-export function OversightWorkspace({ organizationName, legalEntityName, onOpenMatter, loadSnapshot = loadOversight, metricFilter = "all", onMetricFilterChange, todayItems = [], todayState = "loading", onOpenTodayItem }: { organizationName: string; legalEntityName: string; onOpenMatter: (id: string) => void; loadSnapshot?: () => Promise<OversightSnapshot>; metricFilter?: OversightMetricFilter; onMetricFilterChange?: (filter: OversightMetricFilter) => void; todayItems?: AttentionItem[]; todayState?: TodayState; onOpenTodayItem?: (item: AttentionItem) => void }) {
+export function OversightWorkspace({ organizationName, legalEntityName, onOpenMatter, loadSnapshot = loadOversight, loadMetrics = loadHomeMetrics, metricFilter = "all", onMetricFilterChange, todayItems = [], todayState = "loading", onOpenTodayItem }: { organizationName: string; legalEntityName: string; onOpenMatter: (id: string) => void; loadSnapshot?: () => Promise<OversightSnapshot>; loadMetrics?: () => Promise<HomeMetricBundle>; metricFilter?: OversightMetricFilter; onMetricFilterChange?: (filter: OversightMetricFilter) => void; todayItems?: AttentionItem[]; todayState?: TodayState; onOpenTodayItem?: (item: AttentionItem) => void }) {
   const [snapshot, setSnapshot] = useState<OversightSnapshot | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
+  const [metrics, setMetrics] = useState<HomeMetricBundle | null>(null);
+  const [metricState, setMetricState] = useState<"loading" | "live" | "unavailable">("loading");
   const [view, setView] = useState<DetailView>("pressure");
   const [localMetricFilter, setLocalMetricFilter] = useState<OversightMetricFilter>(metricFilter);
   const selectedMetricFilter = onMetricFilterChange ? metricFilter : localMetricFilter;
@@ -31,36 +35,43 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
 
   async function load() {
     setState("loading");
-    try {
-      setSnapshot(await loadSnapshot());
+    setMetricState("loading");
+    const [snapshotResult, metricResult] = await Promise.allSettled([loadSnapshot(), loadMetrics()]);
+    if (snapshotResult.status === "fulfilled") {
+      setSnapshot(snapshotResult.value);
       setState("live");
-    } catch {
+    } else {
       setSnapshot(null);
       setState("unavailable");
+    }
+    if (metricResult.status === "fulfilled") {
+      setMetrics(metricResult.value);
+      setMetricState("live");
+    } else {
+      setMetrics(null);
+      setMetricState("unavailable");
     }
   }
 
   useEffect(() => { void load(); }, []);
 
-  if (state === "loading") return <section className="oversight-workspace" aria-busy="true"><header className="oversight-header"><div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Risk and delivery oversight</h1><p>Loading the latest oversight snapshot…</p></div></header></section>;
-  if (state === "unavailable" || !snapshot) return <section className="oversight-workspace"><div className="oversight-unavailable"><span className="eyebrow">{legalEntityName}</span><h1>Oversight information is unavailable</h1><p>No current snapshot could be loaded. Check projection operations or retry after the next processing cycle.</p><Button onPress={() => void load()}>Retry oversight</Button></div><OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/></section>;
+  if (state === "loading" && metricState === "loading") return <section className="oversight-workspace" aria-busy="true"><header className="oversight-header"><div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Risk and delivery oversight</h1><p>Loading current risk posture and assigned work…</p></div></header></section>;
+
+  const headlineMetrics = <HomeMetricStrip metrics={metrics} state={metricState} selected={selectedMetricFilter} onSelect={selectMetric}/>;
+
+  if (state === "unavailable" || !snapshot) return <section className="oversight-workspace">
+    <header className="oversight-header">
+      <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Oversight information is unavailable</h1><p>Current risk posture remains separate from detailed analysis.</p></div>
+      {metrics && <div className={`oversight-freshness ${metrics.freshness.toLowerCase()}`}><strong>{metrics.freshness === "CURRENT" ? "Current metrics" : "Metrics need refresh"}</strong><span>Generated {formatDateTime(metrics.generated_at)}</span></div>}
+    </header>
+    {headlineMetrics}
+    <Notice tone="warning">Detailed risk analysis is unavailable. Headline metrics remain separate and may still be current.</Notice>
+    <div className="workspace-recovery-actions"><Button onPress={() => void load()}>Retry Home data</Button></div>
+    <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>
+  </section>;
 
   const coverage = `${snapshot.coverage.population} issues checked · ${formatKnown(snapshot.coverage.excluded)} excluded · ${formatKnown(snapshot.coverage.unknown)} unknown`;
   const interventions = filterInterventions(snapshot.interventions, selectedMetricFilter);
-  const metricQuality = snapshot.freshness !== "CURRENT"
-    ? "stale"
-    : snapshot.coverage.unknown === undefined
-      ? "unknown"
-      : snapshot.coverage.unknown > 0
-        ? "partial"
-        : "current";
-  const metricMeta = `${snapshot.coverage.population} checked · ${formatKnown(snapshot.coverage.excluded)} excluded · ${formatKnown(snapshot.coverage.unknown)} unknown`;
-  const metricCards = [
-    { filter: "critical-high", label: "Critical and high", value: snapshot.counts.critical_high, tone: "error", detail: "Open priority 4–5 issues" },
-    { filter: "overdue", label: "Overdue", value: snapshot.counts.overdue, tone: "warning", detail: "Open issues past their due date" },
-    { filter: "routing-gaps", label: "Routing gaps", value: snapshot.counts.routing_failures, tone: "warning", detail: "Active work without a resolved recipient" },
-    { filter: "outcome-failures", label: "Outcome failures", value: snapshot.counts.outcome_failures, tone: "error", detail: "Latest outcome check failed or inconclusive" },
-  ] as const;
   return <section className="oversight-workspace">
     <header className="oversight-header">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Risk and delivery oversight</h1><p>Review issues requiring intervention, resolution outlook and operating workload for this legal entity.</p></div>
@@ -73,24 +84,7 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
       <div><p>This snapshot was generated {formatDateTime(snapshot.generated_at)} from projection {snapshot.projection_version}.</p><p>{historyQualityLabel(snapshot)}</p><dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl></div>
     </details>
 
-    <div className="oversight-counts" aria-label="Issues requiring oversight">
-      {metricCards.map((metric) => {
-        const active = selectedMetricFilter === metric.filter;
-        return <MetricCard
-          key={metric.filter}
-          label={metric.label}
-          value={metric.value}
-          detail={metric.detail}
-          meta={metricMeta}
-          tone={metric.tone}
-          quality={metricQuality}
-          actionLabel={active ? "Show all priority interventions" : `Show ${metric.label.toLowerCase()} interventions`}
-          isSelected={active}
-          ariaControls="oversight-attention"
-          onPress={() => selectMetric(active ? "all" : metric.filter)}
-        />;
-      })}
-    </div>
+    {headlineMetrics}
 
     <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>
 
@@ -110,6 +104,30 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
       {selected === "performance" && <OperatingPerformance snapshot={snapshot}/>}
     </div>}</Tabs></div>
   </section>;
+}
+
+function HomeMetricStrip({ metrics, state, selected, onSelect }: { metrics: HomeMetricBundle | null; state: "loading" | "live" | "unavailable"; selected: OversightMetricFilter; onSelect: (filter: OversightMetricFilter) => void }) {
+  return <div className="oversight-counts" aria-label={state === "unavailable" ? "Risk metrics unavailable" : "Risk metrics"} aria-busy={state === "loading" || undefined}>
+    {headlineMetricDefinitions.map((definition) => {
+      const metric = metrics?.items.find((item) => item.id === definition.id);
+      if (!metric) return <MetricCard key={definition.id} label={definition.label} value="—" detail={definition.detail} quality="unknown" qualityLabel={state === "loading" ? "Loading" : "Unavailable"}/>;
+      const filter = homeMetricFilter(metric.drill.filter);
+      const active = filter !== "all" && selected === filter;
+      return <MetricCard
+        key={metric.id}
+        label={metric.label}
+        value={metric.value}
+        detail={homeMetricDetail(metric.id)}
+        meta={homeMetricMeta(metric)}
+        tone={homeMetricTone(metric)}
+        quality={homeMetricQuality(metric)}
+        actionLabel={filter === "all" ? undefined : active ? "Show all priority interventions" : `Show ${metric.label.toLowerCase()} interventions`}
+        isSelected={active}
+        ariaControls={filter === "all" ? undefined : "oversight-attention"}
+        onPress={filter === "all" ? undefined : () => onSelect(active ? "all" : filter)}
+      />;
+    })}
+  </div>;
 }
 
 function OversightToday({ items, state, onOpenItem }: { items: AttentionItem[]; state: TodayState; onOpenItem?: (item: AttentionItem) => void }) {
