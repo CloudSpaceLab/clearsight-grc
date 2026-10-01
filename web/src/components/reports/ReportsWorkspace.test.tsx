@@ -158,6 +158,17 @@ describe("ReportsWorkspace", () => {
     expect(screen.getAllByRole("row", { name: /Vendor portfolio/ }).some((row) => within(row).queryByText("Queued"))).toBe(true);
   });
 
+  it("explains why a ready report cannot be downloaded", async () => {
+    downloadRun.mockRejectedValueOnce(new Error("Report download access is not assigned to your account."));
+    renderWorkspace();
+
+    const table = await screen.findByRole("table", { name: "Generated reports" });
+    const vendorRow = within(table).getByRole("row", { name: /Vendor portfolio/ });
+    fireEvent.click(within(vendorRow).getByRole("button", { name: "Download" }));
+
+    expect(await screen.findByText("Report download access is not assigned to your account.")).toBeTruthy();
+  });
+
   it("keeps generated report history usable when saved setups fail to load", async () => {
     loadDefinitions.mockRejectedValueOnce(new Error("setup endpoint unavailable"));
 

@@ -183,6 +183,15 @@ describe("reporting API", () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toBe("/api/v1/reports/runs/run-1/download?tenant_id=tenant-1");
   });
 
+  it("explains when a generated report is ready but download authority is missing", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "forbidden", message: "raw server detail" } }), { status: 403 }));
+
+    await expect(downloadReportRun("run-1")).rejects.toMatchObject({
+      message: "You do not have permission to download this report.",
+      kind: "forbidden",
+    });
+  });
+
   it("turns report service failures into an operator recovery message", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "report_request_invalid", message: "raw server detail" } }), { status: 400 }));
     await expect(listReportDefinitions()).rejects.toMatchObject({ message: "Couldn’t load reports.", kind: "validation" });

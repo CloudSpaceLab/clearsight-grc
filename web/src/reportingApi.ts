@@ -166,6 +166,11 @@ export async function downloadReportRun(id: string, signal?: AbortSignal): Promi
   try {
     return await reportBlob(await scopedPath(`${reportBase}/runs/${encodeURIComponent(id)}/download`), signal ? { signal } : undefined);
   } catch (error) {
+    if (apiErrorKind(error) === "forbidden") {
+      const failure = new Error("You do not have permission to download this report.") as ReportFailure;
+      Object.defineProperty(failure, "kind", { value: "forbidden", enumerable: false });
+      throw failure;
+    }
     throw reportFailure(error, "Download failed.");
   }
 }
