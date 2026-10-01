@@ -42,6 +42,8 @@ const addressForm = {
 const certificationForm = {
   ...form, id: "form-certifications", code: "VENDOR-CERTIFICATION-REFRESH", name: "Submit current vendor certifications", version: 1,
 };
+const requestDueDate = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const requestDueAt = `${requestDueDate}T23:59:59.000Z`;
 
 const work: VendorWorkRequest = {
   id: "work-1", tenant_id: "bank", legal_entity_id: "entity", relationship_id: "relationship-1", relationship_link_id: "link-1",
@@ -125,7 +127,7 @@ describe("VendorWorkPanel", () => {
     await chooseRequestOption("Form layout", "Wizard");
     expect((screen.getByLabelText(/Vendor contact/) as HTMLInputElement).type).toBe("email");
     fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
-    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: requestDueDate } });
 
     expect(screen.getByText("2 fields · 2 required · 1 document upload")).toBeTruthy();
     expect(screen.getByText(/Known vendor and service details will be shown with this request/)).toBeTruthy();
@@ -133,7 +135,7 @@ describe("VendorWorkPanel", () => {
 
     await waitFor(() => expect(prepareVendorWork).toHaveBeenCalledWith("relationship-1", expect.objectContaining({
       relationship_link_id: "link-1", request_kind: "GENERAL", form_template_id: "form-1", form_template_version: 4, presentation: "WIZARD",
-      vendor_audience: "assurance@vendor.example", due_at: "2026-09-30T23:59:59.000Z",
+      vendor_audience: "assurance@vendor.example", due_at: requestDueAt,
     })));
     expect(sendVendorWork).toHaveBeenCalledWith("relationship-1", "work-1", { expected_version: 2, vendor_audience: "assurance@vendor.example", invitation_ttl_minutes: 10080 });
     expect(await screen.findByText("Waiting for vendor")).toBeTruthy();
@@ -152,7 +154,7 @@ describe("VendorWorkPanel", () => {
     fireEvent.change(screen.getByLabelText(/Instructions for the vendor/), { target: { value: work.instructions } });
     await chooseRequestOption("Collection form", "Vendor control confirmation · version 4");
     fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
-    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: requestDueDate } });
     const submit = screen.getByRole("button", { name: "Prepare and send request" });
     fireEvent.click(submit);
     fireEvent.click(submit);
@@ -182,7 +184,7 @@ describe("VendorWorkPanel", () => {
     fireEvent.change(screen.getByLabelText(/Instructions for the vendor/), { target: { value: work.instructions } });
     await chooseRequestOption("Collection form", "Vendor control confirmation · version 4");
     fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
-    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: requestDueDate } });
     fireEvent.click(screen.getByRole("button", { name: "Prepare and send request" }));
     await waitFor(() => expect(prepareVendorWork).toHaveBeenCalledWith("relationship-1", expect.objectContaining({ relationship_link_id: "link-1" })));
   });
@@ -197,7 +199,7 @@ describe("VendorWorkPanel", () => {
     fireEvent.change(screen.getByLabelText(/Instructions for the vendor/), { target: { value: work.instructions } });
     await chooseRequestOption("Collection form", "Vendor control confirmation · version 4");
     fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
-    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: requestDueDate } });
     fireEvent.click(screen.getByRole("button", { name: "Prepare and send request" }));
 
     expect((await screen.findByRole("alert")).textContent).toContain("The vendor request could not be prepared");
@@ -240,7 +242,7 @@ describe("VendorWorkPanel", () => {
     fireEvent.change(screen.getByLabelText(/Instructions for the vendor/), { target: { value: work.instructions } });
     await chooseRequestOption("Collection form", "Vendor control confirmation · version 4");
     fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
-    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: requestDueDate } });
     fireEvent.click(screen.getByRole("button", { name: "Prepare and send request" }));
 
     expect(await screen.findByRole("button", { name: "Copy secure link" })).toBeTruthy();
@@ -425,7 +427,7 @@ describe("VendorWorkPanel", () => {
     fireEvent.change(screen.getByLabelText(/Instructions for the vendor/), { target: { value: work.instructions } });
     await chooseRequestOption("Collection form", "Vendor control confirmation · version 4");
     fireEvent.change(screen.getByLabelText(/Vendor contact/), { target: { value: "assurance@vendor.example" } });
-    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: "2026-09-30" } });
+    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: requestDueDate } });
     fireEvent.click(screen.getByRole("button", { name: "Prepare and send request" }));
 
     view.rerender(<VendorWorkPanel targetType="MATTER" targetID="matter-2"/>);
