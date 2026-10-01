@@ -17,6 +17,8 @@ export { FocusedDialog } from "./FocusedDialog";
 export type { FocusedDialogProps } from "./FocusedDialog";
 export { FormField } from "./FormField";
 export type { FieldControlProps, FormFieldProps } from "./FormField";
+export { MetricCard } from "./MetricCard";
+export type { MetricCardProps } from "./MetricCard";
 export { Notice } from "./Notice";
 export { PopoverDialog } from "./PopoverDialog";
 export type { PopoverDialogProps } from "./PopoverDialog";
