@@ -249,6 +249,20 @@ describe("runtime navigation", () => {
     expect(screen.queryByText("Demo environment")).toBeNull();
   });
 
+  it("opens Work on the assigned queue without loading the evidence workspace", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention("request-assigned")], generated_at: "2026-08-07T15:00:00Z" });
+    vi.mocked(loadEvidenceRequests).mockClear();
+    render(<App />);
+
+    fireEvent.click((await screen.findAllByRole("button", { name: "Work" }))[0]!);
+
+    expect(window.location.hash).toBe("#work");
+    expect(await screen.findByRole("tab", { name: "Assigned", selected: true })).toBeTruthy();
+    expect(screen.getByText("Confirm assigned evidence")).toBeTruthy();
+    expect(loadEvidenceRequests).not.toHaveBeenCalled();
+  });
+
   it("shows organization oversight only when the verified runtime grants oversight read", async () => {
     vi.mocked(loadContext).mockResolvedValue({ ...runtime(false), capabilities: { ...runtime(false).capabilities, oversight_read: true } });
     render(<App />);
@@ -529,7 +543,7 @@ describe("runtime navigation", () => {
 
     await screen.findAllByRole("button", { name: "Respond to evidence request" });
     fireEvent.click(screen.getAllByRole("button", { name: /Work/ })[0]!);
-    fireEvent.click(await screen.findByRole("button", { name: "Evidence review" }));
+    fireEvent.click(await screen.findByRole("tab", { name: "Evidence" }));
     fireEvent.change(await screen.findByLabelText("Why should it be reassigned?"), { target: { value: "The account owner must respond." } });
     fireEvent.click(screen.getByRole("button", { name: "Return to requester" }));
     await waitFor(() => expect(declareWrongCaptureRecipient).toHaveBeenCalled());
