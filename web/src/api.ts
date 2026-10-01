@@ -13,9 +13,27 @@ export type DepartmentGrant = {
   permission_codes?: string[];
 };
 
+export type ScopeNode = {
+  id: string;
+  code?: string;
+  name: string;
+  kind: "ORGANIZATION" | "LEGAL_ENTITY";
+  parent_id?: string;
+  jurisdiction?: string;
+  current?: boolean;
+};
+
+export type ScopeHierarchy = {
+  state: "COMPLETE" | "CURRENT_ONLY" | "TRUNCATED" | "UNAVAILABLE";
+  root: ScopeNode;
+  current: ScopeNode;
+  legal_entities: ScopeNode[];
+};
+
 export type RuntimeContext = {
   tenant: { id: string; name: string };
   legal_entity: { id: string; name: string };
+  scope_hierarchy?: ScopeHierarchy;
   actor: {
     id: string;
     name: string;

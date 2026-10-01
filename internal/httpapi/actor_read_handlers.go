@@ -21,16 +21,27 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "directory_context_unavailable", "Your organization and role details could not be loaded. Refresh the workspace; no task data was changed.")
 		return
 	}
-	display, err := a.deps.RuntimeContext.Resolve(r.Context(), runtimecontext.Scope{
+	scope := runtimecontext.Scope{
 		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
-	})
+	}
+	display, err := a.deps.RuntimeContext.Resolve(r.Context(), scope)
 	if err != nil {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "directory_context_unavailable", "Your organization and role details could not be loaded. Refresh the workspace; no task data was changed.")
 		return
 	}
+	hierarchy := runtimecontext.CurrentHierarchy(scope, display, runtimecontext.HierarchyCurrentOnly)
+	if resolver, ok := a.deps.RuntimeContext.(runtimecontext.HierarchyResolver); ok {
+		resolved, resolveErr := resolver.ResolveHierarchy(r.Context(), scope)
+		if resolveErr != nil {
+			hierarchy = runtimecontext.CurrentHierarchy(scope, display, runtimecontext.HierarchyUnavailable)
+		} else {
+			hierarchy = resolved
+		}
+	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
-		"tenant":       map[string]string{"id": actor.TenantID, "name": display.TenantName},
-		"legal_entity": map[string]string{"id": actor.LegalEntityID, "name": display.LegalEntityName},
+		"tenant":          map[string]string{"id": actor.TenantID, "name": display.TenantName},
+		"legal_entity":    map[string]string{"id": actor.LegalEntityID, "name": display.LegalEntityName},
+		"scope_hierarchy": hierarchy,
 		"actor": map[string]any{
 			"id": actor.PrincipalID, "name": display.PrincipalName, "kind": actor.Kind, "role_codes": roleCodes,
 			"department_grants": actor.DepartmentGrants,
