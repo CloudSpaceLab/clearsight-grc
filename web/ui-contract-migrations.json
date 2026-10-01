@@ -10,6 +10,7 @@
     "src/components/ui/FocusedSheet.tsx",
     "src/components/ui/FocusedDialog.tsx",
     "src/components/ui/FormField.tsx",
+    "src/components/ui/MetricCard.tsx",
     "src/components/ui/Notice.tsx",
     "src/components/ui/PopoverDialog.tsx",
     "src/components/ui/ScopeBar.tsx",
@@ -266,6 +267,18 @@
       "anchored",
       "dismissable",
       "focus-contained"
+    ],
+    "MetricCard": [
+      "static",
+      "interactive",
+      "selected",
+      "neutral",
+      "info",
+      "success",
+      "warning",
+      "error",
+      "unknown",
+      "coverage-context"
     ]
   }
 }
