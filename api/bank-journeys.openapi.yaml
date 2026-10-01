@@ -95,6 +95,7 @@ components:
       properties:
         tenant: { $ref: '#/components/schemas/NamedScope' }
         legal_entity: { $ref: '#/components/schemas/NamedScope' }
+        scope_hierarchy: { $ref: '#/components/schemas/ScopeHierarchy' }
         actor:
           type: object
           required: [id, name]
@@ -112,6 +113,31 @@ components:
       properties:
         id: { type: string }
         name: { type: string }
+    ScopeHierarchy:
+      type: object
+      required: [state, root, current, legal_entities]
+      properties:
+        state:
+          type: string
+          enum: [COMPLETE, CURRENT_ONLY, TRUNCATED, UNAVAILABLE]
+        root: { $ref: '#/components/schemas/ScopeNode' }
+        current: { $ref: '#/components/schemas/ScopeNode' }
+        legal_entities:
+          type: array
+          items: { $ref: '#/components/schemas/ScopeNode' }
+    ScopeNode:
+      type: object
+      required: [id, name, kind]
+      properties:
+        id: { type: string }
+        code: { type: string }
+        name: { type: string }
+        kind:
+          type: string
+          enum: [ORGANIZATION, LEGAL_ENTITY]
+        parent_id: { type: string }
+        jurisdiction: { type: string }
+        current: { type: boolean }
     AttentionItem:
       type: object
       required: [id, type, title, why_now, scope, state, evidence, owner, due_at, primary_action]
