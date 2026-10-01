@@ -54,7 +54,9 @@ var headlineMetricSpecs = []headlineMetricSpec{
 func headlineMetrics(snapshot Snapshot) []metric.Snapshot {
 	complete := snapshot.Freshness == FreshnessCurrent &&
 		snapshot.Coverage.Unknown != nil &&
-		*snapshot.Coverage.Unknown == 0
+		*snapshot.Coverage.Unknown == 0 &&
+		snapshot.Coverage.Excluded != nil &&
+		*snapshot.Coverage.Excluded == 0
 
 	items := make([]metric.Snapshot, 0, len(headlineMetricSpecs))
 	for _, spec := range headlineMetricSpecs {
