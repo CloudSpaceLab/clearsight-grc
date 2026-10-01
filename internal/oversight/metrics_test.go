@@ -56,7 +56,6 @@ func TestHeadlineMetricsNeverPresentIncompleteZeroAsClear(t *testing.T) {
 	}
 }
 
-
 func TestHeadlineMetricsNeverPresentExcludedZeroAsClear(t *testing.T) {
 	unknown, excluded := 0, 2
 	items := headlineMetrics(Snapshot{
