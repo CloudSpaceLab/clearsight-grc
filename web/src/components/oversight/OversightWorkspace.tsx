@@ -46,6 +46,7 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
   if (state === "unavailable" || !snapshot) return <section className="oversight-workspace"><div className="oversight-unavailable"><span className="eyebrow">{legalEntityName}</span><h1>Oversight information is unavailable</h1><p>No current snapshot could be loaded. Check projection operations or retry after the next processing cycle.</p><Button onPress={() => void load()}>Retry oversight</Button></div><OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/></section>;
 
   const coverage = `${snapshot.coverage.population} issues checked · ${formatKnown(snapshot.coverage.excluded)} excluded · ${formatKnown(snapshot.coverage.unknown)} unknown`;
+  const metrics = snapshot.metrics ?? [];
   const interventions = filterInterventions(snapshot.interventions, selectedMetricFilter);
   return <section className="oversight-workspace">
     <header className="oversight-header">
@@ -59,8 +60,8 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
       <div><p>This snapshot was generated {formatDateTime(snapshot.generated_at)} from projection {snapshot.projection_version}.</p><p>{historyQualityLabel(snapshot)}</p><dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl></div>
     </details>
 
-    <div className="oversight-counts" aria-label="Issues requiring oversight">
-      {headlineMetrics(snapshot).map((item) => {
+    {metrics.length ? <div className="oversight-counts" aria-label="Issues requiring oversight">
+      {metrics.map((item) => {
         const filter = oversightMetricFilter(item.drill_key);
         const active = filter != null && selectedMetricFilter === filter;
         return <MetricCard
@@ -77,7 +78,7 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
           onPress={filter ? () => selectMetric(active ? "all" : filter) : undefined}
         />;
       })}
-    </div>
+    </div> : <EmptyState population={coverage} title="Metric summary is unavailable" description="The current oversight record is still available below. Refresh after the metric projection is updated before relying on a zero or clear state."/>}
 
     <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>
 
@@ -171,34 +172,6 @@ function formatDate(value: string) { return new Intl.DateTimeFormat(undefined, {
 function formatDateTime(value: string) { return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(value)); }
 function formatDuration(hours: number) { return hours < 48 ? `${Math.round(hours)}h` : `${(hours / 24).toFixed(hours % 24 === 0 ? 0 : 1)}d`; }
 function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
-
-function headlineMetrics(snapshot: OversightSnapshot): MetricSnapshot[] {
-  if (snapshot.metrics?.length) return snapshot.metrics;
-  const complete = snapshot.freshness === "CURRENT" && snapshot.coverage.unknown === 0 && snapshot.coverage.excluded === 0;
-  return [
-    compatibilityMetric("critical_high_open", "Critical and high", snapshot.counts.critical_high, "Open priority 4–5 issues", "critical-high", "CRITICAL", "Needs attention", snapshot, complete),
-    compatibilityMetric("overdue_open", "Overdue", snapshot.counts.overdue, "Open issues past their due date", "overdue", "WARNING", "Past due", snapshot, complete),
-    compatibilityMetric("routing_gaps", "Routing gaps", snapshot.counts.routing_failures, "Active work without a resolved recipient", "routing-gaps", "WARNING", "Routing blocked", snapshot, complete),
-    compatibilityMetric("outcome_failures", "Outcome failures", snapshot.counts.outcome_failures, "Latest outcome check failed or was inconclusive", "outcome-failures", "CRITICAL", "Outcome not confirmed", snapshot, complete),
-  ];
-}
-
-function compatibilityMetric(code: string, label: string, value: number, reason: string, drillKey: string, activeState: MetricSnapshot["state"], activeLabel: string, snapshot: OversightSnapshot, complete: boolean): MetricSnapshot {
-  return {
-    code, label, value, unit: "COUNT",
-    state: value > 0 ? activeState : complete ? "CLEAR" : "UNKNOWN",
-    state_label: value > 0 ? activeLabel : complete ? "Current" : "Coverage incomplete",
-    reason,
-    population: snapshot.coverage.population,
-    excluded: snapshot.coverage.excluded,
-    unknown: snapshot.coverage.unknown,
-    complete,
-    generated_at: snapshot.generated_at,
-    projection_version: snapshot.projection_version,
-    direction: "UNKNOWN",
-    drill_key: drillKey,
-  };
-}
 
 function oversightMetricFilter(value?: string): Exclude<OversightMetricFilter, "all"> | undefined {
   if (value === "critical-high" || value === "overdue" || value === "routing-gaps" || value === "outcome-failures") return value;
