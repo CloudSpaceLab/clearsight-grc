@@ -261,6 +261,7 @@
     "/api/v1/people/{person_id}/assignments": { "get": { "operationId": "employeeAssignments", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/people/{person_id}/activity": { "get": { "operationId": "employeeActivity", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/oversight": { "get": { "operationId": "oversightSnapshot", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "OVERSIGHT_READ" } },
+    "/api/v1/metrics/home": { "get": { "operationId": "homeMetrics", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "OVERSIGHT_READ" } },
 
     "/api/v1/ropa/dashboard": {
       "get": {
