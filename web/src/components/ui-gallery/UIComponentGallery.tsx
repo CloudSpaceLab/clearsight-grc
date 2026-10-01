@@ -12,6 +12,7 @@ import {
   FocusedSheet,
   FormField,
   IconButton,
+  MetricCard,
   Notice,
   PopoverDialog,
   ScopeBar,
@@ -102,6 +103,7 @@ export function UIComponentGallery() {
 
     <GalleryGroup title="Feedback">
       <Contract family="StatusBadge" job="Names a concise stored or sample state." keyboard="No interaction." prohibited="Do not use color without a text label."><div className="ui-gallery__row"><StatusBadge tone="info">Sample review open</StatusBadge><StatusBadge tone="success">Sample completed</StatusBadge><StatusBadge tone="warning">Sample evidence needed</StatusBadge><StatusBadge tone="error">Sample request failed</StatusBadge><StatusBadge tone="unknown">Sample state unknown</StatusBadge></div></Contract>
+      <Contract family="MetricCard" job="Keeps one governed number with its state, meaning and coverage context." keyboard="Static metrics are read-only; interactive metrics use Enter or Space." prohibited="Do not show a coloured number without its status and population context."><div className="ui-gallery__grid"><MetricCard label="Critical and high" value={7} status="Needs attention" tone="error" detail="Open priority 4–5 issues" meta="42 in scope · 0 excluded · 0 unknown"/><MetricCard label="Overdue" value={4} status="Past due" tone="warning" detail="Open issues past their due date" meta="42 in scope · 0 excluded · 0 unknown" actionLabel="Show matching interventions" onPress={() => undefined}/></div></Contract>
       <Contract family="Notice" job="Explains a condition and recovery at the point of work." keyboard="Actions inside follow normal keyboard order." prohibited="Do not use it for decorative reassurance."><Notice tone="warning">The sample certificate has no verified expiry date. Review the document before approval.</Notice></Contract>
       <Contract family="EmptyState" job="Replaces a work region when its checked population is empty." keyboard="Its next action follows normal button behavior." prohibited="Do not leave an empty table scroll region behind."><EmptyState population="Sample sent forms matching this fixture" title="No sample sent forms match" description="Change the sample filters or create a sample distribution." action={<Button variant="primary">Send sample form</Button>}/></Contract>
     </GalleryGroup>
