@@ -12,6 +12,12 @@ const snapshot: OversightSnapshot = {
   source_high_water: { matters: generatedAt, actions: generatedAt, workflow_tasks: generatedAt, verification_results: generatedAt, continuity_events: generatedAt },
   coverage: { population: 42, excluded: 1, unknown: 2 },
   counts: { critical_high: 7, overdue: 4, due_soon: 3, routing_failures: 1, unassigned: 2, outcome_failures: 1 },
+  metrics: [
+    { code: "critical_high_open", label: "Critical and high", value: 7, unit: "COUNT", state: "CRITICAL", state_label: "Needs attention", reason: "Open priority 4–5 issues", population: 42, excluded: 1, unknown: 2, complete: false, generated_at: generatedAt, projection_version: "oversight-v2", direction: "UNKNOWN", drill_key: "critical-high" },
+    { code: "overdue_open", label: "Overdue", value: 4, unit: "COUNT", state: "WARNING", state_label: "Past due", reason: "Open issues past their due date", population: 42, excluded: 1, unknown: 2, complete: false, generated_at: generatedAt, projection_version: "oversight-v2", direction: "UNKNOWN", drill_key: "overdue" },
+    { code: "routing_gaps", label: "Routing gaps", value: 1, unit: "COUNT", state: "WARNING", state_label: "Routing blocked", reason: "Active work without a resolved recipient", population: 42, excluded: 1, unknown: 2, complete: false, generated_at: generatedAt, projection_version: "oversight-v2", direction: "UNKNOWN", drill_key: "routing-gaps" },
+    { code: "outcome_failures", label: "Outcome failures", value: 1, unit: "COUNT", state: "CRITICAL", state_label: "Outcome not confirmed", reason: "Latest outcome check failed or was inconclusive", population: 42, excluded: 1, unknown: 2, complete: false, generated_at: generatedAt, projection_version: "oversight-v2", direction: "UNKNOWN", drill_key: "outcome-failures" },
+  ],
   interventions: [
     { target_type: "MATTER", target_id: "vendor-address", title: "Verify Northstar Payments registered address", category: "VENDOR_DEFICIENCY", state: "VERIFICATION", priority: 5, owner_name: "Ada Okafor", due_at: "2026-08-31T08:00:00Z", reason: "The issue is overdue and remains open.", next_action: "Review recovery plan" },
     { target_type: "MATTER", target_id: "access-review", title: "Resolve privileged-access review exceptions", category: "CONTROL_GAP", state: "ACTION_IN_PROGRESS", priority: 4, owner_name: "Chidi Eze", due_at: "2026-09-04T08:00:00Z", reason: "The issue is high priority and remains open.", next_action: "Review current facts" },
