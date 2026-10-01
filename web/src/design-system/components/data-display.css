@@ -85,3 +85,142 @@
 @media (forced-colors: active) {
   .cs-data-table tbody tr[data-selected] { outline: var(--cs-table-border-width) solid Highlight; }
 }
+
+
+.cs-metric-card {
+  --cs-metric-card-accent: var(--cs-status-badge-tone);
+  display: grid;
+  min-height: var(--cs-metric-card-min-height);
+  gap: var(--cs-metric-card-gap);
+  padding: var(--cs-metric-card-padding);
+  border: var(--cs-surface-border-width) solid var(--cs-metric-card-border);
+  border-block-start: var(--cs-primitive-border-2) solid var(--cs-metric-card-accent);
+  border-radius: var(--cs-metric-card-radius);
+  background: var(--cs-metric-card-bg);
+  box-shadow: var(--cs-shadow-raised);
+  color: var(--cs-text-primary);
+  font: inherit;
+  text-align: start;
+}
+
+button.cs-metric-card {
+  width: 100%;
+  cursor: pointer;
+  transition: background var(--cs-metric-card-transition), border-color var(--cs-metric-card-transition), transform var(--cs-metric-card-transition);
+}
+
+.cs-metric-card__heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cs-primitive-space-2);
+}
+
+.cs-metric-card__label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cs-metric-card__quality {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--cs-primitive-space-1);
+  color: var(--cs-metric-card-accent);
+  font-size: var(--cs-font-size-caption);
+  font-weight: 700;
+}
+
+.cs-metric-card__quality > span {
+  width: var(--cs-badge-marker-size);
+  height: var(--cs-badge-marker-size);
+  border-radius: var(--cs-primitive-radius-full);
+  background: currentColor;
+}
+
+.cs-metric-card__measure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--cs-primitive-space-2);
+}
+
+.cs-metric-card__measure strong {
+  color: var(--cs-text-strong);
+  font-size: var(--cs-metric-card-value-size);
+  line-height: 1;
+}
+
+.cs-metric-card__delta {
+  color: var(--cs-metric-card-accent);
+  font-size: var(--cs-font-size-caption);
+  font-weight: 700;
+}
+
+.cs-metric-card__detail,
+.cs-metric-card__meta {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  line-height: var(--cs-leading-body);
+}
+
+.cs-metric-card__meta { margin-block-start: auto; }
+
+.cs-metric-card__action {
+  color: var(--cs-action-primary);
+  font-size: var(--cs-font-size-caption);
+  font-weight: 700;
+}
+
+button.cs-metric-card[data-hovered],
+button.cs-metric-card[data-pressed] {
+  border-color: var(--cs-metric-card-border-hover);
+  background: var(--cs-metric-card-bg-hover);
+}
+
+button.cs-metric-card[data-pressed] {
+  transform: translateY(var(--cs-primitive-border-1));
+}
+
+button.cs-metric-card[data-focus-visible] {
+  outline: var(--cs-focus-width) solid var(--cs-focus-ring);
+  outline-offset: var(--cs-focus-offset);
+}
+
+button.cs-metric-card[aria-pressed="true"] {
+  border-color: var(--cs-border-interactive);
+  background: color-mix(in srgb, var(--cs-metric-card-accent) 6%, var(--cs-metric-card-bg));
+}
+
+button.cs-metric-card[data-disabled] {
+  opacity: var(--cs-button-disabled-opacity);
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.cs-metric-card {
+    transition: none;
+  }
+
+  button.cs-metric-card[data-pressed] {
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .cs-metric-card {
+    border-color: CanvasText;
+  }
+
+  .cs-metric-card__quality > span {
+    border: var(--cs-primitive-border-1) solid CanvasText;
+  }
+}
