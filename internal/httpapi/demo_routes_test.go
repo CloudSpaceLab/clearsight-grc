@@ -129,7 +129,7 @@ func TestActorContextUsesStoredWorkspaceNamesForVerifiedScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	resolver := &runtimeContextStub{
-		value: runtimecontext.DisplayContext{
+		value:     runtimecontext.DisplayContext{
 			TenantName: "Stored Bank", LegalEntityName: "Stored Bank Nigeria", PrincipalName: "Stored Risk Officer",
 		},
 		hierarchy: runtimecontext.ScopeHierarchy{
