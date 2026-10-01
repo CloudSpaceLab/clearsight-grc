@@ -15,7 +15,7 @@ const guide = {
   code: "executive-first-run", surface: "TODAY" as const, profile: "executive", role: "Executive risk or compliance leader", version: 1,
   title: "Read the operating brief", description: "Understand what needs attention.", illustration: "guided-orbit",
   steps: [
-    { id: "today", title: "Review oversight", description: "Start with assigned work.", action: "Open oversight", view: "oversight" as const, target: "today-brief" },
+    { id: "today", title: "Review Home", description: "Start with assigned work.", action: "Open Home", view: "oversight" as const, target: "today-brief" },
     { id: "program", title: "Inspect a Program", description: "Open the exact record.", action: "Open first Program", view: "programs" as const, intent: "open-first-program", target: "programs-workspace" },
   ],
 };
