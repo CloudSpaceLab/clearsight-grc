@@ -1,6 +1,8 @@
 import type { HomeMetric, MetricCompleteness } from "./metricApi";
-import type { OversightMetricFilter } from "./components/oversight/OversightWorkspace";
+import type { OversightMetric } from "./appRouting";
 import type { MetricCardQuality, StatusTone } from "./components/ui";
+
+export type HomeMetricFilter = OversightMetric | "all";
 
 export const headlineMetricDefinitions = [
   { id: "critical_high_open", label: "Critical and high", detail: "Open priority 4–5 issues" },
@@ -22,7 +24,7 @@ export function homeMetricTone(metric: Pick<HomeMetric, "id" | "condition">): St
   return "warning";
 }
 
-export function homeMetricFilter(value: string): OversightMetricFilter {
+export function homeMetricFilter(value: string): HomeMetricFilter {
   if (value === "critical-high" || value === "overdue" || value === "routing-gaps" || value === "outcome-failures") return value;
   return "all";
 }
