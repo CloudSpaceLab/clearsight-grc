@@ -157,7 +157,7 @@ func DemoGuides() []Guide {
 			RoleCodes: []string{"AUTHORIZER", "SIGNATORY"}, Priority: 90, Version: 1,
 			Title: "Decision review", Description: "Review assigned decisions, supporting evidence and required follow-up checks.", Illustration: "guided-orbit",
 			Steps: []Step{
-				{ID: "today", Title: "Review assigned decisions", Description: "Today shows the reason, due date and next action for each decision assigned to you.", Action: "Open Today", View: "today", Target: "attention-list"},
+				{ID: "today", Title: "Review assigned decisions", Description: "Home shows the reason, due date and next action for each decision assigned to you.", Action: "Open Home", View: "today", Target: "attention-list"},
 				{ID: "routing", Title: "Check your authority", Description: "Review the legal entity, decision category, approval threshold and policy version.", Action: "Check approval route", View: "today", Target: "authority-action", Intent: "open-routing"},
 				{ID: "matter", Title: "Review the decision record", Description: "Check the facts, open questions, options, actions and closure blockers before deciding.", Action: "Open decision record", View: "work", Target: "matters-workspace", Intent: "open-first-matter"},
 				{ID: "finish", Title: "Confirm follow-up checks", Description: "Approval does not close the issue. Review the required outcome check and closure evidence.", Action: "Done", View: "work", Target: "matters-workspace"},
@@ -168,7 +168,7 @@ func DemoGuides() []Guide {
 			RoleCodes: []string{"CRO", "CCO", "CISO", "DPO", "GENERAL_COUNSEL", "EXECUTIVE"}, Priority: 80, Version: 1,
 			Title: "Executive review", Description: "Review priority work, Program status and supporting evidence.", Illustration: "guided-orbit",
 			Steps: []Step{
-				{ID: "brief", Title: "Review priority work", Description: "Today shows work assigned to you, due dates and data freshness.", Action: "Open Today", View: "today", Target: "today-brief"},
+				{ID: "brief", Title: "Review priority work", Description: "Home shows work assigned to you, due dates and data freshness.", Action: "Open Home", View: "today", Target: "today-brief"},
 				{ID: "attention", Title: "Review a priority item", Description: "Open the first Program, issue or evidence request in the queue.", Action: "Review first item", View: "today", Target: "attention-list", Intent: "open-first-attention"},
 				{ID: "programs", Title: "Check Program status", Description: "Programs show status, requirements, controls, evidence and open issues.", Action: "Open Programs", View: "programs", Target: "programs-workspace"},
 				{ID: "finish", Title: "Review status details", Description: "Check the status reason, source, owner and next action.", Action: "Done", View: "programs", Target: "programs-workspace"},
@@ -179,7 +179,7 @@ func DemoGuides() []Guide {
 			RoleCodes: []string{"REVIEWER", "CHALLENGER", "CONTROL_ASSURANCE_LEAD"}, Priority: 70, Version: 1,
 			Title: "Review queue", Description: "Review assigned issues, evidence and independent outcome checks.", Illustration: "guided-orbit",
 			Steps: []Step{
-				{ID: "today", Title: "Review assigned work", Description: "Today shows reviews, approvals and evidence requests assigned to your role.", Action: "Open Today", View: "today", Target: "attention-list"},
+				{ID: "today", Title: "Review assigned work", Description: "Home shows reviews, approvals and evidence requests assigned to your role.", Action: "Open Home", View: "today", Target: "attention-list"},
 				{ID: "matter", Title: "Check facts and open questions", Description: "Review known facts, missing information, conflicts, actions and outcome checks.", Action: "Open first issue", View: "work", Target: "matters-workspace", Intent: "open-first-matter"},
 				{ID: "evidence", Title: "Request missing evidence", Description: "Check existing evidence before requesting a response.", Action: "Open evidence requests", View: "work", Target: "evidence-workspace", Intent: "switch-evidence"},
 				{ID: "finish", Title: "Record an independent result", Description: "Keep the outcome check separate from the action it verifies.", Action: "Done", View: "work", Target: "matters-workspace"},
@@ -201,7 +201,7 @@ func DemoGuides() []Guide {
 			RoleCodes: []string{"EVIDENCE_RESPONDENT", "RECORDS_CUSTODIAN", "BUSINESS_OWNER"}, Priority: 50, Version: 1,
 			Title: "Evidence requests", Description: "Review assigned requests and provide the requested information.", Illustration: "guided-orbit",
 			Steps: []Step{
-				{ID: "today", Title: "Review assigned requests", Description: "Today shows why each request is due and links to the request details.", Action: "Open Today", View: "today", Target: "attention-list"},
+				{ID: "today", Title: "Review assigned requests", Description: "Home shows why each request is due and links to the request details.", Action: "Open Home", View: "today", Target: "attention-list"},
 				{ID: "request", Title: "Check the request", Description: "Review the purpose, deadline and existing evidence.", Action: "Open evidence request", View: "work", Target: "evidence-workspace", Intent: "open-first-evidence"},
 				{ID: "capture", Title: "Submit requested information", Description: "Your submission receives a receipt and remains subject to evidence review.", Action: "Open response form", View: "today", Target: "capture-action", Intent: "open-capture"},
 				{ID: "finish", Title: "Report an incorrect assignment", Description: "Redirect the request or report that it was assigned to the wrong person or team.", Action: "Done", View: "work", Target: "evidence-workspace"},
@@ -233,7 +233,7 @@ func DemoGuides() []Guide {
 			Code: "general-first-run", Surface: SurfaceToday, Profile: "general", Role: "ClearSight user", Priority: 0, Version: 1,
 			Title: "Workspace guide", Description: "Review assigned work, Programs, issues and evidence.", Illustration: "guided-orbit",
 			Steps: []Step{
-				{ID: "today", Title: "Review assigned work", Description: "Today lists work assigned to you and explains why it needs attention.", Action: "Open Today", View: "today", Target: "today-brief"},
+				{ID: "today", Title: "Review assigned work", Description: "Today lists work assigned to you and explains why it needs attention.", Action: "Open Home", View: "today", Target: "today-brief"},
 				{ID: "programs", Title: "Check Programs", Description: "Programs show requirements, controls, evidence checks and open issues.", Action: "Open Programs", View: "programs", Target: "programs-workspace"},
 				{ID: "work", Title: "Review issues and evidence", Description: "Work shows issues, actions, responses and evidence requests with their source records.", Action: "Open Work", View: "work", Target: "matters-workspace"},
 				{ID: "finish", Title: "Check completion evidence", Description: "A completed task or uploaded file still requires the applicable outcome check.", Action: "Done", View: "today", Target: "today-brief"},
