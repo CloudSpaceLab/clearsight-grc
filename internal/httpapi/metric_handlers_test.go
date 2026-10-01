@@ -21,14 +21,14 @@ func TestHomeMetricsUseVerifiedActorLegalEntityAndPreserveCoverage(t *testing.T)
 		{
 			TenantID: "bank", LegalEntityID: "bank-ng", GeneratedAt: now,
 			ProjectionVersion: oversight.ProjectionVersion,
-			Coverage: oversight.Coverage{Population: 20, Unknown: &unknown, Excluded: &excluded},
-			Counts: oversight.Counts{CriticalHigh: 4, Overdue: 2, RoutingFailures: 1, OutcomeFailures: 3},
+			Coverage:          oversight.Coverage{Population: 20, Unknown: &unknown, Excluded: &excluded},
+			Counts:            oversight.Counts{CriticalHigh: 4, Overdue: 2, RoutingFailures: 1, OutcomeFailures: 3},
 		},
 		{
 			TenantID: "bank", LegalEntityID: "bank-gh", GeneratedAt: now,
 			ProjectionVersion: oversight.ProjectionVersion,
-			Coverage: oversight.Coverage{Population: 99, Unknown: &unknown, Excluded: &excluded},
-			Counts: oversight.Counts{CriticalHigh: 99},
+			Coverage:          oversight.Coverage{Population: 99, Unknown: &unknown, Excluded: &excluded},
+			Counts:            oversight.Counts{CriticalHigh: 99},
 		},
 	})
 	handler := New(Dependencies{
