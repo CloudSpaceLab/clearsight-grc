@@ -625,7 +625,7 @@ function submittedVendorReview(assessment: VendorAssessment, fixture = ""): Vend
 }
 
 const todayGuide = { code: "executive-first-run", surface: "TODAY", profile: "executive", role: "Executive risk or compliance leader", version: 1, title: "Executive review", description: "Review priority work, Program status and supporting evidence.", illustration: "guided-orbit", steps: [
-  { id: "brief", title: "Review priority work", description: "Oversight shows assigned work, due dates and data freshness.", action: "Open oversight", view: "oversight", target: "today-brief" },
+  { id: "brief", title: "Review priority work", description: "Home shows assigned work, due dates and data freshness.", action: "Open Home", view: "oversight", target: "today-brief" },
   { id: "attention", title: "Review a priority item", description: "Open the first Program, issue or evidence request in the queue.", action: "Review first item", view: "oversight", target: "attention-list", intent: "open-first-attention" },
   { id: "programs", title: "Check Program status", description: "Programs show status, requirements, controls, evidence and open issues.", action: "Open Programs", view: "programs", target: "programs-workspace" },
   { id: "finish", title: "Review status details", description: "Check the status reason, source, owner and next action.", action: "Done", view: "programs", target: "programs-workspace" },
