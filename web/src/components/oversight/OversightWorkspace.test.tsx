@@ -4,9 +4,31 @@ import { OversightWorkspace } from "./OversightWorkspace";
 import type { AttentionItem } from "../../types";
 
 const api = vi.hoisted(() => ({ loadOversight: vi.fn() }));
+const metricApi = vi.hoisted(() => ({ loadHomeMetrics: vi.fn() }));
 vi.mock("../../oversightApi", () => api);
+vi.mock("../../metricApi", () => metricApi);
 
 beforeEach(() => {
+  metricApi.loadHomeMetrics.mockResolvedValue({
+    generated_at: "2026-09-01T07:55:00Z",
+    period_start: "2026-06-03T08:00:00Z",
+    period_end: "2026-09-01T08:00:00Z",
+    scope_id: "bank-ng",
+    scope_kind: "LEGAL_ENTITY",
+    freshness: "CURRENT",
+    completeness: "PARTIAL",
+    population: 42,
+    excluded: 1,
+    unknown: 2,
+    source_revision: "oversight-v4",
+    definition_revision: "home-oversight-v1",
+    items: [
+      metric("critical_high_open", "Critical and high", 7, "critical-high"),
+      metric("overdue_open", "Overdue", 4, "overdue"),
+      metric("routing_gaps", "Routing gaps", 1, "routing-gaps"),
+      metric("outcome_failures", "Outcome failures", 1, "outcome-failures"),
+    ],
+  });
   api.loadOversight.mockResolvedValue({
     generated_at: "2026-09-01T07:55:00Z",
     period_start: "2026-06-03T08:00:00Z",
@@ -24,6 +46,15 @@ beforeEach(() => {
     history_quality: { completed_population: 14, complete_lifecycle: 12, missing_created_event: 1, missing_terminal_event: 1, excluded_from_durations: 2, reassigned_owner_excluded: 3, returned_owner_excluded: 2, blocked_owner_excluded: 1, reopened_owner_excluded: 1 },
   });
 });
+
+function metric(id: string, label: string, value: number, filter: string) {
+  return {
+    id, label, value, unit: "COUNT", condition: value > 0 ? "ATTENTION" : "CLEAR",
+    freshness: "CURRENT", completeness: "PARTIAL", population: 42, excluded: 1, unknown: 2,
+    generated_at: "2026-09-01T07:55:00Z", source_revision: "oversight-v4", definition_revision: "home-oversight-v1",
+    drill: { workspace: "oversight", filter, consistency: "CURRENT_STATE" },
+  };
+}
 
 it("leads with exact interventions and provides table alternatives for oversight measures", async () => {
   const onOpenMatter = vi.fn();
@@ -50,11 +81,20 @@ it("leads with exact interventions and provides table alternatives for oversight
   expect(screen.getByText("1 blocked · 1 reopened · 2 reassigned · 1 returned")).toBeTruthy();
 });
 
-it("keeps unavailable projection state explicit instead of substituting sample metrics", async () => {
+it("keeps canonical metrics visible when detailed analysis is unavailable", async () => {
   api.loadOversight.mockRejectedValueOnce(new Error("unavailable"));
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
   await waitFor(() => expect(screen.getByRole("heading", { name: "Oversight information is unavailable" })).toBeTruthy());
-  expect(screen.queryByText("7")).toBeNull();
+  expect(screen.getByText("7")).toBeTruthy();
+  expect(screen.getByText("Detailed risk analysis is unavailable. Headline metrics remain separate and may still be current.")).toBeTruthy();
+});
+
+it("does not substitute Oversight counts when canonical metrics are unavailable", async () => {
+  metricApi.loadHomeMetrics.mockRejectedValueOnce(new Error("unavailable"));
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
+  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  expect(screen.getByRole("article", { name: /Critical and high: —.*Unavailable/ })).toBeTruthy();
+  expect(screen.getByRole("article", { name: /Overdue: —.*Unavailable/ })).toBeTruthy();
 });
 
 it("filters interventions from an accessible metric and keeps Today work available in oversight", async () => {
