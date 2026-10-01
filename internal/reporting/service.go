@@ -636,7 +636,7 @@ func (s *Service) Open(ctx context.Context, scope ReportScope, runID string) (Re
 	if s.repo == nil || s.objects == nil || runID == "" {
 		return ReportRun{}, nil, ErrInvalid
 	}
-	if err := s.authorized(ctx, actor, verifiedScope, "REPORT_RUN", runID, authority.ResponsibilityPerformer, "report.run.download", 3); err != nil {
+	if err := s.authorized(ctx, actor, verifiedScope, "REPORT_RUN", runID, authority.ResponsibilityProposer, "report.run.download", 3); err != nil {
 		return ReportRun{}, nil, err
 	}
 	run, err := s.repo.GetRun(ctx, verifiedScope, runID)

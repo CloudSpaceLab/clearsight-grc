@@ -585,16 +585,16 @@ func TestExecuteRunUsesTheDurableAttemptBudget(t *testing.T) {
 func TestOpenRunAuthorisesOnEveryDownload(t *testing.T) {
 	service, repository, objects, authorityChecker := newReportingServiceTest()
 	run := installReadyRun(t, repository, objects)
-	authorityChecker.expected[authority.ResponsibilityPerformer] = testPerformerID
+	authorityChecker.expected[authority.ResponsibilityProposer] = testMakerID
 
-	first, reader, err := service.Open(reportActorContext(testPerformerID), testScope(), run.ID)
+	first, reader, err := service.Open(reportActorContext(testMakerID), testScope(), run.ID)
 	if err != nil {
 		t.Fatalf("first open: %v", err)
 	}
 	_, _ = io.ReadAll(reader)
 	_ = reader.Close()
-	authorityChecker.fail[authority.ResponsibilityPerformer] = errors.New("authority route unavailable")
-	_, _, err = service.Open(reportActorContext(testPerformerID), testScope(), run.ID)
+	authorityChecker.fail[authority.ResponsibilityProposer] = errors.New("authority route unavailable")
+	_, _, err = service.Open(reportActorContext(testMakerID), testScope(), run.ID)
 	if err == nil {
 		t.Fatal("second download succeeded after current authority became unavailable")
 	}
@@ -608,8 +608,8 @@ func TestOpenRunRejectsAnExpiredRun(t *testing.T) {
 	run := installReadyRun(t, repository, objects)
 	run.ExpiresAt = serviceTestNow
 	repository.runs[run.ID] = run
-	authorityChecker.expected[authority.ResponsibilityPerformer] = testPerformerID
-	_, _, err := service.Open(reportActorContext(testPerformerID), testScope(), run.ID)
+	authorityChecker.expected[authority.ResponsibilityProposer] = testMakerID
+	_, _, err := service.Open(reportActorContext(testMakerID), testScope(), run.ID)
 	if !errors.Is(err, ErrReportExpired) {
 		t.Fatalf("expired open error = %v, want ErrReportExpired", err)
 	}
@@ -623,9 +623,9 @@ func TestOpenRunRejectsARunFromAnotherLegalEntity(t *testing.T) {
 	run := installReadyRun(t, repository, objects)
 	run.LegalEntityID = testEntityB
 	repository.runs[run.ID] = run
-	authorityChecker.expected[authority.ResponsibilityPerformer] = testPerformerID
+	authorityChecker.expected[authority.ResponsibilityProposer] = testMakerID
 
-	_, _, err := service.Open(reportActorContext(testPerformerID), testScope(), run.ID)
+	_, _, err := service.Open(reportActorContext(testMakerID), testScope(), run.ID)
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("same-tenant cross-entity open error = %v, want ErrNotFound", err)
 	}
@@ -637,12 +637,12 @@ func TestOpenRunRejectsARunFromAnotherLegalEntity(t *testing.T) {
 func TestOpenRunVerifiesThePersistedDigestBeforeReturningBytes(t *testing.T) {
 	service, repository, objects, authorityChecker := newReportingServiceTest()
 	run := installReadyRun(t, repository, objects)
-	authorityChecker.expected[authority.ResponsibilityPerformer] = testPerformerID
+	authorityChecker.expected[authority.ResponsibilityProposer] = testMakerID
 	corrupt := repository.runs[run.ID]
 	corrupt.DataSHA256 = strings.Repeat("0", 64)
 	repository.runs[run.ID] = corrupt
 
-	if _, _, err := service.Open(reportActorContext(testPerformerID), testScope(), run.ID); !errors.Is(err, ErrNotFound) {
+	if _, _, err := service.Open(reportActorContext(testMakerID), testScope(), run.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("digest mismatch error = %v, want ErrNotFound", err)
 	}
 	if repository.downloads != 0 {

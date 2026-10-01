@@ -277,19 +277,20 @@ func TestRunDownloadReAuthorisesAndRequiresReportDownloadPermission(t *testing.T
 		t.Fatalf("download without report permission = %d: %s", forbidden.Code, forbidden.Body.String())
 	}
 
-	allowed := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
+	proposerCallsBeforeDownload := authorityChecker.callCount(authority.ResponsibilityProposer)
+	allowed := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingMakerID, []string{"CCO"}, "")
 	if allowed.Code != http.StatusOK {
 		t.Fatalf("authorized download = %d: %s", allowed.Code, allowed.Body.String())
 	}
-	firstCalls := authorityChecker.callCount(authority.ResponsibilityPerformer)
-	if firstCalls != 1 { // Download permission is route-scoped; the service independently re-authorizes the existing run once.
-		t.Fatalf("first download authority calls = %d, want one current-run service authorization", firstCalls)
+	firstDownloadCalls := authorityChecker.callCount(authority.ResponsibilityProposer) - proposerCallsBeforeDownload
+	if firstDownloadCalls != 1 { // Download permission is route-scoped; the service independently re-authorizes the existing run once.
+		t.Fatalf("first download authority calls = %d, want one current-run service authorization", firstDownloadCalls)
 	}
 
 	authorityChecker.mu.Lock()
-	authorityChecker.failResponsibility = authority.ResponsibilityPerformer
+	authorityChecker.failResponsibility = authority.ResponsibilityProposer
 	authorityChecker.mu.Unlock()
-	unavailable := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
+	unavailable := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingMakerID, []string{"CCO"}, "")
 	if unavailable.Code != http.StatusServiceUnavailable {
 		t.Fatalf("download after authority outage = %d: %s", unavailable.Code, unavailable.Body.String())
 	}
@@ -301,7 +302,7 @@ func TestRunDownloadReAuthorisesAndRequiresReportDownloadPermission(t *testing.T
 func TestRunDownloadSendsNoStoreAndContentDisposition(t *testing.T) {
 	handler, service, repository, objects, _ := reportingHTTPFixture(t)
 	run, data := installReadyHTTPReport(t, service, repository, objects, time.Now().UTC())
-	response := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
+	response := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingMakerID, []string{"CCO"}, "")
 	if response.Code != http.StatusOK {
 		t.Fatalf("download = %d: %s", response.Code, response.Body.String())
 	}
@@ -326,7 +327,7 @@ func TestRunDownloadSendsNoStoreAndContentDisposition(t *testing.T) {
 func TestRunDownloadRefusesAnExpiredRunWithAnExplanation(t *testing.T) {
 	handler, service, repository, objects, authorityChecker := reportingHTTPFixture(t)
 	run, _ := installReadyHTTPReport(t, service, repository, objects, time.Now().UTC().Add(-8*24*time.Hour))
-	response := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
+	response := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingMakerID, []string{"CCO"}, "")
 	if response.Code != http.StatusGone {
 		t.Fatalf("expired download = %d: %s", response.Code, response.Body.String())
 	}
@@ -335,9 +336,9 @@ func TestRunDownloadRefusesAnExpiredRunWithAnExplanation(t *testing.T) {
 	}
 
 	authorityChecker.mu.Lock()
-	authorityChecker.failResponsibility = authority.ResponsibilityPerformer
+	authorityChecker.failResponsibility = authority.ResponsibilityProposer
 	authorityChecker.mu.Unlock()
-	unavailable := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CCO"}, "")
+	unavailable := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingMakerID, []string{"CCO"}, "")
 	if unavailable.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expired download disclosed run state during authority outage: %d %s", unavailable.Code, unavailable.Body.String())
 	}
