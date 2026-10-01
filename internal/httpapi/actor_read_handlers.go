@@ -42,7 +42,7 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 		"tenant":          map[string]string{"id": actor.TenantID, "name": display.TenantName},
 		"legal_entity":    map[string]string{"id": actor.LegalEntityID, "name": display.LegalEntityName},
 		"scope_hierarchy": hierarchy,
-		"actor": map[string]any{
+		"actor":           map[string]any{
 			"id": actor.PrincipalID, "name": display.PrincipalName, "kind": actor.Kind, "role_codes": roleCodes,
 			"department_grants": actor.DepartmentGrants,
 			"assurance_level":   actor.AssuranceLevel, "authentication": actor.AuthenticationMethod, "session_id": actor.SessionID,
