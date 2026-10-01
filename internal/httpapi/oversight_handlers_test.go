@@ -15,10 +15,10 @@ import (
 
 func TestOversightReturnsOnlyVerifiedActorLegalEntitySnapshot(t *testing.T) {
 	now := time.Now().UTC()
-	unknown := 0
+	unknown, excluded := 0, 0
 	repo := oversight.NewMemoryRepository([]oversight.Snapshot{
-		{TenantID: "bank", LegalEntityID: "bank-ng", GeneratedAt: now, ProjectionVersion: oversight.ProjectionVersion, Coverage: oversight.Coverage{Population: 12, Unknown: &unknown}, Counts: oversight.Counts{Overdue: 4}},
-		{TenantID: "bank", LegalEntityID: "bank-gh", GeneratedAt: now, ProjectionVersion: oversight.ProjectionVersion, Coverage: oversight.Coverage{Population: 30, Unknown: &unknown}, Counts: oversight.Counts{Overdue: 99}},
+		{TenantID: "bank", LegalEntityID: "bank-ng", GeneratedAt: now, ProjectionVersion: oversight.ProjectionVersion, Coverage: oversight.Coverage{Population: 12, Excluded: &excluded, Unknown: &unknown}, Counts: oversight.Counts{Overdue: 4}},
+		{TenantID: "bank", LegalEntityID: "bank-gh", GeneratedAt: now, ProjectionVersion: oversight.ProjectionVersion, Coverage: oversight.Coverage{Population: 30, Excluded: &excluded, Unknown: &unknown}, Counts: oversight.Counts{Overdue: 99}},
 	})
 	handler := New(Dependencies{
 		Logger:    slog.Default(),
