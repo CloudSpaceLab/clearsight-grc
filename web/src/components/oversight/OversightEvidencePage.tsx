@@ -1,3 +1,4 @@
+import type { HomeMetricBundle } from "../../metricApi";
 import type { OversightSnapshot } from "../../oversightApi";
 import type { AttentionItem } from "../../types";
 import { OversightWorkspace } from "./OversightWorkspace";
@@ -31,11 +32,42 @@ const snapshot: OversightSnapshot = {
   history_quality: { completed_population: 14, complete_lifecycle: 12, missing_created_event: 1, missing_terminal_event: 1, excluded_from_durations: 2, reassigned_owner_excluded: 3 },
 };
 
+const metrics: HomeMetricBundle = {
+  generated_at: snapshot.generated_at,
+  period_start: snapshot.period_start,
+  period_end: snapshot.period_end,
+  scope_id: "bank-ng",
+  scope_kind: "LEGAL_ENTITY",
+  freshness: snapshot.freshness,
+  completeness: "PARTIAL",
+  population: snapshot.coverage.population,
+  excluded: snapshot.coverage.excluded,
+  unknown: snapshot.coverage.unknown,
+  source_revision: snapshot.projection_version,
+  definition_revision: "home-oversight-v1",
+  items: [
+    homeMetric("critical_high_open", "Critical and high", snapshot.counts.critical_high, "critical-high"),
+    homeMetric("overdue_open", "Overdue", snapshot.counts.overdue, "overdue"),
+    homeMetric("routing_gaps", "Routing gaps", snapshot.counts.routing_failures, "routing-gaps"),
+    homeMetric("outcome_failures", "Outcome failures", snapshot.counts.outcome_failures, "outcome-failures"),
+  ],
+};
+
+function homeMetric(id: string, label: string, value: number, filter: string) {
+  return {
+    id, label, value, unit: "COUNT" as const, condition: value > 0 ? "ATTENTION" as const : "CLEAR" as const,
+    freshness: snapshot.freshness, completeness: "PARTIAL" as const, population: snapshot.coverage.population,
+    excluded: snapshot.coverage.excluded, unknown: snapshot.coverage.unknown, generated_at: snapshot.generated_at,
+    source_revision: snapshot.projection_version, definition_revision: "home-oversight-v1",
+    drill: { workspace: "oversight", filter, consistency: "CURRENT_STATE" as const },
+  };
+}
+
 const todayItems: AttentionItem[] = [
   { id: "ndpa-evidence-owner", type: "MATTER", title: "Confirm the NDPA evidence owner", state: "ACTION_IN_PROGRESS", why_now: "The evidence review is due this week.", scope: "Clear Bank Nigeria", evidence: "NDPA program", owner: "Hakeem", due_at: "2026-09-25T10:00:00Z", primary_action: "Confirm evidence owner", action_target_type: "MATTER", action_target_id: "ndpa-matter" },
   { id: "vendor-assessment", type: "MATTER", title: "Review Cloudspace assessment evidence", state: "VERIFICATION", why_now: "The vendor response needs an outcome check.", scope: "Clear Bank Nigeria", evidence: "Third-party risk register", owner: "Blessing", due_at: "2026-09-26T10:00:00Z", primary_action: "Review assessment evidence", action_target_type: "MATTER", action_target_id: "vendor-matter" },
 ];
 
 export function OversightEvidencePage() {
-  return <OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={() => {}} loadSnapshot={async () => snapshot} todayItems={todayItems} todayState="live" onOpenTodayItem={() => {}}/>;
+  return <OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={() => {}} loadSnapshot={async () => snapshot} loadMetrics={async () => metrics} todayItems={todayItems} todayState="live" onOpenTodayItem={() => {}}/>;
 }

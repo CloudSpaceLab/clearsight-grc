@@ -62,7 +62,7 @@ async function captureTodayIntroductions() {
   try {
     await zoomPage.page.getByRole("button", { name: "Start guide" }).scrollIntoViewIfNeeded();
     await assertNoHorizontalOverflow(zoomPage.page, zoomed.name);
-    await zoomPage.page.getByRole("button", { name: "Oversight", exact: true }).waitFor({ state: "visible" });
+    await zoomPage.page.getByRole("button", { name: "Home", exact: true }).waitFor({ state: "visible" });
     await capturePage(zoomPage.page, zoomed, "#today");
   } finally {
     await zoomPage.context.close();

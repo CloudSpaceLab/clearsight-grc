@@ -15,7 +15,7 @@ const guide = {
   code: "executive-first-run", surface: "TODAY" as const, profile: "executive", role: "Executive risk or compliance leader", version: 1,
   title: "Read the operating brief", description: "Understand what needs attention.", illustration: "guided-orbit",
   steps: [
-    { id: "today", title: "Review oversight", description: "Start with assigned work.", action: "Open oversight", view: "oversight" as const, target: "today-brief" },
+    { id: "today", title: "Review Home", description: "Start with assigned work.", action: "Open Home", view: "oversight" as const, target: "today-brief" },
     { id: "program", title: "Inspect a Program", description: "Open the exact record.", action: "Open first Program", view: "programs" as const, intent: "open-first-program", target: "programs-workspace" },
   ],
 };
@@ -40,7 +40,7 @@ describe("RoleAwareOnboarding", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
     expect(saveGuideState).not.toHaveBeenCalled();
-    fireEvent.click(await screen.findByRole("button", { name: "Open oversight" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Home" }));
     await waitFor(() => expect(onStep).toHaveBeenCalledWith(expect.objectContaining({ id: "today", view: "oversight" })));
     expect(saveGuideState).toHaveBeenCalledWith(guide.code, expect.objectContaining({ current_step: 1, completed: false }));
     expect(loadRoleGuide).toHaveBeenCalledWith("TODAY");
@@ -54,13 +54,13 @@ describe("RoleAwareOnboarding", () => {
     render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={onStep}/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
-    const action = await screen.findByRole("button", { name: "Open oversight" });
+    const action = await screen.findByRole("button", { name: "Open Home" });
     fireEvent.click(action);
     await waitFor(() => expect((action as HTMLButtonElement).disabled).toBe(false));
     expect(saveGuideState).not.toHaveBeenCalled();
     expect(screen.getByRole("alert").textContent).toContain("This guide step could not be opened. Try again.");
 
-    fireEvent.click(screen.getByRole("button", { name: "Open oversight" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Home" }));
     await waitFor(() => expect(saveGuideState).toHaveBeenCalledWith(guide.code, expect.objectContaining({ current_step: 1, completed: false })));
     expect(screen.getByRole("heading", { name: "Inspect a Program" })).toBeTruthy();
   });
@@ -183,7 +183,7 @@ describe("RoleAwareOnboarding", () => {
     vi.mocked(saveGuideState).mockReturnValue(save.promise);
     const view = render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
-    fireEvent.click(screen.getByRole("button", { name: "Open oversight" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Home" }));
     await waitFor(() => expect(saveGuideState).toHaveBeenCalled());
 
     view.rerender(<RoleAwareOnboarding surface="VENDORS" runtime={{ ...runtime, actor: { ...runtime.actor, id: "owner-1" } }} onStep={vi.fn()}/>);
@@ -200,12 +200,12 @@ describe("RoleAwareOnboarding", () => {
     const onStep = vi.fn().mockResolvedValue(undefined);
     render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={onStep}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
-    fireEvent.click(screen.getByRole("button", { name: "Open oversight" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Home" }));
 
     expect((await screen.findByRole("alert")).textContent).toBe("Guide progress could not be saved. Your workspace remains available; try again.");
     expect(onStep).toHaveBeenCalledOnce();
-    expect(screen.getByRole("heading", { name: "Review oversight" })).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Open oversight" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.getByRole("heading", { name: "Review Home" })).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Open Home" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("shows first-run guidance without creating a modal or moving focus", async () => {
@@ -254,7 +254,7 @@ describe("RoleAwareOnboarding", () => {
     render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
-    fireEvent.click(screen.getByRole("button", { name: "Open oversight" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Home" }));
 
     await waitFor(() => expect(scroll).toHaveBeenCalledWith({ behavior: "auto", block: "center" }));
     target.remove();
