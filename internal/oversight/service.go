@@ -38,6 +38,7 @@ func (s *Service) Get(ctx context.Context, scope Scope) (Snapshot, error) {
 	if value.GeneratedAt.IsZero() || s.Now().UTC().Sub(value.GeneratedAt) > s.StaleAfter || value.ProjectionVersion != ProjectionVersion {
 		value.Freshness = FreshnessStale
 	}
+	value.Metrics = headlineMetrics(value)
 	return value, nil
 }
 
