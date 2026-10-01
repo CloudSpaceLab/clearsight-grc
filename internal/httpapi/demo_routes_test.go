@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -14,14 +15,26 @@ import (
 )
 
 type runtimeContextStub struct {
-	value runtimecontext.DisplayContext
-	err   error
-	scope runtimecontext.Scope
+	value        runtimecontext.DisplayContext
+	err          error
+	scope        runtimecontext.Scope
+	hierarchy    runtimecontext.ScopeHierarchy
+	hierarchyErr error
 }
 
 func (s *runtimeContextStub) Resolve(_ context.Context, scope runtimecontext.Scope) (runtimecontext.DisplayContext, error) {
 	s.scope = scope
 	return s.value, s.err
+}
+
+func (s *runtimeContextStub) ResolveHierarchy(_ context.Context, scope runtimecontext.Scope) (runtimecontext.ScopeHierarchy, error) {
+	if s.hierarchyErr != nil {
+		return runtimecontext.ScopeHierarchy{}, s.hierarchyErr
+	}
+	if s.hierarchy.Root.ID == "" {
+		return runtimecontext.CurrentHierarchy(scope, s.value, runtimecontext.HierarchyCurrentOnly), nil
+	}
+	return s.hierarchy, nil
 }
 
 func TestDemoLoginRoutesAreAbsentOutsideDemoMode(t *testing.T) {
@@ -115,9 +128,20 @@ func TestActorContextUsesStoredWorkspaceNamesForVerifiedScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resolver := &runtimeContextStub{value: runtimecontext.DisplayContext{
-		TenantName: "Stored Bank", LegalEntityName: "Stored Bank Nigeria", PrincipalName: "Stored Risk Officer",
-	}}
+	resolver := &runtimeContextStub{
+		value: runtimecontext.DisplayContext{
+			TenantName: "Stored Bank", LegalEntityName: "Stored Bank Nigeria", PrincipalName: "Stored Risk Officer",
+		},
+		hierarchy: runtimecontext.ScopeHierarchy{
+			State: runtimecontext.HierarchyComplete,
+			Root: runtimecontext.ScopeNode{ID: "tenant-uuid", Code: identity.DurableDemoTenantID, Name: "Stored Bank", Kind: runtimecontext.ScopeKindOrganization},
+			Current: runtimecontext.ScopeNode{ID: "entity-ng-uuid", Code: identity.DurableDemoLegalEntityID, Name: "Stored Bank Nigeria", Kind: runtimecontext.ScopeKindLegalEntity, ParentID: "tenant-uuid", Current: true},
+			LegalEntities: []runtimecontext.ScopeNode{
+				{ID: "entity-ng-uuid", Code: identity.DurableDemoLegalEntityID, Name: "Stored Bank Nigeria", Kind: runtimecontext.ScopeKindLegalEntity, ParentID: "tenant-uuid", Current: true},
+				{ID: "entity-gh-uuid", Code: "bank-gh", Name: "Stored Bank Ghana", Kind: runtimecontext.ScopeKindLegalEntity, ParentID: "tenant-uuid"},
+			},
+		},
+	}
 	handler := New(Dependencies{Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: authenticator, DemoMode: true, Mode: "postgres", RuntimeContext: resolver})
 	login := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/demo/login", strings.NewReader(`{"username":"cro@demo.clearsight.local","password":"demo"}`))
@@ -131,13 +155,34 @@ func TestActorContextUsesStoredWorkspaceNamesForVerifiedScope(t *testing.T) {
 	contextRequest := httptest.NewRequest(http.MethodGet, "/api/v1/context", nil)
 	contextRequest.AddCookie(login.Result().Cookies()[0])
 	handler.ServeHTTP(response, contextRequest)
-	for _, expected := range []string{"Stored Bank", "Stored Bank Nigeria", "Stored Risk Officer"} {
+	for _, expected := range []string{"Stored Bank", "Stored Bank Nigeria", "Stored Bank Ghana", "Stored Risk Officer", "\"scope_hierarchy\"", "\"state\":\"COMPLETE\""} {
 		if !strings.Contains(response.Body.String(), expected) {
 			t.Fatalf("stored context missing %q: %s", expected, response.Body.String())
 		}
 	}
 	if resolver.scope != (runtimecontext.Scope{TenantID: identity.DurableDemoTenantID, LegalEntityID: identity.DurableDemoLegalEntityID, PrincipalID: identity.DurableDemoPrincipalCRO}) {
 		t.Fatalf("resolver scope = %#v", resolver.scope)
+	}
+}
+
+func TestActorContextKeepsCurrentScopeWhenHierarchyIsUnavailable(t *testing.T) {
+	handler := New(Dependencies{
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity: identity.NewDevelopmentAuthenticator("tenant-a", "principal-a", "entity-a"),
+		RuntimeContext: &runtimeContextStub{
+			value: runtimecontext.DisplayContext{TenantName: "Tenant A", LegalEntityName: "Entity A", PrincipalName: "Person A"},
+			hierarchyErr: errors.New("directory unavailable"),
+		},
+	})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/context", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", response.Code, response.Body.String())
+	}
+	for _, expected := range []string{"\"state\":\"UNAVAILABLE\"", "\"current\":{\"id\":\"entity-a\"", "\"name\":\"Entity A\""} {
+		if !strings.Contains(response.Body.String(), expected) {
+			t.Fatalf("fallback hierarchy missing %q: %s", expected, response.Body.String())
+		}
 	}
 }
 
