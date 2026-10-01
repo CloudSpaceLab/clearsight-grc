@@ -533,7 +533,7 @@ describe("runtime navigation", () => {
     fireEvent.change(await screen.findByLabelText("Why should it be reassigned?"), { target: { value: "The account owner must respond." } });
     fireEvent.click(screen.getByRole("button", { name: "Return to requester" }));
     await waitFor(() => expect(declareWrongCaptureRecipient).toHaveBeenCalled());
-    fireEvent.click(screen.getAllByRole("button", { name: /Oversight/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Home/ })[0]!);
 
     await waitFor(() => expect(screen.queryAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(0));
   });
@@ -600,7 +600,7 @@ describe("runtime navigation", () => {
     });
     await act(async () => { exact.resolve(evidenceRequest()); });
     await act(async () => { list.reject(new Error("Workspace list unavailable")); });
-    fireEvent.click(screen.getAllByRole("button", { name: /Oversight/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Home/ })[0]!);
 
     expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
   });
@@ -621,7 +621,7 @@ describe("runtime navigation", () => {
     });
     await act(async () => { list.reject(new Error("Workspace list unavailable")); });
     await act(async () => { exact.resolve(evidenceRequest()); });
-    fireEvent.click(screen.getAllByRole("button", { name: /Oversight/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Home/ })[0]!);
 
     expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
   });
@@ -645,7 +645,7 @@ describe("runtime navigation", () => {
 
     expect(await screen.findByRole("heading", { name: "No evidence requests in this scope" })).toBeTruthy();
     expect(screen.queryByText("Confirm assigned evidence")).toBeNull();
-    fireEvent.click(screen.getAllByRole("button", { name: /Oversight/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Home/ })[0]!);
     expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
   });
 
@@ -695,7 +695,7 @@ describe("runtime navigation", () => {
     await screen.findAllByText("Second Bank");
     await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(currentSecond.id, "eligibility_preload"));
     await act(async () => { command.resolve(staleReturned); });
-    fireEvent.click(screen.getAllByRole("button", { name: /Oversight/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Home/ })[0]!);
 
     expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
   });
@@ -738,7 +738,7 @@ describe("runtime navigation", () => {
     await screen.findAllByText("Second Bank");
     await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(currentSecond.id, "eligibility_preload"));
     await act(async () => { command.resolve(staleReassigned); });
-    fireEvent.click(screen.getAllByRole("button", { name: /Oversight/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Home/ })[0]!);
 
     expect(screen.queryAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(0);
   });
