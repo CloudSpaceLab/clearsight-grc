@@ -34,6 +34,9 @@ func TestPostgresResolverUsesExactVerifiedScope(t *testing.T) {
 		otherTenant      = "8f200000-0000-4000-8000-000000000001"
 	)
 	cleanup := func(cleanCtx context.Context) {
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantID, otherTenant)
 	}
 	cleanup(ctx)
