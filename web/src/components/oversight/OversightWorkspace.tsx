@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadOversight, type OversightSnapshot } from "../../oversightApi";
-import { Button, DataTable, EmptyState, Tabs } from "../ui";
+import { loadOversight, type MetricSnapshot, type OversightSnapshot } from "../../oversightApi";
+import { Button, DataTable, EmptyState, MetricCard, Tabs, type StatusTone } from "../ui";
 import type { AttentionItem } from "../../types";
 import "../../oversight.css";
 
@@ -60,10 +60,23 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
     </details>
 
     <div className="oversight-counts" aria-label="Issues requiring oversight">
-      <Metric label="Critical and high" value={snapshot.counts.critical_high} tone="critical" detail="Open priority 4–5 issues" filter="critical-high" active={selectedMetricFilter === "critical-high"} onSelect={selectMetric}/>
-      <Metric label="Overdue" value={snapshot.counts.overdue} tone="warning" detail="Open issues past their due date" filter="overdue" active={selectedMetricFilter === "overdue"} onSelect={selectMetric}/>
-      <Metric label="Routing gaps" value={snapshot.counts.routing_failures} tone="warning" detail="Active work without a resolved recipient" filter="routing-gaps" active={selectedMetricFilter === "routing-gaps"} onSelect={selectMetric}/>
-      <Metric label="Outcome failures" value={snapshot.counts.outcome_failures} tone="critical" detail="Latest outcome check failed or inconclusive" filter="outcome-failures" active={selectedMetricFilter === "outcome-failures"} onSelect={selectMetric}/>
+      {headlineMetrics(snapshot).map((item) => {
+        const filter = oversightMetricFilter(item.drill_key);
+        const active = filter != null && selectedMetricFilter === filter;
+        return <MetricCard
+          key={item.code}
+          label={item.label}
+          value={item.value}
+          status={item.state_label}
+          tone={metricTone(item.state)}
+          detail={item.reason}
+          meta={metricCoverage(item)}
+          actionLabel={filter ? active ? "Show all interventions" : "Show matching interventions" : undefined}
+          isSelected={active}
+          ariaControls={filter ? "oversight-attention" : undefined}
+          onPress={filter ? () => selectMetric(active ? "all" : filter) : undefined}
+        />;
+      })}
     </div>
 
     <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>
@@ -84,13 +97,6 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
       {selected === "performance" && <OperatingPerformance snapshot={snapshot}/>}
     </div>}</Tabs></div>
   </section>;
-}
-
-function Metric({ label, value, detail, tone, filter, active, onSelect }: { label: string; value: number; detail: string; tone: string; filter: OversightMetricFilter; active: boolean; onSelect: (filter: OversightMetricFilter) => void }) {
-  const action = active ? "Show all priority interventions" : `Show ${label.toLowerCase()} interventions`;
-  return <button type="button" className={`oversight-metric ${tone}`} aria-pressed={active} aria-controls="oversight-attention" onClick={() => onSelect(active ? "all" : filter)}>
-    <span>{label}</span><strong>{value}</strong><small>{detail}</small><em>{action}</em>
-  </button>;
 }
 
 function OversightToday({ items, state, onOpenItem }: { items: AttentionItem[]; state: TodayState; onOpenItem?: (item: AttentionItem) => void }) {
@@ -165,6 +171,55 @@ function formatDate(value: string) { return new Intl.DateTimeFormat(undefined, {
 function formatDateTime(value: string) { return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(value)); }
 function formatDuration(hours: number) { return hours < 48 ? `${Math.round(hours)}h` : `${(hours / 24).toFixed(hours % 24 === 0 ? 0 : 1)}d`; }
 function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
+
+function headlineMetrics(snapshot: OversightSnapshot): MetricSnapshot[] {
+  if (snapshot.metrics?.length) return snapshot.metrics;
+  const complete = snapshot.freshness === "CURRENT" && snapshot.coverage.unknown === 0 && snapshot.coverage.excluded === 0;
+  return [
+    compatibilityMetric("critical_high_open", "Critical and high", snapshot.counts.critical_high, "Open priority 4–5 issues", "critical-high", "CRITICAL", "Needs attention", snapshot, complete),
+    compatibilityMetric("overdue_open", "Overdue", snapshot.counts.overdue, "Open issues past their due date", "overdue", "WARNING", "Past due", snapshot, complete),
+    compatibilityMetric("routing_gaps", "Routing gaps", snapshot.counts.routing_failures, "Active work without a resolved recipient", "routing-gaps", "WARNING", "Routing blocked", snapshot, complete),
+    compatibilityMetric("outcome_failures", "Outcome failures", snapshot.counts.outcome_failures, "Latest outcome check failed or was inconclusive", "outcome-failures", "CRITICAL", "Outcome not confirmed", snapshot, complete),
+  ];
+}
+
+function compatibilityMetric(code: string, label: string, value: number, reason: string, drillKey: string, activeState: MetricSnapshot["state"], activeLabel: string, snapshot: OversightSnapshot, complete: boolean): MetricSnapshot {
+  return {
+    code, label, value, unit: "COUNT",
+    state: value > 0 ? activeState : complete ? "CLEAR" : "UNKNOWN",
+    state_label: value > 0 ? activeLabel : complete ? "Current" : "Coverage incomplete",
+    reason,
+    population: snapshot.coverage.population,
+    excluded: snapshot.coverage.excluded,
+    unknown: snapshot.coverage.unknown,
+    complete,
+    generated_at: snapshot.generated_at,
+    projection_version: snapshot.projection_version,
+    direction: "UNKNOWN",
+    drill_key: drillKey,
+  };
+}
+
+function oversightMetricFilter(value?: string): Exclude<OversightMetricFilter, "all"> | undefined {
+  if (value === "critical-high" || value === "overdue" || value === "routing-gaps" || value === "outcome-failures") return value;
+  return undefined;
+}
+
+function metricTone(state: MetricSnapshot["state"]): StatusTone {
+  switch (state) {
+    case "CRITICAL": return "error";
+    case "WARNING": return "warning";
+    case "CLEAR": return "success";
+    case "UNKNOWN": return "unknown";
+  }
+}
+
+function metricCoverage(item: MetricSnapshot) {
+  const details = [`${item.population.toLocaleString()} in scope`];
+  if (item.excluded != null) details.push(`${item.excluded.toLocaleString()} excluded`);
+  if (item.unknown != null) details.push(`${item.unknown.toLocaleString()} unknown`);
+  return details.join(" · ");
+}
 
 function filterInterventions(items: OversightSnapshot["interventions"], filter: OversightMetricFilter) {
   if (filter === "all") return items;
