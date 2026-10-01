@@ -29,6 +29,16 @@
   --cs-action-card-bg-hover: var(--cs-bg-surface-3);
   --cs-action-card-icon-bg: var(--cs-bg-surface-3);
   --cs-action-card-icon-text: var(--cs-status-info);
+  --cs-metric-card-min-height: 116px;
+  --cs-metric-card-padding: var(--cs-primitive-space-4);
+  --cs-metric-card-radius: var(--cs-primitive-radius-14);
+  --cs-metric-card-gap: var(--cs-primitive-space-2);
+  --cs-metric-card-border: var(--cs-border-default);
+  --cs-metric-card-border-hover: var(--cs-border-interactive);
+  --cs-metric-card-bg: var(--cs-bg-surface-1);
+  --cs-metric-card-bg-hover: var(--cs-bg-surface-hover);
+  --cs-metric-card-value-size: var(--cs-primitive-font-size-36);
+  --cs-metric-card-transition: var(--cs-motion-fast) var(--cs-ease-standard);
   --cs-field-height: var(--cs-control-height);
   --cs-field-gap: var(--cs-primitive-space-2);
   --cs-field-padding-inline: var(--cs-primitive-space-3);

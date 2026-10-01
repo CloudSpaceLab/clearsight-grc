@@ -12,6 +12,7 @@ import {
   FocusedSheet,
   FormField,
   IconButton,
+  MetricCard,
   Notice,
   PopoverDialog,
   ScopeBar,
@@ -101,6 +102,14 @@ export function UIComponentGallery() {
     </GalleryGroup>
 
     <GalleryGroup title="Feedback">
+      <Contract family="MetricCard" job="Keeps one memorable metric value, data quality and optional drill action together." keyboard="Enter or Space opens a drillable metric." prohibited="Do not show a reassuring success state when coverage is stale, partial or unknown.">
+        <div className="ui-gallery__grid">
+          <MetricCard label="Critical and high" value={7} detail="Open priority 4–5 issues" meta="20 checked · 0 unknown" tone="error" quality="current" actionLabel="Review interventions" onPress={() => undefined}/>
+          <MetricCard label="Overdue" value={0} detail="Open issues past due" meta="20 checked · 2 unknown" tone="success" quality="partial"/>
+          <MetricCard label="Routing gaps" value={3} detail="Work without a resolved recipient" tone="warning" quality="stale" actionLabel="Review routing gaps" onPress={() => undefined}/>
+          <MetricCard label="Outcome failures" value="—" detail="Latest verification result" tone="neutral" quality="unknown"/>
+        </div>
+      </Contract>
       <Contract family="StatusBadge" job="Names a concise stored or sample state." keyboard="No interaction." prohibited="Do not use color without a text label."><div className="ui-gallery__row"><StatusBadge tone="info">Sample review open</StatusBadge><StatusBadge tone="success">Sample completed</StatusBadge><StatusBadge tone="warning">Sample evidence needed</StatusBadge><StatusBadge tone="error">Sample request failed</StatusBadge><StatusBadge tone="unknown">Sample state unknown</StatusBadge></div></Contract>
       <Contract family="Notice" job="Explains a condition and recovery at the point of work." keyboard="Actions inside follow normal keyboard order." prohibited="Do not use it for decorative reassurance."><Notice tone="warning">The sample certificate has no verified expiry date. Review the document before approval.</Notice></Contract>
       <Contract family="EmptyState" job="Replaces a work region when its checked population is empty." keyboard="Its next action follows normal button behavior." prohibited="Do not leave an empty table scroll region behind."><EmptyState population="Sample sent forms matching this fixture" title="No sample sent forms match" description="Change the sample filters or create a sample distribution." action={<Button variant="primary">Send sample form</Button>}/></Contract>

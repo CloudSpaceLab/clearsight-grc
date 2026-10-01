@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadOversight, type OversightSnapshot } from "../../oversightApi";
-import { Button, DataTable, EmptyState, Tabs } from "../ui";
+import { Button, DataTable, EmptyState, MetricCard, Tabs } from "../ui";
 import type { AttentionItem } from "../../types";
 import "../../oversight.css";
 
@@ -47,6 +47,20 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
 
   const coverage = `${snapshot.coverage.population} issues checked · ${formatKnown(snapshot.coverage.excluded)} excluded · ${formatKnown(snapshot.coverage.unknown)} unknown`;
   const interventions = filterInterventions(snapshot.interventions, selectedMetricFilter);
+  const metricQuality = snapshot.freshness !== "CURRENT"
+    ? "stale"
+    : snapshot.coverage.unknown === undefined
+      ? "unknown"
+      : snapshot.coverage.unknown > 0
+        ? "partial"
+        : "current";
+  const metricMeta = `${snapshot.coverage.population} checked · ${formatKnown(snapshot.coverage.excluded)} excluded · ${formatKnown(snapshot.coverage.unknown)} unknown`;
+  const metricCards = [
+    { filter: "critical-high", label: "Critical and high", value: snapshot.counts.critical_high, tone: "error", detail: "Open priority 4–5 issues" },
+    { filter: "overdue", label: "Overdue", value: snapshot.counts.overdue, tone: "warning", detail: "Open issues past their due date" },
+    { filter: "routing-gaps", label: "Routing gaps", value: snapshot.counts.routing_failures, tone: "warning", detail: "Active work without a resolved recipient" },
+    { filter: "outcome-failures", label: "Outcome failures", value: snapshot.counts.outcome_failures, tone: "error", detail: "Latest outcome check failed or inconclusive" },
+  ] as const;
   return <section className="oversight-workspace">
     <header className="oversight-header">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Risk and delivery oversight</h1><p>Review issues requiring intervention, resolution outlook and operating workload for this legal entity.</p></div>
@@ -60,10 +74,22 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
     </details>
 
     <div className="oversight-counts" aria-label="Issues requiring oversight">
-      <Metric label="Critical and high" value={snapshot.counts.critical_high} tone="critical" detail="Open priority 4–5 issues" filter="critical-high" active={selectedMetricFilter === "critical-high"} onSelect={selectMetric}/>
-      <Metric label="Overdue" value={snapshot.counts.overdue} tone="warning" detail="Open issues past their due date" filter="overdue" active={selectedMetricFilter === "overdue"} onSelect={selectMetric}/>
-      <Metric label="Routing gaps" value={snapshot.counts.routing_failures} tone="warning" detail="Active work without a resolved recipient" filter="routing-gaps" active={selectedMetricFilter === "routing-gaps"} onSelect={selectMetric}/>
-      <Metric label="Outcome failures" value={snapshot.counts.outcome_failures} tone="critical" detail="Latest outcome check failed or inconclusive" filter="outcome-failures" active={selectedMetricFilter === "outcome-failures"} onSelect={selectMetric}/>
+      {metricCards.map((metric) => {
+        const active = selectedMetricFilter === metric.filter;
+        return <MetricCard
+          key={metric.filter}
+          label={metric.label}
+          value={metric.value}
+          detail={metric.detail}
+          meta={metricMeta}
+          tone={metric.tone}
+          quality={metricQuality}
+          actionLabel={active ? "Show all priority interventions" : `Show ${metric.label.toLowerCase()} interventions`}
+          isSelected={active}
+          ariaControls="oversight-attention"
+          onPress={() => selectMetric(active ? "all" : metric.filter)}
+        />;
+      })}
     </div>
 
     <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>
@@ -84,13 +110,6 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
       {selected === "performance" && <OperatingPerformance snapshot={snapshot}/>}
     </div>}</Tabs></div>
   </section>;
-}
-
-function Metric({ label, value, detail, tone, filter, active, onSelect }: { label: string; value: number; detail: string; tone: string; filter: OversightMetricFilter; active: boolean; onSelect: (filter: OversightMetricFilter) => void }) {
-  const action = active ? "Show all priority interventions" : `Show ${label.toLowerCase()} interventions`;
-  return <button type="button" className={`oversight-metric ${tone}`} aria-pressed={active} aria-controls="oversight-attention" onClick={() => onSelect(active ? "all" : filter)}>
-    <span>{label}</span><strong>{value}</strong><small>{detail}</small><em>{action}</em>
-  </button>;
 }
 
 function OversightToday({ items, state, onOpenItem }: { items: AttentionItem[]; state: TodayState; onOpenItem?: (item: AttentionItem) => void }) {
