@@ -147,7 +147,7 @@
 .cs-metric-card__action {
   align-self: end;
   margin-block-start: auto;
-  color: var(--cs-action-primary-bg);
+  color: var(--cs-action-primary);
   font-size: var(--cs-font-size-caption);
   font-weight: 700;
 }
