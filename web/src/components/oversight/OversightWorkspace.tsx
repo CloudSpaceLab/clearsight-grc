@@ -121,7 +121,7 @@ function HomeMetricStrip({ metrics, state, selected, onSelect }: { metrics: Home
         meta={homeMetricMeta(metric)}
         tone={homeMetricTone(metric)}
         quality={homeMetricQuality(metric)}
-        actionLabel={filter === "all" ? undefined : active ? "Show all priority interventions" : `Show ${metric.label.toLowerCase()} interventions`}
+        actionLabel={filter === "all" ? undefined : active ? "Show all priority interventions" : "Review related interventions"}
         isSelected={active}
         ariaControls={filter === "all" ? undefined : "oversight-attention"}
         onPress={filter === "all" ? undefined : () => onSelect(active ? "all" : filter)}
