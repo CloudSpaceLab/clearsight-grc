@@ -1,6 +1,10 @@
 package oversight
 
-import "time"
+import (
+	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/metric"
+)
 
 const ProjectionVersion = "oversight-v5"
 
@@ -113,6 +117,7 @@ type Snapshot struct {
 	Performance       []Performance        `json:"performance"`
 	Estimates         []ResolutionEstimate `json:"estimates"`
 	HistoryQuality    HistoryQuality       `json:"history_quality"`
+	Metrics           []metric.Snapshot    `json:"metrics"`
 }
 
 func estimateConfidence(samples int) string {
