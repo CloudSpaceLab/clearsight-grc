@@ -91,7 +91,7 @@ func TestMemoryCompositionInstallsReportingDemoOnlyInDemoMode(t *testing.T) {
 		wantReports int
 		wantRuns    int
 	}{
-		{name: "demo mode", demoMode: true, wantReports: 4, wantRuns: 1},
+		{name: "demo mode", demoMode: true, wantReports: 6, wantRuns: 1},
 		{name: "non-demo mode", demoMode: false, wantReports: 0, wantRuns: 0},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
