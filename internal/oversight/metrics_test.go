@@ -8,7 +8,7 @@ import (
 )
 
 func TestHeadlineMetricsPreserveCoverageAndAttentionState(t *testing.T) {
-	unknown, excluded := 0, 2
+	unknown, excluded := 0, 0
 	generated := time.Date(2026, time.October, 1, 16, 30, 0, 0, time.UTC)
 	snapshot := Snapshot{
 		GeneratedAt:       generated,
@@ -32,7 +32,7 @@ func TestHeadlineMetricsPreserveCoverageAndAttentionState(t *testing.T) {
 	assertHeadlineMetric(t, items[2], "routing_gaps", 1, metric.StateWarning, true)
 	assertHeadlineMetric(t, items[3], "outcome_failures", 0, metric.StateClear, true)
 	for _, item := range items {
-		if item.Population != 42 || item.Excluded == nil || *item.Excluded != 2 || item.Unknown == nil || *item.Unknown != 0 {
+		if item.Population != 42 || item.Excluded == nil || *item.Excluded != 0 || item.Unknown == nil || *item.Unknown != 0 {
 			t.Fatalf("%s coverage = %#v", item.Code, item)
 		}
 		if item.GeneratedAt != generated || item.ProjectionVersion != ProjectionVersion {
@@ -52,6 +52,22 @@ func TestHeadlineMetricsNeverPresentIncompleteZeroAsClear(t *testing.T) {
 	for _, item := range items {
 		if item.Value != 0 || item.State != metric.StateUnknown || item.StateLabel != "Coverage incomplete" || item.Complete {
 			t.Fatalf("incomplete zero metric = %#v", item)
+		}
+	}
+}
+
+
+func TestHeadlineMetricsNeverPresentExcludedZeroAsClear(t *testing.T) {
+	unknown, excluded := 0, 2
+	items := headlineMetrics(Snapshot{
+		GeneratedAt:       time.Now().UTC(),
+		ProjectionVersion: ProjectionVersion,
+		Freshness:         FreshnessCurrent,
+		Coverage:          Coverage{Population: 12, Excluded: &excluded, Unknown: &unknown},
+	})
+	for _, item := range items {
+		if item.Value != 0 || item.State != metric.StateUnknown || item.StateLabel != "Coverage incomplete" || item.Complete {
+			t.Fatalf("excluded zero metric = %#v", item)
 		}
 	}
 }
