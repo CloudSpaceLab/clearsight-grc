@@ -12,16 +12,16 @@ import (
 )
 
 type episodeContinuityStub struct {
-	programs  map[string]continuity.ProgramAggregate
-	matters   map[string]continuity.MatterAggregate
-	byTrigger map[string]string
+	programs   map[string]continuity.ProgramAggregate
+	matters    map[string]continuity.MatterAggregate
+	byTrigger  map[string]string
 	applyCount int
 }
 
 func newEpisodeContinuityStub(program continuity.Program) *episodeContinuityStub {
 	return &episodeContinuityStub{
-		programs: map[string]continuity.ProgramAggregate{program.ID: {Program: program}},
-		matters: map[string]continuity.MatterAggregate{},
+		programs:  map[string]continuity.ProgramAggregate{program.ID: {Program: program}},
+		matters:   map[string]continuity.MatterAggregate{},
 		byTrigger: map[string]string{},
 	}
 }
