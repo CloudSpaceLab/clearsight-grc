@@ -311,7 +311,7 @@ func (s *Service) SwitchScope(ctx context.Context, actor identity.Actor, legalEn
 	next := identity.Actor{
 		TenantID: resolved.TenantID, PrincipalID: resolved.PrincipalID, LegalEntityID: resolved.LegalEntityID,
 		Kind: resolved.Kind, RoleCodes: resolved.RoleCodes, PermissionCodes: resolved.PermissionCodes,
-		DepartmentGrants: resolved.DepartmentGrants,
+		DepartmentGrants:     resolved.DepartmentGrants,
 		AuthenticationMethod: "OIDC", AssuranceLevel: s.sessions.GetString(ctx, sessionAssurance),
 		SessionID: sessionID, IssuedAt: now, ExpiresAt: s.sessions.Deadline(ctx),
 	}
