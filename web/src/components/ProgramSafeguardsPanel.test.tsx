@@ -133,6 +133,6 @@ it("does not offer catalog changes when reusable-control status cannot be verifi
   } as unknown as ProgramAggregate;
   render(<ProgramSafeguardsPanel aggregate={aggregate} operations={[{ command: "program.safeguard.define", label: "Define", responsibility: "OWNER", can_act: true, reason: "" }]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("Reusable control status is unavailable");
+  expect((await screen.findByRole("alert")).textContent).toContain("Reusable control status is unavailable");
   expect(screen.queryByRole("button", { name: "Add Annual return checklist to reusable controls" })).toBeNull();
 });
