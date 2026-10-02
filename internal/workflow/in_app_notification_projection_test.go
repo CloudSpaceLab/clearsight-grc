@@ -29,7 +29,7 @@ func TestInAppNotificationProjectorDoesNotPersistRawUpdateMessage(t *testing.T) 
 	event := workflowruntime.OutboxEvent{
 		ID: "10000000-0000-4000-8000-000000000001", TenantID: "bank",
 		AggregateType: "MATTER", AggregateID: matterID, EventType: continuity.EventMatterActionUpdateRequested,
-		Payload: []byte(`{"matter_id":"` + matterID + `","action_id":"30000000-0000-4000-8000-000000000001","recipient_principal_id":"40000000-0000-4000-8000-000000000001","message":"Sensitive raw update text must not be stored"}`),
+		Payload:    []byte(`{"matter_id":"` + matterID + `","action_id":"30000000-0000-4000-8000-000000000001","recipient_principal_id":"40000000-0000-4000-8000-000000000001","message":"Sensitive raw update text must not be stored"}`),
 		OccurredAt: time.Date(2026, 10, 2, 6, 0, 0, 0, time.UTC),
 	}
 	repo := &inAppProjectionRepoStub{context: assignmentNotificationContext{
@@ -61,7 +61,7 @@ func TestInAppNotificationProjectorSkipsSupersededAssignment(t *testing.T) {
 	event := workflowruntime.OutboxEvent{
 		ID: "10000000-0000-4000-8000-000000000002", TenantID: "bank",
 		AggregateType: "MATTER", AggregateID: matterID, EventType: continuity.EventMatterOwnerChanged,
-		Payload: []byte(`{"matter":{"id":"` + matterID + `"},"owner_principal_id":"40000000-0000-4000-8000-000000000002","previous_owner_principal_id":"40000000-0000-4000-8000-000000000003"}`),
+		Payload:    []byte(`{"matter":{"id":"` + matterID + `"},"owner_principal_id":"40000000-0000-4000-8000-000000000002","previous_owner_principal_id":"40000000-0000-4000-8000-000000000003"}`),
 		OccurredAt: time.Date(2026, 10, 2, 6, 0, 0, 0, time.UTC),
 	}
 	repo := &inAppProjectionRepoStub{context: assignmentNotificationContext{
