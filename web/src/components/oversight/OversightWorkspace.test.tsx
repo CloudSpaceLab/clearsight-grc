@@ -21,7 +21,7 @@ beforeEach(() => {
     excluded: 1,
     unknown: 2,
     source_revision: "oversight-v4",
-    definition_revision: "home-oversight-v1",
+    definition_revision: "home-oversight-v2",
     items: [
       metric("critical_high_open", "Critical and high", 7, "critical-high"),
       metric("overdue_open", "Overdue", 4, "overdue"),
@@ -33,6 +33,8 @@ beforeEach(() => {
     generated_at: "2026-09-01T07:55:00Z",
     period_start: "2026-06-03T08:00:00Z",
     period_end: "2026-09-01T08:00:00Z",
+    reporting_period: { start_date: "2026-06-03", end_date: "2026-09-01", mode: "CURRENT_WINDOW", max_days: 365, historical_end_supported: false },
+    posture_as_of: "2026-09-01T07:55:00Z",
     projection_version: "oversight-v4",
     freshness: "CURRENT",
     source_high_water: { matters: "2026-09-01T07:54:00Z", actions: "2026-09-01T07:53:00Z", workflow_tasks: "2026-09-01T07:52:00Z", verification_results: "2026-09-01T07:51:00Z", continuity_events: "2026-09-01T07:54:30Z" },
@@ -51,7 +53,7 @@ function metric(id: string, label: string, value: number, filter: string) {
   return {
     id, label, value, unit: "COUNT", condition: value > 0 ? "ATTENTION" : "CLEAR",
     freshness: "CURRENT", completeness: "PARTIAL", population: 42, excluded: 1, unknown: 2,
-    generated_at: "2026-09-01T07:55:00Z", source_revision: "oversight-v4", definition_revision: "home-oversight-v1",
+    generated_at: "2026-09-01T07:55:00Z", source_revision: "oversight-v4", definition_revision: "home-oversight-v2", basis: "CURRENT_POSTURE",
     drill: { workspace: "oversight", filter, consistency: "CURRENT_STATE" },
   };
 }
@@ -63,7 +65,8 @@ it("leads with exact interventions and provides table alternatives for oversight
   await screen.findByRole("heading", { name: "Risk and delivery oversight" });
   expect(screen.getByText("7")).toBeTruthy();
   expect(screen.getByText("42 issues checked · 1 excluded · 2 unknown")).toBeTruthy();
-  const period = screen.getByLabelText("Oversight reporting period");
+  const period = screen.getByRole("button", { name: /Reporting period/ });
+  expect(period.textContent).toContain("Period");
   expect(period.textContent).toContain("Jun");
   expect(period.textContent).toContain("Sep");
   expect(period.textContent).toContain("2026");
