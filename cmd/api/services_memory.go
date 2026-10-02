@@ -128,6 +128,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	reportingService := reporting.NewService(reportingRepository, store, authorityService)
 	riskService := risk.NewService(risk.NewMemoryRepository())
 	controlCatalogService := controlcatalog.NewService(controlcatalog.NewMemoryRepository())
+	configureRiskControlCatalog(riskService, controlCatalogService)
 	if cfg.DemoMode {
 		if err := reporting.InstallDemo(ctx, reportingService); err != nil {
 			return serviceSet{}, err
