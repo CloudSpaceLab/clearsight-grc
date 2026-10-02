@@ -44,7 +44,7 @@ export function NotificationCenter({
     try {
       const next = await loadPage({ cursor: page.next_cursor, limit: 25 });
       setItems((current) => mergeNotifications(current, next.items));
-      setPage({ ...next, unread_count: page.unread_count });
+      setPage(next);
     } catch {
       setLoadMoreFailed(true);
     } finally {
@@ -112,7 +112,7 @@ export function NotificationCenter({
               <p>{item.summary}</p>
               <time dateTime={item.occurred_at}>{formatNotificationTime(item.occurred_at)}</time>
             </div>
-            <Button variant={item.read_at ? "secondary" : "primary"} onPress={() => openItem(item)} isDisabled={!safeNotificationPath(item.action_path)}>Open work</Button>
+            <Button variant={item.read_at ? "secondary" : "primary"} onPress={() => openItem(item)} isDisabled={!safeNotificationPath(item.action_path)}>Open</Button>
           </article>)}
         </div>}
         {state === "live" && loadMoreFailed && <Notice tone="warning">More notifications could not be loaded. The current list remains available.</Notice>}
@@ -130,7 +130,7 @@ function mergeNotifications(current: InAppNotification[], next: InAppNotificatio
 }
 
 function safeNotificationPath(value: string) {
-  return /^#(?:work|programs|vendors|ropa|forms|people)(?:[/?#]|$)/.test(value) && !/[\r\n]/.test(value);
+  return /^#(?:oversight|work|programs|vendors|ropa|forms|people|configure|imports|reports)(?:[/?#]|$)/.test(value) && !/[\r\n]/.test(value);
 }
 
 function openNotificationPath(path: string) {
