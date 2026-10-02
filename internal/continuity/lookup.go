@@ -15,7 +15,7 @@ type matterTriggerLookupRepository interface {
 }
 
 type openMonitoringMatterRepository interface {
-	OpenMonitoringMatter(context.Context, string, string, string) (MatterAggregate, error)
+	OpenMonitoringMatter(context.Context, string, string, string, int64) (MatterAggregate, error)
 }
 
 func (s *Service) ProgramByCode(ctx context.Context, tenant, code string) (ProgramAggregate, error) {
@@ -37,18 +37,18 @@ func (s *Service) ProgramByCode(ctx context.Context, tenant, code string) (Progr
 	return ProgramAggregate{}, ErrNotFound
 }
 
-func (s *Service) OpenMonitoringMatter(ctx context.Context, tenant, programID, checkID string) (MatterAggregate, error) {
+func (s *Service) OpenMonitoringMatter(ctx context.Context, tenant, programID, checkID string, checkVersion int64) (MatterAggregate, error) {
 	tenant = strings.TrimSpace(tenant)
 	programID = strings.TrimSpace(programID)
 	checkID = strings.TrimSpace(checkID)
-	if tenant == "" || programID == "" || checkID == "" {
+	if tenant == "" || programID == "" || checkID == "" || checkVersion < 1 {
 		return MatterAggregate{}, ErrNotFound
 	}
 	repo, ok := s.repo.(openMonitoringMatterRepository)
 	if !ok {
 		return MatterAggregate{}, ErrNotFound
 	}
-	return repo.OpenMonitoringMatter(ctx, tenant, programID, checkID)
+	return repo.OpenMonitoringMatter(ctx, tenant, programID, checkID, checkVersion)
 }
 
 func (s *Service) MatterByTriggerKey(ctx context.Context, tenant, triggerKey string) (MatterAggregate, error) {
@@ -76,7 +76,7 @@ func (r *MemoryRepository) ProgramByCode(ctx context.Context, tenant, code strin
 	return ProgramAggregate{}, ErrNotFound
 }
 
-func (r *MemoryRepository) OpenMonitoringMatter(ctx context.Context, tenant, programID, checkID string) (MatterAggregate, error) {
+func (r *MemoryRepository) OpenMonitoringMatter(ctx context.Context, tenant, programID, checkID string, checkVersion int64) (MatterAggregate, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	var selected MatterAggregate
@@ -87,6 +87,7 @@ func (r *MemoryRepository) OpenMonitoringMatter(ctx context.Context, tenant, pro
 			!strings.EqualFold(matter.TriggerType, "MONITORING_RESULT_ADVERSE") ||
 			!r.visibleLegalEntity(ctx, matter.TenantID, matter.LegalEntityID) ||
 			monitoringCheckIDFromMatter(matter) != checkID ||
+			monitoringCheckVersionFromMatter(matter) != checkVersion ||
 			!matterLinkedToProgram(aggregate, programID) {
 			continue
 		}
@@ -100,6 +101,16 @@ func (r *MemoryRepository) OpenMonitoringMatter(ctx context.Context, tenant, pro
 		return MatterAggregate{}, ErrNotFound
 	}
 	return decorateMatter(selected), nil
+}
+
+func monitoringCheckVersionFromMatter(matter Matter) int64 {
+	var facts struct {
+		MonitoringCheckVersion int64 `json:"monitoring_check_version"`
+	}
+	if len(matter.KnownFacts) == 0 || json.Unmarshal(matter.KnownFacts, &facts) != nil {
+		return 0
+	}
+	return facts.MonitoringCheckVersion
 }
 
 func monitoringCheckIDFromMatter(matter Matter) string {
