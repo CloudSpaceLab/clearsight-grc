@@ -5,6 +5,7 @@ package continuity
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"testing"
 	"time"
@@ -27,6 +28,7 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 	const (
 		tenantID       = "96666666-6666-7666-8666-666666666661"
 		entityID       = "96666666-6666-7666-8666-666666666662"
+		otherEntityID  = "96666666-6666-7666-8666-666666666671"
 		ownerID        = "96666666-6666-7666-8666-666666666663"
 		reviewerID     = "96666666-6666-7666-8666-666666666664"
 		checkID        = "96666666-6666-7666-8666-666666666665"
@@ -40,7 +42,11 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 	if _, err = pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'monitoring-adverse-trigger-test','Monitoring Adverse Trigger Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = pool.Exec(ctx, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($1::uuid,$2::uuid,'ENTITY-A','Entity A','NG')`, entityID, tenantID); err != nil {
+	if _, err = pool.Exec(ctx, `
+		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES
+			($1::uuid,$2::uuid,'ENTITY-A','Entity A','NG'),
+			($3::uuid,$2::uuid,'ENTITY-B','Entity B','GH')
+	`, entityID, tenantID, otherEntityID); err != nil {
 		t.Fatal(err)
 	}
 	ctx = WithTrustedSystemEntityScope(ctx, "monitoring-adverse-trigger-test", entityID)
@@ -60,10 +66,17 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	triggerPayload, err := json.Marshal(map[string]any{
+		"risk_band": "HIGH", "score": 72,
+		"monitoring_check_id": checkID, "monitoring_check_version": 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	trigger := Trigger{
 		ID: triggerID, TenantID: "monitoring-adverse-trigger-test", ProgramID: program.Program.ID,
 		Type: "MONITORING_RESULT_ADVERSE", SubjectType: "MONITORING_RESULT", SubjectID: resultID,
-		DedupeKey: "monitoring-adverse:check-1:period-2026-08", Payload: json.RawMessage(`{"risk_band":"HIGH","score":72}`),
+		DedupeKey: "monitoring-adverse:check-1:period-2026-08", Payload: triggerPayload,
 		ObservedAt: now.Add(time.Minute), Source: "monitoring", ActorID: reviewerID,
 	}
 	updated, matter, inserted, err := service.ApplyTrigger(ctx, trigger)
@@ -79,6 +92,18 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 	}
 	if inserted || duplicate == nil || duplicate.ID != matter.ID || replayed.Program.Version != updated.Program.Version {
 		t.Fatalf("retry was not idempotent: inserted=%v matter=%#v program=%#v", inserted, duplicate, replayed)
+	}
+
+	openEpisode, err := service.OpenMonitoringMatter(ctx, "monitoring-adverse-trigger-test", program.Program.ID, checkID, 1)
+	if err != nil || openEpisode.Matter.ID != matter.ID {
+		t.Fatalf("open monitoring episode=%#v err=%v want matter=%s", openEpisode, err, matter.ID)
+	}
+	if _, err := service.OpenMonitoringMatter(ctx, "monitoring-adverse-trigger-test", program.Program.ID, checkID, 2); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("wrong check revision lookup error=%v", err)
+	}
+	wrongEntityCtx := WithTrustedSystemEntityScope(context.Background(), "monitoring-adverse-trigger-test", otherEntityID)
+	if _, err := service.OpenMonitoringMatter(wrongEntityCtx, "monitoring-adverse-trigger-test", program.Program.ID, checkID, 1); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("wrong legal-entity lookup error=%v", err)
 	}
 
 	var triggers, programEvents, matters, links, matterEvents, outboxEvents, projectionJobs int
