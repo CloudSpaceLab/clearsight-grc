@@ -2,6 +2,8 @@ package workflow
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"sort"
 	"sync"
 	"time"
@@ -115,7 +117,7 @@ func (r *MemoryRepository) StoreInAppNotification(_ context.Context, record inAp
 		}
 	}
 	r.notifications[key] = InAppNotification{
-		ID: record.OutboxEventID, Kind: record.Kind, Title: record.Title, Summary: record.Summary,
+		ID: memoryNotificationID(key), Kind: record.Kind, Title: record.Title, Summary: record.Summary,
 		SubjectType: record.SubjectType, SubjectID: record.SubjectID, ActionPath: record.ActionPath,
 		OccurredAt: record.OccurredAt.UTC(), TenantID: record.TenantID, LegalEntityID: record.LegalEntityID,
 		PrincipalID: record.PrincipalID, OutboxEventID: record.OutboxEventID,
@@ -183,4 +185,14 @@ func cloneInAppNotification(value InAppNotification) InAppNotification {
 		value.ReadAt = &readAt
 	}
 	return value
+}
+
+
+func memoryNotificationID(key string) string {
+	sum := sha256.Sum256([]byte(key))
+	value := append([]byte(nil), sum[:16]...)
+	value[6] = (value[6] & 0x0f) | 0x40
+	value[8] = (value[8] & 0x3f) | 0x80
+	encoded := hex.EncodeToString(value)
+	return encoded[:8] + "-" + encoded[8:12] + "-" + encoded[12:16] + "-" + encoded[16:20] + "-" + encoded[20:32]
 }
