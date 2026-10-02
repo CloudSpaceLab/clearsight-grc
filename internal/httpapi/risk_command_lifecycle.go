@@ -58,7 +58,7 @@ func (a *API) riskLifecycleCommandPolicy(ctx context.Context, r *http.Request, t
 	delete(payload, "legal_entity_id")
 	payload["risk_id"] = current.Risk.ID
 
-	if name == "risk.update" {
+	if name == "risk.update" || name == "risk.control.link" {
 		if err := a.validateStoredResponsibilityActor(
 			ctx,
 			tenant,
