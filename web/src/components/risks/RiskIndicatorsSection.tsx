@@ -16,6 +16,7 @@ type Props = {
   detailsComplete: boolean;
   onReload: () => Promise<void>;
   onOpenProgram?: (programID: string) => void;
+  onOpenMatter?: (matterID: string) => void;
   searchPrograms?: (query: string) => Promise<SummaryPage<ProgramSummary>>;
   loadChecks?: (programID: string) => Promise<MonitoringCheck[]>;
   linkIndicator?: (
@@ -41,6 +42,7 @@ export function RiskIndicatorsSection({
   detailsComplete,
   onReload,
   onOpenProgram,
+  onOpenMatter,
   searchPrograms = searchIndicatorPrograms,
   loadChecks = loadMonitoringChecks,
   linkIndicator = linkRiskIndicator,
@@ -168,6 +170,15 @@ export function RiskIndicatorsSection({
       mobileLayout: "full-width",
       render: (item) => <span className="risk-record__stack"><strong>{item.evaluated_at ? formatIndicatorDate(item.evaluated_at) : "No result"}</strong><small>{item.reason}</small></span>,
       accessibleText: (item) => `${item.evaluated_at ? formatIndicatorDate(item.evaluated_at) : "No result"}. ${item.reason}`,
+    },
+    {
+      id: "intervention",
+      header: "Intervention",
+      kind: "action",
+      render: (item) => item.open_matter_id && onOpenMatter
+        ? <Button variant="secondary" size="compact" onPress={() => onOpenMatter(item.open_matter_id!)}>{item.open_matter_reference || "Open Matter"}</Button>
+        : item.open_matter_reference || "None",
+      accessibleText: (item) => item.open_matter_reference ? `Open Matter ${item.open_matter_reference}` : "No open Matter",
     },
   ];
 
