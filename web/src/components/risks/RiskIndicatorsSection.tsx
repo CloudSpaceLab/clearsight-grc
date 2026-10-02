@@ -29,6 +29,10 @@ type Props = {
 
 type CandidateState = "idle" | "loading" | "live" | "error";
 
+function searchIndicatorPrograms(query: string) {
+  return loadProgramSummaries({ q: query, limit: 20 });
+}
+
 export function RiskIndicatorsSection({
   risk,
   actorID,
@@ -37,7 +41,7 @@ export function RiskIndicatorsSection({
   detailsComplete,
   onReload,
   onOpenProgram,
-  searchPrograms = (query) => loadProgramSummaries({ q: query, limit: 20 }),
+  searchPrograms = searchIndicatorPrograms,
   loadChecks = loadMonitoringChecks,
   linkIndicator = linkRiskIndicator,
 }: Props) {
