@@ -94,7 +94,6 @@ func withIndicatorStatus(value monitoring.MonitoringCheck, status monitoring.Lif
 	return value
 }
 
-
 func TestRiskIndicatorMatterLinkedToProgramRequiresActiveProgramLink(t *testing.T) {
 	linked := continuity.MatterAggregate{
 		Links: []continuity.MatterLink{{ProgramID: "program-1"}},
