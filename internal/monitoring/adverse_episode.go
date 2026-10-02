@@ -328,8 +328,12 @@ func episodeSeverity(value RiskBand) int {
 	}
 }
 
-func episodeWorsened(before AdverseEpisode, result MonitoringResult) bool {
-	return episodeSeverity(result.Evaluation.Band) > episodeSeverity(before.LastBand)
+func episodeWorsened(before AdverseEpisode, observation AdverseEpisodeObservation) bool {
+	if episodeSeverity(observation.Result.Evaluation.Band) > episodeSeverity(before.LastBand) {
+		return true
+	}
+	minimum := observation.Check.MinimumCoverage
+	return minimum > 0 && before.LastCoverage >= minimum && observation.Result.Evaluation.Coverage < minimum
 }
 
 func episodeEventPayload(value AdverseEpisode) map[string]any {
