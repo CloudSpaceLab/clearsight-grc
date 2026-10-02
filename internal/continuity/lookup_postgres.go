@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *PostgresRepository) OpenMonitoringMatter(ctx context.Context, tenant, programID, checkID string) (MatterAggregate, error) {
+func (r *PostgresRepository) OpenMonitoringMatter(ctx context.Context, tenant, programID, checkID string, checkVersion int64) (MatterAggregate, error) {
 	var id string
 	enforce, actorTenant, actorEntity := postgresActorScope(ctx)
 	err := r.pool.QueryRow(ctx, `
@@ -23,20 +23,21 @@ func (r *PostgresRepository) OpenMonitoringMatter(ctx context.Context, tenant, p
 		  AND m.status NOT IN ('CLOSED','CANCELLED')
 		  AND m.trigger_type='MONITORING_RESULT_ADVERSE'
 		  AND m.known_facts->>'monitoring_check_id'=$3
-		  AND (NOT $4 OR (
-		        (t.id::text=$5 OR t.slug=$5)
+		  AND COALESCE((m.known_facts->>'monitoring_check_version')::bigint,0)=$4::bigint
+		  AND (NOT $5 OR (
+		        (t.id::text=$6 OR t.slug=$6)
 		        AND m.legal_entity_id IS NOT NULL
-		        AND ($6='*' OR m.legal_entity_id=(
+		        AND ($7='*' OR m.legal_entity_id=(
 		          SELECT le.id FROM legal_entities le
 		          WHERE le.tenant_id=m.tenant_id
-		            AND (le.id::text=$6 OR le.code=$6)
+		            AND (le.id::text=$7 OR le.code=$7)
 		            AND le.valid_from<=clock_timestamp()
 		            AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
 		          ORDER BY le.valid_from DESC,le.id
 		          LIMIT 1))))
 		ORDER BY m.updated_at DESC,m.id DESC
 		LIMIT 1`,
-		tenant, programID, checkID, enforce, actorTenant, actorEntity,
+		tenant, programID, checkID, checkVersion, enforce, actorTenant, actorEntity,
 	).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return MatterAggregate{}, ErrNotFound
