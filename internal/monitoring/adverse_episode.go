@@ -3,6 +3,7 @@ package monitoring
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -101,8 +102,8 @@ type AdverseEpisodeResult struct {
 	MatterCreated bool
 }
 
-func (c *AdverseEpisodeCoordinator) Reconcile(ctx context.Context, observation AdverseEpisodeObservation, actorID string) (AdverseEpisodeResult, error) {
-	if c == nil || c.Repository == nil || c.Continuity == nil {
+func (c *AdverseEpisodeCoordinator) Reconcile(ctx context.Context, observation AdverseEpisodeObservation) (AdverseEpisodeResult, error) {
+	if c == nil || c.Repository == nil {
 		return AdverseEpisodeResult{}, fmt.Errorf("monitoring adverse episode coordinator is not configured")
 	}
 	if err := validateEpisodeObservation(observation); err != nil {
@@ -122,18 +123,42 @@ func (c *AdverseEpisodeCoordinator) Reconcile(ctx context.Context, observation A
 		return AdverseEpisodeResult{}, err
 	}
 	episode, change, err := c.Repository.OpenOrUpdateAdverseEpisode(ctx, observation, episodeID, now)
+	if errors.Is(err, ErrConflict) {
+		// Another worker/API request may have opened the same stable episode
+		// after this caller observed no row. Retry against that committed row.
+		current, lookupErr := c.Repository.OpenAdverseEpisode(ctx, observation.TenantID, observation.LegalEntityID, observation.Check.ID)
+		if lookupErr != nil {
+			return AdverseEpisodeResult{}, err
+		}
+		episode, change, err = c.Repository.OpenOrUpdateAdverseEpisode(ctx, observation, current.ID, now)
+	}
 	if err != nil {
 		return AdverseEpisodeResult{}, err
 	}
-	out := AdverseEpisodeResult{Episode: &episode, EpisodeChange: change}
-	if observation.Check.FailureAction != FailureRecommendMatter {
-		return out, nil
-	}
+	return AdverseEpisodeResult{Episode: &episode, EpisodeChange: change}, nil
+}
 
+func (c *AdverseEpisodeCoordinator) EnsureMatter(ctx context.Context, observation AdverseEpisodeObservation, episode AdverseEpisode, actorID string) (AdverseEpisodeResult, error) {
+	if c == nil || c.Repository == nil || c.Continuity == nil {
+		return AdverseEpisodeResult{}, fmt.Errorf("monitoring adverse episode Matter coordinator is not configured")
+	}
+	if err := validateEpisodeObservation(observation); err != nil {
+		return AdverseEpisodeResult{}, err
+	}
+	if episode.ID == "" || episode.State != AdverseEpisodeOpen || episode.TenantID != observation.TenantID ||
+		episode.LegalEntityID != observation.LegalEntityID || episode.ProgramID != observation.ProgramID ||
+		episode.MonitoringCheckID != observation.Check.ID || !AdverseResult(observation.Check, observation.Result) ||
+		observation.Check.FailureAction != FailureRecommendMatter {
+		return AdverseEpisodeResult{}, ErrLinkedIssueIneligible
+	}
+	out := AdverseEpisodeResult{Episode: &episode}
 	if episode.MatterID != "" {
 		existing, err := c.Continuity.GetMatter(ctx, episode.TenantID, episode.MatterID)
 		if err != nil {
 			return AdverseEpisodeResult{}, fmt.Errorf("load episode Matter: %w", err)
+		}
+		if existing.Matter.LegalEntityID != episode.LegalEntityID {
+			return AdverseEpisodeResult{}, ErrInvalid
 		}
 		out.Matter = &existing.Matter
 		return out, nil
@@ -166,7 +191,7 @@ func (c *AdverseEpisodeCoordinator) Reconcile(ctx context.Context, observation A
 	if matter == nil {
 		return AdverseEpisodeResult{}, fmt.Errorf("monitoring adverse episode trigger returned no Matter")
 	}
-	updated, err := c.Repository.AttachAdverseEpisodeMatter(ctx, episode.TenantID, episode.LegalEntityID, episode.ID, matter.ID, now)
+	updated, err := c.Repository.AttachAdverseEpisodeMatter(ctx, episode.TenantID, episode.LegalEntityID, episode.ID, matter.ID, c.currentTime())
 	if err != nil {
 		return AdverseEpisodeResult{}, err
 	}
@@ -268,7 +293,7 @@ func (c *AdverseEpisodeConsumer) Publish(ctx context.Context, event workflowrunt
 	if _, err := c.Coordinator.Reconcile(ctx, AdverseEpisodeObservation{
 		TenantID: event.TenantID, LegalEntityID: program.Program.LegalEntityID, ProgramID: program.Program.ID,
 		Check: check, Result: result,
-	}, ""); err != nil {
+	}); err != nil {
 		return fmt.Errorf("reconcile monitoring adverse episode: %w", err)
 	}
 	return c.recordInbox(ctx, event)
