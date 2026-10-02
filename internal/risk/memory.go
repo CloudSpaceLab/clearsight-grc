@@ -209,7 +209,7 @@ func (r *MemoryRepository) AddIndicator(ctx context.Context, scope Scope, id str
 		return Risk{}, IndicatorLink{}, ErrVersionConflict
 	}
 	if indicator.RiskID != current.ID || indicator.RiskVersion != expected+1 || event.RiskVersion != expected+1 ||
-		indicator.MonitoringCheckID == "" || indicator.MonitoringCheckVersion < 1 ||
+		indicator.ProgramID == "" || indicator.MonitoringCheckID == "" || indicator.MonitoringCheckVersion < 1 ||
 		!validIndicatorKind(indicator.Kind) || indicator.Measurement != IndicatorMonitoringRiskScore {
 		return Risk{}, IndicatorLink{}, ErrInvalid
 	}
