@@ -187,7 +187,6 @@ func cloneInAppNotification(value InAppNotification) InAppNotification {
 	return value
 }
 
-
 func memoryNotificationID(key string) string {
 	sum := sha256.Sum256([]byte(key))
 	value := append([]byte(nil), sum[:16]...)
