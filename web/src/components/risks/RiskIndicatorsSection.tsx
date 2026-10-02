@@ -30,7 +30,7 @@ type Props = {
 type CandidateState = "idle" | "loading" | "live" | "error";
 
 function searchIndicatorPrograms(query: string) {
-  return loadProgramSummaries({ q: query, limit: 20 });
+  return loadProgramSummaries({ q: query, status: "ACTIVE", limit: 20 });
 }
 
 export function RiskIndicatorsSection({
