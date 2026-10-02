@@ -47,7 +47,7 @@ func TestPostgresProjectionExcludesRestrictedAndUnknownMatterScopes(t *testing.T
 	}
 
 	repository := NewPostgresRepository(pool)
-	value, err := repository.build(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID}, now)
+	value, err := repository.build(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID}, now, now.Add(-90*24*time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,6 +60,25 @@ func TestPostgresProjectionExcludesRestrictedAndUnknownMatterScopes(t *testing.T
 	if inserted, err := repository.store(ctx, value, now.Truncate(refreshInterval)); err != nil || !inserted {
 		t.Fatalf("store projection inserted=%t err=%v", inserted, err)
 	}
+	var storedBefore int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM oversight_snapshots WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid`, tenantID, entityID).Scan(&storedBefore); err != nil {
+		t.Fatal(err)
+	}
+	customStart := now.Add(-180 * 24 * time.Hour)
+	custom, err := repository.BuildPeriod(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID}, customStart, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if custom.Counts.CriticalHigh != value.Counts.CriticalHigh || !custom.PeriodStart.Equal(customStart) || !custom.PeriodEnd.Equal(now) {
+		t.Fatalf("custom period changed current posture or effective range: %#v", custom)
+	}
+	var storedAfter int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM oversight_snapshots WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid`, tenantID, entityID).Scan(&storedAfter); err != nil {
+		t.Fatal(err)
+	}
+	if storedAfter != storedBefore {
+		t.Fatalf("on-demand reporting period persisted a snapshot: before=%d after=%d", storedBefore, storedAfter)
+	}
 	loaded, err := NewService(repository).Get(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID})
 	if err != nil || loaded.Counts.CriticalHigh != 1 || loaded.Coverage.Excluded == nil || *loaded.Coverage.Excluded != 1 {
 		t.Fatalf("loaded projection=%#v err=%v", loaded, err)
@@ -69,7 +88,7 @@ func TestPostgresProjectionExcludesRestrictedAndUnknownMatterScopes(t *testing.T
 		t.Fatal(err)
 	}
 	mustOversightExec(t, ctx, pool, `INSERT INTO demo_record_archives(tenant_id,legal_entity_id,record_type,record_id,reason,source_manifest,archived_by,archived_at) VALUES($1::uuid,$2::uuid,'MATTER','8a646464-6464-7464-8464-646464646411','Excluded sample','test-manifest',$3::uuid,now())`, tenantID, entityID, operatorID)
-	curated, err := repository.build(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID}, now)
+	curated, err := repository.build(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID}, now, now.Add(-90*24*time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +146,7 @@ func TestPostgresProjectionAttributesHistoryToExactOwnerIntervals(t *testing.T) 
 		mustOversightExec(t, ctx, pool, `INSERT INTO continuity_events(tenant_id,aggregate_type,aggregate_id,aggregate_version,event_type,payload,actor_type,actor_id,occurred_at) VALUES($1::uuid,'MATTER',$2::uuid,$3,$4,$5::jsonb,'PERSON',$6::uuid,$7)`, tenantID, matterID, event.version, event.type_, event.payload, secondID, event.at)
 	}
 
-	value, err := NewPostgresRepository(pool).build(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID}, now)
+	value, err := NewPostgresRepository(pool).build(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID}, now, now.Add(-90*24*time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
