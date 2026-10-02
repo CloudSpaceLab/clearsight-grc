@@ -527,6 +527,7 @@ func (a *API) applyProgramTrigger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.ProgramID = r.PathValue("id")
+	input.MatterDedupeKey = ""
 	program, matter, inserted, err := service.ApplyTrigger(r.Context(), input)
 	if err != nil {
 		writeContinuityError(w, err)
