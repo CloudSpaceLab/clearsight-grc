@@ -3,6 +3,53 @@ export type RiskAssessmentKind = "INHERENT" | "CURRENT" | "RESIDUAL" | "TARGET" 
 export type RiskAppetitePosition = "WITHIN" | "APPROACHING" | "BREACHED" | "UNKNOWN";
 export type RiskAppetiteStatus = "ACTIVE" | "RETIRED";
 
+export type RiskControlImplementationStatus = "PLANNED" | "IN_PROGRESS" | "IMPLEMENTED" | "INACTIVE" | "RETIRED";
+export type RiskControlEvidenceConclusion = "SUPPORTED" | "PARTIALLY_SUPPORTED" | "UNSUPPORTED" | "CONTRADICTED" | "INDETERMINATE" | "EXPIRED";
+
+export type RiskControlLink = {
+  id: string;
+  risk_id: string;
+  risk_version: number;
+  catalog_link_id: string;
+  linked_by?: string;
+  created_at: string;
+};
+
+export type RiskControlDefinition = {
+  id: string;
+  code: string;
+  name: string;
+  objective: string;
+  description: string;
+  category: string;
+  status: "ACTIVE" | "RETIRED";
+  version: number;
+};
+
+export type RiskControlEvidence = {
+  contract_id: string;
+  name: string;
+  conclusion?: RiskControlEvidenceConclusion;
+  assessed_at?: string;
+  valid_until?: string;
+};
+
+export type RiskControlDetail = {
+  link: RiskControlLink;
+  definition: RiskControlDefinition;
+  program_id: string;
+  program_name: string;
+  implementation_id: string;
+  objective_id: string;
+  implementation_name: string;
+  implementation_type: string;
+  implementation_status: RiskControlImplementationStatus;
+  implementation_version: number;
+  owner_display_name?: string;
+  owner_assigned: boolean;
+  evidence: RiskControlEvidence[];
+};
+
 export type RiskRecord = {
   id: string;
   tenant_id: string;
@@ -73,4 +120,7 @@ export type RiskAggregate = {
   assessments: RiskAssessment[];
   appetite: RiskAppetiteStatement[];
   active_appetite?: RiskAppetiteStatement;
+  controls?: RiskControlLink[];
+  control_details?: RiskControlDetail[];
+  control_details_complete?: boolean;
 };
