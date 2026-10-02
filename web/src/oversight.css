@@ -101,7 +101,7 @@
 .oversight-period-picker p { margin: 0; color: var(--muted); font-size: .72rem; line-height: 1.4; }
 .oversight-period-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; min-width: 0; }
 .oversight-period-custom { display: grid; gap: 10px; min-width: 0; padding-top: 2px; }
-.oversight-period-end { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); }
+.oversight-period-end { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-10); background: var(--surface-2); }
 .oversight-period-end > span { color: var(--muted); font-size: .69rem; font-weight: 700; }
 .oversight-period-end > strong { font-size: .8rem; }
 .oversight-period-end > small { color: var(--muted); font-size: .69rem; }
