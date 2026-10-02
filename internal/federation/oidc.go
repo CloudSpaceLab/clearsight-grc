@@ -307,15 +307,7 @@ func (s *Service) SwitchScope(ctx context.Context, actor identity.Actor, legalEn
 	if err != nil {
 		return identity.Actor{}, fmt.Errorf("create scope session: %w", err)
 	}
-	if err := s.sessions.RenewToken(ctx); err != nil {
-		return identity.Actor{}, fmt.Errorf("rotate scope session: %w", err)
-	}
 	now := s.now().UTC()
-	s.sessions.Put(ctx, sessionTenantID, resolved.TenantID)
-	s.sessions.Put(ctx, sessionPrincipalID, resolved.PrincipalID)
-	s.sessions.Put(ctx, sessionLegalEntityID, resolved.LegalEntityID)
-	s.sessions.Put(ctx, sessionSessionID, sessionID)
-	s.sessions.Put(ctx, sessionIssuedAt, now)
 	next := identity.Actor{
 		TenantID: resolved.TenantID, PrincipalID: resolved.PrincipalID, LegalEntityID: resolved.LegalEntityID,
 		Kind: resolved.Kind, RoleCodes: resolved.RoleCodes, PermissionCodes: resolved.PermissionCodes,
@@ -326,6 +318,14 @@ func (s *Service) SwitchScope(ctx context.Context, actor identity.Actor, legalEn
 	if err := next.Valid(now); err != nil {
 		return identity.Actor{}, fmt.Errorf("validate switched scope: %w", err)
 	}
+	if err := s.sessions.RenewToken(ctx); err != nil {
+		return identity.Actor{}, fmt.Errorf("rotate scope session: %w", err)
+	}
+	s.sessions.Put(ctx, sessionTenantID, resolved.TenantID)
+	s.sessions.Put(ctx, sessionPrincipalID, resolved.PrincipalID)
+	s.sessions.Put(ctx, sessionLegalEntityID, resolved.LegalEntityID)
+	s.sessions.Put(ctx, sessionSessionID, sessionID)
+	s.sessions.Put(ctx, sessionIssuedAt, now)
 	return next, nil
 }
 
