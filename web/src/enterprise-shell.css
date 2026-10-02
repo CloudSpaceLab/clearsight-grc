@@ -1,7 +1,8 @@
 .sidebar-secondary { width: 100%; margin-top: auto; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent); }
 .sidebar-secondary .nav-item { width: 100%; }
 .sidebar > .avatar { margin-top: 14px; }
-.context-role { position: relative; }\n.context-scope-control { position: relative; display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.context-role { position: relative; }
+.context-scope-control { position: relative; display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .administration-menu, .demo-environment-menu { position: relative; }
 .administration-menu > summary, .demo-environment-menu > summary { min-height: 34px; display: inline-flex; align-items: center; list-style: none; border: 1px solid var(--border); border-radius: 10px; padding: 7px 9px; color: var(--muted); background: color-mix(in srgb, var(--surface) 82%, transparent); font-size: 10px; font-weight: 650; cursor: pointer; }
 .administration-menu > summary::-webkit-details-marker, .demo-environment-menu > summary::-webkit-details-marker { display: none; }
@@ -76,5 +77,6 @@
   .context-scope-control .enterprise-scope-trigger span { display: block; }
 }
 @media (max-width: 420px) {
-  .context-scope-control { flex: 1 1 100%; max-width: none; }\n  .context-scope-control .enterprise-scope-trigger { width: 100%; }
+  .context-scope-control { flex: 1 1 100%; max-width: none; }
+  .context-scope-control .enterprise-scope-trigger { width: 100%; }
 }
