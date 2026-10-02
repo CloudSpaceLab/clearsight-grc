@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"log/slog"
 	"time"
 
@@ -27,6 +26,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/people"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/ropa"
