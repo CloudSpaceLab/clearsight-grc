@@ -1,0 +1,100 @@
+.notification-center__launcher {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.notification-center__count {
+  position: absolute;
+  inset-block-start: -3px;
+  inset-inline-end: -5px;
+  display: grid;
+  min-inline-size: 18px;
+  block-size: 18px;
+  place-items: center;
+  padding-inline: 4px;
+  border: var(--cs-primitive-border-1) solid var(--cs-bg-surface-1);
+  border-radius: var(--cs-primitive-radius-full);
+  background: var(--cs-status-info);
+  color: var(--cs-text-on-accent);
+  font-size: var(--cs-primitive-font-size-10);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.notification-center {
+  display: grid;
+  gap: var(--cs-primitive-space-5);
+}
+
+.notification-center__list {
+  display: grid;
+  gap: var(--cs-primitive-space-2);
+}
+
+.notification-center__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--cs-primitive-space-4);
+  padding: var(--cs-primitive-space-4);
+  border: var(--cs-primitive-border-1) solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-14);
+  background: var(--cs-bg-surface-1);
+}
+
+.notification-center__item.is-unread {
+  border-inline-start: var(--cs-primitive-border-2) solid var(--cs-status-info);
+  background: color-mix(in srgb, var(--cs-status-info) 5%, var(--cs-bg-surface-1));
+}
+
+.notification-center__item-copy {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--cs-primitive-space-2);
+}
+
+.notification-center__item-heading {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--cs-primitive-space-2);
+}
+
+.notification-center__item-heading strong {
+  min-inline-size: 0;
+  color: var(--cs-text-strong);
+  overflow-wrap: anywhere;
+}
+
+.notification-center__item p,
+.notification-center__item time {
+  margin: 0;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  line-height: var(--cs-leading-body);
+}
+
+.notification-center__more {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 560px) {
+  .notification-center__item {
+    grid-template-columns: 1fr;
+  }
+
+  .notification-center__item > .cs-button {
+    inline-size: 100%;
+  }
+}
+
+@media (forced-colors: active) {
+  .notification-center__count {
+    border-color: Canvas;
+    background: Highlight;
+    color: HighlightText;
+  }
+}

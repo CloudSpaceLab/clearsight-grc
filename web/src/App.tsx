@@ -20,6 +20,7 @@ import { DisplayPreferencesMenu } from "./components/DisplayPreferences";
 import { DocumentImportWorkspace } from "./components/DocumentImportWorkspace";
 import { FocusedSheet } from "./components/FocusedSheet";
 import { NavigationIcon } from "./components/NavigationIcon";
+import { NotificationCenter } from "./components/NotificationCenter";
 import { initials } from "./components/Monogram";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
 import { WorkspaceSwitcher } from "./components/ui";
@@ -422,6 +423,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       <div className="context-bar" aria-label="Active workspace context">
         <div><strong>{organizationName}</strong><span>{legalEntityName}</span></div>
         <div className="context-role">
+          {runtime && <NotificationCenter key={notificationScopeKey(runtime)}/>}
           <DisplayPreferencesMenu/>
           <AdministrationMenu enabled={configureEnabled} onOpen={() => navigate("configure")}/>
           {serverDemoMode && <DemoEnvironmentMenu onOpenReferenceJourneys={referenceJourneysEnabled ? () => navigate("explore") : undefined}/>}
@@ -470,3 +472,9 @@ function evidenceRuntimeScopeKey(runtime: ProductRuntime | null) {
 }
 
 export default App;
+
+
+function notificationScopeKey(runtime: ProductRuntime | null) {
+  if (!runtime) return "notifications-unscoped";
+  return `${runtime.tenant.id}\u0000${runtime.legal_entity.id}\u0000${runtime.actor.id}`;
+}

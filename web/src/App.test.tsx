@@ -8,6 +8,7 @@ import type { AttentionItem, EvidenceRequest } from "./types";
 import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "./captureApi";
 import { ApiError } from "./http";
 import { loadFormTemplatePage } from "./formsApi";
+import { loadNotifications } from "./notificationApi";
 
 const { listEvidenceRecipientCandidates } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn() }));
 
@@ -19,6 +20,10 @@ vi.mock("./formsApi", () => ({
   loadSavedFormViews: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("./submittedDocumentApi", () => ({ loadDocuments: vi.fn().mockResolvedValue({ items: [] }) }));
+vi.mock("./notificationApi", () => ({
+  loadNotifications: vi.fn().mockResolvedValue({ items: [], unread_count: 0, as_of: "2026-10-02T09:00:00Z" }),
+  markNotificationRead: vi.fn(),
+}));
 
 vi.mock("./components/RoleAwareOnboarding", async () => {
   const React = await import("react");
@@ -162,6 +167,25 @@ beforeEach(() => {
   vi.mocked(reassignCaptureRecipient).mockRejectedValue(new Error("Recipient lifecycle command not configured"));
   listEvidenceRecipientCandidates.mockRejectedValue(new Error("Recipient candidates not configured"));
   vi.mocked(loadReadiness).mockRejectedValue(new Error("No readiness baseline"));
+  vi.mocked(loadNotifications).mockReset();
+  vi.mocked(loadNotifications).mockResolvedValue({ items: [], unread_count: 0, as_of: "2026-10-02T09:00:00Z" });
+});
+
+describe("notification shell integration", () => {
+  it("reloads notification delivery metadata when verified scope changes", async () => {
+    vi.mocked(loadContext).mockResolvedValueOnce(runtime(false)).mockResolvedValueOnce(secondScope());
+    vi.mocked(loadNotifications)
+      .mockResolvedValueOnce({ items: [], unread_count: 2, as_of: "2026-10-02T09:00:00Z" })
+      .mockResolvedValueOnce({ items: [], unread_count: 0, as_of: "2026-10-02T09:01:00Z" });
+
+    const view = render(<App presentation="demo"/>);
+    expect(await screen.findByRole("button", { name: "Notifications, 2 unread" })).toBeTruthy();
+
+    view.rerender(<App presentation="live-preview"/>);
+    await screen.findAllByText("Second Bank");
+    await waitFor(() => expect(loadNotifications).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("button", { name: "Notifications" })).toBeTruthy();
+  });
 });
 
 describe("runtime navigation", () => {

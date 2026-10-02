@@ -668,6 +668,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     throw new StaticDemoHTTPError(404, "not_found", "Guide not found.");
   }
   if (pathname === "/api/v1/today") return clone({ items: fixture === "today-empty" ? [] : todayItems, generated_at: now }) as T;
+  if (pathname === "/api/v1/notifications" && method === "GET") return clone({ items: [], unread_count: 0, as_of: now }) as T;
   if (pathname === "/api/v1/compliance/readiness") return clone({ tenant_id: "bank-demo", status: "AT_RISK", baseline_known: false, generated_at: now, dimensions: { current: 0, aging: 1, at_risk: 1, unknown: 1, blocked_routing: 0, pending_human: 1 }, active_drifts: [{ id: "drift-1", subject_type: "PROGRAM", subject_id: programID, dimension: "EVIDENCE", severity: 4, summary: "Two annual-return evidence sections are incomplete.", required_action: "Assign owners and complete DPCO review.", detected_at: now }], recommended_actions: ["Complete the two missing evidence ownership records.", "Confirm the final DPCO review date."] }) as T;
   if (pathname === "/api/v1/programs" && method === "POST") {
     const input = parseBody(init) as Record<string, any>;
