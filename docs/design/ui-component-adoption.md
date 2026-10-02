@@ -60,3 +60,8 @@ VendorDueDiligence and VendorWorkPanel are enforced in the migration manifest an
 Response assessment owns its score/document review composition; vendor and Forms response views share score and review-state presentation. EmptyState adapters use one renderer; sheets and dialogs share lifecycle mechanics without merging their layout. Retired FormPropertyPanel, FormQualityPanel and ReadinessPanel branches were removed; unique reusable-section tests moved to the active picker. Legacy ProgramLifecycleControls is explicitly evidence-only, outside production imports.
 
 Requests and linked work begin collapsed; response Filters uses a disclosure with active filters and reset outside. Native vendor identity fields retain scoped CSS rather than inheriting shared field overrides. This is a targeted audit correction, not a claim that every legacy workspace is migrated.
+
+
+## Portfolio shell
+
+Primary navigation now treats Programs, Vendors, Processing activities and Forms as peer Portfolio lenses instead of independent rail destinations. The shared `WorkspaceSwitcher` reflects the current route and changes only navigation; each underlying workspace keeps its existing data ownership, URL, loading behavior and deep links. Compact layouts use the same shared select contract rather than a second mobile workspace implementation.
