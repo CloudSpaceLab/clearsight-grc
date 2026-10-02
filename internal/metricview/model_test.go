@@ -49,6 +49,9 @@ func TestFromOversightPreservesPopulationAndSafeDataQuality(t *testing.T) {
 		if item.Population != 100 || item.Unknown == nil || *item.Unknown != 2 || item.Excluded == nil || *item.Excluded != 3 {
 			t.Fatalf("metric coverage drifted from bundle: %#v", item)
 		}
+		if item.Basis != MetricBasisCurrentPosture {
+			t.Fatalf("metric basis = %q for %s", item.Basis, item.ID)
+		}
 		if item.Drill.Consistency != DrillCurrentState || item.Drill.Workspace != "oversight" {
 			t.Fatalf("unexpected drill contract: %#v", item.Drill)
 		}
