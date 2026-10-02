@@ -19,13 +19,13 @@ export function reportingPeriodPath(path: string, period?: ReportingPeriodQuery)
 
 export function reportingPeriodLabel(period: ReportingPeriod) {
   const days = utcDayDifference(period.start_date, period.end_date);
-  if (days === 30 || days === 90 || days === 180) return `Last ${days} days`;
+  const calendarDays = days + 1;\n  if (calendarDays === 30 || calendarDays === 90 || calendarDays === 180) return `Last ${calendarDays} days`;
   return `${shortDate(period.start_date)} – ${shortDate(period.end_date)}`;
 }
 
 export function startDateForDays(endDate: string, days: number) {
   const value = parseDate(endDate);
-  value.setUTCDate(value.getUTCDate() - days);
+  value.setUTCDate(value.getUTCDate() - Math.max(0, days - 1));
   return value.toISOString().slice(0, 10);
 }
 
