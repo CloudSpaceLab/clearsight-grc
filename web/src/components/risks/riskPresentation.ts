@@ -109,37 +109,6 @@ export function assessmentKindLabel(kind: RiskAssessmentKind): string {
   return labels[kind];
 }
 
-export function controlImplementationLabel(status: RiskControlImplementationStatus): string {
-  if (status === "PLANNED") return "Planned";
-  if (status === "IN_PROGRESS") return "In progress";
-  if (status === "IMPLEMENTED") return "Implemented";
-  if (status === "INACTIVE") return "Inactive";
-  return "Retired";
-}
-
-export function controlImplementationTone(status: RiskControlImplementationStatus): StatusTone {
-  if (status === "IMPLEMENTED") return "success";
-  if (status === "IN_PROGRESS") return "info";
-  if (status === "PLANNED") return "neutral";
-  return "unknown";
-}
-
-export function controlEvidenceSummary(control: RiskControlDetail): string {
-  if (!control.evidence.length) return "No active checks";
-  const conclusions = control.evidence
-    .map((item) => item.conclusion ? controlEvidenceConclusionLabel(item.conclusion) : "Not assessed");
-  return `${control.evidence.length} active ${control.evidence.length === 1 ? "check" : "checks"} · ${[...new Set(conclusions)].join(", ")}`;
-}
-
-function controlEvidenceConclusionLabel(value: RiskControlEvidenceConclusion): string {
-  if (value === "SUPPORTED") return "Supported";
-  if (value === "PARTIALLY_SUPPORTED") return "Partially supported";
-  if (value === "UNSUPPORTED") return "Unsupported";
-  if (value === "CONTRADICTED") return "Contradicted";
-  if (value === "EXPIRED") return "Expired";
-  return "Indeterminate";
-}
-
 export function formatRiskDate(value: string | undefined): string {
   if (!value) return "Not recorded";
   const date = new Date(value);
