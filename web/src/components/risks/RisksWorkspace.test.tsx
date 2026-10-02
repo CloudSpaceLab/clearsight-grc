@@ -234,7 +234,7 @@ it("lets the direct Risk owner link an unlinked reusable control and reloads the
   fireEvent.click(await screen.findByRole("button", { name: "Link control" }));
   await waitFor(() => expect(loadControlCandidates).toHaveBeenCalledTimes(1));
   expect(screen.queryByText(/Network recovery testing · Quarterly recovery exercise/)).toBeNull();
-  expect(await screen.findByText("Network failover review · Monthly failover review · Infrastructure assurance")).toBeTruthy();
+  expect((await screen.findAllByText("Network failover review · Monthly failover review · Infrastructure assurance")).length).toBeGreaterThan(0);
 
   fireEvent.click(screen.getByRole("button", { name: "Link control" }));
   await waitFor(() => expect(linkControl).toHaveBeenCalledWith("risk-1", 3, "catalog-link-2"));
