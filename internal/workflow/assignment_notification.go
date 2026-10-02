@@ -78,8 +78,12 @@ type assignmentNotificationRecord struct {
 	DeliveredAt          *time.Time
 }
 
-type assignmentNotificationRepository interface {
+type assignmentNotificationContextLoader interface {
 	LoadAssignmentNotification(context.Context, workflowruntime.OutboxEvent, assignmentNotificationEvent) (assignmentNotificationContext, error)
+}
+
+type assignmentNotificationRepository interface {
+	assignmentNotificationContextLoader
 	GetAssignmentNotification(context.Context, workflowruntime.OutboxEvent, assignmentNotificationEvent) (assignmentNotificationRecord, bool, error)
 	ClaimAssignmentNotification(context.Context, workflowruntime.OutboxEvent, assignmentNotificationEvent, assignmentNotificationRecord) (bool, error)
 	RecordAssignmentNotification(context.Context, workflowruntime.OutboxEvent, assignmentNotificationEvent, assignmentNotificationRecord) error

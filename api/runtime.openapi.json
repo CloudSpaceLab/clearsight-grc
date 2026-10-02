@@ -49,6 +49,31 @@
           "counts": { "$ref": "#/components/schemas/RegisterCounts" }
         }
       },
+      "InAppNotification": {
+        "type": "object",
+        "required": ["id", "kind", "title", "summary", "subject_type", "subject_id", "action_path", "occurred_at"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "kind": { "type": "string" },
+          "title": { "type": "string" },
+          "summary": { "type": "string" },
+          "subject_type": { "type": "string" },
+          "subject_id": { "type": "string", "format": "uuid" },
+          "action_path": { "type": "string", "description": "Same-origin application hash route; authority is rechecked when opened." },
+          "occurred_at": { "type": "string", "format": "date-time" },
+          "read_at": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "InAppNotificationPage": {
+        "type": "object",
+        "required": ["items", "unread_count", "as_of"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/InAppNotification" } },
+          "next_cursor": { "type": "string" },
+          "unread_count": { "type": "integer", "minimum": 0 },
+          "as_of": { "type": "string", "format": "date-time" }
+        }
+      },
       "ProcessingActivityDataCategory": {
         "type": "object",
         "required": ["category", "sensitivity"],
@@ -262,6 +287,32 @@
     "/api/v1/people/{person_id}/activity": { "get": { "operationId": "employeeActivity", "x-clearsight-route-class": "AUTHENTICATED_READ" } },
     "/api/v1/oversight": { "get": { "operationId": "oversightSnapshot", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "OVERSIGHT_READ" } },
     "/api/v1/metrics/home": { "get": { "operationId": "homeMetrics", "x-clearsight-route-class": "AUTHENTICATED_READ", "x-clearsight-permission": "OVERSIGHT_READ" } },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "listNotifications",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          { "name": "cursor", "in": "query", "schema": { "type": "string" }, "description": "Opaque newest-first keyset cursor." },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 25 } },
+          { "name": "unread_only", "in": "query", "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": {
+          "200": { "description": "Actor-scoped in-app notification delivery metadata.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InAppNotificationPage" } } } },
+          "default": { "description": "Notifications could not be read." }
+        }
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "post": {
+        "operationId": "markNotificationRead",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "Notification delivery metadata marked read; underlying work is unchanged.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InAppNotification" } } } },
+          "default": { "description": "Notification read metadata could not be updated." }
+        }
+      }
+    },
 
     "/api/v1/ropa/dashboard": {
       "get": {
