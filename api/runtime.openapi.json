@@ -74,6 +74,95 @@
           "as_of": { "type": "string", "format": "date-time" }
         }
       },
+      "Risk": {
+        "type": "object",
+        "required": ["id","tenant_id","legal_entity_id","code","name","statement","impact","scope","status","version","created_at","updated_at"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "tenant_id": { "type": "string" },
+          "legal_entity_id": { "type": "string" },
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "category": { "type": "string" },
+          "statement": { "type": "string" },
+          "cause": { "type": "string" },
+          "event": { "type": "string" },
+          "impact": { "type": "string" },
+          "scope": { "type": "object", "additionalProperties": true },
+          "owner_principal_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["DRAFT","ACTIVE","RETIRED"] },
+          "version": { "type": "integer", "format": "int64", "minimum": 1 },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "RiskAssessment": {
+        "type": "object",
+        "required": ["id","risk_id","risk_version","kind","method_code","method_version","dimensions","assumptions","evidence_references","appetite_position","appetite_rationale","assessed_at","created_at"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "risk_id": { "type": "string", "format": "uuid" },
+          "risk_version": { "type": "integer", "format": "int64" },
+          "kind": { "type": "string", "enum": ["INHERENT","CURRENT","RESIDUAL","TARGET","STRESSED","ACCEPTED"] },
+          "method_code": { "type": "string" },
+          "method_version": { "type": "string" },
+          "dimensions": { "type": "object", "additionalProperties": true },
+          "assumptions": { "type": "object", "additionalProperties": true },
+          "evidence_references": { "type": "array", "items": {} },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "assessed_by": { "type": "string" },
+          "appetite_statement_id": { "type": "string", "format": "uuid" },
+          "appetite_position": { "type": "string", "enum": ["WITHIN","APPROACHING","BREACHED","UNKNOWN"] },
+          "appetite_rationale": { "type": "string" },
+          "assessed_at": { "type": "string", "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "RiskAppetiteStatement": {
+        "type": "object",
+        "required": ["id","risk_id","risk_version","version","statement","rule","rationale","status","effective_from","created_at"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "risk_id": { "type": "string", "format": "uuid" },
+          "risk_version": { "type": "integer", "format": "int64" },
+          "version": { "type": "integer", "format": "int64" },
+          "statement": { "type": "string" },
+          "rule": { "type": "object", "additionalProperties": true },
+          "rationale": { "type": "string" },
+          "owner_principal_id": { "type": "string" },
+          "authority_principal_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["ACTIVE","RETIRED"] },
+          "effective_from": { "type": "string", "format": "date-time" },
+          "effective_until": { "type": "string", "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "RiskSummary": {
+        "type": "object",
+        "required": ["risk"],
+        "properties": {
+          "risk": { "$ref": "#/components/schemas/Risk" },
+          "latest_assessment": { "$ref": "#/components/schemas/RiskAssessment" },
+          "active_appetite": { "$ref": "#/components/schemas/RiskAppetiteStatement" }
+        }
+      },
+      "RiskPage": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/RiskSummary" } },
+          "next_cursor": { "type": "string" }
+        }
+      },
+      "RiskAggregate": {
+        "type": "object",
+        "required": ["risk","assessments","appetite"],
+        "properties": {
+          "risk": { "$ref": "#/components/schemas/Risk" },
+          "assessments": { "type": "array", "items": { "$ref": "#/components/schemas/RiskAssessment" } },
+          "appetite": { "type": "array", "items": { "$ref": "#/components/schemas/RiskAppetiteStatement" } }
+        }
+      },
       "ProcessingActivityDataCategory": {
         "type": "object",
         "required": ["category", "sensitivity"],
@@ -311,6 +400,54 @@
           "200": { "description": "Notification delivery metadata marked read; underlying work is unchanged.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InAppNotification" } } } },
           "default": { "description": "Notification read metadata could not be updated." }
         }
+      }
+    },
+
+    "/api/v1/risks": {
+      "get": {
+        "operationId": "listRisks",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["DRAFT","ACTIVE","RETIRED"] } },
+          { "name": "category", "in": "query", "schema": { "type": "string" } },
+          { "name": "owner_principal_id", "in": "query", "schema": { "type": "string" } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "appetite_position", "in": "query", "schema": { "type": "string", "enum": ["WITHIN","APPROACHING","BREACHED","UNKNOWN"] } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } }
+        ],
+        "responses": { "200": { "description": "Exact legal-entity risk page.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RiskPage" } } } } }
+      },
+      "post": {
+        "operationId": "createRisk",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "responses": { "201": { "description": "Created governed Risk.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Risk" } } } } }
+      }
+    },
+    "/api/v1/risks/{id}": {
+      "get": {
+        "operationId": "getRisk", "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Risk with assessment and appetite history.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RiskAggregate" } } } } }
+      },
+      "post": {
+        "operationId": "updateRisk", "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Updated governed Risk.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Risk" } } } } }
+      }
+    },
+    "/api/v1/risks/{id}/assessments": {
+      "post": {
+        "operationId": "assessRisk", "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "201": { "description": "Immutable Risk assessment and refreshed Risk version." } }
+      }
+    },
+    "/api/v1/risks/{id}/appetite": {
+      "post": {
+        "operationId": "activateRiskAppetite", "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "201": { "description": "Versioned Risk appetite statement and refreshed Risk version." } }
       }
     },
 
