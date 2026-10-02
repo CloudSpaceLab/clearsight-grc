@@ -105,7 +105,7 @@ func configureRiskIndicators(risks *risk.Service, checks *monitoring.Service, pr
 			return "", risk.ErrInvalid
 		}
 		program, err := programs.GetProgram(continuity.WithTrustedSystemScope(ctx), scope.TenantID, check.ProgramID)
-		if err != nil || program.Program.LegalEntityID != scope.LegalEntityID {
+		if err != nil || program.Program.LegalEntityID != scope.LegalEntityID || program.Program.Status != continuity.ProgramActive {
 			return "", risk.ErrInvalid
 		}
 		return check.ProgramID, nil
