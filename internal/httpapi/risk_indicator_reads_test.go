@@ -1,9 +1,13 @@
 package httpapi
 
 import (
+	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 )
@@ -64,6 +68,83 @@ func TestCurrentRiskIndicatorStatePreservesUnknownSemantics(t *testing.T) {
 				t.Fatal("indicator state reason is empty")
 			}
 		})
+	}
+}
+
+func TestRiskIndicatorReadIncludesVisibleOpenMonitoringMatter(t *testing.T) {
+	now := time.Date(2026, 10, 2, 17, 0, 0, 0, time.UTC)
+	ctx := context.Background()
+	continuityService := continuity.NewService(continuity.NewMemoryRepository())
+	program, err := continuityService.CreateProgram(continuity.WithTrustedSystemScope(ctx), continuity.CreateProgramInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Code: "RESILIENCE", Name: "Network resilience",
+		Type: "ASSURANCE", OwningFunction: "Technology", OwnerPrincipalID: "owner-1",
+		AuthorityPrincipalID: "authorizer-1", Scope: json.RawMessage(`{}`), EffectiveFrom: now.Add(-time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	monitorRepo := monitoring.NewMemoryRepository()
+	monitorService := monitoring.NewService(monitorRepo, nil)
+	check, err := monitorRepo.CreateCheckRevision(ctx, monitoring.MonitoringCheck{
+		ID: "check-1", TenantID: "bank", ProgramID: program.Program.ID, Code: "FAILOVER", Name: "Failover health",
+		Claim: "Failover remains within approved bounds.", InputKind: monitoring.InputSource,
+		BindingID: "binding-1", BindingVersion: 1, Thresholds: monitoring.DefaultThresholds(),
+		FreshnessMinutes: 60, MinimumCoverage: 0.95, OwnerPrincipalID: "owner-1", ReviewerPrincipalID: "reviewer-1",
+		FailureAction: monitoring.FailureRecommendMatter,
+		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 2, CreatedAt: now, UpdatedAt: now},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	score := 80.0
+	result, err := monitorRepo.AppendResult(ctx, monitoring.MonitoringResult{
+		ID: "result-1", TenantID: "bank", ProgramID: program.Program.ID,
+		MonitoringCheckID: check.ID, MonitoringCheckVersion: check.Version,
+		InputKind: monitoring.InputSource, InputReferenceID: "receipt-1", InputReferenceVersion: 1,
+		Evaluation: monitoring.Evaluation{Score: &score, Band: monitoring.RiskCritical, Coverage: 1},
+		EvaluatedAt: now, EvaluatorVersion: "risk-v1", CreatedAt: now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := json.Marshal(map[string]any{
+		"monitoring_result_id": result.ID,
+		"monitoring_check_id": check.ID,
+		"monitoring_check_version": check.Version,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, matter, inserted, err := continuityService.ApplyTrigger(continuity.WithTrustedSystemScope(ctx), continuity.Trigger{
+		TenantID: "bank", ProgramID: program.Program.ID, Type: "MONITORING_RESULT_ADVERSE",
+		SubjectType: "MONITORING_RESULT", SubjectID: result.ID, DedupeKey: "monitoring-result-adverse:" + result.ID,
+		Payload: payload, ObservedAt: now, Source: "monitoring-result-review", ActorID: "owner-1",
+	})
+	if err != nil || !inserted || matter == nil {
+		t.Fatalf("create monitoring Matter inserted=%v matter=%#v err=%v", inserted, matter, err)
+	}
+
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "owner-1"}
+	actorCtx := identity.WithActor(ctx, actor)
+	api := &API{deps: Dependencies{Continuity: continuityService, Monitoring: monitorService}}
+	read := api.riskAggregateWithDetails(actorCtx, actor, risk.Aggregate{
+		Risk: risk.Risk{
+			ID: "risk-1", TenantID: "bank", LegalEntityID: "entity-a", Code: "RISK-1", Name: "Network resilience",
+			Statement: "Network service may exceed tolerance.", Impact: "Critical service disruption.",
+			Status: risk.StatusActive, Version: 2, CreatedAt: now.Add(-time.Hour), UpdatedAt: now,
+		},
+		Indicators: []risk.IndicatorLink{{
+			ID: "indicator-1", RiskID: "risk-1", RiskVersion: 2, ProgramID: program.Program.ID,
+			MonitoringCheckID: check.ID, MonitoringCheckVersion: check.Version, Kind: risk.IndicatorKRI,
+			Measurement: risk.IndicatorMonitoringRiskScore, CreatedAt: now,
+		}},
+	})
+	if !read.IndicatorDetailsComplete || len(read.IndicatorDetails) != 1 {
+		t.Fatalf("Indicator read incomplete: %#v", read)
+	}
+	detail := read.IndicatorDetails[0]
+	if detail.OpenMatterID != matter.ID || detail.OpenMatterReference != matter.Reference || detail.OpenMatterStatus != matter.Status {
+		t.Fatalf("open Matter read-through=%#v want=%#v", detail, matter)
 	}
 }
 
