@@ -556,7 +556,7 @@ func (a *API) createMonitoringLinkedIssue(w http.ResponseWriter, r *http.Request
 		writeContinuityError(w, lookupErr)
 		return
 	}
-	if existing, lookupErr := continuityService.OpenMonitoringMatter(r.Context(), actor.TenantID, aggregate.Program.ID, check.ID); lookupErr == nil {
+	if existing, lookupErr := continuityService.OpenMonitoringMatter(r.Context(), actor.TenantID, aggregate.Program.ID, check.ID, check.Version); lookupErr == nil {
 		if !monitoringMatterMatchesActor(existing, aggregate.Program, actor.PrincipalID) {
 			writeContinuityError(w, continuity.ErrNotFound)
 			return
