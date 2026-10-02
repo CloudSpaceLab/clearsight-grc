@@ -32,7 +32,7 @@ func TestPostgresControlCatalogUsesExistingProgramImplementationAndExactEntitySc
 	implementationA, implementationB := catalogID(t), catalogID(t)
 	suffix := tenantID[len(tenantID)-8:]
 	tenantSlug := "catalog-" + suffix
-	entityACode, entityBCode := "CAT-A-" + suffix, "CAT-B-" + suffix
+	entityACode, entityBCode := "CAT-A-"+suffix, "CAT-B-"+suffix
 	now := time.Date(2026, 10, 2, 13, 15, 0, 0, time.UTC)
 
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,$3)`, tenantID, tenantSlug, "Catalog "+suffix); err != nil {
@@ -49,7 +49,7 @@ func TestPostgresControlCatalogUsesExistingProgramImplementationAndExactEntitySc
 		INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,scope,effective_from,created_at,updated_at,version) VALUES
 		($1::uuid,$2::uuid,$3::uuid,$4,'Program A','OPERATIONS','ACTIVE','Risk','{}'::jsonb,$8,$8,$8,1),
 		($5::uuid,$2::uuid,$6::uuid,$7,'Program B','OPERATIONS','ACTIVE','Risk','{}'::jsonb,$8,$8,$8,1)`,
-		programA, tenantID, entityA, "PA-" + suffix, programB, entityB, "PB-" + suffix, now); err != nil {
+		programA, tenantID, entityA, "PA-"+suffix, programB, entityB, "PB-"+suffix, now); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
