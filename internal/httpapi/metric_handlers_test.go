@@ -101,7 +101,7 @@ func TestHomeMetricsShareRequestedPeriodAndMarkHeadlineMetricsCurrentPosture(t *
 			TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, GeneratedAt: end,
 			PeriodStart: start, PeriodEnd: end, PostureAsOf: end, ProjectionVersion: oversight.ProjectionVersion,
 			Coverage: oversight.Coverage{Population: 8, Unknown: &unknown},
-			Counts: oversight.Counts{CriticalHigh: 3, Overdue: 2},
+			Counts:   oversight.Counts{CriticalHigh: 3, Overdue: 2},
 		}, nil
 	})
 	service := oversight.NewService(repo)
