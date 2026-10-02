@@ -283,6 +283,42 @@ func (r *PostgresRepository) AppetiteStatements(ctx context.Context, scope Scope
 	return values, nil
 }
 
+func (r *PostgresRepository) CurrentAppetite(ctx context.Context, scope Scope, riskID string, at time.Time) (*AppetiteStatement, error) {
+	scope, err := normalizeScope(scope)
+	if err != nil || !validUUID(riskID) || at.IsZero() {
+		return nil, ErrInvalid
+	}
+	var value AppetiteStatement
+	err = r.pool.QueryRow(ctx, `
+		SELECT a.id::text,a.risk_id::text,a.risk_version,a.version,a.statement,a.rule,a.rationale,
+		       COALESCE(a.owner_principal_id::text,''),COALESCE(a.authority_principal_id::text,''),
+		       a.status,a.effective_from,a.effective_until,a.created_at
+		FROM risk_appetite_statements a
+		JOIN tenants t ON t.id=a.tenant_id
+		JOIN legal_entities le ON le.tenant_id=a.tenant_id AND le.id=a.legal_entity_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (le.id::text=$2 OR le.code=$2)
+		  AND a.risk_id=$3::uuid
+		  AND a.status='ACTIVE'
+		  AND a.effective_from<=$4
+		  AND (a.effective_until IS NULL OR $4<a.effective_until)
+		ORDER BY a.version DESC,a.id DESC
+		LIMIT 1`, scope.TenantID, scope.LegalEntityID, riskID, at.UTC(),
+	).Scan(&value.ID,&value.RiskID,&value.RiskVersion,&value.Version,&value.Statement,&value.Rule,
+		&value.Rationale,&value.OwnerPrincipalID,&value.AuthorityPrincipalID,&value.Status,
+		&value.EffectiveFrom,&value.EffectiveUntil,&value.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		if _, getErr := r.Get(ctx, scope, riskID); getErr != nil {
+			return nil, getErr
+		}
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
 func (r *PostgresRepository) lockRisk(ctx context.Context, scope Scope, riskID string) (pgx.Tx, Risk, error) {
 	if r == nil || r.pool == nil {
 		return nil, Risk{}, ErrInvalid
