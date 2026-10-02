@@ -45,11 +45,13 @@ func TestInAppNotificationProjectorDoesNotPersistRawUpdateMessage(t *testing.T) 
 		t.Fatalf("records = %#v", repo.records)
 	}
 	record := repo.records[0]
-	if record.Kind != actionUpdateNotificationKind || record.Title != "Update requested" || record.Summary != "Provide current remediation status" {
+	if record.Kind != actionUpdateNotificationKind || record.Title != "Update requested" || record.Summary != "Open Work to review the current record." {
 		t.Fatalf("record = %#v", record)
 	}
-	if strings.Contains(record.Summary, "Sensitive raw update") || strings.Contains(record.Title, "Sensitive raw update") {
-		t.Fatalf("raw request text leaked into notification: %#v", record)
+	for _, sensitive := range []string{"Sensitive raw update", "Provide current remediation status", "Access control exception"} {
+		if strings.Contains(record.Summary, sensitive) || strings.Contains(record.Title, sensitive) {
+			t.Fatalf("sensitive source text %q leaked into notification: %#v", sensitive, record)
+		}
 	}
 	if record.SubjectType != "MATTER" || record.SubjectID != matterID || record.ActionPath != "#work/matters/"+matterID {
 		t.Fatalf("target = %#v", record)
