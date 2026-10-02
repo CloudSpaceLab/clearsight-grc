@@ -416,7 +416,7 @@ func storeRiskHistory(ctx context.Context, tx pgx.Tx, value Risk, event Event) e
 	}
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
-		VALUES($1::uuid,'RISK',$2::uuid,$3,jsonb_build_object('risk_version',$4,'legal_entity_id',$5::text),$6,$6)`,
+		VALUES($1::uuid,'RISK',$2::uuid,$3::text,jsonb_build_object('risk_version',$4::bigint,'legal_entity_id',$5::text),$6::timestamptz,$6::timestamptz)`,
 		value.TenantID, value.ID, event.Type, value.Version, value.LegalEntityID, event.OccurredAt); err != nil {
 		return mapRiskPostgresError(err)
 	}
