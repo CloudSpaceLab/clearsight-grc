@@ -38,4 +38,6 @@ export type { TabItem, TabsProps } from "./Tabs";
 export { TextArea } from "./TextArea";
 export type { TextAreaProps } from "./TextArea";
 export { TextField } from "./TextField";
+export { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+export type { WorkspaceSwitcherItem, WorkspaceSwitcherProps } from "./WorkspaceSwitcher";
 export type { TextFieldProps, TextFieldType } from "./TextField";
