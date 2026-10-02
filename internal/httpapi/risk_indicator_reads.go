@@ -21,30 +21,30 @@ const (
 )
 
 type riskIndicatorRead struct {
-	Link                risk.IndicatorLink       `json:"link"`
-	ProgramID           string                   `json:"program_id"`
-	ProgramName         string                   `json:"program_name"`
-	CheckID             string                   `json:"check_id"`
-	CheckCode           string                   `json:"check_code"`
-	CheckName           string                   `json:"check_name"`
-	Claim               string                   `json:"claim"`
+	Link                risk.IndicatorLink         `json:"link"`
+	ProgramID           string                     `json:"program_id"`
+	ProgramName         string                     `json:"program_name"`
+	CheckID             string                     `json:"check_id"`
+	CheckCode           string                     `json:"check_code"`
+	CheckName           string                     `json:"check_name"`
+	Claim               string                     `json:"claim"`
 	CheckStatus         monitoring.LifecycleStatus `json:"check_status"`
-	CheckVersion        int64                    `json:"check_version"`
-	InputKind           monitoring.InputKind     `json:"input_kind"`
-	OwnerDisplayName    string                   `json:"owner_display_name,omitempty"`
-	ReviewerDisplayName string                   `json:"reviewer_display_name,omitempty"`
-	Measurement         risk.IndicatorMeasurement `json:"measurement"`
-	Unit                string                   `json:"unit"`
-	Denominator         int                      `json:"denominator"`
-	State               riskIndicatorState       `json:"state"`
-	Reason              string                   `json:"reason"`
-	Score               *float64                 `json:"score,omitempty"`
-	Band                monitoring.RiskBand      `json:"band,omitempty"`
-	Coverage            *float64                 `json:"coverage,omitempty"`
-	MinimumCoverage     float64                  `json:"minimum_coverage"`
-	FreshnessMinutes    int                      `json:"freshness_minutes"`
-	ResultID            string                   `json:"result_id,omitempty"`
-	EvaluatedAt         *time.Time               `json:"evaluated_at,omitempty"`
+	CheckVersion        int64                      `json:"check_version"`
+	InputKind           monitoring.InputKind       `json:"input_kind"`
+	OwnerDisplayName    string                     `json:"owner_display_name,omitempty"`
+	ReviewerDisplayName string                     `json:"reviewer_display_name,omitempty"`
+	Measurement         risk.IndicatorMeasurement  `json:"measurement"`
+	Unit                string                     `json:"unit"`
+	Denominator         int                        `json:"denominator"`
+	State               riskIndicatorState         `json:"state"`
+	Reason              string                     `json:"reason"`
+	Score               *float64                   `json:"score,omitempty"`
+	Band                monitoring.RiskBand        `json:"band,omitempty"`
+	Coverage            *float64                   `json:"coverage,omitempty"`
+	MinimumCoverage     float64                    `json:"minimum_coverage"`
+	FreshnessMinutes    int                        `json:"freshness_minutes"`
+	ResultID            string                     `json:"result_id,omitempty"`
+	EvaluatedAt         *time.Time                 `json:"evaluated_at,omitempty"`
 }
 
 func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor, value risk.Aggregate) riskAggregateRead {
