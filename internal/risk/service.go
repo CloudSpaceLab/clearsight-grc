@@ -13,6 +13,7 @@ const (
 	EventRiskUpdated       = "RiskUpdated"
 	EventRiskAssessed      = "RiskAssessed"
 	EventAppetiteActivated = "RiskAppetiteActivated"
+	EventControlLinked      = "RiskControlLinked"
 )
 
 type Service struct {
@@ -205,6 +206,41 @@ func (s *Service) ActivateAppetite(ctx context.Context, input AppetiteInput) (Ri
 	return s.repository.AddAppetite(ctx, scope, current.ID, input.ExpectedRiskVersion, statement, event)
 }
 
+func (s *Service) LinkControl(ctx context.Context, input LinkControlInput) (Risk, ControlLink, error) {
+	if s == nil || s.repository == nil {
+		return Risk{}, ControlLink{}, ErrInvalid
+	}
+	scope, err := normalizeScope(Scope{TenantID: input.TenantID, LegalEntityID: input.LegalEntityID})
+	if err != nil {
+		return Risk{}, ControlLink{}, err
+	}
+	current, err := s.repository.Get(ctx, scope, strings.TrimSpace(input.RiskID))
+	if err != nil {
+		return Risk{}, ControlLink{}, err
+	}
+	if input.ExpectedRiskVersion <= 0 || current.Version != input.ExpectedRiskVersion {
+		return Risk{}, ControlLink{}, ErrVersionConflict
+	}
+	catalogLinkID := strings.TrimSpace(input.CatalogLinkID)
+	if catalogLinkID == "" {
+		return Risk{}, ControlLink{}, ErrInvalid
+	}
+	now := s.now()
+	control := ControlLink{
+		RiskID: current.ID, RiskVersion: current.Version + 1,
+		CatalogLinkID: catalogLinkID, LinkedBy: strings.TrimSpace(input.ActorID), CreatedAt: now,
+	}
+	control.ID, err = newID()
+	if err != nil {
+		return Risk{}, ControlLink{}, err
+	}
+	event, err := riskEventWithVersion(current, current.Version+1, EventControlLinked, input.ActorID, control, now)
+	if err != nil {
+		return Risk{}, ControlLink{}, err
+	}
+	return s.repository.AddControl(ctx, scope, current.ID, input.ExpectedRiskVersion, control, event)
+}
+
 func (s *Service) Get(ctx context.Context, scope Scope, riskID string) (Aggregate, error) {
 	if s == nil || s.repository == nil {
 		return Aggregate{}, ErrInvalid
@@ -229,7 +265,11 @@ func (s *Service) Get(ctx context.Context, scope Scope, riskID string) (Aggregat
 	if err != nil {
 		return Aggregate{}, err
 	}
-	return Aggregate{Risk: current, Assessments: assessments, Appetite: appetite, ActiveAppetite: activeAppetite}, nil
+	controls, err := s.repository.Controls(ctx, scope, current.ID, 100)
+	if err != nil {
+		return Aggregate{}, err
+	}
+	return Aggregate{Risk: current, Assessments: assessments, Appetite: appetite, ActiveAppetite: activeAppetite, Controls: controls}, nil
 }
 
 func (s *Service) List(ctx context.Context, scope Scope, filter ListFilter) (Page, error) {
