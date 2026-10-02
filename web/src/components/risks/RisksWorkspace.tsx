@@ -9,10 +9,11 @@ type Props = {
   targetID?: string;
   onTarget: (id?: string) => void;
   onOpenProgram?: (programID: string) => void;
+  onOpenMatter?: (matterID: string) => void;
   onOpenProgramControl?: (programID: string, objectiveID: string) => void;
 };
 
-export function RisksWorkspace({ organizationName, legalEntityName, actorID, targetID, onTarget, onOpenProgram, onOpenProgramControl }: Props) {
-  if (targetID) return <RiskRecord riskID={targetID} actorID={actorID} onBack={() => onTarget(undefined)} onOpenProgram={onOpenProgram} onOpenProgramControl={onOpenProgramControl}/>;
+export function RisksWorkspace({ organizationName, legalEntityName, actorID, targetID, onTarget, onOpenProgram, onOpenMatter, onOpenProgramControl }: Props) {
+  if (targetID) return <RiskRecord riskID={targetID} actorID={actorID} onBack={() => onTarget(undefined)} onOpenProgram={onOpenProgram} onOpenMatter={onOpenMatter} onOpenProgramControl={onOpenProgramControl}/>;
   return <RiskRegister organizationName={organizationName} legalEntityName={legalEntityName} onOpenRisk={(id) => onTarget(id)}/>;
 }
