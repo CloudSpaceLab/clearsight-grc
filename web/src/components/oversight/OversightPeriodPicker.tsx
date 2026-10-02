@@ -16,6 +16,7 @@ const presets = [30, 90, 180] as const;
 
 export function OversightPeriodPicker({ period, freshness, generatedAt, isChanging = false, error, onApply }: Props) {
   const [open, setOpen] = useState(false);
+  const [custom, setCustom] = useState(false);
   const [startDate, setStartDate] = useState(period.start_date);
 
   useEffect(() => { setStartDate(period.start_date); }, [period.start_date]);
@@ -23,8 +24,17 @@ export function OversightPeriodPicker({ period, freshness, generatedAt, isChangi
   const minimum = minimumReportingStart(period);
   const invalid = !startDate || startDate < minimum || startDate > period.end_date;
 
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setCustom(false);
+      setStartDate(period.start_date);
+    }
+  }
+
   function apply(query: ReportingPeriodQuery) {
     setOpen(false);
+    setCustom(false);
     onApply(query);
   }
 
@@ -32,7 +42,7 @@ export function OversightPeriodPicker({ period, freshness, generatedAt, isChangi
     <PopoverDialog
       label="Choose reporting period"
       isOpen={open}
-      onOpenChange={setOpen}
+      onOpenChange={handleOpenChange}
       placement="bottom end"
       triggerLabel={`Reporting period, ${reportingPeriodLabel(period)}`}
       triggerClassName="oversight-period-trigger"
@@ -44,10 +54,11 @@ export function OversightPeriodPicker({ period, freshness, generatedAt, isChangi
       </>}
     >
       <div className="oversight-period-picker">
-        <div>
-          <strong>Analysis period</strong>
-          <p>Current risk posture stays current. Completion, resolution and operating-history measures use this period.</p>
+        <div className="oversight-period-picker__intro">
+          <strong>Reporting period</strong>
+          <p>Current posture stays current. History measures use this window.</p>
         </div>
+
         <div className="oversight-period-presets" aria-label="Reporting period presets">
           {presets.map((days) => <Button
             key={days}
@@ -55,9 +66,17 @@ export function OversightPeriodPicker({ period, freshness, generatedAt, isChangi
             variant="secondary"
             isDisabled={isChanging}
             onPress={() => apply({ start_date: startDateForDays(period.end_date, days), end_date: period.end_date })}
-          >Last {days} days</Button>)}
+          >{days} days</Button>)}
         </div>
-        <div className="oversight-period-fields">
+
+        {!custom && <Button
+          size="compact"
+          variant="quiet"
+          isDisabled={isChanging}
+          onPress={() => setCustom(true)}
+        >Custom start date</Button>}
+
+        {custom && <div className="oversight-period-custom">
           <TextField
             label="From"
             type="date"
@@ -69,28 +88,27 @@ export function OversightPeriodPicker({ period, freshness, generatedAt, isChangi
             isInvalid={invalid}
             errorMessage={invalid ? `Choose a date from ${minimum} through ${period.end_date}.` : undefined}
           />
-          <TextField
-            label="To"
-            type="date"
-            value={period.end_date}
-            onChange={() => undefined}
-            min={period.end_date}
-            max={period.end_date}
-            isReadOnly
-            description="Current reporting date. Historical end dates are not reconstructed."
-          />
-        </div>
-        <div className="oversight-period-actions">
-          <Button variant="secondary" onPress={() => setOpen(false)}>Cancel</Button>
-          <Button isDisabled={invalid || isChanging} onPress={() => apply({ start_date: startDate, end_date: period.end_date })}>
-            {isChanging ? "Applying…" : "Apply"}
-          </Button>
-        </div>
+          <div className="oversight-period-end" aria-label={`To ${period.end_date}`}>
+            <span>To</span>
+            <strong>{formatReportingDate(period.end_date)}</strong>
+            <small>Current reporting date</small>
+          </div>
+          <div className="oversight-period-actions">
+            <Button size="compact" variant="quiet" onPress={() => { setCustom(false); setStartDate(period.start_date); }}>Back</Button>
+            <Button size="compact" isDisabled={invalid || isChanging} onPress={() => apply({ start_date: startDate, end_date: period.end_date })}>
+              {isChanging ? "Applying…" : "Apply"}
+            </Button>
+          </div>
+        </div>}
       </div>
     </PopoverDialog>
     <small>{freshness === "CURRENT" ? "Current" : "Needs refresh"} · Updated {formatDateTime(generatedAt)}</small>
     {error && <Notice tone="warning">{error}</Notice>}
   </div>;
+}
+
+function formatReportingDate(value: string) {
+  return new Date(`${value}T00:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 }
 
 function formatDateTime(value: string) {
