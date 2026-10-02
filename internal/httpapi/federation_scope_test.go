@@ -64,10 +64,10 @@ func TestActorContextAdvertisesScopeSwitchOnlyForFederatedMultiEntityContext(t *
 		hierarchy: runtimecontext.ScopeHierarchy{State: runtimecontext.HierarchyComplete, Root: root, Current: current, LegalEntities: []runtimecontext.ScopeNode{current, ghana}},
 	}
 	for _, test := range []struct {
-		name          string
-		federation    *federation.Service
+		name           string
+		federation     *federation.Service
 		hierarchyState runtimecontext.HierarchyState
-		want          string
+		want           string
 	}{
 		{name: "federated", federation: &federation.Service{}, hierarchyState: runtimecontext.HierarchyComplete, want: `"scope_switch":true`},
 		{name: "non-federated", federation: nil, hierarchyState: runtimecontext.HierarchyComplete, want: `"scope_switch":false`},
