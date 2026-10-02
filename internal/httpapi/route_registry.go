@@ -324,6 +324,8 @@ func (a *API) routes() []routeSpec {
 		write(http.MethodPost, "/api/v1/compliance/signals", a.ingestSignal, bindJSONIdentity(false)),
 	}
 
+	routes = append(routes, a.riskRoutes()...)
+
 	routes = append(routes,
 		withPermission(read("/api/v1/access/overview", a.identityAccessOverview), identity.PermissionIdentityRead),
 		withPermission(write(http.MethodPost, "/api/v1/access/scim-sources", a.createSCIMSource, nil), identity.PermissionIdentityConfigure),
