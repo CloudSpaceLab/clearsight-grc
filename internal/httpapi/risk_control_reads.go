@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/CloudSpaceLab/clearsight-grc/internal/controlcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/controlcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 )
@@ -14,24 +14,24 @@ type riskControlEvidenceRead struct {
 	ContractID string                        `json:"contract_id"`
 	Name       string                        `json:"name"`
 	Conclusion continuity.EvidenceConclusion `json:"conclusion,omitempty"`
-	AssessedAt *time.Time                     `json:"assessed_at,omitempty"`
-	ValidUntil *time.Time                     `json:"valid_until,omitempty"`
+	AssessedAt *time.Time                    `json:"assessed_at,omitempty"`
+	ValidUntil *time.Time                    `json:"valid_until,omitempty"`
 }
 
 type riskControlRead struct {
-	Link                   risk.ControlLink                     `json:"link"`
-	Definition             controlcatalog.Definition            `json:"definition"`
-	ProgramID              string                               `json:"program_id"`
-	ProgramName            string                               `json:"program_name"`
-	ImplementationID       string                               `json:"implementation_id"`
-	ObjectiveID            string                               `json:"objective_id"`
-	ImplementationName     string                               `json:"implementation_name"`
-	ImplementationType     string                               `json:"implementation_type"`
-	ImplementationStatus   continuity.ControlImplementationStatus `json:"implementation_status"`
-	ImplementationVersion  int64                                `json:"implementation_version"`
-	OwnerDisplayName       string                               `json:"owner_display_name,omitempty"`
-	OwnerAssigned          bool                                 `json:"owner_assigned"`
-	Evidence                []riskControlEvidenceRead            `json:"evidence"`
+	Link                  risk.ControlLink                       `json:"link"`
+	Definition            controlcatalog.Definition              `json:"definition"`
+	ProgramID             string                                 `json:"program_id"`
+	ProgramName           string                                 `json:"program_name"`
+	ImplementationID      string                                 `json:"implementation_id"`
+	ObjectiveID           string                                 `json:"objective_id"`
+	ImplementationName    string                                 `json:"implementation_name"`
+	ImplementationType    string                                 `json:"implementation_type"`
+	ImplementationStatus  continuity.ControlImplementationStatus `json:"implementation_status"`
+	ImplementationVersion int64                                  `json:"implementation_version"`
+	OwnerDisplayName      string                                 `json:"owner_display_name,omitempty"`
+	OwnerAssigned         bool                                   `json:"owner_assigned"`
+	Evidence              []riskControlEvidenceRead              `json:"evidence"`
 }
 
 type riskAggregateRead struct {
@@ -42,9 +42,9 @@ type riskAggregateRead struct {
 
 func (a *API) riskAggregateWithControls(ctx context.Context, actor identity.Actor, value risk.Aggregate) riskAggregateRead {
 	result := riskAggregateRead{
-		Aggregate:               value,
-		ControlDetails:          []riskControlRead{},
-		ControlDetailsComplete:  true,
+		Aggregate:              value,
+		ControlDetails:         []riskControlRead{},
+		ControlDetailsComplete: true,
 	}
 	if len(value.Controls) == 0 {
 		return result
