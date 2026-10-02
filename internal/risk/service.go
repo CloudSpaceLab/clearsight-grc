@@ -18,7 +18,7 @@ const (
 )
 
 type ControlLinkValidator func(context.Context, Scope, string) error
-type IndicatorLinkValidator func(context.Context, Scope, string, int64) error
+type IndicatorLinkValidator func(context.Context, Scope, string, int64) (string, error)
 
 type Service struct {
 	repository             Repository
@@ -280,12 +280,17 @@ func (s *Service) LinkIndicator(ctx context.Context, input LinkIndicatorInput) (
 	if checkID == "" || input.MonitoringCheckVersion < 1 || !validIndicatorKind(input.Kind) || s.indicatorLinkValidator == nil {
 		return Risk{}, IndicatorLink{}, ErrInvalid
 	}
-	if err := s.indicatorLinkValidator(ctx, scope, checkID, input.MonitoringCheckVersion); err != nil {
+	programID, err := s.indicatorLinkValidator(ctx, scope, checkID, input.MonitoringCheckVersion)
+	if err != nil || strings.TrimSpace(programID) == "" {
+		if err == nil {
+			err = ErrInvalid
+		}
 		return Risk{}, IndicatorLink{}, err
 	}
 	now := s.now()
 	link := IndicatorLink{
 		RiskID:                 current.ID,
+		ProgramID:              strings.TrimSpace(programID),
 		RiskVersion:            current.Version + 1,
 		MonitoringCheckID:      checkID,
 		MonitoringCheckVersion: input.MonitoringCheckVersion,
