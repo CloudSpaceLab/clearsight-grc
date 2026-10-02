@@ -110,7 +110,7 @@ func (m *Maintainer) Maintain(ctx context.Context, now time.Time, limit int) (in
 		if ctx.Err() != nil {
 			return completed, ctx.Err()
 		}
-		snapshot, err := m.Repository.build(ctx, scope, now)
+		snapshot, err := m.Repository.build(ctx, scope, now, now.Add(-90*24*time.Hour))
 		if err != nil {
 			return completed, err
 		}
@@ -126,11 +126,16 @@ func (m *Maintainer) Maintain(ctx context.Context, now time.Time, limit int) (in
 	return completed, cleanupErr
 }
 
-func (r *PostgresRepository) build(ctx context.Context, scope Scope, now time.Time) (Snapshot, error) {
-	periodStart := now.Add(-90 * 24 * time.Hour)
+func (r *PostgresRepository) BuildPeriod(ctx context.Context, scope Scope, start, end time.Time) (Snapshot, error) {
+	return r.build(ctx, scope, end.UTC(), start.UTC())
+}
+
+func (r *PostgresRepository) build(ctx context.Context, scope Scope, now, periodStart time.Time) (Snapshot, error) {
+	now = now.UTC()
+	periodStart = periodStart.UTC()
 	value := Snapshot{
 		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, GeneratedAt: now,
-		PeriodStart: periodStart, PeriodEnd: now, ProjectionVersion: ProjectionVersion,
+		PeriodStart: periodStart, PeriodEnd: now, PostureAsOf: now, ProjectionVersion: ProjectionVersion,
 		SourceHighWater: map[string]time.Time{},
 		Interventions:   []Intervention{}, Pressure: []CategoryPressure{}, Aging: []AgingBucket{}, Performance: []Performance{}, Estimates: []ResolutionEstimate{},
 	}
