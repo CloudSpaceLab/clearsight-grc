@@ -44,6 +44,7 @@ export const programOperationalCoverage = {
   "program.safeguard.update": { surface: "ProgramSafeguardsPanel", states: ["planned", "implemented_requires_reconfirmation", "read_only"], testedBy: ["ProgramSafeguardsPanel.test.tsx"] },
   "program.safeguard.assign": { surface: "ProgramSafeguardsPanel", states: ["assigned", "eligible_candidate_selection", "read_only"], testedBy: ["ProgramSafeguardsPanel.test.tsx"] },
   "program.safeguard.transition": { surface: "ProgramSafeguardsPanel", states: ["planned", "in_progress", "implemented", "inactive", "retired"], testedBy: ["ProgramSafeguardsPanel.test.tsx"] },
+  "program.control.catalog.promote": { surface: "ProgramSafeguardsPanel", states: ["available", "catalogued", "catalog_status_unavailable"], testedBy: ["ProgramSafeguardsPanel.test.tsx"] },
   "program.coverage.link": { surface: "ProgramSafeguardsPanel", states: ["uncovered", "linked", "duplicate_prevented"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
   "program.safeguard.unlink": { surface: "ProgramSafeguardsPanel", states: ["linked", "confirmation", "preserved_history"], testedBy: ["ProgramSafeguardsPanel.test.tsx"] },
   "program.evidence.define": { surface: "ProgramEvidencePanel", states: ["empty", "source_selected", "thresholds_defined"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
