@@ -81,6 +81,9 @@ func (a *API) riskAggregateWithControls(ctx context.Context, actor identity.Acto
 		program, ok := programs[catalogLink.ProgramID]
 		if !ok {
 			program, err = a.deps.Continuity.GetProgram(ctx, actor.TenantID, catalogLink.ProgramID)
+			if err == nil {
+				program, err = a.programForActor(ctx, program, nil)
+			}
 			if err != nil || program.Program.LegalEntityID != actor.LegalEntityID {
 				result.ControlDetailsComplete = false
 				continue
