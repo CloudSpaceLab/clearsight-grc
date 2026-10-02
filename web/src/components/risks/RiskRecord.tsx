@@ -3,7 +3,7 @@ import { getRisk } from "../../riskApi";
 import type { RiskAggregate, RiskAppetiteStatement, RiskAssessment } from "../../riskTypes";
 import { apiErrorKind } from "../../http";
 import { Button, DataTable, EmptyState, StatusBadge, Surface, type DataColumn } from "../ui";
-import { appetiteLabel, appetiteTone, assessmentKindLabel, dimensionSummary, formatRiskDate, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
+import { appetiteLabel, appetiteTone, assessmentKindLabel, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
 
 type Props = {
   riskID: string;
@@ -68,7 +68,7 @@ export function RiskRecord({ riskID, onBack, loadRisk = getRisk }: Props) {
 
     <Surface>
       <dl className="risk-record__state">
-        <div><dt>Appetite</dt><dd><StatusBadge tone={appetiteTone(latestAssessment?.appetite_position)}>{appetiteLabel(latestAssessment?.appetite_position)}</StatusBadge></dd></div>
+        <div><dt>Appetite</dt><dd><StatusBadge tone={currentAppetiteTone(risk.version, latestAssessment)}>{currentAppetiteLabel(risk.version, latestAssessment)}</StatusBadge></dd></div>
         <div><dt>Status</dt><dd><StatusBadge tone={riskStatusTone(risk.status)}>{riskStatusLabel(risk.status)}</StatusBadge></dd></div>
         <div><dt>Owner</dt><dd>{risk.owner_principal_id ? "Assigned" : "Not assigned"}</dd></div>
         <div><dt>Updated</dt><dd>{formatRiskDate(risk.updated_at)}</dd></div>

@@ -1,5 +1,5 @@
 import type { StatusTone } from "../ui";
-import type { RiskAppetitePosition, RiskAssessmentKind, RiskStatus } from "../../riskTypes";
+import type { RiskAppetitePosition, RiskAssessment, RiskAssessmentKind, RiskStatus } from "../../riskTypes";
 
 const dateTime = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -35,6 +35,20 @@ export function appetiteTone(position: RiskAppetitePosition | undefined): Status
   if (position === "APPROACHING") return "warning";
   if (position === "WITHIN") return "success";
   return "unknown";
+}
+
+export function currentAssessmentPosition(riskVersion: number, assessment: RiskAssessment | undefined): RiskAppetitePosition | undefined {
+  return assessment?.risk_version === riskVersion ? assessment.appetite_position : undefined;
+}
+
+export function currentAppetiteLabel(riskVersion: number, assessment: RiskAssessment | undefined, hasCurrentStatement = true): string {
+  if (assessment && assessment.risk_version !== riskVersion) return "Reassessment needed";
+  return appetiteLabel(assessment?.appetite_position, hasCurrentStatement);
+}
+
+export function currentAppetiteTone(riskVersion: number, assessment: RiskAssessment | undefined): StatusTone {
+  if (assessment && assessment.risk_version !== riskVersion) return "unknown";
+  return appetiteTone(assessment?.appetite_position);
 }
 
 export function assessmentKindLabel(kind: RiskAssessmentKind): string {

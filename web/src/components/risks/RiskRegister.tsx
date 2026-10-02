@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { listRisks, type RiskListParams } from "../../riskApi";
 import type { RiskAppetitePosition, RiskPage, RiskStatus, RiskSummary } from "../../riskTypes";
 import { Button, DataTable, EmptyState, FilterBar, Notice, SearchField, SelectField, StatusBadge, type DataColumn } from "../ui";
-import { appetiteLabel, appetiteTone, assessmentKindLabel, formatRiskDate, riskStatusLabel, riskStatusTone } from "./riskPresentation";
+import { assessmentKindLabel, currentAppetiteLabel, currentAppetiteTone, formatRiskDate, riskStatusLabel, riskStatusTone } from "./riskPresentation";
 
 type Props = {
   organizationName?: string;
@@ -102,8 +102,8 @@ export function RiskRegister({ organizationName, legalEntityName, onOpenRisk, lo
       id: "appetite",
       header: "Appetite",
       kind: "status",
-      render: (item) => <StatusBadge tone={appetiteTone(item.latest_assessment?.appetite_position)}>{appetiteLabel(item.latest_assessment?.appetite_position, Boolean(item.active_appetite))}</StatusBadge>,
-      accessibleText: (item) => appetiteLabel(item.latest_assessment?.appetite_position, Boolean(item.active_appetite)),
+      render: (item) => <StatusBadge tone={currentAppetiteTone(item.risk.version, item.latest_assessment)}>{currentAppetiteLabel(item.risk.version, item.latest_assessment, Boolean(item.active_appetite))}</StatusBadge>,
+      accessibleText: (item) => currentAppetiteLabel(item.risk.version, item.latest_assessment, Boolean(item.active_appetite)),
     },
     {
       id: "assessment",
@@ -160,7 +160,7 @@ export function RiskRegister({ organizationName, legalEntityName, onOpenRisk, lo
       ariaLabel="Risk register"
       rows={page.items}
       rowKey={(item) => item.risk.id}
-      rowName={(item) => `${item.risk.name}, ${item.risk.code}, ${appetiteLabel(item.latest_assessment?.appetite_position, Boolean(item.active_appetite))}`}
+      rowName={(item) => `${item.risk.name}, ${item.risk.code}, ${currentAppetiteLabel(item.risk.version, item.latest_assessment, Boolean(item.active_appetite))}`}
       columns={columns}
       onRowAction={(item) => onOpenRisk(item.risk.id)}
       rowActionLabel="Open risk"

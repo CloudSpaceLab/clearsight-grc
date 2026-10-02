@@ -127,6 +127,19 @@ it("shows statement, impact, scope and history without exposing principal identi
   expect(screen.queryByText(appetite.authority_principal_id)).toBeNull();
 });
 
+it("does not present a stale assessment as the current appetite position", async () => {
+  const stalePage: RiskPage = {
+    items: [{ risk: { ...risk, version: 4 }, latest_assessment: assessment, active_appetite: appetite }],
+  };
+  render(<RiskRegister onOpenRisk={vi.fn()} loadPage={vi.fn().mockResolvedValue(stalePage)}/>);
+
+  expect(await screen.findByText("Reassessment needed")).toBeTruthy();
+  expect(screen.queryByText("Outside appetite")).toBeNull();
+
+  render(<RiskRecord riskID="risk-1" onBack={vi.fn()} loadRisk={vi.fn().mockResolvedValue({ ...aggregate, risk: { ...risk, version: 4 } })}/>);
+  expect((await screen.findAllByText("Reassessment needed")).length).toBeGreaterThan(0);
+});
+
 it("keeps a cross-scope or missing Risk non-disclosing", async () => {
   const loadRisk = vi.fn().mockRejectedValue(new ApiError(404, "This risk is not available in your legal entity.", "risk_not_found"));
   const onBack = vi.fn();
