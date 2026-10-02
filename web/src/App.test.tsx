@@ -234,8 +234,10 @@ describe("legal entity scope selector", () => {
     render(<App/>);
 
     const context = await screen.findByLabelText("Active workspace context");
-    expect(within(context).getByText("Clear Bank")).toBeTruthy();
-    expect(within(context).getByText("Clear Bank Nigeria")).toBeTruthy();
+    const passiveScope = context.querySelector(".context-scope");
+    if (!(passiveScope instanceof HTMLElement)) throw new Error("Passive scope context is missing");
+    expect(within(passiveScope).getByText("Clear Bank")).toBeTruthy();
+    expect(within(passiveScope).getByText("Clear Bank Nigeria")).toBeTruthy();
     const trigger = within(context).getByRole("button", { name: /Organization scope/ });
     expect(trigger.textContent).toContain("Clear Bank Nigeria");
     expect(within(context).queryByText("Non-production data")).toBeNull();
@@ -552,8 +554,8 @@ describe("runtime navigation", () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(true));
     render(<App presentation="demo"/>);
 
-    await screen.findByText("Stakeholder demo");
-    expect(screen.getByText("Demo environment")).toBeTruthy();
+    await screen.findByText("Demo environment");
+    expect(screen.queryByText("Stakeholder demo")).toBeNull();
     expect(screen.getByRole("button", { name: "Reference journeys" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Imports/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
@@ -564,10 +566,10 @@ describe("runtime navigation", () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(true));
     render(<App presentation="live-preview" />);
 
-    await screen.findByText("Non-production data");
+    await screen.findByText("Demo environment");
     await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("off"));
     expect(screen.queryByText("Stakeholder demo")).toBeNull();
-    expect(screen.getByText("Demo environment")).toBeTruthy();
+    expect(screen.queryByText("Non-production data")).toBeNull();
     expect(screen.queryByRole("button", { name: "Reference journeys" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
   });
@@ -590,7 +592,8 @@ describe("runtime navigation", () => {
     vi.mocked(loadEvidenceRequest).mockReturnValue(exact.promise);
     render(<App presentation="demo"/>);
 
-    await screen.findByText("Stakeholder demo");
+    await screen.findByText("Demo environment");
+    expect(screen.queryByText("Stakeholder demo")).toBeNull();
     await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(denied.id, "eligibility_preload"));
     await act(async () => { exact.resolve(denied); });
     expect(screen.queryAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(0);

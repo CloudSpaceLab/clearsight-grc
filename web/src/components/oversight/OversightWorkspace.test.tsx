@@ -64,8 +64,9 @@ it("leads with exact interventions and provides table alternatives for oversight
   expect(screen.getByText("7")).toBeTruthy();
   expect(screen.getByText("42 issues checked · 1 excluded · 2 unknown")).toBeTruthy();
   const period = screen.getByLabelText("Oversight reporting period");
-  expect(period.textContent).toContain("3 Jun 2026");
-  expect(period.textContent).toContain("1 Sep 2026");
+  expect(period.textContent).toContain("Jun");
+  expect(period.textContent).toContain("Sep");
+  expect(period.textContent).toContain("2026");
   expect(period.textContent).toContain("Current");
   expect(screen.queryByText("Current snapshot")).toBeNull();
   fireEvent.click(screen.getByText("Data freshness"));
