@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -107,17 +108,17 @@ func TestRiskHTTPBindsVerifiedScopeAndActor(t *testing.T) {
 	}
 
 	now = now.Add(time.Minute)
-	assessmentBody := `{
+	assessmentBody := fmt.Sprintf(`{
 		"expected_risk_version":2,
 		"kind":"RESIDUAL",
 		"method_code":"QUAL-5X5",
 		"method_version":"v1",
 		"dimensions":{"likelihood":4,"impact":5},
-		"appetite_statement_id":`"` + appetiteResponse.Appetite.ID + `"`,
+		"appetite_statement_id":%q,
 		"appetite_position":"BREACHED",
 		"appetite_rationale":"Recovery exceeds tolerance.",
 		"actor_id":"spoofed-reviewer"
-	}`
+	}`, appetiteResponse.Appetite.ID)
 	assessment := httptest.NewRecorder()
 	handler.ServeHTTP(assessment, httptest.NewRequest(http.MethodPost, "/api/v1/risks/"+created.ID+"/assessments", strings.NewReader(assessmentBody)))
 	if assessment.Code != http.StatusCreated {
