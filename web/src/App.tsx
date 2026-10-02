@@ -36,6 +36,7 @@ const VendorsWorkspace = lazy(() => import("./components/VendorsWorkspace").then
 const ConfigureWorkspace = lazy(() => import("./components/configure/ConfigureWorkspace").then((module) => ({ default: module.ConfigureWorkspace })));
 const OversightWorkspace = lazy(() => import("./components/oversight/OversightWorkspace").then((module) => ({ default: module.OversightWorkspace })));
 const RopaRegisterPage = lazy(() => import("./components/RopaRegisterPage").then((module) => ({ default: module.RopaRegisterPage })));
+const RisksWorkspace = lazy(() => import("./components/risks/RisksWorkspace").then((module) => ({ default: module.RisksWorkspace })));
 const RopaActivityPage = lazy(() => import("./components/RopaActivityPage").then((module) => ({ default: module.RopaActivityPage })));
 const ReportsWorkspace = lazy(() => import("./components/reports/ReportsWorkspace").then((module) => ({ default: module.ReportsWorkspace })));
 const EmployeeProfileWorkspace = lazy(() => import("./components/EmployeeProfileWorkspace").then((module) => ({ default: module.EmployeeProfileWorkspace })));
@@ -44,10 +45,11 @@ type LoadState = "idle" | "loading" | "live" | "unavailable";
 type ConnectionState = "loading" | "live" | "unavailable";
 type PrimaryEvidenceLoad = { targetID?: string; state: "idle" | "loading" | "live" | "unavailable" };
 type VendorGuideIntent = { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" | "open-vendor-next-action" };
-const portfolioViews = ["programs", "vendors", "ropa", "forms"] as const;
+const portfolioViews = ["programs", "risks", "vendors", "ropa", "forms"] as const;
 type PortfolioView = (typeof portfolioViews)[number];
 const portfolioLenses: ReadonlyArray<{ id: PortfolioView; label: string }> = [
   { id: "programs", label: "Programs" },
+  { id: "risks", label: "Risks" },
   { id: "vendors", label: "Vendors" },
   { id: "ropa", label: "Processing activities" },
   { id: "forms", label: "Forms" },
@@ -434,6 +436,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       {activeView === "oversight" && !oversightEnabled && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
       {activeView === "oversight" && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Home…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", metric === "all" ? {} : { oversightMetric: metric })} todayItems={items} todayState={connection} onOpenTodayItem={openAttention}/></Suspense>}
       {activeView === "programs" && <ProgramsView organizationName={organizationName} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenForm={(id) => navigate("forms", { formTemplateID: id })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
+      {activeView === "risks" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading risks…</div>}><RisksWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.riskID} onTarget={(id) => navigate("risks", id ? { riskID: id } : {})}/></Suspense>}
       {activeView === "reports" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading reports…</div>}><ReportsWorkspace organizationName={organizationName} legalEntityName={legalEntityName}/></Suspense>}
       {activeView === "ropa" && target.ropaPage !== "reports" && target.ropaActivityID && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading processing activity…</div>}><RopaActivityPage activityID={target.ropaActivityID} organizationName={organizationName} legalEntityName={legalEntityName} onBack={() => navigate("ropa")}/></Suspense>}
       {activeView === "ropa" && target.ropaPage !== "reports" && !target.ropaActivityID && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading processing activity register…</div>}><RopaRegisterPage organizationName={organizationName} legalEntityName={legalEntityName} onOpenActivity={(id) => navigate("ropa", { ropaPage: "register", ropaActivityID: id })} onOpenReports={() => navigate("ropa", { ropaPage: "reports" })}/></Suspense>}

@@ -1,0 +1,128 @@
+@layer features {
+  .risk-register-page,
+  .risk-record-page {
+    display: grid;
+    min-inline-size: 0;
+    gap: var(--cs-space-section);
+  }
+
+  .risk-page-header p {
+    max-inline-size: var(--cs-reading-measure);
+    margin: var(--cs-primitive-space-2) 0 0;
+    color: var(--cs-text-muted);
+  }
+
+  .risk-register__identity,
+  .risk-register__assessment,
+  .risk-record__stack {
+    display: grid;
+    min-inline-size: 0;
+    gap: var(--cs-primitive-space-1);
+  }
+
+  .risk-register__identity strong,
+  .risk-register__assessment strong,
+  .risk-record__stack strong {
+    color: var(--cs-text-strong);
+  }
+
+  .risk-register__identity small,
+  .risk-register__assessment small,
+  .risk-record__stack small {
+    color: var(--cs-text-muted);
+  }
+
+  .risk-load-state {
+    margin: 0;
+    color: var(--cs-text-muted);
+  }
+
+  .risk-record__state {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--cs-space-group);
+    margin: 0;
+  }
+
+  .risk-record__state > div,
+  .risk-record__facts > div {
+    display: grid;
+    gap: var(--cs-primitive-space-1);
+    min-inline-size: 0;
+  }
+
+  .risk-record__state dt,
+  .risk-record__facts dt {
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+  }
+
+  .risk-record__state dd,
+  .risk-record__facts dd {
+    margin: 0;
+    color: var(--cs-text-primary);
+    overflow-wrap: anywhere;
+  }
+
+  .risk-record__overview {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(16rem, .75fr);
+    gap: var(--cs-space-section);
+    min-inline-size: 0;
+    align-items: start;
+  }
+
+  .risk-record__section {
+    display: grid;
+    gap: var(--cs-space-group);
+  }
+
+  .risk-record__section :is(h2, h3, p, dl) {
+    margin: 0;
+  }
+
+  .risk-record__section h3 {
+    padding-block-start: var(--cs-primitive-space-2);
+    color: var(--cs-text-primary);
+    font-size: var(--cs-font-size-body);
+  }
+
+  .risk-record__section p {
+    max-inline-size: var(--cs-reading-measure);
+    color: var(--cs-text-primary);
+    line-height: 1.6;
+  }
+
+  .risk-record__facts {
+    display: grid;
+    gap: var(--cs-space-group);
+    margin: 0;
+  }
+
+  .risk-record__history {
+    display: grid;
+    gap: var(--cs-space-group);
+    min-inline-size: 0;
+  }
+
+  .risk-record__history .section-header p {
+    margin: var(--cs-primitive-space-1) 0 0;
+    color: var(--cs-text-muted);
+  }
+
+  @media (max-width: 760px) {
+    .risk-record__state {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .risk-record__overview {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 420px) {
+    .risk-record__state {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
