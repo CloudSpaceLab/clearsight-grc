@@ -18,12 +18,12 @@ import (
 )
 
 type fakeAccessResolver struct {
-	resolution   access.Resolution
-	err          error
-	calls        int
-	lastTenant   string
+	resolution    access.Resolution
+	err           error
+	calls         int
+	lastTenant    string
 	lastPrincipal string
-	lastEntity   string
+	lastEntity    string
 }
 
 func (r *fakeAccessResolver) ResolveOIDC(context.Context, string, string, string, string) (access.Resolution, error) {
