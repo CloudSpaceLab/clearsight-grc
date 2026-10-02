@@ -288,8 +288,9 @@ func (r *MemoryRepository) ApplyTriggerBundle(ctx context.Context, bundle Trigge
 	}
 	key := programTriggerDedupeKey(trigger.ProgramID, trigger.DedupeKey)
 	if _, exists := r.triggers[trigger.TenantID][key]; exists {
+		matterDedupeKey := triggerMatterDedupeKey(trigger)
 		for _, aggregate := range r.matters[trigger.TenantID] {
-			if aggregate.Matter.TriggerKey == trigger.DedupeKey && aggregate.Matter.Status != MatterClosed && aggregate.Matter.Status != MatterCancelled &&
+			if aggregate.Matter.TriggerKey == matterDedupeKey && aggregate.Matter.Status != MatterClosed && aggregate.Matter.Status != MatterCancelled &&
 				aggregate.Matter.LegalEntityID == program.Program.LegalEntityID && r.visibleLegalEntity(ctx, aggregate.Matter.TenantID, aggregate.Matter.LegalEntityID) && matterLinkedToProgram(aggregate, trigger.ProgramID) {
 				matter := aggregate.Matter
 				return TriggerBundleResult{Inserted: false, Matter: &matter}, nil
