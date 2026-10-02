@@ -3,6 +3,50 @@ export type RiskAssessmentKind = "INHERENT" | "CURRENT" | "RESIDUAL" | "TARGET" 
 export type RiskAppetitePosition = "WITHIN" | "APPROACHING" | "BREACHED" | "UNKNOWN";
 export type RiskAppetiteStatus = "ACTIVE" | "RETIRED";
 
+export type RiskIndicatorKind = "KRI" | "KCI";
+export type RiskIndicatorMeasurement = "MONITORING_RISK_SCORE";
+export type RiskIndicatorState = "NORMAL" | "WATCH" | "BREACH" | "UNKNOWN";
+
+export type RiskIndicatorLink = {
+  id: string;
+  risk_id: string;
+  risk_version: number;
+  program_id: string;
+  monitoring_check_id: string;
+  monitoring_check_version: number;
+  kind: RiskIndicatorKind;
+  measurement: RiskIndicatorMeasurement;
+  linked_by?: string;
+  created_at: string;
+};
+
+export type RiskIndicatorDetail = {
+  link: RiskIndicatorLink;
+  program_id: string;
+  program_name: string;
+  check_id: string;
+  check_code: string;
+  check_name: string;
+  claim: string;
+  check_status: "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "REJECTED" | "PAUSED" | "RETIRED";
+  check_version: number;
+  input_kind: "FORM" | "SOURCE";
+  owner_display_name?: string;
+  reviewer_display_name?: string;
+  measurement: RiskIndicatorMeasurement;
+  unit: "RISK_POINTS";
+  denominator: 100;
+  state: RiskIndicatorState;
+  reason: string;
+  score?: number;
+  band?: "LOW" | "MODERATE" | "HIGH" | "CRITICAL" | "NOT_ASSESSED";
+  coverage?: number;
+  minimum_coverage: number;
+  freshness_minutes: number;
+  result_id?: string;
+  evaluated_at?: string;
+};
+
 export type RiskControlImplementationStatus = "PLANNED" | "IN_PROGRESS" | "IMPLEMENTED" | "INACTIVE" | "RETIRED";
 export type RiskControlEvidenceConclusion = "SUPPORTED" | "PARTIALLY_SUPPORTED" | "UNSUPPORTED" | "CONTRADICTED" | "INDETERMINATE" | "EXPIRED";
 
@@ -123,4 +167,7 @@ export type RiskAggregate = {
   controls?: RiskControlLink[];
   control_details?: RiskControlDetail[];
   control_details_complete?: boolean;
+  indicators?: RiskIndicatorLink[];
+  indicator_details?: RiskIndicatorDetail[];
+  indicator_details_complete?: boolean;
 };
