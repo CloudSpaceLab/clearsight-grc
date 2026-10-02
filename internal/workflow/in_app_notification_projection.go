@@ -45,7 +45,7 @@ func (p *InAppNotificationProjector) project(ctx context.Context, event workflow
 	if !assignment.CommentMentioned && strings.TrimSpace(value.CurrentPrincipalID) != strings.TrimSpace(assignment.PrincipalID) {
 		return nil
 	}
-	title, summary, err := inAppNotificationPresentation(assignment, value)
+	title, summary, err := inAppNotificationPresentation(assignment)
 	if err != nil {
 		return err
 	}
@@ -60,16 +60,17 @@ func (p *InAppNotificationProjector) project(ctx context.Context, event workflow
 	})
 }
 
-func inAppNotificationPresentation(assignment assignmentNotificationEvent, value assignmentNotificationContext) (string, string, error) {
+func inAppNotificationPresentation(assignment assignmentNotificationEvent) (string, string, error) {
+	const summary = "Open Work to review the current record."
 	switch assignment.NotificationKind {
 	case matterOwnerNotificationKind:
-		return "Issue assigned to you", strings.TrimSpace(value.MatterTitle), nil
+		return "Issue assigned to you", summary, nil
 	case actionPerformerNotificationKind:
-		return "Action assigned to you", strings.TrimSpace(value.WorkTitle), nil
+		return "Action assigned to you", summary, nil
 	case actionUpdateNotificationKind:
-		return "Update requested", strings.TrimSpace(value.WorkTitle), nil
+		return "Update requested", summary, nil
 	case commentMentionNotificationKind:
-		return "You were mentioned", strings.TrimSpace(value.MatterTitle), nil
+		return "You were mentioned", summary, nil
 	default:
 		return "", "", fmt.Errorf("unsupported in-app notification kind %q", assignment.NotificationKind)
 	}
