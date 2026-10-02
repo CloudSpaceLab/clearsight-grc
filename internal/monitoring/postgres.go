@@ -623,6 +623,16 @@ func (r *PostgresRepository) ListResults(ctx context.Context, tenant, checkID st
 	return values, rows.Err()
 }
 
+func (r *PostgresRepository) LatestResultRevision(ctx context.Context, tenant, checkID string, version int64) (MonitoringResult, error) {
+	value, err := scanResult(r.pool.QueryRow(ctx, resultSelect+`
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND r.monitoring_check_id=$2::uuid
+		  AND r.monitoring_check_version=$3::bigint
+		ORDER BY r.evaluated_at DESC,r.id DESC
+		LIMIT 1`, tenant, checkID, version))
+	return value, mapPostgresError(err)
+}
+
 const resultByIDSQL = resultSelect + `
 	WHERE r.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 	  AND r.id=$2::uuid`
