@@ -313,7 +313,9 @@ func latestAssessment(values []Assessment) *Assessment {
 }
 
 func latestAppetite(values []AppetiteStatement, at time.Time) *AppetiteStatement {
-	if at.IsZero() { at = time.Now().UTC() }
+	if at.IsZero() {
+		at = time.Now().UTC()
+	}
 	var selected *AppetiteStatement
 	for i := range values {
 		value := values[i]
@@ -336,16 +338,37 @@ func cloneAssessment(value Assessment) Assessment {
 	value.Dimensions = append([]byte(nil), value.Dimensions...)
 	value.Assumptions = append([]byte(nil), value.Assumptions...)
 	value.EvidenceReferences = append([]byte(nil), value.EvidenceReferences...)
-	if value.Confidence != nil { copy := *value.Confidence; value.Confidence = &copy }
+	if value.Confidence != nil {
+		copy := *value.Confidence
+		value.Confidence = &copy
+	}
 	return value
 }
 func cloneAppetite(value AppetiteStatement) AppetiteStatement {
 	value.Rule = append([]byte(nil), value.Rule...)
-	if value.EffectiveUntil != nil { copy := *value.EffectiveUntil; value.EffectiveUntil = &copy }
+	if value.EffectiveUntil != nil {
+		copy := *value.EffectiveUntil
+		value.EffectiveUntil = &copy
+	}
 	return value
 }
-func cloneEvent(value Event) Event { value.Payload = append([]byte(nil), value.Payload...); return value }
-func cloneAssessments(values []Assessment) []Assessment { out := make([]Assessment, len(values)); for i, value := range values { out[i] = cloneAssessment(value) }; return out }
-func cloneAppetites(values []AppetiteStatement) []AppetiteStatement { out := make([]AppetiteStatement, len(values)); for i, value := range values { out[i] = cloneAppetite(value) }; return out }
+func cloneEvent(value Event) Event {
+	value.Payload = append([]byte(nil), value.Payload...)
+	return value
+}
+func cloneAssessments(values []Assessment) []Assessment {
+	out := make([]Assessment, len(values))
+	for i, value := range values {
+		out[i] = cloneAssessment(value)
+	}
+	return out
+}
+func cloneAppetites(values []AppetiteStatement) []AppetiteStatement {
+	out := make([]AppetiteStatement, len(values))
+	for i, value := range values {
+		out[i] = cloneAppetite(value)
+	}
+	return out
+}
 
 var _ Repository = (*MemoryRepository)(nil)
