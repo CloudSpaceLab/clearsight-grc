@@ -21,9 +21,11 @@ type Repository interface {
 	Update(context.Context, Scope, Risk, int64, Event) (Risk, error)
 	AddAssessment(context.Context, Scope, string, int64, Assessment, Event) (Risk, Assessment, error)
 	AddAppetite(context.Context, Scope, string, int64, AppetiteStatement, Event) (Risk, AppetiteStatement, error)
+	AddControl(context.Context, Scope, string, int64, ControlLink, Event) (Risk, ControlLink, error)
 	Assessments(context.Context, Scope, string, int) ([]Assessment, error)
 	AppetiteStatements(context.Context, Scope, string, int) ([]AppetiteStatement, error)
 	CurrentAppetite(context.Context, Scope, string, time.Time) (*AppetiteStatement, error)
+	Controls(context.Context, Scope, string, int) ([]ControlLink, error)
 	List(context.Context, Scope, ListFilter) (Page, error)
 }
 

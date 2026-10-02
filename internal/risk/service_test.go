@@ -337,6 +337,54 @@ func TestRiskListDoesNotTreatStaleAssessmentAsCurrentAppetitePosition(t *testing
 	}
 }
 
+func TestRiskControlLinkIsVersionedAndDuplicateSafe(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(NewMemoryRepository())
+	service.ConfigureControlLinkValidator(func(_ context.Context, scope Scope, catalogLinkID string) error {
+		if scope.TenantID == "bank" && scope.LegalEntityID == "entity-a" && catalogLinkID == "catalog-link-1" {
+			return nil
+		}
+		return ErrInvalid
+	})
+	now := time.Date(2026, 10, 2, 14, 0, 0, 0, time.UTC)
+	service.Now = func() time.Time { return now }
+	created := createTestRisk(t, service, ctx, "bank", "entity-a", "RISK-CONTROL")
+
+	updated, linked, err := service.LinkControl(ctx, LinkControlInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID,
+		ExpectedRiskVersion: created.Version, CatalogLinkID: "catalog-link-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Version != 2 || linked.RiskVersion != 2 || linked.CatalogLinkID != "catalog-link-1" {
+		t.Fatalf("updated=%#v linked=%#v", updated, linked)
+	}
+	aggregate, err := service.Get(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(aggregate.Controls) != 1 || aggregate.Controls[0].ID != linked.ID {
+		t.Fatalf("controls=%#v", aggregate.Controls)
+	}
+
+	now = now.Add(time.Minute)
+	_, _, err = service.LinkControl(ctx, LinkControlInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID,
+		ExpectedRiskVersion: updated.Version, CatalogLinkID: "catalog-link-1", ActorID: "owner-1",
+	})
+	if !errors.Is(err, ErrDuplicate) {
+		t.Fatalf("duplicate control link error=%v", err)
+	}
+	after, err := service.Get(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Risk.Version != 2 || len(after.Controls) != 1 {
+		t.Fatalf("duplicate link changed Risk: %#v", after)
+	}
+}
+
 func TestDuplicateRiskCodeIsScopedPerLegalEntity(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(NewMemoryRepository())

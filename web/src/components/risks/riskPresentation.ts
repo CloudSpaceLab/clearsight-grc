@@ -1,5 +1,5 @@
 import type { StatusTone } from "../ui";
-import type { RiskAppetitePosition, RiskAppetiteStatement, RiskAssessment, RiskAssessmentKind, RiskStatus } from "../../riskTypes";
+import type { RiskAppetitePosition, RiskAppetiteStatement, RiskAssessment, RiskAssessmentKind, RiskControlDetail, RiskControlImplementationStatus, RiskStatus } from "../../riskTypes";
 
 const dateTime = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -58,6 +58,43 @@ export function currentAppetiteTone(
   if (!assessment || assessment.risk_version !== riskVersion) return "unknown";
   if (!assessment.appetite_statement_id || !activeAppetite || assessment.appetite_statement_id !== activeAppetite.id) return "unknown";
   return appetiteTone(assessment.appetite_position);
+}
+
+export function controlImplementationStatusLabel(status: RiskControlImplementationStatus): string {
+  if (status === "IN_PROGRESS") return "In progress";
+  if (status === "IMPLEMENTED") return "Implemented";
+  if (status === "INACTIVE") return "Inactive";
+  if (status === "RETIRED") return "Retired";
+  return "Planned";
+}
+
+export function controlImplementationStatusTone(status: RiskControlImplementationStatus): StatusTone {
+  if (status === "IMPLEMENTED") return "success";
+  if (status === "IN_PROGRESS") return "info";
+  if (status === "INACTIVE") return "warning";
+  if (status === "RETIRED") return "unknown";
+  return "neutral";
+}
+
+export function controlEvidenceSummary(control: RiskControlDetail): string {
+  if (!control.evidence.length) return "No active checks";
+  const counts = new Map<string, number>();
+  let missing = 0;
+  for (const check of control.evidence) {
+    if (!check.conclusion) {
+      missing += 1;
+      continue;
+    }
+    counts.set(check.conclusion, (counts.get(check.conclusion) ?? 0) + 1);
+  }
+  const parts = [...counts.entries()].map(([conclusion, count]) => `${count} ${evidenceConclusionLabel(conclusion)}`);
+  if (missing) parts.push(`${missing} without result`);
+  return `${control.evidence.length} active ${control.evidence.length === 1 ? "check" : "checks"} · ${parts.join(" · ")}`;
+}
+
+function evidenceConclusionLabel(value: string): string {
+  if (value === "PARTIALLY_SUPPORTED") return "partially supported";
+  return value.toLowerCase().replaceAll("_", " ");
 }
 
 export function assessmentKindLabel(kind: RiskAssessmentKind): string {

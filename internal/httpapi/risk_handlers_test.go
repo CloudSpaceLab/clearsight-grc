@@ -26,6 +26,7 @@ func TestRiskRoutesUseGovernedAuthorityContracts(t *testing.T) {
 		"POST /api/v1/risks/{id}":             {authority.ResponsibilityOwner, 3, false},
 		"POST /api/v1/risks/{id}/assessments": {authority.ResponsibilityReviewer, 3, false},
 		"POST /api/v1/risks/{id}/appetite":    {authority.ResponsibilityAuthorizer, 4, false},
+		"POST /api/v1/risks/{id}/controls":    {authority.ResponsibilityOwner, 3, false},
 	}
 	for _, route := range (&API{}).riskRoutes() {
 		key := route.Method + " " + route.Path

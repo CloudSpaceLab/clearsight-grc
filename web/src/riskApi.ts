@@ -1,5 +1,5 @@
 import { requestJSON } from "./http";
-import type { RiskAggregate, RiskAppetitePosition, RiskPage, RiskStatus } from "./riskTypes";
+import type { RiskAggregate, RiskAppetitePosition, RiskControlLink, RiskPage, RiskRecord, RiskStatus } from "./riskTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -31,5 +31,25 @@ export function getRisk(id: string, signal?: AbortSignal): Promise<RiskAggregate
     apiBase,
     `/api/v1/risks/${encodeURIComponent(id)}`,
     signal ? { signal } : undefined,
+  );
+}
+
+
+export type LinkRiskControlResponse = {
+  risk: RiskRecord;
+  control: RiskControlLink;
+};
+
+export function linkRiskControl(riskID: string, expectedRiskVersion: number, catalogLinkID: string): Promise<LinkRiskControlResponse> {
+  return requestJSON<LinkRiskControlResponse>(
+    apiBase,
+    `/api/v1/risks/${encodeURIComponent(riskID)}/controls`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        expected_risk_version: expectedRiskVersion,
+        catalog_link_id: catalogLinkID,
+      }),
+    },
   );
 }

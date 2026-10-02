@@ -66,6 +66,49 @@ const aggregate: RiskAggregate = {
   assessments: [assessment],
   appetite: [appetite],
   active_appetite: appetite,
+  controls: [{
+    id: "risk-control-1",
+    risk_id: risk.id,
+    risk_version: 3,
+    catalog_link_id: "catalog-link-1",
+    created_at: "2026-10-02T09:11:00Z",
+  }],
+  control_details: [{
+    link: {
+      id: "risk-control-1",
+      risk_id: risk.id,
+      risk_version: 3,
+      catalog_link_id: "catalog-link-1",
+      created_at: "2026-10-02T09:11:00Z",
+    },
+    definition: {
+      id: "control-definition-1",
+      code: "NET-01",
+      name: "Network recovery testing",
+      objective: "Recovery paths meet the approved service tolerance.",
+      description: "",
+      category: "Resilience",
+      status: "ACTIVE",
+      version: 1,
+    },
+    program_id: "program-1",
+    program_name: "Network resilience program",
+    implementation_id: "implementation-1",
+    objective_id: "objective-1",
+    implementation_name: "Quarterly recovery exercise",
+    implementation_type: "OWNER_REVIEW",
+    implementation_status: "IMPLEMENTED",
+    implementation_version: 4,
+    owner_display_name: "Jordan Ellis",
+    owner_assigned: true,
+    evidence: [{
+      contract_id: "evidence-1",
+      name: "Recovery exercise result",
+      conclusion: "SUPPORTED",
+      assessed_at: "2026-10-02T08:45:00Z",
+    }],
+  }],
+  control_details_complete: true,
 };
 
 it("renders a bounded Risk register with working-language appetite state", async () => {
@@ -126,6 +169,82 @@ it("shows statement, impact, scope and history without exposing principal identi
   expect(screen.queryByText(risk.owner_principal_id!)).toBeNull();
   expect(screen.queryByText(assessment.assessed_by)).toBeNull();
   expect(screen.queryByText(appetite.authority_principal_id)).toBeNull();
+});
+
+it("shows linked controls from Program truth and opens the existing safeguard workspace", async () => {
+  const onOpenProgramControl = vi.fn();
+  render(<RiskRecord riskID="risk-1" onBack={vi.fn()} onOpenProgramControl={onOpenProgramControl} loadRisk={vi.fn().mockResolvedValue(aggregate)}/>);
+
+  const controls = await screen.findByRole("table", { name: "Risk controls" });
+  expect(within(controls).getByText("Network recovery testing")).toBeTruthy();
+  expect(within(controls).getByText("Quarterly recovery exercise")).toBeTruthy();
+  expect(within(controls).getByText("Implemented")).toBeTruthy();
+  expect(within(controls).getByText("Jordan Ellis")).toBeTruthy();
+  expect(within(controls).getByText("1 active check · 1 supported")).toBeTruthy();
+
+  fireEvent.click(within(controls).getByRole("button", { name: /Open control for Network recovery testing/ }));
+  expect(onOpenProgramControl).toHaveBeenCalledWith("program-1", "objective-1");
+});
+
+it("lets the direct Risk owner link an unlinked reusable control and reloads the record", async () => {
+  const loadRisk = vi.fn().mockResolvedValue(aggregate);
+  const loadControlCandidates = vi.fn().mockResolvedValue({
+    complete: true,
+    items: [
+      {
+        catalog_link_id: "catalog-link-1",
+        definition: aggregate.control_details![0]!.definition,
+        program_id: "program-1",
+        program_name: "Network resilience program",
+        implementation_id: "implementation-1",
+        implementation_name: "Quarterly recovery exercise",
+        implementation_status: "IMPLEMENTED",
+      },
+      {
+        catalog_link_id: "catalog-link-2",
+        definition: { ...aggregate.control_details![0]!.definition, id: "definition-2", code: "NET-02", name: "Network failover review" },
+        program_id: "program-2",
+        program_name: "Infrastructure assurance",
+        implementation_id: "implementation-2",
+        implementation_name: "Monthly failover review",
+        implementation_status: "IN_PROGRESS",
+      },
+    ],
+  });
+  const linkControl = vi.fn().mockResolvedValue({
+    risk: { ...risk, version: 4 },
+    control: {
+      id: "risk-control-2",
+      risk_id: risk.id,
+      risk_version: 4,
+      catalog_link_id: "catalog-link-2",
+      created_at: "2026-10-02T09:20:00Z",
+    },
+  });
+
+  render(<RiskRecord
+    riskID="risk-1"
+    actorID={risk.owner_principal_id}
+    onBack={vi.fn()}
+    loadRisk={loadRisk}
+    loadControlCandidates={loadControlCandidates}
+    linkControl={linkControl}
+  />);
+
+  fireEvent.click(await screen.findByRole("button", { name: "Link control" }));
+  await waitFor(() => expect(loadControlCandidates).toHaveBeenCalledTimes(1));
+  expect(screen.queryByText(/Network recovery testing · Quarterly recovery exercise/)).toBeNull();
+  expect((await screen.findAllByText("Network failover review · Monthly failover review · Infrastructure assurance")).length).toBeGreaterThan(0);
+
+  fireEvent.click(screen.getByRole("button", { name: "Link control" }));
+  await waitFor(() => expect(linkControl).toHaveBeenCalledWith("risk-1", 3, "catalog-link-2"));
+  expect(loadRisk).toHaveBeenCalledTimes(2);
+});
+
+it("does not offer Risk control linking to a non-owner", async () => {
+  render(<RiskRecord riskID="risk-1" actorID="someone-else" onBack={vi.fn()} loadRisk={vi.fn().mockResolvedValue(aggregate)}/>);
+  await screen.findByRole("heading", { name: "Network resilience" });
+  expect(screen.queryByRole("button", { name: "Link control" })).toBeNull();
 });
 
 it("does not present a stale assessment as the current appetite position", async () => {

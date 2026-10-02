@@ -16,6 +16,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/controlcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentcoverage"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
@@ -93,6 +94,7 @@ type Dependencies struct {
 	RopaEventsReader       ropa.Repository
 	Reporting              *reporting.Service
 	Risk                   *risk.Service
+	ControlCatalog         *controlcatalog.Service
 	Today                  *today.Service
 	Oversight              *oversight.Service
 	Workflow               *workflow.Service

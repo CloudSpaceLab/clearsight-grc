@@ -66,7 +66,7 @@ func (a *API) getRisk(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	_, scope, ok := a.riskActorScope(w, r)
+	actor, scope, ok := a.riskActorScope(w, r)
 	if !ok {
 		return
 	}
@@ -75,7 +75,7 @@ func (a *API) getRisk(w http.ResponseWriter, r *http.Request) {
 		writeRiskError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, value)
+	httpx.WriteJSON(w, http.StatusOK, a.riskAggregateWithControls(r.Context(), actor, value))
 }
 
 func (a *API) createRisk(w http.ResponseWriter, r *http.Request) {

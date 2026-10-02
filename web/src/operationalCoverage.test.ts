@@ -42,6 +42,7 @@ const programOperationCommands = {
   reviseProgramControlImplementation: "program.safeguard.update",
   assignProgramControlImplementation: "program.safeguard.assign",
   transitionProgramControlImplementation: "program.safeguard.transition",
+  promoteProgramControlToCatalog: "program.control.catalog.promote",
   linkProgramRequirementControl: "program.coverage.link",
   retireProgramRequirementControlLink: "program.safeguard.unlink",
   addProgramEvidenceContract: "program.evidence.define",

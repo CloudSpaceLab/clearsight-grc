@@ -14,6 +14,7 @@ type MemoryRepository struct {
 	byCode      map[string]string
 	assessments map[string][]Assessment
 	appetite    map[string][]AppetiteStatement
+	controls    map[string][]ControlLink
 	revisions   map[string][]Risk
 	events      map[string][]Event
 }
@@ -22,7 +23,7 @@ func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
 		risks: make(map[string]Risk), byCode: make(map[string]string),
 		assessments: make(map[string][]Assessment), appetite: make(map[string][]AppetiteStatement),
-		revisions: make(map[string][]Risk), events: make(map[string][]Event),
+		controls: make(map[string][]ControlLink), revisions: make(map[string][]Risk), events: make(map[string][]Event),
 	}
 }
 
@@ -150,6 +151,71 @@ func (r *MemoryRepository) AddAppetite(ctx context.Context, scope Scope, id stri
 	r.revisions[key] = append(r.revisions[key], cloneRisk(current))
 	r.events[key] = append(r.events[key], cloneEvent(event))
 	return cloneRisk(current), cloneAppetite(statement), nil
+}
+
+func (r *MemoryRepository) AddControl(ctx context.Context, scope Scope, id string, expected int64, control ControlLink, event Event) (Risk, ControlLink, error) {
+	if err := ctx.Err(); err != nil {
+		return Risk{}, ControlLink{}, err
+	}
+	scope, err := normalizeScope(scope)
+	if err != nil {
+		return Risk{}, ControlLink{}, err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	key := riskKey(scope.TenantID, scope.LegalEntityID, strings.TrimSpace(id))
+	current, ok := r.risks[key]
+	if !ok {
+		return Risk{}, ControlLink{}, ErrNotFound
+	}
+	if current.Version != expected {
+		return Risk{}, ControlLink{}, ErrVersionConflict
+	}
+	if control.RiskID != current.ID || control.RiskVersion != expected+1 || event.RiskVersion != expected+1 {
+		return Risk{}, ControlLink{}, ErrInvalid
+	}
+	for _, existing := range r.controls[key] {
+		if existing.CatalogLinkID == control.CatalogLinkID {
+			return Risk{}, ControlLink{}, ErrDuplicate
+		}
+	}
+	current.Version++
+	current.UpdatedAt = event.OccurredAt.UTC()
+	r.risks[key] = cloneRisk(current)
+	r.controls[key] = append(r.controls[key], control)
+	r.revisions[key] = append(r.revisions[key], cloneRisk(current))
+	r.events[key] = append(r.events[key], cloneEvent(event))
+	return cloneRisk(current), control, nil
+}
+
+func (r *MemoryRepository) Controls(ctx context.Context, scope Scope, id string, limit int) ([]ControlLink, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	scope, err := normalizeScope(scope)
+	if err != nil {
+		return nil, err
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 100
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	key := riskKey(scope.TenantID, scope.LegalEntityID, strings.TrimSpace(id))
+	if _, ok := r.risks[key]; !ok {
+		return nil, ErrNotFound
+	}
+	values := append([]ControlLink(nil), r.controls[key]...)
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].RiskVersion != values[j].RiskVersion {
+			return values[i].RiskVersion > values[j].RiskVersion
+		}
+		return values[i].ID > values[j].ID
+	})
+	if len(values) > limit {
+		values = values[:limit]
+	}
+	return values, nil
 }
 
 func (r *MemoryRepository) Assessments(ctx context.Context, scope Scope, id string, limit int) ([]Assessment, error) {

@@ -325,6 +325,7 @@ func (a *API) routes() []routeSpec {
 	}
 
 	routes = append(routes, a.riskRoutes()...)
+	routes = append(routes, a.controlCatalogRoutes()...)
 
 	routes = append(routes,
 		withPermission(read("/api/v1/access/overview", a.identityAccessOverview), identity.PermissionIdentityRead),

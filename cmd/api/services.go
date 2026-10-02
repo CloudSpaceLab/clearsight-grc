@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
@@ -11,6 +12,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/controlcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentcoverage"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
@@ -67,6 +69,7 @@ type serviceSet struct {
 	RopaEventsReader               ropa.Repository
 	Reporting                      *reporting.Service
 	Risk                           *risk.Service
+	ControlCatalog                 *controlcatalog.Service
 	MatterFormRemediationRepo      continuity.MatterFormRemediationRepository
 	Today                          *today.Service
 	Oversight                      *oversight.Service
@@ -85,6 +88,26 @@ type serviceSet struct {
 	SessionStore                   scs.Store
 	SCIM                           *scimapi.Service
 	Close                          func()
+}
+
+func configureRiskControlCatalog(risks *risk.Service, catalog *controlcatalog.Service) {
+	if risks == nil {
+		return
+	}
+	risks.ConfigureControlLinkValidator(func(ctx context.Context, scope risk.Scope, catalogLinkID string) error {
+		if catalog == nil {
+			return risk.ErrInvalid
+		}
+		_, err := catalog.GetImplementationLink(ctx, scope.TenantID, scope.LegalEntityID, catalogLinkID)
+		switch {
+		case err == nil:
+			return nil
+		case errors.Is(err, controlcatalog.ErrNotFound), errors.Is(err, controlcatalog.ErrInvalid):
+			return risk.ErrInvalid
+		default:
+			return err
+		}
+	})
 }
 
 type monitoringFormRepository interface {

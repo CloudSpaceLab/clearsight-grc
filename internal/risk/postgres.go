@@ -203,6 +203,84 @@ func (r *PostgresRepository) AddAppetite(ctx context.Context, scope Scope, riskI
 	return updated, statement, nil
 }
 
+func (r *PostgresRepository) AddControl(ctx context.Context, scope Scope, riskID string, expectedVersion int64, control ControlLink, event Event) (Risk, ControlLink, error) {
+	tx, current, err := r.lockRisk(ctx, scope, riskID)
+	if err != nil {
+		return Risk{}, ControlLink{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if current.Version != expectedVersion {
+		return Risk{}, ControlLink{}, ErrVersionConflict
+	}
+	if control.RiskID != current.ID || control.RiskVersion != expectedVersion+1 || event.RiskVersion != expectedVersion+1 {
+		return Risk{}, ControlLink{}, ErrInvalid
+	}
+	_, err = tx.Exec(ctx, `
+		INSERT INTO risk_control_links(
+			id,tenant_id,legal_entity_id,risk_id,risk_version,catalog_link_id,linked_by,created_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6::uuid,NULLIF($7,'')::uuid,$8)`,
+		control.ID, current.TenantID, current.LegalEntityID, current.ID, control.RiskVersion,
+		control.CatalogLinkID, control.LinkedBy, control.CreatedAt,
+	)
+	if err != nil {
+		return Risk{}, ControlLink{}, mapRiskPostgresError(err)
+	}
+	updated, err := bumpRiskVersion(ctx, tx, current, expectedVersion, event.OccurredAt)
+	if err != nil {
+		return Risk{}, ControlLink{}, err
+	}
+	event.TenantID, event.LegalEntityID, event.RiskID = updated.TenantID, updated.LegalEntityID, updated.ID
+	if err := storeRiskHistory(ctx, tx, updated, event); err != nil {
+		return Risk{}, ControlLink{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Risk{}, ControlLink{}, err
+	}
+	return updated, control, nil
+}
+
+func (r *PostgresRepository) Controls(ctx context.Context, scope Scope, riskID string, limit int) ([]ControlLink, error) {
+	scope, err := normalizeScope(scope)
+	if err != nil || !validUUID(riskID) {
+		return nil, ErrNotFound
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 100
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT c.id::text,c.risk_id::text,c.risk_version,c.catalog_link_id::text,
+		       COALESCE(c.linked_by::text,''),c.created_at
+		FROM risk_control_links c
+		JOIN tenants t ON t.id=c.tenant_id
+		JOIN legal_entities le ON le.tenant_id=c.tenant_id AND le.id=c.legal_entity_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (le.id::text=$2 OR le.code=$2)
+		  AND c.risk_id=$3::uuid
+		ORDER BY c.risk_version DESC,c.id DESC
+		LIMIT $4`, scope.TenantID, scope.LegalEntityID, riskID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	values := make([]ControlLink, 0, limit)
+	for rows.Next() {
+		var value ControlLink
+		if err := rows.Scan(&value.ID, &value.RiskID, &value.RiskVersion, &value.CatalogLinkID, &value.LinkedBy, &value.CreatedAt); err != nil {
+			return nil, err
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(values) == 0 {
+		if _, err := r.Get(ctx, scope, riskID); err != nil {
+			return nil, err
+		}
+	}
+	return values, nil
+}
+
 func (r *PostgresRepository) Assessments(ctx context.Context, scope Scope, riskID string, limit int) ([]Assessment, error) {
 	scope, err := normalizeScope(scope)
 	if err != nil || !validUUID(riskID) {
