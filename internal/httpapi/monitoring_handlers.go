@@ -555,7 +555,7 @@ func (a *API) createMonitoringLinkedIssue(w http.ResponseWriter, r *http.Request
 		status = http.StatusCreated
 	}
 	httpx.WriteJSON(w, status, map[string]any{
-		"matter": linked.Matter,
+		"matter":  linked.Matter,
 		"created": linked.MatterCreated,
 		"episode": linked.Episode,
 	})
