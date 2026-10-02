@@ -38,7 +38,7 @@ describe("NotificationCenter", () => {
     expect(await screen.findByRole("dialog", { name: "Notifications" })).toBeTruthy();
     expect(screen.getByText("Unread")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Open work" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
     expect(markRead).toHaveBeenCalledWith("11111111-1111-4111-8111-111111111111");
     expect(onOpenPath).toHaveBeenCalledWith("#work/matters/22222222-2222-4222-8222-222222222222");
     await waitFor(() => expect(screen.getByRole("button", { name: "Notifications" })).toBeTruthy());
@@ -51,7 +51,7 @@ describe("NotificationCenter", () => {
     render(<NotificationCenter loadPage={loadPage} markRead={markRead} onOpenPath={onOpenPath}/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Notifications, 1 unread" }));
-    fireEvent.click(screen.getByRole("button", { name: "Open work" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Notifications, 1 unread" })).toBeTruthy());
     expect(onOpenPath).toHaveBeenCalledTimes(1);
@@ -87,7 +87,7 @@ describe("NotificationCenter", () => {
     render(<NotificationCenter loadPage={loadPage} markRead={vi.fn()} onOpenPath={vi.fn()}/>);
 
     fireEvent.click(await screen.findByRole("button", { name: "Notifications, 1 unread" }));
-    expect(screen.getByRole("button", { name: "Open work" }).getAttribute("data-disabled")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Open" }).getAttribute("data-disabled")).not.toBeNull();
   });
 
   it("keeps unavailable delivery state separate from assigned work", async () => {
