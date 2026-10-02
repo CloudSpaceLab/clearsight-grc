@@ -33,9 +33,9 @@ func TestInAppNotificationProjectorDoesNotPersistRawUpdateMessage(t *testing.T) 
 		OccurredAt: time.Date(2026, 10, 2, 6, 0, 0, 0, time.UTC),
 	}
 	repo := &inAppProjectionRepoStub{context: assignmentNotificationContext{
-		LegalEntityID: "50000000-0000-4000-8000-000000000001",
+		LegalEntityID:      "50000000-0000-4000-8000-000000000001",
 		CurrentPrincipalID: "40000000-0000-4000-8000-000000000001",
-		MatterID: matterID, MatterTitle: "Access control exception", WorkTitle: "Provide current remediation status",
+		MatterID:           matterID, MatterTitle: "Access control exception", WorkTitle: "Provide current remediation status",
 	}}
 	projector := NewInAppNotificationProjector(repo, repo)
 	if err := projector.Publish(context.Background(), event); err != nil {
@@ -65,9 +65,9 @@ func TestInAppNotificationProjectorSkipsSupersededAssignment(t *testing.T) {
 		OccurredAt: time.Date(2026, 10, 2, 6, 0, 0, 0, time.UTC),
 	}
 	repo := &inAppProjectionRepoStub{context: assignmentNotificationContext{
-		LegalEntityID: "50000000-0000-4000-8000-000000000001",
+		LegalEntityID:      "50000000-0000-4000-8000-000000000001",
 		CurrentPrincipalID: "40000000-0000-4000-8000-000000000099",
-		MatterID: matterID, MatterTitle: "Superseded assignment",
+		MatterID:           matterID, MatterTitle: "Superseded assignment",
 	}}
 	if err := (NewInAppNotificationProjector(repo, repo)).Publish(context.Background(), event); err != nil {
 		t.Fatal(err)
