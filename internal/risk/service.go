@@ -382,7 +382,6 @@ func (s *Service) now() time.Time {
 	return time.Now().UTC()
 }
 
-
 func latestApplicableAppetite(values []AppetiteStatement, at time.Time) *AppetiteStatement {
 	var selected *AppetiteStatement
 	for i := range values {

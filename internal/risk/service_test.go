@@ -122,7 +122,7 @@ func TestAssessmentWithoutAppetiteIsExplicitlyUnknown(t *testing.T) {
 	_, _, err := service.AddAssessment(ctx, AssessmentInput{
 		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID, ExpectedRiskVersion: created.Version,
 		Kind: AssessmentInherent, MethodCode: "QUAL-5X5", MethodVersion: "v1",
-		Dimensions: json.RawMessage(`{"likelihood":3,"impact":4}`),
+		Dimensions:       json.RawMessage(`{"likelihood":3,"impact":4}`),
 		AppetitePosition: AppetiteWithin, ActorID: "reviewer-1",
 	})
 	if !errors.Is(err, ErrInvalid) {
@@ -132,7 +132,7 @@ func TestAssessmentWithoutAppetiteIsExplicitlyUnknown(t *testing.T) {
 	updated, assessment, err := service.AddAssessment(ctx, AssessmentInput{
 		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID, ExpectedRiskVersion: created.Version,
 		Kind: AssessmentInherent, MethodCode: "QUAL-5X5", MethodVersion: "v1",
-		Dimensions: json.RawMessage(`{"likelihood":3,"impact":4}`),
+		Dimensions:       json.RawMessage(`{"likelihood":3,"impact":4}`),
 		AppetitePosition: AppetiteUnknown, ActorID: "reviewer-1",
 	})
 	if err != nil {
@@ -248,6 +248,6 @@ func validCreate(tenant, entity, code string) CreateInput {
 		Category: "Operational resilience", Statement: "Critical network service may exceed approved recovery tolerance.",
 		Cause: "Primary and recovery paths become unavailable.", Event: "Network service interruption",
 		Impact: "Customers cannot access critical services within the approved tolerance.",
-		Scope: json.RawMessage(`{"service":"critical-network"}`), OwnerPrincipalID: "owner-1", ActorID: "owner-1",
+		Scope:  json.RawMessage(`{"service":"critical-network"}`), OwnerPrincipalID: "owner-1", ActorID: "owner-1",
 	}
 }

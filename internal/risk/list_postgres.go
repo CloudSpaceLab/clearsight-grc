@@ -114,26 +114,26 @@ func scanRiskSummary(row riskSummaryScanner) (Summary, error) {
 	var (
 		risk Risk
 
-		hasAssessment        bool
-		assessment           Assessment
-		hasConfidence        bool
-		confidence           float64
+		hasAssessment bool
+		assessment    Assessment
+		hasConfidence bool
+		confidence    float64
 
-		hasAppetite          bool
-		appetite             AppetiteStatement
-		hasEffectiveUntil    bool
-		effectiveUntil       time.Time
+		hasAppetite       bool
+		appetite          AppetiteStatement
+		hasEffectiveUntil bool
+		effectiveUntil    time.Time
 	)
 
 	err := row.Scan(
-		&risk.ID,&risk.TenantID,&risk.LegalEntityID,&risk.Code,&risk.Name,&risk.Category,&risk.Statement,&risk.Cause,
-		&risk.Event,&risk.Impact,&risk.Scope,&risk.OwnerPrincipalID,&risk.Status,&risk.Version,&risk.CreatedAt,&risk.UpdatedAt,
-		&hasAssessment,&assessment.ID,&assessment.RiskVersion,&assessment.Kind,&assessment.MethodCode,&assessment.MethodVersion,
-		&assessment.Dimensions,&assessment.Assumptions,&assessment.EvidenceReferences,&hasConfidence,&confidence,&assessment.AssessedBy,
-		&assessment.AppetiteStatementID,&assessment.AppetitePosition,&assessment.AppetiteRationale,&assessment.AssessedAt,&assessment.CreatedAt,
-		&hasAppetite,&appetite.ID,&appetite.RiskVersion,&appetite.Version,&appetite.Statement,&appetite.Rule,&appetite.Rationale,
-		&appetite.OwnerPrincipalID,&appetite.AuthorityPrincipalID,&appetite.Status,&appetite.EffectiveFrom,
-		&hasEffectiveUntil,&effectiveUntil,&appetite.CreatedAt,
+		&risk.ID, &risk.TenantID, &risk.LegalEntityID, &risk.Code, &risk.Name, &risk.Category, &risk.Statement, &risk.Cause,
+		&risk.Event, &risk.Impact, &risk.Scope, &risk.OwnerPrincipalID, &risk.Status, &risk.Version, &risk.CreatedAt, &risk.UpdatedAt,
+		&hasAssessment, &assessment.ID, &assessment.RiskVersion, &assessment.Kind, &assessment.MethodCode, &assessment.MethodVersion,
+		&assessment.Dimensions, &assessment.Assumptions, &assessment.EvidenceReferences, &hasConfidence, &confidence, &assessment.AssessedBy,
+		&assessment.AppetiteStatementID, &assessment.AppetitePosition, &assessment.AppetiteRationale, &assessment.AssessedAt, &assessment.CreatedAt,
+		&hasAppetite, &appetite.ID, &appetite.RiskVersion, &appetite.Version, &appetite.Statement, &appetite.Rule, &appetite.Rationale,
+		&appetite.OwnerPrincipalID, &appetite.AuthorityPrincipalID, &appetite.Status, &appetite.EffectiveFrom,
+		&hasEffectiveUntil, &effectiveUntil, &appetite.CreatedAt,
 	)
 	if err != nil {
 		return Summary{}, fmt.Errorf("scan risk summary: %w", err)

@@ -3,6 +3,8 @@ package httpapi
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -20,10 +22,10 @@ func TestRiskRoutesUseGovernedAuthorityContracts(t *testing.T) {
 		materiality    int
 		bindEntity     bool
 	}{
-		"POST /api/v1/risks": {authority.ResponsibilityOwner, 3, true},
-		"POST /api/v1/risks/{id}": {authority.ResponsibilityOwner, 3, false},
+		"POST /api/v1/risks":                  {authority.ResponsibilityOwner, 3, true},
+		"POST /api/v1/risks/{id}":             {authority.ResponsibilityOwner, 3, false},
 		"POST /api/v1/risks/{id}/assessments": {authority.ResponsibilityReviewer, 3, false},
-		"POST /api/v1/risks/{id}/appetite": {authority.ResponsibilityAuthorizer, 4, false},
+		"POST /api/v1/risks/{id}/appetite":    {authority.ResponsibilityAuthorizer, 4, false},
 	}
 	for _, route := range (&API{}).riskRoutes() {
 		key := route.Method + " " + route.Path
@@ -55,8 +57,9 @@ func TestRiskHTTPBindsVerifiedScopeAndActor(t *testing.T) {
 	now := time.Date(2026, 10, 2, 9, 0, 0, 0, time.UTC)
 	service.Now = func() time.Time { return now }
 	handler := New(Dependencies{
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Identity: identity.NewDevelopmentAuthenticator("bank", "risk-owner", "entity-a"),
-		Risk: service,
+		Risk:     service,
 	})
 
 	createBody := `{
@@ -148,8 +151,9 @@ func TestRiskHTTPRejectsCrossEntityReadAsNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 	handler := New(Dependencies{
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Identity: identity.NewDevelopmentAuthenticator("bank", "owner-b", "entity-b"),
-		Risk: service,
+		Risk:     service,
 	})
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/risks/"+value.ID, nil))
@@ -173,8 +177,9 @@ func TestRiskHTTPListUsesVerifiedEntityAndBoundedFilters(t *testing.T) {
 		now = now.Add(time.Minute)
 	}
 	handler := New(Dependencies{
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Identity: identity.NewDevelopmentAuthenticator("bank", "reader-a", "entity-a"),
-		Risk: service,
+		Risk:     service,
 	})
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/risks?search=network&limit=25", nil))

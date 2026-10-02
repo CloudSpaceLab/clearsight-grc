@@ -309,7 +309,9 @@ func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFil
 }
 
 func riskKey(tenant, entity, id string) string { return tenant + "\x00" + entity + "\x00" + id }
-func riskCodeKey(tenant, entity, code string) string { return tenant + "\x00" + entity + "\x00" + strings.ToUpper(strings.TrimSpace(code)) }
+func riskCodeKey(tenant, entity, code string) string {
+	return tenant + "\x00" + entity + "\x00" + strings.ToUpper(strings.TrimSpace(code))
+}
 
 func riskMatches(value Risk, query string) bool {
 	query = strings.ToLower(strings.TrimSpace(query))

@@ -66,9 +66,9 @@ func TestPostgresRiskLifecycleIsScopedVersionedAndAtomic(t *testing.T) {
 		TenantID: "risk-" + suffix, LegalEntityID: entityACode, Code: "NET-" + suffix,
 		Name: "Network resilience", Category: "Operational resilience",
 		Statement: "Critical network service may exceed approved recovery tolerance.",
-		Cause: "Primary and recovery paths can become unavailable.", Event: "Network service interruption",
+		Cause:     "Primary and recovery paths can become unavailable.", Event: "Network service interruption",
 		Impact: "Customers cannot access critical services within the approved tolerance.",
-		Scope: json.RawMessage(`{"service":"critical-network"}`), OwnerPrincipalID: ownerID, ActorID: ownerID,
+		Scope:  json.RawMessage(`{"service":"critical-network"}`), OwnerPrincipalID: ownerID, ActorID: ownerID,
 	})
 	if err != nil {
 		t.Fatal(err)

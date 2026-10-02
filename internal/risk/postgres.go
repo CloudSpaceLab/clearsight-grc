@@ -227,9 +227,9 @@ func (r *PostgresRepository) Assessments(ctx context.Context, scope Scope, riskI
 	values := make([]Assessment, 0, limit)
 	for rows.Next() {
 		var value Assessment
-		if err := rows.Scan(&value.ID,&value.RiskID,&value.RiskVersion,&value.Kind,&value.MethodCode,&value.MethodVersion,
-			&value.Dimensions,&value.Assumptions,&value.EvidenceReferences,&value.Confidence,&value.AssessedBy,
-			&value.AppetiteStatementID,&value.AppetitePosition,&value.AppetiteRationale,&value.AssessedAt,&value.CreatedAt); err != nil {
+		if err := rows.Scan(&value.ID, &value.RiskID, &value.RiskVersion, &value.Kind, &value.MethodCode, &value.MethodVersion,
+			&value.Dimensions, &value.Assumptions, &value.EvidenceReferences, &value.Confidence, &value.AssessedBy,
+			&value.AppetiteStatementID, &value.AppetitePosition, &value.AppetiteRationale, &value.AssessedAt, &value.CreatedAt); err != nil {
 			return nil, err
 		}
 		values = append(values, value)
@@ -237,8 +237,10 @@ func (r *PostgresRepository) Assessments(ctx context.Context, scope Scope, riskI
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	if len(values)==0 {
-		if _, err := r.Get(ctx, scope, riskID); err != nil { return nil, err }
+	if len(values) == 0 {
+		if _, err := r.Get(ctx, scope, riskID); err != nil {
+			return nil, err
+		}
 	}
 	return values, nil
 }
@@ -267,9 +269,9 @@ func (r *PostgresRepository) AppetiteStatements(ctx context.Context, scope Scope
 	values := make([]AppetiteStatement, 0, limit)
 	for rows.Next() {
 		var value AppetiteStatement
-		if err := rows.Scan(&value.ID,&value.RiskID,&value.RiskVersion,&value.Version,&value.Statement,&value.Rule,
-			&value.Rationale,&value.OwnerPrincipalID,&value.AuthorityPrincipalID,&value.Status,
-			&value.EffectiveFrom,&value.EffectiveUntil,&value.CreatedAt); err != nil {
+		if err := rows.Scan(&value.ID, &value.RiskID, &value.RiskVersion, &value.Version, &value.Statement, &value.Rule,
+			&value.Rationale, &value.OwnerPrincipalID, &value.AuthorityPrincipalID, &value.Status,
+			&value.EffectiveFrom, &value.EffectiveUntil, &value.CreatedAt); err != nil {
 			return nil, err
 		}
 		values = append(values, value)
@@ -277,8 +279,10 @@ func (r *PostgresRepository) AppetiteStatements(ctx context.Context, scope Scope
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	if len(values)==0 {
-		if _, err := r.Get(ctx, scope, riskID); err != nil { return nil, err }
+	if len(values) == 0 {
+		if _, err := r.Get(ctx, scope, riskID); err != nil {
+			return nil, err
+		}
 	}
 	return values, nil
 }
@@ -311,9 +315,9 @@ func (r *PostgresRepository) CurrentAppetite(ctx context.Context, scope Scope, r
 		  AND a.status='ACTIVE'
 		  AND (a.effective_until IS NULL OR $4<a.effective_until)
 		LIMIT 1`, scope.TenantID, scope.LegalEntityID, riskID, at.UTC(),
-	).Scan(&value.ID,&value.RiskID,&value.RiskVersion,&value.Version,&value.Statement,&value.Rule,
-		&value.Rationale,&value.OwnerPrincipalID,&value.AuthorityPrincipalID,&value.Status,
-		&value.EffectiveFrom,&value.EffectiveUntil,&value.CreatedAt)
+	).Scan(&value.ID, &value.RiskID, &value.RiskVersion, &value.Version, &value.Statement, &value.Rule,
+		&value.Rationale, &value.OwnerPrincipalID, &value.AuthorityPrincipalID, &value.Status,
+		&value.EffectiveFrom, &value.EffectiveUntil, &value.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		if _, getErr := r.Get(ctx, scope, riskID); getErr != nil {
 			return nil, getErr
@@ -370,9 +374,9 @@ type riskScanner interface{ Scan(...any) error }
 
 func scanRisk(row riskScanner) (Risk, error) {
 	var value Risk
-	err := row.Scan(&value.ID,&value.TenantID,&value.LegalEntityID,&value.Code,&value.Name,&value.Category,&value.Statement,
-		&value.Cause,&value.Event,&value.Impact,&value.Scope,&value.OwnerPrincipalID,&value.Status,&value.Version,
-		&value.CreatedAt,&value.UpdatedAt)
+	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.Code, &value.Name, &value.Category, &value.Statement,
+		&value.Cause, &value.Event, &value.Impact, &value.Scope, &value.OwnerPrincipalID, &value.Status, &value.Version,
+		&value.CreatedAt, &value.UpdatedAt)
 	return value, err
 }
 
@@ -382,7 +386,7 @@ func bumpRiskVersion(ctx context.Context, tx pgx.Tx, current Risk, expected int6
 		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$4
 		RETURNING id::text,tenant_id::text,legal_entity_id::text,code,name,category,statement,cause,event,impact,scope,
 		          COALESCE(owner_principal_id::text,''),status,version,created_at,updated_at`,
-		current.TenantID,current.LegalEntityID,current.ID,expected,occurredAt)
+		current.TenantID, current.LegalEntityID, current.ID, expected, occurredAt)
 	value, err := scanRisk(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Risk{}, ErrVersionConflict
