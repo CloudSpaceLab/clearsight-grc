@@ -53,7 +53,8 @@
   cursor: pointer;
 }
 .enterprise-scope-trigger:hover { border-color: color-mix(in srgb, var(--cyan) 48%, var(--border)); }
-.enterprise-scope-trigger__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text) !important; font-size: 11px !important; font-weight: 650; }
+.enterprise-scope-trigger__label { flex: none; color: var(--muted) !important; font-size: 9px !important; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+.enterprise-scope-trigger__name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text) !important; font-size: 11px !important; font-weight: 650; }
 .enterprise-scope-trigger__chevron { flex: none; color: var(--muted) !important; font-size: 12px !important; }
 .enterprise-scope-switcher { display: grid; gap: 10px; min-width: min(320px, calc(100vw - 48px)); padding: 4px; }
 .enterprise-scope-root { display: flex; align-items: center; gap: 10px; padding: 8px 9px 10px; border-bottom: 1px solid var(--border); }

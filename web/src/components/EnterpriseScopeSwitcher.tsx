@@ -50,6 +50,7 @@ export function EnterpriseScopeSwitcher({
     triggerClassName="enterprise-scope-trigger"
     triggerDisabled={isChanging}
     triggerChildren={<>
+      <span className="enterprise-scope-trigger__label">Scope</span>
       <span className="enterprise-scope-trigger__name">{current.name}</span>
       <span className="enterprise-scope-trigger__chevron" aria-hidden="true">⌄</span>
     </>}
