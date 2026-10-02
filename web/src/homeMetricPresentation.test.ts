@@ -20,10 +20,11 @@ describe("home metric presentation", () => {
       population: 20,
       excluded: 1,
       unknown: 2,
+      basis: "CURRENT_POSTURE" as const,
     };
     expect(homeMetricTone(metric)).toBe("success");
     expect(homeMetricQuality(metric)).toBe("partial");
-    expect(homeMetricMeta(metric)).toBe("20 checked · 1 excluded · 2 unknown");
+    expect(homeMetricMeta(metric)).toBe("Current posture · 20 checked · 1 excluded · 2 unknown");
   });
 
   it("uses the server drill filter and rejects unknown filters", () => {
