@@ -546,14 +546,18 @@ func (a *API) createMonitoringLinkedIssue(w http.ResponseWriter, r *http.Request
 	}
 	triggerKey := "monitoring-result-adverse:" + result.ID
 	if existing, lookupErr := continuityService.MatterByTriggerKey(r.Context(), actor.TenantID, triggerKey); lookupErr == nil {
-		linked := false
-		for _, link := range existing.Links {
-			if link.ProgramID == aggregate.Program.ID {
-				linked = true
-				break
-			}
+		if !monitoringMatterMatchesActor(existing, aggregate.Program, actor.PrincipalID) {
+			writeContinuityError(w, continuity.ErrNotFound)
+			return
 		}
-		if !linked || existing.Matter.LegalEntityID != aggregate.Program.LegalEntityID {
+		httpx.WriteJSON(w, http.StatusOK, map[string]any{"matter": existing.Matter, "created": false})
+		return
+	} else if !errors.Is(lookupErr, continuity.ErrNotFound) {
+		writeContinuityError(w, lookupErr)
+		return
+	}
+	if existing, lookupErr := continuityService.OpenMonitoringMatter(r.Context(), actor.TenantID, aggregate.Program.ID, check.ID); lookupErr == nil {
+		if !monitoringMatterMatchesActor(existing, aggregate.Program, actor.PrincipalID) {
 			writeContinuityError(w, continuity.ErrNotFound)
 			return
 		}
@@ -577,6 +581,19 @@ func (a *API) createMonitoringLinkedIssue(w http.ResponseWriter, r *http.Request
 		status = http.StatusCreated
 	}
 	httpx.WriteJSON(w, status, map[string]any{"matter": matter, "created": inserted})
+}
+
+func monitoringMatterMatchesActor(value continuity.MatterAggregate, program continuity.Program, principalID string) bool {
+	if value.Matter.LegalEntityID != program.LegalEntityID ||
+		!continuity.MatterAggregateVisibleTo(value, principalID) {
+		return false
+	}
+	for _, link := range value.Links {
+		if link.ProgramID == program.ID && link.RetiredAt == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func writeMonitoringError(w http.ResponseWriter, err error) {
