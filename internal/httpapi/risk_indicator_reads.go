@@ -52,8 +52,8 @@ type riskIndicatorRead struct {
 	Coverage            *float64                   `json:"coverage,omitempty"`
 	MinimumCoverage     float64                    `json:"minimum_coverage"`
 	FreshnessMinutes    int                        `json:"freshness_minutes"`
-	ResultID            string                     `json:"result_id,omitempty"`
-	EvaluatedAt         *time.Time                 `json:"evaluated_at,omitempty"`
+	ResultID            string                         `json:"result_id,omitempty"`
+	EvaluatedAt         *time.Time                     `json:"evaluated_at,omitempty"`
 	Intervention        *riskIndicatorInterventionRead `json:"intervention,omitempty"`
 }
 
@@ -229,7 +229,6 @@ func currentRiskIndicatorState(check monitoring.MonitoringCheck, result monitori
 		return riskIndicatorUnknown, "Latest monitoring result is not assessed."
 	}
 }
-
 
 func riskIndicatorMatterLinkedToProgram(value continuity.MatterAggregate, programID string) bool {
 	for _, link := range value.Links {
