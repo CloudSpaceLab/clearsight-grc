@@ -45,6 +45,9 @@ export type RiskIndicatorDetail = {
   freshness_minutes: number;
   result_id?: string;
   evaluated_at?: string;
+  open_matter_id?: string;
+  open_matter_reference?: string;
+  open_matter_status?: string;
 };
 
 export type RiskControlImplementationStatus = "PLANNED" | "IN_PROGRESS" | "IMPLEMENTED" | "INACTIVE" | "RETIRED";
