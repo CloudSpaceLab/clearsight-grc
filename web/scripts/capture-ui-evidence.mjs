@@ -174,7 +174,7 @@ async function capturePage(capture) {
       await page.getByRole("heading", { name: "Due diligence" }).waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Use a starter template" }).click();
       await page.getByRole("dialog", { name: "Set up due-diligence form" }).waitFor({ state: "visible" });
-      await page.getByLabel("Program").waitFor({ state: "visible" });
+      await page.getByLabel("Program", { exact: true }).waitFor({ state: "visible" });
     }
     if (capture.openVendorLink) {
       const link = page.getByRole("button", { name: "Link vendor" });
