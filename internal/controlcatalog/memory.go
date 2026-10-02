@@ -2,6 +2,7 @@ package controlcatalog
 
 import (
 	"context"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -17,9 +18,9 @@ type MemoryRepository struct {
 func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
 		definitions: map[string]Definition{},
-		codes: map[string]string{},
-		links: map[string]ImplementationLink{},
-		byImpl: map[string]string{},
+		codes:       map[string]string{},
+		links:       map[string]ImplementationLink{},
+		byImpl:      map[string]string{},
 	}
 }
 
@@ -103,6 +104,12 @@ func (r *MemoryRepository) ListImplementationLinks(ctx context.Context, tenant, 
 			values = append(values, value)
 		}
 	}
+	sort.Slice(values, func(i, j int) bool {
+		if !values[i].CreatedAt.Equal(values[j].CreatedAt) {
+			return values[i].CreatedAt.Before(values[j].CreatedAt)
+		}
+		return values[i].ID < values[j].ID
+	})
 	if len(values) > limit {
 		values = values[:limit]
 	}
