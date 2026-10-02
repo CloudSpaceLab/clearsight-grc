@@ -219,6 +219,16 @@ describe("legal entity scope selector", () => {
     expect(screen.queryByRole("button", { name: /Legal entity/ })).toBeNull();
   });
 
+  it("fails closed when the advertised hierarchy is incomplete", async () => {
+    const incomplete = switchableRuntime();
+    incomplete.scope_hierarchy = { ...incomplete.scope_hierarchy!, state: "TRUNCATED" };
+    vi.mocked(loadContext).mockResolvedValue(incomplete);
+    render(<App/>);
+
+    await screen.findByText("Clear Bank Nigeria");
+    expect(screen.queryByRole("button", { name: /Legal entity/ })).toBeNull();
+  });
+
   it("shows only server-authorized legal entities and retains the current selection", async () => {
     vi.mocked(loadContext).mockResolvedValue(switchableRuntime());
     render(<App/>);
