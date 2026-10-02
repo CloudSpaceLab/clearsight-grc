@@ -24,6 +24,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/ropa"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/scimapi"
@@ -65,6 +66,7 @@ type serviceSet struct {
 	Ropa                           *ropa.Service
 	RopaEventsReader               ropa.Repository
 	Reporting                      *reporting.Service
+	Risk                           *risk.Service
 	MatterFormRemediationRepo      continuity.MatterFormRemediationRepository
 	Today                          *today.Service
 	Oversight                      *oversight.Service
