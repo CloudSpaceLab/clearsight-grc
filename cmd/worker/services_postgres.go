@@ -175,6 +175,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	assessmentCancellation := newAssessmentCancellationConsumer(evidenceService)
 	addressVerificationSetup := thirdparty.NewAddressVerificationProvisioner(runtimeRepository, evidenceService, assessmentRepository, continuityService, evidenceService, monitoring.NewPostgresRepository(pool))
 	addressVerificationAssignment := thirdparty.NewAddressVerificationAssignmentConsumer(runtimeRepository, assessmentRepository, continuityService, evidenceService, monitoring.NewPostgresRepository(pool))
+	inAppNotifications := workflow.NewInAppNotificationConsumer(workflowRepository)
 	staffNotifications, err := buildStaffNotificationWorker(cfg, workflowRepository, thirdparty.NewAddressVerificationAssignmentTargetResolver(evidenceService))
 	if err != nil {
 		pool.Close()
@@ -184,7 +185,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	vendorWorkSubmission := newVendorWorkSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
 	publisher := workflowruntime.NewCompositePublisher(
 		sourceEventCheckpoint, sourceHealth, collectionSubmissions, actionWork, lifecycleWork, escalationWork,
-		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, addressVerificationSetup, addressVerificationAssignment, staffNotifications, addressVerificationSubmission, vendorWorkSubmission,
+		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, addressVerificationSetup, addressVerificationAssignment, inAppNotifications, staffNotifications, addressVerificationSubmission, vendorWorkSubmission,
 		formProposalGeneration, formCommunicationWorker, formpolicy.ScoredResponsePublisher{Handler: formPolicyExecutor},
 		workflowruntime.LogPublisher{Logger: logger},
 	)
