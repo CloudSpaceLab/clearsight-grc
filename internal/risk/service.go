@@ -13,7 +13,7 @@ const (
 	EventRiskUpdated       = "RiskUpdated"
 	EventRiskAssessed      = "RiskAssessed"
 	EventAppetiteActivated = "RiskAppetiteActivated"
-	EventControlLinked      = "RiskControlLinked"
+	EventControlLinked     = "RiskControlLinked"
 )
 
 type Service struct {
