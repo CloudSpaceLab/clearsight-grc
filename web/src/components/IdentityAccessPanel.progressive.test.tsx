@@ -91,12 +91,14 @@ it("keeps access inventory primary and opens one focused creation workflow at a 
   expect(screen.getByRole("tab", { name: "Organization", selected: true })).toBeTruthy();
   expect(screen.getByText("Ada Okafor")).toBeTruthy();
   expect(screen.getByText("PROGRAM_OWNER")).toBeTruthy();
+  expect(screen.getByText("Department / area")).toBeTruthy();
+  expect(screen.getByText("2")).toBeTruthy();
 
   fireEvent.click(screen.getByRole("tab", { name: "Reporting lines" }));
   expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent === "Chidi Eze reports to Ada Okafor")).toBeTruthy();
   expect(screen.getByText(/Reporting lines permit responsibility handoff/)).toBeTruthy();
 
-  fireEvent.click(screen.getByRole("tab", { name: "Directory access" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Directory groups & access" }));
 
   fireEvent.click(screen.getByRole("button", { name: "Add source" }));
   const sourceDialog = screen.getByRole("dialog", { name: "Add provisioning source" });
