@@ -423,7 +423,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       <div className="context-bar" aria-label="Active workspace context">
         <div><strong>{organizationName}</strong><span>{legalEntityName}</span></div>
         <div className="context-role">
-          <NotificationCenter key={notificationScopeKey(runtime)}/>
+          {runtime && <NotificationCenter key={notificationScopeKey(runtime)}/>}
           <DisplayPreferencesMenu/>
           <AdministrationMenu enabled={configureEnabled} onOpen={() => navigate("configure")}/>
           {serverDemoMode && <DemoEnvironmentMenu onOpenReferenceJourneys={referenceJourneysEnabled ? () => navigate("explore") : undefined}/>}
