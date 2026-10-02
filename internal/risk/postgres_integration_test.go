@@ -222,12 +222,15 @@ func TestPostgresRiskIndicatorRejectsCrossEntityMonitoringCheck(t *testing.T) {
 	now := time.Date(2026, 10, 2, 16, 0, 0, 0, time.UTC)
 
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,$3);
+		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,$3)
+	`, tenantID, "risk-ind-"+suffix, "Risk Indicator "+suffix); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES
-			($4::uuid,$1::uuid,$5,'Indicator Entity A','NG',$8::timestamptz),
-			($6::uuid,$1::uuid,$7,'Indicator Entity B','GH',$8::timestamptz)
-	`, tenantID, "risk-ind-"+suffix, "Risk Indicator "+suffix,
-		entityA, "RIA-"+suffix, entityB, "RIB-"+suffix, now.Add(-time.Hour)); err != nil {
+			($1::uuid,$2::uuid,$3,'Indicator Entity A','NG',$6::timestamptz),
+			($4::uuid,$2::uuid,$5,'Indicator Entity B','GH',$6::timestamptz)
+	`, entityA, tenantID, "RIA-"+suffix, entityB, "RIB-"+suffix, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
