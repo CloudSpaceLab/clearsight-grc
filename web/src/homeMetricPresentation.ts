@@ -33,8 +33,9 @@ export function homeMetricDetail(id: string) {
   return headlineMetricDefinitions.find((item) => item.id === id)?.detail ?? "Current governed metric";
 }
 
-export function homeMetricMeta(metric: Pick<HomeMetric, "population" | "excluded" | "unknown">) {
-  return `${metric.population} checked · ${knownCount(metric.excluded)} excluded · ${knownCount(metric.unknown)} unknown`;
+export function homeMetricMeta(metric: Pick<HomeMetric, "population" | "excluded" | "unknown" | "basis">) {
+  const basis = metric.basis === "CURRENT_POSTURE" ? "Current posture · " : "";
+  return `${basis}${metric.population} checked · ${knownCount(metric.excluded)} excluded · ${knownCount(metric.unknown)} unknown`;
 }
 
 export function completenessLabel(value: MetricCompleteness) {
