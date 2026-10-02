@@ -131,9 +131,8 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
   await screen.findByRole("heading", { name: "Risk and delivery oversight" });
 
   fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
-  const to = screen.getByLabelText("To") as HTMLInputElement;
-  expect(to.value).toBe("2026-09-01");
-  expect(to.readOnly).toBe(true);
+  expect(screen.queryByLabelText("From")).toBeNull();
+  expect(screen.getByText("Current posture stays current. History measures use this window.")).toBeTruthy();
 
   const nextPeriod = { start_date: "2026-08-03", end_date: "2026-09-01", mode: "CURRENT_WINDOW" as const, max_days: 365, historical_end_supported: false as const };
   const currentSnapshot = await vi.mocked(api.loadOversight).mock.results[0]!.value;
@@ -152,7 +151,7 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
   vi.mocked(api.loadOversight).mockClear();
   vi.mocked(metricApi.loadHomeMetrics).mockClear();
 
-  fireEvent.click(screen.getByRole("button", { name: "Last 30 days" }));
+  fireEvent.click(screen.getByRole("button", { name: "30 days" }));
 
   await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" }));
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" });
@@ -168,11 +167,11 @@ it("submits a custom start date but never offers an editable historical end date
   await screen.findByRole("heading", { name: "Risk and delivery oversight" });
 
   fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Custom start date" }));
   const from = screen.getByLabelText("From") as HTMLInputElement;
-  const to = screen.getByLabelText("To") as HTMLInputElement;
   expect(from.min).toBe("2025-09-02");
   expect(from.max).toBe("2026-09-01");
-  expect(to.readOnly).toBe(true);
+  expect(screen.getByLabelText("To 2026-09-01").textContent).toContain("Current reporting date");
 
   fireEvent.change(from, { target: { value: "2026-07-15" } });
 

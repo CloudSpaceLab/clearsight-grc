@@ -66,7 +66,8 @@
 .identity-organization-summary strong { color: var(--text, #182230); font-size: 1.3rem; line-height: 1; }
 .identity-organization-summary span { color: var(--muted, #667085); font-size: .75rem; line-height: 1.35; }
 .identity-organization-card { min-width: 0; }
-.identity-position-search { display: grid; gap: 5px; min-width: min(300px, 100%); color: var(--muted, #667085); font-size: .73rem; font-weight: 650; }
+.identity-position-filters { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(160px, .8fr); gap: 9px; align-items: end; min-width: min(470px, 100%); }
+.identity-position-search { display: grid; gap: 5px; min-width: 0; color: var(--muted, #667085); font-size: .73rem; font-weight: 650; }
 .identity-position-search input { width: 100%; min-height: 38px; padding: 8px 11px; border: 1px solid var(--line-strong, #cfd5dd); border-radius: 9px; background: var(--surface, #fff); color: var(--text, #182230); font: inherit; }
 .identity-position-search input:focus { border-color: var(--focus, #19a9bd); outline: 2px solid color-mix(in srgb, var(--focus, #19a9bd) 24%, transparent); outline-offset: 0; }
 .identity-position-table-wrap { max-width: 100%; overflow-x: auto; }
@@ -107,6 +108,7 @@
   .identity-row mark { justify-self: start; }
   .identity-organization-summary { grid-template-columns: 1fr 1fr; }
   .identity-card-header { align-items: stretch; }
+  .identity-position-filters { grid-template-columns: 1fr; min-width: 100%; }
   .identity-position-search { min-width: 100%; }
   .identity-position-table, .identity-position-table tbody, .identity-position-table tr, .identity-position-table td { display: block; width: 100%; }
   .identity-position-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

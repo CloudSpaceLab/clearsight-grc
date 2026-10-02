@@ -229,9 +229,9 @@ export function IdentityAccessPanel() {
     {token && <div className="identity-token" role="status"><div><strong>Provisioning token — shown once</strong><p>Copy this token to your SCIM provider now. It cannot be recovered after you leave this screen.</p><code>{token}</code></div><div className="identity-token-actions"><button className="secondary-button" type="button" onClick={() => void navigator.clipboard?.writeText(token)}>Copy</button><button className="text-button" type="button" onClick={() => setToken("")}>Hide</button></div></div>}
 
     <div className="identity-access-tabs" role="tablist" aria-label="Identity and access areas">
-      <AreaTab area="positions" active={area} onSelect={setArea}>Positions & roles</AreaTab>
+      <AreaTab area="positions" active={area} onSelect={setArea}>Organization</AreaTab>
       <AreaTab area="reporting" active={area} onSelect={setArea}>Reporting lines</AreaTab>
-      <AreaTab area="directory" active={area} onSelect={setArea}>Directory access</AreaTab>
+      <AreaTab area="directory" active={area} onSelect={setArea}>Directory groups & access</AreaTab>
       <AreaTab area="escalation" active={area} onSelect={setArea}>Escalation routes</AreaTab>
     </div>
 
@@ -297,5 +297,5 @@ function AreaTab({ area, active, onSelect, children }: { area: WorkspaceArea; ac
 }
 
 function areaLabel(area: WorkspaceArea) {
-  return ({ positions: "Positions and roles", reporting: "Reporting lines", directory: "Directory access", escalation: "Escalation routes" } as const)[area];
+  return ({ positions: "Organization", reporting: "Reporting lines", directory: "Directory groups and access", escalation: "Escalation routes" } as const)[area];
 }
