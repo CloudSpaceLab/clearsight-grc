@@ -71,4 +71,20 @@ CREATE TABLE risk_control_links (
 CREATE INDEX risk_control_links_risk_idx
     ON risk_control_links(tenant_id,legal_entity_id,risk_id,risk_version DESC,id DESC);
 
+CREATE FUNCTION protect_control_catalog_immutable() RETURNS trigger LANGUAGE plpgsql AS $
+BEGIN
+    RAISE EXCEPTION 'control catalog history is immutable';
+END;
+$;
+
+CREATE TRIGGER control_definitions_immutable
+    BEFORE UPDATE OR DELETE ON control_definitions
+    FOR EACH ROW EXECUTE FUNCTION protect_control_catalog_immutable();
+CREATE TRIGGER control_catalog_links_immutable
+    BEFORE UPDATE OR DELETE ON control_catalog_implementation_links
+    FOR EACH ROW EXECUTE FUNCTION protect_control_catalog_immutable();
+CREATE TRIGGER risk_control_links_immutable
+    BEFORE UPDATE OR DELETE ON risk_control_links
+    FOR EACH ROW EXECUTE FUNCTION protect_risk_immutable();
+
 COMMIT;
