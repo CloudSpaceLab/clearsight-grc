@@ -124,6 +124,17 @@ func TestPostgresInAppNotificationsStayActorAndEntityScoped(t *testing.T) {
 		t.Fatalf("cross-actor mark error = %v", err)
 	}
 
+	if _, err := pool.Exec(ctx, `DELETE FROM outbox_events WHERE id=$1::uuid AND tenant_id=$2::uuid`, eventA2, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	retained, err := service.ListNotifications(ctx, scopeA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(retained.Items) != 2 {
+		t.Fatalf("notification retention changed with outbox cleanup: %#v", retained)
+	}
+
 	if _, err := service.MarkNotificationRead(ctx, scopeA, first.Items[0].ID, base.Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
