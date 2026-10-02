@@ -18,7 +18,8 @@
 .demo-environment-switches > span { font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
 
 @media (max-width: 820px) {
-  .context-role { gap: 6px !important; }
+  .context-role { gap: 6px !important; flex-wrap: wrap; }
+  .context-scope-control { max-width: 240px; }
   .administration-menu { display: block; }
   .demo-environment-menu > summary { max-width: 116px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
@@ -71,8 +72,8 @@
 .enterprise-scope-empty { margin: 0; padding: 8px 10px; color: var(--muted); font-size: 11px; }
 
 @media (max-width: 820px) {
-  .context-scope .enterprise-scope-trigger { width: min(100%, 280px); }
-  .context-scope .enterprise-scope-trigger span { display: block; }
+  .context-scope-control .enterprise-scope-trigger { width: min(220px, 42vw); }
+  .context-scope-control .enterprise-scope-trigger span { display: block; }
 }
 @media (max-width: 420px) {
   .context-scope-control { flex: 1 1 100%; max-width: none; }\n  .context-scope-control .enterprise-scope-trigger { width: 100%; }
