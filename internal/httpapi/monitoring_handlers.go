@@ -545,7 +545,8 @@ func (a *API) createMonitoringLinkedIssue(w http.ResponseWriter, r *http.Request
 		return
 	}
 	triggerKey := "monitoring-result-adverse:" + result.ID
-	if existing, lookupErr := continuityService.MatterByTriggerKey(r.Context(), actor.TenantID, triggerKey); lookupErr == nil {
+	episodeKey := "monitoring-check-adverse:" + check.ID
+	if existing, lookupErr := continuityService.MatterByTriggerKey(r.Context(), actor.TenantID, episodeKey); lookupErr == nil {
 		linked := false
 		for _, link := range existing.Links {
 			if link.ProgramID == aggregate.Program.ID {
@@ -565,7 +566,7 @@ func (a *API) createMonitoringLinkedIssue(w http.ResponseWriter, r *http.Request
 	}
 	_, matter, inserted, err := continuityService.ApplyTrigger(r.Context(), continuity.Trigger{
 		TenantID: actor.TenantID, ProgramID: aggregate.Program.ID, Type: "MONITORING_RESULT_ADVERSE",
-		SubjectType: "MONITORING_RESULT", SubjectID: result.ID, DedupeKey: triggerKey,
+		SubjectType: "MONITORING_RESULT", SubjectID: result.ID, DedupeKey: triggerKey, MatterDedupeKey: episodeKey,
 		Payload: payload, ObservedAt: result.EvaluatedAt, Source: "monitoring-result-review", ActorID: actor.PrincipalID,
 	})
 	if err != nil {
