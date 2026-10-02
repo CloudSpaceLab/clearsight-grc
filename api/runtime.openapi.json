@@ -4370,12 +4370,6 @@
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
-    "/api/v1/programs/{id}/control-implementations/{implementation_id}/catalog/{definition_id}": {
-      "post": {
-        "operationId": "reuseProgramControlDefinition",
-        "x-clearsight-route-class": "MATERIAL_COMMAND"
-      }
-    },
     "/api/v1/risks/{id}/controls": {
       "post": {
         "operationId": "linkRiskControl",
@@ -4394,6 +4388,36 @@
         "responses": {
           "201": {
             "description": "Catalogued Program control linked to the current Risk version."
+          }
+        }
+      }
+    },
+    "/api/v1/control-catalog/implementation-links": {
+      "get": {
+        "operationId": "listControlCatalogImplementationLinks",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          {
+            "name": "program_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-entity reusable Program control references."
           }
         }
       }
