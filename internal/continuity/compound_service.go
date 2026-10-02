@@ -50,7 +50,7 @@ func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggre
 	var existingMatter *Matter
 	if create {
 		episodeKey := triggerMatterDedupeKey(trigger)
-		if existing, lookupErr := s.MatterByTriggerKey(ctx, trigger.TenantID, episodeKey); lookupErr == nil {
+		if existing, lookupErr := s.OpenMatterByTriggerKey(ctx, trigger.TenantID, episodeKey); lookupErr == nil {
 			if matterLinkedToProgram(existing, trigger.ProgramID) {
 				current := existing.Matter
 				existingMatter = &current
