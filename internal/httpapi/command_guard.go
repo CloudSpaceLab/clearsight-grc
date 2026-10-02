@@ -102,6 +102,10 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 				writeMonitoringScopeError(w, err)
 				return
 			}
+			if strings.HasPrefix(name, "risk.") {
+				writeRiskError(w, err)
+				return
+			}
 			writeContinuityError(w, err)
 			return
 		}

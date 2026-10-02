@@ -24,6 +24,9 @@ func (a *API) lifecycleCommandPolicy(ctx context.Context, r *http.Request, tenan
 	if strings.HasPrefix(name, "document.proposal.") {
 		return a.documentProposalCommandPolicy(ctx, r, tenant, name, payload, policy)
 	}
+	if strings.HasPrefix(name, "risk.") {
+		return a.riskLifecycleCommandPolicy(ctx, r, tenant, name, payload, policy)
+	}
 	if strings.HasPrefix(name, "forms.response-policy.") {
 		actor, actorErr := identity.Require(ctx)
 		if actorErr != nil {
