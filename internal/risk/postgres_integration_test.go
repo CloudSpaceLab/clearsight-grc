@@ -162,6 +162,26 @@ func TestPostgresRiskLifecycleIsScopedVersionedAndAtomic(t *testing.T) {
 	if outboxCount != 3 {
 		t.Fatalf("risk outbox count=%d want=3", outboxCount)
 	}
+
+	now = now.Add(time.Minute)
+	updatedAfterAssessment, err := service.Update(ctx, UpdateInput{
+		TenantID: "risk-" + suffix, LegalEntityID: entityACode, RiskID: created.ID, ExpectedVersion: updated.Version,
+		Name: updated.Name, Category: updated.Category, Statement: updated.Statement,
+		Cause: updated.Cause, Event: updated.Event, Impact: updated.Impact, Scope: updated.Scope,
+		OwnerPrincipalID: updated.OwnerPrincipalID, Status: StatusActive, ActorID: ownerID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	staleFiltered, err := service.List(ctx, Scope{TenantID: "risk-" + suffix, LegalEntityID: entityACode}, ListFilter{
+		AppetitePosition: AppetiteBreached, Limit: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updatedAfterAssessment.Version != assessment.RiskVersion+1 || len(staleFiltered.Items) != 0 {
+		t.Fatalf("stale assessment drove current appetite filter: risk=%#v page=%#v", updatedAfterAssessment, staleFiltered)
+	}
 }
 
 func mustRiskID(t *testing.T) string {

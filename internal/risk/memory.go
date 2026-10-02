@@ -267,7 +267,7 @@ func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFil
 		}
 		if filter.AppetitePosition != "" {
 			latest := latestAssessment(r.assessments[riskKey(value.TenantID, value.LegalEntityID, value.ID)])
-			if latest == nil || latest.AppetitePosition != filter.AppetitePosition {
+			if latest == nil || latest.RiskVersion != value.Version || latest.AppetitePosition != filter.AppetitePosition {
 				continue
 			}
 		}

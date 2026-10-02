@@ -218,6 +218,56 @@ func TestRiskListUsesStableKeysetAndLatestAssessment(t *testing.T) {
 	}
 }
 
+func TestRiskListDoesNotTreatStaleAssessmentAsCurrentAppetitePosition(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(NewMemoryRepository())
+	now := time.Date(2026, 10, 2, 12, 30, 0, 0, time.UTC)
+	service.Now = func() time.Time { return now }
+	created := createTestRisk(t, service, ctx, "bank", "entity-a", "RISK-STALE")
+
+	assessedRisk, _, err := service.AddAssessment(ctx, AssessmentInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID, ExpectedRiskVersion: created.Version,
+		Kind: AssessmentCurrent, MethodCode: "QUAL-5X5", MethodVersion: "v1",
+		Dimensions: json.RawMessage(`{"likelihood":5,"impact":5}`), AppetitePosition: AppetiteUnknown, ActorID: "reviewer-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	now = now.Add(time.Minute)
+	updated, err := service.Update(ctx, UpdateInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID, ExpectedVersion: assessedRisk.Version,
+		Name: created.Name, Category: created.Category, Statement: created.Statement,
+		Cause: created.Cause, Event: created.Event, Impact: created.Impact, Scope: created.Scope,
+		OwnerPrincipalID: created.OwnerPrincipalID, Status: StatusActive, ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Version == assessedRisk.Version {
+		t.Fatal("risk version did not advance")
+	}
+
+	page, err := service.List(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, ListFilter{
+		AppetitePosition: AppetiteUnknown, Limit: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 0 {
+		t.Fatalf("stale assessment drove current appetite filtering: %#v", page.Items)
+	}
+
+	unfiltered, err := service.List(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, ListFilter{Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unfiltered.Items) != 1 || unfiltered.Items[0].LatestAssessment == nil ||
+		unfiltered.Items[0].LatestAssessment.RiskVersion != assessedRisk.Version {
+		t.Fatalf("assessment history was not retained: %#v", unfiltered.Items)
+	}
+}
+
 func TestDuplicateRiskCodeIsScopedPerLegalEntity(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(NewMemoryRepository())
