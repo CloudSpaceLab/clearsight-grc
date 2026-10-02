@@ -185,7 +185,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	vendorWorkSubmission := newVendorWorkSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
 	publisher := workflowruntime.NewCompositePublisher(
 		sourceEventCheckpoint, sourceHealth, collectionSubmissions, actionWork, lifecycleWork, escalationWork,
-		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, addressVerificationSetup, addressVerificationAssignment, inAppNotifications, staffNotifications, addressVerificationSubmission, vendorWorkSubmission,
+		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, addressVerificationSetup, addressVerificationAssignment, staffNotifications, inAppNotifications, addressVerificationSubmission, vendorWorkSubmission,
 		formProposalGeneration, formCommunicationWorker, formpolicy.ScoredResponsePublisher{Handler: formPolicyExecutor},
 		workflowruntime.LogPublisher{Logger: logger},
 	)
