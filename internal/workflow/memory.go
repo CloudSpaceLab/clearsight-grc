@@ -102,7 +102,6 @@ func clone(input map[string]string) map[string]string {
 	return out
 }
 
-
 func (r *MemoryRepository) StoreInAppNotification(_ context.Context, record inAppNotificationRecord) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
