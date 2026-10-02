@@ -231,7 +231,7 @@ export function IdentityAccessPanel() {
     <div className="identity-access-tabs" role="tablist" aria-label="Identity and access areas">
       <AreaTab area="positions" active={area} onSelect={setArea}>Organization</AreaTab>
       <AreaTab area="reporting" active={area} onSelect={setArea}>Reporting lines</AreaTab>
-      <AreaTab area="directory" active={area} onSelect={setArea}>Directory access</AreaTab>
+      <AreaTab area="directory" active={area} onSelect={setArea}>Directory groups & access</AreaTab>
       <AreaTab area="escalation" active={area} onSelect={setArea}>Escalation routes</AreaTab>
     </div>
 
@@ -297,5 +297,5 @@ function AreaTab({ area, active, onSelect, children }: { area: WorkspaceArea; ac
 }
 
 function areaLabel(area: WorkspaceArea) {
-  return ({ positions: "Organization", reporting: "Reporting lines", directory: "Directory access", escalation: "Escalation routes" } as const)[area];
+  return ({ positions: "Organization", reporting: "Reporting lines", directory: "Directory groups and access", escalation: "Escalation routes" } as const)[area];
 }
