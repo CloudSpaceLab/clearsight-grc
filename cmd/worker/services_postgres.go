@@ -157,6 +157,8 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	evidenceService := evidence.NewService(evidenceRepository, store)
 	evidenceService.ConfigureDemoUnscannedArtifacts(cfg.DemoAllowUnscannedArtifacts)
 	monitoringRepository := monitoring.NewPostgresRepository(pool)
+	monitoringEpisodes := &monitoring.AdverseEpisodeCoordinator{Repository: monitoringRepository, Continuity: continuityService}
+	monitoringAdverseEpisodes := &monitoring.AdverseEpisodeConsumer{Inbox: runtimeRepository, Monitoring: monitoringRepository, Coordinator: monitoringEpisodes}
 	collectionSubmissions := &monitoring.CollectionConsumer{Inbox: runtimeRepository, Repository: monitoringRepository, Evidence: evidenceService}
 	collectionDispatcher := &monitoring.CanonicalCollectionDispatcher{Requests: evidenceService}
 	collectionRenewal := &monitoring.CollectionMaintainer{Repository: monitoringRepository, Requests: evidenceService, Dispatcher: collectionDispatcher, WorkerID: cfg.WorkerID}
@@ -184,7 +186,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	addressVerificationSubmission := thirdparty.NewAddressVerificationSubmissionConsumer(runtimeRepository, evidenceService, continuityService)
 	vendorWorkSubmission := newVendorWorkSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
 	publisher := workflowruntime.NewCompositePublisher(
-		sourceEventCheckpoint, sourceHealth, collectionSubmissions, actionWork, lifecycleWork, escalationWork,
+		sourceEventCheckpoint, sourceHealth, collectionSubmissions, monitoringAdverseEpisodes, actionWork, lifecycleWork, escalationWork,
 		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, addressVerificationSetup, addressVerificationAssignment, staffNotifications, inAppNotifications, addressVerificationSubmission, vendorWorkSubmission,
 		formProposalGeneration, formCommunicationWorker, formpolicy.ScoredResponsePublisher{Handler: formPolicyExecutor},
 		workflowruntime.LogPublisher{Logger: logger},
