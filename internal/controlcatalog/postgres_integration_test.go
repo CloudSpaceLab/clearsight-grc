@@ -10,6 +10,7 @@ import (
 	"time"
 
 	platformid "github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
+	riskdomain "github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -100,6 +101,41 @@ func TestPostgresControlCatalogUsesExistingProgramImplementationAndExactEntitySc
 		ProgramID: programA, ImplementationID: implementationA,
 	}); !errors.Is(err, ErrDuplicate) {
 		t.Fatalf("duplicate implementation link error=%v", err)
+	}
+
+	riskService := riskdomain.NewService(riskdomain.NewPostgresRepository(pool))
+	riskService.Now = func() time.Time { return now }
+	createdRisk, err := riskService.Create(ctx, riskdomain.CreateInput{
+		TenantID: tenantSlug, LegalEntityID: entityACode, Code: "RISK-"+suffix,
+		Name: "Access governance risk", Statement: "Privileged access may remain inappropriate.",
+		Impact: "Unauthorized access may affect critical systems.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	linkedRisk, riskControl, err := riskService.LinkControl(ctx, riskdomain.LinkControlInput{
+		TenantID: tenantSlug, LegalEntityID: entityACode, RiskID: createdRisk.ID,
+		ExpectedRiskVersion: createdRisk.Version, CatalogLinkID: linkA.ID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if linkedRisk.Version != 2 || riskControl.CatalogLinkID != linkA.ID {
+		t.Fatalf("linked risk=%#v control=%#v", linkedRisk, riskControl)
+	}
+	_, _, err = riskService.LinkControl(ctx, riskdomain.LinkControlInput{
+		TenantID: tenantSlug, LegalEntityID: entityACode, RiskID: createdRisk.ID,
+		ExpectedRiskVersion: linkedRisk.Version, CatalogLinkID: linkB.ID,
+	})
+	if !errors.Is(err, riskdomain.ErrInvalid) {
+		t.Fatalf("cross-entity Risk control link error=%v", err)
+	}
+	afterBadLink, err := riskService.Get(ctx, riskdomain.Scope{TenantID: tenantSlug, LegalEntityID: entityACode}, createdRisk.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if afterBadLink.Risk.Version != 2 || len(afterBadLink.Controls) != 1 {
+		t.Fatalf("failed cross-entity link changed Risk: %#v", afterBadLink)
 	}
 
 	badID := catalogID(t)
