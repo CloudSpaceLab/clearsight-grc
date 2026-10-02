@@ -72,7 +72,7 @@ func (s *Service) GetForPeriod(ctx context.Context, scope Scope, request PeriodR
 		return Snapshot{}, ErrInvalidReportingPeriod
 	}
 	start = start.UTC()
-	if start.After(currentDate) || currentDate.Sub(start) > ReportingPeriodMaxDays*24*time.Hour {
+	if start.After(currentDate) || currentDate.Sub(start) >= ReportingPeriodMaxDays*24*time.Hour {
 		return Snapshot{}, ErrInvalidReportingPeriod
 	}
 	repository, ok := s.repository.(PeriodRepository)
