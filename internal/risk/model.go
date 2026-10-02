@@ -125,6 +125,7 @@ type IndicatorLink struct {
 	ID                     string               `json:"id"`
 	RiskID                 string               `json:"risk_id"`
 	RiskVersion            int64                `json:"risk_version"`
+	ProgramID              string               `json:"program_id"`
 	MonitoringCheckID      string               `json:"monitoring_check_id"`
 	MonitoringCheckVersion int64                `json:"monitoring_check_version"`
 	Kind                   IndicatorKind        `json:"kind"`
