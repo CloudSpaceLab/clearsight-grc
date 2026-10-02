@@ -32,6 +32,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (Risk, error) {
 	if err != nil {
 		return Risk{}, err
 	}
+	now := s.now()
 	risk := Risk{
 		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID,
 		Code: strings.ToUpper(strings.TrimSpace(input.Code)),
@@ -39,7 +40,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (Risk, error) {
 		Statement: strings.TrimSpace(input.Statement), Cause: strings.TrimSpace(input.Cause),
 		Event: strings.TrimSpace(input.Event), Impact: strings.TrimSpace(input.Impact),
 		Scope: normalizedJSON(input.Scope), OwnerPrincipalID: strings.TrimSpace(input.OwnerPrincipalID),
-		Status: StatusDraft, Version: 1, CreatedAt: s.now(), UpdatedAt: s.now(),
+		Status: StatusDraft, Version: 1, CreatedAt: now, UpdatedAt: now,
 	}
 	if err := validateRisk(risk); err != nil {
 		return Risk{}, err
@@ -48,7 +49,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (Risk, error) {
 	if err != nil {
 		return Risk{}, err
 	}
-	event, err := riskEvent(risk, EventRiskCreated, input.ActorID, risk)
+	event, err := riskEvent(risk, EventRiskCreated, input.ActorID, risk, now)
 	if err != nil {
 		return Risk{}, err
 	}
@@ -81,11 +82,12 @@ func (s *Service) Update(ctx context.Context, input UpdateInput) (Risk, error) {
 	next.OwnerPrincipalID = strings.TrimSpace(input.OwnerPrincipalID)
 	next.Status = input.Status
 	next.Version = current.Version + 1
-	next.UpdatedAt = s.now()
+	now := s.now()
+	next.UpdatedAt = now
 	if err := validateRisk(next); err != nil {
 		return Risk{}, err
 	}
-	event, err := riskEvent(next, EventRiskUpdated, input.ActorID, next)
+	event, err := riskEvent(next, EventRiskUpdated, input.ActorID, next, now)
 	if err != nil {
 		return Risk{}, err
 	}
@@ -107,6 +109,7 @@ func (s *Service) AddAssessment(ctx context.Context, input AssessmentInput) (Ris
 	if input.ExpectedRiskVersion <= 0 || current.Version != input.ExpectedRiskVersion {
 		return Risk{}, Assessment{}, ErrVersionConflict
 	}
+	now := s.now()
 	assessment := Assessment{
 		RiskID: current.ID, RiskVersion: current.Version + 1,
 		Kind: input.Kind, MethodCode: strings.TrimSpace(input.MethodCode), MethodVersion: strings.TrimSpace(input.MethodVersion),
@@ -114,7 +117,7 @@ func (s *Service) AddAssessment(ctx context.Context, input AssessmentInput) (Ris
 		EvidenceReferences: normalizedJSONArray(input.EvidenceReferences), Confidence: normalizedConfidence(input.Confidence),
 		AssessedBy: strings.TrimSpace(input.ActorID), AppetiteStatementID: strings.TrimSpace(input.AppetiteStatementID),
 		AppetitePosition: input.AppetitePosition, AppetiteRationale: strings.TrimSpace(input.AppetiteRationale),
-		AssessedAt: s.now(), CreatedAt: s.now(),
+		AssessedAt: now, CreatedAt: now,
 	}
 	if assessment.AppetiteStatementID == "" {
 		if assessment.AppetitePosition != AppetiteUnknown {
@@ -125,14 +128,8 @@ func (s *Service) AddAssessment(ctx context.Context, input AssessmentInput) (Ris
 		if err != nil {
 			return Risk{}, Assessment{}, err
 		}
-		found := false
-		for _, statement := range statements {
-			if statement.ID == assessment.AppetiteStatementID && statement.Status == AppetiteActive && statementAppliesAt(statement, assessment.AssessedAt) {
-				found = true
-				break
-			}
-		}
-		if !found {
+		currentAppetite := latestApplicableAppetite(statements, assessment.AssessedAt)
+		if currentAppetite == nil || currentAppetite.ID != assessment.AppetiteStatementID {
 			return Risk{}, Assessment{}, ErrInvalid
 		}
 	}
@@ -143,7 +140,7 @@ func (s *Service) AddAssessment(ctx context.Context, input AssessmentInput) (Ris
 	if err != nil {
 		return Risk{}, Assessment{}, err
 	}
-	event, err := riskEventWithVersion(current, current.Version+1, EventRiskAssessed, input.ActorID, assessment)
+	event, err := riskEventWithVersion(current, current.Version+1, EventRiskAssessed, input.ActorID, assessment, now)
 	if err != nil {
 		return Risk{}, Assessment{}, err
 	}
@@ -175,16 +172,17 @@ func (s *Service) ActivateAppetite(ctx context.Context, input AppetiteInput) (Ri
 			version = value.Version + 1
 		}
 	}
+	now := s.now()
 	effectiveFrom := input.EffectiveFrom.UTC()
 	if effectiveFrom.IsZero() {
-		effectiveFrom = s.now()
+		effectiveFrom = now
 	}
 	statement := AppetiteStatement{
 		RiskID: current.ID, RiskVersion: current.Version + 1, Version: version,
 		Statement: strings.TrimSpace(input.Statement), Rule: normalizedJSON(input.Rule),
 		Rationale: strings.TrimSpace(input.Rationale), OwnerPrincipalID: strings.TrimSpace(input.OwnerPrincipalID),
 		AuthorityPrincipalID: strings.TrimSpace(input.ActorID), Status: AppetiteActive,
-		EffectiveFrom: effectiveFrom, EffectiveUntil: normalizedTimePointer(input.EffectiveUntil), CreatedAt: s.now(),
+		EffectiveFrom: effectiveFrom, EffectiveUntil: normalizedTimePointer(input.EffectiveUntil), CreatedAt: now,
 	}
 	if statement.OwnerPrincipalID == "" {
 		statement.OwnerPrincipalID = current.OwnerPrincipalID
@@ -196,7 +194,7 @@ func (s *Service) ActivateAppetite(ctx context.Context, input AppetiteInput) (Ri
 	if err != nil {
 		return Risk{}, AppetiteStatement{}, err
 	}
-	event, err := riskEventWithVersion(current, current.Version+1, EventAppetiteActivated, input.ActorID, statement)
+	event, err := riskEventWithVersion(current, current.Version+1, EventAppetiteActivated, input.ActorID, statement, now)
 	if err != nil {
 		return Risk{}, AppetiteStatement{}, err
 	}
@@ -251,6 +249,7 @@ func (s *Service) List(ctx context.Context, scope Scope, filter ListFilter) (Pag
 	if filter.AppetitePosition != "" && !validAppetitePosition(filter.AppetitePosition) {
 		return Page{}, ErrInvalid
 	}
+	filter.AsOf = s.now()
 	return s.repository.List(ctx, scope, filter)
 }
 
@@ -352,11 +351,11 @@ func normalizedTimePointer(value *time.Time) *time.Time {
 	return &copy
 }
 
-func riskEvent(risk Risk, eventType, actorID string, payload any) (Event, error) {
-	return riskEventWithVersion(risk, risk.Version, eventType, actorID, payload)
+func riskEvent(risk Risk, eventType, actorID string, payload any, occurredAt time.Time) (Event, error) {
+	return riskEventWithVersion(risk, risk.Version, eventType, actorID, payload, occurredAt)
 }
 
-func riskEventWithVersion(risk Risk, version int64, eventType, actorID string, payload any) (Event, error) {
+func riskEventWithVersion(risk Risk, version int64, eventType, actorID string, payload any, occurredAt time.Time) (Event, error) {
 	eventID, err := newID()
 	if err != nil {
 		return Event{}, err
@@ -368,7 +367,7 @@ func riskEventWithVersion(risk Risk, version int64, eventType, actorID string, p
 	return Event{
 		ID: eventID, TenantID: risk.TenantID, LegalEntityID: risk.LegalEntityID,
 		RiskID: risk.ID, RiskVersion: version, Type: eventType,
-		Payload: body, ActorID: strings.TrimSpace(actorID), OccurredAt: time.Now().UTC(),
+		Payload: body, ActorID: strings.TrimSpace(actorID), OccurredAt: occurredAt.UTC(),
 	}, nil
 }
 
@@ -377,4 +376,20 @@ func (s *Service) now() time.Time {
 		return s.Now().UTC()
 	}
 	return time.Now().UTC()
+}
+
+
+func latestApplicableAppetite(values []AppetiteStatement, at time.Time) *AppetiteStatement {
+	var selected *AppetiteStatement
+	for i := range values {
+		value := values[i]
+		if value.Status != AppetiteActive || !statementAppliesAt(value, at) {
+			continue
+		}
+		if selected == nil || value.Version > selected.Version {
+			copy := value
+			selected = &copy
+		}
+	}
+	return selected
 }
