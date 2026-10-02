@@ -61,6 +61,57 @@ func TestRiskAssessmentRequiresCurrentApplicableAppetite(t *testing.T) {
 	}
 }
 
+func TestExpiredNewerAppetiteDoesNotReactivateOlderStatement(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMemoryRepository()
+	service := NewService(repo)
+	now := time.Date(2026, 10, 2, 9, 0, 0, 0, time.UTC)
+	service.Now = func() time.Time { return now }
+	created := createTestRisk(t, service, ctx, "bank", "entity-a", "RISK-EXPIRE")
+
+	firstRisk, first, err := service.ActivateAppetite(ctx, AppetiteInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID, ExpectedRiskVersion: created.Version,
+		Statement: "Keep disruption below 30 minutes.", Rule: json.RawMessage(`{"max_minutes":30}`),
+		ActorID: "cro-1", EffectiveFrom: now.Add(-2 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(time.Minute)
+	until := now.Add(time.Minute)
+	secondRisk, second, err := service.ActivateAppetite(ctx, AppetiteInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID, ExpectedRiskVersion: firstRisk.Version,
+		Statement: "Temporary 15 minute tolerance.", Rule: json.RawMessage(`{"max_minutes":15}`),
+		ActorID: "cro-1", EffectiveFrom: now.Add(-time.Minute), EffectiveUntil: &until,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	current, err := repo.CurrentAppetite(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, created.ID, now)
+	if err != nil || current == nil || current.ID != second.ID {
+		t.Fatalf("temporary appetite is not current: current=%#v err=%v", current, err)
+	}
+
+	now = until.Add(time.Minute)
+	current, err = repo.CurrentAppetite(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, created.ID, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current != nil {
+		t.Fatalf("older appetite %s reactivated after newer statement expired: %#v", first.ID, current)
+	}
+
+	_, _, err = service.AddAssessment(ctx, AssessmentInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID, ExpectedRiskVersion: secondRisk.Version,
+		Kind: AssessmentCurrent, MethodCode: "QUAL-5X5", MethodVersion: "v1",
+		Dimensions: json.RawMessage(`{"likelihood":3,"impact":4}`), AppetiteStatementID: first.ID,
+		AppetitePosition: AppetiteBreached, ActorID: "reviewer-1",
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("expired appetite window allowed older statement: %v", err)
+	}
+}
+
 func TestAssessmentWithoutAppetiteIsExplicitlyUnknown(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(NewMemoryRepository())
