@@ -88,3 +88,23 @@
   .oversight-today-item { transition: none; }
   .oversight-today-item[data-hovered], .oversight-today-item[data-pressed] { transform: none; }
 }
+
+.oversight-period-control { display: grid; justify-items: stretch; gap: 4px; min-width: 220px; max-width: 330px; }
+.oversight-period-control > small { color: var(--muted); font-size: .69rem; text-align: right; }
+.oversight-period-control .cs-notice { margin: 4px 0 0; text-align: left; }
+.oversight-period-trigger { width: 100%; min-height: 50px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 7px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-10); background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
+.oversight-period-trigger:hover { border-color: color-mix(in srgb, var(--cyan) 48%, var(--border)); }
+.oversight-period-trigger__label { color: var(--muted); font-size: .66rem; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; }
+.oversight-period-trigger strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .79rem; }
+.oversight-period-picker { display: grid; gap: 14px; width: min(390px, calc(100vw - 44px)); padding: 4px; }
+.oversight-period-picker > div:first-child { display: grid; gap: 4px; }
+.oversight-period-picker > div:first-child > strong { font-size: .85rem; }
+.oversight-period-picker p { margin: 0; color: var(--muted); font-size: .74rem; line-height: 1.45; }
+.oversight-period-presets { display: flex; flex-wrap: wrap; gap: 7px; }
+.oversight-period-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.oversight-period-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 2px; }
+@media (max-width: 620px) {
+  .oversight-period-control { min-width: 0; max-width: none; width: 100%; }
+  .oversight-period-control > small { text-align: left; }
+  .oversight-period-fields { grid-template-columns: 1fr; }
+}
