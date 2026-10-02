@@ -62,7 +62,7 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
   if (state === "unavailable" || !snapshot) return <section className="oversight-workspace">
     <header className="oversight-header">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Oversight information is unavailable</h1><p>Current risk posture remains separate from detailed analysis.</p></div>
-      {metrics && <div className={`oversight-freshness ${metrics.freshness.toLowerCase()}`}><strong>{metrics.freshness === "CURRENT" ? "Current metrics" : "Metrics need refresh"}</strong><span>Generated {formatDateTime(metrics.generated_at)}</span></div>}
+      {metrics && <OversightPeriodSummary periodStart={metrics.period_start} periodEnd={metrics.period_end} freshness={metrics.freshness} generatedAt={metrics.generated_at}/>} 
     </header>
     {headlineMetrics}
     <Notice tone="warning">Detailed risk analysis is unavailable. Headline metrics remain separate and may still be current.</Notice>
@@ -75,10 +75,10 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
   return <section className="oversight-workspace">
     <header className="oversight-header">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Risk and delivery oversight</h1><p>Review issues requiring intervention, resolution outlook and operating workload for this legal entity.</p></div>
-      <div className={`oversight-freshness ${snapshot.freshness.toLowerCase()}`}><strong>{snapshot.freshness === "CURRENT" ? "Current snapshot" : "Snapshot needs refresh"}</strong><span>Generated {formatDateTime(snapshot.generated_at)}</span></div>
+      <OversightPeriodSummary periodStart={snapshot.period_start} periodEnd={snapshot.period_end} freshness={snapshot.freshness} generatedAt={snapshot.generated_at}/>
     </header>
 
-    <div className="oversight-scope-line"><span>{coverage}</span><span>{formatDate(snapshot.period_start)} – {formatDate(snapshot.period_end)}</span><span>{snapshot.projection_version}</span></div>
+    <div className="oversight-scope-line"><span>{coverage}</span></div>
     <details className="oversight-data-freshness">
       <summary>Data freshness</summary>
       <div><p>This snapshot was generated {formatDateTime(snapshot.generated_at)} from projection {snapshot.projection_version}.</p><p>{historyQualityLabel(snapshot)}</p><dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl></div>
@@ -104,6 +104,14 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
       {selected === "performance" && <OperatingPerformance snapshot={snapshot}/>}
     </div>}</Tabs></div>
   </section>;
+}
+
+function OversightPeriodSummary({ periodStart, periodEnd, freshness, generatedAt }: { periodStart: string; periodEnd: string; freshness: "CURRENT" | "STALE"; generatedAt: string }) {
+  return <div className={`oversight-period-summary ${freshness.toLowerCase()}`} aria-label="Oversight reporting period">
+    <span>Reporting period</span>
+    <strong>{formatDate(periodStart)} – {formatDate(periodEnd)}</strong>
+    <small>{freshness === "CURRENT" ? "Current" : "Needs refresh"} · Updated {formatDateTime(generatedAt)}</small>
+  </div>;
 }
 
 function HomeMetricStrip({ metrics, state, selected, onSelect }: { metrics: HomeMetricBundle | null; state: "loading" | "live" | "unavailable"; selected: OversightMetricFilter; onSelect: (filter: OversightMetricFilter) => void }) {
