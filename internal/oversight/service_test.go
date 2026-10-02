@@ -93,7 +93,7 @@ func TestServiceRejectsHistoricalEndAndUnboundedReportingPeriod(t *testing.T) {
 	if _, err := service.GetForPeriod(context.Background(), scope, PeriodRequest{StartDate: "2026-09-01", EndDate: "2026-10-01"}); !errors.Is(err, ErrHistoricalEndUnsupported) {
 		t.Fatalf("historical end err=%v", err)
 	}
-	if _, err := service.GetForPeriod(context.Background(), scope, PeriodRequest{StartDate: "2025-09-01", EndDate: "2026-10-02"}); !errors.Is(err, ErrInvalidReportingPeriod) {
+	if _, err := service.GetForPeriod(context.Background(), scope, PeriodRequest{StartDate: "2025-10-02", EndDate: "2026-10-02"}); !errors.Is(err, ErrInvalidReportingPeriod) {
 		t.Fatalf("unbounded period err=%v", err)
 	}
 }
