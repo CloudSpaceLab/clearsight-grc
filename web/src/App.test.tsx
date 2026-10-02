@@ -175,10 +175,14 @@ describe("runtime navigation", () => {
       fireEvent.click(screen.getByRole("tab", { name: "Documents" }));
       expect(screen.getByRole("tabpanel", { name: "Documents" })).toBeTruthy();
       expect(window.location.hash).toBe("#forms?section=documents");
-      const portfolio = screen.getByRole("navigation", { name: "Portfolio lenses" });
-      fireEvent.click(within(portfolio).getByRole("button", { name: "Forms" }));
+
+      fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Programs" }));
+      await screen.findByRole("heading", { name: "Programs" });
+      expect(window.location.hash).toBe("#programs");
+
+      fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Forms" }));
       expect(window.location.hash).toBe("#forms");
-      expect(screen.getByRole("tab", { name: "Templates", selected: true })).toBeTruthy();
+      expect(await screen.findByRole("tab", { name: "Templates", selected: true })).toBeTruthy();
       expect(screen.getByRole("tabpanel", { name: "Templates" })).toBeTruthy();
     }
 
@@ -316,8 +320,9 @@ describe("runtime navigation", () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
 
-    await screen.findByRole("button", { name: "Portfolio" });
-    expect(screen.queryByRole("button", { name: "Reports" })).toBeNull();
+    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
+    await within(primaryNavigation).findByRole("button", { name: "Portfolio" });
+    expect(within(primaryNavigation).queryByRole("button", { name: "Reports" })).toBeNull();
   });
 
   it("provides Vendors as a Portfolio lens while keeping its route stable", async () => {
