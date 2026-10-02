@@ -14,14 +14,17 @@ const (
 	EventRiskAssessed      = "RiskAssessed"
 	EventAppetiteActivated = "RiskAppetiteActivated"
 	EventControlLinked     = "RiskControlLinked"
+	EventIndicatorLinked   = "RiskIndicatorLinked"
 )
 
 type ControlLinkValidator func(context.Context, Scope, string) error
+type IndicatorLinkValidator func(context.Context, Scope, string, int64) error
 
 type Service struct {
-	repository           Repository
-	controlLinkValidator ControlLinkValidator
-	Now                  func() time.Time
+	repository             Repository
+	controlLinkValidator   ControlLinkValidator
+	indicatorLinkValidator IndicatorLinkValidator
+	Now                    func() time.Time
 }
 
 func NewService(repository Repository) *Service {
@@ -30,6 +33,10 @@ func NewService(repository Repository) *Service {
 
 func (s *Service) ConfigureControlLinkValidator(validator ControlLinkValidator) {
 	s.controlLinkValidator = validator
+}
+
+func (s *Service) ConfigureIndicatorLinkValidator(validator IndicatorLinkValidator) {
+	s.indicatorLinkValidator = validator
 }
 
 func (s *Service) Create(ctx context.Context, input CreateInput) (Risk, error) {
@@ -254,6 +261,50 @@ func (s *Service) LinkControl(ctx context.Context, input LinkControlInput) (Risk
 	return s.repository.AddControl(ctx, scope, current.ID, input.ExpectedRiskVersion, control, event)
 }
 
+func (s *Service) LinkIndicator(ctx context.Context, input LinkIndicatorInput) (Risk, IndicatorLink, error) {
+	if s == nil || s.repository == nil {
+		return Risk{}, IndicatorLink{}, ErrInvalid
+	}
+	scope, err := normalizeScope(Scope{TenantID: input.TenantID, LegalEntityID: input.LegalEntityID})
+	if err != nil {
+		return Risk{}, IndicatorLink{}, err
+	}
+	current, err := s.repository.Get(ctx, scope, strings.TrimSpace(input.RiskID))
+	if err != nil {
+		return Risk{}, IndicatorLink{}, err
+	}
+	if input.ExpectedRiskVersion <= 0 || current.Version != input.ExpectedRiskVersion {
+		return Risk{}, IndicatorLink{}, ErrVersionConflict
+	}
+	checkID := strings.TrimSpace(input.MonitoringCheckID)
+	if checkID == "" || input.MonitoringCheckVersion < 1 || !validIndicatorKind(input.Kind) || s.indicatorLinkValidator == nil {
+		return Risk{}, IndicatorLink{}, ErrInvalid
+	}
+	if err := s.indicatorLinkValidator(ctx, scope, checkID, input.MonitoringCheckVersion); err != nil {
+		return Risk{}, IndicatorLink{}, err
+	}
+	now := s.now()
+	link := IndicatorLink{
+		RiskID:                 current.ID,
+		RiskVersion:            current.Version + 1,
+		MonitoringCheckID:      checkID,
+		MonitoringCheckVersion: input.MonitoringCheckVersion,
+		Kind:                   input.Kind,
+		Measurement:            IndicatorMonitoringRiskScore,
+		LinkedBy:               strings.TrimSpace(input.ActorID),
+		CreatedAt:              now,
+	}
+	link.ID, err = newID()
+	if err != nil {
+		return Risk{}, IndicatorLink{}, err
+	}
+	event, err := riskEventWithVersion(current, current.Version+1, EventIndicatorLinked, input.ActorID, link, now)
+	if err != nil {
+		return Risk{}, IndicatorLink{}, err
+	}
+	return s.repository.AddIndicator(ctx, scope, current.ID, input.ExpectedRiskVersion, link, event)
+}
+
 func (s *Service) Get(ctx context.Context, scope Scope, riskID string) (Aggregate, error) {
 	if s == nil || s.repository == nil {
 		return Aggregate{}, ErrInvalid
@@ -282,7 +333,11 @@ func (s *Service) Get(ctx context.Context, scope Scope, riskID string) (Aggregat
 	if err != nil {
 		return Aggregate{}, err
 	}
-	return Aggregate{Risk: current, Assessments: assessments, Appetite: appetite, ActiveAppetite: activeAppetite, Controls: controls}, nil
+	indicators, err := s.repository.Indicators(ctx, scope, current.ID, 100)
+	if err != nil {
+		return Aggregate{}, err
+	}
+	return Aggregate{Risk: current, Assessments: assessments, Appetite: appetite, ActiveAppetite: activeAppetite, Controls: controls, Indicators: indicators}, nil
 }
 
 func (s *Service) List(ctx context.Context, scope Scope, filter ListFilter) (Page, error) {
@@ -312,6 +367,10 @@ func (s *Service) List(ctx context.Context, scope Scope, filter ListFilter) (Pag
 	}
 	filter.AsOf = s.now()
 	return s.repository.List(ctx, scope, filter)
+}
+
+func validIndicatorKind(value IndicatorKind) bool {
+	return value == IndicatorKRI || value == IndicatorKCI
 }
 
 func validateRisk(value Risk) error {
