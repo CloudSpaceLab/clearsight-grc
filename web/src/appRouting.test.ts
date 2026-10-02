@@ -41,6 +41,12 @@ describe("workspace routes", () => {
     expect(routeHash("vendors", { vendorPage: "register", vendorRelationshipID: "relationship-1" }, "matters")).toBe("#vendors/register/relationship-1");
   });
 
+  it("round-trips an exact Risk record without mixing query filters into its identity", () => {
+    expect(parseRoute("#risks/risk%2F1?status=ACTIVE&appetite_position=BREACHED")).toEqual({ view: "risks", target: { riskID: "risk/1" } });
+    expect(routeHash("risks", { riskID: "risk/1" }, "matters")).toBe("#risks/risk%2F1");
+    expect(routeHash("risks", {}, "matters")).toBe("#risks");
+  });
+
   it("keeps the Forms search query separate from the selected exact template", () => {
     expect(parseRoute("#forms/template%2F1?search=vendor&status=ACTIVE")).toEqual({ view: "forms", target: { formTemplateID: "template/1" } });
     expect(routeHash("forms", { formTemplateID: "template/1" }, "matters")).toBe("#forms/template%2F1");
