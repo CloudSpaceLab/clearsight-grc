@@ -42,14 +42,15 @@ export function EnterpriseScopeSwitcher({
   }
 
   return <PopoverDialog
-    label="Change legal entity"
+    label="Change organization scope"
     isOpen={open}
     onOpenChange={handleOpenChange}
-    placement="bottom start"
-    triggerLabel={`Legal entity, ${current.name}`}
+    placement="bottom end"
+    triggerLabel={`Organization scope, ${current.name}`}
     triggerClassName="enterprise-scope-trigger"
     triggerDisabled={isChanging}
     triggerChildren={<>
+      <span className="enterprise-scope-trigger__label">Scope</span>
       <span className="enterprise-scope-trigger__name">{current.name}</span>
       <span className="enterprise-scope-trigger__chevron" aria-hidden="true">⌄</span>
     </>}

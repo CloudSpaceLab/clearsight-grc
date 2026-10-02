@@ -216,7 +216,7 @@ describe("legal entity scope selector", () => {
     render(<App/>);
 
     await screen.findByText("Clear Bank Nigeria");
-    expect(screen.queryByRole("button", { name: /Legal entity/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Organization scope/ })).toBeNull();
   });
 
   it("fails closed when the advertised hierarchy is incomplete", async () => {
@@ -226,17 +226,31 @@ describe("legal entity scope selector", () => {
     render(<App/>);
 
     await screen.findByText("Clear Bank Nigeria");
-    expect(screen.queryByRole("button", { name: /Legal entity/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Organization scope/ })).toBeNull();
+  });
+
+  it("keeps organization and legal entity as passive context while the hierarchy action sits with shell controls", async () => {
+    vi.mocked(loadContext).mockResolvedValue(switchableRuntime());
+    render(<App/>);
+
+    const context = await screen.findByLabelText("Active workspace context");
+    const passiveScope = context.querySelector(".context-scope");
+    if (!(passiveScope instanceof HTMLElement)) throw new Error("Passive scope context is missing");
+    expect(within(passiveScope).getByText("Clear Bank")).toBeTruthy();
+    expect(within(passiveScope).getByText("Clear Bank Nigeria")).toBeTruthy();
+    const trigger = within(context).getByRole("button", { name: /Organization scope/ });
+    expect(trigger.textContent).toContain("Clear Bank Nigeria");
+    expect(within(context).queryByText("Non-production data")).toBeNull();
   });
 
   it("shows only server-authorized legal entities and retains the current selection", async () => {
     vi.mocked(loadContext).mockResolvedValue(switchableRuntime());
     render(<App/>);
 
-    const trigger = await screen.findByRole("button", { name: /Legal entity/ });
+    const trigger = await screen.findByRole("button", { name: /Organization scope/ });
     expect(trigger.textContent).toContain("Clear Bank Nigeria");
     fireEvent.click(trigger);
-    const dialog = await screen.findByRole("dialog", { name: "Change legal entity" });
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
     expect(within(dialog).getByText("Clear Bank")).toBeTruthy();
     expect(within(dialog).getByRole("button", { name: /Clear Bank Nigeria/ }).getAttribute("aria-pressed")).toBe("true");
     expect(within(dialog).getByRole("button", { name: /Clear Bank Ghana/ })).toBeTruthy();
@@ -248,13 +262,13 @@ describe("legal entity scope selector", () => {
     vi.mocked(switchLegalEntity).mockRejectedValueOnce(new Error("unavailable"));
     render(<App/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: /Legal entity/ }));
-    const dialog = await screen.findByRole("dialog", { name: "Change legal entity" });
+    fireEvent.click(await screen.findByRole("button", { name: /Organization scope/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
     fireEvent.click(within(dialog).getByRole("button", { name: /Clear Bank Ghana/ }));
 
     await waitFor(() => expect(switchLegalEntity).toHaveBeenCalledWith("entity-gh-uuid"));
     expect((await screen.findByRole("alert")).textContent).toContain("Legal entity could not be changed. Try again.");
-    expect(screen.getByRole("button", { name: /Legal entity/ }).textContent).toContain("Clear Bank Nigeria");
+    expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank Nigeria");
   });
 });
 
@@ -264,7 +278,7 @@ describe("scope and Portfolio integration", () => {
     window.history.replaceState(null, "", "#programs");
     render(<App/>);
 
-    const scopeTrigger = await screen.findByRole("button", { name: /Legal entity/ });
+    const scopeTrigger = await screen.findByRole("button", { name: /Organization scope/ });
     expect(scopeTrigger.textContent).toContain("Clear Bank Nigeria");
 
     const portfolio = screen.getByRole("navigation", { name: "Portfolio lenses" });
@@ -272,10 +286,10 @@ describe("scope and Portfolio integration", () => {
 
     expect(await screen.findByRole("heading", { name: "Risks" })).toBeTruthy();
     expect(window.location.hash).toBe("#risks");
-    expect(screen.getByRole("button", { name: /Legal entity/ }).textContent).toContain("Clear Bank Nigeria");
+    expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank Nigeria");
 
-    fireEvent.click(screen.getByRole("button", { name: /Legal entity/ }));
-    const dialog = await screen.findByRole("dialog", { name: "Change legal entity" });
+    fireEvent.click(screen.getByRole("button", { name: /Organization scope/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
     expect(within(dialog).getByRole("button", { name: /Clear Bank Ghana/ })).toBeTruthy();
   });
 });
@@ -540,8 +554,8 @@ describe("runtime navigation", () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(true));
     render(<App presentation="demo"/>);
 
-    await screen.findByText("Stakeholder demo");
-    expect(screen.getByText("Demo environment")).toBeTruthy();
+    await screen.findByText("Demo environment");
+    expect(screen.queryByText("Stakeholder demo")).toBeNull();
     expect(screen.getByRole("button", { name: "Reference journeys" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Imports/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
@@ -552,10 +566,10 @@ describe("runtime navigation", () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(true));
     render(<App presentation="live-preview" />);
 
-    await screen.findByText("Non-production data");
+    await screen.findByText("Demo environment");
     await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("off"));
     expect(screen.queryByText("Stakeholder demo")).toBeNull();
-    expect(screen.getByText("Demo environment")).toBeTruthy();
+    expect(screen.queryByText("Non-production data")).toBeNull();
     expect(screen.queryByRole("button", { name: "Reference journeys" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
   });
@@ -578,7 +592,8 @@ describe("runtime navigation", () => {
     vi.mocked(loadEvidenceRequest).mockReturnValue(exact.promise);
     render(<App presentation="demo"/>);
 
-    await screen.findByText("Stakeholder demo");
+    await screen.findByText("Demo environment");
+    expect(screen.queryByText("Stakeholder demo")).toBeNull();
     await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(denied.id, "eligibility_preload"));
     await act(async () => { exact.resolve(denied); });
     expect(screen.queryAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(0);

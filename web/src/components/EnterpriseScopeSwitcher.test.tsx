@@ -26,23 +26,23 @@ describe("EnterpriseScopeSwitcher", () => {
     const onSelectionChange = vi.fn();
     render(<EnterpriseScopeSwitcher hierarchy={hierarchy()} currentScopeID="entity-ng" onSelectionChange={onSelectionChange}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Legal entity, Clear Bank Nigeria" }));
+    fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank Nigeria" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Change legal entity" });
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
     expect(within(dialog).getByText("Clear Bank")).toBeTruthy();
     expect(within(dialog).queryByRole("button", { name: /^Clear Bank$/ })).toBeNull();
     expect(within(dialog).getByRole("button", { name: /Clear Bank Nigeria/ }).getAttribute("aria-pressed")).toBe("true");
 
     fireEvent.click(within(dialog).getByRole("button", { name: /Clear Bank Ghana/ }));
     expect(onSelectionChange).toHaveBeenCalledWith("entity-1");
-    expect(screen.queryByRole("dialog", { name: "Change legal entity" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Change organization scope" })).toBeNull();
   });
 
   it("adds search only for larger authorized hierarchies and filters by name, code or jurisdiction", async () => {
     render(<EnterpriseScopeSwitcher hierarchy={hierarchy(8)} currentScopeID="entity-ng" onSelectionChange={() => undefined}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Legal entity, Clear Bank Nigeria" }));
-    const dialog = await screen.findByRole("dialog", { name: "Change legal entity" });
+    fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank Nigeria" }));
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
     const search = within(dialog).getByPlaceholderText("Search legal entities");
     fireEvent.change(search, { target: { value: "GH" } });
 
@@ -53,8 +53,8 @@ describe("EnterpriseScopeSwitcher", () => {
   it("does not expose a search field for a small hierarchy", async () => {
     render(<EnterpriseScopeSwitcher hierarchy={hierarchy()} currentScopeID="entity-ng" onSelectionChange={() => undefined}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Legal entity, Clear Bank Nigeria" }));
-    await screen.findByRole("dialog", { name: "Change legal entity" });
+    fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank Nigeria" }));
+    await screen.findByRole("dialog", { name: "Change organization scope" });
 
     expect(screen.queryByPlaceholderText("Search legal entities")).toBeNull();
   });

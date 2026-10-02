@@ -449,16 +449,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       <div className="context-bar" aria-label="Active workspace context">
         <div className="context-scope">
           <strong>{organizationName}</strong>
-          {canSwitchScope && scopeHierarchy && currentScopeID
-            ? <EnterpriseScopeSwitcher
-              hierarchy={scopeHierarchy}
-              currentScopeID={currentScopeID}
-              isChanging={scopeSwitchState === "changing"}
-              onSelectionChange={(value) => void changeLegalEntity(value)}
-            />
-            : <span>{legalEntityName}</span>}
-          {scopeSwitchState === "changing" && <span className="context-scope__status" aria-live="polite">Changing…</span>}
-          {scopeSwitchError && <span className="context-scope__error" role="alert">{scopeSwitchError}</span>}
+          <span>{legalEntityName}</span>
         </div>
         <div className="context-role">
           {runtime && <NotificationCenter key={notificationScopeKey(runtime)}/>}
@@ -466,7 +457,16 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
           <AdministrationMenu enabled={configureEnabled} onOpen={() => navigate("configure")}/>
           {serverDemoMode && <DemoEnvironmentMenu onOpenReferenceJourneys={referenceJourneysEnabled ? () => navigate("explore") : undefined}/>}
           <span>{roleName}</span>
-          {serverDemoMode ? <mark>{demoMode ? "Stakeholder demo" : "Non-production data"}</mark> : null}
+          {canSwitchScope && scopeHierarchy && currentScopeID && <div className="context-scope-control">
+            <EnterpriseScopeSwitcher
+              hierarchy={scopeHierarchy}
+              currentScopeID={currentScopeID}
+              isChanging={scopeSwitchState === "changing"}
+              onSelectionChange={(value) => void changeLegalEntity(value)}
+            />
+            {scopeSwitchState === "changing" && <span className="context-scope__status" aria-live="polite">Changing…</span>}
+            {scopeSwitchError && <span className="context-scope__error" role="alert">{scopeSwitchError}</span>}
+          </div>}
         </div>
       </div>
       {activePortfolioView && <WorkspaceSwitcher ariaLabel="Portfolio lenses" compactLabel="Portfolio lens" items={portfolioLenses} selectedKey={activePortfolioView} onSelectionChange={(view) => navigate(view)}/>}

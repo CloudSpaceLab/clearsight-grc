@@ -2,11 +2,12 @@
 .oversight-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
 .oversight-header h1, .oversight-unavailable h1 { margin: 8px 0 6px; font-size: clamp(1.9rem, 3vw, 2.8rem); letter-spacing: -.035em; }
 .oversight-header p, .oversight-unavailable p { max-width: 720px; margin: 0; color: var(--muted); }
-.oversight-freshness { display: grid; gap: 3px; min-width: 190px; padding: 11px 13px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-10); background: var(--surface); }
-.oversight-freshness strong { font-size: .78rem; }
-.oversight-freshness span { color: var(--muted); font-size: .72rem; }
-.oversight-freshness.current { border-left: 3px solid var(--success); }
-.oversight-freshness.stale { border-left: 3px solid var(--amber); }
+.oversight-period-summary { display: grid; gap: 3px; min-width: 210px; padding: 11px 13px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-10); background: var(--surface); }
+.oversight-period-summary > span { color: var(--muted); font-size: .68rem; font-weight: 650; text-transform: uppercase; letter-spacing: .04em; }
+.oversight-period-summary strong { font-size: .82rem; }
+.oversight-period-summary small { color: var(--muted); font-size: .72rem; }
+.oversight-period-summary.current { border-left: 3px solid var(--success); }
+.oversight-period-summary.stale { border-left: 3px solid var(--amber); }
 .oversight-scope-line { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; padding: 10px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: .74rem; }
 .oversight-data-freshness { margin: 0 0 18px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-10); background: var(--surface); }
 .oversight-data-freshness summary { padding: 10px 13px; color: var(--text); font-size: .76rem; font-weight: 700; cursor: pointer; }

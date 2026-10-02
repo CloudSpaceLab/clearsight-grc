@@ -63,7 +63,12 @@ it("leads with exact interventions and provides table alternatives for oversight
   await screen.findByRole("heading", { name: "Risk and delivery oversight" });
   expect(screen.getByText("7")).toBeTruthy();
   expect(screen.getByText("42 issues checked · 1 excluded · 2 unknown")).toBeTruthy();
-  expect(screen.getByText("oversight-v4")).toBeTruthy();
+  const period = screen.getByLabelText("Oversight reporting period");
+  expect(period.textContent).toContain("Jun");
+  expect(period.textContent).toContain("Sep");
+  expect(period.textContent).toContain("2026");
+  expect(period.textContent).toContain("Current");
+  expect(screen.queryByText("Current snapshot")).toBeNull();
   fireEvent.click(screen.getByText("Data freshness"));
   expect(screen.getByText("Continuity Events")).toBeTruthy();
   expect(screen.getByText("12 of 14 completed issues have complete lifecycle events · 2 excluded because an opened or closed event is missing · employee handling time follows each recorded owner assignment; reassignment, return, blocked and reopen counts remain visible separately")).toBeTruthy();
