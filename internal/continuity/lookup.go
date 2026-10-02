@@ -32,6 +32,17 @@ func (s *Service) ProgramByCode(ctx context.Context, tenant, code string) (Progr
 	return ProgramAggregate{}, ErrNotFound
 }
 
+func (s *Service) OpenMatterByTriggerKey(ctx context.Context, tenant, triggerKey string) (MatterAggregate, error) {
+	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(triggerKey) == "" {
+		return MatterAggregate{}, ErrNotFound
+	}
+	matter, err := s.repo.MatterByTriggerKey(ctx, tenant, triggerKey)
+	if err != nil {
+		return MatterAggregate{}, err
+	}
+	return s.GetMatter(ctx, tenant, matter.ID)
+}
+
 func (s *Service) MatterByTriggerKey(ctx context.Context, tenant, triggerKey string) (MatterAggregate, error) {
 	if strings.TrimSpace(tenant) == "" || strings.TrimSpace(triggerKey) == "" {
 		return MatterAggregate{}, ErrNotFound
