@@ -14,7 +14,7 @@ CREATE TABLE actor_notifications (
     read_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     UNIQUE (tenant_id,outbox_event_id,principal_id,notification_kind),
-    FOREIGN KEY (tenant_id,legal_entity_id) REFERENCES legal_entities(tenant_id,id),
+    FOREIGN KEY (legal_entity_id,tenant_id) REFERENCES legal_entities(id,tenant_id),
     FOREIGN KEY (outbox_event_id,tenant_id) REFERENCES outbox_events(id,tenant_id) ON DELETE CASCADE,
     FOREIGN KEY (principal_id,tenant_id) REFERENCES principals(id,tenant_id),
     FOREIGN KEY (matter_id,tenant_id) REFERENCES matters(id,tenant_id),
