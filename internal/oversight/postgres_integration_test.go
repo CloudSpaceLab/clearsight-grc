@@ -5,6 +5,7 @@ package oversight
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -161,6 +162,115 @@ func TestPostgresProjectionAttributesHistoryToExactOwnerIntervals(t *testing.T) 
 	second, ok := performance[secondID]
 	if !ok || second.MeasurementSamples != 1 || second.MedianHours == nil || *second.MedianHours != 30 || second.Returned == nil || *second.Returned != 1 || second.Blocked != 1 || second.BlockedHours != 20 || second.Reopened != 1 {
 		t.Fatalf("second owner interval=%#v present=%t", second, ok)
+	}
+}
+
+func TestReportingPeriodScalesAcrossLargeEntityAndSnapshotHistory(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	const (
+		tenantID      = "8a676767-6767-7767-8767-676767676701"
+		entityID      = "8a676767-6767-7767-8767-676767676702"
+		matterCount   = 20_000
+		snapshotCount = 20_000
+	)
+	cleanup := func(cleanCtx context.Context) {
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	}
+	cleanup(ctx)
+	t.Cleanup(func() { cleanup(context.Background()) })
+
+	now := time.Now().UTC().Truncate(time.Second)
+	mustOversightExec(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'oversight-period-load','Oversight period load')`, tenantID)
+	mustOversightExec(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'LOAD-NG','Load Bank Nigeria','NG',$3)`, entityID, tenantID, now.Add(-2*365*24*time.Hour))
+	mustOversightExec(t, ctx, pool, `
+		INSERT INTO matters(
+			id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,
+			due_at,closed_at,closure_reason,created_at,updated_at
+		)
+		SELECT md5('oversight-period-matter-' || gs::text)::uuid,$1::uuid,$2::uuid,
+		       'LOAD-' || lpad(gs::text,6,'0'),'CONTROL_GAP',
+		       CASE WHEN gs % 10 = 0 THEN 'CLOSED' ELSE 'TRIAGE' END,
+		       CASE WHEN gs % 5 = 0 THEN 5 ELSE 3 END,
+		       'Oversight load matter ' || gs,'Synthetic reporting-period load row','{"access":"INTERNAL"}'::jsonb,
+		       CASE WHEN gs % 4 = 0 THEN $3::timestamptz-interval '2 days' ELSE $3::timestamptz+interval '2 days' END,
+		       CASE WHEN gs % 10 = 0 THEN $3::timestamptz-(gs % 180 + 1)*interval '1 day' ELSE NULL END,
+		       CASE WHEN gs % 10 = 0 THEN 'Closed in synthetic load history' ELSE '' END,
+		       $3::timestamptz-(gs % 300 + 1)*interval '1 day',
+		       $3::timestamptz
+		FROM generate_series(1,$4) gs`, tenantID, entityID, now, matterCount)
+	mustOversightExec(t, ctx, pool, `
+		INSERT INTO oversight_snapshots(
+			tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,projection_version,
+			source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload
+		)
+		SELECT $1::uuid,$2::uuid,
+		       ($3::timestamptz-gs*interval '5 minutes')-interval '90 days',
+		       $3::timestamptz-gs*interval '5 minutes',
+		       $3::timestamptz-gs*interval '5 minutes',
+		       $3::timestamptz-gs*interval '5 minutes',
+		       $4,'{}'::jsonb,$5,0,0,'{}'::jsonb
+		FROM generate_series(0,$6-1) gs`, tenantID, entityID, now, ProjectionVersion, matterCount, snapshotCount)
+	mustOversightExec(t, ctx, pool, `ANALYZE matters`)
+	mustOversightExec(t, ctx, pool, `ANALYZE oversight_snapshots`)
+
+	var plan []byte
+	if err := pool.QueryRow(ctx, `
+		EXPLAIN (FORMAT JSON)
+		SELECT os.generated_at
+		FROM oversight_snapshots os
+		WHERE os.tenant_id=$1::uuid AND os.legal_entity_id=$2::uuid
+		ORDER BY os.generated_at DESC,os.id DESC
+		LIMIT 1`, tenantID, entityID).Scan(&plan); err != nil {
+		t.Fatal(err)
+	}
+	planText := string(plan)
+	if !strings.Contains(planText, "\"Node Type\": \"Index Scan\"") || strings.Contains(planText, "\"Node Type\": \"Seq Scan\"") || strings.Contains(planText, "\"Node Type\": \"Sort\"") {
+		t.Fatalf("latest snapshot plan is not an ordered indexed read: %s", plan)
+	}
+	var latestIndexDefinition string
+	if err := pool.QueryRow(ctx, `
+		SELECT indexdef FROM pg_indexes
+		WHERE schemaname='public' AND tablename='oversight_snapshots' AND indexname='oversight_snapshots_latest_idx'`).Scan(&latestIndexDefinition); err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"tenant_id", "legal_entity_id", "generated_at DESC", "id DESC"} {
+		if !strings.Contains(latestIndexDefinition, required) {
+			t.Fatalf("latest snapshot index is missing %q: %s", required, latestIndexDefinition)
+		}
+	}
+
+	repository := NewPostgresRepository(pool)
+	latestCtx, cancelLatest := context.WithTimeout(ctx, 2*time.Second)
+	latest, err := repository.Latest(latestCtx, Scope{TenantID: tenantID, LegalEntityID: entityID})
+	cancelLatest()
+	if err != nil {
+		t.Fatalf("latest snapshot failed under %d-row history: %v", snapshotCount, err)
+	}
+	if !latest.GeneratedAt.Equal(now) {
+		t.Fatalf("latest generated_at=%s want=%s", latest.GeneratedAt, now)
+	}
+
+	periodCtx, cancelPeriod := context.WithTimeout(ctx, 10*time.Second)
+	value, err := repository.BuildPeriod(periodCtx, Scope{TenantID: tenantID, LegalEntityID: entityID}, now.Add(-180*24*time.Hour), now)
+	cancelPeriod()
+	if err != nil {
+		t.Fatalf("180-day reporting period failed under %d-matter load: %v", matterCount, err)
+	}
+	if value.Coverage.Population != matterCount || value.Counts.CriticalHigh != 2_000 || value.Counts.Overdue != 4_000 || value.Counts.Unassigned != 18_000 {
+		t.Fatalf("unexpected large-entity posture: coverage=%#v counts=%#v", value.Coverage, value.Counts)
+	}
+	if !value.PeriodStart.Equal(now.Add(-180*24*time.Hour)) || !value.PeriodEnd.Equal(now) {
+		t.Fatalf("effective period=%s..%s", value.PeriodStart, value.PeriodEnd)
 	}
 }
 
