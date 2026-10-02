@@ -254,8 +254,17 @@ func TestRiskListDoesNotTreatStaleAssessmentAsCurrentAppetitePosition(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(page.Items) != 0 {
-		t.Fatalf("stale assessment drove current appetite filtering: %#v", page.Items)
+	if len(page.Items) != 1 || page.Items[0].Risk.ID != created.ID {
+		t.Fatalf("stale assessment was not treated as current UNKNOWN: %#v", page.Items)
+	}
+	breached, err := service.List(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, ListFilter{
+		AppetitePosition: AppetiteBreached, Limit: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(breached.Items) != 0 {
+		t.Fatalf("stale assessment drove BREACHED filtering: %#v", breached.Items)
 	}
 
 	unfiltered, err := service.List(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, ListFilter{Limit: 10})

@@ -180,7 +180,16 @@ func TestPostgresRiskLifecycleIsScopedVersionedAndAtomic(t *testing.T) {
 		t.Fatal(err)
 	}
 	if updatedAfterAssessment.Version != assessment.RiskVersion+1 || len(staleFiltered.Items) != 0 {
-		t.Fatalf("stale assessment drove current appetite filter: risk=%#v page=%#v", updatedAfterAssessment, staleFiltered)
+		t.Fatalf("stale assessment drove BREACHED appetite filter: risk=%#v page=%#v", updatedAfterAssessment, staleFiltered)
+	}
+	unknownFiltered, err := service.List(ctx, Scope{TenantID: "risk-" + suffix, LegalEntityID: entityACode}, ListFilter{
+		AppetitePosition: AppetiteUnknown, Limit: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unknownFiltered.Items) != 1 || unknownFiltered.Items[0].Risk.ID != created.ID {
+		t.Fatalf("stale assessment was not exposed as current UNKNOWN: %#v", unknownFiltered)
 	}
 }
 

@@ -72,7 +72,9 @@ func (r *PostgresRepository) List(ctx context.Context, scope Scope, filter ListF
 		  AND ($4='' OR lower(r.category)=lower($4))
 		  AND ($5='' OR r.owner_principal_id::text=$5)
 		  AND ($6='' OR strpos(lower(concat_ws(' ',r.code,r.name,r.category,r.statement,r.impact)),lower($6))>0)
-		  AND ($7='' OR (la.risk_version=r.version AND COALESCE(la.appetite_position,'')=$7))
+		  AND ($7='' OR (
+		        CASE WHEN la.risk_version=r.version THEN COALESCE(la.appetite_position,'UNKNOWN') ELSE 'UNKNOWN' END
+		      )=$7)
 		  AND ($9::boolean=false OR r.updated_at<$10 OR (r.updated_at=$10 AND r.id<$11::uuid))
 		ORDER BY r.updated_at DESC,r.id DESC
 		LIMIT $12`,
