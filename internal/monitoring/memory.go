@@ -17,12 +17,13 @@ type MemoryRepository struct {
 	checks           map[string]MonitoringCheck
 	results          map[string]MonitoringResult
 	collectionCycles map[string]CollectionCycle
+	adverseEpisodes  map[string]AdverseEpisode
 	events           []MonitoringEvent
 	outbox           []MonitoringEvent
 }
 
 func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{forms: map[string]FormTemplate{}, starters: map[string]StarterTemplate{}, savedViews: map[string]SavedFormView{}, checks: map[string]MonitoringCheck{}, results: map[string]MonitoringResult{}, collectionCycles: map[string]CollectionCycle{}}
+	return &MemoryRepository{forms: map[string]FormTemplate{}, starters: map[string]StarterTemplate{}, savedViews: map[string]SavedFormView{}, checks: map[string]MonitoringCheck{}, results: map[string]MonitoringResult{}, collectionCycles: map[string]CollectionCycle{}, adverseEpisodes: map[string]AdverseEpisode{}}
 }
 
 func (r *MemoryRepository) SeedStarterTemplates(values ...StarterTemplate) {
