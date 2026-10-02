@@ -4421,6 +4421,28 @@
           }
         }
       }
+    },
+    "/api/v1/risks/{id}/indicators": {
+      "post": {
+        "operationId": "linkRiskIndicator",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Exact MonitoringCheck revision linked to the current Risk version."
+          }
+        }
+      }
     }
   }
 }
