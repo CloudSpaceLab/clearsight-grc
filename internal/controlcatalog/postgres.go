@@ -141,6 +141,40 @@ func (r *PostgresRepository) ListImplementationLinks(ctx context.Context, tenant
 	return values, nil
 }
 
+func (r *PostgresRepository) ListEntityImplementationLinks(ctx context.Context, tenant, entity, programID string, limit int) ([]ImplementationLink, error) {
+	if r == nil || r.pool == nil || strings.TrimSpace(tenant) == "" || strings.TrimSpace(entity) == "" {
+		return nil, ErrInvalid
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT l.id::text,l.tenant_id::text,l.legal_entity_id::text,l.definition_id::text,l.program_id::text,l.implementation_id::text,l.created_at
+		FROM control_catalog_implementation_links l
+		JOIN tenants t ON t.id=l.tenant_id
+		JOIN legal_entities le ON le.tenant_id=l.tenant_id AND le.id=l.legal_entity_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (le.id::text=$2 OR le.code=$2)
+		  AND ($3::text='' OR l.program_id=NULLIF($3::text,'')::uuid)
+		ORDER BY l.created_at,l.id
+		LIMIT $4`,
+		strings.TrimSpace(tenant), strings.TrimSpace(entity), strings.TrimSpace(programID), limit,
+	)
+	if err != nil {
+		return nil, mapPostgresError(err)
+	}
+	defer rows.Close()
+	values := make([]ImplementationLink, 0)
+	for rows.Next() {
+		value, scanErr := scanImplementationLink(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return values, nil
+}
+
 type rowScanner interface{ Scan(...any) error }
 
 type txExecutor interface {
