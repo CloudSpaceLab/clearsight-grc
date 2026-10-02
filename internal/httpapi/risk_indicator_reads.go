@@ -120,6 +120,10 @@ func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor
 			evaluatedAt := resultValue.EvaluatedAt
 			detail.EvaluatedAt = &evaluatedAt
 			detail.State, detail.Reason = currentRiskIndicatorState(check, resultValue, now)
+			if program.Program.Status != continuity.ProgramActive {
+				detail.State = riskIndicatorUnknown
+				detail.Reason = "Source Program is not active."
+			}
 		case errors.Is(resultErr, monitoring.ErrNotFound):
 			// Absence of a result is known Indicator truth: UNKNOWN, not an incomplete API projection.
 		default:
