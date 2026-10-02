@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { loadNotifications, markNotificationRead, type InAppNotification, type NotificationPage } from "../notificationApi";
-import { Button, EmptyState, FocusedSheet, IconButton, StatusBadge } from "./ui";
+import { Button, EmptyState, FocusedSheet, IconButton, Notice, StatusBadge } from "./ui";
 import "../notification-center.css";
 
 type LoadState = "loading" | "live" | "unavailable";
@@ -19,6 +19,7 @@ export function NotificationCenter({
   const [items, setItems] = useState<InAppNotification[]>([]);
   const [open, setOpen] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreFailed, setLoadMoreFailed] = useState(false);
 
   async function loadFirstPage() {
     setState("loading");
@@ -39,13 +40,13 @@ export function NotificationCenter({
   async function loadMore() {
     if (!page?.next_cursor || loadingMore) return;
     setLoadingMore(true);
+    setLoadMoreFailed(false);
     try {
       const next = await loadPage({ cursor: page.next_cursor, limit: 25 });
       setItems((current) => mergeNotifications(current, next.items));
       setPage({ ...next, unread_count: page.unread_count });
     } catch {
-      // Keep the current bounded page visible. A later retry can continue from
-      // the same cursor without changing notification truth.
+      setLoadMoreFailed(true);
     } finally {
       setLoadingMore(false);
     }
@@ -102,7 +103,7 @@ export function NotificationCenter({
           description="New assignments and mentions will appear here."
         />}
         {state === "live" && items.length > 0 && <div className="notification-center__list" role="list">
-          {items.map((item) => <article className="notification-center__item" key={item.id} role="listitem">
+          {items.map((item) => <article className={`notification-center__item${item.read_at ? "" : " is-unread"}`} key={item.id} role="listitem">
             <div className="notification-center__item-copy">
               <div className="notification-center__item-heading">
                 <strong>{item.title}</strong>
@@ -114,6 +115,7 @@ export function NotificationCenter({
             <Button variant={item.read_at ? "secondary" : "primary"} onPress={() => openItem(item)} isDisabled={!safeNotificationPath(item.action_path)}>Open work</Button>
           </article>)}
         </div>}
+        {state === "live" && loadMoreFailed && <Notice tone="warning">More notifications could not be loaded. The current list remains available.</Notice>}
         {state === "live" && page?.next_cursor && <div className="notification-center__more">
           <Button onPress={() => void loadMore()} isLoading={loadingMore}>Load more</Button>
         </div>}
