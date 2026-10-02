@@ -98,6 +98,13 @@ export function loadSessionStatus(): Promise<SessionStatus> {
   return request<SessionStatus>("/api/v1/session/status");
 }
 
+export async function switchLegalEntity(legalEntityID: string): Promise<void> {
+  const value = legalEntityID.trim();
+  if (!value) throw new Error("legal entity is required");
+  await requestVoid(apiBase, "/auth/scope", { method: "POST", body: JSON.stringify({ legal_entity_id: value }) });
+  runtimeContext = undefined;
+}
+
 export async function loadDemoAccounts(): Promise<DemoAccount[]> {
   return (await request<{ accounts: DemoAccount[] }>("/api/v1/demo/accounts")).accounts;
 }
