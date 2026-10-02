@@ -33,7 +33,6 @@ func (a *API) registerFederationRoutes(mux *http.ServeMux) {
 	}
 }
 
-
 type scopeSwitchRequest struct {
 	LegalEntityID string `json:"legal_entity_id"`
 }
