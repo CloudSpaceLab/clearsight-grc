@@ -270,8 +270,11 @@ func TestRiskListUsesStableKeysetAndLatestAssessment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(filtered.Items) != 1 || filtered.Items[0].Risk.ID != first.ID || filtered.Items[0].LatestAssessment == nil || filtered.Items[0].LatestAssessment.MethodVersion != "v2" {
-		t.Fatalf("latest assessment filter failed: %#v", filtered)
+	if len(filtered.Items) != 3 {
+		t.Fatalf("UNKNOWN must include assessed-unknown and unassessed risks: %#v", filtered)
+	}
+	if filtered.Items[0].Risk.ID != first.ID || filtered.Items[0].LatestAssessment == nil || filtered.Items[0].LatestAssessment.MethodVersion != "v2" {
+		t.Fatalf("latest assessment projection failed: %#v", filtered.Items[0])
 	}
 }
 
