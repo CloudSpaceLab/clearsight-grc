@@ -31,7 +31,11 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 		reviewerID     = "96666666-6666-7666-8666-666666666664"
 		checkID        = "96666666-6666-7666-8666-666666666665"
 		resultID       = "96666666-6666-7666-8666-666666666670"
+		resultID2      = "96666666-6666-7666-8666-666666666671"
+		resultID3      = "96666666-6666-7666-8666-666666666672"
 		triggerID      = "96666666-6666-7666-8666-666666666666"
+		triggerID2     = "96666666-6666-7666-8666-666666666673"
+		triggerID3     = "96666666-6666-7666-8666-666666666674"
 		rollbackID     = "96666666-6666-7666-8666-666666666667"
 		rollbackMatter = "96666666-6666-7666-8666-666666666668"
 		rollbackLink   = "96666666-6666-7666-8666-666666666669"
@@ -63,7 +67,8 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 	trigger := Trigger{
 		ID: triggerID, TenantID: "monitoring-adverse-trigger-test", ProgramID: program.Program.ID,
 		Type: "MONITORING_RESULT_ADVERSE", SubjectType: "MONITORING_RESULT", SubjectID: resultID,
-		DedupeKey: "monitoring-adverse:check-1:period-2026-08", Payload: json.RawMessage(`{"risk_band":"HIGH","score":72}`),
+		DedupeKey: "monitoring-result-adverse:" + resultID, MatterDedupeKey: "monitoring-check-adverse:" + checkID,
+		Payload: json.RawMessage(`{"risk_band":"HIGH","score":72}`),
 		ObservedAt: now.Add(time.Minute), Source: "monitoring", ActorID: reviewerID,
 	}
 	updated, matter, inserted, err := service.ApplyTrigger(ctx, trigger)
@@ -79,6 +84,73 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 	}
 	if inserted || duplicate == nil || duplicate.ID != matter.ID || replayed.Program.Version != updated.Program.Version {
 		t.Fatalf("retry was not idempotent: inserted=%v matter=%#v program=%#v", inserted, duplicate, replayed)
+	}
+
+	secondTrigger := trigger
+	secondTrigger.ID = triggerID2
+	secondTrigger.SubjectID = resultID2
+	secondTrigger.DedupeKey = "monitoring-result-adverse:" + resultID2
+	secondTrigger.ObservedAt = now.Add(2 * time.Minute)
+	secondTrigger.Payload = json.RawMessage(`{"risk_band":"CRITICAL","score":88}`)
+	withSecondReceipt, sameEpisode, inserted, err := service.ApplyTrigger(ctx, secondTrigger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !inserted || sameEpisode == nil || sameEpisode.ID != matter.ID || withSecondReceipt.Program.Version != updated.Program.Version+1 {
+		t.Fatalf("second adverse result did not reuse open episode: inserted=%v matter=%#v program=%#v", inserted, sameEpisode, withSecondReceipt)
+	}
+
+	var openEpisodeCount, triggerReceiptCount int
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*) FROM matters
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND trigger_key=$3
+		  AND status NOT IN ('CLOSED','CANCELLED')
+	`, tenantID, entityID, trigger.MatterDedupeKey).Scan(&openEpisodeCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*) FROM program_trigger_events
+		WHERE tenant_id=$1::uuid AND program_id=$2::uuid
+		  AND dedupe_key IN ($3,$4)
+	`, tenantID, program.Program.ID, trigger.DedupeKey, secondTrigger.DedupeKey).Scan(&triggerReceiptCount); err != nil {
+		t.Fatal(err)
+	}
+	if openEpisodeCount != 1 || triggerReceiptCount != 2 {
+		t.Fatalf("episode convergence open_matters=%d trigger_receipts=%d", openEpisodeCount, triggerReceiptCount)
+	}
+
+	closedAt := now.Add(3 * time.Minute)
+	if _, err := pool.Exec(ctx, `
+		UPDATE matters
+		SET status='CLOSED',closed_at=$3::timestamptz,closure_reason='Verified remediation',updated_at=$3::timestamptz,version=version+1
+		WHERE tenant_id=$1::uuid AND id=$2::uuid
+	`, tenantID, matter.ID, closedAt); err != nil {
+		t.Fatal(err)
+	}
+
+	thirdTrigger := secondTrigger
+	thirdTrigger.ID = triggerID3
+	thirdTrigger.SubjectID = resultID3
+	thirdTrigger.DedupeKey = "monitoring-result-adverse:" + resultID3
+	thirdTrigger.ObservedAt = now.Add(4 * time.Minute)
+	thirdTrigger.Payload = json.RawMessage(`{"risk_band":"HIGH","score":70}`)
+	_, newEpisode, inserted, err := service.ApplyTrigger(ctx, thirdTrigger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !inserted || newEpisode == nil || newEpisode.ID == matter.ID || newEpisode.TriggerKey != trigger.MatterDedupeKey {
+		t.Fatalf("closed episode did not permit recurrence: inserted=%v old=%s new=%#v", inserted, matter.ID, newEpisode)
+	}
+
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*) FROM program_trigger_events
+		WHERE tenant_id=$1::uuid AND program_id=$2::uuid
+		  AND dedupe_key IN ($3,$4,$5)
+	`, tenantID, program.Program.ID, trigger.DedupeKey, secondTrigger.DedupeKey, thirdTrigger.DedupeKey).Scan(&triggerReceiptCount); err != nil {
+		t.Fatal(err)
+	}
+	if triggerReceiptCount != 3 {
+		t.Fatalf("recurrent episode trigger receipts=%d want=3", triggerReceiptCount)
 	}
 
 	var triggers, programEvents, matters, links, matterEvents, outboxEvents, projectionJobs int
