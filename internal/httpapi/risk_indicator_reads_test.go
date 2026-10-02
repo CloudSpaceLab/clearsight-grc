@@ -11,14 +11,14 @@ func TestCurrentRiskIndicatorStatePreservesUnknownSemantics(t *testing.T) {
 	now := time.Date(2026, 10, 2, 16, 0, 0, 0, time.UTC)
 	check := monitoring.MonitoringCheck{
 		ID: "check-1", TenantID: "bank", ProgramID: "program-1",
-		Status: monitoring.LifecycleActive, IsCurrent: true, Version: 3,
+		Lifecycle:        monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 3},
 		FreshnessMinutes: 60, MinimumCoverage: 0.9,
 	}
 	score := 20.0
 	base := monitoring.MonitoringResult{
 		ID: "result-1", TenantID: "bank", ProgramID: "program-1",
 		MonitoringCheckID: check.ID, MonitoringCheckVersion: check.Version,
-		Evaluation: monitoring.Evaluation{Score: &score, Band: monitoring.RiskLow, Coverage: 1},
+		Evaluation:  monitoring.Evaluation{Score: &score, Band: monitoring.RiskLow, Coverage: 1},
 		EvaluatedAt: now.Add(-30 * time.Minute),
 	}
 
