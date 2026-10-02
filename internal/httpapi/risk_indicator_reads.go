@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"sort"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
@@ -164,6 +165,12 @@ func currentRiskIndicatorLinks(values []risk.IndicatorLink) []risk.IndicatorLink
 	for _, value := range latest {
 		result = append(result, value)
 	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].RiskVersion != result[j].RiskVersion {
+			return result[i].RiskVersion > result[j].RiskVersion
+		}
+		return result[i].ID > result[j].ID
+	})
 	return result
 }
 
