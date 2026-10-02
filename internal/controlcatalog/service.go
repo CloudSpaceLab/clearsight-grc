@@ -23,32 +23,34 @@ func (s *Service) Promote(ctx context.Context, input PromoteInput) (Definition, 
 	}
 	now := s.now()
 	definition := Definition{
-		TenantID: strings.TrimSpace(input.TenantID),
-		Code: strings.ToUpper(strings.TrimSpace(input.Code)),
-		Name: strings.TrimSpace(input.Name),
-		Objective: strings.TrimSpace(input.Objective),
+		TenantID:    strings.TrimSpace(input.TenantID),
+		Code:        strings.ToUpper(strings.TrimSpace(input.Code)),
+		Name:        strings.TrimSpace(input.Name),
+		Objective:   strings.TrimSpace(input.Objective),
 		Description: strings.TrimSpace(input.Description),
-		Category: strings.TrimSpace(input.Category),
-		Status: DefinitionActive,
-		Version: 1,
-		CreatedAt: now,
-		UpdatedAt: now,
+		Category:    strings.TrimSpace(input.Category),
+		Status:      DefinitionActive,
+		Version:     1,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 	if err := validateDefinition(definition); err != nil {
 		return Definition{}, ImplementationLink{}, err
 	}
-	definition.ID, err = platformid.NewUUIDv7()
+	definitionID, err := platformid.NewUUIDv7()
 	if err != nil {
 		return Definition{}, ImplementationLink{}, err
 	}
+	definition.ID = definitionID
 	link := canonicalLink(input.TenantID, input.LegalEntityID, definition.ID, input.ProgramID, input.ImplementationID, now)
 	if err := validateLink(link); err != nil {
 		return Definition{}, ImplementationLink{}, err
 	}
-	link.ID, err = platformid.NewUUIDv7()
+	linkID, err := platformid.NewUUIDv7()
 	if err != nil {
 		return Definition{}, ImplementationLink{}, err
 	}
+	link.ID = linkID
 	return s.repo.CreateWithImplementationLink(ctx, definition, link)
 }
 
@@ -67,11 +69,19 @@ func (s *Service) LinkImplementation(ctx context.Context, input LinkImplementati
 	if err := validateLink(link); err != nil {
 		return ImplementationLink{}, err
 	}
-	link.ID, err = platformid.NewUUIDv7()
+	linkID, err := platformid.NewUUIDv7()
 	if err != nil {
 		return ImplementationLink{}, err
 	}
+	link.ID = linkID
 	return s.repo.LinkImplementation(ctx, link)
+}
+
+func (s *Service) GetDefinition(ctx context.Context, tenant, id string) (Definition, error) {
+	if s == nil || s.repo == nil || strings.TrimSpace(tenant) == "" || strings.TrimSpace(id) == "" {
+		return Definition{}, ErrInvalid
+	}
+	return s.repo.GetDefinition(ctx, strings.TrimSpace(tenant), strings.TrimSpace(id))
 }
 
 func (s *Service) GetImplementationLink(ctx context.Context, tenant, entity, id string) (ImplementationLink, error) {
@@ -95,12 +105,12 @@ func (s *Service) ListImplementationLinks(ctx context.Context, tenant, definitio
 
 func canonicalLink(tenant, entity, definitionID, programID, implementationID string, now time.Time) ImplementationLink {
 	return ImplementationLink{
-		TenantID: strings.TrimSpace(tenant),
-		LegalEntityID: strings.TrimSpace(entity),
-		DefinitionID: strings.TrimSpace(definitionID),
-		ProgramID: strings.TrimSpace(programID),
+		TenantID:         strings.TrimSpace(tenant),
+		LegalEntityID:    strings.TrimSpace(entity),
+		DefinitionID:     strings.TrimSpace(definitionID),
+		ProgramID:        strings.TrimSpace(programID),
 		ImplementationID: strings.TrimSpace(implementationID),
-		CreatedAt: now,
+		CreatedAt:        now,
 	}
 }
 
@@ -130,4 +140,3 @@ func (s *Service) now() time.Time {
 	}
 	return time.Now().UTC()
 }
-
