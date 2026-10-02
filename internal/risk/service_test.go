@@ -340,6 +340,12 @@ func TestRiskListDoesNotTreatStaleAssessmentAsCurrentAppetitePosition(t *testing
 func TestRiskControlLinkIsVersionedAndDuplicateSafe(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(NewMemoryRepository())
+	service.ConfigureControlLinkValidator(func(_ context.Context, scope Scope, catalogLinkID string) error {
+		if scope.TenantID == "bank" && scope.LegalEntityID == "entity-a" && catalogLinkID == "catalog-link-1" {
+			return nil
+		}
+		return ErrInvalid
+	})
 	now := time.Date(2026, 10, 2, 14, 0, 0, 0, time.UTC)
 	service.Now = func() time.Time { return now }
 	created := createTestRisk(t, service, ctx, "bank", "entity-a", "RISK-CONTROL")
