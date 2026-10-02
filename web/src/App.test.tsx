@@ -85,7 +85,7 @@ vi.mock("./evidenceRequestAdminApi", async (importOriginal) => ({
 
 type RuntimeWithCapabilities = RuntimeContext & {
   demo_mode: boolean;
-  capabilities: { document_import: boolean; reference_journeys: boolean; oversight_read?: boolean; scope_switch?: boolean };
+  capabilities: { document_import: boolean; reference_journeys: boolean; oversight_read?: boolean; scope_switch?: boolean; identity_read?: boolean };
   actor: RuntimeContext["actor"] & { role_codes: string[] };
 };
 
@@ -241,6 +241,29 @@ describe("legal entity scope selector", () => {
     const trigger = within(context).getByRole("button", { name: /Organization scope/ });
     expect(trigger.textContent).toContain("Clear Bank Nigeria");
     expect(within(context).queryByText("Non-production data")).toBeNull();
+  });
+
+  it("shows exact department access in Scope even when there is only one legal entity", async () => {
+    const scoped = switchableRuntime();
+    scoped.scope_hierarchy = {
+      ...scoped.scope_hierarchy!,
+      legal_entities: [scoped.scope_hierarchy!.legal_entities[0]!],
+    };
+    scoped.capabilities.scope_switch = false;
+    scoped.actor.department_grants = [
+      { path: ["BANK", "OPERATIONS", "PAYMENTS"], permission_codes: ["MATTER_READ"] },
+      { path: ["BANK", "RISK"], permission_codes: ["MATTER_READ"] },
+    ];
+    vi.mocked(loadContext).mockResolvedValue(scoped);
+    render(<App/>);
+
+    const trigger = await screen.findByRole("button", { name: /Organization scope/ });
+    fireEvent.click(trigger);
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
+
+    expect(within(dialog).getByText("BANK / OPERATIONS / PAYMENTS")).toBeTruthy();
+    expect(within(dialog).getByText("BANK / RISK")).toBeTruthy();
+    expect(within(dialog).getByText(/Home area filtering is not available/)).toBeTruthy();
   });
 
   it("shows only server-authorized legal entities and retains the current selection", async () => {
