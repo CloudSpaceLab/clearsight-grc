@@ -175,15 +175,15 @@ func (c *AdverseEpisodeCoordinator) EnsureMatter(ctx context.Context, observatio
 	}
 
 	payload, err := json.Marshal(map[string]any{
-		"monitoring_episode_id": episode.ID,
-		"monitoring_result_id": observation.Result.ID,
-		"monitoring_check_id": observation.Check.ID,
-		"monitoring_check_version": observation.Check.Version,
-		"monitoring_check_name": observation.Check.Name,
-		"risk_band": observation.Result.Evaluation.Band,
-		"score": observation.Result.Evaluation.Score,
-		"coverage": observation.Result.Evaluation.Coverage,
-		"evaluated_at": observation.Result.EvaluatedAt,
+		"monitoring_episode_id":      episode.ID,
+		"monitoring_result_id":       observation.Result.ID,
+		"monitoring_check_id":        observation.Check.ID,
+		"monitoring_check_version":   observation.Check.Version,
+		"monitoring_check_name":      observation.Check.Name,
+		"risk_band":                  observation.Result.Evaluation.Band,
+		"score":                      observation.Result.Evaluation.Score,
+		"coverage":                   observation.Result.Evaluation.Coverage,
+		"evaluated_at":               observation.Result.EvaluatedAt,
 	})
 	if err != nil {
 		return AdverseEpisodeResult{}, err
@@ -348,22 +348,21 @@ func episodeWorsened(before AdverseEpisode, observation AdverseEpisodeObservatio
 
 func episodeEventPayload(value AdverseEpisode) map[string]any {
 	return map[string]any{
-		"episode_id": value.ID,
-		"version": value.RecordVersion,
-		"legal_entity_id": value.LegalEntityID,
-		"program_id": value.ProgramID,
+		"episode_id":          value.ID,
+		"version":             value.RecordVersion,
+		"legal_entity_id":     value.LegalEntityID,
+		"program_id":          value.ProgramID,
 		"monitoring_check_id": value.MonitoringCheckID,
-		"state": value.State,
-		"matter_id": value.MatterID,
-		"last_result_id": value.LastResultID,
-		"last_check_version": value.LastCheckVersion,
-		"last_band": value.LastBand,
-		"last_score": value.LastScore,
-		"last_coverage": value.LastCoverage,
-		"record_version": value.RecordVersion,
-		"opened_at": value.OpenedAt,
-		"closed_at": value.ClosedAt,
-		"updated_at": value.UpdatedAt,
+		"state":               value.State,
+		"matter_id":           value.MatterID,
+		"last_result_id":      value.LastResultID,
+		"last_check_version":  value.LastCheckVersion,
+		"last_band":           value.LastBand,
+		"last_score":          value.LastScore,
+		"last_coverage":       value.LastCoverage,
+		"record_version":      value.RecordVersion,
+		"opened_at":           value.OpenedAt,
+		"closed_at":           value.ClosedAt,
+		"updated_at":          value.UpdatedAt,
 	}
 }
-
