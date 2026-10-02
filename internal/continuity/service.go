@@ -739,7 +739,7 @@ func (s *Service) ensureTriggerMatter(ctx context.Context, trigger Trigger) (*Ma
 		return nil, nil
 	}
 	matterDedupeKey := triggerMatterDedupeKey(trigger)
-	existingAggregate, err := s.MatterByTriggerKey(ctx, trigger.TenantID, matterDedupeKey)
+	existingAggregate, err := s.OpenMatterByTriggerKey(ctx, trigger.TenantID, matterDedupeKey)
 	if err == nil {
 		if matterLinkedToProgram(existingAggregate, trigger.ProgramID) {
 			existing := existingAggregate.Matter
@@ -752,7 +752,7 @@ func (s *Service) ensureTriggerMatter(ctx context.Context, trigger Trigger) (*Ma
 	}
 	matterAggregate, err := s.CreateMatter(ctx, CreateMatterInput{TenantID: trigger.TenantID, Type: matterType, Priority: triggerPriority(trigger.Type), Title: title, Summary: summary, Scope: trigger.Payload, TriggerType: trigger.Type, TriggerID: trigger.ID, TriggerKey: matterDedupeKey, KnownFacts: trigger.Payload, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), ProgramID: trigger.ProgramID, ActorID: trigger.ActorID})
 	if errors.Is(err, ErrDuplicate) {
-		existingAggregate, lookupErr := s.MatterByTriggerKey(ctx, trigger.TenantID, matterDedupeKey)
+		existingAggregate, lookupErr := s.OpenMatterByTriggerKey(ctx, trigger.TenantID, matterDedupeKey)
 		if lookupErr != nil {
 			if errors.Is(lookupErr, ErrNotFound) {
 				return nil, nil
