@@ -93,14 +93,24 @@ func (r *PostgresRepository) ListInAppNotifications(ctx context.Context, filter 
 	}
 	var unread int
 	err := r.pool.QueryRow(ctx, `
+		WITH selected_scope AS (
+			SELECT t.id AS tenant_id,le.id AS legal_entity_id,p.id AS principal_id
+			FROM tenants t
+			JOIN legal_entities le ON le.tenant_id=t.id
+			JOIN principals p ON p.tenant_id=t.id
+			WHERE (t.id::text=$1 OR t.slug=$1)
+			  AND (le.id::text=$2 OR le.code=$2)
+			  AND p.id::text=$3
+			ORDER BY le.valid_from DESC,le.id
+			LIMIT 1
+		)
 		SELECT count(*)
 		FROM in_app_notifications n
-		JOIN tenants t ON t.id=n.tenant_id
-		JOIN legal_entities le ON le.tenant_id=n.tenant_id AND le.id=n.legal_entity_id
-		WHERE (t.id::text=$1 OR t.slug=$1)
-		  AND (le.id::text=$2 OR le.code=$2)
-		  AND n.principal_id::text=$3
-		  AND n.read_at IS NULL`,
+		JOIN selected_scope scope
+		  ON scope.tenant_id=n.tenant_id
+		 AND scope.legal_entity_id=n.legal_entity_id
+		 AND scope.principal_id=n.principal_id
+		WHERE n.read_at IS NULL`,
 		filter.TenantID, filter.LegalEntityID, filter.PrincipalID,
 	).Scan(&unread)
 	if err != nil {
@@ -108,15 +118,25 @@ func (r *PostgresRepository) ListInAppNotifications(ctx context.Context, filter 
 	}
 
 	rows, err := r.pool.Query(ctx, `
+		WITH selected_scope AS (
+			SELECT t.id AS tenant_id,le.id AS legal_entity_id,p.id AS principal_id
+			FROM tenants t
+			JOIN legal_entities le ON le.tenant_id=t.id
+			JOIN principals p ON p.tenant_id=t.id
+			WHERE (t.id::text=$1 OR t.slug=$1)
+			  AND (le.id::text=$2 OR le.code=$2)
+			  AND p.id::text=$3
+			ORDER BY le.valid_from DESC,le.id
+			LIMIT 1
+		)
 		SELECT n.id::text,n.notification_kind,n.title,n.summary,n.subject_type,n.subject_id::text,
 		       n.action_path,n.occurred_at,n.read_at,n.legal_entity_id::text,n.principal_id::text,n.outbox_event_id::text
 		FROM in_app_notifications n
-		JOIN tenants t ON t.id=n.tenant_id
-		JOIN legal_entities le ON le.tenant_id=n.tenant_id AND le.id=n.legal_entity_id
-		WHERE (t.id::text=$1 OR t.slug=$1)
-		  AND (le.id::text=$2 OR le.code=$2)
-		  AND n.principal_id::text=$3
-		  AND (NOT $4::boolean OR n.read_at IS NULL)
+		JOIN selected_scope scope
+		  ON scope.tenant_id=n.tenant_id
+		 AND scope.legal_entity_id=n.legal_entity_id
+		 AND scope.principal_id=n.principal_id
+		WHERE (NOT $4::boolean OR n.read_at IS NULL)
 		  AND (NOT $5::boolean OR n.occurred_at<$6 OR (n.occurred_at=$6 AND n.id<$7::uuid))
 		ORDER BY n.occurred_at DESC,n.id DESC
 		LIMIT $8`,
@@ -161,14 +181,23 @@ func (r *PostgresRepository) MarkInAppNotificationRead(ctx context.Context, filt
 	}
 	var item InAppNotification
 	err := r.pool.QueryRow(ctx, `
+		WITH selected_scope AS (
+			SELECT t.id AS tenant_id,le.id AS legal_entity_id,p.id AS principal_id
+			FROM tenants t
+			JOIN legal_entities le ON le.tenant_id=t.id
+			JOIN principals p ON p.tenant_id=t.id
+			WHERE (t.id::text=$1 OR t.slug=$1)
+			  AND (le.id::text=$2 OR le.code=$2)
+			  AND p.id::text=$3
+			ORDER BY le.valid_from DESC,le.id
+			LIMIT 1
+		)
 		UPDATE in_app_notifications n
 		SET read_at=COALESCE(n.read_at,$5)
-		FROM tenants t,legal_entities le
-		WHERE n.tenant_id=t.id
-		  AND le.tenant_id=n.tenant_id AND le.id=n.legal_entity_id
-		  AND (t.id::text=$1 OR t.slug=$1)
-		  AND (le.id::text=$2 OR le.code=$2)
-		  AND n.principal_id::text=$3
+		FROM selected_scope scope
+		WHERE n.tenant_id=scope.tenant_id
+		  AND n.legal_entity_id=scope.legal_entity_id
+		  AND n.principal_id=scope.principal_id
 		  AND n.id=$4::uuid
 		RETURNING n.id::text,n.notification_kind,n.title,n.summary,n.subject_type,n.subject_id::text,
 		          n.action_path,n.occurred_at,n.read_at,n.legal_entity_id::text,n.principal_id::text,n.outbox_event_id::text`,
