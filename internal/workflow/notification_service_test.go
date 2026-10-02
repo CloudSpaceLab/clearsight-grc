@@ -86,7 +86,7 @@ func TestMemoryNotificationIDsAreDistinctPerKindAndCursorCompatible(t *testing.T
 	common := inAppNotificationRecord{
 		TenantID: "bank", LegalEntityID: "entity-ng", PrincipalID: "person-a",
 		OutboxEventID: "10000000-0000-4000-8000-000000000099",
-		SubjectType: "MATTER", SubjectID: "20000000-0000-4000-8000-000000000099",
+		SubjectType:   "MATTER", SubjectID: "20000000-0000-4000-8000-000000000099",
 		ActionPath: "#work/matters/20000000-0000-4000-8000-000000000099", OccurredAt: base,
 	}
 	first := common
