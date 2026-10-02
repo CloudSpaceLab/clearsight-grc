@@ -152,7 +152,7 @@ func TestMonitoringAdverseResultsShareOneOpenEpisodeAndRestartAfterCancellation(
 			Score: &score, Band: monitoring.RiskCritical, Coverage: 1,
 			RuleResults: []monitoring.RuleResult{{FieldID: "status", Outcome: monitoring.RuleFailed, Points: 90, Critical: true, Reason: "The expected status is still missing."}},
 		},
-		EvaluatedAt: fixture.result.EvaluatedAt.Add(time.Minute),
+		EvaluatedAt:      fixture.result.EvaluatedAt.Add(time.Minute),
 		EvaluatorVersion: "risk-v1", CreatedAt: fixture.result.CreatedAt.Add(time.Minute),
 	})
 	if err != nil {
@@ -186,7 +186,7 @@ func TestMonitoringAdverseResultsShareOneOpenEpisodeAndRestartAfterCancellation(
 			Score: &score, Band: monitoring.RiskHigh, Coverage: 1,
 			RuleResults: []monitoring.RuleResult{{FieldID: "status", Outcome: monitoring.RuleFailed, Points: 85, Critical: true, Reason: "The adverse state returned."}},
 		},
-		EvaluatedAt: secondResult.EvaluatedAt.Add(time.Minute),
+		EvaluatedAt:      secondResult.EvaluatedAt.Add(time.Minute),
 		EvaluatorVersion: "risk-v1", CreatedAt: secondResult.CreatedAt.Add(time.Minute),
 	})
 	if err != nil {
