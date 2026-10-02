@@ -120,6 +120,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	reportingService := reporting.NewService(reportingRepository, store, authorityService)
 	riskService := risk.NewService(risk.NewPostgresRepository(pool))
 	controlCatalogService := controlcatalog.NewService(controlcatalog.NewPostgresRepository(pool))
+	configureRiskControlCatalog(riskService, controlCatalogService)
 	if cfg.DemoMode {
 		if err := installPostgresDemo(ctx, pool, ropaService, reportingService); err != nil {
 			return serviceSet{}, err
