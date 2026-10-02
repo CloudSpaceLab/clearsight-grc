@@ -124,11 +124,10 @@ func (s *Service) AddAssessment(ctx context.Context, input AssessmentInput) (Ris
 			return Risk{}, Assessment{}, ErrInvalid
 		}
 	} else {
-		statements, err := s.repository.AppetiteStatements(ctx, scope, current.ID, 100)
+		currentAppetite, err := s.repository.CurrentAppetite(ctx, scope, current.ID, assessment.AssessedAt)
 		if err != nil {
 			return Risk{}, Assessment{}, err
 		}
-		currentAppetite := latestApplicableAppetite(statements, assessment.AssessedAt)
 		if currentAppetite == nil || currentAppetite.ID != assessment.AppetiteStatementID {
 			return Risk{}, Assessment{}, ErrInvalid
 		}
