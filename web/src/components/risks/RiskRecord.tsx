@@ -1,19 +1,20 @@
 import { useEffect, useState } from "react";
 import { getRisk } from "../../riskApi";
-import type { RiskAggregate, RiskAppetiteStatement, RiskAssessment } from "../../riskTypes";
+import type { RiskAggregate, RiskAppetiteStatement, RiskAssessment, RiskControlDetail } from "../../riskTypes";
 import { apiErrorKind } from "../../http";
-import { Button, DataTable, EmptyState, StatusBadge, Surface, type DataColumn } from "../ui";
-import { appetiteLabel, appetiteTone, assessmentKindLabel, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
+import { Button, DataTable, EmptyState, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
+import { appetiteLabel, appetiteTone, assessmentKindLabel, controlEvidenceSummary, controlImplementationLabel, controlImplementationTone, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
 
 type Props = {
   riskID: string;
   onBack: () => void;
+  onOpenProgramControl?: (programID: string, objectiveID: string) => void;
   loadRisk?: (id: string, signal?: AbortSignal) => Promise<RiskAggregate>;
 };
 
 type LoadState = "loading" | "live" | "not-found" | "error";
 
-export function RiskRecord({ riskID, onBack, loadRisk = getRisk }: Props) {
+export function RiskRecord({ riskID, onBack, onOpenProgramControl, loadRisk = getRisk }: Props) {
   const [value, setValue] = useState<RiskAggregate>();
   const [state, setState] = useState<LoadState>("loading");
   const [retry, setRetry] = useState(0);
@@ -57,6 +58,42 @@ export function RiskRecord({ riskID, onBack, loadRisk = getRisk }: Props) {
     { id: "status", header: "Status", kind: "status", render: (item) => <StatusBadge tone={item.status === "ACTIVE" ? "info" : "unknown"}>{item.status === "ACTIVE" ? "Active" : "Retired"}</StatusBadge>, accessibleText: (item) => item.status === "ACTIVE" ? "Active" : "Retired" },
   ];
 
+  const controlColumns: readonly DataColumn<RiskControlDetail>[] = [
+    {
+      id: "control",
+      header: "Control",
+      mobileLayout: "full-width",
+      render: (item) => <span className="risk-record__stack"><strong>{item.definition.name}</strong><small>{[item.definition.code, item.definition.category].filter(Boolean).join(" · ")}</small></span>,
+      accessibleText: (item) => [item.definition.name, item.definition.code, item.definition.category].filter(Boolean).join(", "),
+    },
+    {
+      id: "implementation",
+      header: "Implementation",
+      render: (item) => <span className="risk-record__stack"><strong>{item.implementation_name}</strong><small>{item.program_name}</small></span>,
+      accessibleText: (item) => `${item.implementation_name}, ${item.program_name}`,
+    },
+    {
+      id: "state",
+      header: "State",
+      kind: "status",
+      render: (item) => <StatusBadge tone={controlImplementationTone(item.implementation_status)}>{controlImplementationLabel(item.implementation_status)}</StatusBadge>,
+      accessibleText: (item) => controlImplementationLabel(item.implementation_status),
+    },
+    {
+      id: "owner",
+      header: "Owner",
+      render: (item) => item.owner_display_name || (item.owner_assigned ? "Assigned" : "Not assigned"),
+      accessibleText: (item) => item.owner_display_name || (item.owner_assigned ? "Assigned" : "Not assigned"),
+    },
+    {
+      id: "evidence",
+      header: "Evidence",
+      mobileLayout: "full-width",
+      render: (item) => controlEvidenceSummary(item),
+      accessibleText: (item) => controlEvidenceSummary(item),
+    },
+  ];
+
   return <section className="risk-record-page" aria-labelledby="risk-record-heading">
     <header className="topbar risk-page-header">
       <div>
@@ -95,6 +132,20 @@ export function RiskRecord({ riskID, onBack, loadRisk = getRisk }: Props) {
         </section>
       </Surface>
     </div>
+
+    <section className="risk-record__history" aria-labelledby="risk-controls-heading">
+      <div className="section-header"><div><h2 id="risk-controls-heading">Controls</h2><p>Existing Program controls linked to this risk. Evidence remains governed in the Program.</p></div></div>
+      {value.control_details_complete === false && <Notice tone="warning">Some linked control details are unavailable in the current scope.</Notice>}
+      {value.control_details?.length ? <DataTable
+        ariaLabel="Risk controls"
+        rows={value.control_details}
+        rowKey={(item) => item.link.id}
+        rowName={(item) => `${item.definition.name}, ${item.implementation_name}, ${controlImplementationLabel(item.implementation_status)}`}
+        columns={controlColumns}
+        onRowAction={onOpenProgramControl ? (item) => onOpenProgramControl(item.program_id, item.objective_id) : undefined}
+        rowActionLabel="Open control"
+      /> : <EmptyState population={risk.name} title="No linked controls" description="No existing Program control is linked to this risk."/>}
+    </section>
 
     <section className="risk-record__history" aria-labelledby="risk-assessments-heading">
       <div className="section-header"><div><h2 id="risk-assessments-heading">Assessments</h2><p>Approved assessment records and their appetite position.</p></div></div>
