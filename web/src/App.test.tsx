@@ -3,7 +3,7 @@ import { StrictMode } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import type { RuntimeContext } from "./api";
-import { loadCaptureRequest, loadContext, loadEvidenceRequest, loadEvidenceRequests, loadReadiness, loadToday } from "./api";
+import { loadCaptureRequest, loadContext, loadEvidenceRequest, loadEvidenceRequests, loadReadiness, loadToday, switchLegalEntity } from "./api";
 import type { AttentionItem, EvidenceRequest } from "./types";
 import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "./captureApi";
 import { ApiError } from "./http";
@@ -73,6 +73,7 @@ vi.mock("./api", () => ({
   reconcileProgramState: vi.fn(),
   resolveAuthority: vi.fn(),
   submitCaptureRequest: vi.fn(),
+  switchLegalEntity: vi.fn(),
 }));
 vi.mock("./evidenceRequestAdminApi", async (importOriginal) => ({
   ...await importOriginal<typeof import("./evidenceRequestAdminApi")>(),
@@ -81,7 +82,7 @@ vi.mock("./evidenceRequestAdminApi", async (importOriginal) => ({
 
 type RuntimeWithCapabilities = RuntimeContext & {
   demo_mode: boolean;
-  capabilities: { document_import: boolean; reference_journeys: boolean; oversight_read?: boolean };
+  capabilities: { document_import: boolean; reference_journeys: boolean; oversight_read?: boolean; scope_switch?: boolean };
   actor: RuntimeContext["actor"] & { role_codes: string[] };
 };
 
@@ -93,6 +94,22 @@ function runtime(demoMode: boolean): RuntimeWithCapabilities {
     mode: "memory",
     demo_mode: demoMode,
     capabilities: { document_import: true, reference_journeys: demoMode },
+  };
+}
+
+function switchableRuntime(): RuntimeWithCapabilities {
+  return {
+    ...runtime(false),
+    scope_hierarchy: {
+      state: "COMPLETE",
+      root: { id: "tenant-uuid", code: "bank-demo", name: "Clear Bank", kind: "ORGANIZATION" },
+      current: { id: "entity-ng-uuid", code: "bank-ng", name: "Clear Bank Nigeria", kind: "LEGAL_ENTITY", parent_id: "tenant-uuid", jurisdiction: "NG", current: true },
+      legal_entities: [
+        { id: "entity-ng-uuid", code: "bank-ng", name: "Clear Bank Nigeria", kind: "LEGAL_ENTITY", parent_id: "tenant-uuid", jurisdiction: "NG", current: true },
+        { id: "entity-gh-uuid", code: "bank-gh", name: "Clear Bank Ghana", kind: "LEGAL_ENTITY", parent_id: "tenant-uuid", jurisdiction: "GH" },
+      ],
+    },
+    capabilities: { document_import: true, reference_journeys: false, scope_switch: true },
   };
 }
 
@@ -167,7 +184,9 @@ beforeEach(() => {
   vi.mocked(reassignCaptureRecipient).mockRejectedValue(new Error("Recipient lifecycle command not configured"));
   listEvidenceRecipientCandidates.mockRejectedValue(new Error("Recipient candidates not configured"));
   vi.mocked(loadReadiness).mockRejectedValue(new Error("No readiness baseline"));
-  vi.mocked(loadNotifications).mockReset();
+  vi.mocked(switchLegalEntity).mockReset();
+  vi.mocked(switchLegalEntity).mockResolvedValue();
+    vi.mocked(loadNotifications).mockReset();
   vi.mocked(loadNotifications).mockResolvedValue({ items: [], unread_count: 0, as_of: "2026-10-02T09:00:00Z" });
 });
 
@@ -185,6 +204,40 @@ describe("notification shell integration", () => {
     await screen.findAllByText("Second Bank");
     await waitFor(() => expect(loadNotifications).toHaveBeenCalledTimes(2));
     expect(screen.getByRole("button", { name: "Notifications" })).toBeTruthy();
+  });
+});
+
+describe("legal entity scope selector", () => {
+  it("keeps the context bar quiet when only one scope is available", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App/>);
+
+    await screen.findByText("Clear Bank Nigeria");
+    expect(screen.queryByRole("button", { name: /Legal entity/ })).toBeNull();
+  });
+
+  it("shows only server-authorized legal entities and retains the current selection", async () => {
+    vi.mocked(loadContext).mockResolvedValue(switchableRuntime());
+    render(<App/>);
+
+    const trigger = await screen.findByRole("button", { name: /Legal entity/ });
+    expect(trigger.textContent).toContain("Clear Bank Nigeria");
+    fireEvent.click(trigger);
+    expect(await screen.findByRole("option", { name: /Clear Bank Nigeria/ })).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Clear Bank Ghana/ })).toBeTruthy();
+  });
+
+  it("keeps the current scope and shows recovery copy when session switching fails", async () => {
+    vi.mocked(loadContext).mockResolvedValue(switchableRuntime());
+    vi.mocked(switchLegalEntity).mockRejectedValueOnce(new Error("unavailable"));
+    render(<App/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Legal entity/ }));
+    fireEvent.click(await screen.findByRole("option", { name: /Clear Bank Ghana/ }));
+
+    await waitFor(() => expect(switchLegalEntity).toHaveBeenCalledWith("entity-gh-uuid"));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Legal entity could not be changed. Try again.");
+    expect(screen.getByRole("button", { name: /Legal entity/ }).textContent).toContain("Clear Bank Nigeria");
   });
 });
 
