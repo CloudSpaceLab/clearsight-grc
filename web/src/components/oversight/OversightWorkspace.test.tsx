@@ -69,7 +69,8 @@ it("leads with exact interventions and provides table alternatives for oversight
   expect(screen.getByText("42 issues checked · 1 excluded · 2 unknown")).toBeTruthy();
   const period = screen.getByRole("button", { name: /Reporting period/ });
   expect(period.textContent).toContain("Period");
-  expect(period.textContent).toContain("Jun");\n  expect(period.textContent).toContain("Sep");
+  expect(period.textContent).toContain("Jun");
+  expect(period.textContent).toContain("Sep");
   expect(screen.getByText(/Current · Updated/)).toBeTruthy();
   expect(screen.queryByText("Current snapshot")).toBeNull();
   fireEvent.click(screen.getByText("Data freshness"));
