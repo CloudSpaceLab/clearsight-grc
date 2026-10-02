@@ -8,12 +8,19 @@ import (
 )
 
 var (
-	ErrInvalid  = errors.New("oversight scope is required")
-	ErrNotFound = errors.New("oversight snapshot is not available")
+	ErrInvalid                    = errors.New("oversight scope is required")
+	ErrNotFound                   = errors.New("oversight snapshot is not available")
+	ErrInvalidReportingPeriod     = errors.New("reporting period is invalid")
+	ErrHistoricalEndUnsupported   = errors.New("historical reporting period end is unsupported")
+	ErrReportingPeriodUnavailable = errors.New("custom reporting period is unavailable")
 )
 
 type Repository interface {
 	Latest(context.Context, Scope) (Snapshot, error)
+}
+
+type PeriodRepository interface {
+	BuildPeriod(context.Context, Scope, time.Time, time.Time) (Snapshot, error)
 }
 
 type Service struct {
@@ -27,18 +34,75 @@ func NewService(repository Repository) *Service {
 }
 
 func (s *Service) Get(ctx context.Context, scope Scope) (Snapshot, error) {
+	return s.GetForPeriod(ctx, scope, PeriodRequest{})
+}
+
+func (s *Service) GetForPeriod(ctx context.Context, scope Scope, request PeriodRequest) (Snapshot, error) {
 	if s == nil || s.repository == nil || strings.TrimSpace(scope.TenantID) == "" || strings.TrimSpace(scope.LegalEntityID) == "" {
 		return Snapshot{}, ErrInvalid
 	}
-	value, err := s.repository.Latest(ctx, scope)
+	request.StartDate = strings.TrimSpace(request.StartDate)
+	request.EndDate = strings.TrimSpace(request.EndDate)
+	if request.StartDate == "" && request.EndDate == "" {
+		value, err := s.repository.Latest(ctx, scope)
+		if err != nil {
+			return Snapshot{}, err
+		}
+		return s.decorate(value), nil
+	}
+	if request.StartDate == "" {
+		return Snapshot{}, ErrInvalidReportingPeriod
+	}
+	now := s.Now().UTC()
+	currentDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	endDate := request.EndDate
+	if endDate == "" {
+		endDate = currentDate.Format(ReportingDateLayout)
+	}
+	parsedEnd, err := time.Parse(ReportingDateLayout, endDate)
+	if err != nil {
+		return Snapshot{}, ErrInvalidReportingPeriod
+	}
+	parsedEnd = parsedEnd.UTC()
+	if !parsedEnd.Equal(currentDate) {
+		return Snapshot{}, ErrHistoricalEndUnsupported
+	}
+	start, err := time.Parse(ReportingDateLayout, request.StartDate)
+	if err != nil {
+		return Snapshot{}, ErrInvalidReportingPeriod
+	}
+	start = start.UTC()
+	if start.After(currentDate) || currentDate.Sub(start) > ReportingPeriodMaxDays*24*time.Hour {
+		return Snapshot{}, ErrInvalidReportingPeriod
+	}
+	repository, ok := s.repository.(PeriodRepository)
+	if !ok {
+		return Snapshot{}, ErrReportingPeriodUnavailable
+	}
+	value, err := repository.BuildPeriod(ctx, scope, start, now)
 	if err != nil {
 		return Snapshot{}, err
 	}
+	return s.decorate(value), nil
+}
+
+func (s *Service) decorate(value Snapshot) Snapshot {
 	value.Freshness = FreshnessCurrent
-	if value.GeneratedAt.IsZero() || s.Now().UTC().Sub(value.GeneratedAt) > s.StaleAfter || value.ProjectionVersion != ProjectionVersion {
+	now := s.Now().UTC()
+	if value.GeneratedAt.IsZero() || now.Sub(value.GeneratedAt) > s.StaleAfter || value.ProjectionVersion != ProjectionVersion {
 		value.Freshness = FreshnessStale
 	}
-	return value, nil
+	if value.PostureAsOf.IsZero() {
+		value.PostureAsOf = value.GeneratedAt
+	}
+	value.ReportingPeriod = ReportingPeriod{
+		StartDate:              value.PeriodStart.UTC().Format(ReportingDateLayout),
+		EndDate:                value.PeriodEnd.UTC().Format(ReportingDateLayout),
+		Mode:                   ReportingPeriodCurrentWindow,
+		MaxDays:                ReportingPeriodMaxDays,
+		HistoricalEndSupported: false,
+	}
+	return value
 }
 
 func interventionCopy(item Intervention, now time.Time) (string, string) {
