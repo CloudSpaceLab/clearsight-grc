@@ -608,6 +608,26 @@ func (r *MemoryRepository) ListResults(_ context.Context, tenant, checkID string
 	return values, nil
 }
 
+func (r *MemoryRepository) LatestResultRevision(_ context.Context, tenant, checkID string, version int64) (MonitoringResult, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var latest MonitoringResult
+	found := false
+	for _, value := range r.results {
+		if value.TenantID != tenant || value.MonitoringCheckID != checkID || value.MonitoringCheckVersion != version {
+			continue
+		}
+		if !found || value.EvaluatedAt.After(latest.EvaluatedAt) || (value.EvaluatedAt.Equal(latest.EvaluatedAt) && value.ID > latest.ID) {
+			latest = value
+			found = true
+		}
+	}
+	if !found {
+		return MonitoringResult{}, ErrNotFound
+	}
+	return cloneValue(latest), nil
+}
+
 func revisionKey(tenant, id string, version int64) string {
 	return fmt.Sprintf("%s\x00%s\x00%d", tenant, id, version)
 }
