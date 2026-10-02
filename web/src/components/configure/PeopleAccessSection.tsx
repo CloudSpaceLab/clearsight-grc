@@ -1,9 +1,9 @@
 import { IdentityAccessPanel } from "../IdentityAccessPanel";
 
 export function PeopleAccessSection() {
-  return <section className="configure-domain" aria-labelledby="people-access-heading">
+  return <section className="configure-domain" aria-labelledby="organization-access-heading">
     <header className="configure-domain-header">
-      <div><span className="eyebrow">Configuration · people & access</span><h2 id="people-access-heading">People & access</h2><p>Manage sign-in, directory provisioning, people, groups and workspace role mappings without changing material decision authority.</p></div>
+      <div><span className="eyebrow">Configuration · organization & access</span><h2 id="organization-access-heading">Organization & access</h2><p>Review departments, positions, reporting lines, directory provisioning and workspace access.</p></div>
     </header>
     <IdentityAccessPanel/>
   </section>;
