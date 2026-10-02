@@ -136,6 +136,7 @@ type ListFilter struct {
 	AppetitePosition AppetitePosition
 	Cursor           string
 	Limit            int
+	AsOf             time.Time
 }
 
 type CreateInput struct {
