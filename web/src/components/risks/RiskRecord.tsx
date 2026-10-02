@@ -49,8 +49,9 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgramControl, load
   if (state === "not-found") return <section className="risk-record-page"><EmptyState population="Current legal-entity risk register" title="Risk not found" description="Return to the risk register." action={<Button variant="secondary" onPress={onBack}>Back to risks</Button>}/></section>;
   if (state === "error" || !value) return <section className="risk-record-page"><EmptyState population="Selected risk record" title="Risk unavailable" description="The risk could not be loaded." action={<Button variant="secondary" onPress={() => setRetry((current) => current + 1)}>Try again</Button>} role="alert"/></section>;
 
-  const risk = value.risk;
-  const latestAssessment = value.assessments[0];
+  const aggregate = value;
+  const risk = aggregate.risk;
+  const latestAssessment = aggregate.assessments[0];
   const scope = scopeEntries(risk.scope ?? {});
 
   const assessmentColumns: readonly DataColumn<RiskAssessment>[] = [
@@ -105,7 +106,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgramControl, load
     },
   ];
 
-  const linkedCatalogIDs = new Set((value.controls ?? []).map((item) => item.catalog_link_id));
+  const linkedCatalogIDs = new Set((aggregate.controls ?? []).map((item) => item.catalog_link_id));
   const availableCandidates = candidatePage.items.filter((item) => !linkedCatalogIDs.has(item.catalog_link_id));
   const candidateOptions = availableCandidates.map((item) => ({
     id: item.catalog_link_id,
@@ -121,7 +122,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgramControl, load
     try {
       const page = await loadControlCandidates();
       setCandidatePage(page);
-      const existing = new Set((value.controls ?? []).map((item) => item.catalog_link_id));
+      const existing = new Set((aggregate.controls ?? []).map((item) => item.catalog_link_id));
       const first = page.items.find((item) => !existing.has(item.catalog_link_id));
       setSelectedCatalogLinkID(first?.catalog_link_id);
       setCandidateState("live");
@@ -161,7 +162,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgramControl, load
 
     <Surface>
       <dl className="risk-record__state" role="group" aria-label="Current risk state">
-        <div><dt>Appetite</dt><dd><StatusBadge tone={currentAppetiteTone(risk.version, latestAssessment, value.active_appetite)}>{currentAppetiteLabel(risk.version, latestAssessment, value.active_appetite)}</StatusBadge></dd></div>
+        <div><dt>Appetite</dt><dd><StatusBadge tone={currentAppetiteTone(risk.version, latestAssessment, aggregate.active_appetite)}>{currentAppetiteLabel(risk.version, latestAssessment, aggregate.active_appetite)}</StatusBadge></dd></div>
         <div><dt>Status</dt><dd><StatusBadge tone={riskStatusTone(risk.status)}>{riskStatusLabel(risk.status)}</StatusBadge></dd></div>
         <div><dt>Owner</dt><dd>{risk.owner_principal_id ? "Assigned" : "Not assigned"}</dd></div>
         <div><dt>Updated</dt><dd>{formatRiskDate(risk.updated_at)}</dd></div>
@@ -210,10 +211,10 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgramControl, load
         </form>}
         {candidateState !== "loading" && (candidateState !== "live" || candidateOptions.length === 0) && <Button variant="secondary" size="compact" onPress={() => { setLinkMode(false); setLinkError(""); }}>Close</Button>}
       </div>}
-      {value.control_details_complete === false && <Notice tone="warning">Some linked control details are unavailable in the current scope.</Notice>}
-      {value.control_details?.length ? <DataTable
+      {aggregate.control_details_complete === false && <Notice tone="warning">Some linked control details are unavailable in the current scope.</Notice>}
+      {aggregate.control_details?.length ? <DataTable
         ariaLabel="Risk controls"
-        rows={value.control_details}
+        rows={aggregate.control_details}
         rowKey={(item) => item.link.id}
         rowName={(item) => `${item.definition.name}, ${item.implementation_name}, ${controlImplementationStatusLabel(item.implementation_status)}`}
         columns={controlColumns}
@@ -224,9 +225,9 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgramControl, load
 
     <section className="risk-record__history" aria-labelledby="risk-assessments-heading">
       <div className="section-header"><div><h2 id="risk-assessments-heading">Assessments</h2><p>Approved assessment records and their appetite position.</p></div></div>
-      {value.assessments.length ? <DataTable
+      {aggregate.assessments.length ? <DataTable
         ariaLabel="Risk assessments"
-        rows={value.assessments}
+        rows={aggregate.assessments}
         rowKey={(item) => item.id}
         rowName={(item) => `${assessmentKindLabel(item.kind)}, ${item.method_code}, ${appetiteLabel(item.appetite_position)}`}
         columns={assessmentColumns}
@@ -235,9 +236,9 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgramControl, load
 
     <section className="risk-record__history" aria-labelledby="risk-appetite-heading">
       <div className="section-header"><div><h2 id="risk-appetite-heading">Appetite history</h2><p>Versioned appetite statements retained for this risk.</p></div></div>
-      {value.appetite.length ? <DataTable
+      {aggregate.appetite.length ? <DataTable
         ariaLabel="Risk appetite history"
-        rows={value.appetite}
+        rows={aggregate.appetite}
         rowKey={(item) => item.id}
         rowName={(item) => `Appetite version ${item.version}, ${item.statement}`}
         columns={appetiteColumns}
