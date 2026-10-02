@@ -174,6 +174,19 @@ func (c *AdverseEpisodeCoordinator) EnsureMatter(ctx context.Context, observatio
 		return out, nil
 	}
 
+	failedRuleIDs := make([]string, 0)
+	for _, rule := range observation.Result.Evaluation.RuleResults {
+		if rule.Outcome == RulePassed {
+			continue
+		}
+		failureID := rule.RuleID
+		if failureID == "" {
+			failureID = rule.FieldID
+		}
+		if failureID != "" {
+			failedRuleIDs = append(failedRuleIDs, failureID)
+		}
+	}
 	payload, err := json.Marshal(map[string]any{
 		"monitoring_episode_id":      episode.ID,
 		"monitoring_result_id":       observation.Result.ID,
@@ -183,6 +196,7 @@ func (c *AdverseEpisodeCoordinator) EnsureMatter(ctx context.Context, observatio
 		"risk_band":                  observation.Result.Evaluation.Band,
 		"score":                      observation.Result.Evaluation.Score,
 		"coverage":                   observation.Result.Evaluation.Coverage,
+		"failed_rule_ids":            failedRuleIDs,
 		"evaluated_at":               observation.Result.EvaluatedAt,
 	})
 	if err != nil {
