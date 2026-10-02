@@ -46,6 +46,9 @@ type riskIndicatorRead struct {
 	FreshnessMinutes    int                        `json:"freshness_minutes"`
 	ResultID            string                     `json:"result_id,omitempty"`
 	EvaluatedAt         *time.Time                 `json:"evaluated_at,omitempty"`
+	OpenMatterID        string                     `json:"open_matter_id,omitempty"`
+	OpenMatterReference string                     `json:"open_matter_reference,omitempty"`
+	OpenMatterStatus    continuity.MatterStatus    `json:"open_matter_status,omitempty"`
 }
 
 func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor, value risk.Aggregate) riskAggregateRead {
@@ -129,6 +132,18 @@ func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor
 		default:
 			result.IndicatorDetailsComplete = false
 			continue
+		}
+
+		if openMatter, matterErr := a.deps.Continuity.OpenMonitoringMatter(
+			ctx, actor.TenantID, program.Program.ID, check.ID, check.Version,
+		); matterErr == nil {
+			if continuity.MatterAggregateVisibleTo(openMatter, actor.PrincipalID) {
+				detail.OpenMatterID = openMatter.Matter.ID
+				detail.OpenMatterReference = openMatter.Matter.Reference
+				detail.OpenMatterStatus = openMatter.Matter.Status
+			}
+		} else if !errors.Is(matterErr, continuity.ErrNotFound) {
+			result.IndicatorDetailsComplete = false
 		}
 
 		result.IndicatorDetails = append(result.IndicatorDetails, detail)
