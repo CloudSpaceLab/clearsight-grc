@@ -1,23 +1,33 @@
 import { useEffect, useState } from "react";
-import { getRisk } from "../../riskApi";
+import { listControlCatalogCandidates, type ControlCatalogCandidatePage } from "../../controlCatalogApi";
+import { getRisk, linkRiskControl, type LinkRiskControlResponse } from "../../riskApi";
 import type { RiskAggregate, RiskAppetiteStatement, RiskAssessment, RiskControlDetail } from "../../riskTypes";
 import { apiErrorKind } from "../../http";
-import { Button, DataTable, EmptyState, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
+import { Button, DataTable, EmptyState, Notice, SelectField, StatusBadge, Surface, type DataColumn } from "../ui";
 import { appetiteLabel, appetiteTone, assessmentKindLabel, controlEvidenceSummary, controlImplementationStatusLabel, controlImplementationStatusTone, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
 
 type Props = {
   riskID: string;
+  actorID?: string;
   onBack: () => void;
   onOpenProgramControl?: (programID: string, objectiveID: string) => void;
   loadRisk?: (id: string, signal?: AbortSignal) => Promise<RiskAggregate>;
+  loadControlCandidates?: (programID?: string) => Promise<ControlCatalogCandidatePage>;
+  linkControl?: (riskID: string, expectedRiskVersion: number, catalogLinkID: string) => Promise<LinkRiskControlResponse>;
 };
 
 type LoadState = "loading" | "live" | "not-found" | "error";
 
-export function RiskRecord({ riskID, onBack, onOpenProgramControl, loadRisk = getRisk }: Props) {
+export function RiskRecord({ riskID, actorID, onBack, onOpenProgramControl, loadRisk = getRisk, loadControlCandidates = listControlCatalogCandidates, linkControl = linkRiskControl }: Props) {
   const [value, setValue] = useState<RiskAggregate>();
   const [state, setState] = useState<LoadState>("loading");
   const [retry, setRetry] = useState(0);
+  const [linkMode, setLinkMode] = useState(false);
+  const [candidateState, setCandidateState] = useState<"idle" | "loading" | "live" | "error">("idle");
+  const [candidatePage, setCandidatePage] = useState<ControlCatalogCandidatePage>({ items: [], complete: true });
+  const [selectedCatalogLinkID, setSelectedCatalogLinkID] = useState<string>();
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkError, setLinkError] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -94,6 +104,51 @@ export function RiskRecord({ riskID, onBack, onOpenProgramControl, loadRisk = ge
     },
   ];
 
+  const linkedCatalogIDs = new Set((value.controls ?? []).map((item) => item.catalog_link_id));
+  const availableCandidates = candidatePage.items.filter((item) => !linkedCatalogIDs.has(item.catalog_link_id));
+  const candidateOptions = availableCandidates.map((item) => ({
+    id: item.catalog_link_id,
+    label: `${item.definition.name} · ${item.implementation_name} · ${item.program_name}`,
+  }));
+  const canLinkControl = Boolean(actorID && risk.owner_principal_id && actorID === risk.owner_principal_id);
+
+  async function beginLinkControl() {
+    setLinkMode(true);
+    setCandidateState("loading");
+    setLinkError("");
+    setSelectedCatalogLinkID(undefined);
+    try {
+      const page = await loadControlCandidates();
+      setCandidatePage(page);
+      const existing = new Set((value.controls ?? []).map((item) => item.catalog_link_id));
+      const first = page.items.find((item) => !existing.has(item.catalog_link_id));
+      setSelectedCatalogLinkID(first?.catalog_link_id);
+      setCandidateState("live");
+    } catch (error) {
+      setCandidateState("error");
+      setLinkError(error instanceof Error ? error.message : "Reusable controls could not be loaded.");
+    }
+  }
+
+  async function saveControlLink(event: React.FormEvent) {
+    event.preventDefault();
+    if (!selectedCatalogLinkID || linkBusy) return;
+    setLinkBusy(true);
+    setLinkError("");
+    try {
+      await linkControl(risk.id, risk.version, selectedCatalogLinkID);
+      const loaded = await loadRisk(riskID);
+      setValue(loaded);
+      setLinkMode(false);
+      setCandidateState("idle");
+      setSelectedCatalogLinkID(undefined);
+    } catch (error) {
+      setLinkError(error instanceof Error ? error.message : "The control could not be linked.");
+    } finally {
+      setLinkBusy(false);
+    }
+  }
+
   return <section className="risk-record-page" aria-labelledby="risk-record-heading">
     <header className="topbar risk-page-header">
       <div>
@@ -134,7 +189,26 @@ export function RiskRecord({ riskID, onBack, onOpenProgramControl, loadRisk = ge
     </div>
 
     <section className="risk-record__history" aria-labelledby="risk-controls-heading">
-      <div className="section-header"><div><h2 id="risk-controls-heading">Controls</h2><p>Existing Program controls linked to this risk. Evidence remains governed in the Program.</p></div></div>
+      <div className="section-header">
+        <div><h2 id="risk-controls-heading">Controls</h2><p>Existing Program controls linked to this risk. Evidence remains governed in the Program.</p></div>
+        {canLinkControl && !linkMode && <Button variant="secondary" size="compact" onPress={() => void beginLinkControl()}>Link control</Button>}
+      </div>
+      {linkMode && <div className="risk-record__link-form">
+        <div><h3>Link existing control</h3><p>Choose a reusable control already catalogued in this legal entity.</p></div>
+        {candidateState === "loading" && <p role="status">Loading reusable controls…</p>}
+        {candidateState === "error" && <Notice tone="error">{linkError || "Reusable controls could not be loaded."}</Notice>}
+        {candidateState === "live" && !candidatePage.complete && <Notice tone="warning">Some reusable controls are unavailable in the current scope.</Notice>}
+        {candidateState === "live" && candidateOptions.length === 0 && <p>No unlinked reusable controls are available.</p>}
+        {candidateState === "live" && candidateOptions.length > 0 && <form onSubmit={(event) => void saveControlLink(event)}>
+          <SelectField label="Reusable control" value={selectedCatalogLinkID} placeholder="Choose a control" options={candidateOptions} onChange={setSelectedCatalogLinkID}/>
+          {linkError && <Notice tone="error">{linkError}</Notice>}
+          <div className="risk-record__link-actions">
+            <Button type="submit" isDisabled={linkBusy || !selectedCatalogLinkID}>{linkBusy ? "Linking…" : "Link control"}</Button>
+            <Button variant="secondary" type="button" onPress={() => { setLinkMode(false); setLinkError(""); }}>Cancel</Button>
+          </div>
+        </form>}
+        {candidateState !== "loading" && <Button variant="secondary" size="compact" onPress={() => { setLinkMode(false); setLinkError(""); }}>Close</Button>}
+      </div>}
       {value.control_details_complete === false && <Notice tone="warning">Some linked control details are unavailable in the current scope.</Notice>}
       {value.control_details?.length ? <DataTable
         ariaLabel="Risk controls"
