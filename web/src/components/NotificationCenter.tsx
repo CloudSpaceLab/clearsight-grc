@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { loadNotifications, markNotificationRead, type InAppNotification, type NotificationPage } from "../notificationApi";
-import { NotificationIcon } from "./NotificationIcon";
 import { Button, EmptyState, FocusedSheet, IconButton, StatusBadge } from "./ui";
 import "../notification-center.css";
 
@@ -61,8 +60,8 @@ export function NotificationCenter({
       void markRead(item.id).then((updated) => {
         setItems((current) => current.map((candidate) => candidate.id === updated.id ? updated : candidate));
       }).catch(() => {
-        // Read-state metadata is best-effort for navigation. If persistence
-        // failed, the server will return the item unread on the next refresh.
+        setItems((current) => current.map((candidate) => candidate.id === item.id ? { ...candidate, read_at: undefined } : candidate));
+        setPage((current) => current ? { ...current, unread_count: current.unread_count + 1 } : current);
       });
     }
     setOpen(false);
@@ -77,7 +76,7 @@ export function NotificationCenter({
   return <>
     <span className="notification-center__launcher">
       <IconButton aria-label={buttonLabel} variant="quiet" onPress={() => setOpen(true)}>
-        <NotificationIcon/>
+        <BellGlyph/>
       </IconButton>
       {state === "live" && unread > 0 && <span className="notification-center__count" aria-hidden="true">{unread > 99 ? "99+" : unread}</span>}
     </span>
@@ -140,4 +139,12 @@ function formatNotificationTime(value: string) {
   const parsed = Date.parse(value);
   if (!Number.isFinite(parsed)) return "Time unavailable";
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(parsed));
+}
+
+
+function BellGlyph() {
+  return <svg className="compact-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+    <path d="M10 21h4"/>
+  </svg>;
 }
