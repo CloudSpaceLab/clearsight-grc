@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
@@ -87,6 +88,26 @@ type serviceSet struct {
 	SessionStore                   scs.Store
 	SCIM                           *scimapi.Service
 	Close                          func()
+}
+
+func configureRiskControlCatalog(risks *risk.Service, catalog *controlcatalog.Service) {
+	if risks == nil {
+		return
+	}
+	risks.ConfigureControlLinkValidator(func(ctx context.Context, scope risk.Scope, catalogLinkID string) error {
+		if catalog == nil {
+			return risk.ErrInvalid
+		}
+		_, err := catalog.GetImplementationLink(ctx, scope.TenantID, scope.LegalEntityID, catalogLinkID)
+		switch {
+		case err == nil:
+			return nil
+		case errors.Is(err, controlcatalog.ErrNotFound), errors.Is(err, controlcatalog.ErrInvalid):
+			return risk.ErrInvalid
+		default:
+			return err
+		}
+	})
 }
 
 type monitoringFormRepository interface {
