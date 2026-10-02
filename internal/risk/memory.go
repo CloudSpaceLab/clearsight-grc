@@ -15,6 +15,7 @@ type MemoryRepository struct {
 	assessments map[string][]Assessment
 	appetite    map[string][]AppetiteStatement
 	controls    map[string][]ControlLink
+	indicators  map[string][]IndicatorLink
 	revisions   map[string][]Risk
 	events      map[string][]Event
 }
@@ -23,7 +24,8 @@ func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
 		risks: make(map[string]Risk), byCode: make(map[string]string),
 		assessments: make(map[string][]Assessment), appetite: make(map[string][]AppetiteStatement),
-		controls: make(map[string][]ControlLink), revisions: make(map[string][]Risk), events: make(map[string][]Event),
+		controls: make(map[string][]ControlLink), indicators: make(map[string][]IndicatorLink),
+		revisions: make(map[string][]Risk), events: make(map[string][]Event),
 	}
 }
 
@@ -186,6 +188,73 @@ func (r *MemoryRepository) AddControl(ctx context.Context, scope Scope, id strin
 	r.revisions[key] = append(r.revisions[key], cloneRisk(current))
 	r.events[key] = append(r.events[key], cloneEvent(event))
 	return cloneRisk(current), control, nil
+}
+
+func (r *MemoryRepository) AddIndicator(ctx context.Context, scope Scope, id string, expected int64, indicator IndicatorLink, event Event) (Risk, IndicatorLink, error) {
+	if err := ctx.Err(); err != nil {
+		return Risk{}, IndicatorLink{}, err
+	}
+	scope, err := normalizeScope(scope)
+	if err != nil {
+		return Risk{}, IndicatorLink{}, err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	key := riskKey(scope.TenantID, scope.LegalEntityID, strings.TrimSpace(id))
+	current, ok := r.risks[key]
+	if !ok {
+		return Risk{}, IndicatorLink{}, ErrNotFound
+	}
+	if current.Version != expected {
+		return Risk{}, IndicatorLink{}, ErrVersionConflict
+	}
+	if indicator.RiskID != current.ID || indicator.RiskVersion != expected+1 || event.RiskVersion != expected+1 ||
+		indicator.MonitoringCheckID == "" || indicator.MonitoringCheckVersion < 1 ||
+		!validIndicatorKind(indicator.Kind) || indicator.Measurement != IndicatorMonitoringRiskScore {
+		return Risk{}, IndicatorLink{}, ErrInvalid
+	}
+	for _, existing := range r.indicators[key] {
+		if existing.MonitoringCheckID == indicator.MonitoringCheckID && existing.MonitoringCheckVersion == indicator.MonitoringCheckVersion {
+			return Risk{}, IndicatorLink{}, ErrDuplicate
+		}
+	}
+	current.Version++
+	current.UpdatedAt = event.OccurredAt.UTC()
+	r.risks[key] = cloneRisk(current)
+	r.indicators[key] = append(r.indicators[key], indicator)
+	r.revisions[key] = append(r.revisions[key], cloneRisk(current))
+	r.events[key] = append(r.events[key], cloneEvent(event))
+	return cloneRisk(current), indicator, nil
+}
+
+func (r *MemoryRepository) Indicators(ctx context.Context, scope Scope, id string, limit int) ([]IndicatorLink, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	scope, err := normalizeScope(scope)
+	if err != nil {
+		return nil, err
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 100
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	key := riskKey(scope.TenantID, scope.LegalEntityID, strings.TrimSpace(id))
+	if _, ok := r.risks[key]; !ok {
+		return nil, ErrNotFound
+	}
+	values := append([]IndicatorLink(nil), r.indicators[key]...)
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].RiskVersion != values[j].RiskVersion {
+			return values[i].RiskVersion > values[j].RiskVersion
+		}
+		return values[i].ID > values[j].ID
+	})
+	if len(values) > limit {
+		values = values[:limit]
+	}
+	return values, nil
 }
 
 func (r *MemoryRepository) Controls(ctx context.Context, scope Scope, id string, limit int) ([]ControlLink, error) {
