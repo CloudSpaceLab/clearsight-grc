@@ -289,7 +289,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const scopeOptions = scopeHierarchy?.legal_entities.map((entity) => ({
     id: entity.id,
     label: entity.name,
-    description: entity.jurisdiction || undefined,
+    ...(entity.jurisdiction ? { description: entity.jurisdiction } : {}),
   })) ?? [];
   const currentScopeID = scopeHierarchy?.current.id;
   const canSwitchScope = runtime?.capabilities?.scope_switch === true && scopeOptions.length > 1 && Boolean(currentScopeID);
