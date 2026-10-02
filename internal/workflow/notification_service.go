@@ -87,7 +87,6 @@ func decodeNotificationCursor(value string) (notificationCursor, error) {
 	return cursor, nil
 }
 
-
 func validNotificationUUID(value string) bool {
 	trimmed := strings.TrimSpace(value)
 	if len(trimmed) != 36 {
