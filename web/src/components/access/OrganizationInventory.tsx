@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { OrganizationPosition } from "../../identityAccessApi";
-import { StatusBadge } from "../ui";
+import { SelectField, StatusBadge } from "../ui";
 
 type Props = {
   positions: OrganizationPosition[];
@@ -9,11 +9,15 @@ type Props = {
 
 export function OrganizationInventory({ positions, mode }: Props) {
   const [query, setQuery] = useState("");
+  const [area, setArea] = useState<string>();
   const positionByID = useMemo(() => new Map(positions.map((position) => [position.id, position])), [positions]);
+  const areaOptions = useMemo(() => organizationAreaOptions(positions), [positions]);
   const normalizedQuery = query.trim().toLowerCase();
-  const visible = useMemo(() => {
-    if (!normalizedQuery) return positions;
-    return positions.filter((position) => [
+  const visible = useMemo(() => positions.filter((position) => {
+    const matchesArea = !area || departmentKey(position.department_path).startsWith(`${area}/`) || departmentKey(position.department_path) === area;
+    if (!matchesArea) return false;
+    if (!normalizedQuery) return true;
+    return [
       position.code,
       position.title,
       position.function_name,
@@ -22,47 +26,55 @@ export function OrganizationInventory({ positions, mode }: Props) {
       position.parent_position_title,
       position.department_path.join(" "),
       position.role_codes.join(" "),
-    ].some((value) => value?.toLowerCase().includes(normalizedQuery)));
-  }, [normalizedQuery, positions]);
+    ].some((value) => value?.toLowerCase().includes(normalizedQuery));
+  }), [area, normalizedQuery, positions]);
 
   const occupied = positions.filter((position) => position.occupant_principal_id).length;
   const vacancies = positions.length - occupied;
-  const unresolvedParents = positions.filter((position) => position.parent_position_id && !positionByID.has(position.parent_position_id)).length;
 
   return <div className="identity-organization-view">
     <div className="identity-organization-summary" aria-label="Active organization position summary">
+      <div><strong>{areaOptions.length}</strong><span>Organization areas represented by active positions</span></div>
       <div><strong>{positions.length}</strong><span>Active positions in this legal entity</span></div>
       <div><strong>{occupied}</strong><span>Positions with an active occupant</span></div>
       <div><strong>{vacancies}</strong><span>Vacant positions requiring coverage</span></div>
-      <div><strong>{unresolvedParents}</strong><span>Parent positions not shown</span></div>
     </div>
 
     <article className="config-card identity-organization-card">
       <div className="section-header identity-card-header">
         <div>
-          <h3>{mode === "positions" ? "Positions and assigned roles" : "Reporting lines"}</h3>
+          <h3>{mode === "positions" ? "Departments, positions & roles" : "Reporting lines"}</h3>
           <p>{mode === "positions"
-            ? "Active positions, occupants and workspace roles recorded for this legal entity."
+            ? "Browse active organization areas, positions, occupants and workspace roles for this legal entity."
             : "Active reporting relationships used to determine who may hand off assigned work."}</p>
         </div>
-        <label className="identity-position-search">
-          <span>Search positions</span>
-          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, position, role or department"/>
-        </label>
+        <div className="identity-position-filters">
+          <label className="identity-position-search">
+            <span>Search</span>
+            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Position, person, role or department"/>
+          </label>
+          <SelectField
+            label="Department / area"
+            value={area}
+            placeholder="All areas"
+            options={areaOptions}
+            onChange={setArea}
+          />
+        </div>
       </div>
 
       {mode === "positions" ? <PositionTable positions={visible}/> : <ReportingList positions={visible} positionByID={positionByID}/>} 
 
       {!visible.length && <div className="identity-empty-state">
-        <strong>{positions.length ? "No positions match this search" : "No active positions were recorded"}</strong>
-        <span>{positions.length ? "Clear the search or use a position, person, role or department name." : "Add effective-dated organization positions before assigning reporting lines or roles."}</span>
+        <strong>{positions.length ? "No positions match these filters" : "No active positions were recorded"}</strong>
+        <span>{positions.length ? "Clear the search or choose another organization area." : "Organization positions must be recorded before reporting lines or department views are available."}</span>
       </div>}
     </article>
 
     <div className="identity-authority-note" role="note">
-      <strong>{mode === "positions" ? "Position roles do not replace approval routes." : "Reporting lines permit responsibility handoff only."}</strong>
+      <strong>{mode === "positions" ? "Organization areas are derived from active position paths." : "Reporting lines permit responsibility handoff only."}</strong>
       <span>{mode === "positions"
-        ? "Approval, review and signing eligibility continue to use the active authority policy for each record."
+        ? "They are not yet dashboard data filters. Branch or department filtering requires records to carry an authoritative organization scope."
         : "A manager does not gain approval, review or signing authority unless the active authority policy grants it."}</span>
     </div>
   </div>;
@@ -106,6 +118,26 @@ function ReportingList({ positions, positionByID }: { positions: OrganizationPos
       </li>;
     })}
   </ol>;
+}
+
+function organizationAreaOptions(positions: OrganizationPosition[]) {
+  const paths = new Map<string, string[]>();
+  for (const position of positions) {
+    const path = position.department_path.map((part) => part.trim()).filter(Boolean);
+    if (path.length < 2) continue;
+    for (let length = 2; length <= path.length; length++) {
+      const candidate = path.slice(0, length);
+      const key = departmentKey(candidate);
+      if (!paths.has(key)) paths.set(key, candidate);
+    }
+  }
+  return [...paths.entries()]
+    .sort((left, right) => left[1].join("/").localeCompare(right[1].join("/")))
+    .map(([id, path]) => ({ id, label: path.join(" / "), description: path.length > 2 ? "Sub-area" : "Department / branch" }));
+}
+
+function departmentKey(path: string[]) {
+  return path.map((part) => part.trim().toUpperCase()).filter(Boolean).join("/");
 }
 
 function departmentLabel(position: OrganizationPosition) {
