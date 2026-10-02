@@ -88,7 +88,7 @@ func TestReviewerCreatesAndReopensOneIssueForLatestAdverseMonitoringResult(t *te
 	if !created.Created || created.Matter.Type != continuity.MatterControlGap || created.Matter.LegalEntityID != fixture.program.Program.LegalEntityID || created.Matter.OwnerPrincipalID != fixture.program.Program.OwnerPrincipalID || created.Matter.RequiredAuthority != "CONTROL_ASSURANCE" {
 		t.Fatalf("linked issue is not governed by the Program: %#v", created)
 	}
-	if created.Matter.SourceType != "MONITORING_RESULT" || created.Matter.SourceID != fixture.result.ID || created.Matter.TriggerKey != "monitoring-result-adverse:"+fixture.result.ID {
+	if created.Matter.SourceType != "MONITORING_RESULT" || created.Matter.SourceID != fixture.result.ID || created.Matter.TriggerKey != "monitoring-check-adverse:"+fixture.check.ID {
 		t.Fatalf("linked issue lineage = %#v", created.Matter)
 	}
 	var provenance struct {
@@ -112,6 +112,61 @@ func TestReviewerCreatesAndReopensOneIssueForLatestAdverseMonitoringResult(t *te
 	}
 	if existing.Created || existing.Matter.ID != created.Matter.ID {
 		t.Fatalf("replay did not return the existing linked issue: %#v", existing)
+	}
+}
+
+func TestNewAdverseMonitoringResultReusesOpenEpisodeAndRetainsTriggerReceipt(t *testing.T) {
+	fixture := newLinkedIssueFixture(t)
+	handler := fixture.handler("reviewer-1", authority.Resolution{Principal: authority.Principal{ID: "reviewer-1", DisplayName: "Control assurance reviewer"}})
+	firstPath := "/api/v1/monitoring-results/" + fixture.result.ID + "/linked-issue"
+	first := httptest.NewRecorder()
+	handler.ServeHTTP(first, httptest.NewRequest(http.MethodPost, firstPath, bytes.NewBufferString(`{}`)))
+	if first.Code != http.StatusCreated {
+		t.Fatalf("first episode returned %d: %s", first.Code, first.Body.String())
+	}
+	var created struct {
+		Matter continuity.Matter `json:"matter"`
+	}
+	if err := json.NewDecoder(first.Body).Decode(&created); err != nil {
+		t.Fatal(err)
+	}
+
+	score := 92.0
+	secondResult, err := fixture.repo.AppendResult(t.Context(), monitoring.MonitoringResult{
+		ID: "result-2", TenantID: "bank", ProgramID: fixture.program.Program.ID,
+		MonitoringCheckID: fixture.check.ID, MonitoringCheckVersion: fixture.check.Version,
+		InputKind: monitoring.InputSource, InputReferenceID: "receipt-2", InputReferenceVersion: 1,
+		Evaluation: monitoring.Evaluation{
+			Score: &score, Band: monitoring.RiskCritical, Coverage: 1,
+			RuleResults: []monitoring.RuleResult{{FieldID: "status", Outcome: monitoring.RuleFailed, Points: 92, Critical: true, Reason: "The expected status is still absent."}},
+		},
+		EvaluatedAt: fixture.result.EvaluatedAt.Add(time.Minute), EvaluatorVersion: "risk-v1", CreatedAt: fixture.result.CreatedAt.Add(time.Minute),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second := httptest.NewRecorder()
+	handler.ServeHTTP(second, httptest.NewRequest(http.MethodPost, "/api/v1/monitoring-results/"+secondResult.ID+"/linked-issue", bytes.NewBufferString(`{}`)))
+	if second.Code != http.StatusOK {
+		t.Fatalf("second adverse result returned %d: %s", second.Code, second.Body.String())
+	}
+	var reused struct {
+		Matter  continuity.Matter `json:"matter"`
+		Created bool              `json:"created"`
+	}
+	if err := json.NewDecoder(second.Body).Decode(&reused); err != nil {
+		t.Fatal(err)
+	}
+	if reused.Created || reused.Matter.ID != created.Matter.ID {
+		t.Fatalf("second adverse result created duplicate work: %#v", reused)
+	}
+	program, err := fixture.continuity.GetProgram(continuity.WithTrustedSystemScope(t.Context()), "bank", fixture.program.Program.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(program.Triggers) != 2 || program.Triggers[1].DedupeKey != "monitoring-result-adverse:"+secondResult.ID ||
+		program.Triggers[1].MatterDedupeKey != "monitoring-check-adverse:"+fixture.check.ID {
+		t.Fatalf("second adverse trigger receipt was not retained: %#v", program.Triggers)
 	}
 }
 
