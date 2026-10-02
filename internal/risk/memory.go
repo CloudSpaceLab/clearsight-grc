@@ -212,6 +212,28 @@ func (r *MemoryRepository) AppetiteStatements(ctx context.Context, scope Scope, 
 	return values, nil
 }
 
+func (r *MemoryRepository) CurrentAppetite(ctx context.Context, scope Scope, id string, at time.Time) (*AppetiteStatement, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	scope, err := normalizeScope(scope)
+	if err != nil {
+		return nil, err
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	key := riskKey(scope.TenantID, scope.LegalEntityID, strings.TrimSpace(id))
+	if _, ok := r.risks[key]; !ok {
+		return nil, ErrNotFound
+	}
+	current := latestAppetite(r.appetite[key], at)
+	if current == nil {
+		return nil, nil
+	}
+	cloned := cloneAppetite(*current)
+	return &cloned, nil
+}
+
 func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFilter) (Page, error) {
 	if err := ctx.Err(); err != nil {
 		return Page{}, err
