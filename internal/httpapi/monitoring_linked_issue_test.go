@@ -115,6 +115,146 @@ func TestReviewerCreatesAndReopensOneIssueForLatestAdverseMonitoringResult(t *te
 	}
 }
 
+func TestMonitoringAdverseResultsShareOneOpenEpisodeAndRestartAfterCancellation(t *testing.T) {
+	fixture := newLinkedIssueFixture(t)
+	handler := fixture.handler("reviewer-1", authority.Resolution{Principal: authority.Principal{ID: "reviewer-1", DisplayName: "Control assurance reviewer"}})
+	create := func(result monitoring.MonitoringResult) struct {
+		Matter  continuity.Matter `json:"matter"`
+		Created bool              `json:"created"`
+	} {
+		t.Helper()
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/monitoring-results/"+result.ID+"/linked-issue", bytes.NewBufferString(`{}`)))
+		if response.Code != http.StatusCreated && response.Code != http.StatusOK {
+			t.Fatalf("linked issue for %s returned %d: %s", result.ID, response.Code, response.Body.String())
+		}
+		var value struct {
+			Matter  continuity.Matter `json:"matter"`
+			Created bool              `json:"created"`
+		}
+		if err := json.NewDecoder(response.Body).Decode(&value); err != nil {
+			t.Fatal(err)
+		}
+		return value
+	}
+
+	first := create(fixture.result)
+	if !first.Created {
+		t.Fatalf("first adverse result did not create an episode: %#v", first)
+	}
+
+	score := 90.0
+	secondResult, err := fixture.repo.AppendResult(t.Context(), monitoring.MonitoringResult{
+		ID: "result-2", TenantID: "bank", ProgramID: fixture.program.Program.ID,
+		MonitoringCheckID: fixture.check.ID, MonitoringCheckVersion: fixture.check.Version,
+		InputKind: monitoring.InputSource, InputReferenceID: "receipt-2", InputReferenceVersion: 1,
+		Evaluation: monitoring.Evaluation{
+			Score: &score, Band: monitoring.RiskCritical, Coverage: 1,
+			RuleResults: []monitoring.RuleResult{{FieldID: "status", Outcome: monitoring.RuleFailed, Points: 90, Critical: true, Reason: "The expected status is still missing."}},
+		},
+		EvaluatedAt: fixture.result.EvaluatedAt.Add(time.Minute),
+		EvaluatorVersion: "risk-v1", CreatedAt: fixture.result.CreatedAt.Add(time.Minute),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second := create(secondResult)
+	if second.Created || second.Matter.ID != first.Matter.ID {
+		t.Fatalf("same open check episode duplicated work: first=%#v second=%#v", first, second)
+	}
+
+	cancelled, err := fixture.continuity.TransitionMatter(
+		continuity.WithTrustedSystemScope(t.Context()),
+		continuity.TransitionInput{
+			TenantID: "bank", ID: first.Matter.ID, ExpectedVersion: second.Matter.Version,
+			To: continuity.MatterCancelled, ActorID: "reviewer-1", Rationale: "The adverse episode was reviewed and cancelled.",
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cancelled.Matter.Status != continuity.MatterCancelled {
+		t.Fatalf("episode Matter status=%s", cancelled.Matter.Status)
+	}
+
+	score = 85
+	thirdResult, err := fixture.repo.AppendResult(t.Context(), monitoring.MonitoringResult{
+		ID: "result-3", TenantID: "bank", ProgramID: fixture.program.Program.ID,
+		MonitoringCheckID: fixture.check.ID, MonitoringCheckVersion: fixture.check.Version,
+		InputKind: monitoring.InputSource, InputReferenceID: "receipt-3", InputReferenceVersion: 1,
+		Evaluation: monitoring.Evaluation{
+			Score: &score, Band: monitoring.RiskHigh, Coverage: 1,
+			RuleResults: []monitoring.RuleResult{{FieldID: "status", Outcome: monitoring.RuleFailed, Points: 85, Critical: true, Reason: "The adverse state returned."}},
+		},
+		EvaluatedAt: secondResult.EvaluatedAt.Add(time.Minute),
+		EvaluatorVersion: "risk-v1", CreatedAt: secondResult.CreatedAt.Add(time.Minute),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	third := create(thirdResult)
+	if !third.Created || third.Matter.ID == first.Matter.ID {
+		t.Fatalf("post-terminal adverse result did not start a new episode: first=%#v third=%#v", first, third)
+	}
+	if third.Matter.TriggerKey == first.Matter.TriggerKey {
+		t.Fatalf("separate episodes reused one trigger key: %q", third.Matter.TriggerKey)
+	}
+}
+
+func TestMonitoringCheckRevisionStartsSeparateOpenEpisode(t *testing.T) {
+	fixture := newLinkedIssueFixture(t)
+	handler := fixture.handler("reviewer-1", authority.Resolution{Principal: authority.Principal{ID: "reviewer-1", DisplayName: "Control assurance reviewer"}})
+
+	first := httptest.NewRecorder()
+	handler.ServeHTTP(first, httptest.NewRequest(http.MethodPost, "/api/v1/monitoring-results/"+fixture.result.ID+"/linked-issue", bytes.NewBufferString(`{}`)))
+	if first.Code != http.StatusCreated {
+		t.Fatalf("first episode returned %d: %s", first.Code, first.Body.String())
+	}
+	var firstValue struct {
+		Matter continuity.Matter `json:"matter"`
+	}
+	if err := json.NewDecoder(first.Body).Decode(&firstValue); err != nil {
+		t.Fatal(err)
+	}
+
+	revised := fixture.check
+	revised.Version = 2
+	revised.Thresholds = monitoring.RiskThresholds{ModerateFrom: 20, HighFrom: 45, CriticalFrom: 70}
+	revised.CreatedAt = fixture.check.CreatedAt.Add(time.Hour)
+	revised.UpdatedAt = revised.CreatedAt
+	if _, err := fixture.repo.CreateCheckRevision(t.Context(), revised); err != nil {
+		t.Fatal(err)
+	}
+	score := 75.0
+	result, err := fixture.repo.AppendResult(t.Context(), monitoring.MonitoringResult{
+		ID: "result-v2", TenantID: "bank", ProgramID: fixture.program.Program.ID,
+		MonitoringCheckID: revised.ID, MonitoringCheckVersion: revised.Version,
+		InputKind: monitoring.InputSource, InputReferenceID: "receipt-v2", InputReferenceVersion: 1,
+		Evaluation: monitoring.Evaluation{
+			Score: &score, Band: monitoring.RiskCritical, Coverage: 1,
+			RuleResults: []monitoring.RuleResult{{FieldID: "status", Outcome: monitoring.RuleFailed, Points: 75, Critical: true, Reason: "The revised check failed."}},
+		},
+		EvaluatedAt: revised.UpdatedAt.Add(time.Minute), EvaluatorVersion: "risk-v1", CreatedAt: revised.UpdatedAt.Add(time.Minute),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second := httptest.NewRecorder()
+	handler.ServeHTTP(second, httptest.NewRequest(http.MethodPost, "/api/v1/monitoring-results/"+result.ID+"/linked-issue", bytes.NewBufferString(`{}`)))
+	if second.Code != http.StatusCreated {
+		t.Fatalf("revised check episode returned %d: %s", second.Code, second.Body.String())
+	}
+	var secondValue struct {
+		Matter continuity.Matter `json:"matter"`
+	}
+	if err := json.NewDecoder(second.Body).Decode(&secondValue); err != nil {
+		t.Fatal(err)
+	}
+	if secondValue.Matter.ID == firstValue.Matter.ID {
+		t.Fatalf("distinct check revisions shared one open episode: first=%s second=%s", firstValue.Matter.ID, secondValue.Matter.ID)
+	}
+}
+
 func TestMonitoringLinkedIssueRequiresLatestEligibleResultAndStoredReviewerLineage(t *testing.T) {
 	fixture := newLinkedIssueFixture(t)
 	path := "/api/v1/monitoring-results/" + fixture.result.ID + "/linked-issue"
