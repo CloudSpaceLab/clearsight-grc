@@ -94,6 +94,15 @@ type AppetiteStatement struct {
 	CreatedAt            time.Time       `json:"created_at"`
 }
 
+type ControlLink struct {
+	ID            string    `json:"id"`
+	RiskID        string    `json:"risk_id"`
+	RiskVersion   int64     `json:"risk_version"`
+	CatalogLinkID string    `json:"catalog_link_id"`
+	LinkedBy      string    `json:"linked_by,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
 type Summary struct {
 	Risk             Risk               `json:"risk"`
 	LatestAssessment *Assessment        `json:"latest_assessment,omitempty"`
@@ -110,6 +119,7 @@ type Aggregate struct {
 	Assessments    []Assessment        `json:"assessments"`
 	Appetite       []AppetiteStatement `json:"appetite"`
 	ActiveAppetite *AppetiteStatement  `json:"active_appetite,omitempty"`
+	Controls       []ControlLink        `json:"controls"`
 }
 
 type Event struct {
@@ -202,4 +212,13 @@ type AppetiteInput struct {
 	ActorID             string          `json:"actor_id,omitempty"`
 	EffectiveFrom       time.Time       `json:"effective_from"`
 	EffectiveUntil      *time.Time      `json:"effective_until,omitempty"`
+}
+
+type LinkControlInput struct {
+	TenantID            string `json:"tenant_id,omitempty"`
+	LegalEntityID       string `json:"legal_entity_id,omitempty"`
+	RiskID              string `json:"risk_id,omitempty"`
+	ExpectedRiskVersion int64  `json:"expected_risk_version"`
+	CatalogLinkID       string `json:"catalog_link_id"`
+	ActorID             string `json:"actor_id,omitempty"`
 }
