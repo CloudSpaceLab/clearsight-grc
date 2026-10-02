@@ -25,7 +25,7 @@ export function WorkspaceSwitcher<T extends string>({ ariaLabel, compactLabel, i
       </AriaButton>)}
     </nav>
     <div className="cs-workspace-switcher__compact">
-      <SelectField label={compactLabel} value={selectedKey} options={items} allowsEmpty={false}
+      <SelectField label={compactLabel} value={selectedKey} placeholder={compactLabel} options={items} allowsEmpty={false}
         onChange={(key) => { if (key !== undefined && key !== selectedKey) onSelectionChange(key); }}/>
     </div>
   </div>;
