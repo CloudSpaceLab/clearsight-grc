@@ -40,7 +40,7 @@ func (r *MemoryRepository) OpenOrUpdateAdverseEpisode(ctx context.Context, obser
 	if current.LastResultID == observation.Result.ID {
 		return cloneValue(current), AdverseEpisodeNoChange, nil
 	}
-	worsened := episodeWorsened(current, observation.Result)
+	worsened := episodeWorsened(current, observation)
 	current.LastResultID = observation.Result.ID
 	current.LastCheckVersion = observation.Check.Version
 	current.LastBand = observation.Result.Evaluation.Band
