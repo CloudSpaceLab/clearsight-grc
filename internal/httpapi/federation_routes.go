@@ -1,7 +1,13 @@
 package httpapi
 
 import (
+	"errors"
 	"net/http"
+	"strings"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 )
 
 // Authentication transport routes are intentionally kept outside the versioned
@@ -16,6 +22,7 @@ func (a *API) registerFederationRoutes(mux *http.ServeMux) {
 		public(http.MethodGet, "/auth/oidc/login", a.deps.Federation.Begin),
 		public(http.MethodGet, "/auth/oidc/callback", a.deps.Federation.Callback),
 		write(http.MethodPost, "/auth/logout", a.deps.Federation.Logout, nil),
+		write(http.MethodPost, "/auth/scope", a.switchFederationScope, nil),
 	}
 	if err := validateRoutes(routes); err != nil {
 		panic(err)
@@ -24,4 +31,37 @@ func (a *API) registerFederationRoutes(mux *http.ServeMux) {
 		handler := a.routeAccess(spec, spec.Handler)
 		mux.HandleFunc(spec.Method+" "+spec.Path, handler)
 	}
+}
+
+type scopeSwitchRequest struct {
+	LegalEntityID string `json:"legal_entity_id"`
+}
+
+func (a *API) switchFederationScope(w http.ResponseWriter, r *http.Request) {
+	if a.deps.Federation == nil {
+		httpx.WriteError(w, http.StatusNotFound, "scope_switch_unavailable", "Scope switching is unavailable.")
+		return
+	}
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
+	var input scopeSwitchRequest
+	if err := httpx.DecodeJSON(w, r, &input); err != nil || strings.TrimSpace(input.LegalEntityID) == "" {
+		httpx.WriteError(w, http.StatusBadRequest, "scope_switch_invalid", "Choose an available legal entity.")
+		return
+	}
+	if _, err := a.deps.Federation.SwitchScope(r.Context(), actor, input.LegalEntityID); err != nil {
+		switch {
+		case errors.Is(err, federation.ErrScopeInvalid):
+			httpx.WriteError(w, http.StatusBadRequest, "scope_switch_invalid", "Choose an available legal entity.")
+		case errors.Is(err, federation.ErrScopeUnavailable):
+			httpx.WriteError(w, http.StatusNotFound, "scope_switch_unavailable", "That legal entity is not available to your current identity.")
+		default:
+			httpx.WriteError(w, http.StatusServiceUnavailable, "scope_switch_failed", "The active legal entity could not be changed. Try again.")
+		}
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

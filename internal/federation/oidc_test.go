@@ -18,9 +18,12 @@ import (
 )
 
 type fakeAccessResolver struct {
-	resolution access.Resolution
-	err        error
-	calls      int
+	resolution    access.Resolution
+	err           error
+	calls         int
+	lastTenant    string
+	lastPrincipal string
+	lastEntity    string
 }
 
 func (r *fakeAccessResolver) ResolveOIDC(context.Context, string, string, string, string) (access.Resolution, error) {
@@ -28,8 +31,11 @@ func (r *fakeAccessResolver) ResolveOIDC(context.Context, string, string, string
 	return r.resolution, r.err
 }
 
-func (r *fakeAccessResolver) ResolvePrincipal(context.Context, string, string, string) (access.Resolution, error) {
+func (r *fakeAccessResolver) ResolvePrincipal(_ context.Context, tenantID, principalID, legalEntityID string) (access.Resolution, error) {
 	r.calls++
+	r.lastTenant = tenantID
+	r.lastPrincipal = principalID
+	r.lastEntity = legalEntityID
 	return r.resolution, r.err
 }
 
@@ -94,6 +100,93 @@ func TestAuthenticateDropsUnavailablePrincipalSession(t *testing.T) {
 	actor, present, err := service.Authenticate(httptest.NewRequest(http.MethodGet, "/api/v1/context", nil).WithContext(ctx))
 	if err != nil || present || actor.PrincipalID != "" {
 		t.Fatalf("unavailable principal must become an unauthenticated session: actor=%#v present=%v err=%v", actor, present, err)
+	}
+}
+
+func TestSwitchScopeRotatesSessionAndRecalculatesAccess(t *testing.T) {
+	now := time.Date(2026, 10, 2, 9, 0, 0, 0, time.UTC)
+	sessions := newTestSessions()
+	ctx, err := sessions.Load(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessions.Put(ctx, sessionTenantID, "bank-demo")
+	sessions.Put(ctx, sessionPrincipalID, "principal-1")
+	sessions.Put(ctx, sessionLegalEntityID, "BANK-NG")
+	sessions.Put(ctx, sessionSessionID, "ses_old")
+	sessions.Put(ctx, sessionIssuedAt, now.Add(-time.Hour))
+	sessions.Put(ctx, sessionAssurance, "urn:example:aal2")
+
+	resolver := &fakeAccessResolver{resolution: access.Resolution{
+		TenantID: "bank-demo", PrincipalID: "principal-1", LegalEntityID: "BANK-GH", Kind: "PERSON",
+		RoleCodes: []string{"GH_RISK_REVIEWER"}, PermissionCodes: []string{identity.PermissionOversightRead},
+	}}
+	service := &Service{sessions: sessions, access: resolver, now: func() time.Time { return now }}
+	current := identity.Actor{TenantID: "bank-demo", PrincipalID: "principal-1", LegalEntityID: "BANK-NG", Kind: "PERSON"}
+
+	next, err := service.SwitchScope(ctx, current, "BANK-GH")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolver.calls != 1 || resolver.lastTenant != "bank-demo" || resolver.lastPrincipal != "principal-1" || resolver.lastEntity != "BANK-GH" {
+		t.Fatalf("unexpected resolver call: %#v", resolver)
+	}
+	if next.LegalEntityID != "BANK-GH" || next.SessionID == "" || next.SessionID == "ses_old" {
+		t.Fatalf("unexpected switched actor: %#v", next)
+	}
+	if !identity.HasPermission(next, identity.PermissionOversightRead) {
+		t.Fatalf("target-scope permissions were not recalculated: %#v", next.PermissionCodes)
+	}
+	if sessions.GetString(ctx, sessionLegalEntityID) != "BANK-GH" || sessions.GetString(ctx, sessionSessionID) != next.SessionID {
+		t.Fatalf("session did not move to the resolved scope")
+	}
+	if sessions.GetString(ctx, sessionAssurance) != "urn:example:aal2" {
+		t.Fatalf("scope switch changed authentication assurance")
+	}
+}
+
+func TestSwitchScopeFailsClosedWithoutChangingSession(t *testing.T) {
+	sessions := newTestSessions()
+	ctx, err := sessions.Load(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessions.Put(ctx, sessionTenantID, "bank-demo")
+	sessions.Put(ctx, sessionPrincipalID, "principal-1")
+	sessions.Put(ctx, sessionLegalEntityID, "BANK-NG")
+	sessions.Put(ctx, sessionSessionID, "ses_old")
+	resolver := &fakeAccessResolver{err: access.ErrPrincipalUnavailable}
+	service := &Service{sessions: sessions, access: resolver, now: time.Now}
+	actor := identity.Actor{TenantID: "bank-demo", PrincipalID: "principal-1", LegalEntityID: "BANK-NG", Kind: "PERSON"}
+
+	if _, err := service.SwitchScope(ctx, actor, "BANK-GH"); !errors.Is(err, ErrScopeUnavailable) {
+		t.Fatalf("unexpected unavailable scope error: %v", err)
+	}
+	if sessions.GetString(ctx, sessionLegalEntityID) != "BANK-NG" || sessions.GetString(ctx, sessionSessionID) != "ses_old" {
+		t.Fatalf("failed switch mutated current session")
+	}
+}
+
+func TestSwitchScopeRejectsMismatchedActorAndInvalidTarget(t *testing.T) {
+	sessions := newTestSessions()
+	ctx, err := sessions.Load(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessions.Put(ctx, sessionTenantID, "bank-demo")
+	sessions.Put(ctx, sessionPrincipalID, "principal-1")
+	sessions.Put(ctx, sessionLegalEntityID, "BANK-NG")
+	resolver := &fakeAccessResolver{}
+	service := &Service{sessions: sessions, access: resolver, now: time.Now}
+
+	if _, err := service.SwitchScope(ctx, identity.Actor{TenantID: "other", PrincipalID: "principal-1"}, "BANK-GH"); !errors.Is(err, ErrScopeUnavailable) {
+		t.Fatalf("mismatched actor error = %v", err)
+	}
+	if _, err := service.SwitchScope(ctx, identity.Actor{TenantID: "bank-demo", PrincipalID: "principal-1"}, "BANK-\nGH"); !errors.Is(err, ErrScopeInvalid) {
+		t.Fatalf("invalid target error = %v", err)
+	}
+	if resolver.calls != 0 {
+		t.Fatalf("invalid or mismatched requests reached access resolver: %d", resolver.calls)
 	}
 }
 

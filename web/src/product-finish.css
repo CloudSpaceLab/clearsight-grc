@@ -25,6 +25,12 @@ main { padding-top: 24px; }
 .context-bar > div { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .context-bar strong { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .context-bar span { color: var(--muted); font-size: 11px; }
+.context-scope { flex: 1 1 auto; }
+.context-scope .cs-select-field { width: min(330px, 36vw); }
+.context-scope .cs-select-field__trigger { min-height: 34px; padding-block: 5px; }
+.context-scope .cs-select-field__value { font-size: 11px; font-weight: 650; }
+.context-scope__status { flex: none; }
+.context-scope__error { color: var(--red) !important; overflow-wrap: anywhere; }
 .context-role { justify-content: flex-end; }
 .context-role mark { color: var(--amber); background: rgba(233,183,90,.09); border: 1px solid rgba(233,183,90,.25); border-radius: 999px; padding: 6px 9px; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
 
@@ -117,4 +123,19 @@ main { padding-top: 24px; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+
+@media (max-width: 760px) {
+  .context-bar { align-items: flex-start; gap: 10px; }
+  .context-scope { display: grid !important; flex: 1 1 52%; gap: 5px !important; }
+  .context-scope .cs-select-field { width: min(100%, 280px); }
+  .context-role { flex: 0 1 auto; flex-wrap: wrap; }
+}
+
+@media (max-width: 420px) {
+  .context-bar { flex-wrap: wrap; }
+  .context-scope { flex-basis: 100%; }
+  .context-scope .cs-select-field { width: 100%; }
+  .context-role { width: 100%; justify-content: flex-start; }
 }
