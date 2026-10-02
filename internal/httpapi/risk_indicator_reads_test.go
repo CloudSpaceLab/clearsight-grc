@@ -5,7 +5,23 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 )
+
+func TestCurrentRiskIndicatorLinksCollapseSupersededCheckRevisions(t *testing.T) {
+	values := []risk.IndicatorLink{
+		{ID: "link-1", RiskVersion: 2, MonitoringCheckID: "check-1", MonitoringCheckVersion: 1, Kind: risk.IndicatorKRI},
+		{ID: "link-2", RiskVersion: 4, MonitoringCheckID: "check-1", MonitoringCheckVersion: 2, Kind: risk.IndicatorKRI},
+		{ID: "link-3", RiskVersion: 3, MonitoringCheckID: "check-2", MonitoringCheckVersion: 1, Kind: risk.IndicatorKCI},
+	}
+	current := currentRiskIndicatorLinks(values)
+	if len(current) != 2 {
+		t.Fatalf("current indicators=%#v", current)
+	}
+	if current[0].ID != "link-2" || current[1].ID != "link-3" {
+		t.Fatalf("current Indicator order/revision=%#v", current)
+	}
+}
 
 func TestCurrentRiskIndicatorStatePreservesUnknownSemantics(t *testing.T) {
 	now := time.Date(2026, 10, 2, 16, 0, 0, 0, time.UTC)
