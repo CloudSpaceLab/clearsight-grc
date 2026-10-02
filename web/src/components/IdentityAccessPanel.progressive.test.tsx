@@ -88,7 +88,7 @@ it("keeps access inventory primary and opens one focused creation workflow at a 
   expect(screen.queryByRole("textbox", { name: "Code" })).toBeNull();
   expect(api.loadIdentityAccessOverview).toHaveBeenCalledTimes(1);
 
-  expect(screen.getByRole("tab", { name: "Positions & roles", selected: true })).toBeTruthy();
+  expect(screen.getByRole("tab", { name: "Organization", selected: true })).toBeTruthy();
   expect(screen.getByText("Ada Okafor")).toBeTruthy();
   expect(screen.getByText("PROGRAM_OWNER")).toBeTruthy();
 
