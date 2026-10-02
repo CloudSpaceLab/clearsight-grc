@@ -78,7 +78,7 @@ it("renders only the selected administrative domain and keeps selection in the r
   expect(mounts.ai).not.toHaveBeenCalled();
   expect(mounts.operations).not.toHaveBeenCalled();
 
-  fireEvent.click(screen.getByRole("button", { name: /People & access/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Organization & access/ }));
   expect(screen.getByText("People and access surface")).toBeTruthy();
   expect(window.location.hash).toBe("#configure/access");
   expect(mounts.access).toHaveBeenCalled();
