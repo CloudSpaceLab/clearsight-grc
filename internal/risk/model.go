@@ -84,7 +84,7 @@ type AppetiteStatement struct {
 	RiskVersion          int64          `json:"risk_version"`
 	Version              int64          `json:"version"`
 	Statement            string         `json:"statement"`
-	Rule                 json.RawMessage`json:"rule"`
+	Rule                 json.RawMessage `json:"rule"`
 	Rationale            string         `json:"rationale"`
 	OwnerPrincipalID     string         `json:"owner_principal_id,omitempty"`
 	AuthorityPrincipalID string         `json:"authority_principal_id,omitempty"`
