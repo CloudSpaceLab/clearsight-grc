@@ -126,6 +126,10 @@ func (a *API) catalogProgramControl(w http.ResponseWriter, r *http.Request, expe
 		writeContinuityError(w, continuity.ErrNotFound)
 		return identity.Actor{}, continuity.ProgramAggregate{}, continuity.ControlImplementation{}, continuity.ControlObjective{}, false
 	}
+	if objective.Status != continuity.ObjectiveActive || implementation.Status == continuity.ImplementationRetired {
+		writeControlCatalogError(w, controlcatalog.ErrInvalid)
+		return identity.Actor{}, continuity.ProgramAggregate{}, continuity.ControlImplementation{}, continuity.ControlObjective{}, false
+	}
 	return actor, aggregate, *implementation, *objective, true
 }
 
