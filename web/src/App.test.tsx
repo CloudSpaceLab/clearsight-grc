@@ -48,6 +48,9 @@ vi.mock("./components/RoleAwareOnboarding", async () => {
 vi.mock("./components/VendorsWorkspace", () => ({
   VendorsWorkspace: ({ onOpenRequest, guideIntent, targetID }: { onOpenRequest?: (requestID: string) => void; guideIntent?: { type: string }; targetID?: string }) => <><output data-testid="vendor-guide-intent">{guideIntent?.type}</output><output data-testid="vendor-target">{targetID}</output><button type="button" onClick={() => onOpenRequest?.("request-vendor-1")}>Review vendor request</button></>,
 }));
+vi.mock("./components/risks/RisksWorkspace", () => ({
+  RisksWorkspace: ({ targetID }: { targetID?: string }) => <section><h1>Risks</h1><output data-testid="risk-target">{targetID}</output></section>,
+}));
 vi.mock("./captureApi", () => ({
   declareWrongCaptureRecipient: vi.fn(),
   reassignCaptureRecipient: vi.fn(),
@@ -238,6 +241,27 @@ describe("legal entity scope selector", () => {
     await waitFor(() => expect(switchLegalEntity).toHaveBeenCalledWith("entity-gh-uuid"));
     expect((await screen.findByRole("alert")).textContent).toContain("Legal entity could not be changed. Try again.");
     expect(screen.getByRole("button", { name: /Legal entity/ }).textContent).toContain("Clear Bank Nigeria");
+  });
+});
+
+describe("scope and Portfolio integration", () => {
+  it("keeps verified legal-entity switching available while navigating the Risk Portfolio lens", async () => {
+    vi.mocked(loadContext).mockResolvedValue(switchableRuntime());
+    window.history.replaceState(null, "", "#programs");
+    render(<App/>);
+
+    const scopeTrigger = await screen.findByRole("button", { name: /Legal entity/ });
+    expect(scopeTrigger.textContent).toContain("Clear Bank Nigeria");
+
+    const portfolio = screen.getByRole("navigation", { name: "Portfolio lenses" });
+    fireEvent.click(within(portfolio).getByRole("button", { name: "Risks" }));
+
+    expect(await screen.findByRole("heading", { name: "Risks" })).toBeTruthy();
+    expect(window.location.hash).toBe("#risks");
+    expect(screen.getByRole("button", { name: /Legal entity/ }).textContent).toContain("Clear Bank Nigeria");
+
+    fireEvent.click(screen.getByRole("button", { name: /Legal entity/ }));
+    expect(await screen.findByRole("option", { name: /Clear Bank Ghana/ })).toBeTruthy();
   });
 });
 
