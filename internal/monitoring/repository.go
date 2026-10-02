@@ -49,6 +49,7 @@ type Repository interface {
 	AppendResult(context.Context, MonitoringResult) (MonitoringResult, error)
 	Result(context.Context, string, string) (MonitoringResult, error)
 	ListResults(context.Context, string, string, int) ([]MonitoringResult, error)
+	LatestResultRevision(context.Context, string, string, int64) (MonitoringResult, error)
 	ListFormLibrary(context.Context, FormLibraryFilter) (FormTemplatePage, error)
 	ListStarterTemplates(context.Context) ([]StarterTemplate, error)
 	StarterTemplateByCode(context.Context, string) (StarterTemplate, error)
