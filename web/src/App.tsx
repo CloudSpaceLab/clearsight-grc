@@ -21,10 +21,11 @@ import { DisplayPreferencesMenu } from "./components/DisplayPreferences";
 import { DocumentImportWorkspace } from "./components/DocumentImportWorkspace";
 import { FocusedSheet } from "./components/FocusedSheet";
 import { NavigationIcon } from "./components/NavigationIcon";
+import { EnterpriseScopeSwitcher } from "./components/EnterpriseScopeSwitcher";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { initials } from "./components/Monogram";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
-import { SelectField, WorkspaceSwitcher } from "./components/ui";
+import { WorkspaceSwitcher } from "./components/ui";
 import type { CaptureLoadState } from "./components/CapturePanel";
 import { apiErrorKind } from "./http";
 import { canRespondToEvidenceRequest, isEvidenceRequestAssignedToActor } from "./evidenceAuthorization";
@@ -288,13 +289,11 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const actorName = runtime?.actor.name || runtime?.actor.id || "User unavailable";
   const roleName = humanRole(runtime?.actor.role_codes?.[0]) || "Role not provided";
   const scopeHierarchy = runtime?.scope_hierarchy;
-  const scopeOptions = scopeHierarchy?.legal_entities.map((entity) => ({
-    id: entity.id,
-    label: entity.name,
-    ...(entity.jurisdiction ? { description: entity.jurisdiction } : {}),
-  })) ?? [];
   const currentScopeID = scopeHierarchy?.current.id;
-  const canSwitchScope = runtime?.capabilities?.scope_switch === true && scopeOptions.length > 1 && Boolean(currentScopeID);
+  const canSwitchScope = runtime?.capabilities?.scope_switch === true
+    && scopeHierarchy?.state === "COMPLETE"
+    && scopeHierarchy.legal_entities.length > 1
+    && Boolean(currentScopeID);
   const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
     { label: "Home", view: "oversight", activeViews: ["oversight"] },
     { label: "Portfolio", view: "programs", activeViews: portfolioViews },
@@ -450,16 +449,12 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       <div className="context-bar" aria-label="Active workspace context">
         <div className="context-scope">
           <strong>{organizationName}</strong>
-          {canSwitchScope
-            ? <SelectField
-              label="Legal entity"
-              value={currentScopeID}
-              placeholder={legalEntityName}
-              options={scopeOptions}
-              onChange={(value) => void changeLegalEntity(value)}
-              isDisabled={scopeSwitchState === "changing"}
-              allowsEmpty={false}
-              isLabelHidden
+          {canSwitchScope && scopeHierarchy && currentScopeID
+            ? <EnterpriseScopeSwitcher
+              hierarchy={scopeHierarchy}
+              currentScopeID={currentScopeID}
+              isChanging={scopeSwitchState === "changing"}
+              onSelectionChange={(value) => void changeLegalEntity(value)}
             />
             : <span>{legalEntityName}</span>}
           {scopeSwitchState === "changing" && <span className="context-scope__status" aria-live="polite">Changing…</span>}
