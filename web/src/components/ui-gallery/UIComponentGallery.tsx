@@ -24,6 +24,7 @@ import {
   Tabs,
   TextArea,
   TextField,
+  WorkspaceSwitcher,
   type DataColumn,
 } from "../ui";
 import "../../ui-gallery.css";
@@ -55,6 +56,7 @@ export function UIComponentGallery() {
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
   const [compactTab, setCompactTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
   const [retainedTab, setRetainedTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
+  const [workspace, setWorkspace] = useState<"PROGRAMS" | "VENDORS" | "PRIVACY">("PROGRAMS");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [busySheetOpen, setBusySheetOpen] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -98,6 +100,7 @@ export function UIComponentGallery() {
       <Contract family="Tabs" job="Moves between peer views in one workspace." keyboard="Arrow keys move and activate; Home and End jump." prohibited="Do not add a second selected indicator."><Tabs ariaLabel="Sample request views" items={tabs} selectedKey={tab} onSelectionChange={setTab}>{(key) => <p>{key === "PENDING" ? "Sample requests awaiting review." : "Sample requests completed in this fixture."}</p>}</Tabs></Contract>
       <Contract family="Tabs" job="Retains each visited editor and its draft while keeping inactive panels hidden and inert." keyboard="Arrow keys or the compact selector switch sections without clearing drafts." prohibited="Do not start reads for unvisited sections or treat retained data as current authority."><Tabs retainVisitedPanels ariaLabel="Sample retained review" compactLabel="Sample review section" items={tabs} selectedKey={retainedTab} onSelectionChange={setRetainedTab}>{(key) => key === "PENDING" ? <label>Sample unsaved judgement<input defaultValue=""/></label> : <p>Sample completed review.</p>}</Tabs></Contract>
       <Contract family="Tabs" job="Replaces peer tabs with a labelled selector at widths up to 760px, retaining the mounted view." keyboard="Compact selector: Arrow keys move, Enter selects, Escape closes." prohibited="Do not mount a second content tree for the compact view."><Tabs ariaLabel="Sample responsive request views" compactLabel="Sample request section" items={tabs} selectedKey={compactTab} onSelectionChange={setCompactTab}>{(key) => <p>{key === "PENDING" ? "Sample requests awaiting review." : "Sample requests completed in this fixture."}</p>}</Tabs></Contract>
+      <Contract family="WorkspaceSwitcher" job="Moves between peer workspaces while keeping each workspace authoritative and independently routed." keyboard="Tab reaches each workspace; Enter or Space selects. Compact selector uses standard select keyboard behavior." prohibited="Do not use it to duplicate a workspace, hide route changes, or carry unsaved state between unrelated records."><WorkspaceSwitcher ariaLabel="Sample portfolio lenses" compactLabel="Sample portfolio lens" items={[{ id: "PROGRAMS", label: "Programs" }, { id: "VENDORS", label: "Vendors" }, { id: "PRIVACY", label: "Processing activities" }]} selectedKey={workspace} onSelectionChange={setWorkspace}/></Contract>
       <Contract family="ScopeBar" job="Changes one bounded result scope and shows stored counts." keyboard="Tab reaches each scope; Enter or Space selects it." prohibited="Do not present unknown counts as zero."><ScopeBar ariaLabel="Sample request scopes" items={[{ id: "ALL", label: "All", count: 8 }, { id: "OPEN", label: "Open", count: 3 }]} selectedKey="ALL" onSelectionChange={() => undefined}/></Contract>
     </GalleryGroup>
 
