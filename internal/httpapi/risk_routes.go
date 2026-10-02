@@ -28,5 +28,9 @@ func (a *API) riskRoutes() []routeSpec {
 			ObjectType: "RISK", ObjectIDPath: "id", Responsibility: authority.ResponsibilityOwner,
 			Materiality: 3, ActorField: noActorField,
 		}),
+		material("/api/v1/risks/{id}/indicators", "risk.indicator.link", a.linkRiskIndicator, commandPolicy{
+			ObjectType: "RISK", ObjectIDPath: "id", Responsibility: authority.ResponsibilityOwner,
+			Materiality: 3, ActorField: noActorField,
+		}),
 	}
 }
