@@ -228,7 +228,7 @@ describe("legal entity scope selector", () => {
     fireEvent.click(trigger);
     const dialog = await screen.findByRole("dialog", { name: "Change legal entity" });
     expect(within(dialog).getByText("Clear Bank")).toBeTruthy();
-    expect(within(dialog).getByRole("button", { name: /Clear Bank Nigeria/ })).toHaveAttribute("aria-current", "true");
+    expect(within(dialog).getByRole("button", { name: /Clear Bank Nigeria/ })).toHaveAttribute("aria-pressed", "true");
     expect(within(dialog).getByRole("button", { name: /Clear Bank Ghana/ })).toBeTruthy();
     expect(within(dialog).queryByRole("button", { name: /^Clear Bank$/ })).toBeNull();
   });

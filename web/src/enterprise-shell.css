@@ -59,17 +59,15 @@
 .enterprise-scope-root__marker::before, .enterprise-scope-root__marker::after { content: ""; position: absolute; left: 6px; right: 6px; border-top: 2px solid color-mix(in srgb, var(--cyan) 76%, var(--text)); }
 .enterprise-scope-root__marker::before { top: 8px; }
 .enterprise-scope-root__marker::after { top: 13px; }
-.enterprise-scope-root__content, .enterprise-scope-option__content { min-width: 0; display: grid; gap: 2px; }
-.enterprise-scope-root__content strong, .enterprise-scope-option__content strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--text); }
-.enterprise-scope-root__content small, .enterprise-scope-option__content small { color: var(--muted); font-size: 10px; }
+.enterprise-scope-root__content { min-width: 0; display: grid; gap: 2px; }
+.enterprise-scope-root__content strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--text); }
+.enterprise-scope-root__content small { color: var(--muted); font-size: 10px; }
 .enterprise-scope-tree { position: relative; padding-left: 16px; }
 .enterprise-scope-tree__line { position: absolute; left: 10px; top: 0; bottom: 12px; border-left: 1px solid color-mix(in srgb, var(--border) 84%, transparent); }
 .enterprise-scope-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
-.enterprise-scope-option { width: 100%; min-height: 46px; position: relative; display: grid; grid-template-columns: 14px minmax(0,1fr) auto; align-items: center; gap: 8px; border: 1px solid transparent; border-radius: 9px; padding: 7px 8px 7px 0; color: var(--text); background: transparent; text-align: left; cursor: pointer; }
-.enterprise-scope-option:hover { border-color: var(--border); background: var(--surface-2); }
-.enterprise-scope-option[aria-current="true"] { border-color: color-mix(in srgb, var(--cyan) 40%, var(--border)); background: color-mix(in srgb, var(--cyan) 7%, var(--surface-2)); }
+.enterprise-scope-option-row { display: grid; grid-template-columns: 14px minmax(0,1fr); align-items: center; gap: 8px; }
 .enterprise-scope-option__branch { width: 14px; height: 1px; border-top: 1px solid color-mix(in srgb, var(--border) 84%, transparent); }
-.enterprise-scope-option__current { color: var(--cyan); font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+.enterprise-scope-option-row[data-current] .enterprise-scope-option__branch { border-color: color-mix(in srgb, var(--cyan) 64%, var(--border)); }
 .enterprise-scope-empty { margin: 0; padding: 8px 10px; color: var(--muted); font-size: 11px; }
 
 @media (max-width: 820px) {

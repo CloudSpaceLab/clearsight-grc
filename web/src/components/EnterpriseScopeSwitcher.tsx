@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
-import { Button as AriaButton } from "react-aria-components";
 import type { ScopeHierarchy } from "../api";
-import { PopoverDialog, SearchField } from "./ui";
+import { PopoverDialog, SearchField, SelectableRecord } from "./ui";
 
 type Props = {
   hierarchy: ScopeHierarchy;
@@ -47,14 +46,13 @@ export function EnterpriseScopeSwitcher({
     isOpen={open}
     onOpenChange={handleOpenChange}
     placement="bottom start"
-    trigger={<AriaButton
-      className="enterprise-scope-trigger"
-      aria-label={`Legal entity, ${current.name}`}
-      isDisabled={isChanging}
-    >
+    triggerLabel={`Legal entity, ${current.name}`}
+    triggerClassName="enterprise-scope-trigger"
+    triggerDisabled={isChanging}
+    triggerChildren={<>
       <span className="enterprise-scope-trigger__name">{current.name}</span>
       <span className="enterprise-scope-trigger__chevron" aria-hidden="true">⌄</span>
-    </AriaButton>}
+    </>}
   >
     <div className="enterprise-scope-switcher">
       <div className="enterprise-scope-root" aria-label={`Organization ${hierarchy.root.name}`}>
@@ -78,21 +76,16 @@ export function EnterpriseScopeSwitcher({
         <ul className="enterprise-scope-list" aria-label={`Legal entities in ${hierarchy.root.name}`}>
           {visibleEntities.map((entity) => {
             const selected = entity.id === currentScopeID;
-            return <li key={entity.id}>
-              <button
-                type="button"
-                className="enterprise-scope-option"
-                aria-current={selected ? "true" : undefined}
-                onClick={() => chooseScope(entity.id)}
-                disabled={isChanging}
-              >
-                <span className="enterprise-scope-option__branch" aria-hidden="true"/>
-                <span className="enterprise-scope-option__content">
-                  <strong>{entity.name}</strong>
-                  <small>{entity.jurisdiction || "Legal entity"}</small>
-                </span>
-                {selected && <span className="enterprise-scope-option__current">Current</span>}
-              </button>
+            const metadata = entity.jurisdiction || "Legal entity";
+            return <li className="enterprise-scope-option-row" data-current={selected || undefined} key={entity.id}>
+              <span className="enterprise-scope-option__branch" aria-hidden="true"/>
+              <SelectableRecord
+                title={entity.name}
+                metadata={selected ? `${metadata} · Current` : metadata}
+                isSelected={selected}
+                isDisabled={isChanging}
+                onPress={() => chooseScope(entity.id)}
+              />
             </li>;
           })}
         </ul>
