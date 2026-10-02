@@ -1,9 +1,11 @@
 import { requestJSON } from "./http";
+import { reportingPeriodPath, type ReportingPeriod, type ReportingPeriodQuery } from "./reportingPeriod";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export type MetricCompleteness = "COMPLETE" | "PARTIAL" | "UNKNOWN";
 export type MetricCondition = "CLEAR" | "ATTENTION";
+export type MetricBasis = "CURRENT_POSTURE";
 
 export type MetricDrillTarget = {
   workspace: string;
@@ -25,6 +27,7 @@ export type HomeMetric = {
   generated_at: string;
   source_revision: string;
   definition_revision: string;
+  basis: MetricBasis;
   drill: MetricDrillTarget;
 };
 
@@ -32,6 +35,8 @@ export type HomeMetricBundle = {
   generated_at: string;
   period_start: string;
   period_end: string;
+  reporting_period: ReportingPeriod;
+  posture_as_of: string;
   scope_id: string;
   scope_kind: "LEGAL_ENTITY";
   freshness: "CURRENT" | "STALE";
@@ -44,6 +49,6 @@ export type HomeMetricBundle = {
   items: HomeMetric[];
 };
 
-export function loadHomeMetrics(): Promise<HomeMetricBundle> {
-  return requestJSON<HomeMetricBundle>(apiBase, "/api/v1/metrics/home");
+export function loadHomeMetrics(period?: ReportingPeriodQuery): Promise<HomeMetricBundle> {
+  return requestJSON<HomeMetricBundle>(apiBase, reportingPeriodPath("/api/v1/metrics/home", period));
 }
