@@ -35,12 +35,15 @@ func (r *PostgresRepository) List(ctx context.Context, scope Scope, filter ListF
 		SELECT
 			r.id::text,r.tenant_id::text,r.legal_entity_id::text,r.code,r.name,r.category,r.statement,r.cause,
 			r.event,r.impact,r.scope,COALESCE(r.owner_principal_id::text,''),r.status,r.version,r.created_at,r.updated_at,
-			la.id::text,la.risk_version,la.assessment_kind,la.method_code,la.method_version,
-			la.dimensions,la.assumptions,la.evidence_references,la.confidence,COALESCE(la.assessed_by::text,''),
-			COALESCE(la.appetite_statement_id::text,''),la.appetite_position,la.appetite_rationale,la.assessed_at,la.created_at,
-			ap.id::text,ap.risk_version,ap.version,ap.statement,ap.rule,ap.rationale,
-			COALESCE(ap.owner_principal_id::text,''),COALESCE(ap.authority_principal_id::text,''),
-			ap.status,ap.effective_from,ap.effective_until,ap.created_at
+			(la.id IS NOT NULL),COALESCE(la.id::text,''),COALESCE(la.risk_version,0),COALESCE(la.assessment_kind,''),COALESCE(la.method_code,''),COALESCE(la.method_version,''),
+			COALESCE(la.dimensions,'{}'::jsonb),COALESCE(la.assumptions,'{}'::jsonb),COALESCE(la.evidence_references,'[]'::jsonb),
+			(la.confidence IS NOT NULL),COALESCE(la.confidence,0),COALESCE(la.assessed_by::text,''),
+			COALESCE(la.appetite_statement_id::text,''),COALESCE(la.appetite_position,''),COALESCE(la.appetite_rationale,''),
+			COALESCE(la.assessed_at,'epoch'::timestamptz),COALESCE(la.created_at,'epoch'::timestamptz),
+			(ap.id IS NOT NULL),COALESCE(ap.id::text,''),COALESCE(ap.risk_version,0),COALESCE(ap.version,0),COALESCE(ap.statement,''),
+			COALESCE(ap.rule,'{}'::jsonb),COALESCE(ap.rationale,''),COALESCE(ap.owner_principal_id::text,''),COALESCE(ap.authority_principal_id::text,''),
+			COALESCE(ap.status,''),COALESCE(ap.effective_from,'epoch'::timestamptz),(ap.effective_until IS NOT NULL),
+			COALESCE(ap.effective_until,'epoch'::timestamptz),COALESCE(ap.created_at,'epoch'::timestamptz)
 		FROM risks r
 		JOIN tenants t ON t.id=r.tenant_id
 		JOIN legal_entities le ON le.tenant_id=r.tenant_id AND le.id=r.legal_entity_id
@@ -109,95 +112,55 @@ func scanRiskSummary(row riskSummaryScanner) (Summary, error) {
 	var (
 		risk Risk
 
-		assessmentID          *string
-		assessmentRiskVersion *int64
-		assessmentKind        *string
-		methodCode            *string
-		methodVersion         *string
-		dimensions            []byte
-		assumptions           []byte
-		evidenceRefs          []byte
-		confidence            *float64
-		assessedBy            *string
-		appetiteStatementID   *string
-		appetitePosition      *string
-		appetiteRationale     *string
-		assessedAt            *time.Time
-		assessmentCreatedAt   *time.Time
+		hasAssessment        bool
+		assessment           Assessment
+		hasConfidence        bool
+		confidence           float64
 
-		appetiteID          *string
-		appetiteRiskVersion *int64
-		appetiteVersion     *int64
-		appetiteStatement   *string
-		appetiteRule        []byte
-		appetiteRationaleV  *string
-		appetiteOwner       *string
-		appetiteAuthority   *string
-		appetiteStatus      *string
-		effectiveFrom       *time.Time
-		effectiveUntil      *time.Time
-		appetiteCreatedAt   *time.Time
+		hasAppetite          bool
+		appetite             AppetiteStatement
+		hasEffectiveUntil    bool
+		effectiveUntil       time.Time
 	)
 
 	err := row.Scan(
 		&risk.ID,&risk.TenantID,&risk.LegalEntityID,&risk.Code,&risk.Name,&risk.Category,&risk.Statement,&risk.Cause,
 		&risk.Event,&risk.Impact,&risk.Scope,&risk.OwnerPrincipalID,&risk.Status,&risk.Version,&risk.CreatedAt,&risk.UpdatedAt,
-		&assessmentID,&assessmentRiskVersion,&assessmentKind,&methodCode,&methodVersion,
-		&dimensions,&assumptions,&evidenceRefs,&confidence,&assessedBy,&appetiteStatementID,
-		&appetitePosition,&appetiteRationale,&assessedAt,&assessmentCreatedAt,
-		&appetiteID,&appetiteRiskVersion,&appetiteVersion,&appetiteStatement,&appetiteRule,&appetiteRationaleV,
-		&appetiteOwner,&appetiteAuthority,&appetiteStatus,&effectiveFrom,&effectiveUntil,&appetiteCreatedAt,
+		&hasAssessment,&assessment.ID,&assessment.RiskVersion,&assessment.Kind,&assessment.MethodCode,&assessment.MethodVersion,
+		&assessment.Dimensions,&assessment.Assumptions,&assessment.EvidenceReferences,&hasConfidence,&confidence,&assessment.AssessedBy,
+		&assessment.AppetiteStatementID,&assessment.AppetitePosition,&assessment.AppetiteRationale,&assessment.AssessedAt,&assessment.CreatedAt,
+		&hasAppetite,&appetite.ID,&appetite.RiskVersion,&appetite.Version,&appetite.Statement,&appetite.Rule,&appetite.Rationale,
+		&appetite.OwnerPrincipalID,&appetite.AuthorityPrincipalID,&appetite.Status,&appetite.EffectiveFrom,
+		&hasEffectiveUntil,&effectiveUntil,&appetite.CreatedAt,
 	)
 	if err != nil {
 		return Summary{}, fmt.Errorf("scan risk summary: %w", err)
 	}
 
 	summary := Summary{Risk: risk}
-	if assessmentID != nil {
-		value := Assessment{
-			ID: *assessmentID, RiskID: risk.ID, RiskVersion: derefInt64(assessmentRiskVersion),
-			Kind: AssessmentKind(derefString(assessmentKind)), MethodCode: derefString(methodCode), MethodVersion: derefString(methodVersion),
-			Dimensions: cloneJSON(dimensions), Assumptions: cloneJSON(assumptions), EvidenceReferences: cloneJSON(evidenceRefs),
-			Confidence: confidence, AssessedBy: derefString(assessedBy), AppetiteStatementID: derefString(appetiteStatementID),
-			AppetitePosition: AppetitePosition(derefString(appetitePosition)), AppetiteRationale: derefString(appetiteRationale),
-			AssessedAt: derefTime(assessedAt), CreatedAt: derefTime(assessmentCreatedAt),
+	if hasAssessment {
+		assessment.RiskID = risk.ID
+		assessment.Dimensions = cloneJSON(assessment.Dimensions)
+		assessment.Assumptions = cloneJSON(assessment.Assumptions)
+		assessment.EvidenceReferences = cloneJSON(assessment.EvidenceReferences)
+		if hasConfidence {
+			value := confidence
+			assessment.Confidence = &value
 		}
-		summary.LatestAssessment = &value
+		summary.LatestAssessment = &assessment
 	}
-	if appetiteID != nil {
-		value := AppetiteStatement{
-			ID: *appetiteID, RiskID: risk.ID, RiskVersion: derefInt64(appetiteRiskVersion), Version: derefInt64(appetiteVersion),
-			Statement: derefString(appetiteStatement), Rule: cloneJSON(appetiteRule), Rationale: derefString(appetiteRationaleV),
-			OwnerPrincipalID: derefString(appetiteOwner), AuthorityPrincipalID: derefString(appetiteAuthority),
-			Status: AppetiteStatus(derefString(appetiteStatus)), EffectiveFrom: derefTime(effectiveFrom),
-			EffectiveUntil: effectiveUntil, CreatedAt: derefTime(appetiteCreatedAt),
+	if hasAppetite {
+		appetite.RiskID = risk.ID
+		appetite.Rule = cloneJSON(appetite.Rule)
+		if hasEffectiveUntil {
+			value := effectiveUntil.UTC()
+			appetite.EffectiveUntil = &value
 		}
-		summary.ActiveAppetite = &value
+		summary.ActiveAppetite = &appetite
 	}
 	return summary, nil
 }
 
 func cloneJSON(value []byte) []byte {
 	return append([]byte(nil), value...)
-}
-
-func derefString(value *string) string {
-	if value == nil {
-		return ""
-	}
-	return strings.TrimSpace(*value)
-}
-
-func derefInt64(value *int64) int64 {
-	if value == nil {
-		return 0
-	}
-	return *value
-}
-
-func derefTime(value *time.Time) time.Time {
-	if value == nil {
-		return time.Time{}
-	}
-	return value.UTC()
 }
