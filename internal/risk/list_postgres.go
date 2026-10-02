@@ -55,14 +55,17 @@ func (r *PostgresRepository) List(ctx context.Context, scope Scope, filter ListF
 			LIMIT 1
 		) la ON true
 		LEFT JOIN LATERAL (
-			SELECT a.*
-			FROM risk_appetite_statements a
-			WHERE a.tenant_id=r.tenant_id AND a.legal_entity_id=r.legal_entity_id AND a.risk_id=r.id
-			  AND a.status='ACTIVE'
-			  AND a.effective_from<=$8
-			  AND (a.effective_until IS NULL OR $8<a.effective_until)
-			ORDER BY a.version DESC,a.id DESC
-			LIMIT 1
+			SELECT candidate.*
+			FROM (
+				SELECT a.*
+				FROM risk_appetite_statements a
+				WHERE a.tenant_id=r.tenant_id AND a.legal_entity_id=r.legal_entity_id AND a.risk_id=r.id
+				  AND a.effective_from<=$8
+				ORDER BY a.version DESC,a.id DESC
+				LIMIT 1
+			) candidate
+			WHERE candidate.status='ACTIVE'
+			  AND (candidate.effective_until IS NULL OR $8<candidate.effective_until)
 		) ap ON true
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND (le.id::text=$2 OR le.code=$2)
