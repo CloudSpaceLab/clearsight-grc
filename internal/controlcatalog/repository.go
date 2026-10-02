@@ -17,4 +17,5 @@ type Repository interface {
 	LinkImplementation(context.Context, ImplementationLink) (ImplementationLink, error)
 	GetImplementationLink(context.Context, string, string, string) (ImplementationLink, error)
 	ListImplementationLinks(context.Context, string, string, int) ([]ImplementationLink, error)
+	ListEntityImplementationLinks(context.Context, string, string, string, int) ([]ImplementationLink, error)
 }
