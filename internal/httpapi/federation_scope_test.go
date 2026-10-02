@@ -60,7 +60,7 @@ func TestActorContextAdvertisesScopeSwitchOnlyForFederatedMultiEntityContext(t *
 	current := runtimecontext.ScopeNode{ID: "entity-ng", Code: "BANK-NG", Name: "Clear Bank Nigeria", Kind: runtimecontext.ScopeKindLegalEntity, ParentID: root.ID, Current: true}
 	ghana := runtimecontext.ScopeNode{ID: "entity-gh", Code: "BANK-GH", Name: "Clear Bank Ghana", Kind: runtimecontext.ScopeKindLegalEntity, ParentID: root.ID}
 	resolver := scopeContextResolverStub{
-		display: runtimecontext.DisplayContext{TenantName: "Clear Bank", LegalEntityName: "Clear Bank Nigeria", PrincipalName: "Risk Officer"},
+		display:   runtimecontext.DisplayContext{TenantName: "Clear Bank", LegalEntityName: "Clear Bank Nigeria", PrincipalName: "Risk Officer"},
 		hierarchy: runtimecontext.ScopeHierarchy{State: runtimecontext.HierarchyComplete, Root: root, Current: current, LegalEntities: []runtimecontext.ScopeNode{current, ghana}},
 	}
 	for _, test := range []struct {
