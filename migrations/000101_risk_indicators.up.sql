@@ -16,6 +16,7 @@ CREATE TABLE risk_indicator_links (
     measurement text NOT NULL CHECK (measurement='MONITORING_RISK_SCORE'),
     linked_by uuid,
     created_at timestamptz NOT NULL,
+    UNIQUE(tenant_id,legal_entity_id,risk_id,risk_version),
     UNIQUE(tenant_id,legal_entity_id,risk_id,monitoring_check_id,monitoring_check_version),
     FOREIGN KEY(tenant_id,legal_entity_id,risk_id)
         REFERENCES risks(tenant_id,legal_entity_id,id),
