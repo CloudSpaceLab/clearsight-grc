@@ -219,6 +219,16 @@ describe("legal entity scope selector", () => {
     expect(screen.queryByRole("button", { name: /Legal entity/ })).toBeNull();
   });
 
+  it("fails closed when the advertised hierarchy is incomplete", async () => {
+    const incomplete = switchableRuntime();
+    incomplete.scope_hierarchy = { ...incomplete.scope_hierarchy!, state: "TRUNCATED" };
+    vi.mocked(loadContext).mockResolvedValue(incomplete);
+    render(<App/>);
+
+    await screen.findByText("Clear Bank Nigeria");
+    expect(screen.queryByRole("button", { name: /Legal entity/ })).toBeNull();
+  });
+
   it("shows only server-authorized legal entities and retains the current selection", async () => {
     vi.mocked(loadContext).mockResolvedValue(switchableRuntime());
     render(<App/>);
@@ -226,8 +236,11 @@ describe("legal entity scope selector", () => {
     const trigger = await screen.findByRole("button", { name: /Legal entity/ });
     expect(trigger.textContent).toContain("Clear Bank Nigeria");
     fireEvent.click(trigger);
-    expect(await screen.findByRole("option", { name: /Clear Bank Nigeria/ })).toBeTruthy();
-    expect(screen.getByRole("option", { name: /Clear Bank Ghana/ })).toBeTruthy();
+    const dialog = await screen.findByRole("dialog", { name: "Change legal entity" });
+    expect(within(dialog).getByText("Clear Bank")).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: /Clear Bank Nigeria/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(dialog).getByRole("button", { name: /Clear Bank Ghana/ })).toBeTruthy();
+    expect(within(dialog).queryByRole("button", { name: /^Clear Bank$/ })).toBeNull();
   });
 
   it("keeps the current scope and shows recovery copy when session switching fails", async () => {
@@ -236,7 +249,8 @@ describe("legal entity scope selector", () => {
     render(<App/>);
 
     fireEvent.click(await screen.findByRole("button", { name: /Legal entity/ }));
-    fireEvent.click(await screen.findByRole("option", { name: /Clear Bank Ghana/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Change legal entity" });
+    fireEvent.click(within(dialog).getByRole("button", { name: /Clear Bank Ghana/ }));
 
     await waitFor(() => expect(switchLegalEntity).toHaveBeenCalledWith("entity-gh-uuid"));
     expect((await screen.findByRole("alert")).textContent).toContain("Legal entity could not be changed. Try again.");
@@ -261,7 +275,8 @@ describe("scope and Portfolio integration", () => {
     expect(screen.getByRole("button", { name: /Legal entity/ }).textContent).toContain("Clear Bank Nigeria");
 
     fireEvent.click(screen.getByRole("button", { name: /Legal entity/ }));
-    expect(await screen.findByRole("option", { name: /Clear Bank Ghana/ })).toBeTruthy();
+    const dialog = await screen.findByRole("dialog", { name: "Change legal entity" });
+    expect(within(dialog).getByRole("button", { name: /Clear Bank Ghana/ })).toBeTruthy();
   });
 });
 
