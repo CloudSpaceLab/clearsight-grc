@@ -219,3 +219,35 @@ it("opens the source Program from a linked Indicator", () => {
   fireEvent.click(screen.getByRole("button", { name: /Open Program/ }));
   expect(onOpenProgram).toHaveBeenCalledWith("program-1");
 });
+
+
+it("opens the visible intervention Matter without replacing the source Program action", () => {
+  const onOpenProgram = vi.fn();
+  const onOpenMatter = vi.fn();
+  const withMatter: RiskIndicatorDetail = {
+    ...detail,
+    state: "BREACH",
+    reason: "Latest complete result is in a high or critical band.",
+    open_matter_id: "matter-1",
+    open_matter_reference: "MAT-001",
+    open_matter_status: "TRIAGE",
+  };
+
+  render(<RiskIndicatorsSection
+    risk={risk}
+    actorID="viewer-1"
+    indicators={[withMatter.link]}
+    details={[withMatter]}
+    detailsComplete
+    onReload={vi.fn()}
+    onOpenProgram={onOpenProgram}
+    onOpenMatter={onOpenMatter}
+  />);
+
+  const table = screen.getByRole("table", { name: "Risk indicators" });
+  fireEvent.click(within(table).getByRole("button", { name: "MAT-001" }));
+  expect(onOpenMatter).toHaveBeenCalledWith("matter-1");
+
+  fireEvent.click(within(table).getByRole("button", { name: /Open Program/ }));
+  expect(onOpenProgram).toHaveBeenCalledWith("program-1");
+});
