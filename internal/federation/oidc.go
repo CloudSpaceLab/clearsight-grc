@@ -40,6 +40,11 @@ const (
 	maxAuthenticationMethod = 16
 )
 
+var (
+	ErrScopeInvalid     = errors.New("scope is invalid")
+	ErrScopeUnavailable = errors.New("scope is unavailable")
+)
+
 type Config struct {
 	Issuer          string
 	ClientID        string
@@ -275,6 +280,53 @@ func (s *Service) Callback(w http.ResponseWriter, r *http.Request) {
 	s.sessions.Put(r.Context(), sessionIssuedAt, now)
 	s.sessions.Put(r.Context(), sessionAssurance, assuranceFromClaims(claims.ACR, claims.AMR))
 	http.Redirect(w, r, s.applicationURL+returnTo, http.StatusSeeOther)
+}
+
+func (s *Service) SwitchScope(ctx context.Context, actor identity.Actor, legalEntityID string) (identity.Actor, error) {
+	if s == nil || s.sessions == nil || s.access == nil || ctx == nil {
+		return identity.Actor{}, fmt.Errorf("scope switching is unavailable")
+	}
+	legalEntityID = strings.TrimSpace(legalEntityID)
+	if !validScopeValue(legalEntityID) {
+		return identity.Actor{}, ErrScopeInvalid
+	}
+	tenantID := strings.TrimSpace(s.sessions.GetString(ctx, sessionTenantID))
+	principalID := strings.TrimSpace(s.sessions.GetString(ctx, sessionPrincipalID))
+	if tenantID == "" || principalID == "" ||
+		tenantID != strings.TrimSpace(actor.TenantID) || principalID != strings.TrimSpace(actor.PrincipalID) {
+		return identity.Actor{}, ErrScopeUnavailable
+	}
+	resolved, err := s.access.ResolvePrincipal(ctx, tenantID, principalID, legalEntityID)
+	if errors.Is(err, access.ErrPrincipalUnavailable) {
+		return identity.Actor{}, ErrScopeUnavailable
+	}
+	if err != nil {
+		return identity.Actor{}, fmt.Errorf("resolve target scope: %w", err)
+	}
+	sessionID, err := id.New("ses", 16)
+	if err != nil {
+		return identity.Actor{}, fmt.Errorf("create scope session: %w", err)
+	}
+	if err := s.sessions.RenewToken(ctx); err != nil {
+		return identity.Actor{}, fmt.Errorf("rotate scope session: %w", err)
+	}
+	now := s.now().UTC()
+	s.sessions.Put(ctx, sessionTenantID, resolved.TenantID)
+	s.sessions.Put(ctx, sessionPrincipalID, resolved.PrincipalID)
+	s.sessions.Put(ctx, sessionLegalEntityID, resolved.LegalEntityID)
+	s.sessions.Put(ctx, sessionSessionID, sessionID)
+	s.sessions.Put(ctx, sessionIssuedAt, now)
+	next := identity.Actor{
+		TenantID: resolved.TenantID, PrincipalID: resolved.PrincipalID, LegalEntityID: resolved.LegalEntityID,
+		Kind: resolved.Kind, RoleCodes: resolved.RoleCodes, PermissionCodes: resolved.PermissionCodes,
+		DepartmentGrants: resolved.DepartmentGrants,
+		AuthenticationMethod: "OIDC", AssuranceLevel: s.sessions.GetString(ctx, sessionAssurance),
+		SessionID: sessionID, IssuedAt: now, ExpiresAt: s.sessions.Deadline(ctx),
+	}
+	if err := next.Valid(now); err != nil {
+		return identity.Actor{}, fmt.Errorf("validate switched scope: %w", err)
+	}
+	return next, nil
 }
 
 func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
