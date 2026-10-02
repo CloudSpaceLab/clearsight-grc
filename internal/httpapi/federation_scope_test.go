@@ -64,14 +64,17 @@ func TestActorContextAdvertisesScopeSwitchOnlyForFederatedMultiEntityContext(t *
 		hierarchy: runtimecontext.ScopeHierarchy{State: runtimecontext.HierarchyComplete, Root: root, Current: current, LegalEntities: []runtimecontext.ScopeNode{current, ghana}},
 	}
 	for _, test := range []struct {
-		name       string
-		federation *federation.Service
-		want       string
+		name          string
+		federation    *federation.Service
+		hierarchyState runtimecontext.HierarchyState
+		want          string
 	}{
-		{name: "federated", federation: &federation.Service{}, want: `"scope_switch":true`},
-		{name: "non-federated", federation: nil, want: `"scope_switch":false`},
+		{name: "federated", federation: &federation.Service{}, hierarchyState: runtimecontext.HierarchyComplete, want: `"scope_switch":true`},
+		{name: "non-federated", federation: nil, hierarchyState: runtimecontext.HierarchyComplete, want: `"scope_switch":false`},
+		{name: "truncated", federation: &federation.Service{}, hierarchyState: runtimecontext.HierarchyTruncated, want: `"scope_switch":false`},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			resolver.hierarchy.State = test.hierarchyState
 			api := &API{deps: Dependencies{
 				Logger: slog.Default(), RuntimeContext: resolver, Federation: test.federation,
 			}}
