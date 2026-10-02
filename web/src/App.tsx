@@ -22,6 +22,7 @@ import { FocusedSheet } from "./components/FocusedSheet";
 import { NavigationIcon } from "./components/NavigationIcon";
 import { initials } from "./components/Monogram";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
+import { WorkspaceSwitcher } from "./components/ui";
 import type { CaptureLoadState } from "./components/CapturePanel";
 import { apiErrorKind } from "./http";
 import { canRespondToEvidenceRequest, isEvidenceRequestAssignedToActor } from "./evidenceAuthorization";
@@ -43,6 +44,19 @@ type LoadState = "idle" | "loading" | "live" | "unavailable";
 type ConnectionState = "loading" | "live" | "unavailable";
 type PrimaryEvidenceLoad = { targetID?: string; state: "idle" | "loading" | "live" | "unavailable" };
 type VendorGuideIntent = { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" | "open-vendor-next-action" };
+const portfolioViews = ["programs", "vendors", "ropa", "forms"] as const;
+type PortfolioView = (typeof portfolioViews)[number];
+const portfolioLenses: ReadonlyArray<{ id: PortfolioView; label: string }> = [
+  { id: "programs", label: "Programs" },
+  { id: "vendors", label: "Vendors" },
+  { id: "ropa", label: "Processing activities" },
+  { id: "forms", label: "Forms" },
+];
+
+function isPortfolioView(view: View): view is PortfolioView {
+  return (portfolioViews as readonly View[]).includes(view);
+}
+
 type ProductRuntime = RuntimeContext & {
   demo_mode?: boolean;
   capabilities?: {
@@ -266,14 +280,12 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const legalEntityName = runtime?.legal_entity.name || runtime?.legal_entity.id || "Legal entity unavailable";
   const actorName = runtime?.actor.name || runtime?.actor.id || "User unavailable";
   const roleName = humanRole(runtime?.actor.role_codes?.[0]) || "Role not provided";
-  const operatingNavigation: Array<{ label: string; view: View }> = [
-    { label: "Home", view: "oversight" as View },
-    { label: "Programs", view: "programs" },
-    { label: "Processing activities", view: "ropa" },
-    { label: "Work", view: "work" },
-    { label: "Vendors", view: "vendors" },
-    { label: "Forms", view: "forms" },
+  const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
+    { label: "Home", view: "oversight", activeViews: ["oversight"] },
+    { label: "Portfolio", view: "programs", activeViews: portfolioViews },
+    { label: "Work", view: "work", activeViews: ["work"] },
   ];
+  const activePortfolioView = isPortfolioView(activeView) ? activeView : undefined;
 
   function cancelVendorGuideIntent(reason: string) {
     const pending = vendorGuideAck.current;
@@ -399,7 +411,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Primary navigation">
       <div className="brand-mark" aria-label="ClearSight">C</div>
-      <nav>{operatingNavigation.map(({ label, view }) => <button className={view === activeView ? "nav-item active" : "nav-item"} key={view} aria-current={view === activeView ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><b>{label}</b></button>)}</nav>
+      <nav>{operatingNavigation.map(({ label, view, activeViews }) => {
+        const active = activeViews.includes(activeView);
+        return <button className={active ? "nav-item active" : "nav-item"} key={label} aria-current={active ? "page" : undefined} onClick={() => { if (!active) navigate(view); }}><NavigationIcon view={view}/><b>{label}</b></button>;
+      })}</nav>
       {configureEnabled && <div className="sidebar-secondary"><button className={activeView === "configure" ? "nav-item active" : "nav-item"} type="button" aria-current={activeView === "configure" ? "page" : undefined} onClick={() => navigate("configure")}><NavigationIcon view="configure"/><b>Configure</b></button></div>}
       <div className="avatar" aria-label={`Signed in as ${actorName}`}>{initials(actorName)}</div>
     </aside>
@@ -414,6 +429,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
           {serverDemoMode ? <mark>{demoMode ? "Stakeholder demo" : "Non-production data"}</mark> : null}
         </div>
       </div>
+      {activePortfolioView && <WorkspaceSwitcher ariaLabel="Portfolio lenses" compactLabel="Portfolio lens" items={portfolioLenses} selectedKey={activePortfolioView} onSelectionChange={(view) => navigate(view)}/>}
       {(activeView === "oversight" || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>}
       {activeView === "oversight" && !oversightEnabled && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
       {activeView === "oversight" && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Home…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", metric === "all" ? {} : { oversightMetric: metric })} todayItems={items} todayState={connection} onOpenTodayItem={openAttention}/></Suspense>}
@@ -430,7 +446,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       {activeView === "configure" && configureEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Configuration…</div>}><ConfigureWorkspace importsEnabled={importsEnabled} canReconcileProjection={runtime?.capabilities?.platform_operations_write === true} onOpenImports={() => navigate("imports")}/></Suspense>}
       <div id="cs-overlay-root" className="cs-overlay-root" aria-live="off"/>
     </main>
-    <nav className="mobile-nav" aria-label="Mobile navigation">{operatingNavigation.map(({ label, view }) => <button key={view} type="button" aria-current={activeView === view ? "page" : undefined} onClick={() => navigate(view)}><NavigationIcon view={view}/><span>{label}</span></button>)}</nav>
+    <nav className="mobile-nav" aria-label="Mobile navigation">{operatingNavigation.map(({ label, view, activeViews }) => {
+      const active = activeViews.includes(activeView);
+      return <button key={label} type="button" aria-current={active ? "page" : undefined} onClick={() => { if (!active) navigate(view); }}><NavigationIcon view={view}/><span>{label}</span></button>;
+    })}</nav>
     {activePanel !== "none" && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}>{activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}</FocusedSheet>}
   </div>;
 }
