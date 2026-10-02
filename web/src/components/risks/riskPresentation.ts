@@ -1,5 +1,5 @@
 import type { StatusTone } from "../ui";
-import type { RiskAppetitePosition, RiskAssessment, RiskAssessmentKind, RiskStatus } from "../../riskTypes";
+import type { RiskAppetitePosition, RiskAppetiteStatement, RiskAssessment, RiskAssessmentKind, RiskStatus } from "../../riskTypes";
 
 const dateTime = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -37,18 +37,27 @@ export function appetiteTone(position: RiskAppetitePosition | undefined): Status
   return "unknown";
 }
 
-export function currentAssessmentPosition(riskVersion: number, assessment: RiskAssessment | undefined): RiskAppetitePosition | undefined {
-  return assessment?.risk_version === riskVersion ? assessment.appetite_position : undefined;
+export function currentAppetiteLabel(
+  riskVersion: number,
+  assessment: RiskAssessment | undefined,
+  activeAppetite: RiskAppetiteStatement | undefined,
+): string {
+  if (!assessment) return "Not assessed";
+  if (assessment.risk_version !== riskVersion) return "Reassessment needed";
+  if (!assessment.appetite_statement_id) return "No current appetite";
+  if (!activeAppetite) return "No current appetite";
+  if (assessment.appetite_statement_id !== activeAppetite.id) return "Reassessment needed";
+  return appetiteLabel(assessment.appetite_position);
 }
 
-export function currentAppetiteLabel(riskVersion: number, assessment: RiskAssessment | undefined, hasCurrentStatement = true): string {
-  if (assessment && assessment.risk_version !== riskVersion) return "Reassessment needed";
-  return appetiteLabel(assessment?.appetite_position, hasCurrentStatement);
-}
-
-export function currentAppetiteTone(riskVersion: number, assessment: RiskAssessment | undefined): StatusTone {
-  if (assessment && assessment.risk_version !== riskVersion) return "unknown";
-  return appetiteTone(assessment?.appetite_position);
+export function currentAppetiteTone(
+  riskVersion: number,
+  assessment: RiskAssessment | undefined,
+  activeAppetite: RiskAppetiteStatement | undefined,
+): StatusTone {
+  if (!assessment || assessment.risk_version !== riskVersion) return "unknown";
+  if (!assessment.appetite_statement_id || !activeAppetite || assessment.appetite_statement_id !== activeAppetite.id) return "unknown";
+  return appetiteTone(assessment.appetite_position);
 }
 
 export function assessmentKindLabel(kind: RiskAssessmentKind): string {

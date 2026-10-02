@@ -65,6 +65,7 @@ const aggregate: RiskAggregate = {
   risk,
   assessments: [assessment],
   appetite: [appetite],
+  active_appetite: appetite,
 };
 
 it("renders a bounded Risk register with working-language appetite state", async () => {
@@ -138,6 +139,18 @@ it("does not present a stale assessment as the current appetite position", async
 
   render(<RiskRecord riskID="risk-1" onBack={vi.fn()} loadRisk={vi.fn().mockResolvedValue({ ...aggregate, risk: { ...risk, version: 4 } })}/>);
   expect((await screen.findAllByText("Reassessment needed")).length).toBeGreaterThan(0);
+});
+
+it("does not keep a recorded breach current after its appetite expires", async () => {
+  const expiredPage: RiskPage = {
+    items: [{ risk, latest_assessment: assessment }],
+  };
+  render(<RiskRegister onOpenRisk={vi.fn()} loadPage={vi.fn().mockResolvedValue(expiredPage)}/>);
+  expect(await screen.findByText("No current appetite")).toBeTruthy();
+  expect(screen.queryByText("Outside appetite")).toBeNull();
+
+  render(<RiskRecord riskID="risk-1" onBack={vi.fn()} loadRisk={vi.fn().mockResolvedValue({ ...aggregate, active_appetite: undefined })}/>);
+  expect((await screen.findAllByText("No current appetite")).length).toBeGreaterThan(0);
 });
 
 it("keeps a cross-scope or missing Risk non-disclosing", async () => {

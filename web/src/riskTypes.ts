@@ -72,4 +72,5 @@ export type RiskAggregate = {
   risk: RiskRecord;
   assessments: RiskAssessment[];
   appetite: RiskAppetiteStatement[];
+  active_appetite?: RiskAppetiteStatement;
 };

@@ -102,8 +102,8 @@ export function RiskRegister({ organizationName, legalEntityName, onOpenRisk, lo
       id: "appetite",
       header: "Appetite",
       kind: "status",
-      render: (item) => <StatusBadge tone={currentAppetiteTone(item.risk.version, item.latest_assessment)}>{currentAppetiteLabel(item.risk.version, item.latest_assessment, Boolean(item.active_appetite))}</StatusBadge>,
-      accessibleText: (item) => currentAppetiteLabel(item.risk.version, item.latest_assessment, Boolean(item.active_appetite)),
+      render: (item) => <StatusBadge tone={currentAppetiteTone(item.risk.version, item.latest_assessment, item.active_appetite)}>{currentAppetiteLabel(item.risk.version, item.latest_assessment, item.active_appetite)}</StatusBadge>,
+      accessibleText: (item) => currentAppetiteLabel(item.risk.version, item.latest_assessment, item.active_appetite),
     },
     {
       id: "assessment",
@@ -160,7 +160,7 @@ export function RiskRegister({ organizationName, legalEntityName, onOpenRisk, lo
       ariaLabel="Risk register"
       rows={page.items}
       rowKey={(item) => item.risk.id}
-      rowName={(item) => `${item.risk.name}, ${item.risk.code}, ${currentAppetiteLabel(item.risk.version, item.latest_assessment, Boolean(item.active_appetite))}`}
+      rowName={(item) => `${item.risk.name}, ${item.risk.code}, ${currentAppetiteLabel(item.risk.version, item.latest_assessment, item.active_appetite)}`}
       columns={columns}
       onRowAction={(item) => onOpenRisk(item.risk.id)}
       rowActionLabel="Open risk"
