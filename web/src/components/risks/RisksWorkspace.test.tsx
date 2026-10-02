@@ -180,7 +180,7 @@ it("shows linked controls from Program truth and opens the existing safeguard wo
   expect(within(controls).getByText("Quarterly recovery exercise")).toBeTruthy();
   expect(within(controls).getByText("Implemented")).toBeTruthy();
   expect(within(controls).getByText("Jordan Ellis")).toBeTruthy();
-  expect(within(controls).getByText("1 active check · Supported")).toBeTruthy();
+  expect(within(controls).getByText("1 active check · 1 supported")).toBeTruthy();
 
   fireEvent.click(within(controls).getByRole("button", { name: /Open control for Network recovery testing/ }));
   expect(onOpenProgramControl).toHaveBeenCalledWith("program-1", "objective-1");
