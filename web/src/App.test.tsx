@@ -236,7 +236,7 @@ describe("legal entity scope selector", () => {
     fireEvent.click(await screen.findByRole("option", { name: /Clear Bank Ghana/ }));
 
     await waitFor(() => expect(switchLegalEntity).toHaveBeenCalledWith("entity-gh-uuid"));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Legal entity could not be changed. Try again.");
+    expect((await screen.findByRole("alert")).textContent).toContain("Legal entity could not be changed. Try again.");
     expect(screen.getByRole("button", { name: /Legal entity/ }).textContent).toContain("Clear Bank Nigeria");
   });
 });
