@@ -126,6 +126,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	}
 	reportingRepository := reporting.NewMemoryRepository()
 	reportingService := reporting.NewService(reportingRepository, store, authorityService)
+	monitoringEpisodes := &monitoring.AdverseEpisodeCoordinator{Repository: monitoringRepo, Continuity: continuityService}
 	riskService := risk.NewService(risk.NewMemoryRepository())
 	controlCatalogService := controlcatalog.NewService(controlcatalog.NewMemoryRepository())
 	configureRiskControlCatalog(riskService, controlCatalogService)
@@ -200,7 +201,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		FormPolicies: formPolicies,
-		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdparty.NewMemoryActivationRepository(thirdPartyRepo), ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, ControlCatalog: controlCatalogService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService,
+		ObjectStore:  store, Monitoring: monitoringService, MonitoringEpisodes: monitoringEpisodes, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdparty.NewMemoryActivationRepository(thirdPartyRepo), ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, ControlCatalog: controlCatalogService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports, People: people.NewService(people.NewMemoryRepository()), Close: func() {},
 		RuntimeContext: runtimecontext.IdentifierResolver{},
