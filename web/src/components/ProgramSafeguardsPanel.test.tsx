@@ -7,8 +7,14 @@ import {
   retireProgramRequirementControlLink,
   transitionProgramControlImplementation,
 } from "../programOperationsApi";
+import { listControlCatalogCandidates, promoteProgramControl } from "../controlCatalogApi";
 import type { ProgramAggregate } from "../types";
 import { ProgramSafeguardsPanel } from "./ProgramSafeguardsPanel";
+
+vi.mock("../controlCatalogApi", () => ({
+  listControlCatalogCandidates: vi.fn(),
+  promoteProgramControl: vi.fn(),
+}));
 
 vi.mock("../programOperationsApi", () => ({
   addProgramControlImplementation: vi.fn(),
@@ -20,7 +26,10 @@ vi.mock("../programOperationsApi", () => ({
   retireProgramRequirementControlLink: vi.fn(),
 }));
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(listControlCatalogCandidates).mockResolvedValue({ items: [], complete: true });
+});
 
 it("shows the stored safeguard owner label without exposing its principal ID", () => {
   const aggregate = {
@@ -89,4 +98,41 @@ it("creates safeguards as planned work and exposes governed maintenance actions"
   expect(screen.getByRole("button", { name: "Edit Annual return checklist" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Change Annual return checklist owner" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Change Annual return checklist status" })).toBeTruthy();
+});
+
+
+it("promotes an eligible safeguard into reusable controls and does not offer it twice", async () => {
+  const aggregate = {
+    program: { id: "program-1", version: 4 }, requirements: [],
+    control_objectives: [{ id: "objective-1", code: "OBJ-1", name: "Reliable filing", outcome: "Returns are filed on time.", status: "ACTIVE" }],
+    control_implementations: [{ id: "safeguard-1", objective_id: "objective-1", name: "Annual return checklist", description: "Confirm every filing section.", implementation_type: "CHECKLIST", status: "IMPLEMENTED", version: 2 }],
+    requirement_control_links: [],
+  } as unknown as ProgramAggregate;
+  const operations = [{ command: "program.safeguard.define", label: "Define safeguards", responsibility: "OWNER", can_act: true, reason: "You own this Program." }];
+  vi.mocked(promoteProgramControl).mockResolvedValue({
+    definition: { id: "definition-1", code: "OBJ-1", name: "Reliable filing", objective: "Returns are filed on time.", description: "", category: "", status: "ACTIVE", version: 1 },
+    implementation_link: { id: "catalog-link-1", definition_id: "definition-1", program_id: "program-1", implementation_id: "safeguard-1" },
+  });
+
+  render(<ProgramSafeguardsPanel aggregate={aggregate} operations={operations} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+  const action = await screen.findByRole("button", { name: "Add Annual return checklist to reusable controls" });
+  fireEvent.click(action);
+
+  await waitFor(() => expect(promoteProgramControl).toHaveBeenCalledWith("program-1", "safeguard-1", 4));
+  expect(await screen.findByText("Reusable control")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Add Annual return checklist to reusable controls" })).toBeNull();
+});
+
+it("does not offer catalog changes when reusable-control status cannot be verified", async () => {
+  vi.mocked(listControlCatalogCandidates).mockRejectedValueOnce(new Error("unavailable"));
+  const aggregate = {
+    program: { id: "program-1", version: 4 }, requirements: [],
+    control_objectives: [{ id: "objective-1", code: "OBJ-1", name: "Reliable filing", outcome: "Returns are filed on time.", status: "ACTIVE" }],
+    control_implementations: [{ id: "safeguard-1", objective_id: "objective-1", name: "Annual return checklist", description: "Confirm every filing section.", status: "IMPLEMENTED" }],
+    requirement_control_links: [],
+  } as unknown as ProgramAggregate;
+  render(<ProgramSafeguardsPanel aggregate={aggregate} operations={[{ command: "program.safeguard.define", label: "Define", responsibility: "OWNER", can_act: true, reason: "" }]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Reusable control status is unavailable");
+  expect(screen.queryByRole("button", { name: "Add Annual return checklist to reusable controls" })).toBeNull();
 });
