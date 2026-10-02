@@ -382,13 +382,17 @@ func latestApplicableAppetite(values []AppetiteStatement, at time.Time) *Appetit
 	var selected *AppetiteStatement
 	for i := range values {
 		value := values[i]
-		if value.Status != AppetiteActive || !statementAppliesAt(value, at) {
+		if at.Before(value.EffectiveFrom) {
 			continue
 		}
 		if selected == nil || value.Version > selected.Version {
 			copy := value
 			selected = &copy
 		}
+	}
+	if selected == nil || selected.Status != AppetiteActive ||
+		(selected.EffectiveUntil != nil && !at.Before(*selected.EffectiveUntil)) {
+		return nil
 	}
 	return selected
 }
