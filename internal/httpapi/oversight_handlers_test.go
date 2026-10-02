@@ -74,7 +74,6 @@ func TestOversightRecoveryDescribesUnavailableAndUncalculatedStates(t *testing.T
 	}
 }
 
-
 func TestOversightAcceptsBoundedCurrentReportingPeriod(t *testing.T) {
 	now := time.Date(2026, 10, 2, 15, 30, 0, 0, time.UTC)
 	repo := oversight.NewMemoryRepository(nil).WithPeriodBuilder(func(_ context.Context, scope oversight.Scope, start, end time.Time) (oversight.Snapshot, error) {
