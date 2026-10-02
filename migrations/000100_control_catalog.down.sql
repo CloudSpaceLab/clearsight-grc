@@ -10,6 +10,10 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS risk_control_links_immutable ON risk_control_links;
+DROP TRIGGER IF EXISTS control_catalog_links_immutable ON control_catalog_implementation_links;
+DROP TRIGGER IF EXISTS control_definitions_immutable ON control_definitions;
+DROP FUNCTION IF EXISTS protect_control_catalog_immutable();
 DROP TABLE IF EXISTS risk_control_links;
 DROP TABLE IF EXISTS control_catalog_implementation_links;
 DROP TABLE IF EXISTS control_definitions;
