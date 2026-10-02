@@ -266,12 +266,10 @@ func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFil
 			continue
 		}
 		if filter.AppetitePosition != "" {
-			currentPosition := AppetiteUnknown
-			latest := latestAssessment(r.assessments[riskKey(value.TenantID, value.LegalEntityID, value.ID)])
-			if latest != nil && latest.RiskVersion == value.Version {
-				currentPosition = latest.AppetitePosition
-			}
-			if currentPosition != filter.AppetitePosition {
+			key := riskKey(value.TenantID, value.LegalEntityID, value.ID)
+			latest := latestAssessment(r.assessments[key])
+			active := latestAppetite(r.appetite[key], filter.AsOf)
+			if effectiveAppetitePosition(value, latest, active) != filter.AppetitePosition {
 				continue
 			}
 		}
@@ -324,6 +322,19 @@ func riskMatches(value Risk, query string) bool {
 		strings.Contains(strings.ToLower(value.Category), query) ||
 		strings.Contains(strings.ToLower(value.Statement), query) ||
 		strings.Contains(strings.ToLower(value.Impact), query)
+}
+
+func effectiveAppetitePosition(value Risk, assessment *Assessment, active *AppetiteStatement) AppetitePosition {
+	if assessment == nil || assessment.RiskVersion != value.Version {
+		return AppetiteUnknown
+	}
+	if assessment.AppetiteStatementID == "" {
+		return AppetiteUnknown
+	}
+	if active == nil || assessment.AppetiteStatementID != active.ID {
+		return AppetiteUnknown
+	}
+	return assessment.AppetitePosition
 }
 
 func latestAssessment(values []Assessment) *Assessment {

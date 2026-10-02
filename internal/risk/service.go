@@ -225,7 +225,11 @@ func (s *Service) Get(ctx context.Context, scope Scope, riskID string) (Aggregat
 	if err != nil {
 		return Aggregate{}, err
 	}
-	return Aggregate{Risk: current, Assessments: assessments, Appetite: appetite}, nil
+	activeAppetite, err := s.repository.CurrentAppetite(ctx, scope, current.ID, s.now())
+	if err != nil {
+		return Aggregate{}, err
+	}
+	return Aggregate{Risk: current, Assessments: assessments, Appetite: appetite, ActiveAppetite: activeAppetite}, nil
 }
 
 func (s *Service) List(ctx context.Context, scope Scope, filter ListFilter) (Page, error) {

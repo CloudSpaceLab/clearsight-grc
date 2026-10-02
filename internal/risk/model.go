@@ -106,9 +106,10 @@ type Page struct {
 }
 
 type Aggregate struct {
-	Risk        Risk                `json:"risk"`
-	Assessments []Assessment        `json:"assessments"`
-	Appetite    []AppetiteStatement `json:"appetite"`
+	Risk           Risk                `json:"risk"`
+	Assessments    []Assessment        `json:"assessments"`
+	Appetite       []AppetiteStatement `json:"appetite"`
+	ActiveAppetite *AppetiteStatement  `json:"active_appetite,omitempty"`
 }
 
 type Event struct {

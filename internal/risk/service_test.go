@@ -112,6 +112,63 @@ func TestExpiredNewerAppetiteDoesNotReactivateOlderStatement(t *testing.T) {
 	}
 }
 
+func TestExpiredAppetiteMakesRecordedPositionCurrentlyUnknown(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(NewMemoryRepository())
+	now := time.Date(2026, 10, 2, 9, 30, 0, 0, time.UTC)
+	service.Now = func() time.Time { return now }
+	created := createTestRisk(t, service, ctx, "bank", "entity-a", "RISK-TIMED")
+	until := now.Add(2 * time.Minute)
+	withAppetite, appetite, err := service.ActivateAppetite(ctx, AppetiteInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID, ExpectedRiskVersion: created.Version,
+		Statement: "Keep disruption below 30 minutes.", Rule: json.RawMessage(`{"max_minutes":30}`),
+		ActorID: "cro-1", EffectiveFrom: now.Add(-time.Minute), EffectiveUntil: &until,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(time.Minute)
+	assessed, _, err := service.AddAssessment(ctx, AssessmentInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID, ExpectedRiskVersion: withAppetite.Version,
+		Kind: AssessmentResidual, MethodCode: "QUAL-5X5", MethodVersion: "v1",
+		Dimensions: json.RawMessage(`{"likelihood":4,"impact":5}`), AppetiteStatementID: appetite.ID,
+		AppetitePosition: AppetiteBreached, ActorID: "reviewer-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	breached, err := service.List(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, ListFilter{
+		AppetitePosition: AppetiteBreached, Limit: 10,
+	})
+	if err != nil || len(breached.Items) != 1 {
+		t.Fatalf("current breached posture missing: page=%#v err=%v", breached, err)
+	}
+
+	now = until.Add(time.Minute)
+	unknown, err := service.List(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, ListFilter{
+		AppetitePosition: AppetiteUnknown, Limit: 10,
+	})
+	if err != nil || len(unknown.Items) != 1 || unknown.Items[0].Risk.ID != assessed.ID {
+		t.Fatalf("expired appetite was not UNKNOWN: page=%#v err=%v", unknown, err)
+	}
+	breached, err = service.List(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, ListFilter{
+		AppetitePosition: AppetiteBreached, Limit: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(breached.Items) != 0 {
+		t.Fatalf("expired appetite retained breached posture: %#v", breached.Items)
+	}
+	aggregate, err := service.Get(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, assessed.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aggregate.ActiveAppetite != nil {
+		t.Fatalf("expired appetite returned as active: %#v", aggregate.ActiveAppetite)
+	}
+}
+
 func TestAssessmentWithoutAppetiteIsExplicitlyUnknown(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(NewMemoryRepository())
