@@ -38,16 +38,23 @@ func TestPostgresRiskLifecycleIsScopedVersionedAndAtomic(t *testing.T) {
 	now := time.Date(2026, 10, 2, 9, 0, 0, 0, time.UTC)
 
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,$3);
+		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,$3)
+	`, tenantID, "risk-"+suffix, "Risk Test "+suffix); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES
-			($4::uuid,$1::uuid,$5,'Risk Entity A','NG',$10),
-			($6::uuid,$1::uuid,$7,'Risk Entity B','GH',$10);
+			($1::uuid,$2::uuid,$3,'Risk Entity A','NG',$6),
+			($4::uuid,$2::uuid,$5,'Risk Entity B','GH',$6)
+	`, entityA, tenantID, entityACode, entityB, entityBCode, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
 		INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
-			($8::uuid,$1::uuid,'PERSON','Risk owner','ACTIVE',$10),
-			($9::uuid,$1::uuid,'PERSON','Risk reviewer','ACTIVE',$10),
-			($11::uuid,$1::uuid,'PERSON','Risk authorizer','ACTIVE',$10)
-	`, tenantID, "risk-"+suffix, "Risk Test "+suffix,
-		entityA, entityACode, entityB, entityBCode, ownerID, reviewerID, now.Add(-time.Hour), authorizerID); err != nil {
+			($1::uuid,$2::uuid,'PERSON','Risk owner','ACTIVE',$5),
+			($3::uuid,$2::uuid,'PERSON','Risk reviewer','ACTIVE',$5),
+			($4::uuid,$2::uuid,'PERSON','Risk authorizer','ACTIVE',$5)
+	`, ownerID, tenantID, reviewerID, authorizerID, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 
