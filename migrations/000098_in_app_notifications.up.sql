@@ -22,7 +22,6 @@ CREATE TABLE in_app_notifications (
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     UNIQUE (tenant_id, outbox_event_id, principal_id, notification_kind),
     FOREIGN KEY (legal_entity_id, tenant_id) REFERENCES legal_entities(id, tenant_id),
-    FOREIGN KEY (outbox_event_id, tenant_id) REFERENCES outbox_events(id, tenant_id) ON DELETE CASCADE,
     FOREIGN KEY (principal_id, tenant_id) REFERENCES principals(id, tenant_id),
     CHECK (read_at IS NULL OR read_at >= occurred_at)
 );
