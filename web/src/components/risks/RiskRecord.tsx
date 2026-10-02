@@ -67,7 +67,7 @@ export function RiskRecord({ riskID, onBack, loadRisk = getRisk }: Props) {
     </header>
 
     <Surface>
-      <dl className="risk-record__state">
+      <dl className="risk-record__state" role="group" aria-label="Current risk state">
         <div><dt>Appetite</dt><dd><StatusBadge tone={currentAppetiteTone(risk.version, latestAssessment, value.active_appetite)}>{currentAppetiteLabel(risk.version, latestAssessment, value.active_appetite)}</StatusBadge></dd></div>
         <div><dt>Status</dt><dd><StatusBadge tone={riskStatusTone(risk.status)}>{riskStatusLabel(risk.status)}</StatusBadge></dd></div>
         <div><dt>Owner</dt><dd>{risk.owner_principal_id ? "Assigned" : "Not assigned"}</dd></div>

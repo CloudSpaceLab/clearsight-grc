@@ -134,11 +134,14 @@ it("does not present a stale assessment as the current appetite position", async
   };
   render(<RiskRegister onOpenRisk={vi.fn()} loadPage={vi.fn().mockResolvedValue(stalePage)}/>);
 
-  expect(await screen.findByText("Reassessment needed")).toBeTruthy();
-  expect(screen.queryByText("Outside appetite")).toBeNull();
+  const register = await screen.findByRole("table", { name: "Risk register" });
+  expect(within(register).getByText("Reassessment needed")).toBeTruthy();
+  expect(within(register).queryByText("Outside appetite")).toBeNull();
 
   render(<RiskRecord riskID="risk-1" onBack={vi.fn()} loadRisk={vi.fn().mockResolvedValue({ ...aggregate, risk: { ...risk, version: 4 } })}/>);
-  expect((await screen.findAllByText("Reassessment needed")).length).toBeGreaterThan(0);
+  const currentState = await screen.findByRole("group", { name: "Current risk state" });
+  expect(within(currentState).getByText("Reassessment needed")).toBeTruthy();
+  expect(within(currentState).queryByText("Outside appetite")).toBeNull();
 });
 
 it("does not keep a recorded breach current after its appetite expires", async () => {
@@ -146,11 +149,14 @@ it("does not keep a recorded breach current after its appetite expires", async (
     items: [{ risk, latest_assessment: assessment }],
   };
   render(<RiskRegister onOpenRisk={vi.fn()} loadPage={vi.fn().mockResolvedValue(expiredPage)}/>);
-  expect(await screen.findByText("No current appetite")).toBeTruthy();
-  expect(screen.queryByText("Outside appetite")).toBeNull();
+  const register = await screen.findByRole("table", { name: "Risk register" });
+  expect(within(register).getByText("No current appetite")).toBeTruthy();
+  expect(within(register).queryByText("Outside appetite")).toBeNull();
 
   render(<RiskRecord riskID="risk-1" onBack={vi.fn()} loadRisk={vi.fn().mockResolvedValue({ ...aggregate, active_appetite: undefined })}/>);
-  expect((await screen.findAllByText("No current appetite")).length).toBeGreaterThan(0);
+  const currentState = await screen.findByRole("group", { name: "Current risk state" });
+  expect(within(currentState).getByText("No current appetite")).toBeTruthy();
+  expect(within(currentState).queryByText("Outside appetite")).toBeNull();
 });
 
 it("keeps a cross-scope or missing Risk non-disclosing", async () => {
