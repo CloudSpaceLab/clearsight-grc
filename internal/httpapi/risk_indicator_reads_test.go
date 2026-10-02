@@ -91,7 +91,7 @@ func TestRiskIndicatorReadIncludesVisibleOpenMonitoringMatter(t *testing.T) {
 		BindingID: "binding-1", BindingVersion: 1, Thresholds: monitoring.DefaultThresholds(),
 		FreshnessMinutes: 60, MinimumCoverage: 0.95, OwnerPrincipalID: "owner-1", ReviewerPrincipalID: "reviewer-1",
 		FailureAction: monitoring.FailureRecommendMatter,
-		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 2, CreatedAt: now, UpdatedAt: now},
+		Lifecycle:     monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 2, CreatedAt: now, UpdatedAt: now},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -101,15 +101,15 @@ func TestRiskIndicatorReadIncludesVisibleOpenMonitoringMatter(t *testing.T) {
 		ID: "result-1", TenantID: "bank", ProgramID: program.Program.ID,
 		MonitoringCheckID: check.ID, MonitoringCheckVersion: check.Version,
 		InputKind: monitoring.InputSource, InputReferenceID: "receipt-1", InputReferenceVersion: 1,
-		Evaluation: monitoring.Evaluation{Score: &score, Band: monitoring.RiskCritical, Coverage: 1},
+		Evaluation:  monitoring.Evaluation{Score: &score, Band: monitoring.RiskCritical, Coverage: 1},
 		EvaluatedAt: now, EvaluatorVersion: "risk-v1", CreatedAt: now,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	payload, err := json.Marshal(map[string]any{
-		"monitoring_result_id": result.ID,
-		"monitoring_check_id": check.ID,
+		"monitoring_result_id":     result.ID,
+		"monitoring_check_id":      check.ID,
 		"monitoring_check_version": check.Version,
 	})
 	if err != nil {
