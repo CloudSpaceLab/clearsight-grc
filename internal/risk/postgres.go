@@ -35,8 +35,8 @@ func (r *PostgresRepository) Create(ctx context.Context, value Risk, event Event
 		INSERT INTO risks(
 			id,tenant_id,legal_entity_id,code,name,category,statement,cause,event,impact,scope,
 			owner_principal_id,status,version,created_at,updated_at)
-		SELECT $3::uuid,t.id,le.id,$4,$5,$6,$7,$8,$9,$10,$11,
-		       NULLIF($12,'')::uuid,$13,$14,$15,$16
+		SELECT $3::uuid,t.id,le.id,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::jsonb,
+		       NULLIF($12::text,'')::uuid,$13::text,$14::bigint,$15::timestamptz,$16::timestamptz
 		FROM tenants t
 		JOIN legal_entities le ON le.tenant_id=t.id
 		WHERE (t.id::text=$1 OR t.slug=$1)
