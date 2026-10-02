@@ -23,7 +23,7 @@ func TestNotificationRoutesBindVerifiedActorAndReadState(t *testing.T) {
 		{ID: "10000000-0000-4000-8000-000000000003", Kind: "MATTER_OWNER_ASSIGNED", Title: "Sibling entity", SubjectType: "MATTER", SubjectID: "20000000-0000-4000-8000-000000000003", ActionPath: "#work/matters/20000000-0000-4000-8000-000000000003", OccurredAt: at.Add(2 * time.Minute), TenantID: "bank", LegalEntityID: "entity-b", PrincipalID: "person-a", OutboxEventID: "10000000-0000-4000-8000-000000000003"},
 	})
 	handler := New(Dependencies{
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Identity: identity.NewDevelopmentAuthenticator("bank", "person-a", "entity-a"),
 		Workflow: workflow.NewService(repo),
 	})
@@ -68,7 +68,7 @@ func TestNotificationRoutesBindVerifiedActorAndReadState(t *testing.T) {
 
 func TestNotificationRoutesRejectInvalidFilters(t *testing.T) {
 	handler := New(Dependencies{
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Identity: identity.NewDevelopmentAuthenticator("bank", "person-a", "entity-a"),
 		Workflow: workflow.NewService(workflow.NewMemoryRepository(nil)),
 	})
