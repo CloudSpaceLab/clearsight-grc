@@ -296,13 +296,20 @@ func (r *PostgresRepository) CurrentAppetite(ctx context.Context, scope Scope, r
 		FROM risk_appetite_statements a
 		JOIN tenants t ON t.id=a.tenant_id
 		JOIN legal_entities le ON le.tenant_id=a.tenant_id AND le.id=a.legal_entity_id
-		WHERE (t.id::text=$1 OR t.slug=$1)
-		  AND (le.id::text=$2 OR le.code=$2)
-		  AND a.risk_id=$3::uuid
+		WHERE a.id=(
+			SELECT latest.id
+			FROM risk_appetite_statements latest
+			JOIN tenants lt ON lt.id=latest.tenant_id
+			JOIN legal_entities lle ON lle.tenant_id=latest.tenant_id AND lle.id=latest.legal_entity_id
+			WHERE (lt.id::text=$1 OR lt.slug=$1)
+			  AND (lle.id::text=$2 OR lle.code=$2)
+			  AND latest.risk_id=$3::uuid
+			  AND latest.effective_from<=$4
+			ORDER BY latest.version DESC,latest.id DESC
+			LIMIT 1
+		)
 		  AND a.status='ACTIVE'
-		  AND a.effective_from<=$4
 		  AND (a.effective_until IS NULL OR $4<a.effective_until)
-		ORDER BY a.version DESC,a.id DESC
 		LIMIT 1`, scope.TenantID, scope.LegalEntityID, riskID, at.UTC(),
 	).Scan(&value.ID,&value.RiskID,&value.RiskVersion,&value.Version,&value.Statement,&value.Rule,
 		&value.Rationale,&value.OwnerPrincipalID,&value.AuthorityPrincipalID,&value.Status,
