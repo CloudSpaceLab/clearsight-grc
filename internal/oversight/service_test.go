@@ -51,7 +51,6 @@ func TestServiceDoesNotSubstituteMetricsWhenProjectionIsMissing(t *testing.T) {
 	}
 }
 
-
 func TestServiceBuildsBoundedCurrentWindowWithoutChangingPostureMeaning(t *testing.T) {
 	now := time.Date(2026, 10, 2, 15, 30, 0, 0, time.UTC)
 	var gotStart, gotEnd time.Time
