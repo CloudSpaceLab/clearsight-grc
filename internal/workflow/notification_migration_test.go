@@ -15,7 +15,6 @@ func TestInAppNotificationMigrationKeepsDeliveryMetadataActorScoped(t *testing.T
 	for _, required := range []string{
 		"UNIQUE (TENANT_ID, OUTBOX_EVENT_ID, PRINCIPAL_ID, NOTIFICATION_KIND)",
 		"FOREIGN KEY (LEGAL_ENTITY_ID, TENANT_ID) REFERENCES LEGAL_ENTITIES(ID, TENANT_ID)",
-		"FOREIGN KEY (OUTBOX_EVENT_ID, TENANT_ID) REFERENCES OUTBOX_EVENTS(ID, TENANT_ID)",
 		"FOREIGN KEY (PRINCIPAL_ID, TENANT_ID) REFERENCES PRINCIPALS(ID, TENANT_ID)",
 		"IN_APP_NOTIFICATIONS_ACTOR_RECENT_IDX",
 		"IN_APP_NOTIFICATIONS_ACTOR_UNREAD_IDX",
@@ -31,6 +30,8 @@ func TestInAppNotificationMigrationKeepsDeliveryMetadataActorScoped(t *testing.T
 		"MESSAGE_BODY",
 		"EVIDENCE_PAYLOAD",
 		"UNIQUE (OUTBOX_EVENT_ID, PRINCIPAL_ID, NOTIFICATION_KIND)",
+		"FOREIGN KEY (OUTBOX_EVENT_ID, TENANT_ID) REFERENCES OUTBOX_EVENTS",
+		"ON DELETE CASCADE",
 	} {
 		if strings.Contains(sql, prohibited) {
 			t.Fatalf("in-app notification migration contains unsafe or unscoped field %q", prohibited)
